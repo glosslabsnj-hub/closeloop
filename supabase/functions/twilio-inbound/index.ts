@@ -304,21 +304,23 @@ serve(async (req) => {
     // Build dynamic variables according to contract
     const hoursToday = getTodayHours(tenant.hours_json as Record<string, unknown> | null);
     
-    const dynamicVariables: Record<string, unknown> = {
+    // ElevenLabs only accepts primitive types (string, number, boolean) for dynamic_variables
+    // Arrays and objects must be converted to strings
+    const dynamicVariables: Record<string, string | number | boolean | null> = {
       // Required fields
       tenant_id: tenantId,
       business_name: tenant.name || "Our Business",
       business_mode: businessMode,
-      enabled_modules: enabledModules,
+      enabled_modules: enabledModules.join(","), // Convert array to comma-separated string
       hipaa_mode: hipaaMode,
       caller_phone: fromNumber,
       hours_today: hoursToday,
       
-      // Conditional fields
-      booking_link: bookingLink,
-      service_summary: serviceSummary,
-      menu_summary: menuSummary,
-      policies_summary: policiesSummary,
+      // Conditional fields (all must be strings or null)
+      booking_link: bookingLink || "",
+      service_summary: serviceSummary || "",
+      menu_summary: menuSummary || "",
+      policies_summary: policiesSummary || "",
       
       // Scripts from ai_assistants table
       greeting_script: assistant?.greeting_script || "",
