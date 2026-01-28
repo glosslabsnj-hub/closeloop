@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,68 +10,53 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Phone, Building2, Clock, Bot, CheckCircle2, Loader2, ArrowRight, ArrowLeft } from "lucide-react";
-import type { IndustryType } from "@/types/database";
-
-const industries: { value: IndustryType; label: string }[] = [
-  { value: "detailing", label: "Auto Detailing" },
-  { value: "hvac", label: "HVAC" },
-  { value: "plumber", label: "Plumbing" },
-  { value: "medspa", label: "Med Spa" },
-  { value: "dental", label: "Dental" },
-  { value: "other", label: "Other" },
-];
-
-const defaultServices: Record<IndustryType, { name: string; duration: number; price: number }[]> = {
-  detailing: [
-    { name: "Basic Wash", duration: 60, price: 50 },
-    { name: "Full Detail", duration: 180, price: 200 },
-    { name: "Ceramic Coating", duration: 480, price: 800 },
-  ],
-  hvac: [
-    { name: "AC Tune-Up", duration: 60, price: 99 },
-    { name: "Furnace Inspection", duration: 60, price: 89 },
-    { name: "Full System Service", duration: 120, price: 199 },
-  ],
-  plumber: [
-    { name: "Drain Cleaning", duration: 60, price: 149 },
-    { name: "Water Heater Repair", duration: 120, price: 299 },
-    { name: "Leak Detection", duration: 60, price: 99 },
-  ],
-  medspa: [
-    { name: "Botox", duration: 30, price: 350 },
-    { name: "Facial", duration: 60, price: 150 },
-    { name: "Laser Treatment", duration: 45, price: 400 },
-  ],
-  dental: [
-    { name: "Cleaning", duration: 60, price: 150 },
-    { name: "Whitening", duration: 90, price: 400 },
-    { name: "Consultation", duration: 30, price: 75 },
-  ],
-  other: [
-    { name: "Standard Service", duration: 60, price: 100 },
-    { name: "Premium Service", duration: 120, price: 200 },
-    { name: "Consultation", duration: 30, price: 50 },
-  ],
-};
+import { Building2, Clock, Zap, CheckCircle2, Loader2, ArrowRight, ArrowLeft, Sparkles, Calendar } from "lucide-react";
+import { industryConfigs, industryOptions, ServiceTemplate, ExtendedIndustryType } from "@/data/industryTemplates";
+import ServiceEditor from "@/components/onboarding/ServiceEditor";
+import BusinessHoursEditor, { BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
 
 const timezones = [
-  { value: "America/New_York", label: "Eastern Time" },
-  { value: "America/Chicago", label: "Central Time" },
-  { value: "America/Denver", label: "Mountain Time" },
-  { value: "America/Los_Angeles", label: "Pacific Time" },
+  { value: "America/New_York", label: "Eastern Time (ET)" },
+  { value: "America/Chicago", label: "Central Time (CT)" },
+  { value: "America/Denver", label: "Mountain Time (MT)" },
+  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
+  { value: "America/Anchorage", label: "Alaska Time (AKT)" },
+  { value: "Pacific/Honolulu", label: "Hawaii Time (HT)" },
 ];
+
+const defaultBusinessHours: BusinessHours = {
+  monday: { open: "09:00", close: "17:00", closed: false },
+  tuesday: { open: "09:00", close: "17:00", closed: false },
+  wednesday: { open: "09:00", close: "17:00", closed: false },
+  thursday: { open: "09:00", close: "17:00", closed: false },
+  friday: { open: "09:00", close: "17:00", closed: false },
+  saturday: { open: "10:00", close: "14:00", closed: false },
+  sunday: { open: "00:00", close: "00:00", closed: true },
+};
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [businessName, setBusinessName] = useState("");
-  const [industry, setIndustry] = useState<IndustryType>("detailing");
-  const [timezone, setTimezone] = useState("America/New_York");
-  const [services, setServices] = useState(defaultServices.detailing);
-  const [aiEnabled, setAiEnabled] = useState(true);
-  const [aiGreeting, setAiGreeting] = useState("Hi, thank you for calling! How can I help you today?");
   
+  // Step 1: Business Info
+  const [businessName, setBusinessName] = useState("");
+  const [industry, setIndustry] = useState<ExtendedIndustryType>("detailing");
+  const [customIndustry, setCustomIndustry] = useState("");
+  const [timezone, setTimezone] = useState("America/New_York");
+  
+  // Step 2: Services
+  const [services, setServices] = useState<ServiceTemplate[]>(industryConfigs.detailing.services);
+  
+  // Step 3: Business Hours
+  const [businessHours, setBusinessHours] = useState<BusinessHours>(defaultBusinessHours);
+  
+  // Step 4: Automations
+  const [automations, setAutomations] = useState({
+    missedCall: true,
+    bookingConfirmation: true,
+    noReply24h: true,
+  });
+
   const { user, refreshTenant } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -79,37 +64,66 @@ export default function OnboardingPage() {
   const totalSteps = 5;
   const progress = (step / totalSteps) * 100;
 
-  const handleIndustryChange = (value: IndustryType) => {
+  // Update services when industry changes
+  useEffect(() => {
+    setServices(industryConfigs[industry].services);
+  }, [industry]);
+
+  const handleIndustryChange = (value: ExtendedIndustryType) => {
     setIndustry(value);
-    setServices(defaultServices[value]);
+    if (value !== "other") {
+      setCustomIndustry("");
+    }
   };
 
+  const canProceedStep1 = businessName.trim().length > 0 && 
+    (industry !== "other" || customIndustry.trim().length > 0);
+  
+  const canProceedStep2 = services.length > 0 && 
+    services.every(s => s.name.trim().length > 0);
+
   const handleComplete = async () => {
-    if (!user) return;
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Not logged in",
+        description: "Please log in to complete setup.",
+      });
+      navigate("/login?redirect=/app/onboarding");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Create tenant
+      // Get context fields for this industry
+      const contextFields = industryConfigs[industry].contextFields;
+
+      // Create tenant - cast to any to handle new columns not yet in types
+      const tenantData = {
+        name: businessName,
+        industry: industry as any,
+        custom_industry: industry === "other" ? customIndustry : null,
+        timezone,
+        hours_json: businessHours as any,
+        context_fields_json: contextFields as any,
+        ai_enabled: false, // AI is now a premium feature
+      };
+
       const { data: tenant, error: tenantError } = await supabase
         .from("tenants")
-        .insert({
-          name: businessName,
-          industry,
-          timezone,
-          hours_json: {
-            monday: { open: "09:00", close: "17:00", closed: false },
-            tuesday: { open: "09:00", close: "17:00", closed: false },
-            wednesday: { open: "09:00", close: "17:00", closed: false },
-            thursday: { open: "09:00", close: "17:00", closed: false },
-            friday: { open: "09:00", close: "17:00", closed: false },
-            saturday: { open: "10:00", close: "14:00", closed: false },
-            sunday: { open: "00:00", close: "00:00", closed: true },
-          },
-        })
+        .insert(tenantData as any)
         .select()
         .single();
 
-      if (tenantError) throw tenantError;
+      if (tenantError) {
+        console.error("Tenant creation error:", tenantError);
+        throw new Error(tenantError.message || "Failed to create business profile");
+      }
+
+      if (!tenant) {
+        throw new Error("Failed to create business profile - no data returned");
+      }
 
       // Create tenant user
       const { error: tuError } = await supabase
@@ -120,56 +134,85 @@ export default function OnboardingPage() {
           role: "owner",
         });
 
-      if (tuError) throw tuError;
+      if (tuError) {
+        console.error("Tenant user creation error:", tuError);
+        throw new Error(tuError.message || "Failed to link user to business");
+      }
 
       // Create services
-      for (const service of services) {
-        await supabase.from("services").insert({
+      const servicesToInsert = services
+        .filter(s => s.name.trim().length > 0)
+        .map(service => ({
           tenant_id: tenant.id,
           name: service.name,
           duration_minutes: service.duration,
           price_amount: service.price,
-          price_type: "fixed",
+          price_type: service.priceType as "fixed" | "starting_at" | "quote_only",
           is_active: true,
-        });
+        }));
+
+      if (servicesToInsert.length > 0) {
+        const { error: servicesError } = await supabase
+          .from("services")
+          .insert(servicesToInsert);
+
+        if (servicesError) {
+          console.error("Services creation error:", servicesError);
+          // Non-fatal, continue
+        }
       }
 
-      // Create AI assistant if enabled
-      if (aiEnabled) {
-        await supabase.from("ai_assistants").insert({
-          tenant_id: tenant.id,
-          name: "AI Assistant",
-          tone: "friendly",
-          greeting_script: aiGreeting,
-          is_enabled: true,
-        });
+      // Create automations based on selections
+      const automationsToInsert = [];
 
-        await supabase.from("tenants").update({ ai_enabled: true }).eq("id", tenant.id);
-      }
-
-      // Create default automations
-      await supabase.from("automations").insert([
-        {
+      if (automations.missedCall) {
+        automationsToInsert.push({
           tenant_id: tenant.id,
           name: "Missed Call Follow-up",
-          trigger: "missed_call",
+          trigger: "missed_call" as const,
           is_enabled: true,
           steps_json: [
             { type: "send_message", body: "Hi! We noticed we missed your call. How can we help you today?" },
             { type: "wait_minutes", minutes: 10 },
             { type: "send_message", body: "We'd love to help! Would you like to schedule an appointment?" },
           ],
-        },
-        {
+        });
+      }
+
+      if (automations.bookingConfirmation) {
+        automationsToInsert.push({
           tenant_id: tenant.id,
-          name: "Booking Reminder",
-          trigger: "booking_created",
+          name: "Booking Confirmation",
+          trigger: "booking_created" as const,
           is_enabled: true,
           steps_json: [
             { type: "send_message", body: "Your appointment is confirmed! We'll see you soon." },
           ],
-        },
-      ]);
+        });
+      }
+
+      if (automations.noReply24h) {
+        automationsToInsert.push({
+          tenant_id: tenant.id,
+          name: "24h Follow-up",
+          trigger: "no_reply_24h" as const,
+          is_enabled: true,
+          steps_json: [
+            { type: "send_message", body: "Hi! Just following up on our conversation. Are you still interested in booking?" },
+          ],
+        });
+      }
+
+      if (automationsToInsert.length > 0) {
+        const { error: autoError } = await supabase
+          .from("automations")
+          .insert(automationsToInsert);
+
+        if (autoError) {
+          console.error("Automations creation error:", autoError);
+          // Non-fatal, continue
+        }
+      }
 
       await refreshTenant();
 
@@ -180,10 +223,11 @@ export default function OnboardingPage() {
 
       navigate("/app/dashboard");
     } catch (error: any) {
+      console.error("Onboarding error:", error);
       toast({
         variant: "destructive",
         title: "Error setting up business",
-        description: error.message,
+        description: error.message || "Something went wrong. Please try again.",
       });
     } finally {
       setLoading(false);
@@ -217,11 +261,13 @@ export default function OnboardingPage() {
                 <Label htmlFor="businessName">Business name</Label>
                 <Input
                   id="businessName"
-                  placeholder="Mike's Auto Detailing"
+                  placeholder="e.g., Mike's Auto Care"
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
+                  autoFocus
                 />
               </div>
+              
               <div className="space-y-2">
                 <Label>Industry</Label>
                 <Select value={industry} onValueChange={handleIndustryChange}>
@@ -229,14 +275,30 @@ export default function OnboardingPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {industries.map((ind) => (
+                    {industryOptions.map((ind) => (
                       <SelectItem key={ind.value} value={ind.value}>
-                        {ind.label}
+                        <span className="flex items-center gap-2">
+                          <span>{ind.icon}</span>
+                          <span>{ind.label}</span>
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+              
+              {industry === "other" && (
+                <div className="space-y-2">
+                  <Label htmlFor="customIndustry">What's your industry?</Label>
+                  <Input
+                    id="customIndustry"
+                    placeholder="e.g., Window Tinting, Boat Detailing"
+                    value={customIndustry}
+                    onChange={(e) => setCustomIndustry(e.target.value)}
+                  />
+                </div>
+              )}
+              
               <div className="space-y-2">
                 <Label>Timezone</Label>
                 <Select value={timezone} onValueChange={setTimezone}>
@@ -252,10 +314,11 @@ export default function OnboardingPage() {
                   </SelectContent>
                 </Select>
               </div>
+              
               <Button
                 className="w-full"
                 onClick={() => setStep(2)}
-                disabled={!businessName}
+                disabled={!canProceedStep1}
               >
                 Continue
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -272,26 +335,20 @@ export default function OnboardingPage() {
                 <Clock className="h-6 w-6 text-primary" />
               </div>
               <CardTitle>Your services</CardTitle>
-              <CardDescription>We've pre-filled common services. Edit or add more anytime.</CardDescription>
+              <CardDescription>
+                We've pre-filled common services for {industryConfigs[industry].label.toLowerCase()}. 
+                Edit, add, or remove as needed.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {services.map((service, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-lg border">
-                  <div>
-                    <p className="font-medium">{service.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {service.duration} min • ${service.price}
-                    </p>
-                  </div>
-                  <CheckCircle2 className="h-5 w-5 text-primary" />
-                </div>
-              ))}
+              <ServiceEditor services={services} onChange={setServices} />
+              
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setStep(1)}>
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back
                 </Button>
-                <Button className="flex-1" onClick={() => setStep(3)}>
+                <Button className="flex-1" onClick={() => setStep(3)} disabled={!canProceedStep2}>
                   Continue
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -300,40 +357,19 @@ export default function OnboardingPage() {
           </Card>
         )}
 
-        {/* Step 3: AI Assistant */}
+        {/* Step 3: Business Hours */}
         {step === 3 && (
           <Card>
             <CardHeader>
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 mb-2">
-                <Bot className="h-6 w-6 text-primary" />
+                <Calendar className="h-6 w-6 text-primary" />
               </div>
-              <CardTitle>AI Voice Assistant</CardTitle>
-              <CardDescription>Let AI answer your calls 24/7 and book appointments automatically.</CardDescription>
+              <CardTitle>Business hours</CardTitle>
+              <CardDescription>Set your operating hours so we know when to book appointments.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 rounded-lg border-2 border-primary/20 bg-primary/5">
-                <div className="flex items-center gap-3">
-                  <Bot className="h-8 w-8 text-primary" />
-                  <div>
-                    <p className="font-medium">Enable AI Assistant</p>
-                    <p className="text-sm text-muted-foreground">Answers calls, qualifies leads, books appointments</p>
-                  </div>
-                </div>
-                <Switch checked={aiEnabled} onCheckedChange={setAiEnabled} />
-              </div>
-              {aiEnabled && (
-                <div className="space-y-2">
-                  <Label>Greeting message</Label>
-                  <Input
-                    value={aiGreeting}
-                    onChange={(e) => setAiGreeting(e.target.value)}
-                    placeholder="Hi, thank you for calling..."
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    This is what your AI will say when answering calls.
-                  </p>
-                </div>
-              )}
+              <BusinessHoursEditor hours={businessHours} onChange={setBusinessHours} />
+              
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setStep(2)}>
                   <ArrowLeft className="mr-2 h-4 w-4" />
@@ -353,25 +389,63 @@ export default function OnboardingPage() {
           <Card>
             <CardHeader>
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 mb-2">
-                <Phone className="h-6 w-6 text-primary" />
+                <Zap className="h-6 w-6 text-primary" />
               </div>
               <CardTitle>Automations</CardTitle>
-              <CardDescription>We'll set up these automations to help you close more deals.</CardDescription>
+              <CardDescription>These free automations help you close more deals automatically.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {[
-                { name: "Missed Call Follow-up", desc: "Send SMS when a call is missed" },
-                { name: "Booking Confirmation", desc: "Confirm appointments automatically" },
-                { name: "No Reply Follow-up", desc: "Follow up if no response in 24h" },
-              ].map((auto) => (
-                <div key={auto.name} className="flex items-center justify-between p-3 rounded-lg border">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
                   <div>
-                    <p className="font-medium">{auto.name}</p>
-                    <p className="text-sm text-muted-foreground">{auto.desc}</p>
+                    <p className="font-medium">Missed Call Follow-up</p>
+                    <p className="text-sm text-muted-foreground">Instantly text when a call is missed</p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch 
+                    checked={automations.missedCall} 
+                    onCheckedChange={(checked) => setAutomations(a => ({ ...a, missedCall: checked }))}
+                  />
                 </div>
-              ))}
+                
+                <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+                  <div>
+                    <p className="font-medium">Booking Confirmation</p>
+                    <p className="text-sm text-muted-foreground">Confirm appointments automatically</p>
+                  </div>
+                  <Switch 
+                    checked={automations.bookingConfirmation}
+                    onCheckedChange={(checked) => setAutomations(a => ({ ...a, bookingConfirmation: checked }))}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+                  <div>
+                    <p className="font-medium">24h Follow-up</p>
+                    <p className="text-sm text-muted-foreground">Follow up if no response in 24 hours</p>
+                  </div>
+                  <Switch 
+                    checked={automations.noReply24h}
+                    onCheckedChange={(checked) => setAutomations(a => ({ ...a, noReply24h: checked }))}
+                  />
+                </div>
+              </div>
+
+              {/* AI Assistant Upsell */}
+              <div className="p-4 rounded-lg border-2 border-dashed border-primary/30 bg-primary/5">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium">AI Voice Assistant</p>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Let AI answer calls 24/7, qualify leads, and book appointments automatically.
+                    </p>
+                    <span className="text-xs font-medium text-primary">Available after setup →</span>
+                  </div>
+                </div>
+              </div>
+              
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setStep(3)}>
                   <ArrowLeft className="mr-2 h-4 w-4" />
@@ -399,26 +473,29 @@ export default function OnboardingPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary" />
-                  <span>Business profile created</span>
+              <div className="space-y-3 p-4 rounded-lg bg-secondary/50">
+                <div className="flex items-center gap-2 text-sm">
+                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                  <span>Business profile: <strong>{businessName}</strong></span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary" />
-                  <span>{services.length} services added</span>
+                <div className="flex items-center gap-2 text-sm">
+                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                  <span>Industry: <strong>{industryConfigs[industry].icon} {industry === "other" ? customIndustry : industryConfigs[industry].label}</strong></span>
                 </div>
-                {aiEnabled && (
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-primary" />
-                    <span>AI Assistant enabled</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary" />
-                  <span>Automations configured</span>
+                <div className="flex items-center gap-2 text-sm">
+                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                  <span><strong>{services.filter(s => s.name.trim()).length}</strong> services configured</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                  <span>Business hours set</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                  <span><strong>{Object.values(automations).filter(Boolean).length}</strong> automations enabled</span>
                 </div>
               </div>
+              
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setStep(4)}>
                   <ArrowLeft className="mr-2 h-4 w-4" />

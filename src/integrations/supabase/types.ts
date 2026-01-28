@@ -519,7 +519,9 @@ export type Database = {
       tenants: {
         Row: {
           ai_enabled: boolean
+          context_fields_json: Json | null
           created_at: string
+          custom_industry: string | null
           hours_json: Json | null
           id: string
           industry: Database["public"]["Enums"]["industry_type"]
@@ -529,7 +531,9 @@ export type Database = {
         }
         Insert: {
           ai_enabled?: boolean
+          context_fields_json?: Json | null
           created_at?: string
+          custom_industry?: string | null
           hours_json?: Json | null
           id?: string
           industry?: Database["public"]["Enums"]["industry_type"]
@@ -539,7 +543,9 @@ export type Database = {
         }
         Update: {
           ai_enabled?: boolean
+          context_fields_json?: Json | null
           created_at?: string
+          custom_industry?: string | null
           hours_json?: Json | null
           id?: string
           industry?: Database["public"]["Enums"]["industry_type"]
@@ -614,6 +620,20 @@ export type Database = {
         | "medspa"
         | "dental"
         | "other"
+        | "tire_shop"
+        | "cleaning"
+        | "landscaping"
+        | "pest_control"
+        | "roofing"
+        | "electrical"
+        | "pool_service"
+        | "moving"
+        | "salon"
+        | "fitness"
+        | "photography"
+        | "pet_grooming"
+        | "towing"
+        | "locksmith"
       lead_source: "missed_call" | "website_form" | "manual" | "referral"
       lead_status: "new" | "contacted" | "qualified" | "booked" | "lost" | "won"
       message_direction: "inbound" | "outbound"
@@ -774,6 +794,20 @@ export const Constants = {
         "medspa",
         "dental",
         "other",
+        "tire_shop",
+        "cleaning",
+        "landscaping",
+        "pest_control",
+        "roofing",
+        "electrical",
+        "pool_service",
+        "moving",
+        "salon",
+        "fitness",
+        "photography",
+        "pet_grooming",
+        "towing",
+        "locksmith",
       ],
       lead_source: ["missed_call", "website_form", "manual", "referral"],
       lead_status: ["new", "contacted", "qualified", "booked", "lost", "won"],
