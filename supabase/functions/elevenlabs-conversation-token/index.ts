@@ -21,10 +21,10 @@ serve(async (req) => {
       );
     }
 
-    const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY_1");
+    const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY_2");
     
     if (!ELEVENLABS_API_KEY) {
-      console.error("ELEVENLABS_API_KEY_1 not configured");
+      console.error("ELEVENLABS_API_KEY_2 not configured");
       return new Response(
         JSON.stringify({ error: "ElevenLabs API key not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
