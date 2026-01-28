@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
-import { Phone, Check, Loader2, Smartphone, ArrowRight } from "lucide-react";
+import { Phone, Check, Loader2, Smartphone, ArrowRight, CheckCircle2, Clock, PhoneCall } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { CarrierInstructions } from "./CarrierInstructions";
 
@@ -16,13 +16,16 @@ interface PhoneConnectionStepProps {
   isComplete: boolean;
 }
 
-// Generate a unique forwarding number based on tenant ID
-function generateForwardingNumber(tenantId: string): string {
-  const hash = tenantId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const areaCode = 800 + (hash % 100); // 800-899
-  const exchange = 200 + (hash % 800); // 200-999
-  const subscriber = 1000 + (hash % 9000); // 1000-9999
-  return `+1 (${areaCode}) ${exchange}-${subscriber}`;
+// Format E.164 number to friendly display
+function formatPhoneNumber(phone: string): string {
+  const cleaned = phone.replace(/\D/g, "");
+  if (cleaned.length === 11 && cleaned.startsWith("1")) {
+    const areaCode = cleaned.substring(1, 4);
+    const prefix = cleaned.substring(4, 7);
+    const line = cleaned.substring(7, 11);
+    return `(${areaCode}) ${prefix}-${line}`;
+  }
+  return phone;
 }
 
 export function PhoneConnectionStep({ onComplete, isComplete }: PhoneConnectionStepProps) {
@@ -34,13 +37,18 @@ export function PhoneConnectionStep({ onComplete, isComplete }: PhoneConnectionS
   const [connecting, setConnecting] = useState(false);
   const [provisioning, setProvisioning] = useState(false);
   
-  // Generate unique forwarding number for this tenant
+  // Get the real Twilio number if provisioned
   const closeloopNumber = useMemo(() => {
-    if (assistantSettings?.closeloop_number) {
-      return assistantSettings.closeloop_number;
+    // Priority: forwarding_phone_e164 > closeloop_number > placeholder
+    const phoneNumber = (assistantSettings as any)?.forwarding_phone_e164 || assistantSettings?.closeloop_number;
+    if (phoneNumber) {
+      return phoneNumber;
     }
-    return tenant?.id ? generateForwardingNumber(tenant.id) : "+1 (800) 000-0000";
-  }, [tenant?.id, assistantSettings?.closeloop_number]);
+    return null;
+  }, [assistantSettings]);
+
+  // Get connection status
+  const connectStatus = (assistantSettings as any)?.connect_status || "not_connected";
 
   const saveSettings = async (updates: Record<string, unknown>) => {
     if (!tenant) throw new Error("No tenant");
@@ -154,7 +162,10 @@ export function PhoneConnectionStep({ onComplete, isComplete }: PhoneConnectionS
     }
   };
 
-  if (isComplete) {
+  if (isComplete && closeloopNumber) {
+    const isVerified = connectStatus === "forwarding_verified";
+    const displayNumber = formatPhoneNumber(closeloopNumber);
+    
     return (
       <Card className="border-primary/20 bg-primary/5">
         <CardHeader>
@@ -162,18 +173,62 @@ export function PhoneConnectionStep({ onComplete, isComplete }: PhoneConnectionS
             <Check className="h-5 w-5" />
             Phone Connected
           </CardTitle>
-          <CardDescription>
-            {assistantSettings?.phone_method === "closeloop_number" 
-              ? `Your CloseLoop number: ${assistantSettings?.closeloop_number}`
-              : `Forwarding from: ${assistantSettings?.business_phone_number}`
-            }
+          <CardDescription className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-foreground text-lg">{displayNumber}</span>
+              {isVerified ? (
+                <Badge variant="default" className="gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Verified
+                </Badge>
+              ) : (
+                <Badge variant="secondary" className="gap-1">
+                  <Clock className="h-3 w-3" />
+                  Awaiting First Call
+                </Badge>
+              )}
+            </div>
+            <p className="text-sm">
+              {assistantSettings?.phone_method === "closeloop_number" 
+                ? "This is your dedicated CloseLoop number. Share it with customers!"
+                : "Forward your business calls to this number."
+              }
+            </p>
           </CardDescription>
         </CardHeader>
-        {assistantSettings?.phone_method === "forwarded" && (
-          <CardContent>
+        <CardContent className="space-y-4">
+          {assistantSettings?.phone_method === "forwarded" && (
             <CarrierInstructions forwardingNumber={closeloopNumber} />
-          </CardContent>
-        )}
+          )}
+          
+          {/* Connection status indicator */}
+          <div className="rounded-lg border p-4 bg-background">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`h-3 w-3 rounded-full ${isVerified ? "bg-green-500" : "bg-yellow-500 animate-pulse"}`} />
+                <div>
+                  <p className="font-medium">
+                    {isVerified ? "AI Voice Agent Active" : "Waiting for first call..."}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {isVerified 
+                      ? "Your AI is answering calls on this number" 
+                      : "Make a test call to verify the connection"
+                    }
+                  </p>
+                </div>
+              </div>
+              {!isVerified && (
+                <Button variant="outline" size="sm" className="gap-2" asChild>
+                  <a href={`tel:${closeloopNumber}`}>
+                    <PhoneCall className="h-4 w-4" />
+                    Test Call
+                  </a>
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
       </Card>
     );
   }

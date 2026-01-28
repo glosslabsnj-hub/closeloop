@@ -65,8 +65,10 @@ export type Database = {
         Row: {
           booking_id: string | null
           call_direction: Database["public"]["Enums"]["ai_call_direction"]
+          caller_phone: string | null
           created_at: string
           customer_id: string | null
+          elevenlabs_conversation_id: string | null
           ended_at: string | null
           id: string
           lead_id: string | null
@@ -76,12 +78,15 @@ export type Database = {
           summary: string | null
           tenant_id: string
           transcript: string | null
+          twilio_call_sid: string | null
         }
         Insert: {
           booking_id?: string | null
           call_direction: Database["public"]["Enums"]["ai_call_direction"]
+          caller_phone?: string | null
           created_at?: string
           customer_id?: string | null
+          elevenlabs_conversation_id?: string | null
           ended_at?: string | null
           id?: string
           lead_id?: string | null
@@ -91,12 +96,15 @@ export type Database = {
           summary?: string | null
           tenant_id: string
           transcript?: string | null
+          twilio_call_sid?: string | null
         }
         Update: {
           booking_id?: string | null
           call_direction?: Database["public"]["Enums"]["ai_call_direction"]
+          caller_phone?: string | null
           created_at?: string
           customer_id?: string | null
+          elevenlabs_conversation_id?: string | null
           ended_at?: string | null
           id?: string
           lead_id?: string | null
@@ -106,6 +114,7 @@ export type Database = {
           summary?: string | null
           tenant_id?: string
           transcript?: string | null
+          twilio_call_sid?: string | null
         }
         Relationships: [
           {
@@ -192,7 +201,9 @@ export type Database = {
           busy_toggle: boolean
           calendar_provider: string | null
           closeloop_number: string | null
+          connect_status: string | null
           created_at: string
+          forwarding_phone_e164: string | null
           go_live_enabled: boolean
           instant_text_enabled: boolean
           missed_call_behavior: Database["public"]["Enums"]["missed_call_behavior"]
@@ -221,7 +232,9 @@ export type Database = {
           busy_toggle?: boolean
           calendar_provider?: string | null
           closeloop_number?: string | null
+          connect_status?: string | null
           created_at?: string
+          forwarding_phone_e164?: string | null
           go_live_enabled?: boolean
           instant_text_enabled?: boolean
           missed_call_behavior?: Database["public"]["Enums"]["missed_call_behavior"]
@@ -250,7 +263,9 @@ export type Database = {
           busy_toggle?: boolean
           calendar_provider?: string | null
           closeloop_number?: string | null
+          connect_status?: string | null
           created_at?: string
+          forwarding_phone_e164?: string | null
           go_live_enabled?: boolean
           instant_text_enabled?: boolean
           missed_call_behavior?: Database["public"]["Enums"]["missed_call_behavior"]
@@ -959,6 +974,44 @@ export type Database = {
           },
           {
             foreignKeyName: "opportunities_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      phone_numbers: {
+        Row: {
+          created_at: string
+          id: string
+          phone_e164: string
+          purpose: string
+          status: string
+          tenant_id: string
+          twilio_sid: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          phone_e164: string
+          purpose?: string
+          status?: string
+          tenant_id: string
+          twilio_sid?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          phone_e164?: string
+          purpose?: string
+          status?: string
+          tenant_id?: string
+          twilio_sid?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "phone_numbers_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

@@ -52,7 +52,33 @@ serve(async (req) => {
     // Initialize Supabase client with service role
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Check if tenant already has a number assigned (idempotency)
+    // Check if tenant already has a number in phone_numbers table (idempotency)
+    const { data: existingPhoneNumber, error: phoneNumberError } = await supabase
+      .from("phone_numbers")
+      .select("phone_e164, twilio_sid")
+      .eq("tenant_id", tenant_id)
+      .eq("purpose", "forwarding")
+      .maybeSingle();
+
+    if (phoneNumberError) {
+      console.error("Error checking phone_numbers:", phoneNumberError);
+    }
+
+    if (existingPhoneNumber?.twilio_sid) {
+      console.log(`Tenant ${tenant_id} already has a Twilio number: ${existingPhoneNumber.phone_e164}`);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          phone_number: existingPhoneNumber.phone_e164,
+          phone_sid: existingPhoneNumber.twilio_sid,
+          friendly_name: formatPhoneNumber(existingPhoneNumber.phone_e164),
+          already_provisioned: true,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Also check assistant_settings for legacy data
     const { data: existingSettings, error: settingsError } = await supabase
       .from("assistant_settings")
       .select("closeloop_number, twilio_phone_sid")
@@ -61,19 +87,16 @@ serve(async (req) => {
 
     if (settingsError) {
       console.error("Error fetching assistant settings:", settingsError);
-      return new Response(
-        JSON.stringify({ error: "Failed to check existing settings" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
     }
 
     if (existingSettings?.twilio_phone_sid) {
-      console.log(`Tenant ${tenant_id} already has a Twilio number: ${existingSettings.closeloop_number}`);
+      console.log(`Tenant ${tenant_id} already has a Twilio number (legacy): ${existingSettings.closeloop_number}`);
       return new Response(
         JSON.stringify({
           success: true,
           phone_number: existingSettings.closeloop_number,
           phone_sid: existingSettings.twilio_phone_sid,
+          friendly_name: formatPhoneNumber(existingSettings.closeloop_number || ""),
           already_provisioned: true,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -98,7 +121,6 @@ serve(async (req) => {
     if (number_type === "toll_free") {
       searchUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/AvailablePhoneNumbers/US/TollFree.json?Limit=1`;
     } else {
-      // Local number search
       const areaCodeParam = area_code ? `&AreaCode=${area_code}` : "";
       searchUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/AvailablePhoneNumbers/US/Local.json?Limit=1&VoiceEnabled=true&SmsEnabled=true${areaCodeParam}`;
     }
@@ -136,19 +158,13 @@ serve(async (req) => {
     // Purchase the number
     const purchaseUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/IncomingPhoneNumbers.json`;
     
-    // Configure webhook URLs - these will point to your edge functions
-    const voiceUrl = `${SUPABASE_URL}/functions/v1/inbound-voice`;
-    const smsUrl = `${SUPABASE_URL}/functions/v1/inbound-sms`;
-    const statusCallback = `${SUPABASE_URL}/functions/v1/call-status-callback`;
+    // Configure webhook URL to point to twilio-inbound edge function
+    const voiceUrl = `${SUPABASE_URL}/functions/v1/twilio-inbound`;
 
     const purchaseBody = new URLSearchParams({
       PhoneNumber: selectedNumber.phone_number,
       VoiceUrl: voiceUrl,
       VoiceMethod: "POST",
-      SmsUrl: smsUrl,
-      SmsMethod: "POST",
-      StatusCallback: statusCallback,
-      StatusCallbackMethod: "POST",
       FriendlyName: `CloseLoop - ${tenant_id.substring(0, 8)}`,
     });
 
@@ -178,6 +194,22 @@ serve(async (req) => {
     // Format friendly name
     const friendlyNumber = formatPhoneNumber(purchaseData.phone_number);
 
+    // Insert into phone_numbers table
+    const { error: insertError } = await supabase
+      .from("phone_numbers")
+      .insert({
+        tenant_id: tenant_id,
+        phone_e164: purchaseData.phone_number,
+        twilio_sid: purchaseData.sid,
+        purpose: "forwarding",
+        status: "provisioned",
+      });
+
+    if (insertError) {
+      console.error("Error inserting into phone_numbers:", insertError);
+      // Continue - we still want to update assistant_settings
+    }
+
     // Update assistant_settings with the new number
     const { error: updateError } = await supabase
       .from("assistant_settings")
@@ -186,7 +218,9 @@ serve(async (req) => {
         closeloop_number: purchaseData.phone_number,
         twilio_phone_sid: purchaseData.sid,
         twilio_provisioned_at: new Date().toISOString(),
+        forwarding_phone_e164: purchaseData.phone_number,
         phone_connected: true,
+        connect_status: "provisioned",
         updated_at: new Date().toISOString(),
       }, {
         onConflict: "tenant_id",
@@ -194,7 +228,6 @@ serve(async (req) => {
 
     if (updateError) {
       console.error("Error updating assistant settings:", updateError);
-      // Note: Number is purchased but DB update failed - this should be handled with a cleanup mechanism
       return new Response(
         JSON.stringify({ 
           error: "Number purchased but failed to save to database", 
@@ -226,7 +259,6 @@ serve(async (req) => {
 });
 
 function formatPhoneNumber(phone: string): string {
-  // Format +1XXXXXXXXXX to (XXX) XXX-XXXX
   const cleaned = phone.replace(/\D/g, "");
   if (cleaned.length === 11 && cleaned.startsWith("1")) {
     const areaCode = cleaned.substring(1, 4);

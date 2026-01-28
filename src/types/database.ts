@@ -24,7 +24,12 @@ export type SyncEvent = Tables<"sync_events">;
 export type BusinessFAQ = Tables<"business_faqs">;
 export type ObjectionResponse = Tables<"objection_responses">;
 export type Subscription = Tables<"subscriptions">;
-export type AssistantSettings = Tables<"assistant_settings">;
+export type AssistantSettings = Tables<"assistant_settings"> & {
+  // Extended fields added by migrations (optional since they may not exist in DB response)
+  forwarding_phone_e164?: string | null;
+  connect_status?: string | null;
+};
+export type PhoneNumber = Tables<"phone_numbers">;
 
 // AI-related types
 export interface AIAssistant {
