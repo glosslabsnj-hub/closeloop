@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantSettings, useAvailabilitySlots, useAssistantSettings } from "@/hooks/useSettings";
 import { useFoodMode } from "@/hooks/useFoodMode";
+import { useModuleEnabled } from "@/hooks/useTenantConfig";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,9 +16,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Building2, Clock, Users, CreditCard, Bell, Lock, Loader2, Bug, UtensilsCrossed } from "lucide-react";
+import { Building2, Clock, Users, CreditCard, Bell, Lock, Loader2, Bug, UtensilsCrossed, Calendar, Truck } from "lucide-react";
 import { CallContextDebugger } from "@/components/ai/CallContextDebugger";
 import { FoodOrderSettings } from "@/components/settings/FoodOrderSettings";
+import { BookingDeliverySettings } from "@/components/settings/BookingDeliverySettings";
+import { DispatchDeliverySettings } from "@/components/settings/DispatchDeliverySettings";
 
 const timezones = [
   { value: "America/New_York", label: "Eastern Time" },
@@ -46,6 +49,8 @@ export default function SettingsPage() {
   const { settings: assistantSettings, updateSettings, isUpdating: isUpdatingSettings } = useAssistantSettings();
   const { slots, saveSlots, isSaving } = useAvailabilitySlots();
   const { isFoodMode } = useFoodMode();
+  const isBookingEnabled = useModuleEnabled("booking");
+  const isDispatchEnabled = useModuleEnabled("dispatch_queue");
 
   // Business form state
   const [businessName, setBusinessName] = useState("");
@@ -172,6 +177,18 @@ export default function SettingsPage() {
             <TabsTrigger value="food" className="gap-2">
               <UtensilsCrossed className="h-4 w-4" />
               <span className="hidden sm:inline">Food</span>
+            </TabsTrigger>
+          )}
+          {isBookingEnabled && (
+            <TabsTrigger value="booking-delivery" className="gap-2">
+              <Calendar className="h-4 w-4" />
+              <span className="hidden sm:inline">Booking Delivery</span>
+            </TabsTrigger>
+          )}
+          {isDispatchEnabled && (
+            <TabsTrigger value="dispatch-delivery" className="gap-2">
+              <Truck className="h-4 w-4" />
+              <span className="hidden sm:inline">Dispatch Delivery</span>
             </TabsTrigger>
           )}
           <TabsTrigger value="developer" className="gap-2">
@@ -392,6 +409,20 @@ export default function SettingsPage() {
         {isFoodMode && (
           <TabsContent value="food" className="space-y-6">
             <FoodOrderSettings />
+          </TabsContent>
+        )}
+
+        {/* Booking Delivery Tab - Only for booking-enabled tenants */}
+        {isBookingEnabled && (
+          <TabsContent value="booking-delivery" className="space-y-6">
+            <BookingDeliverySettings />
+          </TabsContent>
+        )}
+
+        {/* Dispatch Delivery Tab - Only for dispatch-enabled tenants */}
+        {isDispatchEnabled && (
+          <TabsContent value="dispatch-delivery" className="space-y-6">
+            <DispatchDeliverySettings />
           </TabsContent>
         )}
 
