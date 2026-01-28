@@ -73,22 +73,32 @@ serve(async (req) => {
       try {
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
         
-        // Fetch tenant info
-        const { data: tenant, error: tenantError } = await supabase
-          .from("tenants")
-          .select("name, hours_json, website_url")
-          .eq("id", tenantId)
-          .single();
+        // Fetch tenant info and AI assistant settings in parallel
+        const [tenantResult, settingsResult, assistantResult] = await Promise.all([
+          supabase
+            .from("tenants")
+            .select("name, hours_json, website_url")
+            .eq("id", tenantId)
+            .single(),
+          supabase
+            .from("assistant_settings")
+            .select("booking_url")
+            .eq("tenant_id", tenantId)
+            .maybeSingle(),
+          supabase
+            .from("ai_assistants")
+            .select("greeting_script, fallback_script")
+            .eq("tenant_id", tenantId)
+            .maybeSingle(),
+        ]);
+
+        const { data: tenant, error: tenantError } = tenantResult;
+        const { data: settings } = settingsResult;
+        const { data: assistant } = assistantResult;
 
         if (tenantError) {
           console.error("Error fetching tenant:", tenantError);
         } else if (tenant) {
-          // Fetch booking URL from assistant settings
-          const { data: settings } = await supabase
-            .from("assistant_settings")
-            .select("booking_url")
-            .eq("tenant_id", tenantId)
-            .maybeSingle();
 
           const businessHoursToday = getTodayHours(tenant.hours_json as Record<string, unknown> | null);
           
@@ -96,6 +106,8 @@ serve(async (req) => {
             business_name: tenant.name || "our business",
             business_hours_today: businessHoursToday,
             booking_link: settings?.booking_url || tenant.website_url || "",
+            greeting_script: assistant?.greeting_script || "",
+            fallback_script: assistant?.fallback_script || "",
             tenant_id: tenantId,
             caller_number: "browser_test",
           };
