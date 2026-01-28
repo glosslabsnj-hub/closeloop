@@ -307,11 +307,12 @@ export default function OnboardingPage() {
       await refreshTenant();
 
       toast({
-        title: "You're all set! 🎉",
-        description: "Your business is ready to go.",
+        title: "Almost there! 🎉",
+        description: "Choose your plan to activate your AI assistant.",
       });
 
-      navigate("/app/dashboard");
+      // Redirect to go-live page for plan selection
+      navigate("/app/go-live");
     } catch (error: any) {
       console.error("Onboarding error:", error);
       toast({

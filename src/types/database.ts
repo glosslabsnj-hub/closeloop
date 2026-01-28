@@ -23,6 +23,8 @@ export type KnowledgeGap = Tables<"knowledge_gaps">;
 export type SyncEvent = Tables<"sync_events">;
 export type BusinessFAQ = Tables<"business_faqs">;
 export type ObjectionResponse = Tables<"objection_responses">;
+export type Subscription = Tables<"subscriptions">;
+export type AssistantSettings = Tables<"assistant_settings">;
 
 // AI-related types
 export interface AIAssistant {
@@ -132,6 +134,12 @@ export type KnowledgeGapType = 'missing_policy' | 'missing_pricing' | 'missing_s
 // Sync event types
 export type SyncEventType = 'customer_created' | 'customer_updated' | 'opportunity_created' | 'opportunity_updated' | 'booking_created' | 'booking_updated' | 'call_completed';
 
+// Subscription types
+export type PlanCode = Enums<"plan_code">;
+export type SubscriptionStatus = Enums<"subscription_status">;
+export type VoiceMode = Enums<"voice_mode">;
+export type MissedCallBehavior = Enums<"missed_call_behavior">;
+
 // Enums
 export type IndustryType = Enums<"industry_type">;
 export type LeadSource = Enums<"lead_source">;
@@ -167,4 +175,14 @@ export interface OnboardingState {
   aiVoice: string;
   aiTone: "friendly" | "professional" | "luxury" | "direct";
   greetingScript: string;
+}
+
+// Plan package info for UI
+export interface PlanPackage {
+  code: PlanCode;
+  name: string;
+  price: number;
+  description: string;
+  features: string[];
+  highlight?: boolean;
 }

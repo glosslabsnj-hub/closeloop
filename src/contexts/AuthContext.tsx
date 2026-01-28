@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import type { Tenant, TenantUser, UserRoleType } from "@/types/database";
+import type { Tenant, TenantUser, UserRoleType, Subscription, AssistantSettings } from "@/types/database";
 
 interface AuthContextType {
   user: User | null;
@@ -11,6 +11,9 @@ interface AuthContextType {
   tenantUser: TenantUser | null;
   userRole: UserRoleType | null;
   isSuperAdmin: boolean;
+  subscription: Subscription | null;
+  assistantSettings: AssistantSettings | null;
+  hasActiveSubscription: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -27,6 +30,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [tenantUser, setTenantUser] = useState<TenantUser | null>(null);
   const [userRole, setUserRole] = useState<UserRoleType | null>(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [assistantSettings, setAssistantSettings] = useState<AssistantSettings | null>(null);
 
   const fetchTenantData = async (userId: string) => {
     try {
@@ -63,6 +68,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (tenantData) {
           setTenant(tenantData as Tenant);
+
+          // Fetch subscription
+          const { data: subData } = await supabase
+            .from("subscriptions")
+            .select("*")
+            .eq("tenant_id", tenantUserData.tenant_id)
+            .maybeSingle();
+          
+          setSubscription(subData);
+
+          // Fetch assistant settings
+          const { data: settingsData } = await supabase
+            .from("assistant_settings")
+            .select("*")
+            .eq("tenant_id", tenantUserData.tenant_id)
+            .maybeSingle();
+          
+          setAssistantSettings(settingsData);
         }
       }
     } catch (error) {
@@ -78,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Set up auth state listener first
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
@@ -91,6 +114,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setTenantUser(null);
           setUserRole(null);
           setIsSuperAdmin(false);
+          setSubscription(null);
+          setAssistantSettings(null);
         }
 
         setLoading(false);
@@ -110,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => {
-      subscription.unsubscribe();
+      authSub.unsubscribe();
     };
   }, []);
 
@@ -138,6 +163,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   };
 
+  const hasActiveSubscription = subscription?.status === "active" || subscription?.status === "trialing";
+
   return (
     <AuthContext.Provider
       value={{
@@ -148,6 +175,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         tenantUser,
         userRole,
         isSuperAdmin,
+        subscription,
+        assistantSettings,
+        hasActiveSubscription,
         signIn,
         signUp,
         signOut,
