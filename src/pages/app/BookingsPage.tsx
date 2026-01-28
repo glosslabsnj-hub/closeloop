@@ -1,64 +1,13 @@
 import { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useBookings, BookingWithDetails } from "@/hooks/useBookings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar as CalendarIcon, Plus, Clock, User, DollarSign, CheckCircle2 } from "lucide-react";
+import { Calendar as CalendarIcon, Plus, Clock, User, DollarSign, CheckCircle2, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-
-const demoBookings = [
-  {
-    id: "1",
-    customer: "John Davis",
-    service: "Full Detail",
-    date: new Date(),
-    time: "2:00 PM",
-    duration: "3 hours",
-    status: "confirmed",
-    deposit: 50,
-    depositPaid: true,
-    total: 200,
-  },
-  {
-    id: "2",
-    customer: "Sarah Miller",
-    service: "Ceramic Coating",
-    date: new Date(Date.now() + 86400000),
-    time: "10:00 AM",
-    duration: "8 hours",
-    status: "pending_deposit",
-    deposit: 200,
-    depositPaid: false,
-    total: 800,
-  },
-  {
-    id: "3",
-    customer: "Mike Thompson",
-    service: "Basic Wash",
-    date: new Date(Date.now() + 86400000 * 2),
-    time: "3:00 PM",
-    duration: "1 hour",
-    status: "confirmed",
-    deposit: 0,
-    depositPaid: true,
-    total: 50,
-  },
-  {
-    id: "4",
-    customer: "Lisa Kim",
-    service: "Full Detail",
-    date: new Date(Date.now() - 86400000),
-    time: "11:00 AM",
-    duration: "3 hours",
-    status: "completed",
-    deposit: 50,
-    depositPaid: true,
-    total: 200,
-  },
-];
+import { format, isSameDay } from "date-fns";
 
 const statusColors: Record<string, string> = {
   pending_deposit: "bg-yellow-100 text-yellow-800",
@@ -76,18 +25,67 @@ const statusLabels: Record<string, string> = {
   no_show: "No Show",
 };
 
+function BookingCard({ booking }: { booking: BookingWithDetails }) {
+  const startDate = new Date(booking.start_at);
+  const endDate = new Date(booking.end_at);
+  const durationMinutes = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60));
+  const hours = Math.floor(durationMinutes / 60);
+  const minutes = durationMinutes % 60;
+  const durationLabel = hours > 0 ? `${hours}h${minutes > 0 ? ` ${minutes}m` : ""}` : `${minutes}m`;
+
+  return (
+    <div className="flex items-center justify-between p-4 rounded-lg border">
+      <div className="flex items-center gap-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+          <Clock className="h-6 w-6 text-primary" />
+        </div>
+        <div>
+          <p className="font-medium">{booking.lead?.full_name || "Unknown Customer"}</p>
+          <p className="text-sm text-muted-foreground">
+            {booking.service?.name || "Service"} • {format(startDate, "h:mm a")}
+          </p>
+          <div className="flex items-center gap-2 mt-1">
+            <Badge className={cn(statusColors[booking.status])}>
+              {statusLabels[booking.status]}
+            </Badge>
+            {booking.deposit_paid && booking.deposit_required && (
+              <Badge variant="outline" className="text-success">
+                <DollarSign className="h-3 w-3 mr-1" />
+                Deposit paid
+              </Badge>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="text-right">
+        <p className="font-bold">
+          {booking.service?.price_amount ? `$${booking.service.price_amount}` : "—"}
+        </p>
+        <p className="text-xs text-muted-foreground">{durationLabel}</p>
+      </div>
+    </div>
+  );
+}
+
 export default function BookingsPage() {
-  const { tenant } = useAuth();
+  const { bookings, isLoading, stats } = useBookings();
   const [date, setDate] = useState<Date | undefined>(new Date());
-  const [view, setView] = useState<"list" | "calendar">("list");
 
-  const todayBookings = demoBookings.filter(
-    (b) => format(b.date, "yyyy-MM-dd") === format(date || new Date(), "yyyy-MM-dd")
+  const selectedDayBookings = bookings.filter((b) =>
+    date ? isSameDay(new Date(b.start_at), date) : false
   );
 
-  const upcomingBookings = demoBookings.filter(
-    (b) => b.date >= new Date() && b.status !== "completed"
+  const upcomingBookings = bookings.filter(
+    (b) => new Date(b.start_at) >= new Date() && b.status !== "completed" && b.status !== "canceled"
   );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -105,24 +103,50 @@ export default function BookingsPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: "Today", value: 3, icon: CalendarIcon },
-          { label: "This Week", value: 12, icon: Clock },
-          { label: "Pending Deposits", value: 2, icon: DollarSign },
-          { label: "Completed", value: 89, icon: CheckCircle2 },
-        ].map((stat) => (
-          <Card key={stat.label}>
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <stat.icon className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stat.value}</p>
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+              <CalendarIcon className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.today}</p>
+              <p className="text-xs text-muted-foreground">Today</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+              <Clock className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.thisWeek}</p>
+              <p className="text-xs text-muted-foreground">This Week</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10">
+              <DollarSign className="h-5 w-5 text-warning" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.pendingDeposits}</p>
+              <p className="text-xs text-muted-foreground">Pending Deposits</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10">
+              <CheckCircle2 className="h-5 w-5 text-success" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.completed}</p>
+              <p className="text-xs text-muted-foreground">Completed</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Main Content */}
@@ -155,40 +179,61 @@ export default function BookingsPage() {
                 <TabsTrigger value="selected">Selected Day</TabsTrigger>
                 <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="selected">
-                {todayBookings.length > 0 ? (
+                {selectedDayBookings.length > 0 ? (
                   <div className="space-y-4">
-                    {todayBookings.map((booking) => (
+                    {selectedDayBookings.map((booking) => (
+                      <BookingCard key={booking.id} booking={booking} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <CalendarIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>No bookings for this day</p>
+                    <Button variant="outline" className="mt-4">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Booking
+                    </Button>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="upcoming">
+                {upcomingBookings.length > 0 ? (
+                  <div className="space-y-4">
+                    {upcomingBookings.map((booking) => (
                       <div
                         key={booking.id}
                         className="flex items-center justify-between p-4 rounded-lg border"
                       >
                         <div className="flex items-center gap-4">
                           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                            <Clock className="h-6 w-6 text-primary" />
+                            <User className="h-6 w-6 text-primary" />
                           </div>
                           <div>
-                            <p className="font-medium">{booking.customer}</p>
+                            <p className="font-medium">{booking.lead?.full_name || "Unknown"}</p>
                             <p className="text-sm text-muted-foreground">
-                              {booking.service} • {booking.time}
+                              {booking.service?.name || "Service"} •{" "}
+                              {format(new Date(booking.start_at), "MMM d")} at{" "}
+                              {format(new Date(booking.start_at), "h:mm a")}
                             </p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Badge className={cn(statusColors[booking.status])}>
-                                {statusLabels[booking.status]}
-                              </Badge>
-                              {booking.depositPaid && (
-                                <Badge variant="outline" className="text-success">
-                                  <DollarSign className="h-3 w-3 mr-1" />
-                                  ${booking.deposit} paid
-                                </Badge>
-                              )}
-                            </div>
+                            <Badge className={cn("mt-1", statusColors[booking.status])}>
+                              {statusLabels[booking.status]}
+                            </Badge>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold">${booking.total}</p>
-                          <p className="text-xs text-muted-foreground">{booking.duration}</p>
+                          <p className="font-bold">
+                            {booking.service?.price_amount
+                              ? `$${booking.service.price_amount}`
+                              : "—"}
+                          </p>
+                          {!booking.deposit_paid && booking.deposit_required && (
+                            <Button size="sm" variant="outline" className="mt-2">
+                              Request Deposit
+                            </Button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -196,43 +241,12 @@ export default function BookingsPage() {
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     <CalendarIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>No bookings for this day</p>
+                    <p>No upcoming bookings</p>
+                    <p className="text-sm mt-1">
+                      Book appointments or let the AI schedule for you
+                    </p>
                   </div>
                 )}
-              </TabsContent>
-
-              <TabsContent value="upcoming">
-                <div className="space-y-4">
-                  {upcomingBookings.map((booking) => (
-                    <div
-                      key={booking.id}
-                      className="flex items-center justify-between p-4 rounded-lg border"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                          <User className="h-6 w-6 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium">{booking.customer}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {booking.service} • {format(booking.date, "MMM d")} at {booking.time}
-                          </p>
-                          <Badge className={cn("mt-1", statusColors[booking.status])}>
-                            {statusLabels[booking.status]}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold">${booking.total}</p>
-                        {!booking.depositPaid && booking.deposit > 0 && (
-                          <Button size="sm" variant="outline" className="mt-2">
-                            Request Deposit
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </TabsContent>
             </Tabs>
           </CardContent>
