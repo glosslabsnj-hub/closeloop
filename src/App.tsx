@@ -45,6 +45,7 @@ import OrderTicketPage from "@/pages/app/OrderTicketPage";
 import AdminOverviewPage from "@/pages/admin/AdminOverviewPage";
 import AdminTenantsPage from "@/pages/admin/AdminTenantsPage";
 import AdminSupportPage from "@/pages/admin/AdminSupportPage";
+import AdminDemoLibraryPage from "@/pages/admin/AdminDemoLibraryPage";
 
 import NotFound from "@/pages/NotFound";
 
@@ -99,6 +100,7 @@ const App = () => (
               <Route path="/admin/overview" element={<AdminOverviewPage />} />
               <Route path="/admin/tenants" element={<AdminTenantsPage />} />
               <Route path="/admin/support" element={<AdminSupportPage />} />
+              <Route path="/admin/demo-library" element={<AdminDemoLibraryPage />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />

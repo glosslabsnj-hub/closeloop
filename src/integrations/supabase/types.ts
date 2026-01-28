@@ -1146,6 +1146,42 @@ export type Database = {
           },
         ]
       }
+      industry_demos: {
+        Row: {
+          audio_url: string | null
+          caption_bullets: Json
+          created_at: string
+          id: string
+          industry_key: string
+          is_active: boolean
+          title: string
+          transcript_excerpt: string | null
+          updated_at: string
+        }
+        Insert: {
+          audio_url?: string | null
+          caption_bullets?: Json
+          created_at?: string
+          id?: string
+          industry_key: string
+          is_active?: boolean
+          title: string
+          transcript_excerpt?: string | null
+          updated_at?: string
+        }
+        Update: {
+          audio_url?: string | null
+          caption_bullets?: Json
+          created_at?: string
+          id?: string
+          industry_key?: string
+          is_active?: boolean
+          title?: string
+          transcript_excerpt?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       knowledge_gaps: {
         Row: {
           ai_session_id: string | null

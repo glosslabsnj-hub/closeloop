@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { PricingCards } from "@/components/pricing/PricingCards";
 import { TIERS } from "@/config/pricing";
-import { IndustryDemoSelector } from "@/components/landing/IndustryDemoSelector";
+import { IndustryDemoPlayer } from "@/components/landing/IndustryDemoPlayer";
 import { SalesAIAgent } from "@/components/landing/SalesAIAgent";
 
 const features = [
@@ -190,7 +190,7 @@ export default function LandingPage() {
 
       {/* Industry Demo Section */}
       <section id="demo">
-        <IndustryDemoSelector />
+        <IndustryDemoPlayer />
       </section>
 
       {/* How It Works */}

@@ -16,6 +16,7 @@ import {
   LogOut,
   Shield,
   Settings,
+  Music,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
@@ -23,6 +24,7 @@ import { useEffect } from "react";
 const navItems = [
   { href: "/admin/overview", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/tenants", label: "Tenants", icon: Building2 },
+  { href: "/admin/demo-library", label: "Demo Library", icon: Music },
   { href: "/admin/support", label: "Support", icon: HeadphonesIcon },
 ];
 
@@ -119,7 +121,7 @@ export function AdminLayout() {
 
         {/* Mobile Nav */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t bg-background">
-          <div className="grid grid-cols-3 h-16">
+          <div className="grid grid-cols-4 h-16">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.href;
