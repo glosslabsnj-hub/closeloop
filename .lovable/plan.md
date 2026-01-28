@@ -1,164 +1,162 @@
 
 
-# Fix Plan: Dashboard Setup & Phone Persistence Issues
+# Twilio Phone Number Provisioning Integration
 
-## Problem Summary
+## Overview
 
-After thorough investigation, I identified **4 distinct issues**:
+This implementation will integrate Twilio with your platform so that when a new customer pays (subscribes), they are automatically assigned a unique Twilio phone number from your account. Customers can then forward their business calls to this assigned number.
 
-### Issue 1: RLS Policy Blocks Insert on `assistant_settings`
-**Root Cause**: The user `test1234@gmail.com` has no `tenant_users` record (they may have signed up but never completed onboarding). When the app tries to upsert to `assistant_settings`, the RLS `INSERT` policy fails because `has_tenant_access()` returns false.
+## Current Architecture
 
-The code is trying to upsert to the demo tenant (`a0000000-0000-0000-0000-000000000001`) which belongs to a different user.
+- **Subscription Flow**: When a user completes onboarding, a subscription is created in the `subscriptions` table with status `trialing`
+- **Phone Setup**: Currently uses mock numbers generated from tenant ID hash
+- **Database Fields**: `assistant_settings` already has `closeloop_number` field for storing the assigned number
+- **Edge Functions**: `test-call-phone` exists as a placeholder for Twilio integration
 
-### Issue 2: Dashboard Shows Without Checking Tenant
-**Root Cause**: Users who have no tenant are being shown the Dashboard with setup steps instead of being redirected to complete onboarding. The AppLayout doesn't properly gate users without tenants.
+## Implementation Plan
 
-### Issue 3: Phone Number Doesn't Persist in Settings Tab
-**Root Cause**: The Settings page uses `useTenantSettings()` which updates the `tenants` table's `phone_public` field, but the phone number entered in the setup wizard goes to `assistant_settings.business_phone_number`. These are different fields and different tables.
+### Step 1: Add Twilio Secrets
 
-### Issue 4: Calendar Step Uses Upsert But No Record Exists
-**Root Cause**: For new tenants, `assistant_settings` must first be created (via `initialize_assistant_settings()` RPC during onboarding). The calendar step uses `upsert` but when no row exists and the RLS check fails, it fails with the observed error.
+Add the following secrets to Lovable Cloud:
+- `TWILIO_ACCOUNT_SID` - Your Twilio Account SID
+- `TWILIO_AUTH_TOKEN` - Your Twilio Auth Token
 
-### Issue 5: Each Business Needs Unique Forwarding Number
-**Root Cause**: The `CarrierInstructions` component shows a hardcoded forwarding number (`+1 (555) 123-4567`) instead of a unique per-tenant number. Each tenant should receive a dedicated forwarding number.
+### Step 2: Create Edge Function for Phone Provisioning
+
+Create a new edge function `provision-twilio-number` that:
+
+1. Receives a `tenant_id` and optional area code preference
+2. Searches for available Twilio phone numbers (local or toll-free)
+3. Purchases/provisions the number via Twilio API
+4. Configures the number's webhook URLs for voice/SMS handling
+5. Returns the provisioned number
+
+```text
++-------------------+     +------------------------+     +-------------+
+|  Subscription     | --> | provision-twilio-number| --> |   Twilio    |
+|  Created/Paid     |     |    Edge Function       |     |    API      |
++-------------------+     +------------------------+     +-------------+
+         |                          |                          |
+         |                          v                          |
+         |                 +------------------+                 |
+         |                 | assistant_settings|<---------------+
+         |                 | closeloop_number  |     Phone Number
+         +-----------------+------------------+
+```
+
+### Step 3: Integrate with Subscription Flow
+
+Modify the subscription creation process to automatically trigger phone provisioning:
+
+**Option A: Database Trigger (Recommended)**
+- Create a database trigger on `subscriptions` table
+- When status changes to `active` (after payment), call the edge function
+
+**Option B: Application-Level Integration**
+- Call the provisioning edge function after successful payment/subscription activation
+- Update `OnboardingPage.tsx` to trigger provisioning after subscription creation
+
+### Step 4: Update Phone Connection UI
+
+Update `PhoneConnectionStep.tsx` to:
+- Show "Provisioning your number..." state when waiting for Twilio
+- Display the real Twilio number once provisioned
+- Remove mock number generation
+
+### Step 5: Track Provisioned Numbers
+
+Add database fields to track Twilio metadata:
+- `twilio_phone_sid` - The Twilio Phone Number SID for management
+- `twilio_provisioned_at` - Timestamp of provisioning
 
 ---
 
-## Fix Implementation Plan
+## Technical Details
 
-### Fix 1: Redirect Users Without Tenants to Onboarding
+### Edge Function: `provision-twilio-number`
 
-**File**: `src/components/layouts/AppLayout.tsx`
+```text
+Request Body:
+{
+  "tenant_id": "uuid",
+  "area_code": "optional - preferred area code",
+  "number_type": "local" | "toll_free"
+}
 
-**Change**: Add a check for users without a tenant and redirect them to the onboarding page. Currently the app only checks for subscription, not for tenant existence.
-
-**Logic**:
-```typescript
-// Add after loading check
-if (!loading && user && !tenant) {
-  // User is logged in but has no tenant - send to onboarding
-  if (location.pathname !== "/app/onboarding") {
-    navigate("/app/onboarding");
-    return;
-  }
+Response:
+{
+  "success": true,
+  "phone_number": "+1234567890",
+  "phone_sid": "PN...",
+  "friendly_name": "(234) 567-8901"
 }
 ```
 
-### Fix 2: Ensure Assistant Settings Row Exists Before Setup Steps
+The function will:
+1. Validate the tenant exists and has an active subscription
+2. Check if tenant already has a number assigned (prevent duplicates)
+3. Search Twilio for available numbers matching criteria
+4. Purchase the first available number
+5. Configure webhooks (voice URL, SMS URL) to point to your handlers
+6. Update `assistant_settings.closeloop_number` with the new number
+7. Return the provisioned number details
 
-**File**: `src/components/dashboard/PhoneConnectionStep.tsx`
-**File**: `src/components/dashboard/CalendarConnectionStep.tsx`
+### Database Migration
 
-**Change**: Before attempting to upsert, first check if the row exists. If not, use `insert` instead of `upsert`, or ensure the row is created via the `initialize_assistant_settings` RPC at the right time.
+Add tracking columns to `assistant_settings`:
 
-Better approach: Use **`UPDATE`** when the row is guaranteed to exist (after onboarding creates it), and only use `INSERT` if it doesn't.
-
-**Implementation Pattern**:
-```typescript
-// Check if settings exist first
-const { data: existing } = await supabase
-  .from("assistant_settings")
-  .select("tenant_id")
-  .eq("tenant_id", tenant.id)
-  .maybeSingle();
-
-if (existing) {
-  // UPDATE existing row
-  await supabase.from("assistant_settings").update({...}).eq("tenant_id", tenant.id);
-} else {
-  // INSERT new row
-  await supabase.from("assistant_settings").insert({...});
-}
+```sql
+ALTER TABLE assistant_settings 
+ADD COLUMN twilio_phone_sid TEXT,
+ADD COLUMN twilio_provisioned_at TIMESTAMPTZ;
 ```
 
-### Fix 3: Generate Unique Per-Tenant Forwarding Numbers
+### Webhook Configuration
 
-**File**: `src/components/dashboard/CarrierInstructions.tsx`
-**File**: `src/components/dashboard/PhoneConnectionStep.tsx`
-
-**Change**: Instead of hardcoding `+1 (555) 123-4567`, generate a unique forwarding number per tenant and store it in `assistant_settings.closeloop_number`.
-
-**Implementation**:
-1. Add a database function or edge function to provision/generate a unique CloseLoop number per tenant
-2. Store this in `assistant_settings.closeloop_number`
-3. Display the tenant's unique number in `CarrierInstructions`
-
-For MVP (mock mode), we can generate a deterministic number based on tenant ID:
-```typescript
-const generateForwardingNumber = (tenantId: string) => {
-  // Generate consistent number from tenant ID hash
-  const hash = tenantId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const areaCode = 800 + (hash % 100); // 800-899
-  const exchange = 200 + (hash % 800); // 200-999
-  const subscriber = 1000 + (hash % 9000); // 1000-9999
-  return `+1 (${areaCode}) ${exchange}-${subscriber}`;
-};
-```
-
-### Fix 4: Sync Phone Number Fields Between Settings and Setup
-
-**File**: `src/pages/app/SettingsPage.tsx`
-
-**Change**: The Settings page "Public Phone Number" field should read/write from the same source as the setup wizard. Either:
-- Option A: Use `assistant_settings.business_phone_number` for both
-- Option B: Keep `tenants.phone_public` but sync it during setup
-
-**Recommended**: Option A - update Settings to also update `assistant_settings.business_phone_number` when the phone is changed, and load from it.
-
-### Fix 5: Add Skip Button for Calendar Step
-
-**File**: `src/components/dashboard/CalendarConnectionStep.tsx`
-
-**Change**: The `onSkip` prop exists but isn't always shown. Ensure the skip button is visible and functional.
+When provisioning, set these webhooks on the Twilio number:
+- **Voice URL**: Points to your inbound call handler edge function
+- **SMS URL**: Points to your inbound SMS handler edge function
+- **Status Callback**: For delivery receipts and call status updates
 
 ---
 
-## Technical Implementation Details
+## Files to Create/Modify
 
-### Step 1: Update AppLayout for Tenant Gate
-Add tenant existence check to redirect users without tenants to onboarding.
-
-### Step 2: Fix PhoneConnectionStep
-- Check for existing `assistant_settings` row before upsert
-- Generate unique forwarding number per tenant
-- Pass correct number to CarrierInstructions
-
-### Step 3: Fix CalendarConnectionStep  
-- Use update instead of upsert when settings exist
-- Ensure skip button works correctly
-- Only enable "coming soon" for Google Calendar, allow skip
-
-### Step 4: Update CarrierInstructions
-- Accept the tenant's unique forwarding number as prop
-- Remove hardcoded number
-
-### Step 5: Fix SettingsPage Phone Field
-- Read `business_phone_number` from `assistant_settings` via AuthContext
-- Update both `tenants.phone_public` and `assistant_settings.business_phone_number`
+| File | Action | Purpose |
+|------|--------|---------|
+| `supabase/functions/provision-twilio-number/index.ts` | Create | Main provisioning logic |
+| `src/pages/app/OnboardingPage.tsx` | Modify | Trigger provisioning after payment |
+| `src/components/dashboard/PhoneConnectionStep.tsx` | Modify | Show real Twilio number, loading state |
+| `src/components/dashboard/ConnectPhoneDialog.tsx` | Modify | Use real provisioning instead of mock |
+| Database migration | Create | Add `twilio_phone_sid`, `twilio_provisioned_at` columns |
 
 ---
 
-## Effort Estimates
+## Security Considerations
 
-| Fix | Effort | Priority |
-|-----|--------|----------|
-| AppLayout tenant gate | 15 min | P0 |
-| PhoneConnectionStep upsert fix | 20 min | P0 |
-| CalendarConnectionStep upsert fix | 15 min | P0 |
-| Unique forwarding numbers | 20 min | P0 |
-| Settings phone sync | 15 min | P1 |
-
-**Total: ~1.5 hours**
+1. **Service Role Only**: The edge function uses `SUPABASE_SERVICE_ROLE_KEY` to update database
+2. **Tenant Validation**: Verify tenant has active subscription before provisioning
+3. **Idempotency**: Check if number already assigned to prevent duplicate purchases
+4. **Rate Limiting**: Add protection against rapid provisioning attempts
+5. **Secrets**: Twilio credentials stored securely in Lovable Cloud secrets
 
 ---
 
-## Acceptance Criteria
+## Cost Notes
 
-1. Users without a tenant are redirected to `/app/onboarding`
-2. Phone connection step successfully saves and marks step complete
-3. Calendar step successfully saves with CloseLoop Calendar option
-4. Each tenant sees their own unique forwarding number
-5. Phone number saved in Settings persists when returning to the tab
-6. Calendar step can be skipped if user chooses Google Calendar (coming soon)
+- Twilio local numbers: ~$1.15/month per number
+- Twilio toll-free numbers: ~$2.00/month per number
+- Per-minute voice costs apply for inbound/outbound calls
+- Numbers are charged to your Twilio account automatically
+
+---
+
+## Rollout Steps
+
+1. Add Twilio secrets (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`)
+2. Run database migration for new columns
+3. Deploy the `provision-twilio-number` edge function
+4. Update the frontend components
+5. Test with a new trial signup
+6. Verify the number appears and calls can be forwarded
 
