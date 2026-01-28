@@ -44,20 +44,34 @@ export default function VoiceAgentTest() {
       // Request microphone permission
       await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      // Get token from edge function (uses global agent ID from env)
+      // Get signed URL and dynamic variables from edge function
       const { data, error } = await supabase.functions.invoke(
         "elevenlabs-conversation-token",
         { body: { tenantId: tenant?.id } }
       );
 
-      if (error || !data?.token) {
-        throw new Error(error?.message || "No token received");
+      if (error) {
+        throw new Error(error.message || "Failed to get conversation token");
       }
 
-      // Start the conversation with WebRTC
+      if (!data?.signedUrl) {
+        throw new Error("No signed URL received from server");
+      }
+
+      console.log("Starting conversation with business context:", data.dynamicVariables);
+
+      // Start the conversation with WebSocket using signed URL
+      // The signed URL already includes agent ID and allows us to pass overrides
       await conversation.startSession({
-        conversationToken: data.token,
-        connectionType: "webrtc",
+        signedUrl: data.signedUrl,
+        overrides: {
+          agent: {
+            prompt: {
+              prompt: `You are a helpful AI assistant for ${data.dynamicVariables?.business_name || "our business"}. Today's hours are ${data.dynamicVariables?.business_hours_today || "our regular hours"}.`,
+            },
+            firstMessage: `Hi, thank you for calling ${data.dynamicVariables?.business_name || "us"}! How can I help you today?`,
+          },
+        },
       });
     } catch (error: any) {
       console.error("Failed to start conversation:", error);

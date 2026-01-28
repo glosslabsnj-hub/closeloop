@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AIReadinessScore from "@/components/knowledge/AIReadinessScore";
 import KnowledgeGapQueue from "@/components/knowledge/KnowledgeGapQueue";
-import VoiceSelector from "@/components/ai/VoiceSelector";
 import ToneSelector from "@/components/ai/ToneSelector";
 import LiveFAQList from "@/components/ai/LiveFAQList";
 import VoiceAgentTest from "@/components/ai/VoiceAgentTest";
@@ -32,7 +31,6 @@ export default function AIAssistantPage() {
   const { context, loading: contextLoading, refetch } = useBusinessContext(tenant?.id || null);
   
   const [aiEnabled, setAiEnabled] = useState(false);
-  const [selectedVoice, setSelectedVoice] = useState("EXAVITQu4vr4xnSDxMaL"); // Sarah (default)
   const [selectedTone, setSelectedTone] = useState<string>("friendly");
   const [greeting, setGreeting] = useState("");
   const [fallback, setFallback] = useState("");
@@ -57,7 +55,6 @@ export default function AIAssistantPage() {
 
     if (data) {
       setAiEnabled(data.is_enabled);
-      setSelectedVoice(data.voice_id || 'EXAVITQu4vr4xnSDxMaL');
       setSelectedTone(data.tone);
       setGreeting(data.greeting_script || '');
       setFallback(data.fallback_script || '');
@@ -98,7 +95,6 @@ export default function AIAssistantPage() {
       const assistantData = {
         tenant_id: tenant.id,
         is_enabled: aiEnabled,
-        voice_id: selectedVoice,
         tone: selectedTone as any,
         greeting_script: greeting,
         fallback_script: fallback,
@@ -207,10 +203,24 @@ export default function AIAssistantPage() {
 
         {/* Voice & Tone Tab */}
         <TabsContent value="voice" className="space-y-6">
-          <div className="grid md:grid-cols-2 gap-6">
-            <VoiceSelector selected={selectedVoice} onSelect={setSelectedVoice} />
+          <div className="max-w-md">
             <ToneSelector selected={selectedTone} onSelect={setSelectedTone} />
           </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Voice Configuration</CardTitle>
+              <CardDescription>
+                Your AI assistant's voice is managed through your ElevenLabs agent configuration. 
+                The voice settings are applied automatically to both browser tests and phone calls.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                To change the voice, tone, or speaking style of your AI assistant, 
+                contact support or access your ElevenLabs agent settings.
+              </p>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Booking Tab */}
