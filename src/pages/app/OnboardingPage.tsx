@@ -89,7 +89,7 @@ export default function OnboardingPage() {
     aiNeverPromise: [],
   });
 
-  const { user, tenant, refreshTenant } = useAuth();
+  const { user, tenant, loading: authLoading, refreshTenant } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -98,10 +98,10 @@ export default function OnboardingPage() {
 
   // Redirect if user already has a tenant (onboarding completed)
   useEffect(() => {
-    if (tenant) {
+    if (!authLoading && tenant) {
       navigate("/app/dashboard", { replace: true });
     }
-  }, [tenant, navigate]);
+  }, [authLoading, tenant, navigate]);
 
   // Initialize data when industry changes
   useEffect(() => {
@@ -148,6 +148,30 @@ export default function OnboardingPage() {
   
   const canProceedStep2 = services.length > 0 && 
     services.every(s => s.name.trim().length > 0);
+
+  // Show loading while checking auth state
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-secondary/30">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If tenant already exists, show redirect message (fallback while navigating)
+  if (tenant) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-secondary/30">
+        <div className="text-center space-y-4">
+          <CheckCircle2 className="h-8 w-8 mx-auto text-success" />
+          <p className="text-muted-foreground">You already have a business set up. Redirecting to dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleComplete = async () => {
     if (!user) {
