@@ -1,316 +1,258 @@
 
 
-# Plan: Intensive Business Onboarding for AI Knowledge
+# Dashboard Reconfiguration Plan
 
 ## Overview
 
-The current onboarding is too shallow. For the AI to effectively assist customers, qualify leads, handle objections, and push bookings, it needs deep knowledge about the business. This plan creates a comprehensive 8-step onboarding wizard that collects everything the AI needs to sound like a real employee.
+Transform the current dashboard into a **setup-first experience** that guides non-technical business owners through getting their AI agent running smoothly. The new dashboard will prioritize clarity, eliminate confusion, and make the path to "AI is live and booking appointments" unmistakable.
 
 ---
 
-## Current State vs. Proposed State
+## Current State Analysis
 
-| Current | Proposed |
-|---------|----------|
-| 5 steps, ~60 seconds | 8 steps, ~3-5 minutes |
-| Business name + industry | Full business profile with tagline, location, website |
-| Generic services | Services with detailed descriptions, requirements, upsells |
-| Basic hours | Hours + booking policies + lead time requirements |
-| Toggle automations | Detailed customer intake questions |
-| No FAQs | Pre-filled + custom FAQs |
-| No objection handling | Common objections with responses |
-| No pricing guidance | Pricing rules + deposit policies + discounts |
+The existing dashboard shows:
+- A setup checklist (hidden when complete)
+- Demo metrics and revenue banners
+- Recent activity and quick actions
+
+**Problems identified:**
+1. Setup checklist is buried and not prominent enough
+2. Phone connection flow is confusing (forwarding instructions unclear)
+3. No calendar integration support
+4. Agent status is not immediately visible
+5. Too much demo data shown before the user is even set up
+6. The Quick Setup Wizard in Simulator is disconnected from the main dashboard
 
 ---
 
-## New Onboarding Steps
+## Proposed Dashboard Structure
 
-### Step 1: Business Identity
-Collect who you are and how customers find you.
+### New Layout: Three-Phase Experience
 
-| Field | Purpose |
-|-------|---------|
-| Business name | Greeting, branding |
-| Tagline/slogan | AI uses in conversation |
-| Industry | Templates + context |
-| Custom industry (if "other") | For unknown industries |
-| Phone number | Display and verification |
-| Website | Reference for AI |
-| Address/service area | Location-based responses |
-| Years in business | Trust building |
+**Phase 1: Incomplete Setup** - Full-screen setup wizard with progress tracking
+**Phase 2: Setup Complete but Not Live** - Dashboard with prominent "Go Live" CTA
+**Phase 3: Fully Live** - Performance metrics with agent status header
 
-### Step 2: Services & Pricing
-Deep dive into what you offer.
+---
 
-| Field | Purpose |
-|-------|---------|
-| Service name | What AI offers |
-| Description | AI explains what's included |
-| Duration | Scheduling |
-| Price + price type | Quoting |
-| What's included | AI can explain value |
-| Common add-ons/upsells | AI suggests upgrades |
-| Deposit required? | Payment collection |
-| Preparation instructions | AI tells customer what to do before |
+## Component Architecture
 
-### Step 3: Business Hours & Availability
-When can customers book?
+### 1. New Command Center Component
+A prominent status banner at the top of the dashboard showing:
+- Agent Status (Live/Offline/Needs Attention)
+- Connection Health (Phone, Calendar)
+- Quick test button
+- One-click toggle to enable/disable AI
 
-| Field | Purpose |
-|-------|---------|
-| Operating hours | When AI offers slots |
-| Lead time (min hours in advance) | Prevents same-day chaos |
-| Max advance booking | How far out to book |
-| Appointment buffer | Time between appointments |
-| Closed dates/holidays | Avoid booking errors |
+### 2. Redesigned Setup Flow
+Replace the checklist with a **visual step-by-step wizard**:
 
-### Step 4: Customer Intake Questions
-What info does your team need before a job?
+```text
++-------------------------------------------------------------+
+|  Get Your AI Running                                    3/4  |
+|  =========================================================  |
+|  [1. Phone] --> [2. Calendar] --> [3. Test AI] --> [4. Go Live]  |
+|       Done          Active          Locked           Locked     |
++-------------------------------------------------------------+
+```
 
-| Field | Purpose |
-|-------|---------|
-| Industry-specific fields (auto-populated) | Year/make/model for auto, sqft for cleaning, etc. |
-| Custom questions | Business-specific info gathering |
-| Required vs optional | AI knows what to push for |
+### 3. Setup Steps Detail
 
-### Step 5: FAQs & Common Questions
-What do customers always ask?
+**Step 1: Connect Your Business Phone**
+- Two clear options with radio selection:
+  - "Get a new CloseLoop number" (provisions via Twilio - mock for now)
+  - "Use my existing number" (shows forwarding instructions)
+- Phone number input field
+- Visual confirmation when connected
+- Provider-specific forwarding instructions (ATT, Verizon, T-Mobile, etc.)
 
-Pre-populate with 5-8 industry-specific FAQs (auto-generated), then let user edit/add:
+**Step 2: Connect Your Calendar**
+- Universal booking link option (Calendly, Cal.com, Acuity, etc.)
+- Paste booking URL field
+- Future: OAuth buttons for Google Calendar, Outlook, Apple Calendar
+- Explanation of what AI can do: "Your AI will direct customers to book here"
 
-- "What are your hours?"
-- "How much does X cost?"
-- "Do you offer mobile service?"
-- "How long does X take?"
-- "Do you require a deposit?"
-- "What forms of payment do you accept?"
-- "Are you licensed/insured?"
-- "What's your cancellation policy?"
+**Step 3: Test Your AI**
+- Browser-based voice test (existing VoiceAgentTest component)
+- "Call My Phone" option (existing functionality)
+- Preview of what customers will hear
+- System prompt preview showing business context
 
-### Step 6: Objection Handling
-How should AI respond to pushback?
+**Step 4: Go Live**
+- Big toggle switch
+- Confirmation modal
+- Success celebration animation
 
-Pre-populate with common objections:
-
-| Objection | Sample Response |
-|-----------|-----------------|
-| "That's too expensive" | "I understand price is important. We focus on quality and most customers find the value exceeds the cost. Would you like to hear about our most popular package?" |
-| "I need to think about it" | "Of course! Would it help if I answered any specific questions? I can also hold a spot for you for 24 hours." |
-| "I'll call back later" | "No problem! Would you like me to send you a text with our info and a link to book when you're ready?" |
-| "Can I get a discount?" | "We offer our best pricing upfront, but we do have special packages. Let me tell you about those." |
-
-### Step 7: Policies & Rules
-Business rules the AI must follow.
-
-| Policy | Purpose |
-|--------|---------|
-| Cancellation policy | AI explains terms |
-| Deposit policy | When/how much to collect |
-| Refund policy | Handle complaints |
-| Payment methods accepted | Answer payment questions |
-| Service area (radius/zip codes) | Decline out-of-area requests |
-| What AI should never promise | Guardrails |
-
-### Step 8: Review & Launch
-Summary of everything configured, with a "Launch" button.
+### 4. Post-Setup Dashboard
+Once live, show:
+- Agent Status Card (prominent, top of page)
+- Key Metrics (calls handled, bookings made, texts sent)
+- Recent Activity Feed
+- Quick Actions
 
 ---
 
 ## Database Changes
 
-### New columns on `tenants` table:
-
+Add new columns to `assistant_settings`:
 ```sql
--- Business identity
-tagline TEXT,
-website_url TEXT,
-address TEXT,
-service_area_json JSONB, -- { type: 'radius', miles: 25 } or { type: 'zips', codes: [...] }
-years_in_business INTEGER,
-
--- Policies
-cancellation_policy TEXT,
-deposit_policy TEXT,
-refund_policy TEXT,
-payment_methods TEXT[], -- ['cash', 'card', 'check', 'venmo', 'zelle']
-
--- Booking rules
-min_lead_hours INTEGER DEFAULT 24,
-max_advance_days INTEGER DEFAULT 30,
-appointment_buffer_minutes INTEGER DEFAULT 15,
-closed_dates JSONB, -- array of dates
-
--- AI guardrails
-ai_never_promise TEXT[], -- things AI should never say yes to
-```
-
-### Updates to `services` table:
-
-```sql
-description TEXT, -- what's included
-preparation_instructions TEXT, -- what customer should do before
-upsell_suggestions TEXT[], -- related add-ons
-deposit_required BOOLEAN DEFAULT false,
-```
-
-### New table: `business_faqs`
-
-```sql
-CREATE TABLE business_faqs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
-  question TEXT NOT NULL,
-  answer TEXT NOT NULL,
-  priority_weight INTEGER DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-```
-
-### New table: `objection_responses`
-
-```sql
-CREATE TABLE objection_responses (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
-  objection TEXT NOT NULL,
-  response TEXT NOT NULL,
-  priority_weight INTEGER DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+-- Booking calendar URL (universal approach)
+booking_url TEXT,
+-- Calendar provider (for future OAuth integrations)
+calendar_provider TEXT, -- 'google', 'outlook', 'apple', 'calendly', 'acuity', 'cal_com', 'other'
+-- Track setup completion
+setup_completed_at TIMESTAMP,
+-- Track individual setup step completion
+setup_step_phone BOOLEAN DEFAULT false,
+setup_step_calendar BOOLEAN DEFAULT false,
+setup_step_tested BOOLEAN DEFAULT false,
+-- Phone provisioning method
+phone_method TEXT -- 'closeloop_number' or 'forwarded'
 ```
 
 ---
 
-## Implementation Steps
+## New Components to Create
 
-### Step 1: Database Migration
-Create new columns and tables as specified above with appropriate RLS policies for tenant isolation.
+1. **`src/components/dashboard/AgentStatusBanner.tsx`**
+   - Shows AI online/offline status
+   - Connection health indicators
+   - Quick test button
+   - Go Live toggle
 
-### Step 2: Create Onboarding Sub-Components
-Build reusable components for each step:
+2. **`src/components/dashboard/SetupWizard.tsx`**
+   - Full-screen setup experience
+   - Step-by-step progress
+   - Replaces old SetupChecklist
 
-| Component | Purpose |
-|-----------|---------|
-| `BusinessIdentityForm.tsx` | Name, tagline, contact, location |
-| `ServiceEditorAdvanced.tsx` | Enhanced service editor with descriptions, upsells |
-| `BookingPoliciesEditor.tsx` | Lead time, buffer, max advance |
-| `CustomerIntakeEditor.tsx` | Required info fields |
-| `FAQEditor.tsx` | Add/edit/delete FAQs |
-| `ObjectionEditor.tsx` | Add/edit objection responses |
-| `PoliciesEditor.tsx` | Cancellation, refund, payment methods |
+3. **`src/components/dashboard/PhoneConnectionStep.tsx`**
+   - Dual-option phone setup
+   - Provider-specific instructions
+   - Number verification
 
-### Step 3: Create Industry-Specific Defaults
-Expand `industryTemplates.ts` to include:
-- Default FAQs per industry
-- Default objection responses per industry
-- Default policies per industry
+4. **`src/components/dashboard/CalendarConnectionStep.tsx`**
+   - Booking URL input
+   - Provider selection
+   - Future OAuth integration points
 
-### Step 4: Rewrite OnboardingPage.tsx
-- 8-step wizard with progress indicator
-- Each step uses its dedicated sub-component
-- State management for all collected data
-- Validation at each step
-- Error handling on final submit
+5. **`src/components/dashboard/TestAIStep.tsx`**
+   - Integrated voice test
+   - Call-my-phone option
+   - System prompt preview
 
-### Step 5: Update handleComplete()
-- Insert all new data into appropriate tables
-- Create tenant record with extended fields
-- Seed FAQs and objection responses
-- Proper error handling with rollback messaging
+6. **`src/components/dashboard/GoLiveStep.tsx`**
+   - Final confirmation
+   - Toggle with celebration
 
----
-
-## Files to Create/Modify
-
-| File | Action |
-|------|--------|
-| `supabase/migrations/new.sql` | Add new columns and tables |
-| `src/pages/app/OnboardingPage.tsx` | Complete rewrite with 8 steps |
-| `src/components/onboarding/BusinessIdentityForm.tsx` | New |
-| `src/components/onboarding/ServiceEditorAdvanced.tsx` | New (replaces current) |
-| `src/components/onboarding/BookingPoliciesEditor.tsx` | New |
-| `src/components/onboarding/CustomerIntakeEditor.tsx` | New |
-| `src/components/onboarding/FAQEditor.tsx` | New |
-| `src/components/onboarding/ObjectionEditor.tsx` | New |
-| `src/components/onboarding/PoliciesEditor.tsx` | New |
-| `src/data/industryTemplates.ts` | Expand with FAQs, objections, policies |
-| `src/types/database.ts` | Add new interfaces |
+7. **`src/components/dashboard/LiveDashboard.tsx`**
+   - Post-setup metrics view
+   - Agent status
+   - Activity feed
 
 ---
 
-## User Experience
+## Updated Page Flow
 
 ```text
-Step 1: Tell us about your business
-├── Business name (required)
-├── Tagline (optional) - "What makes you different?"
-├── Industry (required)
-├── Years in business (optional)
-├── Phone number (required)
-├── Website (optional)
-└── Service area (address + radius OR zip codes)
-
-Step 2: Your services
-├── Pre-filled from industry templates
-├── Each service expandable to show:
-│   ├── Name, duration, price
-│   ├── Description of what's included
-│   ├── Preparation instructions
-│   ├── Common upsells/add-ons
-│   └── Deposit requirement
-└── Add/remove services
-
-Step 3: Availability & booking rules
-├── Business hours (day by day)
-├── Minimum notice required (hours)
-├── How far in advance can book (days)
-├── Buffer between appointments
-└── Closed dates (optional)
-
-Step 4: Customer information
-├── Pre-filled based on industry
-├── Mark required vs optional
-├── Add custom questions
-└── "What info do you NEED to do the job?"
-
-Step 5: Frequently asked questions
-├── 6-8 pre-filled industry FAQs
-├── Edit any answer
-├── Add custom FAQs
-└── "What do customers always ask?"
-
-Step 6: Handle objections
-├── 4-5 pre-filled objection responses
-├── Edit any response
-├── Add custom objections
-└── "How do you overcome hesitation?"
-
-Step 7: Your policies
-├── Cancellation policy (text)
-├── Deposit policy (text)
-├── Refund policy (text)
-├── Payment methods accepted (checkboxes)
-└── Things AI should never promise (optional)
-
-Step 8: Review & launch
-├── Summary of all sections
-├── "Edit" links to go back to any section
-├── Launch button
-└── Progress celebration
+DashboardPage.tsx
+├── isSetupComplete?
+│   ├── NO: <SetupWizard />
+│   │   ├── Step 1: <PhoneConnectionStep />
+│   │   ├── Step 2: <CalendarConnectionStep />
+│   │   ├── Step 3: <TestAIStep />
+│   │   └── Step 4: <GoLiveStep />
+│   │
+│   └── YES: <LiveDashboard />
+│       ├── <AgentStatusBanner />
+│       ├── <MetricsGrid />
+│       └── <ActivityFeed />
 ```
 
 ---
 
-## Rationale
+## UX Improvements
 
-This intensive setup ensures:
+1. **Progress Persistence**: Each step saves to database immediately
+2. **Skip Options**: Non-critical steps can be skipped with clear warning
+3. **Help Text**: Every field has simple, jargon-free explanations
+4. **Mobile-First**: Full functionality on phone screens
+5. **Error Recovery**: Clear messages when something fails
+6. **Celebration Moments**: Confetti or animation when going live
 
-1. **AI sounds knowledgeable** - Can answer detailed questions about services, pricing, policies
-2. **AI handles objections** - Pre-programmed responses to common pushback
-3. **AI books correctly** - Knows lead times, buffers, closed dates
-4. **AI collects right info** - Industry-specific intake questions
-5. **AI builds trust** - Can cite years in business, policies, guarantees
-6. **AI upsells naturally** - Knows related services to suggest
+---
 
-The 3-5 minute investment pays off in an AI that actually sounds like it works for the business.
+## Phone Carrier Instructions
+
+Include expandable sections with specific instructions for:
+- Verizon: `*72 + forwarding number`
+- AT&T: `*21*number#`
+- T-Mobile: `**21*number#`
+- Sprint: `*72 + number`
+- Generic: Settings > Phone > Call Forwarding
+
+---
+
+## Technical Details
+
+### Files to Create
+
+| File | Purpose |
+|------|---------|
+| `src/components/dashboard/SetupWizard.tsx` | Main wizard container |
+| `src/components/dashboard/AgentStatusBanner.tsx` | Status display |
+| `src/components/dashboard/PhoneConnectionStep.tsx` | Phone setup step |
+| `src/components/dashboard/CalendarConnectionStep.tsx` | Calendar connection |
+| `src/components/dashboard/TestAIStep.tsx` | AI testing step |
+| `src/components/dashboard/GoLiveStep.tsx` | Final activation |
+| `src/components/dashboard/LiveDashboard.tsx` | Post-setup view |
+| `src/components/dashboard/CarrierInstructions.tsx` | Forwarding help |
+
+### Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/pages/app/DashboardPage.tsx` | Complete rewrite with new flow |
+| `src/components/dashboard/SetupChecklist.tsx` | Archive or remove |
+| `src/components/dashboard/ConnectPhoneDialog.tsx` | Enhance with dual options |
+
+### Database Migration
+
+```sql
+-- Add calendar and setup tracking to assistant_settings
+ALTER TABLE assistant_settings 
+ADD COLUMN IF NOT EXISTS booking_url TEXT,
+ADD COLUMN IF NOT EXISTS calendar_provider TEXT,
+ADD COLUMN IF NOT EXISTS setup_completed_at TIMESTAMP WITH TIME ZONE,
+ADD COLUMN IF NOT EXISTS setup_step_phone BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS setup_step_calendar BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS setup_step_tested BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS phone_method TEXT;
+```
+
+---
+
+## Implementation Order
+
+1. **Database migration** - Add new columns
+2. **PhoneConnectionStep** - Enhanced phone setup with dual options
+3. **CalendarConnectionStep** - Booking URL capture
+4. **TestAIStep** - Integrate existing voice test
+5. **GoLiveStep** - Activation with toggle
+6. **SetupWizard** - Container with step navigation
+7. **AgentStatusBanner** - Status display component
+8. **LiveDashboard** - Post-setup metrics
+9. **DashboardPage rewrite** - Tie everything together
+10. **Mobile optimization pass** - Ensure great mobile UX
+
+---
+
+## Success Metrics
+
+After implementation, users should be able to:
+- Complete full setup in under 5 minutes
+- Understand exactly what each step requires
+- Test their AI before going live
+- See clear status of their agent at a glance
+- Connect their booking calendar easily
+- Know their phone is properly connected
 
