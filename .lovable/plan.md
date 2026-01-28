@@ -1,231 +1,316 @@
 
-# Plan: Enhanced Onboarding Experience for CloseLoop
+
+# Plan: Intensive Business Onboarding for AI Knowledge
 
 ## Overview
-This plan addresses the user feedback to make the onboarding flow simpler, smarter, and more comprehensive for local service businesses.
+
+The current onboarding is too shallow. For the AI to effectively assist customers, qualify leads, handle objections, and push bookings, it needs deep knowledge about the business. This plan creates a comprehensive 8-step onboarding wizard that collects everything the AI needs to sound like a real employee.
 
 ---
 
-## Issues to Fix
+## Current State vs. Proposed State
 
-### 1. Launch Button Error
-The error occurs because the onboarding page doesn't properly handle authentication state. When clicking "Launch CloseLoop", the function silently fails if the user isn't logged in, or encounters RLS policy issues.
-
-**Solution**: Add proper error handling, authentication checks, and display meaningful error messages.
-
----
-
-### 2. Expanded Industry List
-
-**Current State**: Only 6 industries (detailing, hvac, plumber, medspa, dental, other)
-
-**New Industries to Add**:
-- Tire Shop / Auto Repair
-- Cleaning Services (House/Commercial)
-- Landscaping / Lawn Care
-- Pest Control
-- Roofing
-- Electrical
-- Pool Service
-- Moving Company
-- Salon / Barbershop
-- Fitness / Personal Training
-- Photography
-- Pet Grooming
-- Towing
-- Locksmith
-
-**Database Change Required**: Add new values to the `industry_type` enum.
+| Current | Proposed |
+|---------|----------|
+| 5 steps, ~60 seconds | 8 steps, ~3-5 minutes |
+| Business name + industry | Full business profile with tagline, location, website |
+| Generic services | Services with detailed descriptions, requirements, upsells |
+| Basic hours | Hours + booking policies + lead time requirements |
+| Toggle automations | Detailed customer intake questions |
+| No FAQs | Pre-filled + custom FAQs |
+| No objection handling | Common objections with responses |
+| No pricing guidance | Pricing rules + deposit policies + discounts |
 
 ---
 
-### 3. "Other" Industry - Custom Text Input
+## New Onboarding Steps
 
-When a user selects "Other", show an input field where they can type their specific industry name. This will be stored in a new `custom_industry` column on the `tenants` table.
+### Step 1: Business Identity
+Collect who you are and how customers find you.
+
+| Field | Purpose |
+|-------|---------|
+| Business name | Greeting, branding |
+| Tagline/slogan | AI uses in conversation |
+| Industry | Templates + context |
+| Custom industry (if "other") | For unknown industries |
+| Phone number | Display and verification |
+| Website | Reference for AI |
+| Address/service area | Location-based responses |
+| Years in business | Trust building |
+
+### Step 2: Services & Pricing
+Deep dive into what you offer.
+
+| Field | Purpose |
+|-------|---------|
+| Service name | What AI offers |
+| Description | AI explains what's included |
+| Duration | Scheduling |
+| Price + price type | Quoting |
+| What's included | AI can explain value |
+| Common add-ons/upsells | AI suggests upgrades |
+| Deposit required? | Payment collection |
+| Preparation instructions | AI tells customer what to do before |
+
+### Step 3: Business Hours & Availability
+When can customers book?
+
+| Field | Purpose |
+|-------|---------|
+| Operating hours | When AI offers slots |
+| Lead time (min hours in advance) | Prevents same-day chaos |
+| Max advance booking | How far out to book |
+| Appointment buffer | Time between appointments |
+| Closed dates/holidays | Avoid booking errors |
+
+### Step 4: Customer Intake Questions
+What info does your team need before a job?
+
+| Field | Purpose |
+|-------|---------|
+| Industry-specific fields (auto-populated) | Year/make/model for auto, sqft for cleaning, etc. |
+| Custom questions | Business-specific info gathering |
+| Required vs optional | AI knows what to push for |
+
+### Step 5: FAQs & Common Questions
+What do customers always ask?
+
+Pre-populate with 5-8 industry-specific FAQs (auto-generated), then let user edit/add:
+
+- "What are your hours?"
+- "How much does X cost?"
+- "Do you offer mobile service?"
+- "How long does X take?"
+- "Do you require a deposit?"
+- "What forms of payment do you accept?"
+- "Are you licensed/insured?"
+- "What's your cancellation policy?"
+
+### Step 6: Objection Handling
+How should AI respond to pushback?
+
+Pre-populate with common objections:
+
+| Objection | Sample Response |
+|-----------|-----------------|
+| "That's too expensive" | "I understand price is important. We focus on quality and most customers find the value exceeds the cost. Would you like to hear about our most popular package?" |
+| "I need to think about it" | "Of course! Would it help if I answered any specific questions? I can also hold a spot for you for 24 hours." |
+| "I'll call back later" | "No problem! Would you like me to send you a text with our info and a link to book when you're ready?" |
+| "Can I get a discount?" | "We offer our best pricing upfront, but we do have special packages. Let me tell you about those." |
+
+### Step 7: Policies & Rules
+Business rules the AI must follow.
+
+| Policy | Purpose |
+|--------|---------|
+| Cancellation policy | AI explains terms |
+| Deposit policy | When/how much to collect |
+| Refund policy | Handle complaints |
+| Payment methods accepted | Answer payment questions |
+| Service area (radius/zip codes) | Decline out-of-area requests |
+| What AI should never promise | Guardrails |
+
+### Step 8: Review & Launch
+Summary of everything configured, with a "Launch" button.
 
 ---
 
-### 4. Expanded & Editable Service Templates
+## Database Changes
 
-**Current State**: 3 services per industry, not editable
+### New columns on `tenants` table:
 
-**Improvements**:
-- 5-8 preset services per industry
-- All services are editable inline (name, duration, price)
-- Users can add/remove services
-- Each industry gets realistic, relevant defaults
+```sql
+-- Business identity
+tagline TEXT,
+website_url TEXT,
+address TEXT,
+service_area_json JSONB, -- { type: 'radius', miles: 25 } or { type: 'zips', codes: [...] }
+years_in_business INTEGER,
 
-**Example for Tire Shop**:
-| Service | Duration | Price |
-|---------|----------|-------|
-| Tire Rotation | 30 min | $25 |
-| Flat Tire Repair | 45 min | $35 |
-| Tire Installation (4) | 60 min | $80 |
-| Wheel Alignment | 60 min | $89 |
-| Brake Inspection | 30 min | $0 (free) |
-| Oil Change | 30 min | $45 |
-| Battery Replacement | 30 min | $150 |
+-- Policies
+cancellation_policy TEXT,
+deposit_policy TEXT,
+refund_policy TEXT,
+payment_methods TEXT[], -- ['cash', 'card', 'check', 'venmo', 'zelle']
 
----
+-- Booking rules
+min_lead_hours INTEGER DEFAULT 24,
+max_advance_days INTEGER DEFAULT 30,
+appointment_buffer_minutes INTEGER DEFAULT 15,
+closed_dates JSONB, -- array of dates
 
-### 5. Industry-Specific Smart Context
+-- AI guardrails
+ai_never_promise TEXT[], -- things AI should never say yes to
+```
 
-Different industries need different information from customers. Add industry-specific "context fields" that the AI will collect during calls.
+### Updates to `services` table:
 
-**Examples**:
-- **Tire Shop / Auto Repair**: Vehicle make, model, year, mileage
-- **HVAC**: Property type, system type, square footage
-- **Detailing**: Vehicle type, size, current condition
-- **Med Spa**: Treatment interest, skin concerns
-- **Dental**: Insurance provider, procedure type
-- **Cleaning**: Property size, frequency, special requirements
+```sql
+description TEXT, -- what's included
+preparation_instructions TEXT, -- what customer should do before
+upsell_suggestions TEXT[], -- related add-ons
+deposit_required BOOLEAN DEFAULT false,
+```
 
-This will be stored as `required_context_fields` in the tenant configuration.
+### New table: `business_faqs`
 
----
+```sql
+CREATE TABLE business_faqs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+  question TEXT NOT NULL,
+  answer TEXT NOT NULL,
+  priority_weight INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
 
-### 6. AI Voice Assistant as Premium Feature
+### New table: `objection_responses`
 
-**Current State**: Toggle during onboarding
-
-**New Approach**:
-- Remove AI toggle from onboarding wizard
-- AI Voice Assistant becomes a premium feature activated via:
-  - Settings page upgrade option
-  - Separate pricing tier
-  - "Add AI Assistant" CTA on dashboard
-- Show "Coming Soon" or "Upgrade to enable" messaging
-- Basic automations (SMS follow-ups) remain free
+```sql
+CREATE TABLE objection_responses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+  objection TEXT NOT NULL,
+  response TEXT NOT NULL,
+  priority_weight INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
 
 ---
 
 ## Implementation Steps
 
 ### Step 1: Database Migration
-- Add new industry types to the enum
-- Add `custom_industry` column to tenants table
-- Add `context_fields_json` column to tenants table for industry-specific field requirements
+Create new columns and tables as specified above with appropriate RLS policies for tenant isolation.
 
-### Step 2: Update OnboardingPage.tsx
+### Step 2: Create Onboarding Sub-Components
+Build reusable components for each step:
 
-**Step 2a - Business Info (Step 1)**
-- Simplify to just business name field prominently displayed
-- Expand industry dropdown with 15+ options
-- When "Other" is selected, show text input for custom industry
-- Keep timezone selector
+| Component | Purpose |
+|-----------|---------|
+| `BusinessIdentityForm.tsx` | Name, tagline, contact, location |
+| `ServiceEditorAdvanced.tsx` | Enhanced service editor with descriptions, upsells |
+| `BookingPoliciesEditor.tsx` | Lead time, buffer, max advance |
+| `CustomerIntakeEditor.tsx` | Required info fields |
+| `FAQEditor.tsx` | Add/edit/delete FAQs |
+| `ObjectionEditor.tsx` | Add/edit objection responses |
+| `PoliciesEditor.tsx` | Cancellation, refund, payment methods |
 
-**Step 2b - Services (Step 2)**
-- Display 5-8 preset services based on industry
-- Make each service fully editable:
-  - Service name (text input)
-  - Duration (dropdown: 15, 30, 45, 60, 90, 120, 180, 240 min)
-  - Price (number input)
-- Add "Add Service" button
-- Add delete button per service
-- Show price type selector (fixed/starting at/quote only)
+### Step 3: Create Industry-Specific Defaults
+Expand `industryTemplates.ts` to include:
+- Default FAQs per industry
+- Default objection responses per industry
+- Default policies per industry
 
-**Step 2c - Business Hours (Step 3)**
-- Add a dedicated step for business hours
-- Day-by-day configuration
-- "Copy to all weekdays" shortcut
+### Step 4: Rewrite OnboardingPage.tsx
+- 8-step wizard with progress indicator
+- Each step uses its dedicated sub-component
+- State management for all collected data
+- Validation at each step
+- Error handling on final submit
 
-**Step 2d - Automations (Step 4)**
-- Keep current automation toggle cards
-- These are the "free tier" automations
-
-**Step 2e - Completion (Step 5)**
-- Remove AI assistant from onboarding
-- Show summary of what was set up
-- Add "Explore AI Assistant" CTA that links to upgrade path
-
-### Step 3: Fix Launch Error
-- Add proper authentication validation
-- Show login prompt if not authenticated
-- Add try-catch with user-friendly error messages
-- Add loading states during database operations
-
-### Step 4: Create Service Template Data
-Create comprehensive service templates for each industry with realistic names, durations, and prices.
+### Step 5: Update handleComplete()
+- Insert all new data into appropriate tables
+- Create tenant record with extended fields
+- Seed FAQs and objection responses
+- Proper error handling with rollback messaging
 
 ---
 
-## Technical Details
+## Files to Create/Modify
 
-### New Database Columns (tenants table)
-```text
-custom_industry: TEXT (nullable) - For "Other" industry type
-context_fields_json: JSONB - Industry-specific fields the AI should collect
-```
-
-### New Industry Enum Values
-```text
-tire_shop, cleaning, landscaping, pest_control, roofing, 
-electrical, pool_service, moving, salon, fitness, 
-photography, pet_grooming, towing, locksmith
-```
-
-### Service Template Structure
-```typescript
-interface ServiceTemplate {
-  name: string;
-  duration: number; // minutes
-  price: number;
-  priceType: 'fixed' | 'starting_at' | 'quote_only';
-  depositAmount?: number;
-}
-```
+| File | Action |
+|------|--------|
+| `supabase/migrations/new.sql` | Add new columns and tables |
+| `src/pages/app/OnboardingPage.tsx` | Complete rewrite with 8 steps |
+| `src/components/onboarding/BusinessIdentityForm.tsx` | New |
+| `src/components/onboarding/ServiceEditorAdvanced.tsx` | New (replaces current) |
+| `src/components/onboarding/BookingPoliciesEditor.tsx` | New |
+| `src/components/onboarding/CustomerIntakeEditor.tsx` | New |
+| `src/components/onboarding/FAQEditor.tsx` | New |
+| `src/components/onboarding/ObjectionEditor.tsx` | New |
+| `src/components/onboarding/PoliciesEditor.tsx` | New |
+| `src/data/industryTemplates.ts` | Expand with FAQs, objections, policies |
+| `src/types/database.ts` | Add new interfaces |
 
 ---
 
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `supabase/migrations/new.sql` | Add industry enum values, new columns |
-| `src/pages/app/OnboardingPage.tsx` | Complete redesign with new features |
-| `src/types/database.ts` | Update IndustryType, add new interfaces |
-| `src/components/onboarding/ServiceEditor.tsx` | New component for editable services |
-| `src/components/onboarding/BusinessHoursEditor.tsx` | New component for hours setup |
-| `src/data/industryTemplates.ts` | New file with all industry service templates |
-
----
-
-## User Experience Flow
+## User Experience
 
 ```text
-Step 1: Business Basics
-├── Business name (prominent input)
-├── Industry selector (15+ options)
-├── If "Other" → show custom industry input
-└── Timezone
+Step 1: Tell us about your business
+├── Business name (required)
+├── Tagline (optional) - "What makes you different?"
+├── Industry (required)
+├── Years in business (optional)
+├── Phone number (required)
+├── Website (optional)
+└── Service area (address + radius OR zip codes)
 
-Step 2: Your Services  
-├── Pre-filled services based on industry
-├── Each service is editable (name, duration, price)
-├── Add/remove services
-└── Continue
+Step 2: Your services
+├── Pre-filled from industry templates
+├── Each service expandable to show:
+│   ├── Name, duration, price
+│   ├── Description of what's included
+│   ├── Preparation instructions
+│   ├── Common upsells/add-ons
+│   └── Deposit requirement
+└── Add/remove services
 
-Step 3: Business Hours
-├── Day-by-day hours
-├── Closed toggle per day
-└── Quick actions (copy to weekdays)
+Step 3: Availability & booking rules
+├── Business hours (day by day)
+├── Minimum notice required (hours)
+├── How far in advance can book (days)
+├── Buffer between appointments
+└── Closed dates (optional)
 
-Step 4: Automations
-├── Toggle cards for basic automations
-└── These are included free
+Step 4: Customer information
+├── Pre-filled based on industry
+├── Mark required vs optional
+├── Add custom questions
+└── "What info do you NEED to do the job?"
 
-Step 5: Launch
-├── Summary checklist
-├── "Launch" button with proper error handling
-└── "Explore AI Assistant" upgrade CTA
+Step 5: Frequently asked questions
+├── 6-8 pre-filled industry FAQs
+├── Edit any answer
+├── Add custom FAQs
+└── "What do customers always ask?"
+
+Step 6: Handle objections
+├── 4-5 pre-filled objection responses
+├── Edit any response
+├── Add custom objections
+└── "How do you overcome hesitation?"
+
+Step 7: Your policies
+├── Cancellation policy (text)
+├── Deposit policy (text)
+├── Refund policy (text)
+├── Payment methods accepted (checkboxes)
+└── Things AI should never promise (optional)
+
+Step 8: Review & launch
+├── Summary of all sections
+├── "Edit" links to go back to any section
+├── Launch button
+└── Progress celebration
 ```
 
 ---
 
-## Edge Cases Handled
+## Rationale
 
-- **Unauthenticated users**: Redirect to login with return URL
-- **Empty business name**: Validation before proceeding
-- **No services**: Require at least 1 service
-- **Database errors**: Show toast with specific error message
-- **RLS policy failures**: Handle gracefully with retry option
+This intensive setup ensures:
+
+1. **AI sounds knowledgeable** - Can answer detailed questions about services, pricing, policies
+2. **AI handles objections** - Pre-programmed responses to common pushback
+3. **AI books correctly** - Knows lead times, buffers, closed dates
+4. **AI collects right info** - Industry-specific intake questions
+5. **AI builds trust** - Can cite years in business, policies, guarantees
+6. **AI upsells naturally** - Knows related services to suggest
+
+The 3-5 minute investment pays off in an AI that actually sounds like it works for the business.
+
