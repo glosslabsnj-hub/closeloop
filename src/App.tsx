@@ -29,6 +29,14 @@ import SettingsPage from "@/pages/app/SettingsPage";
 import SimulatorPage from "@/pages/app/SimulatorPage";
 import GoLivePage from "@/pages/app/GoLivePage";
 
+// Module-specific pages
+import OrdersPage from "@/pages/app/OrdersPage";
+import ReservationsPage from "@/pages/app/ReservationsPage";
+import CateringPage from "@/pages/app/CateringPage";
+import MenuCenterPage from "@/pages/app/MenuCenterPage";
+import DispatchPage from "@/pages/app/DispatchPage";
+import MedicalIntakePage from "@/pages/app/MedicalIntakePage";
+
 // Admin Pages
 import AdminOverviewPage from "@/pages/admin/AdminOverviewPage";
 import AdminTenantsPage from "@/pages/admin/AdminTenantsPage";
@@ -69,6 +77,13 @@ const App = () => (
               <Route path="/app/ai-assistant" element={<AIAssistantPage />} />
               <Route path="/app/simulator" element={<SimulatorPage />} />
               <Route path="/app/settings" element={<SettingsPage />} />
+              {/* Module-specific routes */}
+              <Route path="/app/orders" element={<OrdersPage />} />
+              <Route path="/app/reservations" element={<ReservationsPage />} />
+              <Route path="/app/catering" element={<CateringPage />} />
+              <Route path="/app/menu-center" element={<MenuCenterPage />} />
+              <Route path="/app/dispatch" element={<DispatchPage />} />
+              <Route path="/app/medical-intake" element={<MedicalIntakePage />} />
             </Route>
 
             {/* Admin Routes */}

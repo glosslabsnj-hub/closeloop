@@ -1,5 +1,6 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,15 +25,34 @@ import {
   FlaskConical,
   Lock,
   CreditCard,
+  Truck,
+  UtensilsCrossed,
+  BookOpen,
+  Clock,
+  Cake,
+  Stethoscope,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
-const navItems = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+  requiredModules?: string[];
+}
+
+const allNavItems: NavItem[] = [
   { href: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/app/inbox", label: "Inbox", icon: MessageSquare },
   { href: "/app/leads", label: "Leads", icon: Users },
-  { href: "/app/bookings", label: "Bookings", icon: Calendar },
+  { href: "/app/bookings", label: "Bookings", icon: Calendar, requiredModules: ["booking"] },
+  { href: "/app/dispatch", label: "Dispatch", icon: Truck, requiredModules: ["dispatch_queue"] },
+  { href: "/app/orders", label: "Orders", icon: UtensilsCrossed, requiredModules: ["food_orders"] },
+  { href: "/app/menu-center", label: "Menu Center", icon: BookOpen, requiredModules: ["menu_knowledge"] },
+  { href: "/app/reservations", label: "Reservations", icon: Clock, requiredModules: ["reservations"] },
+  { href: "/app/catering", label: "Catering", icon: Cake, requiredModules: ["catering"] },
+  { href: "/app/medical-intake", label: "Medical Intake", icon: Stethoscope, requiredModules: ["medical_intake"] },
   { href: "/app/services", label: "Services", icon: Briefcase },
   { href: "/app/automations", label: "Automations", icon: Zap },
   { href: "/app/ai-assistant", label: "AI Assistant", icon: Bot },
@@ -48,8 +68,17 @@ const alwaysAccessibleRoutes = [
 
 export function AppLayout() {
   const { user, tenant, signOut, loading, hasActiveSubscription } = useAuth();
+  const { enabledModules } = useTenantConfig();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Filter nav items based on enabled modules
+  const navItems = useMemo(() => {
+    return allNavItems.filter(item => {
+      if (!item.requiredModules) return true;
+      return item.requiredModules.some(mod => enabledModules.includes(mod));
+    });
+  }, [enabledModules]);
 
   useEffect(() => {
     if (!loading && !user) {
