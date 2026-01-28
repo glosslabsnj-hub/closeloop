@@ -23,6 +23,8 @@ export default function SignupPage() {
   const skuParam = searchParams.get("sku") as PlanSku | null;
   // Also support legacy ?plan= parameter
   const legacyPlan = searchParams.get("plan");
+  // Industry pre-selection from demo player
+  const industryParam = searchParams.get("industry");
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -63,6 +65,11 @@ export default function SignupPage() {
       
       // Store selected SKU in sessionStorage for after onboarding
       sessionStorage.setItem("selectedPlan", selectedSku);
+      
+      // Store industry if provided (from demo player)
+      if (industryParam) {
+        sessionStorage.setItem("selectedIndustry", industryParam);
+      }
       
       toast({
         title: "Account created!",
