@@ -207,6 +207,8 @@ export type Database = {
           setup_step_tested: boolean | null
           sms_first_delay_seconds: number
           tenant_id: string
+          twilio_phone_sid: string | null
+          twilio_provisioned_at: string | null
           updated_at: string
           voice_ai_enabled: boolean
           voice_mode: Database["public"]["Enums"]["voice_mode"]
@@ -234,6 +236,8 @@ export type Database = {
           setup_step_tested?: boolean | null
           sms_first_delay_seconds?: number
           tenant_id: string
+          twilio_phone_sid?: string | null
+          twilio_provisioned_at?: string | null
           updated_at?: string
           voice_ai_enabled?: boolean
           voice_mode?: Database["public"]["Enums"]["voice_mode"]
@@ -261,6 +265,8 @@ export type Database = {
           setup_step_tested?: boolean | null
           sms_first_delay_seconds?: number
           tenant_id?: string
+          twilio_phone_sid?: string | null
+          twilio_provisioned_at?: string | null
           updated_at?: string
           voice_ai_enabled?: boolean
           voice_mode?: Database["public"]["Enums"]["voice_mode"]

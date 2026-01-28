@@ -80,34 +80,32 @@ export function ConnectPhoneDialog({
     
     setLoading(true);
     try {
-      // Mock: Generate a fake CloseLoop number
-      const mockNumber = `+1 (${Math.floor(Math.random() * 900) + 100}) ${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}`;
-      
-      const { error } = await supabase
-        .from("assistant_settings")
-        .upsert({
+      // Call the Twilio provisioning edge function
+      const { data, error } = await supabase.functions.invoke("provision-twilio-number", {
+        body: { 
           tenant_id: tenant.id,
-          closeloop_number: mockNumber,
-          phone_connected: true,
-          updated_at: new Date().toISOString(),
-        }, {
-          onConflict: "tenant_id",
-        });
+          number_type: "local"
+        },
+      });
 
       if (error) throw error;
+      if (!data?.success) {
+        throw new Error(data?.error || "Failed to provision number");
+      }
 
       toast({
         title: "New number assigned!",
-        description: `Your CloseLoop number is ${mockNumber}`,
+        description: `Your CloseLoop number is ${data.friendly_name || data.phone_number}`,
       });
 
       onSuccess();
       onOpenChange(false);
     } catch (error: any) {
+      console.error("Provisioning error:", error);
       toast({
         variant: "destructive",
         title: "Failed to provision number",
-        description: error.message,
+        description: error.message || "Failed to provision phone number",
       });
     } finally {
       setLoading(false);
@@ -212,10 +210,6 @@ export function ConnectPhoneDialog({
               </p>
             </div>
 
-            <p className="text-xs text-muted-foreground text-center">
-              Note: This is mock mode. Real number provisioning requires Twilio integration.
-            </p>
-
             <Button 
               className="w-full" 
               onClick={handleGetNewNumber}
@@ -226,7 +220,7 @@ export function ConnectPhoneDialog({
               ) : (
                 <Plus className="mr-2 h-4 w-4" />
               )}
-              Get New Number (Mock)
+              {loading ? "Provisioning..." : "Get New Number"}
             </Button>
           </TabsContent>
         </Tabs>

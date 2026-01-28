@@ -1,0 +1,238 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
+
+interface ProvisionRequest {
+  tenant_id: string;
+  area_code?: string;
+  number_type?: "local" | "toll_free";
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID");
+    const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
+      console.error("Twilio credentials not configured");
+      return new Response(
+        JSON.stringify({ error: "Twilio credentials not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      console.error("Supabase credentials not configured");
+      return new Response(
+        JSON.stringify({ error: "Supabase credentials not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { tenant_id, area_code, number_type = "local" }: ProvisionRequest = await req.json();
+
+    if (!tenant_id) {
+      return new Response(
+        JSON.stringify({ error: "tenant_id is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Initialize Supabase client with service role
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Check if tenant already has a number assigned (idempotency)
+    const { data: existingSettings, error: settingsError } = await supabase
+      .from("assistant_settings")
+      .select("closeloop_number, twilio_phone_sid")
+      .eq("tenant_id", tenant_id)
+      .maybeSingle();
+
+    if (settingsError) {
+      console.error("Error fetching assistant settings:", settingsError);
+      return new Response(
+        JSON.stringify({ error: "Failed to check existing settings" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (existingSettings?.twilio_phone_sid) {
+      console.log(`Tenant ${tenant_id} already has a Twilio number: ${existingSettings.closeloop_number}`);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          phone_number: existingSettings.closeloop_number,
+          phone_sid: existingSettings.twilio_phone_sid,
+          already_provisioned: true,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify tenant has an active subscription
+    const { data: hasSubscription } = await supabase
+      .rpc("has_active_subscription", { _tenant_id: tenant_id });
+
+    if (!hasSubscription) {
+      return new Response(
+        JSON.stringify({ error: "Active subscription required to provision a phone number" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const twilioAuth = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
+
+    // Search for available phone numbers
+    let searchUrl: string;
+    if (number_type === "toll_free") {
+      searchUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/AvailablePhoneNumbers/US/TollFree.json?Limit=1`;
+    } else {
+      // Local number search
+      const areaCodeParam = area_code ? `&AreaCode=${area_code}` : "";
+      searchUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/AvailablePhoneNumbers/US/Local.json?Limit=1&VoiceEnabled=true&SmsEnabled=true${areaCodeParam}`;
+    }
+
+    console.log(`Searching for available numbers: ${searchUrl}`);
+
+    const searchResponse = await fetch(searchUrl, {
+      headers: {
+        Authorization: `Basic ${twilioAuth}`,
+      },
+    });
+
+    if (!searchResponse.ok) {
+      const errorText = await searchResponse.text();
+      console.error("Twilio search error:", searchResponse.status, errorText);
+      return new Response(
+        JSON.stringify({ error: "Failed to search for available numbers", details: errorText }),
+        { status: searchResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const searchData = await searchResponse.json();
+
+    if (!searchData.available_phone_numbers || searchData.available_phone_numbers.length === 0) {
+      console.log("No numbers available with specified criteria");
+      return new Response(
+        JSON.stringify({ error: "No phone numbers available in the requested area" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const selectedNumber = searchData.available_phone_numbers[0];
+    console.log(`Selected number: ${selectedNumber.phone_number}`);
+
+    // Purchase the number
+    const purchaseUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/IncomingPhoneNumbers.json`;
+    
+    // Configure webhook URLs - these will point to your edge functions
+    const voiceUrl = `${SUPABASE_URL}/functions/v1/inbound-voice`;
+    const smsUrl = `${SUPABASE_URL}/functions/v1/inbound-sms`;
+    const statusCallback = `${SUPABASE_URL}/functions/v1/call-status-callback`;
+
+    const purchaseBody = new URLSearchParams({
+      PhoneNumber: selectedNumber.phone_number,
+      VoiceUrl: voiceUrl,
+      VoiceMethod: "POST",
+      SmsUrl: smsUrl,
+      SmsMethod: "POST",
+      StatusCallback: statusCallback,
+      StatusCallbackMethod: "POST",
+      FriendlyName: `CloseLoop - ${tenant_id.substring(0, 8)}`,
+    });
+
+    console.log(`Purchasing number: ${selectedNumber.phone_number}`);
+
+    const purchaseResponse = await fetch(purchaseUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${twilioAuth}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: purchaseBody.toString(),
+    });
+
+    if (!purchaseResponse.ok) {
+      const errorText = await purchaseResponse.text();
+      console.error("Twilio purchase error:", purchaseResponse.status, errorText);
+      return new Response(
+        JSON.stringify({ error: "Failed to purchase phone number", details: errorText }),
+        { status: purchaseResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const purchaseData = await purchaseResponse.json();
+    console.log(`Successfully purchased: ${purchaseData.phone_number} (SID: ${purchaseData.sid})`);
+
+    // Format friendly name
+    const friendlyNumber = formatPhoneNumber(purchaseData.phone_number);
+
+    // Update assistant_settings with the new number
+    const { error: updateError } = await supabase
+      .from("assistant_settings")
+      .upsert({
+        tenant_id: tenant_id,
+        closeloop_number: purchaseData.phone_number,
+        twilio_phone_sid: purchaseData.sid,
+        twilio_provisioned_at: new Date().toISOString(),
+        phone_connected: true,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: "tenant_id",
+      });
+
+    if (updateError) {
+      console.error("Error updating assistant settings:", updateError);
+      // Note: Number is purchased but DB update failed - this should be handled with a cleanup mechanism
+      return new Response(
+        JSON.stringify({ 
+          error: "Number purchased but failed to save to database", 
+          phone_number: purchaseData.phone_number,
+          phone_sid: purchaseData.sid,
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`Successfully provisioned ${purchaseData.phone_number} for tenant ${tenant_id}`);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        phone_number: purchaseData.phone_number,
+        phone_sid: purchaseData.sid,
+        friendly_name: friendlyNumber,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error("Error in provision-twilio-number:", error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
+
+function formatPhoneNumber(phone: string): string {
+  // Format +1XXXXXXXXXX to (XXX) XXX-XXXX
+  const cleaned = phone.replace(/\D/g, "");
+  if (cleaned.length === 11 && cleaned.startsWith("1")) {
+    const areaCode = cleaned.substring(1, 4);
+    const prefix = cleaned.substring(4, 7);
+    const line = cleaned.substring(7, 11);
+    return `(${areaCode}) ${prefix}-${line}`;
+  }
+  return phone;
+}
