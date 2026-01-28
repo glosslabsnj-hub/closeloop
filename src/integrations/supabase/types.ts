@@ -454,6 +454,50 @@ export type Database = {
           },
         ]
       }
+      booking_delivery_settings: {
+        Row: {
+          created_at: string | null
+          enabled: boolean | null
+          handoff_methods: Json | null
+          notify_email: string | null
+          notify_phone: string | null
+          tenant_id: string
+          updated_at: string | null
+          webhook_secret: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          enabled?: boolean | null
+          handoff_methods?: Json | null
+          notify_email?: string | null
+          notify_phone?: string | null
+          tenant_id: string
+          updated_at?: string | null
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          enabled?: boolean | null
+          handoff_methods?: Json | null
+          notify_email?: string | null
+          notify_phone?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_delivery_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           created_at: string
@@ -809,6 +853,53 @@ export type Database = {
           },
         ]
       }
+      dispatch_delivery_settings: {
+        Row: {
+          created_at: string | null
+          enabled: boolean | null
+          handoff_methods: Json | null
+          notify_email: string | null
+          notify_phone: string | null
+          tenant_id: string
+          updated_at: string | null
+          urgent_sms_phone: string | null
+          webhook_secret: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          enabled?: boolean | null
+          handoff_methods?: Json | null
+          notify_email?: string | null
+          notify_phone?: string | null
+          tenant_id: string
+          updated_at?: string | null
+          urgent_sms_phone?: string | null
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          enabled?: boolean | null
+          handoff_methods?: Json | null
+          notify_email?: string | null
+          notify_phone?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+          urgent_sms_phone?: string | null
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispatch_delivery_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dispatch_jobs: {
         Row: {
           arrived_at: string | null
@@ -1007,28 +1098,34 @@ export type Database = {
       handoff_attempts: {
         Row: {
           created_at: string | null
+          entity_id: string | null
+          entity_type: string | null
           error_message: string | null
           id: string
           method: string
-          order_id: string
+          order_id: string | null
           status: string
           tenant_id: string
         }
         Insert: {
           created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
           error_message?: string | null
           id?: string
           method: string
-          order_id: string
+          order_id?: string | null
           status?: string
           tenant_id: string
         }
         Update: {
           created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
           error_message?: string | null
           id?: string
           method?: string
-          order_id?: string
+          order_id?: string | null
           status?: string
           tenant_id?: string
         }
