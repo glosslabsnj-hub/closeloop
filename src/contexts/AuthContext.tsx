@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (roleData?.role === "super_admin") {
         setIsSuperAdmin(true);
         setUserRole("super_admin");
-        return;
+        // Don't return early - super_admins may also have tenant data for testing
       }
 
       // Fetch tenant user

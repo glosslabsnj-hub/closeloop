@@ -70,7 +70,7 @@ const alwaysAccessibleRoutes = [
 ];
 
 export function AppLayout() {
-  const { user, tenant, signOut, loading, hasActiveSubscription } = useAuth();
+  const { user, tenant, signOut, loading, hasActiveSubscription, isSuperAdmin } = useAuth();
   const { enabledModules } = useTenantConfig();
   const location = useLocation();
   const navigate = useNavigate();
@@ -89,14 +89,14 @@ export function AppLayout() {
     }
   }, [user, loading, navigate]);
 
-  // Redirect users without a tenant to onboarding
+  // Redirect users without a tenant to onboarding (skip for super_admin)
   useEffect(() => {
-    if (!loading && user && !tenant) {
+    if (!loading && user && !tenant && !isSuperAdmin) {
       if (location.pathname !== "/app/onboarding") {
         navigate("/app/onboarding");
       }
     }
-  }, [loading, user, tenant, location.pathname, navigate]);
+  }, [loading, user, tenant, isSuperAdmin, location.pathname, navigate]);
 
   // Check if user needs to go through go-live
   useEffect(() => {
