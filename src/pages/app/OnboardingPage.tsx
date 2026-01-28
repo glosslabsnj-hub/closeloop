@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Building2, Clock, Calendar, MessageCircle, ShieldQuestion, 
   FileText, CheckCircle2, Loader2, ArrowRight, ArrowLeft, 
-  Users, Sparkles, Edit2
+  Users, Sparkles, Edit2, Brain
 } from "lucide-react";
 import { industryConfigs, ExtendedIndustryType } from "@/data/industryTemplates";
 import BusinessIdentityForm, { BusinessIdentity } from "@/components/onboarding/BusinessIdentityForm";
@@ -20,6 +20,7 @@ import FAQEditor, { FAQ } from "@/components/onboarding/FAQEditor";
 import ObjectionEditor, { ObjectionResponse } from "@/components/onboarding/ObjectionEditor";
 import PoliciesEditor, { BusinessPolicies } from "@/components/onboarding/PoliciesEditor";
 import { BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
+import { AIKnowledgePreview } from "@/components/onboarding/AIKnowledgePreview";
 import type { PlanCode } from "@/types/database";
 
 const defaultBusinessHours: BusinessHours = {
@@ -598,9 +599,25 @@ export default function OnboardingPage() {
             {/* Step 8: Review & Launch */}
             {step === 8 && (
               <>
-                <div className="space-y-4">
+                <div className="space-y-6">
+                  {/* AI Knowledge Preview */}
+                  <AIKnowledgePreview
+                    businessName={businessIdentity.businessName}
+                    services={services.filter(s => s.name.trim())}
+                    faqs={faqs.filter(f => f.question && f.answer)}
+                    objections={objections.filter(o => o.objection && o.response)}
+                    policies={{
+                      cancellationPolicy: policies.cancellationPolicy,
+                      depositPolicy: policies.depositPolicy,
+                    }}
+                    businessHours={bookingPolicies.businessHours}
+                    intakeQuestions={intakeQuestions}
+                    aiNeverPromise={policies.aiNeverPromise}
+                  />
+
                   {/* Summary sections */}
                   <div className="space-y-3">
+                    <p className="text-sm font-medium text-muted-foreground">Quick Edit:</p>
                     <ReviewSection
                       icon={Building2}
                       title="Business"
@@ -646,18 +663,15 @@ export default function OnboardingPage() {
                     />
                   </div>
 
-                  {/* AI Upsell */}
-                  <div className="p-4 rounded-lg border-2 border-dashed border-primary/30 bg-primary/5">
+                  {/* AI Readiness Note */}
+                  <div className="p-4 rounded-lg border bg-primary/5">
                     <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                        <Sparkles className="h-5 w-5 text-primary" />
-                      </div>
+                      <Brain className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                       <div>
-                        <p className="font-medium">AI Voice Assistant</p>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          Your AI is now trained on your business! Enable voice calls to let AI answer 24/7.
+                        <p className="text-sm font-medium">Your AI is trained on all of this!</p>
+                        <p className="text-xs text-muted-foreground">
+                          After setup, you can always edit your Business Brain to improve AI responses.
                         </p>
-                        <span className="text-xs font-medium text-primary">Available in Settings →</span>
                       </div>
                     </div>
                   </div>

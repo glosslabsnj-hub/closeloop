@@ -1,15 +1,24 @@
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AgentControlCard } from "./AgentControlCard";
 import { QuickStatsCard } from "./QuickStatsCard";
 import { RecentActivityCard } from "./RecentActivityCard";
 import { QuickLinksCard } from "./QuickLinksCard";
 import { DashboardByMode } from "./DashboardByMode";
+import { GoLiveChecklist } from "./GoLiveChecklist";
+import { Copilot, CopilotTrigger } from "./Copilot";
 
 export function LiveDashboard() {
-  const { tenant } = useAuth();
+  const { tenant, assistantSettings } = useAuth();
+  const [copilotOpen, setCopilotOpen] = useState(false);
+  
+  const isLive = assistantSettings?.go_live_enabled;
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
+      {/* Go Live Checklist - Show if not live yet */}
+      {!isLive && <GoLiveChecklist />}
+
       {/* Agent Control - Primary Focus */}
       <AgentControlCard />
 
@@ -24,6 +33,13 @@ export function LiveDashboard() {
         <RecentActivityCard />
         <QuickLinksCard />
       </div>
+
+      {/* Copilot */}
+      {copilotOpen ? (
+        <Copilot isOpen={copilotOpen} onClose={() => setCopilotOpen(false)} />
+      ) : (
+        <CopilotTrigger onClick={() => setCopilotOpen(true)} />
+      )}
     </div>
   );
 }
