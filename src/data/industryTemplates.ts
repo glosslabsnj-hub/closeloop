@@ -1,10 +1,11 @@
-// Industry-specific service templates and context fields for CloseLoop
+// Industry-specific service templates, context fields, FAQs, and objection handlers for CloseLoop
 
 export interface ServiceTemplate {
   name: string;
   duration: number; // minutes
   price: number;
   priceType: 'fixed' | 'starting_at' | 'quote_only';
+  description?: string;
   depositAmount?: number;
 }
 
@@ -16,11 +17,28 @@ export interface ContextField {
   required: boolean;
 }
 
+export interface FAQ {
+  question: string;
+  answer: string;
+}
+
+export interface ObjectionResponse {
+  objection: string;
+  response: string;
+}
+
 export interface IndustryConfig {
   label: string;
   icon: string;
   services: ServiceTemplate[];
   contextFields: ContextField[];
+  faqs: FAQ[];
+  objections: ObjectionResponse[];
+  defaultPolicies: {
+    cancellation: string;
+    deposit: string;
+    refund: string;
+  };
 }
 
 export type ExtendedIndustryType = 
@@ -28,6 +46,45 @@ export type ExtendedIndustryType =
   | 'tire_shop' | 'cleaning' | 'landscaping' | 'pest_control' | 'roofing'
   | 'electrical' | 'pool_service' | 'moving' | 'salon' | 'fitness'
   | 'photography' | 'pet_grooming' | 'towing' | 'locksmith';
+
+// Common objections that apply to most industries
+const commonObjections: ObjectionResponse[] = [
+  {
+    objection: "That's too expensive",
+    response: "I understand price is important. We focus on quality and most customers find the value exceeds the cost. Would you like to hear about our most popular package?"
+  },
+  {
+    objection: "I need to think about it",
+    response: "Of course! Would it help if I answered any specific questions? I can also hold a spot for you for 24 hours."
+  },
+  {
+    objection: "I'll call back later",
+    response: "No problem! Would you like me to send you a text with our info and a link to book when you're ready?"
+  },
+  {
+    objection: "Can I get a discount?",
+    response: "We offer our best pricing upfront, but we do have special packages. Let me tell you about those options."
+  },
+  {
+    objection: "I'm just shopping around",
+    response: "That makes sense! What's most important to you when choosing a provider? I'd love to share what sets us apart."
+  },
+];
+
+// Common FAQs that apply to most industries
+const commonFAQs: FAQ[] = [
+  { question: "What are your hours?", answer: "" }, // Will be filled with actual hours
+  { question: "Do you require a deposit?", answer: "" },
+  { question: "What forms of payment do you accept?", answer: "" },
+  { question: "Are you licensed and insured?", answer: "Yes, we are fully licensed and insured for your protection." },
+  { question: "What's your cancellation policy?", answer: "" },
+];
+
+const defaultPolicies = {
+  cancellation: "Free cancellation up to 24 hours before your appointment. Less than 24 hours notice may incur a cancellation fee.",
+  deposit: "We require a deposit to secure your appointment. The deposit is applied to your final bill.",
+  refund: "We stand behind our work. If you're not satisfied, please let us know and we'll make it right.",
+};
 
 export const industryConfigs: Record<ExtendedIndustryType, IndustryConfig> = {
   tire_shop: {
@@ -48,6 +105,14 @@ export const industryConfigs: Record<ExtendedIndustryType, IndustryConfig> = {
       { key: 'vehicle_year', label: 'Vehicle Year', type: 'number', required: true },
       { key: 'mileage', label: 'Mileage', type: 'number', required: false },
     ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Do you sell tires?", answer: "Yes, we carry a wide selection of tires from top brands. We can help you find the right tires for your vehicle and budget." },
+      { question: "How long does a tire installation take?", answer: "A standard 4-tire installation typically takes about 45-60 minutes." },
+      { question: "Do you offer a warranty on tires?", answer: "Yes, all our tires come with manufacturer warranties. We also offer road hazard protection for an additional fee." },
+    ],
+    objections: commonObjections,
+    defaultPolicies,
   },
   detailing: {
     label: 'Auto Detailing',
@@ -66,6 +131,14 @@ export const industryConfigs: Record<ExtendedIndustryType, IndustryConfig> = {
       { key: 'vehicle_size', label: 'Vehicle Size', type: 'select', options: ['Small', 'Medium', 'Large', 'XL'], required: true },
       { key: 'current_condition', label: 'Current Condition', type: 'select', options: ['Light dirt', 'Moderate dirt', 'Heavy dirt', 'Very dirty'], required: false },
     ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Do you come to me or do I bring my car?", answer: "We offer both mobile service and shop service. Mobile service is available within our service area." },
+      { question: "How long does a full detail take?", answer: "A full detail typically takes 3-4 hours depending on the size and condition of your vehicle." },
+      { question: "What's the difference between a wash and a detail?", answer: "A wash cleans the exterior surface, while a detail is a thorough cleaning inside and out, including protection treatments." },
+    ],
+    objections: commonObjections,
+    defaultPolicies,
   },
   hvac: {
     label: 'HVAC',
@@ -83,6 +156,14 @@ export const industryConfigs: Record<ExtendedIndustryType, IndustryConfig> = {
       { key: 'system_type', label: 'System Type', type: 'select', options: ['Central AC', 'Heat Pump', 'Furnace', 'Mini Split', 'Unknown'], required: true },
       { key: 'square_footage', label: 'Square Footage', type: 'number', required: false },
     ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Do you offer emergency service?", answer: "Yes, we offer 24/7 emergency service. There may be an additional fee for after-hours calls." },
+      { question: "How often should I have my HVAC serviced?", answer: "We recommend servicing your system twice a year - once in spring for AC and once in fall for heating." },
+      { question: "Do you service all brands?", answer: "Yes, our technicians are trained to service all major HVAC brands." },
+    ],
+    objections: commonObjections,
+    defaultPolicies,
   },
   plumber: {
     label: 'Plumbing',
@@ -101,6 +182,14 @@ export const industryConfigs: Record<ExtendedIndustryType, IndustryConfig> = {
       { key: 'issue_location', label: 'Issue Location', type: 'select', options: ['Kitchen', 'Bathroom', 'Basement', 'Outdoor', 'Multiple'], required: true },
       { key: 'urgency', label: 'Urgency', type: 'select', options: ['Not urgent', 'Soon', 'Urgent', 'Emergency'], required: true },
     ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Do you offer emergency plumbing?", answer: "Yes, we offer 24/7 emergency plumbing services. Call us anytime and we'll be there." },
+      { question: "Do you provide free estimates?", answer: "We provide free estimates for most jobs. For diagnostic work, there may be a small fee that's waived if you proceed with the repair." },
+      { question: "Do you guarantee your work?", answer: "Yes, all our work comes with a satisfaction guarantee. We stand behind every job we do." },
+    ],
+    objections: commonObjections,
+    defaultPolicies,
   },
   medspa: {
     label: 'Med Spa',
@@ -119,6 +208,20 @@ export const industryConfigs: Record<ExtendedIndustryType, IndustryConfig> = {
       { key: 'skin_concerns', label: 'Skin Concerns', type: 'text', required: false },
       { key: 'previous_treatments', label: 'Previous Treatments', type: 'text', required: false },
     ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Is the consultation free?", answer: "Yes, we offer complimentary consultations to discuss your goals and recommend the best treatment plan." },
+      { question: "How long do results last?", answer: "Results vary by treatment. Botox typically lasts 3-4 months, while fillers can last 6-18 months." },
+      { question: "Is there any downtime?", answer: "Most of our treatments have minimal to no downtime. We'll discuss specific recovery expectations during your consultation." },
+    ],
+    objections: [
+      ...commonObjections,
+      { objection: "I'm worried it will look unnatural", response: "Our goal is always natural-looking results. We take a conservative approach and can always add more if needed." },
+    ],
+    defaultPolicies: {
+      ...defaultPolicies,
+      cancellation: "We require 48 hours notice for cancellations. Late cancellations or no-shows may be charged a fee.",
+    },
   },
   dental: {
     label: 'Dental',
@@ -137,6 +240,14 @@ export const industryConfigs: Record<ExtendedIndustryType, IndustryConfig> = {
       { key: 'procedure_type', label: 'Procedure Type', type: 'text', required: true },
       { key: 'is_new_patient', label: 'New Patient?', type: 'select', options: ['Yes', 'No'], required: true },
     ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Do you accept my insurance?", answer: "We accept most major dental insurance plans. Let me know your provider and I can verify your coverage." },
+      { question: "Do you offer payment plans?", answer: "Yes, we offer flexible payment plans and financing options to make dental care affordable." },
+      { question: "Are you accepting new patients?", answer: "Yes! We're always welcoming new patients. We'd love to have you join our dental family." },
+    ],
+    objections: commonObjections,
+    defaultPolicies,
   },
   cleaning: {
     label: 'Cleaning Services',
@@ -155,6 +266,14 @@ export const industryConfigs: Record<ExtendedIndustryType, IndustryConfig> = {
       { key: 'bathrooms', label: 'Number of Bathrooms', type: 'number', required: false },
       { key: 'frequency', label: 'Cleaning Frequency', type: 'select', options: ['One-time', 'Weekly', 'Bi-weekly', 'Monthly'], required: true },
     ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Do you bring your own supplies?", answer: "Yes, we bring all cleaning supplies and equipment. If you have preferences for specific products, just let us know." },
+      { question: "Are your cleaners background checked?", answer: "Yes, all our cleaning professionals undergo thorough background checks and are fully insured." },
+      { question: "What if I'm not satisfied?", answer: "Your satisfaction is guaranteed. If you're not happy with any area, let us know within 24 hours and we'll re-clean it for free." },
+    ],
+    objections: commonObjections,
+    defaultPolicies,
   },
   landscaping: {
     label: 'Landscaping / Lawn Care',
@@ -172,6 +291,13 @@ export const industryConfigs: Record<ExtendedIndustryType, IndustryConfig> = {
       { key: 'property_size', label: 'Lot Size (sq ft)', type: 'number', required: true },
       { key: 'service_frequency', label: 'Service Frequency', type: 'select', options: ['One-time', 'Weekly', 'Bi-weekly', 'Monthly'], required: true },
     ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Do you offer weekly service?", answer: "Yes, we offer weekly, bi-weekly, and monthly service plans. Weekly clients get priority scheduling." },
+      { question: "What if it rains?", answer: "If weather prevents us from working, we'll reschedule for the next available day at no extra charge." },
+    ],
+    objections: commonObjections,
+    defaultPolicies,
   },
   pest_control: {
     label: 'Pest Control',
@@ -188,6 +314,13 @@ export const industryConfigs: Record<ExtendedIndustryType, IndustryConfig> = {
       { key: 'pest_type', label: 'Pest Type', type: 'select', options: ['Ants', 'Roaches', 'Rodents', 'Termites', 'Bed Bugs', 'Mosquitoes', 'Other'], required: true },
       { key: 'property_type', label: 'Property Type', type: 'select', options: ['House', 'Apartment', 'Commercial'], required: true },
     ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Is the treatment safe for pets?", answer: "Yes, our treatments are pet-friendly. We'll give you specific instructions for your situation." },
+      { question: "How soon will I see results?", answer: "Most customers see significant improvement within 1-2 weeks. Some treatments may require follow-up visits." },
+    ],
+    objections: commonObjections,
+    defaultPolicies,
   },
   roofing: {
     label: 'Roofing',
@@ -204,6 +337,13 @@ export const industryConfigs: Record<ExtendedIndustryType, IndustryConfig> = {
       { key: 'roof_type', label: 'Roof Type', type: 'select', options: ['Shingle', 'Metal', 'Tile', 'Flat', 'Unknown'], required: true },
       { key: 'issue_description', label: 'Issue Description', type: 'text', required: true },
     ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Is the inspection really free?", answer: "Yes, roof inspections are completely free with no obligation." },
+      { question: "Do you work with insurance companies?", answer: "Yes, we work directly with insurance companies and can help you navigate the claims process." },
+    ],
+    objections: commonObjections,
+    defaultPolicies,
   },
   electrical: {
     label: 'Electrical',
@@ -220,6 +360,13 @@ export const industryConfigs: Record<ExtendedIndustryType, IndustryConfig> = {
       { key: 'property_type', label: 'Property Type', type: 'select', options: ['House', 'Apartment', 'Commercial'], required: true },
       { key: 'issue_description', label: 'Issue Description', type: 'text', required: true },
     ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Are your electricians licensed?", answer: "Yes, all our electricians are fully licensed, bonded, and insured." },
+      { question: "Do you offer emergency service?", answer: "Yes, we offer 24/7 emergency electrical service for urgent situations." },
+    ],
+    objections: commonObjections,
+    defaultPolicies,
   },
   pool_service: {
     label: 'Pool Service',
@@ -236,6 +383,13 @@ export const industryConfigs: Record<ExtendedIndustryType, IndustryConfig> = {
       { key: 'pool_type', label: 'Pool Type', type: 'select', options: ['In-ground', 'Above-ground', 'Hot tub/Spa'], required: true },
       { key: 'pool_size', label: 'Pool Size (gallons)', type: 'number', required: false },
     ],
+    faqs: [
+      ...commonFAQs,
+      { question: "What does weekly service include?", answer: "Our weekly service includes skimming, brushing, vacuuming, chemical testing and balancing, and equipment check." },
+      { question: "Do you service hot tubs?", answer: "Yes, we service both pools and hot tubs/spas." },
+    ],
+    objections: commonObjections,
+    defaultPolicies,
   },
   moving: {
     label: 'Moving Company',
@@ -253,6 +407,16 @@ export const industryConfigs: Record<ExtendedIndustryType, IndustryConfig> = {
       { key: 'floors', label: 'Number of Floors', type: 'number', required: true },
       { key: 'has_elevator', label: 'Elevator Access', type: 'select', options: ['Yes', 'No'], required: false },
     ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Are you insured?", answer: "Yes, we are fully licensed and insured. We also offer additional coverage options for valuable items." },
+      { question: "Do you provide packing materials?", answer: "Yes, we can provide boxes, tape, and packing materials. These can be included in your quote." },
+    ],
+    objections: commonObjections,
+    defaultPolicies: {
+      ...defaultPolicies,
+      deposit: "We require a deposit to reserve your moving date. The amount depends on the size of the move.",
+    },
   },
   salon: {
     label: 'Salon / Barbershop',
@@ -270,6 +434,13 @@ export const industryConfigs: Record<ExtendedIndustryType, IndustryConfig> = {
       { key: 'hair_length', label: 'Hair Length', type: 'select', options: ['Short', 'Medium', 'Long', 'Very Long'], required: false },
       { key: 'service_interest', label: 'Service Interest', type: 'text', required: true },
     ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Do I need an appointment?", answer: "Appointments are recommended but we do accept walk-ins when available." },
+      { question: "Do you do color corrections?", answer: "Yes, we specialize in color corrections. These require a consultation first to assess your hair." },
+    ],
+    objections: commonObjections,
+    defaultPolicies,
   },
   fitness: {
     label: 'Fitness / Personal Training',
@@ -286,6 +457,13 @@ export const industryConfigs: Record<ExtendedIndustryType, IndustryConfig> = {
       { key: 'fitness_goals', label: 'Fitness Goals', type: 'text', required: true },
       { key: 'experience_level', label: 'Experience Level', type: 'select', options: ['Beginner', 'Intermediate', 'Advanced'], required: true },
     ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Is the fitness assessment free?", answer: "Yes, we offer a complimentary fitness assessment to help create your personalized plan." },
+      { question: "Can I try a class before committing?", answer: "Absolutely! Your first class is on us so you can see if it's a good fit." },
+    ],
+    objections: commonObjections,
+    defaultPolicies,
   },
   photography: {
     label: 'Photography',
@@ -303,6 +481,16 @@ export const industryConfigs: Record<ExtendedIndustryType, IndustryConfig> = {
       { key: 'location', label: 'Preferred Location', type: 'select', options: ['Studio', 'Outdoor', 'Client Location'], required: true },
       { key: 'num_people', label: 'Number of People', type: 'number', required: false },
     ],
+    faqs: [
+      ...commonFAQs,
+      { question: "How many photos will I receive?", answer: "The number of photos varies by session type. Typically you'll receive 25-50 edited images for a standard session." },
+      { question: "Do you provide prints?", answer: "Yes, we offer professional printing services. Packages that include prints are also available." },
+    ],
+    objections: commonObjections,
+    defaultPolicies: {
+      ...defaultPolicies,
+      deposit: "A 25% deposit is required to secure your session date. The remaining balance is due before delivery of final images.",
+    },
   },
   pet_grooming: {
     label: 'Pet Grooming',
@@ -320,6 +508,13 @@ export const industryConfigs: Record<ExtendedIndustryType, IndustryConfig> = {
       { key: 'breed', label: 'Breed', type: 'text', required: true },
       { key: 'weight', label: 'Weight (lbs)', type: 'number', required: true },
     ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Do you groom cats?", answer: "Yes, we groom both dogs and cats. Let us know your pet's temperament so we can prepare." },
+      { question: "How long does grooming take?", answer: "Grooming typically takes 1-3 hours depending on the size, breed, and services requested." },
+    ],
+    objections: commonObjections,
+    defaultPolicies,
   },
   towing: {
     label: 'Towing',
@@ -337,6 +532,13 @@ export const industryConfigs: Record<ExtendedIndustryType, IndustryConfig> = {
       { key: 'location', label: 'Current Location', type: 'text', required: true },
       { key: 'destination', label: 'Destination', type: 'text', required: false },
     ],
+    faqs: [
+      ...commonFAQs,
+      { question: "How fast can you get here?", answer: "Our average response time is 30-45 minutes, but it varies by location and demand." },
+      { question: "Do you tow motorcycles?", answer: "Yes, we have equipment to safely transport motorcycles." },
+    ],
+    objections: commonObjections,
+    defaultPolicies,
   },
   locksmith: {
     label: 'Locksmith',
@@ -353,6 +555,13 @@ export const industryConfigs: Record<ExtendedIndustryType, IndustryConfig> = {
       { key: 'service_type', label: 'Service Type', type: 'select', options: ['Residential', 'Automotive', 'Commercial'], required: true },
       { key: 'urgency', label: 'Urgency', type: 'select', options: ['Not urgent', 'Soon', 'Emergency'], required: true },
     ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Are you available 24/7?", answer: "Yes, we offer 24/7 emergency locksmith services." },
+      { question: "Will you damage my lock?", answer: "We use non-destructive entry techniques whenever possible. If damage is necessary, we'll explain before proceeding." },
+    ],
+    objections: commonObjections,
+    defaultPolicies,
   },
   other: {
     label: 'Other',
@@ -366,6 +575,9 @@ export const industryConfigs: Record<ExtendedIndustryType, IndustryConfig> = {
     contextFields: [
       { key: 'service_interest', label: 'Service Interest', type: 'text', required: true },
     ],
+    faqs: commonFAQs,
+    objections: commonObjections,
+    defaultPolicies,
   },
 };
 

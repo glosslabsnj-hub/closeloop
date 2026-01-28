@@ -3,26 +3,23 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Clock, Zap, CheckCircle2, Loader2, ArrowRight, ArrowLeft, Sparkles, Calendar } from "lucide-react";
-import { industryConfigs, industryOptions, ServiceTemplate, ExtendedIndustryType } from "@/data/industryTemplates";
-import ServiceEditor from "@/components/onboarding/ServiceEditor";
-import BusinessHoursEditor, { BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
-
-const timezones = [
-  { value: "America/New_York", label: "Eastern Time (ET)" },
-  { value: "America/Chicago", label: "Central Time (CT)" },
-  { value: "America/Denver", label: "Mountain Time (MT)" },
-  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
-  { value: "America/Anchorage", label: "Alaska Time (AKT)" },
-  { value: "Pacific/Honolulu", label: "Hawaii Time (HT)" },
-];
+import { 
+  Building2, Clock, Calendar, MessageCircle, ShieldQuestion, 
+  FileText, CheckCircle2, Loader2, ArrowRight, ArrowLeft, 
+  Users, Sparkles, Edit2
+} from "lucide-react";
+import { industryConfigs, ExtendedIndustryType } from "@/data/industryTemplates";
+import BusinessIdentityForm, { BusinessIdentity } from "@/components/onboarding/BusinessIdentityForm";
+import ServiceEditorAdvanced, { AdvancedService } from "@/components/onboarding/ServiceEditorAdvanced";
+import BookingPoliciesEditor, { BookingPolicies } from "@/components/onboarding/BookingPoliciesEditor";
+import CustomerIntakeEditor, { IntakeQuestion } from "@/components/onboarding/CustomerIntakeEditor";
+import FAQEditor, { FAQ } from "@/components/onboarding/FAQEditor";
+import ObjectionEditor, { ObjectionResponse } from "@/components/onboarding/ObjectionEditor";
+import PoliciesEditor, { BusinessPolicies } from "@/components/onboarding/PoliciesEditor";
+import { BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
 
 const defaultBusinessHours: BusinessHours = {
   monday: { open: "09:00", close: "17:00", closed: false },
@@ -34,50 +31,112 @@ const defaultBusinessHours: BusinessHours = {
   sunday: { open: "00:00", close: "00:00", closed: true },
 };
 
+const stepInfo = [
+  { icon: Building2, title: "Business Identity", description: "Tell us about your business" },
+  { icon: Clock, title: "Services & Pricing", description: "What services do you offer?" },
+  { icon: Calendar, title: "Availability", description: "When can customers book?" },
+  { icon: Users, title: "Customer Intake", description: "What info do you need?" },
+  { icon: MessageCircle, title: "FAQs", description: "Common questions customers ask" },
+  { icon: ShieldQuestion, title: "Objection Handling", description: "How to overcome hesitation" },
+  { icon: FileText, title: "Policies", description: "Your business rules" },
+  { icon: CheckCircle2, title: "Review & Launch", description: "You're ready to go!" },
+];
+
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   
-  // Step 1: Business Info
-  const [businessName, setBusinessName] = useState("");
-  const [industry, setIndustry] = useState<ExtendedIndustryType>("detailing");
-  const [customIndustry, setCustomIndustry] = useState("");
-  const [timezone, setTimezone] = useState("America/New_York");
+  // Step 1: Business Identity
+  const [businessIdentity, setBusinessIdentity] = useState<BusinessIdentity>({
+    businessName: "",
+    tagline: "",
+    industry: "detailing",
+    customIndustry: "",
+    phoneNumber: "",
+    websiteUrl: "",
+    address: "",
+    yearsInBusiness: null,
+    timezone: "America/New_York",
+  });
   
   // Step 2: Services
-  const [services, setServices] = useState<ServiceTemplate[]>(industryConfigs.detailing.services);
+  const [services, setServices] = useState<AdvancedService[]>([]);
   
-  // Step 3: Business Hours
-  const [businessHours, setBusinessHours] = useState<BusinessHours>(defaultBusinessHours);
+  // Step 3: Booking Policies
+  const [bookingPolicies, setBookingPolicies] = useState<BookingPolicies>({
+    businessHours: defaultBusinessHours,
+    minLeadHours: 24,
+    maxAdvanceDays: 30,
+    appointmentBufferMinutes: 15,
+  });
   
-  // Step 4: Automations
-  const [automations, setAutomations] = useState({
-    missedCall: true,
-    bookingConfirmation: true,
-    noReply24h: true,
+  // Step 4: Customer Intake Questions
+  const [intakeQuestions, setIntakeQuestions] = useState<IntakeQuestion[]>([]);
+  
+  // Step 5: FAQs
+  const [faqs, setFaqs] = useState<FAQ[]>([]);
+  
+  // Step 6: Objection Handling
+  const [objections, setObjections] = useState<ObjectionResponse[]>([]);
+  
+  // Step 7: Business Policies
+  const [policies, setPolicies] = useState<BusinessPolicies>({
+    cancellationPolicy: "",
+    depositPolicy: "",
+    refundPolicy: "",
+    paymentMethods: ["cash", "card"],
+    aiNeverPromise: [],
   });
 
   const { user, refreshTenant } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const totalSteps = 5;
+  const totalSteps = 8;
   const progress = (step / totalSteps) * 100;
 
-  // Update services when industry changes
+  // Initialize data when industry changes
   useEffect(() => {
-    setServices(industryConfigs[industry].services);
-  }, [industry]);
+    const config = industryConfigs[businessIdentity.industry];
+    
+    // Update services
+    setServices(config.services.map(s => ({
+      ...s,
+      description: s.description || "",
+      preparationInstructions: "",
+      upsellSuggestions: [],
+      depositRequired: false,
+    })));
+    
+    // Update intake questions
+    setIntakeQuestions(config.contextFields.map(f => ({
+      key: f.key,
+      label: f.label,
+      type: f.type,
+      options: f.options,
+      required: f.required,
+    })));
+    
+    // Update FAQs
+    setFaqs(config.faqs.map(f => ({ ...f })));
+    
+    // Update objections
+    setObjections(config.objections.map(o => ({ ...o })));
+    
+    // Update policies
+    setPolicies({
+      cancellationPolicy: config.defaultPolicies.cancellation,
+      depositPolicy: config.defaultPolicies.deposit,
+      refundPolicy: config.defaultPolicies.refund,
+      paymentMethods: ["cash", "card"],
+      aiNeverPromise: [],
+    });
+  }, [businessIdentity.industry]);
 
-  const handleIndustryChange = (value: ExtendedIndustryType) => {
-    setIndustry(value);
-    if (value !== "other") {
-      setCustomIndustry("");
-    }
-  };
-
-  const canProceedStep1 = businessName.trim().length > 0 && 
-    (industry !== "other" || customIndustry.trim().length > 0);
+  // Validation
+  const canProceedStep1 = businessIdentity.businessName.trim().length > 0 && 
+    businessIdentity.phoneNumber.trim().length > 0 &&
+    (businessIdentity.industry !== "other" || businessIdentity.customIndustry.trim().length > 0);
   
   const canProceedStep2 = services.length > 0 && 
     services.every(s => s.name.trim().length > 0);
@@ -96,18 +155,28 @@ export default function OnboardingPage() {
     setLoading(true);
 
     try {
-      // Get context fields for this industry
-      const contextFields = industryConfigs[industry].contextFields;
-
-      // Create tenant - cast to any to handle new columns not yet in types
+      // Create tenant with all the collected data
       const tenantData = {
-        name: businessName,
-        industry: industry as any,
-        custom_industry: industry === "other" ? customIndustry : null,
-        timezone,
-        hours_json: businessHours as any,
-        context_fields_json: contextFields as any,
-        ai_enabled: false, // AI is now a premium feature
+        name: businessIdentity.businessName,
+        tagline: businessIdentity.tagline || null,
+        industry: businessIdentity.industry as any,
+        custom_industry: businessIdentity.industry === "other" ? businessIdentity.customIndustry : null,
+        phone_public: businessIdentity.phoneNumber,
+        website_url: businessIdentity.websiteUrl || null,
+        address: businessIdentity.address || null,
+        years_in_business: businessIdentity.yearsInBusiness,
+        timezone: businessIdentity.timezone,
+        hours_json: bookingPolicies.businessHours as any,
+        context_fields_json: intakeQuestions as any,
+        min_lead_hours: bookingPolicies.minLeadHours,
+        max_advance_days: bookingPolicies.maxAdvanceDays,
+        appointment_buffer_minutes: bookingPolicies.appointmentBufferMinutes,
+        cancellation_policy: policies.cancellationPolicy || null,
+        deposit_policy: policies.depositPolicy || null,
+        refund_policy: policies.refundPolicy || null,
+        payment_methods: policies.paymentMethods,
+        ai_never_promise: policies.aiNeverPromise,
+        ai_enabled: false,
       };
 
       const { data: tenant, error: tenantError } = await supabase
@@ -145,42 +214,78 @@ export default function OnboardingPage() {
         .map(service => ({
           tenant_id: tenant.id,
           name: service.name,
+          description: service.description || null,
           duration_minutes: service.duration,
           price_amount: service.price,
           price_type: service.priceType as "fixed" | "starting_at" | "quote_only",
+          preparation_instructions: service.preparationInstructions || null,
+          upsell_suggestions: service.upsellSuggestions.length > 0 ? service.upsellSuggestions : null,
+          deposit_required: service.depositRequired,
           is_active: true,
         }));
 
       if (servicesToInsert.length > 0) {
         const { error: servicesError } = await supabase
           .from("services")
-          .insert(servicesToInsert);
+          .insert(servicesToInsert as any);
 
         if (servicesError) {
           console.error("Services creation error:", servicesError);
-          // Non-fatal, continue
         }
       }
 
-      // Create automations based on selections
-      const automationsToInsert = [];
+      // Create FAQs
+      const faqsToInsert = faqs
+        .filter(f => f.question.trim().length > 0 && f.answer.trim().length > 0)
+        .map((faq, index) => ({
+          tenant_id: tenant.id,
+          question: faq.question,
+          answer: faq.answer,
+          priority_weight: index,
+        }));
 
-      if (automations.missedCall) {
-        automationsToInsert.push({
+      if (faqsToInsert.length > 0) {
+        const { error: faqsError } = await supabase
+          .from("business_faqs")
+          .insert(faqsToInsert);
+
+        if (faqsError) {
+          console.error("FAQs creation error:", faqsError);
+        }
+      }
+
+      // Create objection responses
+      const objectionsToInsert = objections
+        .filter(o => o.objection.trim().length > 0 && o.response.trim().length > 0)
+        .map((obj, index) => ({
+          tenant_id: tenant.id,
+          objection: obj.objection,
+          response: obj.response,
+          priority_weight: index,
+        }));
+
+      if (objectionsToInsert.length > 0) {
+        const { error: objectionsError } = await supabase
+          .from("objection_responses")
+          .insert(objectionsToInsert);
+
+        if (objectionsError) {
+          console.error("Objections creation error:", objectionsError);
+        }
+      }
+
+      // Create default automations
+      const automationsToInsert = [
+        {
           tenant_id: tenant.id,
           name: "Missed Call Follow-up",
           trigger: "missed_call" as const,
           is_enabled: true,
           steps_json: [
             { type: "send_message", body: "Hi! We noticed we missed your call. How can we help you today?" },
-            { type: "wait_minutes", minutes: 10 },
-            { type: "send_message", body: "We'd love to help! Would you like to schedule an appointment?" },
           ],
-        });
-      }
-
-      if (automations.bookingConfirmation) {
-        automationsToInsert.push({
+        },
+        {
           tenant_id: tenant.id,
           name: "Booking Confirmation",
           trigger: "booking_created" as const,
@@ -188,36 +293,21 @@ export default function OnboardingPage() {
           steps_json: [
             { type: "send_message", body: "Your appointment is confirmed! We'll see you soon." },
           ],
-        });
-      }
+        },
+      ];
 
-      if (automations.noReply24h) {
-        automationsToInsert.push({
-          tenant_id: tenant.id,
-          name: "24h Follow-up",
-          trigger: "no_reply_24h" as const,
-          is_enabled: true,
-          steps_json: [
-            { type: "send_message", body: "Hi! Just following up on our conversation. Are you still interested in booking?" },
-          ],
-        });
-      }
+      const { error: autoError } = await supabase
+        .from("automations")
+        .insert(automationsToInsert);
 
-      if (automationsToInsert.length > 0) {
-        const { error: autoError } = await supabase
-          .from("automations")
-          .insert(automationsToInsert);
-
-        if (autoError) {
-          console.error("Automations creation error:", autoError);
-          // Non-fatal, continue
-        }
+      if (autoError) {
+        console.error("Automations creation error:", autoError);
       }
 
       await refreshTenant();
 
       toast({
-        title: "You're all set!",
+        title: "You're all set! 🎉",
         description: "Your business is ready to go.",
       });
 
@@ -234,291 +324,308 @@ export default function OnboardingPage() {
     }
   };
 
+  const goToStep = (targetStep: number) => {
+    setStep(targetStep);
+  };
+
+  const StepIcon = stepInfo[step - 1].icon;
+
   return (
     <div className="min-h-screen bg-secondary/30 py-8 px-4">
-      <div className="max-w-xl mx-auto">
+      <div className="max-w-2xl mx-auto">
         {/* Progress */}
-        <div className="mb-8">
+        <div className="mb-6">
           <div className="flex items-center justify-between text-sm mb-2">
             <span className="font-medium">Step {step} of {totalSteps}</span>
             <span className="text-muted-foreground">{Math.round(progress)}% complete</span>
           </div>
           <Progress value={progress} className="h-2" />
+          
+          {/* Step indicators */}
+          <div className="flex justify-between mt-3">
+            {stepInfo.map((info, index) => {
+              const Icon = info.icon;
+              const isActive = step === index + 1;
+              const isComplete = step > index + 1;
+              return (
+                <button
+                  key={index}
+                  onClick={() => isComplete && goToStep(index + 1)}
+                  disabled={!isComplete}
+                  className={`flex flex-col items-center gap-1 transition-colors ${
+                    isComplete ? 'cursor-pointer hover:text-primary' : ''
+                  }`}
+                >
+                  <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs ${
+                    isActive 
+                      ? 'bg-primary text-primary-foreground' 
+                      : isComplete 
+                        ? 'bg-primary/20 text-primary' 
+                        : 'bg-muted text-muted-foreground'
+                  }`}>
+                    {isComplete ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Step 1: Business Info */}
-        {step === 1 && (
-          <Card>
-            <CardHeader>
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 mb-2">
-                <Building2 className="h-6 w-6 text-primary" />
-              </div>
-              <CardTitle>Tell us about your business</CardTitle>
-              <CardDescription>We'll customize CloseLoop for your industry.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="businessName">Business name</Label>
-                <Input
-                  id="businessName"
-                  placeholder="e.g., Mike's Auto Care"
-                  value={businessName}
-                  onChange={(e) => setBusinessName(e.target.value)}
-                  autoFocus
+        <Card>
+          <CardHeader>
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 mb-2">
+              <StepIcon className="h-6 w-6 text-primary" />
+            </div>
+            <CardTitle>{stepInfo[step - 1].title}</CardTitle>
+            <CardDescription>{stepInfo[step - 1].description}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Step 1: Business Identity */}
+            {step === 1 && (
+              <>
+                <BusinessIdentityForm 
+                  data={businessIdentity} 
+                  onChange={setBusinessIdentity} 
                 />
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Industry</Label>
-                <Select value={industry} onValueChange={handleIndustryChange}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {industryOptions.map((ind) => (
-                      <SelectItem key={ind.value} value={ind.value}>
-                        <span className="flex items-center gap-2">
-                          <span>{ind.icon}</span>
-                          <span>{ind.label}</span>
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {industry === "other" && (
-                <div className="space-y-2">
-                  <Label htmlFor="customIndustry">What's your industry?</Label>
-                  <Input
-                    id="customIndustry"
-                    placeholder="e.g., Window Tinting, Boat Detailing"
-                    value={customIndustry}
-                    onChange={(e) => setCustomIndustry(e.target.value)}
-                  />
+                <Button
+                  className="w-full"
+                  onClick={() => setStep(2)}
+                  disabled={!canProceedStep1}
+                >
+                  Continue
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </>
+            )}
+
+            {/* Step 2: Services */}
+            {step === 2 && (
+              <>
+                <ServiceEditorAdvanced services={services} onChange={setServices} />
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setStep(1)}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back
+                  </Button>
+                  <Button className="flex-1" onClick={() => setStep(3)} disabled={!canProceedStep2}>
+                    Continue
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
                 </div>
-              )}
-              
-              <div className="space-y-2">
-                <Label>Timezone</Label>
-                <Select value={timezone} onValueChange={setTimezone}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timezones.map((tz) => (
-                      <SelectItem key={tz.value} value={tz.value}>
-                        {tz.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <Button
-                className="w-full"
-                onClick={() => setStep(2)}
-                disabled={!canProceedStep1}
-              >
-                Continue
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+              </>
+            )}
 
-        {/* Step 2: Services */}
-        {step === 2 && (
-          <Card>
-            <CardHeader>
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 mb-2">
-                <Clock className="h-6 w-6 text-primary" />
-              </div>
-              <CardTitle>Your services</CardTitle>
-              <CardDescription>
-                We've pre-filled common services for {industryConfigs[industry].label.toLowerCase()}. 
-                Edit, add, or remove as needed.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <ServiceEditor services={services} onChange={setServices} />
-              
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setStep(1)}>
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back
-                </Button>
-                <Button className="flex-1" onClick={() => setStep(3)} disabled={!canProceedStep2}>
-                  Continue
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+            {/* Step 3: Booking Policies */}
+            {step === 3 && (
+              <>
+                <BookingPoliciesEditor data={bookingPolicies} onChange={setBookingPolicies} />
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setStep(2)}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back
+                  </Button>
+                  <Button className="flex-1" onClick={() => setStep(4)}>
+                    Continue
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </>
+            )}
 
-        {/* Step 3: Business Hours */}
-        {step === 3 && (
-          <Card>
-            <CardHeader>
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 mb-2">
-                <Calendar className="h-6 w-6 text-primary" />
-              </div>
-              <CardTitle>Business hours</CardTitle>
-              <CardDescription>Set your operating hours so we know when to book appointments.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <BusinessHoursEditor hours={businessHours} onChange={setBusinessHours} />
-              
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setStep(2)}>
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back
-                </Button>
-                <Button className="flex-1" onClick={() => setStep(4)}>
-                  Continue
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+            {/* Step 4: Customer Intake */}
+            {step === 4 && (
+              <>
+                <CustomerIntakeEditor questions={intakeQuestions} onChange={setIntakeQuestions} />
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setStep(3)}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back
+                  </Button>
+                  <Button className="flex-1" onClick={() => setStep(5)}>
+                    Continue
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </>
+            )}
 
-        {/* Step 4: Automations */}
-        {step === 4 && (
-          <Card>
-            <CardHeader>
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 mb-2">
-                <Zap className="h-6 w-6 text-primary" />
-              </div>
-              <CardTitle>Automations</CardTitle>
-              <CardDescription>These free automations help you close more deals automatically.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
-                  <div>
-                    <p className="font-medium">Missed Call Follow-up</p>
-                    <p className="text-sm text-muted-foreground">Instantly text when a call is missed</p>
+            {/* Step 5: FAQs */}
+            {step === 5 && (
+              <>
+                <FAQEditor faqs={faqs} onChange={setFaqs} />
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setStep(4)}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back
+                  </Button>
+                  <Button className="flex-1" onClick={() => setStep(6)}>
+                    Continue
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {/* Step 6: Objection Handling */}
+            {step === 6 && (
+              <>
+                <ObjectionEditor objections={objections} onChange={setObjections} />
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setStep(5)}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back
+                  </Button>
+                  <Button className="flex-1" onClick={() => setStep(7)}>
+                    Continue
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {/* Step 7: Policies */}
+            {step === 7 && (
+              <>
+                <PoliciesEditor data={policies} onChange={setPolicies} />
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setStep(6)}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back
+                  </Button>
+                  <Button className="flex-1" onClick={() => setStep(8)}>
+                    Continue
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {/* Step 8: Review & Launch */}
+            {step === 8 && (
+              <>
+                <div className="space-y-4">
+                  {/* Summary sections */}
+                  <div className="space-y-3">
+                    <ReviewSection
+                      icon={Building2}
+                      title="Business"
+                      value={businessIdentity.businessName}
+                      subtitle={industryConfigs[businessIdentity.industry].label}
+                      onEdit={() => goToStep(1)}
+                    />
+                    <ReviewSection
+                      icon={Clock}
+                      title="Services"
+                      value={`${services.filter(s => s.name.trim()).length} services`}
+                      onEdit={() => goToStep(2)}
+                    />
+                    <ReviewSection
+                      icon={Calendar}
+                      title="Availability"
+                      value={`${bookingPolicies.minLeadHours}h notice • ${bookingPolicies.maxAdvanceDays} days advance`}
+                      onEdit={() => goToStep(3)}
+                    />
+                    <ReviewSection
+                      icon={Users}
+                      title="Intake Questions"
+                      value={`${intakeQuestions.length} questions`}
+                      onEdit={() => goToStep(4)}
+                    />
+                    <ReviewSection
+                      icon={MessageCircle}
+                      title="FAQs"
+                      value={`${faqs.filter(f => f.question && f.answer).length} answers ready`}
+                      onEdit={() => goToStep(5)}
+                    />
+                    <ReviewSection
+                      icon={ShieldQuestion}
+                      title="Objection Handlers"
+                      value={`${objections.filter(o => o.objection && o.response).length} responses`}
+                      onEdit={() => goToStep(6)}
+                    />
+                    <ReviewSection
+                      icon={FileText}
+                      title="Policies"
+                      value={`${policies.paymentMethods.length} payment methods`}
+                      onEdit={() => goToStep(7)}
+                    />
                   </div>
-                  <Switch 
-                    checked={automations.missedCall} 
-                    onCheckedChange={(checked) => setAutomations(a => ({ ...a, missedCall: checked }))}
-                  />
+
+                  {/* AI Upsell */}
+                  <div className="p-4 rounded-lg border-2 border-dashed border-primary/30 bg-primary/5">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                        <Sparkles className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">AI Voice Assistant</p>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Your AI is now trained on your business! Enable voice calls to let AI answer 24/7.
+                        </p>
+                        <span className="text-xs font-medium text-primary">Available in Settings →</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 
-                <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
-                  <div>
-                    <p className="font-medium">Booking Confirmation</p>
-                    <p className="text-sm text-muted-foreground">Confirm appointments automatically</p>
-                  </div>
-                  <Switch 
-                    checked={automations.bookingConfirmation}
-                    onCheckedChange={(checked) => setAutomations(a => ({ ...a, bookingConfirmation: checked }))}
-                  />
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setStep(7)}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back
+                  </Button>
+                  <Button className="flex-1" onClick={handleComplete} disabled={loading}>
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Setting up...
+                      </>
+                    ) : (
+                      <>
+                        Launch CloseLoop
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
                 </div>
-                
-                <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
-                  <div>
-                    <p className="font-medium">24h Follow-up</p>
-                    <p className="text-sm text-muted-foreground">Follow up if no response in 24 hours</p>
-                  </div>
-                  <Switch 
-                    checked={automations.noReply24h}
-                    onCheckedChange={(checked) => setAutomations(a => ({ ...a, noReply24h: checked }))}
-                  />
-                </div>
-              </div>
-
-              {/* AI Assistant Upsell */}
-              <div className="p-4 rounded-lg border-2 border-dashed border-primary/30 bg-primary/5">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                    <Sparkles className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium">AI Voice Assistant</p>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Let AI answer calls 24/7, qualify leads, and book appointments automatically.
-                    </p>
-                    <span className="text-xs font-medium text-primary">Available after setup →</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setStep(3)}>
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back
-                </Button>
-                <Button className="flex-1" onClick={() => setStep(5)}>
-                  Continue
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Step 5: Complete */}
-        {step === 5 && (
-          <Card>
-            <CardHeader className="text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mx-auto mb-4">
-                <CheckCircle2 className="h-8 w-8 text-primary" />
-              </div>
-              <CardTitle className="text-2xl">You're ready to go!</CardTitle>
-              <CardDescription>
-                CloseLoop is set up for {businessName}. Let's start recovering revenue.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3 p-4 rounded-lg bg-secondary/50">
-                <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                  <span>Business profile: <strong>{businessName}</strong></span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                  <span>Industry: <strong>{industryConfigs[industry].icon} {industry === "other" ? customIndustry : industryConfigs[industry].label}</strong></span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                  <span><strong>{services.filter(s => s.name.trim()).length}</strong> services configured</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                  <span>Business hours set</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                  <span><strong>{Object.values(automations).filter(Boolean).length}</strong> automations enabled</span>
-                </div>
-              </div>
-              
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setStep(4)}>
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back
-                </Button>
-                <Button className="flex-1" onClick={handleComplete} disabled={loading}>
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Setting up...
-                    </>
-                  ) : (
-                    <>
-                      Launch CloseLoop
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
+    </div>
+  );
+}
+
+function ReviewSection({ 
+  icon: Icon, 
+  title, 
+  value, 
+  subtitle, 
+  onEdit 
+}: { 
+  icon: React.ElementType; 
+  title: string; 
+  value: string; 
+  subtitle?: string;
+  onEdit: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
+      <div className="flex items-center gap-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10">
+          <Icon className="h-4 w-4 text-primary" />
+        </div>
+        <div>
+          <p className="text-sm font-medium">{title}</p>
+          <p className="text-xs text-muted-foreground">
+            {value}
+            {subtitle && ` • ${subtitle}`}
+          </p>
+        </div>
+      </div>
+      <Button variant="ghost" size="sm" onClick={onEdit}>
+        <Edit2 className="h-4 w-4" />
+      </Button>
     </div>
   );
 }
