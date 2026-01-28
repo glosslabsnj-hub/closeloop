@@ -199,6 +199,17 @@ serve(async (req) => {
 
     // Call ElevenLabs register-call API
     // Documentation: https://elevenlabs.io/docs/conversational-ai/guides/twilio-integration
+    const registerCallPayload = {
+      agent_id: ELEVENLABS_AGENT_ID,
+      from_number: fromNumber,  // The caller's phone number
+      to_number: toNumber,      // The Twilio number that received the call
+      conversation_initiation_client_data: {
+        dynamic_variables: dynamicVariables,
+      },
+    };
+    
+    console.log("Sending to ElevenLabs:", JSON.stringify(registerCallPayload, null, 2));
+    
     const registerCallResponse = await fetch(
       `https://api.elevenlabs.io/v1/convai/twilio/register-call`,
       {
@@ -207,13 +218,7 @@ serve(async (req) => {
           "xi-api-key": ELEVENLABS_API_KEY,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          agent_id: ELEVENLABS_AGENT_ID,
-          agent_phone_number_id: toNumber, // The Twilio number receiving the call
-          conversation_initiation_client_data: {
-            dynamic_variables: dynamicVariables,
-          },
-        }),
+        body: JSON.stringify(registerCallPayload),
       }
     );
 

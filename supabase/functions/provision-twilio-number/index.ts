@@ -116,6 +116,88 @@ serve(async (req) => {
 
     const twilioAuth = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
 
+    // FIRST: Check if there's an existing number in the Twilio account we can reuse
+    // This is critical for trial accounts that only allow one number
+    const existingNumbersUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/IncomingPhoneNumbers.json?Limit=1`;
+    console.log("Checking for existing Twilio numbers in account...");
+    
+    const existingResponse = await fetch(existingNumbersUrl, {
+      headers: { Authorization: `Basic ${twilioAuth}` },
+    });
+    
+    if (existingResponse.ok) {
+      const existingData = await existingResponse.json();
+      if (existingData.incoming_phone_numbers?.length > 0) {
+        const existingNumber = existingData.incoming_phone_numbers[0];
+        console.log(`Found existing Twilio number: ${existingNumber.phone_number}, assigning to tenant ${tenant_id}`);
+        
+        // Update the webhook URL on the existing number
+        const updateUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/IncomingPhoneNumbers/${existingNumber.sid}.json`;
+        const updateResponse = await fetch(updateUrl, {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${twilioAuth}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            VoiceUrl: `${SUPABASE_URL}/functions/v1/twilio-inbound`,
+            VoiceMethod: "POST",
+            FriendlyName: `CloseLoop - ${tenant_id.substring(0, 8)}`,
+          }).toString(),
+        });
+        
+        if (updateResponse.ok) {
+          console.log("Updated webhook URL on existing number");
+        } else {
+          console.error("Failed to update webhook URL:", await updateResponse.text());
+        }
+        
+        const friendlyNumber = formatPhoneNumber(existingNumber.phone_number);
+        
+        // Insert into phone_numbers table (upsert on phone_e164 if it exists)
+        const { error: insertError } = await supabase.from("phone_numbers").upsert({
+          tenant_id: tenant_id,
+          phone_e164: existingNumber.phone_number,
+          twilio_sid: existingNumber.sid,
+          purpose: "forwarding",
+          status: "provisioned",
+        }, { onConflict: "phone_e164" });
+        
+        if (insertError) {
+          console.error("Error inserting into phone_numbers:", insertError);
+        }
+        
+        // Update assistant_settings
+        const { error: settingsUpdateError } = await supabase.from("assistant_settings").upsert({
+          tenant_id: tenant_id,
+          closeloop_number: existingNumber.phone_number,
+          twilio_phone_sid: existingNumber.sid,
+          twilio_provisioned_at: new Date().toISOString(),
+          forwarding_phone_e164: existingNumber.phone_number,
+          phone_connected: true,
+          connect_status: "provisioned",
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "tenant_id" });
+        
+        if (settingsUpdateError) {
+          console.error("Error updating assistant_settings:", settingsUpdateError);
+        }
+        
+        return new Response(
+          JSON.stringify({
+            success: true,
+            phone_number: existingNumber.phone_number,
+            phone_sid: existingNumber.sid,
+            friendly_name: friendlyNumber,
+            reused_existing: true,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+    
+    console.log("No existing numbers found in account, searching for available numbers...");
+
     // Search for available phone numbers
     let searchUrl: string;
     if (number_type === "toll_free") {
