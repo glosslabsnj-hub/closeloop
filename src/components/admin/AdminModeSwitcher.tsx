@@ -146,7 +146,7 @@ async function updateTestData(tenantId: string, mode: BusinessMode) {
 }
 
 export function AdminModeSwitcher() {
-  const { tenant, user } = useAuth();
+  const { tenant, user, refreshTenant } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   // Only show for the tenant's admin
@@ -179,8 +179,8 @@ export function AdminModeSwitcher() {
 
       toast.success(`Switched to ${config.label} mode`);
       
-      // Force page reload to update navigation and context
-      window.location.reload();
+      // Refresh tenant data to update navigation and context (no full reload)
+      await refreshTenant();
     } catch (error) {
       console.error("Failed to switch mode:", error);
       toast.error("Failed to switch business mode");
