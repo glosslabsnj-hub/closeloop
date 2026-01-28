@@ -14,7 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Building2, Clock, Users, CreditCard, Bell, Lock, Loader2 } from "lucide-react";
+import { Building2, Clock, Users, CreditCard, Bell, Lock, Loader2, Bug } from "lucide-react";
+import { CallContextDebugger } from "@/components/ai/CallContextDebugger";
 
 const timezones = [
   { value: "America/New_York", label: "Eastern Time" },
@@ -163,6 +164,10 @@ export default function SettingsPage() {
           <TabsTrigger value="notifications" className="gap-2">
             <Bell className="h-4 w-4" />
             <span className="hidden sm:inline">Notifications</span>
+          </TabsTrigger>
+          <TabsTrigger value="developer" className="gap-2">
+            <Bug className="h-4 w-4" />
+            <span className="hidden sm:inline">Developer</span>
           </TabsTrigger>
         </TabsList>
 
@@ -372,6 +377,23 @@ export default function SettingsPage() {
               ))}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Developer Tab */}
+        <TabsContent value="developer" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Developer Tools</CardTitle>
+              <CardDescription>Debug and inspect AI call context</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                Use these tools to inspect what data is being passed to the AI during calls.
+              </p>
+            </CardContent>
+          </Card>
+          
+          {tenant?.id && <CallContextDebugger tenantId={tenant.id} />}
         </TabsContent>
       </Tabs>
 
