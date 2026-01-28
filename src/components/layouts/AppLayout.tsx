@@ -57,8 +57,8 @@ const allNavItems: NavItem[] = [
   { href: "/app/catering", label: "Catering", icon: Cake, requiredModules: ["catering"] },
   { href: "/app/medical-intake", label: "Medical Intake", icon: Stethoscope, requiredModules: ["medical_intake"] },
   { href: "/app/services", label: "Services", icon: Briefcase },
+  { href: "/app/business-brain", label: "Business Brain", icon: Bot },
   { href: "/app/automations", label: "Automations", icon: Zap },
-  { href: "/app/ai-assistant", label: "AI Assistant", icon: Bot },
   { href: "/app/simulator", label: "Simulator", icon: FlaskConical },
   { href: "/app/settings", label: "Settings", icon: Settings },
 ];

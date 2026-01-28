@@ -3,6 +3,7 @@ import { AgentControlCard } from "./AgentControlCard";
 import { QuickStatsCard } from "./QuickStatsCard";
 import { RecentActivityCard } from "./RecentActivityCard";
 import { QuickLinksCard } from "./QuickLinksCard";
+import { DashboardByMode } from "./DashboardByMode";
 
 export function LiveDashboard() {
   const { tenant } = useAuth();
@@ -11,6 +12,9 @@ export function LiveDashboard() {
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Agent Control - Primary Focus */}
       <AgentControlCard />
+
+      {/* Mode-Specific Today View */}
+      <DashboardByMode />
 
       {/* Stats Overview */}
       <QuickStatsCard />
