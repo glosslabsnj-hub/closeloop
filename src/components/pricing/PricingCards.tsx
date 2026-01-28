@@ -65,8 +65,8 @@ export function PricingCards({ onSelectPlan, linkToSignup = false, compact = fal
   };
 
   return (
-    <div className="space-y-8">
-      <div className={`grid gap-6 ${compact ? "md:grid-cols-3" : "md:grid-cols-3"}`}>
+    <div className="space-y-10">
+      <div className={`grid gap-6 lg:gap-8 ${compact ? "md:grid-cols-3" : "md:grid-cols-3"}`}>
         {TIERS.map((tierInfo) => {
           const Icon = getIcon(tierInfo.icon);
           const isExpanded = expandedTier === tierInfo.tier;
@@ -77,48 +77,48 @@ export function PricingCards({ onSelectPlan, linkToSignup = false, compact = fal
 
           const cardContent = (
             <Card
-              className={`relative transition-all ${
+              className={`relative transition-all duration-300 hover:shadow-xl ${
                 tierInfo.highlight
-                  ? "border-primary shadow-lg scale-[1.02]"
-                  : "hover:border-primary/50"
+                  ? "border-primary shadow-lg scale-[1.02] bg-gradient-to-b from-card to-primary/5"
+                  : "hover:border-primary/40"
               }`}
             >
               {tierInfo.highlight && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <Badge className="bg-primary text-primary-foreground">Most Popular</Badge>
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                  <Badge className="bg-primary text-primary-foreground px-4 py-1 shadow-md">Most Popular</Badge>
                 </div>
               )}
 
               <CardHeader className={compact ? "pb-2" : "pb-4"}>
                 <div
-                  className={`flex h-12 w-12 items-center justify-center rounded-lg mb-3 ${
+                  className={`flex h-14 w-14 items-center justify-center rounded-xl mb-4 transition-colors ${
                     tierInfo.highlight
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-primary text-primary-foreground shadow-md"
                       : "bg-primary/10 text-primary"
                   }`}
                 >
-                  <Icon className="h-6 w-6" />
+                  <Icon className="h-7 w-7" />
                 </div>
-                <CardTitle className="text-xl">{tierInfo.displayName}</CardTitle>
-                <CardDescription>{tierInfo.description}</CardDescription>
+                <CardTitle className="text-2xl">{tierInfo.displayName}</CardTitle>
+                <CardDescription className="text-base">{tierInfo.description}</CardDescription>
               </CardHeader>
 
               <CardContent className="space-y-6">
                 {/* Price */}
-                <div className="flex items-baseline gap-1">
-                  <span className="text-sm text-muted-foreground">Starting at</span>
-                </div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-bold">{formatPrice(tierInfo.startingPrice)}</span>
-                  <span className="text-muted-foreground">/month</span>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Starting at</p>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-bold">{formatPrice(tierInfo.startingPrice)}</span>
+                    <span className="text-muted-foreground">/month</span>
+                  </div>
                 </div>
 
                 {/* Features */}
                 <ul className="space-y-3">
                   {tierInfo.features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-2">
+                    <li key={i} className="flex items-start gap-3">
                       <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                      <span className="text-sm">{feature}</span>
+                      <span className="text-sm leading-relaxed">{feature}</span>
                     </li>
                   ))}
                 </ul>
@@ -215,13 +215,13 @@ export function PricingCards({ onSelectPlan, linkToSignup = false, compact = fal
       </div>
 
       {/* What's Included in All Plans */}
-      <div className="text-center">
-        <h3 className="font-semibold mb-4">Included in all plans</h3>
-        <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
+      <div className="text-center p-8 rounded-2xl bg-muted/30 border">
+        <h3 className="font-semibold text-lg mb-5">Included in all plans</h3>
+        <div className="flex flex-wrap justify-center gap-x-8 gap-y-3 text-sm">
           {INCLUDED_IN_ALL_PLANS.map((item, i) => (
             <div key={i} className="flex items-center gap-2">
-              <Check className="h-4 w-4 text-primary" />
-              <span>{item}</span>
+              <Check className="h-5 w-5 text-primary" />
+              <span className="font-medium">{item}</span>
             </div>
           ))}
         </div>

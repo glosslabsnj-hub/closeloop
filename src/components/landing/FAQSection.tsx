@@ -8,48 +8,55 @@ import {
 const faqs = [
   {
     question: "How long does setup take?",
-    answer: "About 10 minutes. Our guided onboarding walks you through adding your services, hours, and preferences. You can be live the same day.",
+    answer: "About 10 minutes. Guided onboarding walks you through services, hours, and preferences. Go live the same day.",
   },
   {
     question: "Will this work for my industry?",
-    answer: "CloseLoop works for any business that takes inbound calls: service businesses, dispatch/towing, restaurants, medical offices, and more. The AI adapts to your specific workflow.",
+    answer: "Yes — CloseLoop works for any inbound-call business: service, dispatch, restaurants, medical, and more. The AI adapts to your workflow.",
   },
   {
     question: "Can I keep my existing phone number?",
-    answer: "Yes! You can forward your existing business number to CloseLoop, or we can provide you with a dedicated number. Your customers won't notice any change.",
+    answer: "Absolutely. Forward your existing number to CloseLoop, or use a dedicated number we provide. Customers won't notice any change.",
   },
   {
-    question: "Can it handle Spanish or other languages?",
-    answer: "Currently CloseLoop supports English. Spanish and other languages are on our roadmap. Contact us if you have specific language needs.",
+    question: "Can it handle Spanish?",
+    answer: "Currently English only. Spanish and other languages are on the roadmap. Contact us for specific language needs.",
   },
   {
-    question: "What happens if multiple calls come in at once?",
-    answer: "CloseLoop can handle unlimited simultaneous calls. Every caller gets answered immediately — no busy signals, no hold music.",
+    question: "What if multiple calls come in at once?",
+    answer: "No problem — CloseLoop handles unlimited simultaneous calls. Every caller gets answered immediately, no hold music.",
   },
   {
-    question: "Can I keep using my existing CRM or scheduler?",
-    answer: "Absolutely. CloseLoop can push captured data to your existing tools via webhooks, email, or SMS. Or use CloseLoop's built-in system — your choice.",
+    question: "Can I use my existing CRM?",
+    answer: "Yes. Push captured data to your existing tools via webhooks, email, or SMS. Or use CloseLoop's built-in system — your choice.",
   },
 ];
 
 export function FAQSection() {
   return (
-    <section className="py-16 md:py-24 bg-background">
+    <section className="py-20 md:py-28 bg-background">
       <div className="container">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+        <div className="text-center mb-14">
+          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">
+            FAQ
+          </p>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
             Common questions
           </h2>
         </div>
         
         <div className="max-w-3xl mx-auto">
-          <Accordion type="single" collapsible className="w-full">
+          <Accordion type="single" collapsible className="w-full space-y-3">
             {faqs.map((faq, i) => (
-              <AccordionItem key={i} value={`item-${i}`}>
-                <AccordionTrigger className="text-left font-medium">
+              <AccordionItem 
+                key={i} 
+                value={`item-${i}`}
+                className="border rounded-xl px-6 data-[state=open]:bg-muted/30 transition-colors"
+              >
+                <AccordionTrigger className="text-left font-semibold py-5 hover:no-underline">
                   {faq.question}
                 </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground">
+                <AccordionContent className="text-muted-foreground pb-5 leading-relaxed">
                   {faq.answer}
                 </AccordionContent>
               </AccordionItem>
