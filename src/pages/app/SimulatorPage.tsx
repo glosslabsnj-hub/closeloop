@@ -1,6 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CallSimulator from "@/components/simulator/CallSimulator";
 import SMSSimulator from "@/components/simulator/SMSSimulator";
+import AIBrainDebugger from "@/components/simulator/AIBrainDebugger";
 import CustomerMergeQueue from "@/components/customers/CustomerMergeQueue";
 import AIReadinessScore from "@/components/knowledge/AIReadinessScore";
 import QuickSetupWizard from "@/components/setup/QuickSetupWizard";
@@ -12,7 +13,7 @@ export default function SimulatorPage() {
       <div>
         <h1 className="text-2xl font-bold">Simulator & Setup</h1>
         <p className="text-muted-foreground">
-          Connect your phone, test your AI, and configure settings
+          Test your AI with real business data and see how it processes questions
         </p>
       </div>
 
@@ -24,6 +25,10 @@ export default function SimulatorPage() {
           <TabsTrigger value="setup" className="gap-2">
             <Zap className="h-4 w-4" />
             Quick Setup
+          </TabsTrigger>
+          <TabsTrigger value="brain" className="gap-2">
+            <Brain className="h-4 w-4" />
+            AI Brain Debugger
           </TabsTrigger>
           <TabsTrigger value="call" className="gap-2">
             <Phone className="h-4 w-4" />
@@ -37,14 +42,14 @@ export default function SimulatorPage() {
             <Users className="h-4 w-4" />
             Customer Conflicts
           </TabsTrigger>
-          <TabsTrigger value="readiness" className="gap-2">
-            <Brain className="h-4 w-4" />
-            AI Readiness
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="setup" className="mt-4">
           <QuickSetupWizard />
+        </TabsContent>
+
+        <TabsContent value="brain" className="mt-4">
+          <AIBrainDebugger />
         </TabsContent>
 
         <TabsContent value="call" className="mt-4">
@@ -57,10 +62,6 @@ export default function SimulatorPage() {
 
         <TabsContent value="conflicts" className="mt-4">
           <CustomerMergeQueue />
-        </TabsContent>
-
-        <TabsContent value="readiness" className="mt-4">
-          <AIReadinessScore />
         </TabsContent>
       </Tabs>
     </div>
