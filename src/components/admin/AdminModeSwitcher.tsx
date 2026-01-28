@@ -345,11 +345,12 @@ async function resetAllTestData(tenantId: string, mode: BusinessMode) {
 }
 
 export function AdminModeSwitcher() {
-  const { tenant, user, refreshTenant } = useAuth();
+  const { tenant, user, isSuperAdmin, refreshTenant } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
-  // Only show for the tenant's admin
-  if (!tenant || !user) return null;
+  // P0-1: Only show for super_admin users - this component injects test data
+  // and should NEVER be visible to regular tenants in production
+  if (!tenant || !user || !isSuperAdmin) return null;
 
   const currentMode = (tenant.business_mode as BusinessMode) || "service";
   const CurrentIcon = BUSINESS_MODES[currentMode]?.icon || Briefcase;

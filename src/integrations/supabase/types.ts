@@ -2083,7 +2083,150 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      booking_delivery_settings_safe: {
+        Row: {
+          created_at: string | null
+          enabled: boolean | null
+          handoff_methods: Json | null
+          notify_email: string | null
+          notify_phone: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          webhook_secret: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          enabled?: boolean | null
+          handoff_methods?: Json | null
+          notify_email?: string | null
+          notify_phone?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          webhook_secret?: never
+          webhook_url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          enabled?: boolean | null
+          handoff_methods?: Json | null
+          notify_email?: string | null
+          notify_phone?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          webhook_secret?: never
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_delivery_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dispatch_delivery_settings_safe: {
+        Row: {
+          created_at: string | null
+          enabled: boolean | null
+          handoff_methods: Json | null
+          notify_email: string | null
+          notify_phone: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          urgent_sms_phone: string | null
+          webhook_secret: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          enabled?: boolean | null
+          handoff_methods?: Json | null
+          notify_email?: string | null
+          notify_phone?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          urgent_sms_phone?: string | null
+          webhook_secret?: never
+          webhook_url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          enabled?: boolean | null
+          handoff_methods?: Json | null
+          notify_email?: string | null
+          notify_phone?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          urgent_sms_phone?: string | null
+          webhook_secret?: never
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispatch_delivery_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_delivery_settings_safe: {
+        Row: {
+          auto_print: boolean | null
+          cancel_window_minutes: number | null
+          created_at: string | null
+          enabled: boolean | null
+          handoff_methods: Json | null
+          notify_email: string | null
+          notify_phone: string | null
+          print_format: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          webhook_secret: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          auto_print?: boolean | null
+          cancel_window_minutes?: number | null
+          created_at?: string | null
+          enabled?: boolean | null
+          handoff_methods?: Json | null
+          notify_email?: string | null
+          notify_phone?: string | null
+          print_format?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          webhook_secret?: never
+          webhook_url?: string | null
+        }
+        Update: {
+          auto_print?: boolean | null
+          cancel_window_minutes?: number | null
+          created_at?: string | null
+          enabled?: boolean | null
+          handoff_methods?: Json | null
+          notify_email?: string | null
+          notify_phone?: string | null
+          print_format?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          webhook_secret?: never
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_delivery_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       calculate_ai_readiness: { Args: { _tenant_id: string }; Returns: number }

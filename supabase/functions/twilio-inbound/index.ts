@@ -392,11 +392,36 @@ serve(async (req) => {
       return twimlResponse(hangupTwiml("Our voice assistant is temporarily unavailable. Please try again later."));
     }
 
-    // ElevenLabs returns TwiML directly
-    const twimlFromElevenLabs = await registerCallResponse.text();
-    console.log(`ElevenLabs returned TwiML (${twimlFromElevenLabs.length} chars)`);
+    // P0-2: Parse ElevenLabs response to get conversation_id for webhook linkage
+    // ElevenLabs returns TwiML but we need to check for any JSON metadata first
+    const responseText = await registerCallResponse.text();
+    
+    // Try to extract conversation_id from response headers or parse JSON if present
+    const conversationIdHeader = registerCallResponse.headers.get("x-conversation-id");
+    let conversationId: string | null = conversationIdHeader;
+    
+    // If no header, try to parse conversation_id from any embedded data
+    // ElevenLabs may embed it in a comment or data attribute in the TwiML
+    if (!conversationId) {
+      // Look for conversation ID pattern in TwiML response
+      const match = responseText.match(/conversation[_-]?id[="':]+([a-zA-Z0-9_-]+)/i);
+      if (match) {
+        conversationId = match[1];
+      }
+    }
 
-    return new Response(twimlFromElevenLabs, {
+    // Update call session with conversation_id if we got one
+    if (conversationId && callSession?.id) {
+      await supabase
+        .from("ai_call_sessions")
+        .update({ elevenlabs_conversation_id: conversationId })
+        .eq("id", callSession.id);
+      console.log(`Updated call session ${callSession.id} with conversation_id: ${conversationId}`);
+    }
+
+    console.log(`ElevenLabs returned TwiML (${responseText.length} chars)`);
+
+    return new Response(responseText, {
       status: 200,
       headers: {
         "Content-Type": "text/xml",
