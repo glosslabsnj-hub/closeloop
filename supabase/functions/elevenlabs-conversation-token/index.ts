@@ -12,16 +12,17 @@ serve(async (req) => {
   }
 
   try {
-    const { agentId } = await req.json();
+    // Use global agent ID from environment - shared across all tenants
+    const ELEVENLABS_AGENT_ID = Deno.env.get("ELEVENLABS_AGENT_ID");
+    const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY_2");
     
-    if (!agentId) {
+    if (!ELEVENLABS_AGENT_ID) {
+      console.error("ELEVENLABS_AGENT_ID not configured");
       return new Response(
-        JSON.stringify({ error: "Agent ID is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "ElevenLabs Agent ID not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY_2");
     
     if (!ELEVENLABS_API_KEY) {
       console.error("ELEVENLABS_API_KEY_2 not configured");
@@ -33,7 +34,7 @@ serve(async (req) => {
 
     // Get a conversation token for WebRTC connection
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/convai/conversation/token?agent_id=${agentId}`,
+      `https://api.elevenlabs.io/v1/convai/conversation/token?agent_id=${ELEVENLABS_AGENT_ID}`,
       {
         headers: {
           "xi-api-key": ELEVENLABS_API_KEY,

@@ -5,9 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mic, Phone, Check, Loader2, PhoneCall, Volume2, ExternalLink } from "lucide-react";
+import { Mic, Check, Loader2, PhoneCall, Volume2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import VoiceAgentTest from "@/components/ai/VoiceAgentTest";
 
@@ -20,7 +19,6 @@ export function TestAIStep({ onComplete, isComplete }: TestAIStepProps) {
   const { tenant, refreshTenant } = useAuth();
   const { toast } = useToast();
   
-  const [agentId, setAgentId] = useState("");
   const [testPhoneNumber, setTestPhoneNumber] = useState("");
   const [callingPhone, setCallingPhone] = useState(false);
   const [hasTested, setHasTested] = useState(false);
@@ -41,7 +39,6 @@ export function TestAIStep({ onComplete, isComplete }: TestAIStepProps) {
         body: { 
           tenantId: tenant?.id, 
           phoneNumber: testPhoneNumber.trim(),
-          agentId: agentId,
         },
       });
 
@@ -68,41 +65,30 @@ export function TestAIStep({ onComplete, isComplete }: TestAIStepProps) {
     if (!tenant) return;
 
     try {
-      const { error } = await supabase
+      // Check if settings exist
+      const { data: existing } = await supabase
         .from("assistant_settings")
-        .upsert({
-          tenant_id: tenant.id,
-          setup_step_tested: true,
-          updated_at: new Date().toISOString(),
-        } as any, {
-          onConflict: "tenant_id",
-        });
+        .select("tenant_id")
+        .eq("tenant_id", tenant.id)
+        .maybeSingle();
 
-      if (error) throw error;
-
-      // Also save the agent ID if provided
-      if (agentId) {
-        const { data: existing } = await supabase
-          .from("ai_assistants")
-          .select("id")
-          .eq("tenant_id", tenant.id)
-          .single();
-
-        if (existing) {
-          await supabase
-            .from("ai_assistants")
-            .update({ elevenlabs_agent_id: agentId } as any)
-            .eq("id", existing.id);
-        } else {
-          await supabase
-            .from("ai_assistants")
-            .insert([{
-              tenant_id: tenant.id,
-              name: "AI Assistant",
-              is_enabled: true,
-              elevenlabs_agent_id: agentId,
-            } as any]);
-        }
+      if (existing) {
+        const { error } = await supabase
+          .from("assistant_settings")
+          .update({
+            setup_step_tested: true,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("tenant_id", tenant.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("assistant_settings")
+          .insert({
+            tenant_id: tenant.id,
+            setup_step_tested: true,
+          });
+        if (error) throw error;
       }
 
       await refreshTenant();
@@ -148,29 +134,6 @@ export function TestAIStep({ onComplete, isComplete }: TestAIStepProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Agent ID Setup */}
-        <div className="space-y-2 p-4 rounded-lg bg-muted/50">
-          <Label htmlFor="agent-id" className="font-medium">ElevenLabs Agent ID</Label>
-          <Input
-            id="agent-id"
-            placeholder="agent_xxxxxxxxxxxx"
-            value={agentId}
-            onChange={(e) => setAgentId(e.target.value)}
-          />
-          <p className="text-xs text-muted-foreground">
-            Create an agent at{" "}
-            <a
-              href="https://elevenlabs.io/conversational-ai"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline inline-flex items-center gap-1"
-            >
-              ElevenLabs Conversational AI
-              <ExternalLink className="h-3 w-3" />
-            </a>
-          </p>
-        </div>
-
         {/* Test Methods */}
         <Tabs defaultValue="browser" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
@@ -190,14 +153,7 @@ export function TestAIStep({ onComplete, isComplete }: TestAIStepProps) {
                 Speak directly to your AI through your browser's microphone. This is the quickest way to test.
               </p>
               
-              {agentId ? (
-                <VoiceAgentTest agentId={agentId} />
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Mic className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>Enter your ElevenLabs Agent ID above to start testing</p>
-                </div>
-              )}
+              <VoiceAgentTest />
             </div>
           </TabsContent>
 
@@ -220,7 +176,7 @@ export function TestAIStep({ onComplete, isComplete }: TestAIStepProps) {
 
               <Button
                 onClick={handleTestCallToPhone}
-                disabled={callingPhone || !testPhoneNumber.trim() || !agentId}
+                disabled={callingPhone || !testPhoneNumber.trim()}
                 className="w-full gap-2"
                 variant="outline"
               >
@@ -244,10 +200,9 @@ export function TestAIStep({ onComplete, isComplete }: TestAIStepProps) {
           <Button 
             onClick={handleMarkComplete}
             className="w-full gap-2"
-            disabled={!agentId}
           >
             <Check className="h-4 w-4" />
-            {agentId ? "I've Tested My AI - Continue" : "Enter Agent ID to Continue"}
+            I've Tested My AI - Continue
           </Button>
         </div>
       </CardContent>

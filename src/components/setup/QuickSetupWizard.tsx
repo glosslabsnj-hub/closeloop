@@ -19,7 +19,6 @@ import {
   Copy,
   Loader2,
   ArrowRight,
-  Play,
   Settings,
 } from "lucide-react";
 import VoiceAgentTest from "@/components/ai/VoiceAgentTest";
@@ -38,8 +37,7 @@ export default function QuickSetupWizard({ onComplete }: QuickSetupWizardProps) 
   const [phoneConnected, setPhoneConnected] = useState(false);
   const [copied, setCopied] = useState(false);
   
-  // AI settings state
-  const [elevenlabsAgentId, setElevenlabsAgentId] = useState("");
+  // AI settings state (Agent ID is managed globally via environment variable)
   const [textBackEnabled, setTextBackEnabled] = useState(true);
   const [textBackDelay, setTextBackDelay] = useState([30]); // seconds
   
@@ -106,12 +104,11 @@ export default function QuickSetupWizard({ onComplete }: QuickSetupWizardProps) 
 
     setCallingPhone(true);
     try {
-      // Mock: In production, this would trigger a real outbound call via Twilio
+      // Agent ID is now managed server-side
       const { data, error } = await supabase.functions.invoke("test-call-phone", {
         body: { 
           tenantId: tenant?.id, 
           phoneNumber: testPhoneNumber.trim(),
-          agentId: elevenlabsAgentId,
         },
       });
 
@@ -150,31 +147,6 @@ export default function QuickSetupWizard({ onComplete }: QuickSetupWizardProps) 
         });
 
       if (settingsError) throw settingsError;
-
-      // Save ElevenLabs agent ID
-      if (elevenlabsAgentId) {
-        const { data: existing } = await supabase
-          .from("ai_assistants")
-          .select("id")
-          .eq("tenant_id", tenant.id)
-          .single();
-
-        if (existing) {
-          await supabase
-            .from("ai_assistants")
-            .update({ elevenlabs_agent_id: elevenlabsAgentId } as any)
-            .eq("id", existing.id);
-        } else {
-          await supabase
-            .from("ai_assistants")
-            .insert([{
-              tenant_id: tenant.id,
-              name: "AI Assistant",
-              is_enabled: true,
-              elevenlabs_agent_id: elevenlabsAgentId,
-            } as any]);
-        }
-      }
 
       toast({ title: "Settings Saved!" });
       onComplete?.();
@@ -319,18 +291,7 @@ export default function QuickSetupWizard({ onComplete }: QuickSetupWizardProps) 
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="agent-id-test">ElevenLabs Agent ID</Label>
-                    <Input
-                      id="agent-id-test"
-                      placeholder="Enter Agent ID to test"
-                      value={elevenlabsAgentId}
-                      onChange={(e) => setElevenlabsAgentId(e.target.value)}
-                    />
-                  </div>
-                  <VoiceAgentTest agentId={elevenlabsAgentId} />
-                </div>
+                <VoiceAgentTest />
               </CardContent>
             </Card>
 
@@ -428,40 +389,6 @@ export default function QuickSetupWizard({ onComplete }: QuickSetupWizardProps) 
                   </p>
                 </div>
               )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Mic className="h-5 w-5" />
-                AI Voice Agent
-              </CardTitle>
-              <CardDescription>
-                Connect your ElevenLabs Conversational AI agent
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="agent-id-settings">ElevenLabs Agent ID</Label>
-                <Input
-                  id="agent-id-settings"
-                  placeholder="Enter your ElevenLabs Agent ID"
-                  value={elevenlabsAgentId}
-                  onChange={(e) => setElevenlabsAgentId(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Create an agent at{" "}
-                  <a
-                    href="https://elevenlabs.io/conversational-ai"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary underline"
-                  >
-                    ElevenLabs Conversational AI
-                  </a>
-                </p>
-              </div>
             </CardContent>
           </Card>
 
