@@ -51,7 +51,10 @@ export default function CallsPage() {
     enabled: !!tenant?.id,
   });
 
-  const filteredCalls = calls?.filter(call => {
+  // De-duplicate by phone number - show only the latest call per phone
+  const deduplicatedCalls = calls ? deduplicateByPhone(calls) : [];
+
+  const filteredCalls = deduplicatedCalls.filter(call => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     const customerName = getCustomerName(call.context_json);
@@ -114,7 +117,7 @@ export default function CallsPage() {
           </p>
         </div>
         <Badge variant="outline" className="text-lg px-3 py-1 w-fit">
-          {calls?.length || 0} Calls
+          {deduplicatedCalls.length} Contacts
         </Badge>
       </div>
 
@@ -252,4 +255,19 @@ function formatPhone(phone: string | null): string {
     return `(${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
   }
   return phone;
+}
+
+// De-duplicate calls by phone number, keeping only the most recent
+function deduplicateByPhone(calls: CallSession[]): CallSession[] {
+  const phoneMap = new Map<string, CallSession>();
+  
+  // Since calls are already sorted by started_at DESC, the first occurrence is the latest
+  for (const call of calls) {
+    const phone = call.caller_phone || "unknown";
+    if (!phoneMap.has(phone)) {
+      phoneMap.set(phone, call);
+    }
+  }
+  
+  return Array.from(phoneMap.values());
 }
