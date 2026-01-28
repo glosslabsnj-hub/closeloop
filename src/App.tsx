@@ -27,6 +27,7 @@ import AutomationsPage from "@/pages/app/AutomationsPage";
 import AIAssistantPage from "@/pages/app/AIAssistantPage";
 import SettingsPage from "@/pages/app/SettingsPage";
 import SimulatorPage from "@/pages/app/SimulatorPage";
+import GoLivePage from "@/pages/app/GoLivePage";
 
 // Admin Pages
 import AdminOverviewPage from "@/pages/admin/AdminOverviewPage";
@@ -53,8 +54,9 @@ const App = () => (
               <Route path="/signup" element={<SignupPage />} />
             </Route>
 
-            {/* Onboarding (no layout) */}
+            {/* Onboarding and Go-Live (no layout) */}
             <Route path="/app/onboarding" element={<OnboardingPage />} />
+            <Route path="/app/go-live" element={<GoLivePage />} />
 
             {/* App Routes */}
             <Route element={<AppLayout />}>

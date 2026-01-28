@@ -180,6 +180,68 @@ export type Database = {
           },
         ]
       }
+      assistant_settings: {
+        Row: {
+          ai_callback_delay_minutes: number | null
+          business_phone_number: string | null
+          busy_toggle: boolean
+          closeloop_number: string | null
+          created_at: string
+          go_live_enabled: boolean
+          instant_text_enabled: boolean
+          missed_call_behavior: Database["public"]["Enums"]["missed_call_behavior"]
+          overflow_rings: number
+          phone_connected: boolean
+          sms_first_delay_seconds: number
+          tenant_id: string
+          updated_at: string
+          voice_ai_enabled: boolean
+          voice_mode: Database["public"]["Enums"]["voice_mode"]
+        }
+        Insert: {
+          ai_callback_delay_minutes?: number | null
+          business_phone_number?: string | null
+          busy_toggle?: boolean
+          closeloop_number?: string | null
+          created_at?: string
+          go_live_enabled?: boolean
+          instant_text_enabled?: boolean
+          missed_call_behavior?: Database["public"]["Enums"]["missed_call_behavior"]
+          overflow_rings?: number
+          phone_connected?: boolean
+          sms_first_delay_seconds?: number
+          tenant_id: string
+          updated_at?: string
+          voice_ai_enabled?: boolean
+          voice_mode?: Database["public"]["Enums"]["voice_mode"]
+        }
+        Update: {
+          ai_callback_delay_minutes?: number | null
+          business_phone_number?: string | null
+          busy_toggle?: boolean
+          closeloop_number?: string | null
+          created_at?: string
+          go_live_enabled?: boolean
+          instant_text_enabled?: boolean
+          missed_call_behavior?: Database["public"]["Enums"]["missed_call_behavior"]
+          overflow_rings?: number
+          phone_connected?: boolean
+          sms_first_delay_seconds?: number
+          tenant_id?: string
+          updated_at?: string
+          voice_ai_enabled?: boolean
+          voice_mode?: Database["public"]["Enums"]["voice_mode"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assistant_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -839,6 +901,50 @@ export type Database = {
           },
         ]
       }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          id: string
+          plan_code: Database["public"]["Enums"]["plan_code"]
+          status: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          plan_code: Database["public"]["Enums"]["plan_code"]
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          plan_code?: Database["public"]["Enums"]["plan_code"]
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sync_events: {
         Row: {
           created_at: string
@@ -1037,6 +1143,10 @@ export type Database = {
       calculate_ai_readiness: { Args: { _tenant_id: string }; Returns: number }
       fn_build_business_context: { Args: { _tenant_id: string }; Returns: Json }
       get_user_tenant_id: { Args: { _user_id: string }; Returns: string }
+      has_active_subscription: {
+        Args: { _tenant_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["user_role"]
@@ -1047,6 +1157,13 @@ export type Database = {
       has_tenant_access: {
         Args: { _tenant_id: string; _user_id: string }
         Returns: boolean
+      }
+      initialize_assistant_settings: {
+        Args: {
+          _plan_code: Database["public"]["Enums"]["plan_code"]
+          _tenant_id: string
+        }
+        Returns: undefined
       }
       normalize_phone_e164: { Args: { phone: string }; Returns: string }
       resolve_customer: {
@@ -1109,8 +1226,12 @@ export type Database = {
       lead_status: "new" | "contacted" | "qualified" | "booked" | "lost" | "won"
       message_direction: "inbound" | "outbound"
       message_status: "queued" | "sent" | "delivered" | "failed"
+      missed_call_behavior: "text_only" | "ai_callback" | "both"
+      plan_code: "text" | "voice" | "both"
       price_type: "fixed" | "starting_at" | "quote_only"
+      subscription_status: "active" | "trialing" | "past_due" | "canceled"
       user_role: "owner" | "staff" | "super_admin"
+      voice_mode: "always_on" | "busy_mode" | "overflow" | "after_hours_only"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1284,8 +1405,12 @@ export const Constants = {
       lead_status: ["new", "contacted", "qualified", "booked", "lost", "won"],
       message_direction: ["inbound", "outbound"],
       message_status: ["queued", "sent", "delivered", "failed"],
+      missed_call_behavior: ["text_only", "ai_callback", "both"],
+      plan_code: ["text", "voice", "both"],
       price_type: ["fixed", "starting_at", "quote_only"],
+      subscription_status: ["active", "trialing", "past_due", "canceled"],
       user_role: ["owner", "staff", "super_admin"],
+      voice_mode: ["always_on", "busy_mode", "overflow", "after_hours_only"],
     },
   },
 } as const

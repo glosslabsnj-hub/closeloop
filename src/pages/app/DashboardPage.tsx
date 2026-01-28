@@ -9,12 +9,12 @@ import {
   Bot,
   Clock,
   TrendingUp,
-  ArrowUpRight,
   Play,
 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { SetupChecklist } from "@/components/dashboard/SetupChecklist";
 
 // Demo data for the dashboard
 const demoMetrics = {
@@ -35,7 +35,7 @@ const recentActivity = [
 ];
 
 export default function DashboardPage() {
-  const { tenant } = useAuth();
+  const { tenant, subscription, assistantSettings, refreshTenant } = useAuth();
   const { toast } = useToast();
   const [simulating, setSimulating] = useState(false);
 
@@ -94,6 +94,15 @@ export default function DashboardPage() {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
+      {/* Setup Checklist - shown if subscription exists but setup incomplete */}
+      {subscription && (
+        <SetupChecklist 
+          planCode={subscription.plan_code} 
+          assistantSettings={assistantSettings}
+          onRefresh={refreshTenant}
+        />
+      )}
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
