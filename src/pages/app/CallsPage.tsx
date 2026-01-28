@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { 
   Table, 
   TableBody, 
@@ -13,8 +14,10 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Phone, Search } from "lucide-react";
+import { Phone, Search, Pencil } from "lucide-react";
 import { format } from "date-fns";
+import { CallEditDialog } from "@/components/calls/CallEditDialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface CallSession {
   id: string;
@@ -31,7 +34,10 @@ type CallStatus = "booked" | "thinking" | "no_book";
 
 export default function CallsPage() {
   const { tenant } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
+  const [editingCall, setEditingCall] = useState<CallSession | null>(null);
 
   const { data: calls, isLoading } = useQuery({
     queryKey: ["ai_call_sessions", tenant?.id],
@@ -49,6 +55,28 @@ export default function CallsPage() {
       return data as CallSession[];
     },
     enabled: !!tenant?.id,
+  });
+
+  const updateCallMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: { outcome: string | null; summary: string | null; context_json: Record<string, unknown> } }) => {
+      const { error } = await supabase
+        .from("ai_call_sessions")
+        .update({
+          outcome: updates.outcome as "booked" | "escalated" | "followup" | "lost" | null,
+          summary: updates.summary,
+          context_json: updates.context_json as unknown as Record<string, never>,
+        })
+        .eq("id", id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ai_call_sessions", tenant?.id] });
+      toast({ title: "Call updated", description: "Changes saved successfully." });
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
   });
 
   // De-duplicate by phone number - show only the latest call per phone
@@ -155,6 +183,7 @@ export default function CallsPage() {
                   <TableHead className="w-[200px]">Service Requested</TableHead>
                   <TableHead className="min-w-[250px]">AI Summary</TableHead>
                   <TableHead className="w-[100px] text-center">Status</TableHead>
+                  <TableHead className="w-[60px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -195,6 +224,16 @@ export default function CallsPage() {
                       <TableCell className="text-center">
                         {getStatusBadge(status)}
                       </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setEditingCall(call)}
+                          className="h-8 w-8"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -214,6 +253,18 @@ export default function CallsPage() {
             </p>
           </CardContent>
         </Card>
+      )}
+
+      {/* Edit Dialog */}
+      {editingCall && (
+        <CallEditDialog
+          open={!!editingCall}
+          onOpenChange={(open) => !open && setEditingCall(null)}
+          call={editingCall}
+          onSave={async (updates) => {
+            await updateCallMutation.mutateAsync({ id: editingCall.id, updates });
+          }}
+        />
       )}
     </div>
   );
