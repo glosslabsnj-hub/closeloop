@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Building2, Clock, Users, CreditCard, Bell, Lock, Loader2, Bug, UtensilsCrossed, Calendar, Truck, Stethoscope } from "lucide-react";
+import { Building2, Clock, Users, CreditCard, Bell, Lock, Loader2, Bug, UtensilsCrossed, Calendar, Truck, Stethoscope, Webhook, Zap } from "lucide-react";
 import { CallContextDebugger } from "@/components/ai/CallContextDebugger";
 import { FoodOrderSettings } from "@/components/settings/FoodOrderSettings";
 import { BookingDeliverySettings } from "@/components/settings/BookingDeliverySettings";
@@ -25,6 +25,8 @@ import { MedicalHIPAASettings } from "@/components/settings/MedicalHIPAASettings
 import { MobileSettingsTabs } from "@/components/settings/MobileSettingsTabs";
 import { PlanUpgradeCard } from "@/components/settings/PlanUpgradeCard";
 import { MultiLocationManager } from "@/components/settings/MultiLocationManager";
+import { DeliveryIntegrationsSettings } from "@/components/settings/DeliveryIntegrationsSettings";
+import { AutomationRulesSettings } from "@/components/settings/AutomationRulesSettings";
 
 const timezones = [
   { value: "America/New_York", label: "Eastern Time" },
@@ -147,6 +149,8 @@ export default function SettingsPage() {
   const tabConfig = [
     { value: "business", label: "Business", icon: Building2, visible: true },
     { value: "hours", label: "Hours", icon: Clock, visible: true },
+    { value: "delivery", label: "Delivery", icon: Webhook, visible: true },
+    { value: "automation", label: "Automation", icon: Zap, visible: true },
     { value: "team", label: "Team", icon: Users, visible: true },
     { value: "billing", label: "Billing", icon: CreditCard, visible: true },
     { value: "notifications", label: "Notifications", icon: Bell, visible: true },
@@ -180,6 +184,14 @@ export default function SettingsPage() {
           <TabsTrigger value="hours" className="gap-2">
             <Clock className="h-4 w-4" />
             Hours
+          </TabsTrigger>
+          <TabsTrigger value="delivery" className="gap-2">
+            <Webhook className="h-4 w-4" />
+            Delivery
+          </TabsTrigger>
+          <TabsTrigger value="automation" className="gap-2">
+            <Zap className="h-4 w-4" />
+            Automation
           </TabsTrigger>
           <TabsTrigger value="team" className="gap-2">
             <Users className="h-4 w-4" />
@@ -329,6 +341,16 @@ export default function SettingsPage() {
               </Button>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Delivery & Integrations Tab */}
+        <TabsContent value="delivery" className="space-y-6">
+          <DeliveryIntegrationsSettings />
+        </TabsContent>
+
+        {/* Automation Rules Tab */}
+        <TabsContent value="automation" className="space-y-6">
+          <AutomationRulesSettings />
         </TabsContent>
 
         {/* Team Tab */}

@@ -853,6 +853,94 @@ export type Database = {
           },
         ]
       }
+      delivery_attempts: {
+        Row: {
+          created_at: string
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["delivery_entity_type"]
+          error_message: string | null
+          id: string
+          method: string
+          request_payload: Json | null
+          response_body: string | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["delivery_entity_type"]
+          error_message?: string | null
+          id?: string
+          method: string
+          request_payload?: Json | null
+          response_body?: string | null
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          entity_type?: Database["public"]["Enums"]["delivery_entity_type"]
+          error_message?: string | null
+          id?: string
+          method?: string
+          request_payload?: Json | null
+          response_body?: string | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_attempts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_rules: {
+        Row: {
+          auto_confirm: boolean
+          created_at: string
+          entity_type: Database["public"]["Enums"]["delivery_entity_type"]
+          id: string
+          notify_on_new: boolean
+          review_queue_enabled: boolean
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          auto_confirm?: boolean
+          created_at?: string
+          entity_type: Database["public"]["Enums"]["delivery_entity_type"]
+          id?: string
+          notify_on_new?: boolean
+          review_queue_enabled?: boolean
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          auto_confirm?: boolean
+          created_at?: string
+          entity_type?: Database["public"]["Enums"]["delivery_entity_type"]
+          id?: string
+          notify_on_new?: boolean
+          review_queue_enabled?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dispatch_delivery_settings: {
         Row: {
           created_at: string | null
@@ -2203,6 +2291,71 @@ export type Database = {
         }
         Relationships: []
       }
+      universal_delivery_settings: {
+        Row: {
+          auth_header_name: string | null
+          auth_header_value: string | null
+          auth_mode: Database["public"]["Enums"]["webhook_auth_mode"]
+          basic_pass: string | null
+          basic_user: string | null
+          created_at: string
+          email_enabled: boolean
+          internal_enabled: boolean
+          notify_email: string | null
+          notify_phone: string | null
+          sms_enabled: boolean
+          tenant_id: string
+          updated_at: string
+          webhook_enabled: boolean
+          webhook_secret: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          auth_header_name?: string | null
+          auth_header_value?: string | null
+          auth_mode?: Database["public"]["Enums"]["webhook_auth_mode"]
+          basic_pass?: string | null
+          basic_user?: string | null
+          created_at?: string
+          email_enabled?: boolean
+          internal_enabled?: boolean
+          notify_email?: string | null
+          notify_phone?: string | null
+          sms_enabled?: boolean
+          tenant_id: string
+          updated_at?: string
+          webhook_enabled?: boolean
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          auth_header_name?: string | null
+          auth_header_value?: string | null
+          auth_mode?: Database["public"]["Enums"]["webhook_auth_mode"]
+          basic_pass?: string | null
+          basic_user?: string | null
+          created_at?: string
+          email_enabled?: boolean
+          internal_enabled?: boolean
+          notify_email?: string | null
+          notify_phone?: string | null
+          sms_enabled?: boolean
+          tenant_id?: string
+          updated_at?: string
+          webhook_enabled?: boolean
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "universal_delivery_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -2397,6 +2550,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      initialize_delivery_rules: {
+        Args: { _tenant_id: string }
+        Returns: undefined
+      }
       normalize_phone_e164: { Args: { phone: string }; Returns: string }
       resolve_customer: {
         Args: {
@@ -2434,6 +2591,13 @@ export type Database = {
         | "no_show"
       business_mode: "service" | "dispatch" | "food" | "medical" | "general"
       channel_type: "sms" | "email" | "internal"
+      delivery_entity_type:
+        | "order"
+        | "booking"
+        | "dispatch"
+        | "reservation"
+        | "catering"
+        | "intake"
       dispatch_priority: "low" | "normal" | "high" | "urgent"
       dispatch_status:
         | "pending"
@@ -2501,6 +2665,7 @@ export type Database = {
       subscription_status: "active" | "trialing" | "past_due" | "canceled"
       user_role: "owner" | "staff" | "super_admin"
       voice_mode: "always_on" | "busy_mode" | "overflow" | "after_hours_only"
+      webhook_auth_mode: "none" | "header" | "basic"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2649,6 +2814,14 @@ export const Constants = {
       ],
       business_mode: ["service", "dispatch", "food", "medical", "general"],
       channel_type: ["sms", "email", "internal"],
+      delivery_entity_type: [
+        "order",
+        "booking",
+        "dispatch",
+        "reservation",
+        "catering",
+        "intake",
+      ],
       dispatch_priority: ["low", "normal", "high", "urgent"],
       dispatch_status: [
         "pending",
@@ -2721,6 +2894,7 @@ export const Constants = {
       subscription_status: ["active", "trialing", "past_due", "canceled"],
       user_role: ["owner", "staff", "super_admin"],
       voice_mode: ["always_on", "busy_mode", "overflow", "after_hours_only"],
+      webhook_auth_mode: ["none", "header", "basic"],
     },
   },
 } as const
