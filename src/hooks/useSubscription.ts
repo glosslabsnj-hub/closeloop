@@ -70,14 +70,15 @@ export function useSubscription(tenantId: string | null): UseSubscriptionResult 
   const createSubscription = async (planCode: PlanCode) => {
     if (!tenantId) throw new Error("No tenant ID");
 
-    // Create subscription with trialing status (mock mode - no Stripe)
+    // Create subscription with trialing status (mock mode - no Stripe yet)
+    // When Stripe is added: create customer, attach payment method, create subscription with trial_period_days=7
     const { error: subError } = await supabase
       .from("subscriptions")
       .insert({
         tenant_id: tenantId,
         plan_code: planCode,
         status: "trialing",
-        current_period_end: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 day trial
+        current_period_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 day trial
       });
 
     if (subError) throw subError;
