@@ -25,6 +25,82 @@ export interface IndustryTestData {
     outcome: "booked" | "followup" | "lost" | "escalated";
     context_extra?: Record<string, unknown>;
   }>;
+  // Industry-specific data
+  menuItems?: Array<{
+    name: string;
+    category: string;
+    description: string;
+    price_cents: number;
+    dietary_tags: string[];
+    prep_time_minutes: number;
+    is_available: boolean;
+  }>;
+  reservations?: Array<{
+    customer_name: string;
+    customer_phone: string;
+    party_size: number;
+    reservation_date: string; // Will be computed relative to "now"
+    reservation_time: string;
+    status: "pending" | "confirmed" | "seated" | "completed" | "cancelled" | "no_show";
+    special_requests: string | null;
+    table_preference: string | null;
+  }>;
+  orders?: Array<{
+    order_number: string;
+    order_type: "pickup" | "delivery";
+    customer_name: string;
+    customer_phone: string;
+    items_json: Array<{ name: string; quantity: number; price_cents: number }>;
+    subtotal_cents: number;
+    tax_cents: number;
+    total_cents: number;
+    status: "pending" | "confirmed" | "preparing" | "ready" | "out_for_delivery" | "completed" | "cancelled";
+    special_instructions: string | null;
+    delivery_address: string | null;
+  }>;
+  cateringRequests?: Array<{
+    customer_name: string;
+    customer_phone: string;
+    customer_email: string;
+    event_type: string;
+    event_date: string;
+    event_time: string;
+    guest_count: number;
+    budget_range: string;
+    menu_preferences: string;
+    dietary_restrictions: string | null;
+    location: string;
+    status: "inquiry" | "quoted" | "confirmed" | "completed" | "cancelled";
+    quote_amount_cents: number | null;
+    notes: string | null;
+  }>;
+  dispatchJobs?: Array<{
+    job_number: string;
+    job_type: string;
+    priority: "low" | "normal" | "high" | "urgent";
+    status: "pending" | "assigned" | "en_route" | "on_site" | "completed" | "cancelled";
+    customer_name: string;
+    customer_phone: string;
+    pickup_address: string;
+    dropoff_address: string | null;
+    description: string;
+    assigned_crew: string | null;
+    assigned_vehicle: string | null;
+    estimated_duration_minutes: number;
+    price_cents: number | null;
+    notes: string | null;
+  }>;
+  medicalIntakes?: Array<{
+    intake_type: string;
+    urgency_level: "routine" | "soon" | "urgent";
+    reason_for_visit: string;
+    status: "pending" | "scheduled" | "completed" | "cancelled";
+    verbal_consent_given: boolean;
+    insurance_provider: string | null;
+    preferred_date: string;
+    preferred_time_range: string;
+    ai_summary: string | null;
+  }>;
 }
 
 // Test phone numbers that stay constant across mode switches
@@ -33,6 +109,7 @@ export const TEST_PHONES = [
   "+15559876543",
   "+15552223333",
   "+15554445555",
+  "+15556667777",
 ];
 
 // Standard business hours (Mon-Fri 9-5, Sat 10-3, Sun closed)
@@ -139,6 +216,88 @@ export const INDUSTRY_TEST_DATA: Record<BusinessMode, IndustryTestData> = {
       { customer_name: "Mike Thompson", service_requested: "Motorcycle Tow", summary: "Caller needed motorcycle towing which we do not offer. Referred to specialty service.", outcome: "lost" },
       { customer_name: "Linda Garcia", service_requested: "Jump Start", summary: "Jump start service requested. Vehicle at grocery store parking lot with dead battery.", outcome: "booked" },
     ],
+    dispatchJobs: [
+      {
+        job_number: "JOB-1001",
+        job_type: "Flat Tire Change",
+        priority: "urgent",
+        status: "en_route",
+        customer_name: "Jennifer Walsh",
+        customer_phone: TEST_PHONES[0],
+        pickup_address: "Highway 101, Mile Marker 42, Northbound",
+        dropoff_address: null,
+        description: "Flat rear driver-side tire, customer has spare in trunk",
+        assigned_crew: "Mike T.",
+        assigned_vehicle: "Truck #3",
+        estimated_duration_minutes: 45,
+        price_cents: 8500,
+        notes: "Customer is a woman alone, prioritize this call",
+      },
+      {
+        job_number: "JOB-1002",
+        job_type: "Jump Start",
+        priority: "high",
+        status: "pending",
+        customer_name: "Robert Kim",
+        customer_phone: TEST_PHONES[1],
+        pickup_address: "123 Main Street, Downtown",
+        dropoff_address: null,
+        description: "Battery dead, vehicle won't start after sitting overnight",
+        assigned_crew: null,
+        assigned_vehicle: null,
+        estimated_duration_minutes: 30,
+        price_cents: 6500,
+        notes: null,
+      },
+      {
+        job_number: "JOB-1003",
+        job_type: "Towing",
+        priority: "normal",
+        status: "assigned",
+        customer_name: "Sarah Martinez",
+        customer_phone: TEST_PHONES[2],
+        pickup_address: "456 Oak Avenue",
+        dropoff_address: "Jim's Auto Repair, 789 Industrial Blvd",
+        description: "Non-running vehicle needs tow to mechanic. 2019 Honda Accord.",
+        assigned_crew: "Dave R.",
+        assigned_vehicle: "Flatbed #1",
+        estimated_duration_minutes: 60,
+        price_cents: 12500,
+        notes: "Scheduled for tomorrow 9am pickup",
+      },
+      {
+        job_number: "JOB-1004",
+        job_type: "Lockout",
+        priority: "normal",
+        status: "on_site",
+        customer_name: "Linda Garcia",
+        customer_phone: TEST_PHONES[3],
+        pickup_address: "Westfield Mall, Parking Lot B, Level 2",
+        dropoff_address: null,
+        description: "Keys locked inside 2021 Toyota Camry",
+        assigned_crew: "Mike T.",
+        assigned_vehicle: "Van #2",
+        estimated_duration_minutes: 30,
+        price_cents: 7500,
+        notes: "Near Macy's entrance",
+      },
+      {
+        job_number: "JOB-1005",
+        job_type: "Scheduled Tow",
+        priority: "low",
+        status: "completed",
+        customer_name: "James Wilson",
+        customer_phone: TEST_PHONES[4],
+        pickup_address: "789 Elm Street",
+        dropoff_address: "City Impound Lot",
+        description: "Abandoned vehicle tow per city contract",
+        assigned_crew: "Dave R.",
+        assigned_vehicle: "Flatbed #1",
+        estimated_duration_minutes: 45,
+        price_cents: 15000,
+        notes: "Completed at 2:30 PM",
+      },
+    ],
   },
   
   food: {
@@ -170,6 +329,178 @@ export const INDUSTRY_TEST_DATA: Record<BusinessMode, IndustryTestData> = {
       { customer_name: "Amanda Foster", service_requested: "Catering Quote", summary: "Catering inquiry for office event. 50 people, needs menu options and quote.", outcome: "followup" },
       { customer_name: "Chris Martinez", service_requested: "Takeout Order", summary: "Takeout order placed: 2 pad thai, 1 green curry, spring rolls. Ready in 25 mins.", outcome: "booked" },
       { customer_name: "Emily White", service_requested: "Dietary Inquiry", summary: "Caller wanted gluten-free options. Our menu has limited GF items. They decided to try elsewhere.", outcome: "lost" },
+    ],
+    menuItems: [
+      // Appetizers
+      { name: "Bruschetta", category: "Appetizers", description: "Grilled bread topped with diced tomatoes, fresh basil, and garlic", price_cents: 999, dietary_tags: ["vegetarian"], prep_time_minutes: 10, is_available: true },
+      { name: "Calamari Fritti", category: "Appetizers", description: "Crispy fried calamari with marinara and lemon aioli", price_cents: 1499, dietary_tags: [], prep_time_minutes: 15, is_available: true },
+      { name: "Caprese Salad", category: "Appetizers", description: "Fresh mozzarella, tomatoes, and basil with balsamic glaze", price_cents: 1299, dietary_tags: ["vegetarian", "gluten-free"], prep_time_minutes: 8, is_available: true },
+      // Pasta
+      { name: "Spaghetti Carbonara", category: "Pasta", description: "Classic carbonara with pancetta, egg, and pecorino romano", price_cents: 1899, dietary_tags: [], prep_time_minutes: 20, is_available: true },
+      { name: "Fettuccine Alfredo", category: "Pasta", description: "Creamy parmesan sauce with fresh fettuccine", price_cents: 1699, dietary_tags: ["vegetarian"], prep_time_minutes: 18, is_available: true },
+      { name: "Penne Arrabbiata", category: "Pasta", description: "Spicy tomato sauce with garlic and red pepper flakes", price_cents: 1599, dietary_tags: ["vegetarian", "vegan-option"], prep_time_minutes: 15, is_available: true },
+      { name: "Lasagna Bolognese", category: "Pasta", description: "Layers of fresh pasta with beef ragù and béchamel", price_cents: 2199, dietary_tags: [], prep_time_minutes: 25, is_available: true },
+      // Pizza
+      { name: "Margherita Pizza", category: "Pizza", description: "San Marzano tomatoes, fresh mozzarella, and basil", price_cents: 1599, dietary_tags: ["vegetarian"], prep_time_minutes: 15, is_available: true },
+      { name: "Pepperoni Pizza", category: "Pizza", description: "Classic pepperoni with mozzarella and tomato sauce", price_cents: 1799, dietary_tags: [], prep_time_minutes: 15, is_available: true },
+      { name: "Quattro Formaggi", category: "Pizza", description: "Four cheese pizza with mozzarella, gorgonzola, fontina, and parmesan", price_cents: 1899, dietary_tags: ["vegetarian"], prep_time_minutes: 15, is_available: true },
+      // Entrees
+      { name: "Chicken Parmigiana", category: "Entrees", description: "Breaded chicken cutlet with marinara and melted mozzarella", price_cents: 2299, dietary_tags: [], prep_time_minutes: 25, is_available: true },
+      { name: "Eggplant Parmigiana", category: "Entrees", description: "Breaded eggplant layered with marinara and mozzarella", price_cents: 1999, dietary_tags: ["vegetarian"], prep_time_minutes: 25, is_available: true },
+      { name: "Grilled Salmon", category: "Entrees", description: "Atlantic salmon with lemon butter, capers, and vegetables", price_cents: 2699, dietary_tags: ["gluten-free"], prep_time_minutes: 20, is_available: true },
+      // Desserts
+      { name: "Tiramisu", category: "Desserts", description: "Classic Italian dessert with espresso-soaked ladyfingers and mascarpone", price_cents: 899, dietary_tags: ["vegetarian"], prep_time_minutes: 5, is_available: true },
+      { name: "Cannoli", category: "Desserts", description: "Crispy pastry shells filled with sweet ricotta cream", price_cents: 699, dietary_tags: ["vegetarian"], prep_time_minutes: 5, is_available: true },
+      { name: "Panna Cotta", category: "Desserts", description: "Vanilla cream with mixed berry compote", price_cents: 799, dietary_tags: ["vegetarian", "gluten-free"], prep_time_minutes: 5, is_available: true },
+      // Drinks
+      { name: "House Red Wine (Glass)", category: "Drinks", description: "Montepulciano d'Abruzzo", price_cents: 900, dietary_tags: ["vegan", "gluten-free"], prep_time_minutes: 2, is_available: true },
+      { name: "House White Wine (Glass)", category: "Drinks", description: "Pinot Grigio", price_cents: 900, dietary_tags: ["vegan", "gluten-free"], prep_time_minutes: 2, is_available: true },
+      { name: "Espresso", category: "Drinks", description: "Traditional Italian espresso", price_cents: 350, dietary_tags: ["vegan", "gluten-free"], prep_time_minutes: 3, is_available: true },
+    ],
+    reservations: [
+      {
+        customer_name: "John Smith",
+        customer_phone: TEST_PHONES[0],
+        party_size: 6,
+        reservation_date: "FRIDAY", // Will be computed
+        reservation_time: "19:00",
+        status: "confirmed",
+        special_requests: "Anniversary dinner, would love a quiet corner table if possible",
+        table_preference: "booth",
+      },
+      {
+        customer_name: "Emily Johnson",
+        customer_phone: TEST_PHONES[1],
+        party_size: 2,
+        reservation_date: "SATURDAY", // Will be computed
+        reservation_time: "18:30",
+        status: "pending",
+        special_requests: "Patio seating if weather permits",
+        table_preference: "patio",
+      },
+      {
+        customer_name: "The Williams Family",
+        customer_phone: TEST_PHONES[2],
+        party_size: 8,
+        reservation_date: "SUNDAY", // Will be computed
+        reservation_time: "13:00",
+        status: "confirmed",
+        special_requests: "Birthday celebration for grandmother, will need high chair",
+        table_preference: null,
+      },
+      {
+        customer_name: "Michael Davis",
+        customer_phone: TEST_PHONES[3],
+        party_size: 4,
+        reservation_date: "TODAY", // Will be computed
+        reservation_time: "20:00",
+        status: "seated",
+        special_requests: null,
+        table_preference: null,
+      },
+    ],
+    orders: [
+      {
+        order_number: "ORD-101",
+        order_type: "pickup",
+        customer_name: "Chris Martinez",
+        customer_phone: TEST_PHONES[0],
+        items_json: [
+          { name: "Spaghetti Carbonara", quantity: 1, price_cents: 1899 },
+          { name: "Margherita Pizza", quantity: 1, price_cents: 1599 },
+          { name: "Tiramisu", quantity: 1, price_cents: 899 },
+        ],
+        subtotal_cents: 4397,
+        tax_cents: 353,
+        total_cents: 4750,
+        status: "preparing",
+        special_instructions: "Extra parmesan on the side please",
+        delivery_address: null,
+      },
+      {
+        order_number: "ORD-102",
+        order_type: "delivery",
+        customer_name: "Sarah Thompson",
+        customer_phone: TEST_PHONES[1],
+        items_json: [
+          { name: "Chicken Parmigiana", quantity: 2, price_cents: 2299 },
+          { name: "Fettuccine Alfredo", quantity: 1, price_cents: 1699 },
+          { name: "Bruschetta", quantity: 1, price_cents: 999 },
+          { name: "Cannoli", quantity: 2, price_cents: 699 },
+        ],
+        subtotal_cents: 8694,
+        tax_cents: 696,
+        total_cents: 9390,
+        status: "out_for_delivery",
+        special_instructions: null,
+        delivery_address: "456 Oak Street, Apt 3B",
+      },
+      {
+        order_number: "ORD-103",
+        order_type: "pickup",
+        customer_name: "David Lee",
+        customer_phone: TEST_PHONES[2],
+        items_json: [
+          { name: "Pepperoni Pizza", quantity: 2, price_cents: 1799 },
+        ],
+        subtotal_cents: 3598,
+        tax_cents: 288,
+        total_cents: 3886,
+        status: "ready",
+        special_instructions: "Well done please",
+        delivery_address: null,
+      },
+      {
+        order_number: "ORD-104",
+        order_type: "delivery",
+        customer_name: "Amanda Foster",
+        customer_phone: TEST_PHONES[3],
+        items_json: [
+          { name: "Lasagna Bolognese", quantity: 1, price_cents: 2199 },
+          { name: "Caprese Salad", quantity: 1, price_cents: 1299 },
+          { name: "House Red Wine (Glass)", quantity: 2, price_cents: 900 },
+        ],
+        subtotal_cents: 5298,
+        tax_cents: 424,
+        total_cents: 5722,
+        status: "pending",
+        special_instructions: "Ring doorbell twice",
+        delivery_address: "789 Pine Avenue",
+      },
+    ],
+    cateringRequests: [
+      {
+        customer_name: "Jennifer Walsh",
+        customer_phone: TEST_PHONES[0],
+        customer_email: "jwash@acmecorp.com",
+        event_type: "Corporate Lunch",
+        event_date: "NEXT_WEEK", // Will be computed
+        event_time: "12:00",
+        guest_count: 50,
+        budget_range: "$1,500 - $2,000",
+        menu_preferences: "Mixed Italian buffet, vegetarian options needed",
+        dietary_restrictions: "3 guests are gluten-free, 2 are vegan",
+        location: "Acme Corp HQ, 100 Business Park Drive, Conference Room A",
+        status: "inquiry",
+        quote_amount_cents: null,
+        notes: "Annual team lunch, they've used us before",
+      },
+      {
+        customer_name: "Robert & Maria Garcia",
+        customer_phone: TEST_PHONES[1],
+        customer_email: "garcia.wedding@email.com",
+        event_type: "Wedding Rehearsal Dinner",
+        event_date: "IN_TWO_WEEKS", // Will be computed
+        event_time: "18:00",
+        guest_count: 30,
+        budget_range: "$1,000 - $1,200",
+        menu_preferences: "Family-style Italian, antipasto, pasta, and entrees",
+        dietary_restrictions: null,
+        location: "St. Mary's Church Hall, 250 Church Street",
+        status: "confirmed",
+        quote_amount_cents: 115000,
+        notes: "Deposit received. Final headcount due 1 week before.",
+      },
     ],
   },
   
@@ -203,6 +534,52 @@ export const INDUSTRY_TEST_DATA: Record<BusinessMode, IndustryTestData> = {
       { customer_name: "Maria Rodriguez", service_requested: "Annual Physical", summary: "Insurance verification needed before scheduling. Patient has new insurance carrier.", outcome: "followup" },
       { customer_name: "Steven Lee", service_requested: "Urgent Consultation", summary: "Urgent symptoms described. Transferred to nurse line for immediate assessment.", outcome: "escalated" },
     ],
+    medicalIntakes: [
+      {
+        intake_type: "new_patient",
+        urgency_level: "routine",
+        reason_for_visit: "Annual wellness checkup, no current health concerns",
+        status: "pending",
+        verbal_consent_given: true,
+        insurance_provider: "Blue Cross Blue Shield",
+        preferred_date: "NEXT_WEEK",
+        preferred_time_range: "Morning (8am-12pm)",
+        ai_summary: "New patient seeking routine wellness exam. No urgent concerns reported.",
+      },
+      {
+        intake_type: "followup",
+        urgency_level: "soon",
+        reason_for_visit: "Review lab results from last visit, discuss cholesterol levels",
+        status: "scheduled",
+        verbal_consent_given: true,
+        insurance_provider: "Aetna",
+        preferred_date: "THIS_WEEK",
+        preferred_time_range: "Afternoon (1pm-5pm)",
+        ai_summary: "Follow-up for lab review. Patient previously seen for routine physical, labs ordered for lipid panel.",
+      },
+      {
+        intake_type: "new_patient",
+        urgency_level: "urgent",
+        reason_for_visit: "Persistent chest tightness and shortness of breath for 3 days",
+        status: "pending",
+        verbal_consent_given: true,
+        insurance_provider: "United Healthcare",
+        preferred_date: "TODAY",
+        preferred_time_range: "As soon as possible",
+        ai_summary: "URGENT: Patient reports chest symptoms x3 days. Recommended same-day evaluation. Consider ER if symptoms worsen.",
+      },
+      {
+        intake_type: "followup",
+        urgency_level: "routine",
+        reason_for_visit: "Medication refill for blood pressure, doing well on current dose",
+        status: "completed",
+        verbal_consent_given: true,
+        insurance_provider: "Cigna",
+        preferred_date: "LAST_WEEK",
+        preferred_time_range: "Any",
+        ai_summary: "Routine medication refill. Patient stable on current BP medications.",
+      },
+    ],
   },
   
   general: {
@@ -230,7 +607,66 @@ export const INDUSTRY_TEST_DATA: Record<BusinessMode, IndustryTestData> = {
       { customer_name: "Alex Rivera", service_requested: "General Inquiry", summary: "Caller asked about business hours and services offered. Sent follow-up email with brochure.", outcome: "followup" },
       { customer_name: "Jordan Blake", service_requested: "Pricing Information", summary: "Requested pricing for multiple services. Scheduled callback for detailed quote.", outcome: "booked" },
       { customer_name: "Casey Morgan", service_requested: "Complaint Resolution", summary: "Customer had concerns about previous service. Issue resolved, scheduled follow-up.", outcome: "followup" },
-      { customer_name: "Taylor Reed", service_requested: "Partnership Inquiry", summary: "Business partnership inquiry. Not a good fit for our services at this time.", outcome: "lost" },
+      { customer_name: "Taylor Reed", service_requested: "Premium Package", summary: "Booked premium package after consultation. Payment processed, appointment confirmed.", outcome: "booked" },
     ],
   },
 };
+
+// Helper function to compute relative dates
+export function getRelativeDate(dateKey: string): string {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  switch (dateKey) {
+    case "TODAY":
+      return today.toISOString().split("T")[0];
+    case "YESTERDAY":
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      return yesterday.toISOString().split("T")[0];
+    case "TOMORROW":
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      return tomorrow.toISOString().split("T")[0];
+    case "FRIDAY": {
+      const friday = new Date(today);
+      const daysUntilFriday = (5 - today.getDay() + 7) % 7 || 7;
+      friday.setDate(friday.getDate() + daysUntilFriday);
+      return friday.toISOString().split("T")[0];
+    }
+    case "SATURDAY": {
+      const saturday = new Date(today);
+      const daysUntilSaturday = (6 - today.getDay() + 7) % 7 || 7;
+      saturday.setDate(saturday.getDate() + daysUntilSaturday);
+      return saturday.toISOString().split("T")[0];
+    }
+    case "SUNDAY": {
+      const sunday = new Date(today);
+      const daysUntilSunday = (0 - today.getDay() + 7) % 7 || 7;
+      sunday.setDate(sunday.getDate() + daysUntilSunday);
+      return sunday.toISOString().split("T")[0];
+    }
+    case "THIS_WEEK": {
+      const thisWeek = new Date(today);
+      thisWeek.setDate(thisWeek.getDate() + 2);
+      return thisWeek.toISOString().split("T")[0];
+    }
+    case "NEXT_WEEK": {
+      const nextWeek = new Date(today);
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      return nextWeek.toISOString().split("T")[0];
+    }
+    case "IN_TWO_WEEKS": {
+      const twoWeeks = new Date(today);
+      twoWeeks.setDate(twoWeeks.getDate() + 14);
+      return twoWeeks.toISOString().split("T")[0];
+    }
+    case "LAST_WEEK": {
+      const lastWeek = new Date(today);
+      lastWeek.setDate(lastWeek.getDate() - 5);
+      return lastWeek.toISOString().split("T")[0];
+    }
+    default:
+      return today.toISOString().split("T")[0];
+  }
+}
