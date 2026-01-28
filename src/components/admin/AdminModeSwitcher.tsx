@@ -91,7 +91,7 @@ async function insertFoodModeData(tenantId: string) {
     }));
     
     const { error } = await supabase.from("menu_items").insert(menuRecords);
-    if (error) console.error("Menu items insert error:", error);
+    if (error) throw new Error(`Menu items: ${error.message}`);
   }
   
   // Insert reservations with computed dates
@@ -109,7 +109,7 @@ async function insertFoodModeData(tenantId: string) {
     }));
     
     const { error } = await supabase.from("reservations").insert(reservationRecords);
-    if (error) console.error("Reservations insert error:", error);
+    if (error) throw new Error(`Reservations: ${error.message}`);
   }
   
   // Insert food orders
@@ -130,7 +130,7 @@ async function insertFoodModeData(tenantId: string) {
     }));
     
     const { error } = await supabase.from("food_orders").insert(orderRecords);
-    if (error) console.error("Food orders insert error:", error);
+    if (error) throw new Error(`Food orders: ${error.message}`);
   }
   
   // Insert catering requests with computed dates
@@ -154,7 +154,7 @@ async function insertFoodModeData(tenantId: string) {
     }));
     
     const { error } = await supabase.from("catering_requests").insert(cateringRecords);
-    if (error) console.error("Catering requests insert error:", error);
+    if (error) throw new Error(`Catering requests: ${error.message}`);
   }
 }
 
@@ -187,7 +187,7 @@ async function insertDispatchModeData(tenantId: string) {
     }));
     
     const { error } = await supabase.from("dispatch_jobs").insert(dispatchRecords);
-    if (error) console.error("Dispatch jobs insert error:", error);
+    if (error) throw new Error(`Dispatch jobs: ${error.message}`);
   }
 }
 
@@ -210,7 +210,7 @@ async function insertMedicalModeData(tenantId: string) {
     }));
     
     const { error } = await supabase.from("medical_intakes").insert(intakeRecords);
-    if (error) console.error("Medical intakes insert error:", error);
+    if (error) throw new Error(`Medical intakes: ${error.message}`);
   }
 }
 
@@ -248,7 +248,7 @@ async function resetAllTestData(tenantId: string, mode: BusinessMode) {
         price_type: s.price_type,
         is_active: true,
       })));
-    if (servicesError) console.error("Services insert error:", servicesError);
+    if (servicesError) throw new Error(`Services: ${servicesError.message}`);
   }
 
   // 4. Replace FAQs
@@ -262,7 +262,7 @@ async function resetAllTestData(tenantId: string, mode: BusinessMode) {
         answer: f.answer,
         priority_weight: testData.faqs.length - i,
       })));
-    if (faqsError) console.error("FAQs insert error:", faqsError);
+    if (faqsError) throw new Error(`FAQs: ${faqsError.message}`);
   }
 
   // 5. Replace knowledge base policies
@@ -277,7 +277,7 @@ async function resetAllTestData(tenantId: string, mode: BusinessMode) {
         type: p.type,
         priority_weight: testData.policies.length - i,
       })));
-    if (policiesError) console.error("Policies insert error:", policiesError);
+    if (policiesError) throw new Error(`Policies: ${policiesError.message}`);
   }
 
   // 6. Replace objection responses
@@ -291,7 +291,7 @@ async function resetAllTestData(tenantId: string, mode: BusinessMode) {
         response: o.response,
         priority_weight: testData.objections.length - i,
       })));
-    if (objectionsError) console.error("Objections insert error:", objectionsError);
+    if (objectionsError) throw new Error(`Objections: ${objectionsError.message}`);
   }
 
   // 7. Replace availability hours
@@ -306,7 +306,7 @@ async function resetAllTestData(tenantId: string, mode: BusinessMode) {
         end_time: h.end_time,
         is_available: h.is_available,
       })));
-    if (hoursError) console.error("Hours insert error:", hoursError);
+    if (hoursError) throw new Error(`Hours: ${hoursError.message}`);
   }
 
   // 8. Replace call sessions
@@ -332,7 +332,7 @@ async function resetAllTestData(tenantId: string, mode: BusinessMode) {
     .from("ai_call_sessions")
     .insert(callRecords);
 
-  if (callsError) console.error("Calls insert error:", callsError);
+  if (callsError) throw new Error(`Calls: ${callsError.message}`);
 
   // 9. Insert industry-specific data based on mode
   if (mode === "food") {
