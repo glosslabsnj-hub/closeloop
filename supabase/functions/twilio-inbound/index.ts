@@ -50,6 +50,95 @@ function getTodayHours(hoursJson: Record<string, unknown> | null): string {
   return "Hours not available";
 }
 
+// Truncate text to max length with ellipsis
+function truncate(text: string | null, maxLength: number): string | null {
+  if (!text) return null;
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength - 3) + "...";
+}
+
+// Build service summary from services array
+function buildServiceSummary(services: Array<{ name: string; description?: string | null; price_amount?: number | null; duration_minutes?: number }> | null): string | null {
+  if (!services || services.length === 0) return null;
+  
+  const summaries = services.slice(0, 5).map(s => {
+    let line = s.name;
+    if (s.price_amount) line += ` ($${s.price_amount})`;
+    if (s.duration_minutes) line += ` - ${s.duration_minutes}min`;
+    return line;
+  });
+  
+  let result = summaries.join("; ");
+  if (services.length > 5) result += `; and ${services.length - 5} more services`;
+  
+  return truncate(result, 600);
+}
+
+// Build menu summary from menu items
+function buildMenuSummary(menuItems: Array<{ name: string; category?: string | null; price_cents?: number | null }> | null): string | null {
+  if (!menuItems || menuItems.length === 0) return null;
+  
+  // Group by category
+  const byCategory: Record<string, string[]> = {};
+  for (const item of menuItems.slice(0, 20)) {
+    const cat = item.category || "Menu";
+    if (!byCategory[cat]) byCategory[cat] = [];
+    byCategory[cat].push(item.name);
+  }
+  
+  const parts = Object.entries(byCategory).map(([cat, items]) => {
+    return `${cat}: ${items.slice(0, 4).join(", ")}${items.length > 4 ? "..." : ""}`;
+  });
+  
+  let result = parts.join(". ");
+  if (menuItems.length > 20) result += `. Plus ${menuItems.length - 20} more items.`;
+  
+  return truncate(result, 600);
+}
+
+// Build policies summary
+function buildPoliciesSummary(tenant: {
+  cancellation_policy?: string | null;
+  deposit_policy?: string | null;
+  refund_policy?: string | null;
+  payment_methods?: string[] | null;
+}): string | null {
+  const parts: string[] = [];
+  
+  if (tenant.cancellation_policy) {
+    parts.push(`Cancellation: ${truncate(tenant.cancellation_policy, 150)}`);
+  }
+  if (tenant.deposit_policy) {
+    parts.push(`Deposit: ${truncate(tenant.deposit_policy, 150)}`);
+  }
+  if (tenant.payment_methods && tenant.payment_methods.length > 0) {
+    parts.push(`Payment: ${tenant.payment_methods.join(", ")}`);
+  }
+  
+  if (parts.length === 0) return null;
+  return truncate(parts.join(". "), 600);
+}
+
+// Check if module is enabled
+function hasModule(enabledModules: string[] | null, moduleName: string): boolean {
+  if (!enabledModules) return false;
+  return enabledModules.includes(moduleName);
+}
+
+// Redact context for HIPAA mode
+function redactForHipaa(context: Record<string, unknown>): Record<string, unknown> {
+  return {
+    tenant_id: context.tenant_id,
+    business_mode: context.business_mode,
+    enabled_modules: context.enabled_modules,
+    hipaa_mode: context.hipaa_mode,
+    caller_phone: "[REDACTED]",
+    // Keep non-PHI fields
+    hours_today: context.hours_today,
+    booking_link: context.booking_link,
+  };
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -114,7 +203,7 @@ serve(async (req) => {
     // Get assistant settings for this tenant
     const { data: settings, error: settingsError } = await supabase
       .from("assistant_settings")
-      .select("voice_ai_enabled, voice_mode, connect_status")
+      .select("voice_ai_enabled, voice_mode, connect_status, booking_url")
       .eq("tenant_id", tenantId)
       .maybeSingle();
 
@@ -144,51 +233,113 @@ serve(async (req) => {
       return twimlResponse(hangupTwiml("Thank you for calling. We're currently unavailable. Please try again later."));
     }
 
-    // TODO: Implement busy_mode and after_hours logic based on hours_json
-
-    // Get tenant business context, assistant settings, and AI assistant scripts in parallel
-    const [tenantResult, settingsResult, assistantResult] = await Promise.all([
+    // Fetch all required data in parallel
+    const [tenantResult, assistantResult, servicesResult, menuItemsResult] = await Promise.all([
       supabase
         .from("tenants")
-        .select("name, tagline, hours_json, website_url")
+        .select("name, tagline, hours_json, website_url, business_mode, enabled_modules, hipaa_mode, cancellation_policy, deposit_policy, refund_policy, payment_methods")
         .eq("id", tenantId)
         .single(),
-      supabase
-        .from("assistant_settings")
-        .select("booking_url")
-        .eq("tenant_id", tenantId)
-        .maybeSingle(),
       supabase
         .from("ai_assistants")
         .select("greeting_script, fallback_script")
         .eq("tenant_id", tenantId)
         .maybeSingle(),
+      supabase
+        .from("services")
+        .select("name, description, price_amount, duration_minutes")
+        .eq("tenant_id", tenantId)
+        .eq("is_active", true)
+        .limit(10),
+      supabase
+        .from("menu_items")
+        .select("name, category, price_cents")
+        .eq("tenant_id", tenantId)
+        .eq("is_available", true)
+        .limit(30),
     ]);
 
     const { data: tenant, error: tenantError } = tenantResult;
-    const { data: fullSettings } = settingsResult;
     const { data: assistant } = assistantResult;
+    const { data: services } = servicesResult;
+    const { data: menuItems } = menuItemsResult;
 
     if (tenantError || !tenant) {
       console.error("Error fetching tenant:", tenantError);
       return twimlResponse(hangupTwiml("We're experiencing technical difficulties. Please try again later."));
     }
 
-    // Build dynamic variables for ElevenLabs agent
-    const businessHoursToday = getTodayHours(tenant.hours_json as Record<string, unknown> | null);
-    const dynamicVariables = {
+    // Parse enabled_modules
+    const enabledModules: string[] = Array.isArray(tenant.enabled_modules) 
+      ? tenant.enabled_modules as string[]
+      : [];
+    
+    const businessMode = tenant.business_mode || "general";
+    const hipaaMode = tenant.hipaa_mode === true;
+
+    // Build summaries based on business mode
+    let serviceSummary: string | null = null;
+    let menuSummary: string | null = null;
+    let policiesSummary: string | null = null;
+
+    // Include service_summary for service/dispatch/general modes
+    if (["service", "dispatch", "general"].includes(businessMode)) {
+      serviceSummary = buildServiceSummary(services);
+    }
+
+    // Include menu_summary for food mode
+    if (businessMode === "food") {
+      menuSummary = buildMenuSummary(menuItems);
+    }
+
+    // Build policies summary
+    policiesSummary = buildPoliciesSummary(tenant);
+
+    // Determine booking_link based on enabled modules
+    let bookingLink: string | null = null;
+    if (hasModule(enabledModules, "booking") || hasModule(enabledModules, "reservations")) {
+      bookingLink = settings?.booking_url || tenant.website_url || null;
+    }
+
+    // Build dynamic variables according to contract
+    const hoursToday = getTodayHours(tenant.hours_json as Record<string, unknown> | null);
+    
+    const dynamicVariables: Record<string, unknown> = {
+      // Required fields
+      tenant_id: tenantId,
       business_name: tenant.name || "Our Business",
-      business_hours_today: businessHoursToday,
-      booking_link: fullSettings?.booking_url || tenant.website_url || "",
+      business_mode: businessMode,
+      enabled_modules: enabledModules,
+      hipaa_mode: hipaaMode,
+      caller_phone: fromNumber,
+      hours_today: hoursToday,
+      
+      // Conditional fields
+      booking_link: bookingLink,
+      service_summary: serviceSummary,
+      menu_summary: menuSummary,
+      policies_summary: policiesSummary,
+      
+      // Scripts from ai_assistants table
       greeting_script: assistant?.greeting_script || "",
       fallback_script: assistant?.fallback_script || "",
-      tenant_id: tenantId,
-      caller_number: fromNumber,
     };
 
-    console.log(`Calling ElevenLabs register-call for agent ${ELEVENLABS_AGENT_ID} with context:`, dynamicVariables);
+    console.log(`Building context for tenant ${tenantId}:`, {
+      business_mode: businessMode,
+      enabled_modules: enabledModules,
+      hipaa_mode: hipaaMode,
+      has_service_summary: !!serviceSummary,
+      has_menu_summary: !!menuSummary,
+      has_policies_summary: !!policiesSummary,
+    });
 
-    // Create call session record
+    // Prepare context for storage (redact if HIPAA mode)
+    const contextForStorage = hipaaMode 
+      ? redactForHipaa(dynamicVariables)
+      : dynamicVariables;
+
+    // Create call session record with context
     const { data: callSession, error: sessionError } = await supabase
       .from("ai_call_sessions")
       .insert({
@@ -197,6 +348,7 @@ serve(async (req) => {
         twilio_call_sid: callSid,
         caller_phone: fromNumber,
         started_at: new Date().toISOString(),
+        context_json: contextForStorage,
       })
       .select("id")
       .single();
@@ -209,11 +361,10 @@ serve(async (req) => {
     }
 
     // Call ElevenLabs register-call API
-    // Documentation: https://elevenlabs.io/docs/conversational-ai/guides/twilio-integration
     const registerCallPayload = {
       agent_id: ELEVENLABS_AGENT_ID,
-      from_number: fromNumber,  // The caller's phone number
-      to_number: toNumber,      // The Twilio number that received the call
+      from_number: fromNumber,
+      to_number: toNumber,
       conversation_initiation_client_data: {
         dynamic_variables: dynamicVariables,
       },
@@ -242,9 +393,6 @@ serve(async (req) => {
     // ElevenLabs returns TwiML directly
     const twimlFromElevenLabs = await registerCallResponse.text();
     console.log(`ElevenLabs returned TwiML (${twimlFromElevenLabs.length} chars)`);
-
-    // Update call session with ElevenLabs conversation ID if available in response
-    // The TwiML might contain it as a parameter
 
     return new Response(twimlFromElevenLabs, {
       status: 200,

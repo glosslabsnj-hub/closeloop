@@ -66,6 +66,7 @@ export type Database = {
           booking_id: string | null
           call_direction: Database["public"]["Enums"]["ai_call_direction"]
           caller_phone: string | null
+          context_json: Json | null
           created_at: string
           customer_id: string | null
           elevenlabs_conversation_id: string | null
@@ -84,6 +85,7 @@ export type Database = {
           booking_id?: string | null
           call_direction: Database["public"]["Enums"]["ai_call_direction"]
           caller_phone?: string | null
+          context_json?: Json | null
           created_at?: string
           customer_id?: string | null
           elevenlabs_conversation_id?: string | null
@@ -102,6 +104,7 @@ export type Database = {
           booking_id?: string | null
           call_direction?: Database["public"]["Enums"]["ai_call_direction"]
           caller_phone?: string | null
+          context_json?: Json | null
           created_at?: string
           customer_id?: string | null
           elevenlabs_conversation_id?: string | null
