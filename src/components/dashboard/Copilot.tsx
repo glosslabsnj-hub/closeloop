@@ -17,127 +17,332 @@ interface Message {
   content: string;
   links?: { label: string; path: string }[];
   steps?: string[];
+  nextActions?: string[];
 }
 
-// Navigation map for the dashboard
-const dashboardNavMap: Record<string, { path: string; description: string }> = {
-  'menu': { path: '/app/menu', description: 'Menu Center - manage your menu items' },
-  'services': { path: '/app/services', description: 'Services - manage your service offerings' },
-  'bookings': { path: '/app/bookings', description: 'Bookings - view and manage appointments' },
-  'orders': { path: '/app/orders', description: 'Orders - view and manage food orders' },
-  'dispatch': { path: '/app/dispatch', description: 'Dispatch - manage dispatch jobs' },
-  'calls': { path: '/app/calls', description: 'Calls - view AI call history' },
-  'inbox': { path: '/app/inbox', description: 'Inbox - view all conversations' },
-  'leads': { path: '/app/leads', description: 'Leads - manage your leads' },
-  'settings': { path: '/app/settings', description: 'Settings - configure your account' },
-  'brain': { path: '/app/brain', description: 'Business Brain - edit AI knowledge' },
-  'usage': { path: '/app/usage', description: 'Usage - track your plan usage' },
-  'simulator': { path: '/app/simulator', description: 'Simulator - test your AI' },
-  'reservations': { path: '/app/reservations', description: 'Reservations - manage table reservations' },
-  'catering': { path: '/app/catering', description: 'Catering - manage catering requests' },
-  'medical': { path: '/app/medical-intake', description: 'Medical Intake - view patient intakes' },
+// Navigation map with exact paths
+const dashboardNavMap: Record<string, { path: string; tab?: string; description: string }> = {
+  'menu': { path: '/app/menu', description: 'Menu Center' },
+  'services': { path: '/app/services', description: 'Services' },
+  'bookings': { path: '/app/bookings', description: 'Bookings' },
+  'booking delivery': { path: '/app/settings', tab: 'booking', description: 'Settings → Booking Delivery' },
+  'orders': { path: '/app/orders', description: 'Orders' },
+  'order delivery': { path: '/app/settings', tab: 'food', description: 'Settings → Food → Order Delivery' },
+  'dispatch': { path: '/app/dispatch', description: 'Dispatch' },
+  'dispatch delivery': { path: '/app/settings', tab: 'dispatch', description: 'Settings → Dispatch Delivery' },
+  'calls': { path: '/app/calls', description: 'Calls' },
+  'inbox': { path: '/app/inbox', description: 'Inbox' },
+  'leads': { path: '/app/leads', description: 'Leads' },
+  'settings': { path: '/app/settings', description: 'Settings' },
+  'phone': { path: '/app/settings', tab: 'phone', description: 'Settings → Phone' },
+  'brain': { path: '/app/brain', description: 'Business Brain' },
+  'usage': { path: '/app/usage', description: 'Usage' },
+  'simulator': { path: '/app/simulator', description: 'Simulator' },
+  'reservations': { path: '/app/reservations', description: 'Reservations' },
+  'catering': { path: '/app/catering', description: 'Catering' },
+  'medical': { path: '/app/medical-intake', description: 'Medical Intake' },
+  'hipaa': { path: '/app/settings', tab: 'medical', description: 'Settings → Medical/HIPAA' },
 };
 
-// Common questions and answers
-const knowledgeBase: Record<string, { answer: string; links?: { label: string; path: string }[]; steps?: string[] }> = {
-  'phone': {
-    answer: "Your AI phone number is shown in Settings > Phone. To connect your phone, go to the Phone Connection section.",
+// Troubleshooting playbook
+const troubleshootingPlaybook: Record<string, { answer: string; steps: string[]; links?: { label: string; path: string }[] }> = {
+  'call failed': {
+    answer: "Call failures usually mean the phone isn't connected or there's a webhook issue.",
+    steps: [
+      "Go to Settings → Phone and verify your number is connected",
+      "Check that connect_status shows 'connected'",
+      "If using forwarding, confirm your carrier forwarding is active",
+    ],
+    links: [{ label: 'Go to Settings → Phone', path: '/app/settings' }],
+  },
+  'ai said none': {
+    answer: "The AI is missing business data. Your Business Brain needs more information.",
+    steps: [
+      "Go to Business Brain",
+      "Check your readiness score at the top",
+      "Fill in any missing fields (name, hours, services)",
+    ],
+    links: [{ label: 'Open Business Brain', path: '/app/brain' }],
+  },
+  'wrong name': {
+    answer: "The AI uses your business name from settings. Let's make sure it's set correctly.",
+    steps: [
+      "Go to Business Brain → Identity",
+      "Verify your business name is correct",
+      "Save and run a test call",
+    ],
+    links: [{ label: 'Open Business Brain', path: '/app/brain' }],
+  },
+  'webhook failed': {
+    answer: "Webhook delivery failed. This usually means the endpoint URL is incorrect or unreachable.",
+    steps: [
+      "Go to the relevant delivery settings",
+      "Verify your webhook URL is correct and accessible",
+      "Click 'Retry' on the failed delivery",
+      "Check your endpoint logs for errors",
+    ],
+  },
+  'not printing': {
+    answer: "Order tickets require print delivery to be enabled.",
+    steps: [
+      "Go to Settings → Food → Order Delivery",
+      "Enable 'Auto Print' option",
+      "Configure your print format",
+    ],
     links: [{ label: 'Go to Settings', path: '/app/settings' }],
   },
-  'menu': {
-    answer: "You can edit your menu in the Menu Center. Add items, set prices, and mark items as available or unavailable.",
-    links: [{ label: 'Open Menu Center', path: '/app/menu' }],
-    steps: ['Go to Menu Center', 'Click "Add Item" or edit existing items', 'Set name, price, and category', 'Save changes'],
-  },
-  'booking': {
-    answer: "Bookings can be delivered via email, SMS, webhook, or viewed in the Bookings page. Configure delivery in Settings > Booking Delivery.",
-    links: [
-      { label: 'View Bookings', path: '/app/bookings' },
-      { label: 'Configure Delivery', path: '/app/settings' },
+};
+
+// Knowledge base with structured responses
+const knowledgeBase: Record<string, { answer: string; steps: string[]; links?: { label: string; path: string }[]; nextActions: string[] }> = {
+  'edit menu': {
+    answer: "You can edit your menu in Menu Center.",
+    steps: [
+      "Go to Menu Center from the sidebar",
+      "Click 'Add Item' or edit existing items",
+      "Set name, price, category, and dietary tags",
+      "Save your changes",
     ],
-    steps: ['Go to Settings', 'Click Booking Delivery tab', 'Enable your preferred delivery methods', 'Enter email/phone/webhook details'],
+    links: [{ label: 'Open Menu Center', path: '/app/menu' }],
+    nextActions: ["Help me add a menu item", "Configure order delivery"],
   },
-  'dispatch': {
-    answer: "Dispatch mode creates jobs with priority levels and location info. Jobs appear in the Dispatch queue for your team to assign and complete.",
-    links: [{ label: 'View Dispatch Queue', path: '/app/dispatch' }],
+  'edit services': {
+    answer: "Services are managed in the Services page.",
+    steps: [
+      "Go to Services from the sidebar",
+      "Click 'Add Service' or edit existing",
+      "Set name, duration, price, and deposit requirements",
+      "Save your changes",
+    ],
+    links: [{ label: 'Open Services', path: '/app/services' }],
+    nextActions: ["Help me configure booking delivery", "Set up availability"],
   },
-  'order': {
-    answer: "Food orders are captured by the AI and appear in Orders. They can be printed as tickets or sent via webhook to your POS.",
-    links: [{ label: 'View Orders', path: '/app/orders' }],
-    steps: ['Orders appear in the Orders page', 'Click an order to view details', 'Mark as preparing/ready/completed', 'Enable auto-print in Settings'],
+  'booking delivery': {
+    answer: "Bookings can be delivered via email, SMS, or webhook.",
+    steps: [
+      "Go to Settings → Booking Delivery",
+      "Enable your preferred delivery methods",
+      "Enter email/phone for notifications",
+      "Add webhook URL if pushing to external system",
+    ],
+    links: [{ label: 'Go to Settings', path: '/app/settings' }],
+    nextActions: ["Show me my bookings", "Test a booking flow"],
   },
-  'faq': {
-    answer: "FAQs help the AI answer common questions. Edit them in Business Brain > FAQs.",
-    links: [{ label: 'Edit FAQs', path: '/app/brain' }],
+  'order delivery': {
+    answer: "Food orders can be printed as tickets or sent via webhook.",
+    steps: [
+      "Go to Settings → Food → Order Delivery",
+      "Enable auto-print and/or webhook",
+      "Set your print format preference",
+      "Test with a sample order",
+    ],
+    links: [{ label: 'Go to Settings', path: '/app/settings' }],
+    nextActions: ["Print a sample ticket", "View my orders"],
+  },
+  'dispatch delivery': {
+    answer: "Dispatch jobs can be sent to your team via SMS or webhook.",
+    steps: [
+      "Go to Settings → Dispatch Delivery",
+      "Enable SMS notifications for urgent jobs",
+      "Add webhook URL if using dispatch software",
+    ],
+    links: [{ label: 'Go to Settings', path: '/app/settings' }],
+    nextActions: ["View dispatch queue", "Configure urgency levels"],
   },
   'test': {
-    answer: "You can test your AI using the Simulator. Try a voice call or SMS conversation to see how it handles customers.",
+    answer: "You can test your AI in the Simulator.",
+    steps: [
+      "Go to Simulator from the sidebar",
+      "Choose 'Test Call' or 'Test SMS'",
+      "Run through a sample conversation",
+      "Check that the AI responds correctly",
+    ],
     links: [{ label: 'Open Simulator', path: '/app/simulator' }],
+    nextActions: ["Check my readiness score", "Edit AI knowledge"],
+  },
+  'phone': {
+    answer: "Your AI phone number is configured in Settings.",
+    steps: [
+      "Go to Settings → Phone",
+      "View your assigned number or connect one",
+      "Choose forwarding method if needed",
+    ],
+    links: [{ label: 'Go to Settings', path: '/app/settings' }],
+    nextActions: ["Test my phone connection", "Run a test call"],
+  },
+  'readiness': {
+    answer: "Your AI readiness score shows how well-prepared your Business Brain is.",
+    steps: [
+      "Go to Business Brain",
+      "View your score at the top (0-100)",
+      "Fill in missing sections to improve it",
+    ],
+    links: [{ label: 'Open Business Brain', path: '/app/brain' }],
+    nextActions: ["What's missing from my setup?", "Run a test call"],
+  },
+  'faq': {
+    answer: "FAQs help the AI answer common customer questions.",
+    steps: [
+      "Go to Business Brain → FAQs",
+      "Add questions customers frequently ask",
+      "Provide clear, accurate answers",
+    ],
+    links: [{ label: 'Open Business Brain', path: '/app/brain' }],
+    nextActions: ["Add more FAQs", "Edit objection responses"],
   },
   'hipaa': {
-    answer: "HIPAA mode is enabled for medical businesses. It minimizes stored data and disables recordings/transcripts. Configure in Settings.",
-    links: [{ label: 'HIPAA Settings', path: '/app/settings' }],
+    answer: "HIPAA mode minimizes stored data for medical compliance.",
+    steps: [
+      "Go to Settings → Medical/HIPAA",
+      "Review storage settings (recordings/transcripts are OFF by default)",
+      "Configure retention policies as needed",
+    ],
+    links: [{ label: 'Go to Settings', path: '/app/settings' }],
+    nextActions: ["View medical intakes", "Check compliance settings"],
   },
 };
 
-function generateResponse(query: string, businessMode: string | undefined): Message {
+function generateResponse(query: string, businessMode: string | undefined, tenant: any): Message {
   const lowerQuery = query.toLowerCase();
   
-  // Check for known topics
-  for (const [topic, response] of Object.entries(knowledgeBase)) {
-    if (lowerQuery.includes(topic)) {
+  // Check troubleshooting first
+  for (const [pattern, response] of Object.entries(troubleshootingPlaybook)) {
+    if (lowerQuery.includes(pattern) || 
+        (pattern === 'call failed' && (lowerQuery.includes('call') && (lowerQuery.includes('fail') || lowerQuery.includes("didn't") || lowerQuery.includes('not working')))) ||
+        (pattern === 'ai said none' && (lowerQuery.includes('none') || lowerQuery.includes('placeholder'))) ||
+        (pattern === 'webhook failed' && (lowerQuery.includes('webhook') && lowerQuery.includes('fail')))) {
       return {
         role: 'assistant',
         content: response.answer,
-        links: response.links,
         steps: response.steps,
+        links: response.links,
+        nextActions: ["Run a test call", "Check my readiness score"],
       };
     }
   }
 
-  // Check for navigation requests
-  for (const [key, nav] of Object.entries(dashboardNavMap)) {
-    if (lowerQuery.includes(key)) {
+  // Check knowledge base
+  for (const [topic, response] of Object.entries(knowledgeBase)) {
+    const keywords = topic.split(' ');
+    const matches = keywords.every(kw => lowerQuery.includes(kw));
+    if (matches) {
       return {
         role: 'assistant',
-        content: `You can find ${nav.description}.`,
-        links: [{ label: `Go to ${key}`, path: nav.path }],
+        content: response.answer,
+        steps: response.steps,
+        links: response.links,
+        nextActions: response.nextActions,
       };
     }
   }
 
-  // Mode-specific responses
-  if (lowerQuery.includes('how') && lowerQuery.includes('work')) {
+  // Navigation requests
+  for (const [key, nav] of Object.entries(dashboardNavMap)) {
+    if (lowerQuery.includes(key) && (lowerQuery.includes('where') || lowerQuery.includes('find') || lowerQuery.includes('go') || lowerQuery.includes('open'))) {
+      return {
+        role: 'assistant',
+        content: `You'll find that in ${nav.description}.`,
+        steps: [`Go to ${nav.description}`, 'Make your changes', 'Save when done'],
+        links: [{ label: `Go to ${nav.description}`, path: nav.path }],
+        nextActions: ["Help me configure this", "Show me something else"],
+      };
+    }
+  }
+
+  // Mode-specific how it works
+  if (lowerQuery.includes('how') && (lowerQuery.includes('work') || lowerQuery.includes('does'))) {
     if (businessMode === 'food') {
       return {
         role: 'assistant',
-        content: "In Food mode, the AI takes orders, handles reservations, and manages catering requests. Orders go to your Orders page and can be printed or sent to your POS.",
+        content: "In Food mode, the AI takes orders, handles reservations, and captures special instructions.",
+        steps: [
+          "Customer calls → AI takes their order",
+          "Order appears in your Orders page",
+          "You can print tickets or push to POS via webhook",
+          "Mark orders as preparing → ready → completed",
+        ],
         links: [
           { label: 'View Orders', path: '/app/orders' },
           { label: 'Menu Center', path: '/app/menu' },
         ],
+        nextActions: ["Configure order delivery", "Edit my menu"],
       };
     }
     if (businessMode === 'dispatch') {
       return {
         role: 'assistant',
-        content: "In Dispatch mode, the AI captures location, urgency, and job details. Jobs are prioritized and appear in your Dispatch queue for assignment.",
+        content: "In Dispatch mode, the AI captures location and urgency first, then creates a job.",
+        steps: [
+          "Customer calls → AI asks for location and situation",
+          "Job appears in Dispatch queue with priority",
+          "Assign to crew/vehicle",
+          "Track status: dispatched → arrived → completed",
+        ],
         links: [{ label: 'View Dispatch', path: '/app/dispatch' }],
+        nextActions: ["Configure dispatch delivery", "View dispatch queue"],
       };
     }
     if (businessMode === 'medical') {
       return {
         role: 'assistant',
-        content: "In Medical mode, the AI handles intake calls with HIPAA compliance. It collects reason for visit, insurance info, and schedules appointments.",
+        content: "In Medical mode, the AI handles intake calls with HIPAA-ready features. It collects reason for visit and scheduling preferences without giving medical advice.",
+        steps: [
+          "Patient calls → AI captures reason for visit",
+          "Collects insurance info and preferred timing",
+          "Creates intake record (HIPAA mode minimizes stored data)",
+          "Staff reviews and schedules appointment",
+        ],
         links: [{ label: 'View Intakes', path: '/app/medical-intake' }],
+        nextActions: ["Configure HIPAA settings", "View intakes"],
       };
     }
+    // Default service mode
+    return {
+      role: 'assistant',
+      content: "The AI answers calls, captures customer info, and pushes them to book.",
+      steps: [
+        "Customer calls → AI greets and qualifies",
+        "Captures name, phone, service interest",
+        "Sends booking link or creates appointment",
+        "You see the lead/booking in your dashboard",
+      ],
+      links: [
+        { label: 'View Bookings', path: '/app/bookings' },
+        { label: 'View Leads', path: '/app/leads' },
+      ],
+      nextActions: ["Configure booking delivery", "Test a call"],
+    };
   }
 
-  // Default response
+  // What can I do / help
+  if (lowerQuery.includes('what can') || lowerQuery.includes('help')) {
+    const modeSpecific = businessMode === 'food' ? 'orders, menu, reservations' :
+                        businessMode === 'dispatch' ? 'dispatch queue, jobs, urgency' :
+                        businessMode === 'medical' ? 'intakes, HIPAA settings' :
+                        'bookings, services, leads';
+    return {
+      role: 'assistant',
+      content: "I can help you navigate the dashboard and troubleshoot issues.",
+      steps: [
+        `Your mode: ${businessMode || 'service'} (${modeSpecific})`,
+        "Ask where to find something",
+        "Ask how to configure delivery",
+        "Report an issue for troubleshooting",
+      ],
+      nextActions: ["How does this work?", "Run a test call", "Check my readiness"],
+    };
+  }
+
+  // Default fallback
   return {
     role: 'assistant',
-    content: "I'm here to help you navigate CloseLoop. You can ask me about:\n\n• How to edit your menu or services\n• Where to find bookings, orders, or dispatch jobs\n• How to configure delivery methods\n• How to test your AI\n• Any settings or configuration questions\n\nWhat would you like to know?",
+    content: "I'm here to help you use CloseLoop. Try asking about a specific feature.",
+    steps: [
+      "Ask 'Where is [feature]?' to navigate",
+      "Ask 'How do I [task]?' for instructions",
+      "Report issues like 'Call failed' or 'Webhook not working'",
+    ],
+    nextActions: ["How does my mode work?", "Test my AI", "Check readiness score"],
   };
 }
 
@@ -156,10 +361,26 @@ export function Copilot({ isOpen, onClose }: CopilotProps) {
 
   const businessMode = tenant?.business_mode;
 
+  // Mode-aware quick actions
+  const quickActions = businessMode === 'food' 
+    ? ['Where are my orders?', 'How do I print tickets?', 'Edit my menu']
+    : businessMode === 'dispatch'
+    ? ['View dispatch queue', 'Configure urgency', 'Test a call']
+    : businessMode === 'medical'
+    ? ['View intakes', 'HIPAA settings', 'Test a call']
+    : ['Where are bookings?', 'How do I test AI?', 'Edit services'];
+
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      const greeting = `Hi! I'm your CloseLoop Copilot. I can help you:\n\n• Navigate the dashboard\n• Understand your ${businessMode || 'business'} setup\n• Find settings and features\n• Troubleshoot issues\n\nWhat can I help you with?`;
-      setMessages([{ role: 'assistant', content: greeting }]);
+      const modeName = businessMode === 'food' ? 'Food' :
+                       businessMode === 'dispatch' ? 'Dispatch' :
+                       businessMode === 'medical' ? 'Medical' :
+                       'Service';
+      setMessages([{
+        role: 'assistant',
+        content: `Hi! I'm your CloseLoop Copilot. You're in ${modeName} mode.`,
+        nextActions: ["How does this work?", "Run a test call"],
+      }]);
     }
   }, [isOpen, businessMode]);
 
@@ -169,13 +390,14 @@ export function Copilot({ isOpen, onClose }: CopilotProps) {
     }
   }, [messages]);
 
-  const handleSendMessage = () => {
-    if (!inputValue.trim()) return;
+  const handleSendMessage = (overrideValue?: string) => {
+    const messageText = overrideValue || inputValue;
+    if (!messageText.trim()) return;
     
-    const userMessage: Message = { role: 'user', content: inputValue };
+    const userMessage: Message = { role: 'user', content: messageText };
     setMessages(prev => [...prev, userMessage]);
     
-    const response = generateResponse(inputValue, businessMode);
+    const response = generateResponse(messageText, businessMode, tenant);
     setTimeout(() => {
       setMessages(prev => [...prev, response]);
     }, 300);
@@ -187,7 +409,7 @@ export function Copilot({ isOpen, onClose }: CopilotProps) {
 
   return (
     <Card className={`fixed bottom-6 right-6 z-50 shadow-2xl transition-all ${
-      isMinimized ? 'w-72 h-14' : 'w-96 h-[500px]'
+      isMinimized ? 'w-72 h-14' : 'w-96 h-[520px]'
     }`}>
       {/* Header */}
       <CardHeader className="p-3 border-b flex flex-row items-center justify-between">
@@ -201,7 +423,7 @@ export function Copilot({ isOpen, onClose }: CopilotProps) {
               <Badge variant="secondary" className="text-xs">AI</Badge>
             </CardTitle>
             {!isMinimized && (
-              <p className="text-xs text-muted-foreground">Your dashboard assistant</p>
+              <p className="text-xs text-muted-foreground">Dashboard assistant</p>
             )}
           </div>
         </div>
@@ -228,11 +450,12 @@ export function Copilot({ isOpen, onClose }: CopilotProps) {
       {!isMinimized && (
         <>
           {/* Messages */}
-          <ScrollArea className="h-[350px] p-4" ref={scrollRef}>
+          <ScrollArea className="h-[360px] p-4" ref={scrollRef}>
             <div className="space-y-4">
               {messages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%]`}>
+                  <div className={`max-w-[90%]`}>
+                    {/* Answer */}
                     <div className={`rounded-lg px-3 py-2 text-sm ${
                       msg.role === 'user' 
                         ? 'bg-primary text-primary-foreground' 
@@ -242,14 +465,14 @@ export function Copilot({ isOpen, onClose }: CopilotProps) {
                     </div>
                     
                     {/* Steps */}
-                    {msg.steps && (
+                    {msg.steps && msg.steps.length > 0 && (
                       <div className="mt-2 bg-secondary/50 rounded-lg p-3">
                         <p className="text-xs font-medium mb-2">Steps:</p>
                         <ol className="text-xs space-y-1">
                           {msg.steps.map((step, j) => (
                             <li key={j} className="flex items-start gap-2">
-                              <span className="font-medium text-primary">{j + 1}.</span>
-                              {step}
+                              <span className="font-medium text-primary shrink-0">{j + 1}.</span>
+                              <span>{step}</span>
                             </li>
                           ))}
                         </ol>
@@ -257,16 +480,36 @@ export function Copilot({ isOpen, onClose }: CopilotProps) {
                     )}
 
                     {/* Links */}
-                    {msg.links && (
+                    {msg.links && msg.links.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-2">
                         {msg.links.map((link, j) => (
                           <Link key={j} to={link.path}>
-                            <Button variant="outline" size="sm" className="text-xs gap-1">
+                            <Button variant="outline" size="sm" className="text-xs gap-1 h-7">
                               {link.label}
                               <ExternalLink className="h-3 w-3" />
                             </Button>
                           </Link>
                         ))}
+                      </div>
+                    )}
+
+                    {/* What I can do next */}
+                    {msg.nextActions && msg.nextActions.length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-xs text-muted-foreground mb-1">What I can do next:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {msg.nextActions.map((action, j) => (
+                            <Button
+                              key={j}
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs h-6 px-2"
+                              onClick={() => handleSendMessage(action)}
+                            >
+                              {action}
+                            </Button>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -275,19 +518,16 @@ export function Copilot({ isOpen, onClose }: CopilotProps) {
             </div>
           </ScrollArea>
 
-          {/* Quick Questions */}
+          {/* Quick Actions */}
           <div className="px-3 pb-2">
             <div className="flex flex-wrap gap-1">
-              {['Where are my bookings?', 'How do I test AI?', 'Edit my menu'].map((q, i) => (
+              {quickActions.map((q, i) => (
                 <Button
                   key={i}
                   variant="ghost"
                   size="sm"
                   className="text-xs h-6 px-2"
-                  onClick={() => {
-                    setInputValue(q);
-                    setTimeout(() => handleSendMessage(), 100);
-                  }}
+                  onClick={() => handleSendMessage(q)}
                 >
                   {q}
                 </Button>
