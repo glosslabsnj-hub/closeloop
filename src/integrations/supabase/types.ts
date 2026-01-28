@@ -186,8 +186,10 @@ export type Database = {
       assistant_settings: {
         Row: {
           ai_callback_delay_minutes: number | null
+          booking_url: string | null
           business_phone_number: string | null
           busy_toggle: boolean
+          calendar_provider: string | null
           closeloop_number: string | null
           created_at: string
           go_live_enabled: boolean
@@ -195,6 +197,11 @@ export type Database = {
           missed_call_behavior: Database["public"]["Enums"]["missed_call_behavior"]
           overflow_rings: number
           phone_connected: boolean
+          phone_method: string | null
+          setup_completed_at: string | null
+          setup_step_calendar: boolean | null
+          setup_step_phone: boolean | null
+          setup_step_tested: boolean | null
           sms_first_delay_seconds: number
           tenant_id: string
           updated_at: string
@@ -203,8 +210,10 @@ export type Database = {
         }
         Insert: {
           ai_callback_delay_minutes?: number | null
+          booking_url?: string | null
           business_phone_number?: string | null
           busy_toggle?: boolean
+          calendar_provider?: string | null
           closeloop_number?: string | null
           created_at?: string
           go_live_enabled?: boolean
@@ -212,6 +221,11 @@ export type Database = {
           missed_call_behavior?: Database["public"]["Enums"]["missed_call_behavior"]
           overflow_rings?: number
           phone_connected?: boolean
+          phone_method?: string | null
+          setup_completed_at?: string | null
+          setup_step_calendar?: boolean | null
+          setup_step_phone?: boolean | null
+          setup_step_tested?: boolean | null
           sms_first_delay_seconds?: number
           tenant_id: string
           updated_at?: string
@@ -220,8 +234,10 @@ export type Database = {
         }
         Update: {
           ai_callback_delay_minutes?: number | null
+          booking_url?: string | null
           business_phone_number?: string | null
           busy_toggle?: boolean
+          calendar_provider?: string | null
           closeloop_number?: string | null
           created_at?: string
           go_live_enabled?: boolean
@@ -229,6 +245,11 @@ export type Database = {
           missed_call_behavior?: Database["public"]["Enums"]["missed_call_behavior"]
           overflow_rings?: number
           phone_connected?: boolean
+          phone_method?: string | null
+          setup_completed_at?: string | null
+          setup_step_calendar?: boolean | null
+          setup_step_phone?: boolean | null
+          setup_step_tested?: boolean | null
           sms_first_delay_seconds?: number
           tenant_id?: string
           updated_at?: string
