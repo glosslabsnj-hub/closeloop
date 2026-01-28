@@ -36,6 +36,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useEffect, useMemo } from "react";
 import { AdminModeSwitcher } from "@/components/admin/AdminModeSwitcher";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 interface NavItem {
   href: string;
@@ -147,7 +148,9 @@ export function AppLayout() {
             <span className="font-bold hidden sm:inline">{tenant?.name || "CloseLoop"}</span>
           </Link>
 
-          <DropdownMenu>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
                 <Avatar className="h-8 w-8">
@@ -174,6 +177,7 @@ export function AppLayout() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         </div>
       </header>
 

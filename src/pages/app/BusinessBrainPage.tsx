@@ -23,18 +23,27 @@ import {
   ExternalLink,
   RefreshCw,
   UtensilsCrossed,
-  Briefcase
+  Briefcase,
+  Bell
 } from "lucide-react";
 import AIReadinessScore from "@/components/knowledge/AIReadinessScore";
 import KnowledgeGapQueue from "@/components/knowledge/KnowledgeGapQueue";
-import { Link } from "react-router-dom";
+import { KnowledgeUpdatesTab } from "@/components/knowledge/KnowledgeUpdatesTab";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useKnowledgeConflicts } from "@/hooks/useKnowledgeConflicts";
+import { useKnowledgeSuggestions } from "@/hooks/useKnowledgeSuggestions";
 
 export default function BusinessBrainPage() {
   const { tenant } = useAuth();
   const { businessMode } = useTenantConfig();
   const [showPreview, setShowPreview] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "overview";
+  
+  const { unresolvedCount: conflictsCount } = useKnowledgeConflicts();
+  const { pendingCount: suggestionsCount } = useKnowledgeSuggestions();
 
   // Fetch knowledge stats
   const { data: knowledgeStats } = useQuery({
@@ -144,6 +153,16 @@ export default function BusinessBrainPage() {
   const totalSections = visibleSections.length;
   const completionPercent = Math.round((completedSections / totalSections) * 100);
 
+  const setActiveTab = (tab: string) => {
+    searchParams.set("tab", tab);
+    if (tab !== "updates") {
+      searchParams.delete("subtab");
+    }
+    setSearchParams(searchParams);
+  };
+
+  const updatesActionNeeded = conflictsCount > 0 || suggestionsCount > 0;
+
   return (
     <div className="p-4 md:p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -166,8 +185,26 @@ export default function BusinessBrainPage() {
         </div>
       </div>
 
-      {/* AI Readiness Score */}
-      <AIReadinessScore />
+      {/* Main Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="updates" className="relative">
+            Updates
+            {updatesActionNeeded && (
+              <Badge 
+                variant={conflictsCount > 0 ? "destructive" : "secondary"} 
+                className="ml-2 h-5 px-1.5"
+              >
+                {conflictsCount + suggestionsCount}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="mt-6 space-y-6">
+          {/* AI Readiness Score */}
+          <AIReadinessScore />
 
       {/* Quick Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -334,6 +371,12 @@ export default function BusinessBrainPage() {
           </CollapsibleContent>
         </Card>
       </Collapsible>
+        </TabsContent>
+
+        <TabsContent value="updates" className="mt-6">
+          <KnowledgeUpdatesTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

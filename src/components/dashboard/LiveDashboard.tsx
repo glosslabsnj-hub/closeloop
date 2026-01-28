@@ -8,6 +8,8 @@ import { DashboardByMode } from "./DashboardByMode";
 import { GoLiveChecklist } from "./GoLiveChecklist";
 import { UsageThresholdBanner } from "./UsageThresholdBanner";
 import { Copilot, CopilotTrigger } from "./Copilot";
+import { BusinessBrainStatusCard } from "./BusinessBrainStatusCard";
+import { KnowledgeConflictBanner } from "./KnowledgeConflictBanner";
 
 export function LiveDashboard() {
   const { tenant, assistantSettings } = useAuth();
@@ -17,6 +19,9 @@ export function LiveDashboard() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
+      {/* Knowledge Conflict Warning - Highest Priority */}
+      <KnowledgeConflictBanner />
+
       {/* Usage Threshold Warning */}
       <UsageThresholdBanner threshold={80} />
 
@@ -29,8 +34,11 @@ export function LiveDashboard() {
       {/* Mode-Specific Today View */}
       <DashboardByMode />
 
-      {/* Stats Overview */}
-      <QuickStatsCard />
+      {/* Two Column Layout for Brain Status & Stats */}
+      <div className="grid md:grid-cols-2 gap-6">
+        <BusinessBrainStatusCard />
+        <QuickStatsCard />
+      </div>
 
       {/* Two Column Layout for Activity & Links */}
       <div className="grid md:grid-cols-2 gap-6">
