@@ -146,24 +146,33 @@ serve(async (req) => {
 
     // TODO: Implement busy_mode and after_hours logic based on hours_json
 
-    // Get tenant business context for ElevenLabs
-    const { data: tenant, error: tenantError } = await supabase
-      .from("tenants")
-      .select("name, tagline, hours_json, website_url")
-      .eq("id", tenantId)
-      .single();
+    // Get tenant business context, assistant settings, and AI assistant scripts in parallel
+    const [tenantResult, settingsResult, assistantResult] = await Promise.all([
+      supabase
+        .from("tenants")
+        .select("name, tagline, hours_json, website_url")
+        .eq("id", tenantId)
+        .single(),
+      supabase
+        .from("assistant_settings")
+        .select("booking_url")
+        .eq("tenant_id", tenantId)
+        .maybeSingle(),
+      supabase
+        .from("ai_assistants")
+        .select("greeting_script, fallback_script")
+        .eq("tenant_id", tenantId)
+        .maybeSingle(),
+    ]);
+
+    const { data: tenant, error: tenantError } = tenantResult;
+    const { data: fullSettings } = settingsResult;
+    const { data: assistant } = assistantResult;
 
     if (tenantError || !tenant) {
       console.error("Error fetching tenant:", tenantError);
       return twimlResponse(hangupTwiml("We're experiencing technical difficulties. Please try again later."));
     }
-
-    // Get booking URL from assistant settings
-    const { data: fullSettings } = await supabase
-      .from("assistant_settings")
-      .select("booking_url")
-      .eq("tenant_id", tenantId)
-      .maybeSingle();
 
     // Build dynamic variables for ElevenLabs agent
     const businessHoursToday = getTodayHours(tenant.hours_json as Record<string, unknown> | null);
@@ -171,6 +180,8 @@ serve(async (req) => {
       business_name: tenant.name || "Our Business",
       business_hours_today: businessHoursToday,
       booking_link: fullSettings?.booking_url || tenant.website_url || "",
+      greeting_script: assistant?.greeting_script || "",
+      fallback_script: assistant?.fallback_script || "",
       tenant_id: tenantId,
       caller_number: fromNumber,
     };
