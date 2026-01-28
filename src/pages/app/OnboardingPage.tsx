@@ -89,12 +89,19 @@ export default function OnboardingPage() {
     aiNeverPromise: [],
   });
 
-  const { user, refreshTenant } = useAuth();
+  const { user, tenant, refreshTenant } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const totalSteps = 8;
   const progress = (step / totalSteps) * 100;
+
+  // Redirect if user already has a tenant (onboarding completed)
+  useEffect(() => {
+    if (tenant) {
+      navigate("/app/dashboard", { replace: true });
+    }
+  }, [tenant, navigate]);
 
   // Initialize data when industry changes
   useEffect(() => {
