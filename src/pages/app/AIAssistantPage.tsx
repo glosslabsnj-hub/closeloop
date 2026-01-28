@@ -7,12 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AIReadinessScore from "@/components/knowledge/AIReadinessScore";
 import KnowledgeGapQueue from "@/components/knowledge/KnowledgeGapQueue";
 import VoiceSelector from "@/components/ai/VoiceSelector";
 import ToneSelector from "@/components/ai/ToneSelector";
 import LiveFAQList from "@/components/ai/LiveFAQList";
+import VoiceAgentTest from "@/components/ai/VoiceAgentTest";
 import {
   Bot,
   Play,
@@ -20,6 +23,7 @@ import {
   MessageSquare,
   HelpCircle,
   AlertTriangle,
+  Settings,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -33,6 +37,7 @@ export default function AIAssistantPage() {
   const [selectedTone, setSelectedTone] = useState<string>("friendly");
   const [greeting, setGreeting] = useState("");
   const [fallback, setFallback] = useState("");
+  const [elevenlabsAgentId, setElevenlabsAgentId] = useState("");
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -58,6 +63,7 @@ export default function AIAssistantPage() {
       setSelectedTone(data.tone);
       setGreeting(data.greeting_script || '');
       setFallback(data.fallback_script || '');
+      setElevenlabsAgentId((data as any).elevenlabs_agent_id || '');
     } else {
       // Set defaults from context
       setGreeting(`Hi, thank you for calling ${tenant.name}! How can I help you today?`);
@@ -99,6 +105,7 @@ export default function AIAssistantPage() {
         tone: selectedTone as any,
         greeting_script: greeting,
         fallback_script: fallback,
+        elevenlabs_agent_id: elevenlabsAgentId || null,
       };
 
       if (existing) {
@@ -175,7 +182,7 @@ export default function AIAssistantPage() {
       </Card>
 
       <Tabs defaultValue="voice" className="w-full">
-        <TabsList className="w-full justify-start">
+        <TabsList className="w-full justify-start flex-wrap">
           <TabsTrigger value="voice" className="gap-2">
             <Mic className="h-4 w-4" />
             Voice & Tone
@@ -191,6 +198,10 @@ export default function AIAssistantPage() {
           <TabsTrigger value="gaps" className="gap-2">
             <AlertTriangle className="h-4 w-4" />
             Knowledge Gaps
+          </TabsTrigger>
+          <TabsTrigger value="agent" className="gap-2">
+            <Settings className="h-4 w-4" />
+            Agent Config
           </TabsTrigger>
         </TabsList>
 
@@ -243,6 +254,55 @@ export default function AIAssistantPage() {
         {/* Knowledge Gaps Tab */}
         <TabsContent value="gaps" className="space-y-6">
           <KnowledgeGapQueue />
+        </TabsContent>
+
+        {/* Agent Config Tab */}
+        <TabsContent value="agent" className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">ElevenLabs Agent</CardTitle>
+                <CardDescription>
+                  Connect your ElevenLabs Conversational AI agent to enable voice calls
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="agent-id">Agent ID</Label>
+                  <Input
+                    id="agent-id"
+                    placeholder="Enter your ElevenLabs Agent ID"
+                    value={elevenlabsAgentId}
+                    onChange={(e) => setElevenlabsAgentId(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Create an agent at{" "}
+                    <a
+                      href="https://elevenlabs.io/conversational-ai"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary underline"
+                    >
+                      ElevenLabs Conversational AI
+                    </a>
+                    {" "}and paste the Agent ID here.
+                  </p>
+                </div>
+
+                <div className="rounded-lg border bg-muted/50 p-4 space-y-2">
+                  <p className="text-sm font-medium">Agent Setup Tips:</p>
+                  <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
+                    <li>Use the system prompt from your business context</li>
+                    <li>Enable "Allow Interruptions" for natural conversations</li>
+                    <li>Set up client tools for booking and callbacks</li>
+                    <li>Test with the simulator before going live</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+
+            <VoiceAgentTest agentId={elevenlabsAgentId} />
+          </div>
         </TabsContent>
       </Tabs>
 

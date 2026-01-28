@@ -17,6 +17,7 @@ export type Database = {
       ai_assistants: {
         Row: {
           created_at: string
+          elevenlabs_agent_id: string | null
           fallback_script: string | null
           greeting_script: string | null
           id: string
@@ -28,6 +29,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          elevenlabs_agent_id?: string | null
           fallback_script?: string | null
           greeting_script?: string | null
           id?: string
@@ -39,6 +41,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          elevenlabs_agent_id?: string | null
           fallback_script?: string | null
           greeting_script?: string | null
           id?: string
