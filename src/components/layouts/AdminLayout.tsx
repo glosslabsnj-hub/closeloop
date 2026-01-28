@@ -17,6 +17,7 @@ import {
   Shield,
   Settings,
   Music,
+  ClipboardCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
@@ -25,6 +26,7 @@ const navItems = [
   { href: "/admin/overview", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/tenants", label: "Tenants", icon: Building2 },
   { href: "/admin/demo-library", label: "Demo Library", icon: Music },
+  { href: "/admin/golden-path", label: "Golden Path QA", icon: ClipboardCheck },
   { href: "/admin/support", label: "Support", icon: HeadphonesIcon },
 ];
 
@@ -121,7 +123,7 @@ export function AdminLayout() {
 
         {/* Mobile Nav */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t bg-background">
-          <div className="grid grid-cols-4 h-16">
+          <div className="grid grid-cols-5 h-16">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.href;
@@ -135,7 +137,7 @@ export function AdminLayout() {
                   )}
                 >
                   <Icon className="h-5 w-5" />
-                  <span>{item.label}</span>
+                  <span className="truncate max-w-[60px]">{item.label}</span>
                 </Link>
               );
             })}
