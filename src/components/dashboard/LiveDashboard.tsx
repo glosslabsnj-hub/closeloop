@@ -6,6 +6,7 @@ import { RecentActivityCard } from "./RecentActivityCard";
 import { QuickLinksCard } from "./QuickLinksCard";
 import { DashboardByMode } from "./DashboardByMode";
 import { GoLiveChecklist } from "./GoLiveChecklist";
+import { UsageThresholdBanner } from "./UsageThresholdBanner";
 import { Copilot, CopilotTrigger } from "./Copilot";
 
 export function LiveDashboard() {
@@ -16,6 +17,9 @@ export function LiveDashboard() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
+      {/* Usage Threshold Warning */}
+      <UsageThresholdBanner threshold={80} />
+
       {/* Go Live Checklist - Show if not live yet */}
       {!isLive && <GoLiveChecklist />}
 
