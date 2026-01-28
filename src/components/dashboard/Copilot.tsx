@@ -6,11 +6,17 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { 
   Bot, Send, X, Minimize2, Maximize2, 
-  ExternalLink, Sparkles, HelpCircle
+  ExternalLink, Sparkles, HelpCircle, RefreshCw, Loader2
 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useBusinessContext } from "@/hooks/useBusinessContext";
 import { Link } from "react-router-dom";
+import { 
+  useCopilotContext, 
+  CopilotContext,
+  getPhoneStatusMessage,
+  getReadinessMessage,
+  getHandoffStatusMessage,
+  isFeatureEnabled,
+} from "@/hooks/useCopilotContext";
 
 interface Message {
   role: 'assistant' | 'user';
@@ -20,327 +26,370 @@ interface Message {
   nextActions?: string[];
 }
 
-// Navigation map with exact paths
-const dashboardNavMap: Record<string, { path: string; tab?: string; description: string }> = {
-  'menu': { path: '/app/menu', description: 'Menu Center' },
-  'services': { path: '/app/services', description: 'Services' },
-  'bookings': { path: '/app/bookings', description: 'Bookings' },
-  'booking delivery': { path: '/app/settings', tab: 'booking', description: 'Settings → Booking Delivery' },
-  'orders': { path: '/app/orders', description: 'Orders' },
-  'order delivery': { path: '/app/settings', tab: 'food', description: 'Settings → Food → Order Delivery' },
-  'dispatch': { path: '/app/dispatch', description: 'Dispatch' },
-  'dispatch delivery': { path: '/app/settings', tab: 'dispatch', description: 'Settings → Dispatch Delivery' },
-  'calls': { path: '/app/calls', description: 'Calls' },
-  'inbox': { path: '/app/inbox', description: 'Inbox' },
-  'leads': { path: '/app/leads', description: 'Leads' },
-  'settings': { path: '/app/settings', description: 'Settings' },
-  'phone': { path: '/app/settings', tab: 'phone', description: 'Settings → Phone' },
-  'brain': { path: '/app/brain', description: 'Business Brain' },
-  'usage': { path: '/app/usage', description: 'Usage' },
-  'simulator': { path: '/app/simulator', description: 'Simulator' },
-  'reservations': { path: '/app/reservations', description: 'Reservations' },
-  'catering': { path: '/app/catering', description: 'Catering' },
-  'medical': { path: '/app/medical-intake', description: 'Medical Intake' },
-  'hipaa': { path: '/app/settings', tab: 'medical', description: 'Settings → Medical/HIPAA' },
-};
-
-// Troubleshooting playbook
-const troubleshootingPlaybook: Record<string, { answer: string; steps: string[]; links?: { label: string; path: string }[] }> = {
-  'call failed': {
-    answer: "Call failures usually mean the phone isn't connected or there's a webhook issue.",
-    steps: [
-      "Go to Settings → Phone and verify your number is connected",
-      "Check that connect_status shows 'connected'",
-      "If using forwarding, confirm your carrier forwarding is active",
-    ],
-    links: [{ label: 'Go to Settings → Phone', path: '/app/settings' }],
-  },
-  'ai said none': {
-    answer: "The AI is missing business data. Your Business Brain needs more information.",
-    steps: [
-      "Go to Business Brain",
-      "Check your readiness score at the top",
-      "Fill in any missing fields (name, hours, services)",
-    ],
-    links: [{ label: 'Open Business Brain', path: '/app/brain' }],
-  },
-  'wrong name': {
-    answer: "The AI uses your business name from settings. Let's make sure it's set correctly.",
-    steps: [
-      "Go to Business Brain → Identity",
-      "Verify your business name is correct",
-      "Save and run a test call",
-    ],
-    links: [{ label: 'Open Business Brain', path: '/app/brain' }],
-  },
-  'webhook failed': {
-    answer: "Webhook delivery failed. This usually means the endpoint URL is incorrect or unreachable.",
-    steps: [
-      "Go to the relevant delivery settings",
-      "Verify your webhook URL is correct and accessible",
-      "Click 'Retry' on the failed delivery",
-      "Check your endpoint logs for errors",
-    ],
-  },
-  'not printing': {
-    answer: "Order tickets require print delivery to be enabled.",
-    steps: [
-      "Go to Settings → Food → Order Delivery",
-      "Enable 'Auto Print' option",
-      "Configure your print format",
-    ],
-    links: [{ label: 'Go to Settings', path: '/app/settings' }],
-  },
-};
-
-// Knowledge base with structured responses
-const knowledgeBase: Record<string, { answer: string; steps: string[]; links?: { label: string; path: string }[]; nextActions: string[] }> = {
-  'edit menu': {
-    answer: "You can edit your menu in Menu Center.",
-    steps: [
-      "Go to Menu Center from the sidebar",
-      "Click 'Add Item' or edit existing items",
-      "Set name, price, category, and dietary tags",
-      "Save your changes",
-    ],
-    links: [{ label: 'Open Menu Center', path: '/app/menu' }],
-    nextActions: ["Help me add a menu item", "Configure order delivery"],
-  },
-  'edit services': {
-    answer: "Services are managed in the Services page.",
-    steps: [
-      "Go to Services from the sidebar",
-      "Click 'Add Service' or edit existing",
-      "Set name, duration, price, and deposit requirements",
-      "Save your changes",
-    ],
-    links: [{ label: 'Open Services', path: '/app/services' }],
-    nextActions: ["Help me configure booking delivery", "Set up availability"],
-  },
-  'booking delivery': {
-    answer: "Bookings can be delivered via email, SMS, or webhook.",
-    steps: [
-      "Go to Settings → Booking Delivery",
-      "Enable your preferred delivery methods",
-      "Enter email/phone for notifications",
-      "Add webhook URL if pushing to external system",
-    ],
-    links: [{ label: 'Go to Settings', path: '/app/settings' }],
-    nextActions: ["Show me my bookings", "Test a booking flow"],
-  },
-  'order delivery': {
-    answer: "Food orders can be printed as tickets or sent via webhook.",
-    steps: [
-      "Go to Settings → Food → Order Delivery",
-      "Enable auto-print and/or webhook",
-      "Set your print format preference",
-      "Test with a sample order",
-    ],
-    links: [{ label: 'Go to Settings', path: '/app/settings' }],
-    nextActions: ["Print a sample ticket", "View my orders"],
-  },
-  'dispatch delivery': {
-    answer: "Dispatch jobs can be sent to your team via SMS or webhook.",
-    steps: [
-      "Go to Settings → Dispatch Delivery",
-      "Enable SMS notifications for urgent jobs",
-      "Add webhook URL if using dispatch software",
-    ],
-    links: [{ label: 'Go to Settings', path: '/app/settings' }],
-    nextActions: ["View dispatch queue", "Configure urgency levels"],
-  },
-  'test': {
-    answer: "You can test your AI in the Simulator.",
-    steps: [
-      "Go to Simulator from the sidebar",
-      "Choose 'Test Call' or 'Test SMS'",
-      "Run through a sample conversation",
-      "Check that the AI responds correctly",
-    ],
-    links: [{ label: 'Open Simulator', path: '/app/simulator' }],
-    nextActions: ["Check my readiness score", "Edit AI knowledge"],
-  },
-  'phone': {
-    answer: "Your AI phone number is configured in Settings.",
-    steps: [
-      "Go to Settings → Phone",
-      "View your assigned number or connect one",
-      "Choose forwarding method if needed",
-    ],
-    links: [{ label: 'Go to Settings', path: '/app/settings' }],
-    nextActions: ["Test my phone connection", "Run a test call"],
-  },
-  'readiness': {
-    answer: "Your AI readiness score shows how well-prepared your Business Brain is.",
-    steps: [
-      "Go to Business Brain",
-      "View your score at the top (0-100)",
-      "Fill in missing sections to improve it",
-    ],
-    links: [{ label: 'Open Business Brain', path: '/app/brain' }],
-    nextActions: ["What's missing from my setup?", "Run a test call"],
-  },
-  'faq': {
-    answer: "FAQs help the AI answer common customer questions.",
-    steps: [
-      "Go to Business Brain → FAQs",
-      "Add questions customers frequently ask",
-      "Provide clear, accurate answers",
-    ],
-    links: [{ label: 'Open Business Brain', path: '/app/brain' }],
-    nextActions: ["Add more FAQs", "Edit objection responses"],
-  },
-  'hipaa': {
-    answer: "HIPAA mode minimizes stored data for medical compliance.",
-    steps: [
-      "Go to Settings → Medical/HIPAA",
-      "Review storage settings (recordings/transcripts are OFF by default)",
-      "Configure retention policies as needed",
-    ],
-    links: [{ label: 'Go to Settings', path: '/app/settings' }],
-    nextActions: ["View medical intakes", "Check compliance settings"],
-  },
-};
-
-function generateResponse(query: string, businessMode: string | undefined, tenant: any): Message {
+// Generate context-aware responses
+function generateResponse(query: string, ctx: CopilotContext): Message {
   const lowerQuery = query.toLowerCase();
-  
-  // Check troubleshooting first
-  for (const [pattern, response] of Object.entries(troubleshootingPlaybook)) {
-    if (lowerQuery.includes(pattern) || 
-        (pattern === 'call failed' && (lowerQuery.includes('call') && (lowerQuery.includes('fail') || lowerQuery.includes("didn't") || lowerQuery.includes('not working')))) ||
-        (pattern === 'ai said none' && (lowerQuery.includes('none') || lowerQuery.includes('placeholder'))) ||
-        (pattern === 'webhook failed' && (lowerQuery.includes('webhook') && lowerQuery.includes('fail')))) {
-      return {
-        role: 'assistant',
-        content: response.answer,
-        steps: response.steps,
-        links: response.links,
-        nextActions: ["Run a test call", "Check my readiness score"],
-      };
+  const mode = ctx.tenant.business_mode;
+  const businessName = ctx.tenant.business_name || "your business";
+
+  // === TROUBLESHOOTING: Call issues ===
+  if (lowerQuery.includes('call') && (lowerQuery.includes('fail') || lowerQuery.includes("didn't") || lowerQuery.includes('not working') || lowerQuery.includes('start'))) {
+    const phoneStatus = getPhoneStatusMessage(ctx);
+    const steps = [];
+    const links: { label: string; path: string }[] = [];
+
+    if (!ctx.phone.assigned_number) {
+      steps.push("Go to Settings → Phone", "Request a phone number", "Complete the forwarding setup");
+      links.push({ label: "Go to Settings → Phone", path: "/app/settings" });
+    } else if (!ctx.phone.is_connected) {
+      steps.push(
+        "Go to Settings → Phone",
+        `Your number ${ctx.phone.assigned_number} is assigned but not connected`,
+        "Follow the carrier forwarding instructions",
+        "Verify the forwarding is active"
+      );
+      links.push({ label: "Go to Settings → Phone", path: "/app/settings" });
+    } else {
+      steps.push(
+        "Your phone appears connected — run a test call in Simulator",
+        "Check Calls page for recent activity",
+        "If still failing, check your AI readiness score"
+      );
+      links.push(
+        { label: "Open Simulator", path: "/app/simulator" },
+        { label: "View Calls", path: "/app/calls" }
+      );
     }
+
+    return {
+      role: 'assistant',
+      content: phoneStatus,
+      steps,
+      links,
+      nextActions: ["Run a test call", "Check my readiness score"],
+    };
   }
 
-  // Check knowledge base
-  for (const [topic, response] of Object.entries(knowledgeBase)) {
-    const keywords = topic.split(' ');
-    const matches = keywords.every(kw => lowerQuery.includes(kw));
-    if (matches) {
-      return {
-        role: 'assistant',
-        content: response.answer,
-        steps: response.steps,
-        links: response.links,
-        nextActions: response.nextActions,
-      };
-    }
+  // === TROUBLESHOOTING: AI said None / wrong info ===
+  if (lowerQuery.includes('none') || lowerQuery.includes('placeholder') || lowerQuery.includes('wrong name') || lowerQuery.includes('wrong business')) {
+    const readiness = getReadinessMessage(ctx);
+    return {
+      role: 'assistant',
+      content: readiness,
+      steps: [
+        "Go to Business Brain",
+        ctx.setup.missing_critical_fields.length > 0 
+          ? `Fill in: ${ctx.setup.missing_critical_fields.slice(0, 3).join(", ")}`
+          : "Review your business info is correct",
+        "Save and run a test call to verify"
+      ],
+      links: [{ label: "Open Business Brain", path: "/app/brain" }],
+      nextActions: ["Run a test call", "What else is missing?"],
+    };
   }
 
-  // Navigation requests
-  for (const [key, nav] of Object.entries(dashboardNavMap)) {
-    if (lowerQuery.includes(key) && (lowerQuery.includes('where') || lowerQuery.includes('find') || lowerQuery.includes('go') || lowerQuery.includes('open'))) {
-      return {
-        role: 'assistant',
-        content: `You'll find that in ${nav.description}.`,
-        steps: [`Go to ${nav.description}`, 'Make your changes', 'Save when done'],
-        links: [{ label: `Go to ${nav.description}`, path: nav.path }],
-        nextActions: ["Help me configure this", "Show me something else"],
-      };
-    }
+  // === TROUBLESHOOTING: Webhook failed ===
+  if (lowerQuery.includes('webhook') && (lowerQuery.includes('fail') || lowerQuery.includes('error') || lowerQuery.includes('not working'))) {
+    const deliveryType = mode === 'food' ? 'orders' : mode === 'dispatch' ? 'dispatch' : 'booking';
+    const handoffStatus = getHandoffStatusMessage(ctx, deliveryType);
+    const settingsPath = mode === 'food' ? '/app/settings' : mode === 'dispatch' ? '/app/settings' : '/app/settings';
+    
+    return {
+      role: 'assistant',
+      content: `Webhook failures usually mean the endpoint URL is incorrect or unreachable. ${handoffStatus}`,
+      steps: [
+        `Go to Settings → ${mode === 'food' ? 'Food → Order Delivery' : mode === 'dispatch' ? 'Dispatch Delivery' : 'Booking Delivery'}`,
+        "Verify your webhook URL is correct and publicly accessible",
+        "Click 'Retry' on any failed deliveries",
+        "Check your endpoint logs for errors"
+      ],
+      links: [{ label: "Go to Settings", path: settingsPath }],
+      nextActions: ["Show me recent activity", "Test the webhook"],
+    };
   }
 
-  // Mode-specific how it works
-  if (lowerQuery.includes('how') && (lowerQuery.includes('work') || lowerQuery.includes('does'))) {
-    if (businessMode === 'food') {
+  // === HOW TO: Push bookings/orders to system ===
+  if ((lowerQuery.includes('push') || lowerQuery.includes('send') || lowerQuery.includes('deliver')) && 
+      (lowerQuery.includes('booking') || lowerQuery.includes('order') || lowerQuery.includes('dispatch') || lowerQuery.includes('system') || lowerQuery.includes('crm'))) {
+    
+    if (mode === 'food' || lowerQuery.includes('order')) {
+      const orderStatus = getHandoffStatusMessage(ctx, 'orders');
       return {
         role: 'assistant',
-        content: "In Food mode, the AI takes orders, handles reservations, and captures special instructions.",
+        content: orderStatus,
         steps: [
-          "Customer calls → AI takes their order",
-          "Order appears in your Orders page",
-          "You can print tickets or push to POS via webhook",
-          "Mark orders as preparing → ready → completed",
+          "Go to Settings → Food → Order Delivery",
+          "Enable webhook delivery and enter your endpoint URL",
+          "Optionally enable email/SMS notifications",
+          "Enable auto-print if you want kitchen tickets"
+        ],
+        links: [{ label: "Configure Order Delivery", path: "/app/settings" }],
+        nextActions: ["Print a sample ticket", "View my orders"],
+      };
+    }
+    
+    if (mode === 'dispatch' || lowerQuery.includes('dispatch')) {
+      const dispatchStatus = getHandoffStatusMessage(ctx, 'dispatch');
+      return {
+        role: 'assistant',
+        content: dispatchStatus,
+        steps: [
+          "Go to Settings → Dispatch Delivery",
+          "Enable webhook and enter your dispatch software endpoint",
+          "Set urgent SMS phone for high-priority jobs",
+          "Test with a sample job"
+        ],
+        links: [{ label: "Configure Dispatch Delivery", path: "/app/settings" }],
+        nextActions: ["View dispatch queue", "Test a dispatch job"],
+      };
+    }
+    
+    // Default: bookings
+    const bookingStatus = getHandoffStatusMessage(ctx, 'booking');
+    return {
+      role: 'assistant',
+      content: bookingStatus,
+      steps: [
+        "Go to Settings → Booking Delivery",
+        "Enable your preferred delivery methods (webhook, email, SMS)",
+        "Enter your CRM webhook URL if using an external system",
+        "New bookings will be pushed automatically"
+      ],
+      links: [{ label: "Configure Booking Delivery", path: "/app/settings" }],
+      nextActions: ["View my bookings", "Test a booking flow"],
+    };
+  }
+
+  // === WHERE IS: Menu ===
+  if (lowerQuery.includes('menu') && (lowerQuery.includes('where') || lowerQuery.includes('edit') || lowerQuery.includes('find'))) {
+    if (!isFeatureEnabled(ctx, 'menu')) {
+      return {
+        role: 'assistant',
+        content: "Menu Center is only available in Food mode or with the menu_knowledge module enabled.",
+        steps: [
+          "Your current mode is: " + mode,
+          "To enable menu features, switch to Food mode in onboarding",
+          "Or contact support to add the menu_knowledge module"
+        ],
+        nextActions: ["What mode am I in?", "How do I change modes?"],
+      };
+    }
+    return {
+      role: 'assistant',
+      content: "Your menu is managed in Menu Center.",
+      steps: [
+        "Go to Menu Center from the sidebar",
+        "Add items with name, price, category, and dietary tags",
+        "Items marked unavailable won't be offered by the AI"
+      ],
+      links: [{ label: "Open Menu Center", path: "/app/menu" }],
+      nextActions: ["How do orders work?", "Configure order delivery"],
+    };
+  }
+
+  // === FINISH SETUP ===
+  if (lowerQuery.includes('finish setup') || lowerQuery.includes('setup') || lowerQuery.includes('get started')) {
+    const steps = [];
+    const links: { label: string; path: string }[] = [];
+    
+    if (ctx.setup.readiness_score < 50) {
+      steps.push(`Your readiness score is ${ctx.setup.readiness_score}/100 — let's improve it`);
+      if (ctx.setup.missing_critical_fields.length > 0) {
+        steps.push(`Missing: ${ctx.setup.missing_critical_fields.slice(0, 3).join(", ")}`);
+      }
+      links.push({ label: "Open Business Brain", path: "/app/brain" });
+    }
+    
+    if (!ctx.phone.is_connected) {
+      steps.push("Connect your phone number in Settings → Phone");
+      links.push({ label: "Go to Settings → Phone", path: "/app/settings" });
+    }
+    
+    steps.push("Run a test call in Simulator to verify everything works");
+    links.push({ label: "Open Simulator", path: "/app/simulator" });
+    
+    return {
+      role: 'assistant',
+      content: `Let's finish setting up ${businessName}.`,
+      steps,
+      links,
+      nextActions: ["Check readiness score", "Test my AI"],
+    };
+  }
+
+  // === TEST CALLS ===
+  if (lowerQuery.includes('test') && (lowerQuery.includes('call') || lowerQuery.includes('ai') || lowerQuery.includes('text'))) {
+    return {
+      role: 'assistant',
+      content: "You can test your AI in the Simulator without using real minutes.",
+      steps: [
+        "Go to Simulator from the sidebar",
+        "Choose 'Test Call' or 'Test SMS'",
+        "Run through a sample conversation",
+        "Check that responses match your business info"
+      ],
+      links: [{ label: "Open Simulator", path: "/app/simulator" }],
+      nextActions: ["Check my readiness score", "View recent calls"],
+    };
+  }
+
+  // === READINESS / WHAT'S MISSING ===
+  if (lowerQuery.includes('readiness') || lowerQuery.includes('missing') || lowerQuery.includes('score')) {
+    const readiness = getReadinessMessage(ctx);
+    return {
+      role: 'assistant',
+      content: readiness,
+      steps: ctx.setup.missing_critical_fields.length > 0
+        ? ctx.setup.missing_critical_fields.map((f, i) => `${i + 1}. Add: ${f}`)
+        : ["Your setup looks complete!", "Run a test call to verify"],
+      links: [{ label: "Open Business Brain", path: "/app/brain" }],
+      nextActions: ["Run a test call", "How does my mode work?"],
+    };
+  }
+
+  // === HOW DOES THIS WORK (mode-specific) ===
+  if (lowerQuery.includes('how') && (lowerQuery.includes('work') || lowerQuery.includes('does'))) {
+    if (mode === 'food') {
+      return {
+        role: 'assistant',
+        content: `In Food mode, the AI takes orders by phone and captures special instructions.`,
+        steps: [
+          "Customer calls → AI greets and takes order",
+          "Order appears in Orders page",
+          ctx.handoff.orders.auto_print ? "Tickets auto-print to your kitchen" : "Configure auto-print in Settings → Food",
+          "Mark orders: preparing → ready → completed"
         ],
         links: [
-          { label: 'View Orders', path: '/app/orders' },
-          { label: 'Menu Center', path: '/app/menu' },
+          { label: "View Orders", path: "/app/orders" },
+          { label: "Menu Center", path: "/app/menu" },
         ],
         nextActions: ["Configure order delivery", "Edit my menu"],
       };
     }
-    if (businessMode === 'dispatch') {
+    if (mode === 'dispatch') {
       return {
         role: 'assistant',
-        content: "In Dispatch mode, the AI captures location and urgency first, then creates a job.",
+        content: `In Dispatch mode, the AI captures location and urgency first, then creates a job.`,
         steps: [
           "Customer calls → AI asks for location and situation",
           "Job appears in Dispatch queue with priority",
           "Assign to crew/vehicle",
-          "Track status: dispatched → arrived → completed",
+          "Track: dispatched → arrived → completed"
         ],
-        links: [{ label: 'View Dispatch', path: '/app/dispatch' }],
+        links: [{ label: "View Dispatch", path: "/app/dispatch" }],
         nextActions: ["Configure dispatch delivery", "View dispatch queue"],
       };
     }
-    if (businessMode === 'medical') {
+    if (mode === 'medical') {
       return {
         role: 'assistant',
-        content: "In Medical mode, the AI handles intake calls with HIPAA-ready features. It collects reason for visit and scheduling preferences without giving medical advice.",
+        content: `In Medical mode, the AI handles intake calls with HIPAA-ready features.`,
         steps: [
           "Patient calls → AI captures reason for visit",
-          "Collects insurance info and preferred timing",
-          "Creates intake record (HIPAA mode minimizes stored data)",
-          "Staff reviews and schedules appointment",
+          "Collects insurance and preferred timing",
+          ctx.hipaa_mode ? "HIPAA mode minimizes stored data" : "Consider enabling HIPAA mode in Settings",
+          "Staff reviews and schedules appointment"
         ],
-        links: [{ label: 'View Intakes', path: '/app/medical-intake' }],
+        links: [{ label: "View Intakes", path: "/app/medical-intake" }],
         nextActions: ["Configure HIPAA settings", "View intakes"],
       };
     }
-    // Default service mode
+    // Service mode default
     return {
       role: 'assistant',
-      content: "The AI answers calls, captures customer info, and pushes them to book.",
+      content: `The AI answers calls for ${businessName}, qualifies leads, and pushes to book.`,
       steps: [
         "Customer calls → AI greets and qualifies",
         "Captures name, phone, service interest",
-        "Sends booking link or creates appointment",
-        "You see the lead/booking in your dashboard",
+        ctx.handoff.booking.enabled ? "Bookings are delivered via " + (ctx.handoff.booking.has_webhook ? "webhook" : "email/SMS") : "Configure booking delivery in Settings",
+        "View leads and bookings in dashboard"
       ],
       links: [
-        { label: 'View Bookings', path: '/app/bookings' },
-        { label: 'View Leads', path: '/app/leads' },
+        { label: "View Bookings", path: "/app/bookings" },
+        { label: "View Leads", path: "/app/leads" },
       ],
       nextActions: ["Configure booking delivery", "Test a call"],
     };
   }
 
-  // What can I do / help
-  if (lowerQuery.includes('what can') || lowerQuery.includes('help')) {
-    const modeSpecific = businessMode === 'food' ? 'orders, menu, reservations' :
-                        businessMode === 'dispatch' ? 'dispatch queue, jobs, urgency' :
-                        businessMode === 'medical' ? 'intakes, HIPAA settings' :
-                        'bookings, services, leads';
+  // === PHONE STATUS ===
+  if (lowerQuery.includes('phone') || lowerQuery.includes('number') || lowerQuery.includes('connected')) {
+    const phoneStatus = getPhoneStatusMessage(ctx);
     return {
       role: 'assistant',
-      content: "I can help you navigate the dashboard and troubleshoot issues.",
-      steps: [
-        `Your mode: ${businessMode || 'service'} (${modeSpecific})`,
-        "Ask where to find something",
-        "Ask how to configure delivery",
-        "Report an issue for troubleshooting",
-      ],
-      nextActions: ["How does this work?", "Run a test call", "Check my readiness"],
+      content: phoneStatus,
+      steps: ctx.phone.is_connected
+        ? ["Your phone is ready", "Run a test call to verify", "Check Calls page for activity"]
+        : ["Go to Settings → Phone", "Complete the connection setup", "Verify carrier forwarding if needed"],
+      links: [{ label: "Go to Settings → Phone", path: "/app/settings" }],
+      nextActions: ["Run a test call", "Check my readiness"],
     };
   }
 
-  // Default fallback
+  // === RECENT ACTIVITY ===
+  if (lowerQuery.includes('recent') || lowerQuery.includes('activity') || lowerQuery.includes('last')) {
+    const activity = ctx.recent_activity;
+    const summary: string[] = [];
+    
+    if (activity.calls.length > 0) {
+      summary.push(`${activity.calls.length} recent calls`);
+    }
+    if (activity.bookings.length > 0) {
+      summary.push(`${activity.bookings.length} recent bookings`);
+    }
+    if (activity.orders.length > 0) {
+      summary.push(`${activity.orders.length} recent orders`);
+    }
+    if (activity.dispatch_jobs.length > 0) {
+      summary.push(`${activity.dispatch_jobs.length} recent dispatch jobs`);
+    }
+    
+    const relevantPath = mode === 'food' ? '/app/orders' 
+      : mode === 'dispatch' ? '/app/dispatch' 
+      : '/app/bookings';
+    const relevantLabel = mode === 'food' ? 'View Orders' 
+      : mode === 'dispatch' ? 'View Dispatch' 
+      : 'View Bookings';
+    
+    return {
+      role: 'assistant',
+      content: summary.length > 0 ? `Recent activity: ${summary.join(", ")}.` : "No recent activity yet.",
+      links: [
+        { label: "View Calls", path: "/app/calls" },
+        { label: relevantLabel, path: relevantPath },
+      ],
+      nextActions: ["Run a test call", "Check my readiness"],
+    };
+  }
+
+  // === TROUBLESHOOT SOMETHING ===
+  if (lowerQuery.includes('troubleshoot')) {
+    return {
+      role: 'assistant',
+      content: "I can help troubleshoot. What's the issue?",
+      steps: [
+        "Call didn't start or failed",
+        "AI said wrong information or 'None'",
+        "Webhook delivery failed",
+        "Something else"
+      ],
+      nextActions: ["Call failed", "AI said wrong info", "Webhook failed"],
+    };
+  }
+
+  // === DEFAULT FALLBACK ===
+  const modeFeatures = mode === 'food' ? 'orders, menu, reservations' :
+                       mode === 'dispatch' ? 'dispatch queue, jobs' :
+                       mode === 'medical' ? 'intakes, HIPAA settings' :
+                       'bookings, services, leads';
+  
   return {
     role: 'assistant',
-    content: "I'm here to help you use CloseLoop. Try asking about a specific feature.",
+    content: `I'm here to help you use CloseLoop. You're in ${mode} mode (${modeFeatures}).`,
     steps: [
       "Ask 'Where is [feature]?' to navigate",
-      "Ask 'How do I [task]?' for instructions",
-      "Report issues like 'Call failed' or 'Webhook not working'",
+      "Ask 'How do I [task]?' for step-by-step help",
+      "Report issues like 'Call failed' or 'Webhook not working'"
     ],
     nextActions: ["How does my mode work?", "Test my AI", "Check readiness score"],
   };
@@ -352,33 +401,37 @@ interface CopilotProps {
 }
 
 export function Copilot({ isOpen, onClose }: CopilotProps) {
-  const { tenant } = useAuth();
-  const { context } = useBusinessContext(tenant?.id || null);
+  const { context, loading, refetch } = useCopilotContext();
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const businessMode = tenant?.business_mode;
+  const mode = context.tenant.business_mode;
 
   // Mode-aware quick actions
-  const quickActions = businessMode === 'food' 
+  const quickActions = mode === 'food' 
     ? ['Where are my orders?', 'How do I print tickets?', 'Edit my menu']
-    : businessMode === 'dispatch'
-    ? ['View dispatch queue', 'Configure urgency', 'Test a call']
-    : businessMode === 'medical'
+    : mode === 'dispatch'
+    ? ['View dispatch queue', 'Configure delivery', 'Test a call']
+    : mode === 'medical'
     ? ['View intakes', 'HIPAA settings', 'Test a call']
-    : ['Where are bookings?', 'How do I test AI?', 'Edit services'];
+    : ['Where are bookings?', 'How do I test AI?', 'Check readiness'];
 
+  // Initial greeting with tenant-aware options
   useEffect(() => {
-    if (isOpen && messages.length === 0) {
+    if (isOpen && messages.length === 0 && !loading) {
+      const readinessHint = context.setup.readiness_score < 50 
+        ? `Your setup is ${context.setup.readiness_score}% complete.` 
+        : "";
+      
       setMessages([{
         role: 'assistant',
-        content: "What are you trying to do right now?",
+        content: `What are you trying to do right now?${readinessHint ? ` ${readinessHint}` : ""}`,
         nextActions: ["Finish setup", "Test calls", "Push bookings/orders to my system", "Troubleshoot something"],
       }]);
     }
-  }, [isOpen]);
+  }, [isOpen, loading, context.setup.readiness_score]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -393,7 +446,7 @@ export function Copilot({ isOpen, onClose }: CopilotProps) {
     const userMessage: Message = { role: 'user', content: messageText };
     setMessages(prev => [...prev, userMessage]);
     
-    const response = generateResponse(messageText, businessMode, tenant);
+    const response = generateResponse(messageText, context);
     setTimeout(() => {
       setMessages(prev => [...prev, response]);
     }, 300);
@@ -411,19 +464,34 @@ export function Copilot({ isOpen, onClose }: CopilotProps) {
       <CardHeader className="p-3 border-b flex flex-row items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-            <Sparkles className="h-4 w-4 text-primary" />
+            {loading ? (
+              <Loader2 className="h-4 w-4 text-primary animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4 text-primary" />
+            )}
           </div>
           <div>
             <CardTitle className="text-sm flex items-center gap-2">
               Copilot
-              <Badge variant="secondary" className="text-xs">AI</Badge>
+              <Badge variant="secondary" className="text-xs">{mode}</Badge>
             </CardTitle>
             {!isMinimized && (
-              <p className="text-xs text-muted-foreground">Dashboard assistant</p>
+              <p className="text-xs text-muted-foreground">
+                {context.tenant.business_name || "Dashboard assistant"}
+              </p>
             )}
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-7 w-7"
+            onClick={refetch}
+            title="Refresh context"
+          >
+            <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
           <Button 
             variant="ghost" 
             size="icon" 
