@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useModuleRequired } from "@/hooks/useModuleRequired";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,11 +20,15 @@ import {
   Edit2, 
   Trash2, 
   DollarSign,
-  Clock
+  Clock,
+  Loader2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function MenuCenterPage() {
+  // P0-3: Route protection - redirect if menu_knowledge module not enabled
+  const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["menu_knowledge"]);
+  
   const { tenant } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -138,6 +143,15 @@ export default function MenuCenterPage() {
 
   // Group items by category
   const categories = [...new Set(menuItems?.map(item => item.category || "Uncategorized") || [])];
+
+  // Show loading while checking module access
+  if (moduleLoading || !isAllowed) {
+    return (
+      <div className="p-6 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

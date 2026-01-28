@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useBookings, BookingWithDetails } from "@/hooks/useBookings";
+import { useModuleRequired } from "@/hooks/useModuleRequired";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -68,12 +69,24 @@ function BookingCard({ booking }: { booking: BookingWithDetails }) {
 }
 
 export default function BookingsPage() {
+  // P0-3: Route protection - redirect if booking module not enabled
+  const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["booking"]);
+  
   const { bookings, isLoading, stats } = useBookings();
   const [date, setDate] = useState<Date | undefined>(new Date());
 
   const selectedDayBookings = bookings.filter((b) =>
     date ? isSameDay(new Date(b.start_at), date) : false
   );
+
+  // Show loading while checking module access
+  if (moduleLoading || !isAllowed) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   const upcomingBookings = bookings.filter(
     (b) => new Date(b.start_at) >= new Date() && b.status !== "completed" && b.status !== "canceled"
