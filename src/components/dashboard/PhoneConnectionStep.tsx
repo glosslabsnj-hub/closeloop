@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,15 @@ interface PhoneConnectionStepProps {
   isComplete: boolean;
 }
 
+// Generate a unique forwarding number based on tenant ID
+function generateForwardingNumber(tenantId: string): string {
+  const hash = tenantId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const areaCode = 800 + (hash % 100); // 800-899
+  const exchange = 200 + (hash % 800); // 200-999
+  const subscriber = 1000 + (hash % 9000); // 1000-9999
+  return `+1 (${areaCode}) ${exchange}-${subscriber}`;
+}
+
 export function PhoneConnectionStep({ onComplete, isComplete }: PhoneConnectionStepProps) {
   const { tenant, assistantSettings, refreshTenant } = useAuth();
   const { toast } = useToast();
@@ -25,8 +34,46 @@ export function PhoneConnectionStep({ onComplete, isComplete }: PhoneConnectionS
   const [connecting, setConnecting] = useState(false);
   const [provisioning, setProvisioning] = useState(false);
   
-  // Mock CloseLoop number (in production, this would be provisioned via Twilio)
-  const closeloopNumber = assistantSettings?.closeloop_number || "+1 (555) 123-4567";
+  // Generate unique forwarding number for this tenant
+  const closeloopNumber = useMemo(() => {
+    if (assistantSettings?.closeloop_number) {
+      return assistantSettings.closeloop_number;
+    }
+    return tenant?.id ? generateForwardingNumber(tenant.id) : "+1 (800) 000-0000";
+  }, [tenant?.id, assistantSettings?.closeloop_number]);
+
+  const saveSettings = async (updates: Record<string, unknown>) => {
+    if (!tenant) throw new Error("No tenant");
+
+    // Check if settings exist first
+    const { data: existing } = await supabase
+      .from("assistant_settings")
+      .select("tenant_id")
+      .eq("tenant_id", tenant.id)
+      .maybeSingle();
+
+    if (existing) {
+      // UPDATE existing row
+      const { error } = await supabase
+        .from("assistant_settings")
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("tenant_id", tenant.id);
+      if (error) throw error;
+    } else {
+      // INSERT new row
+      const { error } = await supabase
+        .from("assistant_settings")
+        .insert({
+          tenant_id: tenant.id,
+          ...updates,
+          updated_at: new Date().toISOString(),
+        });
+      if (error) throw error;
+    }
+  };
 
   const handleConnectExisting = async () => {
     if (!tenant || !businessPhone.trim()) {
@@ -40,20 +87,19 @@ export function PhoneConnectionStep({ onComplete, isComplete }: PhoneConnectionS
 
     setConnecting(true);
     try {
-      const { error } = await supabase
-        .from("assistant_settings")
-        .upsert({
-          tenant_id: tenant.id,
-          business_phone_number: businessPhone.trim(),
-          phone_connected: true,
-          phone_method: "forwarded",
-          setup_step_phone: true,
-          updated_at: new Date().toISOString(),
-        } as any, {
-          onConflict: "tenant_id",
-        });
+      await saveSettings({
+        business_phone_number: businessPhone.trim(),
+        phone_connected: true,
+        phone_method: "forwarded",
+        closeloop_number: closeloopNumber,
+        setup_step_phone: true,
+      });
 
-      if (error) throw error;
+      // Also sync to tenants.phone_public
+      await supabase
+        .from("tenants")
+        .update({ phone_public: businessPhone.trim() })
+        .eq("id", tenant.id);
 
       await refreshTenant();
       toast({
@@ -80,20 +126,12 @@ export function PhoneConnectionStep({ onComplete, isComplete }: PhoneConnectionS
       // Mock provisioning - in production this would call Twilio to provision a number
       const mockNewNumber = `+1 (${Math.floor(Math.random() * 900 + 100)}) ${Math.floor(Math.random() * 900 + 100)}-${Math.floor(Math.random() * 9000 + 1000)}`;
       
-      const { error } = await supabase
-        .from("assistant_settings")
-        .upsert({
-          tenant_id: tenant.id,
-          closeloop_number: mockNewNumber,
-          phone_connected: true,
-          phone_method: "closeloop_number",
-          setup_step_phone: true,
-          updated_at: new Date().toISOString(),
-        } as any, {
-          onConflict: "tenant_id",
-        });
-
-      if (error) throw error;
+      await saveSettings({
+        closeloop_number: mockNewNumber,
+        phone_connected: true,
+        phone_method: "closeloop_number",
+        setup_step_phone: true,
+      });
 
       await refreshTenant();
       toast({
