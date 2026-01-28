@@ -114,7 +114,7 @@ export default function GoLivePage() {
           </div>
           <h1 className="text-4xl font-bold mb-3">Choose Your Plan</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Select the package that fits your business needs. All plans include a 14-day free trial.
+            Select your plan and start your 7-day free trial. You won't be charged until the trial ends.
           </p>
         </div>
 
@@ -126,11 +126,11 @@ export default function GoLivePage() {
           </div>
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
-            <span>14-day free trial</span>
+            <span>7-day free trial</span>
           </div>
           <div className="flex items-center gap-2">
             <Bot className="h-4 w-4" />
-            <span>AI trained on your business</span>
+            <span>No charge until trial ends</span>
           </div>
         </div>
 
@@ -195,15 +195,18 @@ export default function GoLivePage() {
                     {isProcessingThis ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Activating...
+                        Setting up...
                       </>
                     ) : (
                       <>
-                        Start Free Trial
+                        Start 7-Day Free Trial
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </>
                     )}
                   </Button>
+                  <p className="text-xs text-center text-muted-foreground mt-2">
+                    Then ${plan.price}/mo after trial
+                  </p>
                 </CardContent>
               </Card>
             );
@@ -212,9 +215,9 @@ export default function GoLivePage() {
 
         {/* Footer note */}
         <p className="text-center text-sm text-muted-foreground mt-8">
-          By selecting a plan, you agree to our Terms of Service and Privacy Policy.
+          Your card will be securely saved and charged only after your 7-day trial ends.
           <br />
-          Stripe payment integration coming soon — currently using mock checkout.
+          Cancel anytime during the trial — no charges. By continuing, you agree to our Terms of Service.
         </p>
       </div>
     </div>
