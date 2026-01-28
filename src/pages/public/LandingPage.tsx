@@ -89,7 +89,7 @@ export default function LandingPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/signup">
                 <Button size="lg" className="w-full sm:w-auto gap-2">
-                  Start Free Trial
+                  Get Started
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
@@ -99,7 +99,7 @@ export default function LandingPage() {
               </Button>
             </div>
             <p className="text-sm text-muted-foreground mt-4">
-              No credit card required • Setup in 60 seconds
+              Setup in 60 seconds • Cancel anytime
             </p>
           </div>
         </div>
@@ -227,7 +227,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/signup">
               <Button size="lg" variant="secondary" className="w-full sm:w-auto gap-2">
-                Start Free Trial
+                Get Started
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
@@ -235,11 +235,11 @@ export default function LandingPage() {
           <div className="flex flex-wrap items-center justify-center gap-6 mt-8 text-sm opacity-90">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4" />
-              No credit card required
+              60-second setup
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4" />
-              60-second setup
+              AI trained on your business
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4" />
