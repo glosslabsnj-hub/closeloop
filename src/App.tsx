@@ -37,6 +37,7 @@ import CateringPage from "@/pages/app/CateringPage";
 import MenuCenterPage from "@/pages/app/MenuCenterPage";
 import DispatchPage from "@/pages/app/DispatchPage";
 import MedicalIntakePage from "@/pages/app/MedicalIntakePage";
+import OrderTicketPage from "@/pages/app/OrderTicketPage";
 
 // Admin Pages
 import AdminOverviewPage from "@/pages/admin/AdminOverviewPage";
@@ -86,6 +87,7 @@ const App = () => (
               <Route path="/app/menu-center" element={<MenuCenterPage />} />
               <Route path="/app/dispatch" element={<DispatchPage />} />
               <Route path="/app/medical-intake" element={<MedicalIntakePage />} />
+              <Route path="/app/orders/:orderId/ticket" element={<OrderTicketPage />} />
             </Route>
 
             {/* Admin Routes */}
