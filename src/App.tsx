@@ -28,6 +28,7 @@ import AIAssistantPage from "@/pages/app/AIAssistantPage";
 import SettingsPage from "@/pages/app/SettingsPage";
 import SimulatorPage from "@/pages/app/SimulatorPage";
 import GoLivePage from "@/pages/app/GoLivePage";
+import CallsPage from "@/pages/app/CallsPage";
 
 // Module-specific pages
 import OrdersPage from "@/pages/app/OrdersPage";
@@ -70,6 +71,7 @@ const App = () => (
             <Route element={<AppLayout />}>
               <Route path="/app/dashboard" element={<DashboardPage />} />
               <Route path="/app/inbox" element={<InboxPage />} />
+              <Route path="/app/calls" element={<CallsPage />} />
               <Route path="/app/leads" element={<LeadsPage />} />
               <Route path="/app/bookings" element={<BookingsPage />} />
               <Route path="/app/services" element={<ServicesPage />} />

@@ -19,6 +19,7 @@ import {
   Settings,
   LogOut,
   Phone,
+  PhoneCall,
   Bot,
   Zap,
   Briefcase,
@@ -45,6 +46,7 @@ interface NavItem {
 const allNavItems: NavItem[] = [
   { href: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/app/inbox", label: "Inbox", icon: MessageSquare },
+  { href: "/app/calls", label: "Calls", icon: PhoneCall, requiredModules: ["ai_voice"] },
   { href: "/app/leads", label: "Leads", icon: Users },
   { href: "/app/bookings", label: "Bookings", icon: Calendar, requiredModules: ["booking"] },
   { href: "/app/dispatch", label: "Dispatch", icon: Truck, requiredModules: ["dispatch_queue"] },
