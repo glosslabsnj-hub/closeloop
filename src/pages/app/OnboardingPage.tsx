@@ -155,7 +155,20 @@ export default function OnboardingPage() {
     setLoading(true);
 
     try {
-      // Create tenant with all the collected data
+      // Get existing tenant for this user
+      const { data: tenantUser } = await supabase
+        .from("tenant_users")
+        .select("tenant_id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!tenantUser?.tenant_id) {
+        throw new Error("No business account found. Please sign up again.");
+      }
+
+      const tenantId = tenantUser.tenant_id;
+
+      // Update tenant with all the collected data
       const tenantData = {
         name: businessIdentity.businessName,
         tagline: businessIdentity.tagline || null,
@@ -176,43 +189,25 @@ export default function OnboardingPage() {
         refund_policy: policies.refundPolicy || null,
         payment_methods: policies.paymentMethods,
         ai_never_promise: policies.aiNeverPromise,
-        ai_enabled: false,
+        ai_enabled: true,
+        onboarding_completed_at: new Date().toISOString(),
       };
 
-      const { data: tenant, error: tenantError } = await supabase
+      const { error: tenantError } = await supabase
         .from("tenants")
-        .insert(tenantData as any)
-        .select()
-        .single();
+        .update(tenantData as any)
+        .eq("id", tenantId);
 
       if (tenantError) {
-        console.error("Tenant creation error:", tenantError);
-        throw new Error(tenantError.message || "Failed to create business profile");
-      }
-
-      if (!tenant) {
-        throw new Error("Failed to create business profile - no data returned");
-      }
-
-      // Create tenant user
-      const { error: tuError } = await supabase
-        .from("tenant_users")
-        .insert({
-          tenant_id: tenant.id,
-          user_id: user.id,
-          role: "owner",
-        });
-
-      if (tuError) {
-        console.error("Tenant user creation error:", tuError);
-        throw new Error(tuError.message || "Failed to link user to business");
+        console.error("Tenant update error:", tenantError);
+        throw new Error(tenantError.message || "Failed to update business profile");
       }
 
       // Create services
       const servicesToInsert = services
         .filter(s => s.name.trim().length > 0)
         .map(service => ({
-          tenant_id: tenant.id,
+          tenant_id: tenantId,
           name: service.name,
           description: service.description || null,
           duration_minutes: service.duration,
@@ -238,7 +233,7 @@ export default function OnboardingPage() {
       const faqsToInsert = faqs
         .filter(f => f.question.trim().length > 0 && f.answer.trim().length > 0)
         .map((faq, index) => ({
-          tenant_id: tenant.id,
+          tenant_id: tenantId,
           question: faq.question,
           answer: faq.answer,
           priority_weight: index,
@@ -258,7 +253,7 @@ export default function OnboardingPage() {
       const objectionsToInsert = objections
         .filter(o => o.objection.trim().length > 0 && o.response.trim().length > 0)
         .map((obj, index) => ({
-          tenant_id: tenant.id,
+          tenant_id: tenantId,
           objection: obj.objection,
           response: obj.response,
           priority_weight: index,
@@ -277,7 +272,7 @@ export default function OnboardingPage() {
       // Create default automations
       const automationsToInsert = [
         {
-          tenant_id: tenant.id,
+          tenant_id: tenantId,
           name: "Missed Call Follow-up",
           trigger: "missed_call" as const,
           is_enabled: true,
@@ -286,7 +281,7 @@ export default function OnboardingPage() {
           ],
         },
         {
-          tenant_id: tenant.id,
+          tenant_id: tenantId,
           name: "Booking Confirmation",
           trigger: "booking_created" as const,
           is_enabled: true,

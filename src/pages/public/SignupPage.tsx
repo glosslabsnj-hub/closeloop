@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +13,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { signUp } = useAuth();
+  const { signUp, refreshTenant } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -22,6 +23,38 @@ export default function SignupPage() {
 
     try {
       await signUp(email, password);
+      
+      // Get the newly created user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        // Create a minimal tenant for this user
+        const { data: tenant, error: tenantError } = await supabase
+          .from("tenants")
+          .insert({
+            name: "My Business", // Placeholder - will be updated in onboarding
+            industry: "other",
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York",
+          })
+          .select()
+          .single();
+
+        if (tenantError) throw tenantError;
+
+        // Link user to tenant
+        const { error: linkError } = await supabase
+          .from("tenant_users")
+          .insert({
+            tenant_id: tenant.id,
+            user_id: user.id,
+            role: "owner",
+          });
+
+        if (linkError) throw linkError;
+
+        await refreshTenant();
+      }
+
       toast({
         title: "Account created!",
         description: "Choose your plan to get started.",
