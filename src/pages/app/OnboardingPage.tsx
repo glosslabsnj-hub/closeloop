@@ -20,6 +20,7 @@ import FAQEditor, { FAQ } from "@/components/onboarding/FAQEditor";
 import ObjectionEditor, { ObjectionResponse } from "@/components/onboarding/ObjectionEditor";
 import PoliciesEditor, { BusinessPolicies } from "@/components/onboarding/PoliciesEditor";
 import { BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
+import type { PlanCode } from "@/types/database";
 
 const defaultBusinessHours: BusinessHours = {
   monday: { open: "09:00", close: "17:00", closed: false },
@@ -304,15 +305,53 @@ export default function OnboardingPage() {
         console.error("Automations creation error:", autoError);
       }
 
+      // Get the selected plan from sessionStorage (set during signup)
+      const selectedPlan = sessionStorage.getItem("selectedPlan") as PlanCode | null;
+      const planCode: PlanCode = selectedPlan || "voice"; // Default to voice if somehow missing
+
+      // Create subscription with trialing status
+      const { error: subError } = await supabase
+        .from("subscriptions")
+        .insert({
+          tenant_id: tenant.id,
+          plan_code: planCode,
+          status: "trialing",
+          current_period_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 day trial
+        });
+
+      if (subError) {
+        console.error("Subscription creation error:", subError);
+        throw new Error("Failed to activate trial");
+      }
+
+      // Initialize assistant settings based on plan
+      const { error: settingsError } = await supabase.rpc("initialize_assistant_settings", {
+        _tenant_id: tenant.id,
+        _plan_code: planCode,
+      });
+
+      if (settingsError) {
+        console.error("Assistant settings error:", settingsError);
+      }
+
+      // Mark onboarding as complete
+      await supabase
+        .from("tenants")
+        .update({ onboarding_completed_at: new Date().toISOString() })
+        .eq("id", tenant.id);
+
+      // Clear the stored plan
+      sessionStorage.removeItem("selectedPlan");
+
       await refreshTenant();
 
       toast({
-        title: "Almost there! 🎉",
-        description: "Choose your plan to activate your AI assistant.",
+        title: "You're all set! 🎉",
+        description: "Your 7-day free trial has started. Complete the setup checklist to go live.",
       });
 
-      // Redirect to go-live page for plan selection
-      navigate("/app/go-live");
+      // Redirect directly to dashboard
+      navigate("/app/dashboard");
     } catch (error: any) {
       console.error("Onboarding error:", error);
       toast({

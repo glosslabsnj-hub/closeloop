@@ -1,61 +1,5 @@
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { CheckCircle2 } from "lucide-react";
-
-const plans = [
-  {
-    name: "Starter",
-    price: "$99",
-    period: "/month",
-    description: "Perfect for solo operators",
-    features: [
-      "Missed call recovery",
-      "SMS follow-ups",
-      "Basic booking system",
-      "Lead inbox",
-      "1 user",
-      "Email support",
-    ],
-    cta: "Start Free Trial",
-    popular: false,
-  },
-  {
-    name: "Pro",
-    price: "$249",
-    period: "/month",
-    description: "For growing businesses",
-    features: [
-      "Everything in Starter",
-      "AI Voice Assistant",
-      "Live call answering",
-      "Smart automations",
-      "Deposit collection",
-      "Revenue dashboard",
-      "3 users",
-      "Priority support",
-    ],
-    cta: "Start Free Trial",
-    popular: true,
-  },
-  {
-    name: "Enterprise",
-    price: "Custom",
-    period: "",
-    description: "For multi-location businesses",
-    features: [
-      "Everything in Pro",
-      "Unlimited users",
-      "Multi-location support",
-      "Custom integrations",
-      "Dedicated account manager",
-      "SLA guarantee",
-      "White-label options",
-    ],
-    cta: "Contact Sales",
-    popular: false,
-  },
-];
+import { Shield, Clock, CreditCard } from "lucide-react";
+import { PricingCards } from "@/components/pricing/PricingCards";
 
 export default function PricingPage() {
   return (
@@ -64,56 +8,37 @@ export default function PricingPage() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Simple, transparent pricing
+            Choose Your Plan
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            No hidden fees. No contracts. Start free and upgrade when you're ready.
+            Start your 7-day free trial. Enter payment info upfront — you won't be charged until the trial ends.
           </p>
         </div>
 
-        {/* Plans */}
-        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {plans.map((plan) => (
-            <Card
-              key={plan.name}
-              className={`relative ${plan.popular ? "border-primary border-2 shadow-lg" : ""}`}
-            >
-              {plan.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="bg-primary text-primary-foreground text-xs font-medium px-3 py-1 rounded-full">
-                    Most Popular
-                  </span>
-                </div>
-              )}
-              <CardHeader className="text-center pb-4">
-                <CardTitle className="text-xl">{plan.name}</CardTitle>
-                <CardDescription>{plan.description}</CardDescription>
-                <div className="mt-4">
-                  <span className="text-4xl font-bold">{plan.price}</span>
-                  <span className="text-muted-foreground">{plan.period}</span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3 mb-6">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2">
-                      <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                      <span className="text-sm">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link to="/signup">
-                  <Button
-                    className="w-full"
-                    variant={plan.popular ? "default" : "outline"}
-                  >
-                    {plan.cta}
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          ))}
+        {/* Trust badges */}
+        <div className="flex flex-wrap justify-center gap-6 mb-10 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            <span>Cancel anytime</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            <span>7-day free trial</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4" />
+            <span>No charge until trial ends</span>
+          </div>
         </div>
+
+        {/* Plans */}
+        <div className="max-w-5xl mx-auto">
+          <PricingCards linkToSignup />
+        </div>
+
+        <p className="text-center text-sm text-muted-foreground mt-8">
+          Your card will be securely saved and charged only after your 7-day trial ends.
+        </p>
 
         {/* FAQ Section */}
         <div className="mt-20 max-w-3xl mx-auto">
@@ -123,8 +48,8 @@ export default function PricingPage() {
           <div className="space-y-6">
             {[
               {
-                q: "Is there a free trial?",
-                a: "Yes! All plans come with a 14-day free trial. No credit card required to start.",
+                q: "How does the 7-day free trial work?",
+                a: "Select your plan, enter your payment info, and get full access for 7 days. You won't be charged until the trial ends. Cancel anytime before that — no questions asked.",
               },
               {
                 q: "Can I change plans later?",
@@ -137,6 +62,10 @@ export default function PricingPage() {
               {
                 q: "Do you charge per call or message?",
                 a: "No! Our pricing is flat-rate. Unlimited calls and messages are included in all plans.",
+              },
+              {
+                q: "What's the difference between Text-Back and Voice?",
+                a: "Text-Back sends instant SMS replies to missed calls. Voice lets AI actually answer your phone, qualify leads, and book appointments in real-time.",
               },
             ].map((faq) => (
               <div key={faq.q}>
