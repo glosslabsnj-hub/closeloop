@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTenantSettings, useAvailabilitySlots } from "@/hooks/useSettings";
+import { useTenantSettings, useAvailabilitySlots, useAssistantSettings } from "@/hooks/useSettings";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,7 @@ interface HoursState {
 export default function SettingsPage() {
   const { user, signOut, subscription } = useAuth();
   const { tenant, updateTenant, isUpdating } = useTenantSettings();
+  const { settings: assistantSettings, updateSettings, isUpdating: isUpdatingSettings } = useAssistantSettings();
   const { slots, saveSlots, isSaving } = useAvailabilitySlots();
 
   // Business form state
@@ -57,15 +58,23 @@ export default function SettingsPage() {
     return initial;
   });
 
-  // Initialize from tenant
+  // Initialize from tenant and assistant settings
   useEffect(() => {
     if (tenant) {
       setBusinessName(tenant.name || "");
       setTimezone(tenant.timezone || "America/New_York");
-      setPhone(tenant.phone_public || "");
       setTagline(tenant.tagline || "");
     }
   }, [tenant]);
+
+  // Load phone from assistant_settings (primary source) or fall back to tenant
+  useEffect(() => {
+    if (assistantSettings?.business_phone_number) {
+      setPhone(assistantSettings.business_phone_number);
+    } else if (tenant?.phone_public) {
+      setPhone(tenant.phone_public);
+    }
+  }, [assistantSettings, tenant]);
 
   // Initialize hours from slots
   useEffect(() => {
@@ -88,12 +97,20 @@ export default function SettingsPage() {
   }, [slots]);
 
   const handleSaveBusiness = async () => {
+    // Update tenant
     await updateTenant.mutateAsync({
       name: businessName,
       timezone,
       phone_public: phone || null,
       tagline: tagline || null,
     });
+
+    // Also update assistant_settings.business_phone_number to keep in sync
+    if (phone) {
+      await updateSettings.mutateAsync({
+        business_phone_number: phone,
+      });
+    }
   };
 
   const handleSaveHours = async () => {
@@ -115,6 +132,8 @@ export default function SettingsPage() {
     : subscription?.plan_code === "text"
     ? "Text Plan ($99/mo)"
     : "No Plan";
+
+  const isSavingBusiness = isUpdating || isUpdatingSettings;
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -186,8 +205,8 @@ export default function SettingsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button onClick={handleSaveBusiness} disabled={isUpdating}>
-                {isUpdating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              <Button onClick={handleSaveBusiness} disabled={isSavingBusiness}>
+                {isSavingBusiness && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Save Changes
               </Button>
             </CardContent>

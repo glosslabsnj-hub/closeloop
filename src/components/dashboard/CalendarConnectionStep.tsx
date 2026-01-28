@@ -10,7 +10,6 @@ import {
   Calendar, 
   Check, 
   Loader2, 
-  Link2, 
   AlertCircle,
   CalendarDays,
   RefreshCw
@@ -39,7 +38,7 @@ const calendarOptions = [
     name: "Google Calendar", 
     icon: "🔵",
     description: "Sync with your Google Calendar",
-    available: true,
+    available: false, // Coming soon
     oauthRequired: true,
   },
   { 
@@ -67,26 +66,50 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
     (assistantSettings as any)?.ai_booking_mode || 'auto_book'
   );
   const [saving, setSaving] = useState(false);
-  const [connectingOAuth, setConnectingOAuth] = useState(false);
+
+  const saveSettings = async (updates: Record<string, unknown>) => {
+    if (!tenant) throw new Error("No tenant");
+
+    // Check if settings exist first
+    const { data: existing } = await supabase
+      .from("assistant_settings")
+      .select("tenant_id")
+      .eq("tenant_id", tenant.id)
+      .maybeSingle();
+
+    if (existing) {
+      // UPDATE existing row
+      const { error } = await supabase
+        .from("assistant_settings")
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("tenant_id", tenant.id);
+      if (error) throw error;
+    } else {
+      // INSERT new row
+      const { error } = await supabase
+        .from("assistant_settings")
+        .insert({
+          tenant_id: tenant.id,
+          ...updates,
+          updated_at: new Date().toISOString(),
+        });
+      if (error) throw error;
+    }
+  };
 
   const handleSaveCloseLoop = async () => {
     if (!tenant) return;
 
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("assistant_settings")
-        .upsert({
-          tenant_id: tenant.id,
-          calendar_provider: 'closeloop',
-          ai_booking_mode: bookingMode,
-          setup_step_calendar: true,
-          updated_at: new Date().toISOString(),
-        } as any, {
-          onConflict: "tenant_id",
-        });
-
-      if (error) throw error;
+      await saveSettings({
+        calendar_provider: 'closeloop',
+        ai_booking_mode: bookingMode,
+        setup_step_calendar: true,
+      });
 
       // Also update tenant to enable calendar sync
       await supabase
@@ -114,26 +137,40 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
     }
   };
 
-  const handleConnectGoogle = async () => {
-    setConnectingOAuth(true);
-    // TODO: Implement Google OAuth flow
-    // For now, show coming soon message
-    toast({
-      title: "Google Calendar Integration",
-      description: "Google Calendar OAuth will be available soon. For now, use CloseLoop Calendar.",
-    });
-    setConnectingOAuth(false);
+  const handleSkip = async () => {
+    if (!tenant) return;
+
+    setSaving(true);
+    try {
+      await saveSettings({
+        setup_step_calendar: true,
+      });
+
+      await refreshTenant();
+      toast({
+        title: "Calendar Step Skipped",
+        description: "You can set up your calendar later in Settings.",
+      });
+      onSkip?.();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Skip Failed",
+        description: error.message,
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleContinue = () => {
     if (selectedOption === 'closeloop') {
       handleSaveCloseLoop();
-    } else if (selectedOption === 'google') {
-      handleConnectGoogle();
     } else {
+      // All other options are "coming soon" - allow skip
       toast({
         title: "Coming Soon",
-        description: "This calendar integration will be available soon.",
+        description: "This calendar integration will be available soon. You can skip for now or use CloseLoop Calendar.",
       });
     }
   };
@@ -186,15 +223,12 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
                   className={`flex items-start gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
                     selectedOption === option.id 
                       ? 'border-primary bg-primary/5' 
-                      : option.available 
-                        ? 'hover:border-primary/50 hover:bg-muted/50'
-                        : 'opacity-50 cursor-not-allowed'
+                      : 'hover:border-primary/50 hover:bg-muted/50'
                   }`}
                 >
                   <RadioGroupItem 
                     value={option.id} 
                     className="mt-1" 
-                    disabled={!option.available}
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -219,87 +253,91 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
           </RadioGroup>
         </div>
 
-        {/* Booking Mode Selection */}
-        <div className="space-y-3 pt-4 border-t">
-          <Label className="font-medium">When AI books an appointment:</Label>
-          <RadioGroup 
-            value={bookingMode} 
-            onValueChange={(value) => setBookingMode(value as 'auto_book' | 'pending_approval')}
-            className="space-y-2"
-          >
-            <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
-              bookingMode === 'auto_book' 
-                ? 'border-primary bg-primary/5' 
-                : 'hover:bg-muted/50'
-            }`}>
-              <RadioGroupItem value="auto_book" className="mt-1" />
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm">Confirm Immediately</span>
-                  <Badge variant="default" className="text-[10px]">Recommended</Badge>
+        {/* Booking Mode Selection - only show for CloseLoop */}
+        {selectedOption === 'closeloop' && (
+          <div className="space-y-3 pt-4 border-t">
+            <Label className="font-medium">When AI books an appointment:</Label>
+            <RadioGroup 
+              value={bookingMode} 
+              onValueChange={(value) => setBookingMode(value as 'auto_book' | 'pending_approval')}
+              className="space-y-2"
+            >
+              <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                bookingMode === 'auto_book' 
+                  ? 'border-primary bg-primary/5' 
+                  : 'hover:bg-muted/50'
+              }`}>
+                <RadioGroupItem value="auto_book" className="mt-1" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm">Confirm Immediately</span>
+                    <Badge variant="default" className="text-[10px]">Recommended</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    AI confirms appointments instantly - customer gets immediate confirmation
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  AI confirms appointments instantly - customer gets immediate confirmation
+              </label>
+
+              <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                bookingMode === 'pending_approval' 
+                  ? 'border-primary bg-primary/5' 
+                  : 'hover:bg-muted/50'
+              }`}>
+                <RadioGroupItem value="pending_approval" className="mt-1" />
+                <div className="flex-1">
+                  <span className="font-medium text-sm">Require My Approval</span>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    AI schedules as pending - you must confirm each booking manually
+                  </p>
+                </div>
+              </label>
+            </RadioGroup>
+
+            {bookingMode === 'pending_approval' && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/30">
+                <AlertCircle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-muted-foreground">
+                  Pending bookings appear in your Bookings page. You must confirm before the customer receives confirmation.
                 </p>
               </div>
-            </label>
+            )}
+          </div>
+        )}
 
-            <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
-              bookingMode === 'pending_approval' 
-                ? 'border-primary bg-primary/5' 
-                : 'hover:bg-muted/50'
-            }`}>
-              <RadioGroupItem value="pending_approval" className="mt-1" />
-              <div className="flex-1">
-                <span className="font-medium text-sm">Require My Approval</span>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  AI schedules as pending - you must confirm each booking manually
-                </p>
-              </div>
-            </label>
-          </RadioGroup>
-
-          {bookingMode === 'pending_approval' && (
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/30">
-              <AlertCircle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-muted-foreground">
-                Pending bookings appear in your Bookings page. You must confirm before the customer receives confirmation.
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* What AI Does */}
-        <div className="rounded-lg bg-muted/50 p-4 text-sm">
-          <p className="font-medium mb-2">How AI books appointments:</p>
-          <ul className="space-y-1 text-muted-foreground">
-            <li className="flex items-start gap-2">
-              <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-              <span>Checks your calendar for available time slots</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-              <span>Offers available times to customers on calls or via text</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-              <span>Books the appointment directly into your calendar</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-              <span>Sends confirmation to the customer</span>
-            </li>
-          </ul>
-        </div>
+        {/* What AI Does - only show for CloseLoop */}
+        {selectedOption === 'closeloop' && (
+          <div className="rounded-lg bg-muted/50 p-4 text-sm">
+            <p className="font-medium mb-2">How AI books appointments:</p>
+            <ul className="space-y-1 text-muted-foreground">
+              <li className="flex items-start gap-2">
+                <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <span>Checks your calendar for available time slots</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <span>Offers available times to customers on calls or via text</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <span>Books the appointment directly into your calendar</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <span>Sends confirmation to the customer</span>
+              </li>
+            </ul>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3">
           <Button 
             onClick={handleContinue} 
-            disabled={saving || connectingOAuth || !selectedOptionData?.available}
+            disabled={saving || (selectedOption !== 'closeloop' && !selectedOptionData?.available)}
             className="flex-1 gap-2"
           >
-            {(saving || connectingOAuth) ? (
+            {saving ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : selectedOption === 'google' ? (
               <RefreshCw className="h-4 w-4" />
@@ -307,21 +345,18 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
               <Check className="h-4 w-4" />
             )}
             {saving ? "Setting up..." : 
-             connectingOAuth ? "Connecting..." :
              selectedOption === 'closeloop' ? "Use CloseLoop Calendar" :
-             selectedOption === 'google' ? "Connect Google Calendar" :
              "Connect Calendar"}
           </Button>
           
-          {onSkip && (
-            <Button 
-              variant="ghost" 
-              onClick={onSkip}
-              className="text-muted-foreground"
-            >
-              Skip for now
-            </Button>
-          )}
+          <Button 
+            variant="ghost" 
+            onClick={handleSkip}
+            disabled={saving}
+            className="text-muted-foreground"
+          >
+            Skip for now
+          </Button>
         </div>
 
         {/* Help text */}

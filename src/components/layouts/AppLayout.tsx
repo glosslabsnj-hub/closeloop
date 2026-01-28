@@ -57,6 +57,15 @@ export function AppLayout() {
     }
   }, [user, loading, navigate]);
 
+  // Redirect users without a tenant to onboarding
+  useEffect(() => {
+    if (!loading && user && !tenant) {
+      if (location.pathname !== "/app/onboarding") {
+        navigate("/app/onboarding");
+      }
+    }
+  }, [loading, user, tenant, location.pathname, navigate]);
+
   // Check if user needs to go through go-live
   useEffect(() => {
     if (!loading && tenant && !hasActiveSubscription) {
