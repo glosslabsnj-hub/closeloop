@@ -12,7 +12,11 @@ import {
   CheckCircle2,
   PlayCircle,
   Star,
+  Shield,
+  Clock,
+  CreditCard,
 } from "lucide-react";
+import { PricingCards } from "@/components/pricing/PricingCards";
 
 const features = [
   {
@@ -87,9 +91,9 @@ export default function LandingPage() {
               AI answers your phone 24/7 and pushes every lead to booking.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/signup">
+              <Link to="#pricing">
                 <Button size="lg" className="w-full sm:w-auto gap-2">
-                  Start Free Trial
+                  View Plans & Start Free Trial
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
@@ -99,7 +103,7 @@ export default function LandingPage() {
               </Button>
             </div>
             <p className="text-sm text-muted-foreground mt-4">
-              No credit card required • Setup in 60 seconds
+              7-day free trial • No charge until trial ends
             </p>
           </div>
         </div>
@@ -189,8 +193,46 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <section id="pricing" className="py-16 md:py-24">
+        <div className="container">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Choose Your Plan
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Start your 7-day free trial. Enter payment info upfront — you won't be charged until the trial ends.
+            </p>
+          </div>
+
+          {/* Trust badges */}
+          <div className="flex flex-wrap justify-center gap-6 mb-10 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              <span>Cancel anytime</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              <span>7-day free trial</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4" />
+              <span>No charge until trial ends</span>
+            </div>
+          </div>
+
+          <div className="max-w-5xl mx-auto">
+            <PricingCards linkToSignup />
+          </div>
+
+          <p className="text-center text-sm text-muted-foreground mt-8">
+            Your card will be securely saved and charged only after your 7-day trial ends.
+          </p>
+        </div>
+      </section>
+
       {/* Testimonials */}
-      <section className="py-16 md:py-24">
+      <section className="py-16 md:py-24 bg-secondary/30">
         <div className="container">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
@@ -225,9 +267,9 @@ export default function LandingPage() {
             Join hundreds of service businesses using CloseLoop to never miss another opportunity.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/signup">
+            <Link to="#pricing">
               <Button size="lg" variant="secondary" className="w-full sm:w-auto gap-2">
-                Start Free Trial
+                View Plans
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
@@ -235,11 +277,11 @@ export default function LandingPage() {
           <div className="flex flex-wrap items-center justify-center gap-6 mt-8 text-sm opacity-90">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4" />
-              No credit card required
+              7-day free trial
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4" />
-              60-second setup
+              No charge until trial ends
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4" />
