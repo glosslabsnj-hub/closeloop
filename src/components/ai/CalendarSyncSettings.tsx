@@ -17,23 +17,24 @@ import {
 import { 
   Calendar, 
   RefreshCw, 
-  Link2, 
   CheckCircle2, 
   AlertCircle,
-  ExternalLink,
-  Clock
+  Clock,
+  CalendarDays,
+  Plus,
+  Trash2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const calendarProviders = [
-  { value: 'google', label: 'Google Calendar', icon: '📅', available: false },
-  { value: 'outlook', label: 'Microsoft Outlook', icon: '📆', available: false },
-  { value: 'apple', label: 'Apple Calendar', icon: '🍎', available: false },
-  { value: 'calendly', label: 'Calendly', icon: '📗', available: true },
-  { value: 'cal_com', label: 'Cal.com', icon: '📘', available: true },
-  { value: 'acuity', label: 'Acuity Scheduling', icon: '📕', available: true },
-  { value: 'other', label: 'Other', icon: '🔗', available: true },
-];
+const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+interface AvailabilitySlot {
+  id?: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  is_available: boolean;
+}
 
 interface CalendarSyncSettingsProps {
   onSyncComplete?: () => void;
@@ -43,36 +44,54 @@ export default function CalendarSyncSettings({ onSyncComplete }: CalendarSyncSet
   const { tenant, assistantSettings } = useAuth();
   const { toast } = useToast();
   
-  const [syncEnabled, setSyncEnabled] = useState(false);
-  const [provider, setProvider] = useState<string>('');
-  const [bookingUrl, setBookingUrl] = useState('');
-  const [lastSynced, setLastSynced] = useState<string | null>(null);
-  const [syncing, setSyncing] = useState(false);
+  const [provider, setProvider] = useState<string>('closeloop');
+  const [slots, setSlots] = useState<AvailabilitySlot[]>([]);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadSettings();
-  }, [tenant?.id, assistantSettings]);
+  }, [tenant?.id]);
 
   const loadSettings = async () => {
     if (!tenant?.id) return;
+    setLoading(true);
     
-    // Load from tenant
-    const { data: tenantData } = await supabase
-      .from('tenants')
-      .select('calendar_sync_enabled, calendar_sync_provider, calendar_last_synced_at')
-      .eq('id', tenant.id)
-      .single();
+    try {
+      // Load provider from assistant settings
+      if (assistantSettings) {
+        setProvider((assistantSettings as any).calendar_provider || 'closeloop');
+      }
 
-    if (tenantData) {
-      setSyncEnabled((tenantData as any).calendar_sync_enabled || false);
-      setProvider((tenantData as any).calendar_sync_provider || '');
-      setLastSynced((tenantData as any).calendar_last_synced_at || null);
-    }
+      // Load availability slots
+      const { data: slotsData, error } = await supabase
+        .from('availability_slots')
+        .select('*')
+        .eq('tenant_id', tenant.id)
+        .order('day_of_week')
+        .order('start_time');
 
-    // Load booking URL from assistant settings
-    if (assistantSettings) {
-      setBookingUrl((assistantSettings as any).booking_url || '');
+      if (error) throw error;
+
+      if (slotsData && slotsData.length > 0) {
+        setSlots(slotsData);
+      } else {
+        // Create default slots (Mon-Fri 9-5)
+        const defaultSlots: AvailabilitySlot[] = [];
+        for (let day = 1; day <= 5; day++) {
+          defaultSlots.push({
+            day_of_week: day,
+            start_time: '09:00',
+            end_time: '17:00',
+            is_available: true,
+          });
+        }
+        setSlots(defaultSlots);
+      }
+    } catch (error: any) {
+      console.error('Error loading availability:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -81,22 +100,30 @@ export default function CalendarSyncSettings({ onSyncComplete }: CalendarSyncSet
     
     setSaving(true);
     try {
-      // Update tenant calendar settings
+      // Delete existing slots
       await supabase
-        .from('tenants')
-        .update({
-          calendar_sync_enabled: syncEnabled,
-          calendar_sync_provider: provider || null,
-        })
-        .eq('id', tenant.id);
-
-      // Update booking URL in assistant settings
-      await supabase
-        .from('assistant_settings')
-        .update({ booking_url: bookingUrl || null })
+        .from('availability_slots')
+        .delete()
         .eq('tenant_id', tenant.id);
 
-      toast({ title: "Calendar settings saved!" });
+      // Insert new slots
+      const slotsToInsert = slots.map(slot => ({
+        tenant_id: tenant.id,
+        day_of_week: slot.day_of_week,
+        start_time: slot.start_time,
+        end_time: slot.end_time,
+        is_available: slot.is_available,
+      }));
+
+      if (slotsToInsert.length > 0) {
+        const { error } = await supabase
+          .from('availability_slots')
+          .insert(slotsToInsert);
+
+        if (error) throw error;
+      }
+
+      toast({ title: "Availability saved!" });
       onSyncComplete?.();
     } catch (error: any) {
       toast({
@@ -109,163 +136,135 @@ export default function CalendarSyncSettings({ onSyncComplete }: CalendarSyncSet
     }
   };
 
-  const handleSync = async () => {
-    setSyncing(true);
-    // TODO: Implement actual calendar sync via OAuth
-    // For now, simulate sync
-    setTimeout(() => {
-      setSyncing(false);
-      setLastSynced(new Date().toISOString());
-      toast({ 
-        title: "Calendar synced!", 
-        description: "Your availability has been updated from your calendar." 
-      });
-    }, 2000);
+  const toggleDay = (dayIndex: number) => {
+    const existingSlot = slots.find(s => s.day_of_week === dayIndex);
+    if (existingSlot) {
+      setSlots(slots.map(s => 
+        s.day_of_week === dayIndex 
+          ? { ...s, is_available: !s.is_available }
+          : s
+      ));
+    } else {
+      setSlots([...slots, {
+        day_of_week: dayIndex,
+        start_time: '09:00',
+        end_time: '17:00',
+        is_available: true,
+      }]);
+    }
   };
 
-  const selectedProvider = calendarProviders.find(p => p.value === provider);
+  const updateSlotTime = (dayIndex: number, field: 'start_time' | 'end_time', value: string) => {
+    setSlots(slots.map(s => 
+      s.day_of_week === dayIndex 
+        ? { ...s, [field]: value }
+        : s
+    ));
+  };
+
+  const getSlotForDay = (dayIndex: number): AvailabilitySlot | undefined => {
+    return slots.find(s => s.day_of_week === dayIndex);
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center text-muted-foreground">
+          Loading availability...
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
-          <Calendar className="h-5 w-5" />
-          Calendar & Scheduling
+          <CalendarDays className="h-5 w-5" />
+          Your Availability
         </CardTitle>
         <CardDescription>
-          Connect your calendar so AI knows when you're available
+          Set when you're available for appointments. AI will only book during these times.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Booking URL Section */}
+        {/* Weekly Schedule */}
         <div className="space-y-3">
-          <Label className="text-base font-medium">Booking Link</Label>
-          <p className="text-sm text-muted-foreground">
-            Paste your scheduling page URL. AI will direct customers here to book appointments.
-          </p>
-          <Input
-            value={bookingUrl}
-            onChange={(e) => setBookingUrl(e.target.value)}
-            placeholder="https://calendly.com/your-business/30min"
-            className="font-mono text-sm"
-          />
-          {bookingUrl && (
-            <Button variant="outline" size="sm" asChild>
-              <a href={bookingUrl} target="_blank" rel="noopener noreferrer" className="gap-2">
-                <ExternalLink className="h-3 w-3" />
-                Test Link
-              </a>
-            </Button>
-          )}
+          {dayNames.map((dayName, index) => {
+            const slot = getSlotForDay(index);
+            const isAvailable = slot?.is_available ?? false;
+
+            return (
+              <div 
+                key={index}
+                className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
+                  isAvailable ? 'bg-primary/5 border-primary/20' : 'bg-muted/30'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Switch
+                    checked={isAvailable}
+                    onCheckedChange={() => toggleDay(index)}
+                  />
+                  <span className={`font-medium ${!isAvailable ? 'text-muted-foreground' : ''}`}>
+                    {dayName}
+                  </span>
+                </div>
+
+                {isAvailable && slot && (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="time"
+                      value={slot.start_time}
+                      onChange={(e) => updateSlotTime(index, 'start_time', e.target.value)}
+                      className="w-28 h-8 text-sm"
+                    />
+                    <span className="text-muted-foreground text-sm">to</span>
+                    <Input
+                      type="time"
+                      value={slot.end_time}
+                      onChange={(e) => updateSlotTime(index, 'end_time', e.target.value)}
+                      className="w-28 h-8 text-sm"
+                    />
+                  </div>
+                )}
+
+                {!isAvailable && (
+                  <Badge variant="secondary" className="text-xs">Closed</Badge>
+                )}
+              </div>
+            );
+          })}
         </div>
 
-        {/* Calendar Sync Section */}
-        <div className="space-y-4 pt-4 border-t">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label className="text-base font-medium">Calendar Sync</Label>
-              <p className="text-sm text-muted-foreground">
-                Sync your calendar to block busy times automatically
+        {/* Provider Info */}
+        {provider === 'google' && (
+          <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
+            <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium">Synced with Google Calendar</p>
+              <p className="text-muted-foreground mt-1">
+                Your busy times from Google Calendar will be automatically blocked.
               </p>
             </div>
-            <Switch checked={syncEnabled} onCheckedChange={setSyncEnabled} />
           </div>
+        )}
 
-          {syncEnabled && (
-            <>
-              {/* Provider Selection */}
-              <div className="space-y-2">
-                <Label>Calendar Provider</Label>
-                <Select value={provider} onValueChange={setProvider}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your calendar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {calendarProviders.map((p) => (
-                      <SelectItem 
-                        key={p.value} 
-                        value={p.value}
-                        disabled={!p.available}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span>{p.icon}</span>
-                          <span>{p.label}</span>
-                          {!p.available && (
-                            <Badge variant="outline" className="text-xs ml-2">Coming Soon</Badge>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* OAuth Connection for Native Calendars */}
-              {provider && ['google', 'outlook', 'apple'].includes(provider) && (
-                <div className="p-4 rounded-lg bg-warning/10 border border-warning/30">
-                  <div className="flex items-center gap-2 text-sm">
-                    <AlertCircle className="h-4 w-4 text-warning" />
-                    <span>OAuth integration coming soon. Use a booking URL for now.</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Sync Status */}
-              {selectedProvider?.available && (
-                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                  <div className="flex items-center gap-2">
-                    {lastSynced ? (
-                      <>
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                        <span className="text-sm">
-                          Last synced: {new Date(lastSynced).toLocaleString()}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Not synced yet</span>
-                      </>
-                    )}
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleSync}
-                    disabled={syncing}
-                    className="gap-2"
-                  >
-                    <RefreshCw className={`h-3 w-3 ${syncing ? 'animate-spin' : ''}`} />
-                    {syncing ? 'Syncing...' : 'Sync Now'}
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* How AI Uses This */}
+        {/* How AI uses this */}
         <div className="p-4 rounded-lg bg-muted/50 space-y-2 border-t pt-6">
-          <p className="text-sm font-medium">How AI uses your calendar:</p>
+          <p className="text-sm font-medium">AI booking behavior:</p>
           <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-            {bookingUrl ? (
-              <li>Directs customers to your booking page to schedule</li>
-            ) : (
-              <li className="text-warning">Add a booking URL so AI can help customers schedule</li>
-            )}
-            {syncEnabled && provider ? (
-              <li>Checks your calendar to avoid double-bookings</li>
-            ) : (
-              <li>Enable calendar sync for automatic availability detection</li>
-            )}
-            <li>Respects your business hours and closed dates</li>
+            <li>AI only offers times during your available hours</li>
+            <li>AI respects buffer time between appointments</li>
+            <li>AI checks for conflicts with existing bookings</li>
+            <li>AI books directly into CloseLoop's booking system</li>
           </ul>
         </div>
 
         {/* Save Button */}
         <div className="flex justify-end pt-4">
           <Button onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving...' : 'Save Calendar Settings'}
+            {saving ? 'Saving...' : 'Save Availability'}
           </Button>
         </div>
       </CardContent>

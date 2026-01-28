@@ -3,11 +3,18 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Check, Loader2, ExternalLink, Link2, AlertCircle } from "lucide-react";
+import { 
+  Calendar, 
+  Check, 
+  Loader2, 
+  Link2, 
+  AlertCircle,
+  CalendarDays,
+  RefreshCw
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface CalendarConnectionStepProps {
@@ -16,47 +23,54 @@ interface CalendarConnectionStepProps {
   onSkip?: () => void;
 }
 
-const calendarProviders = [
-  { id: "calendly", name: "Calendly", icon: "📅", placeholder: "https://calendly.com/yourname" },
-  { id: "cal_com", name: "Cal.com", icon: "🗓️", placeholder: "https://cal.com/yourname" },
-  { id: "acuity", name: "Acuity Scheduling", icon: "📆", placeholder: "https://acuityscheduling.com/..." },
-  { id: "google", name: "Google Calendar", icon: "🔵", placeholder: "Coming soon - use booking link", disabled: true },
-  { id: "outlook", name: "Outlook/Microsoft 365", icon: "🔷", placeholder: "Coming soon - use booking link", disabled: true },
-  { id: "other", name: "Other Booking System", icon: "🔗", placeholder: "https://your-booking-link.com" },
+type CalendarOption = 'closeloop' | 'google' | 'outlook' | 'apple';
+
+const calendarOptions = [
+  { 
+    id: 'closeloop' as CalendarOption, 
+    name: "CloseLoop Calendar", 
+    icon: CalendarDays,
+    description: "Manage your availability directly in CloseLoop",
+    available: true,
+    recommended: true,
+  },
+  { 
+    id: 'google' as CalendarOption, 
+    name: "Google Calendar", 
+    icon: "🔵",
+    description: "Sync with your Google Calendar",
+    available: true,
+    oauthRequired: true,
+  },
+  { 
+    id: 'outlook' as CalendarOption, 
+    name: "Microsoft Outlook", 
+    icon: "🔷",
+    description: "Sync with Outlook/Microsoft 365",
+    available: false,
+  },
+  { 
+    id: 'apple' as CalendarOption, 
+    name: "Apple Calendar", 
+    icon: "🍎",
+    description: "Sync with Apple Calendar",
+    available: false,
+  },
 ];
 
 export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: CalendarConnectionStepProps) {
   const { tenant, assistantSettings, refreshTenant } = useAuth();
   const { toast } = useToast();
   
-  const [selectedProvider, setSelectedProvider] = useState<string>("calendly");
-  const [bookingUrl, setBookingUrl] = useState((assistantSettings as any)?.booking_url || "");
+  const [selectedOption, setSelectedOption] = useState<CalendarOption>('closeloop');
   const [bookingMode, setBookingMode] = useState<'auto_book' | 'pending_approval'>(
     (assistantSettings as any)?.ai_booking_mode || 'auto_book'
   );
   const [saving, setSaving] = useState(false);
+  const [connectingOAuth, setConnectingOAuth] = useState(false);
 
-  const handleSave = async () => {
+  const handleSaveCloseLoop = async () => {
     if (!tenant) return;
-
-    if (!bookingUrl.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Enter booking URL",
-        description: "Please enter your booking link",
-      });
-      return;
-    }
-
-    // Basic URL validation
-    if (!bookingUrl.startsWith("http")) {
-      toast({
-        variant: "destructive",
-        title: "Invalid URL",
-        description: "Please enter a valid URL starting with http:// or https://",
-      });
-      return;
-    }
 
     setSaving(true);
     try {
@@ -64,8 +78,7 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
         .from("assistant_settings")
         .upsert({
           tenant_id: tenant.id,
-          booking_url: bookingUrl.trim(),
-          calendar_provider: selectedProvider,
+          calendar_provider: 'closeloop',
           ai_booking_mode: bookingMode,
           setup_step_calendar: true,
           updated_at: new Date().toISOString(),
@@ -75,10 +88,19 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
 
       if (error) throw error;
 
+      // Also update tenant to enable calendar sync
+      await supabase
+        .from("tenants")
+        .update({ 
+          calendar_sync_enabled: true,
+          calendar_sync_provider: 'closeloop',
+        })
+        .eq("id", tenant.id);
+
       await refreshTenant();
       toast({
-        title: "Calendar Connected! ✅",
-        description: "Your AI can now direct customers to book appointments.",
+        title: "Calendar Set Up! ✅",
+        description: "Your AI can now book appointments directly. Set your availability in the Settings.",
       });
       onComplete();
     } catch (error: any) {
@@ -92,9 +114,34 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
     }
   };
 
-  const selectedProviderData = calendarProviders.find(p => p.id === selectedProvider);
+  const handleConnectGoogle = async () => {
+    setConnectingOAuth(true);
+    // TODO: Implement Google OAuth flow
+    // For now, show coming soon message
+    toast({
+      title: "Google Calendar Integration",
+      description: "Google Calendar OAuth will be available soon. For now, use CloseLoop Calendar.",
+    });
+    setConnectingOAuth(false);
+  };
+
+  const handleContinue = () => {
+    if (selectedOption === 'closeloop') {
+      handleSaveCloseLoop();
+    } else if (selectedOption === 'google') {
+      handleConnectGoogle();
+    } else {
+      toast({
+        title: "Coming Soon",
+        description: "This calendar integration will be available soon.",
+      });
+    }
+  };
+
+  const selectedOptionData = calendarOptions.find(o => o.id === selectedOption);
 
   if (isComplete) {
+    const provider = (assistantSettings as any)?.calendar_provider || 'closeloop';
     return (
       <Card className="border-primary/20 bg-primary/5">
         <CardHeader>
@@ -103,8 +150,8 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
             Calendar Connected
           </CardTitle>
           <CardDescription className="flex items-center gap-2">
-            <Link2 className="h-4 w-4" />
-            {(assistantSettings as any)?.booking_url}
+            <CalendarDays className="h-4 w-4" />
+            {provider === 'closeloop' ? 'Using CloseLoop Calendar' : `Connected to ${provider}`}
           </CardDescription>
         </CardHeader>
       </Card>
@@ -116,66 +163,65 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Calendar className="h-5 w-5 text-primary" />
-          Connect Your Calendar
+          Set Up Your Calendar
         </CardTitle>
         <CardDescription>
-          Your AI will direct customers to book appointments using your scheduling link
+          Your AI will book appointments directly into your calendar when customers call or text
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Provider Selection */}
+        {/* Calendar Source Selection */}
         <div className="space-y-3">
-          <Label>What do you use for scheduling?</Label>
+          <Label className="font-medium">Choose your calendar</Label>
           <RadioGroup 
-            value={selectedProvider} 
-            onValueChange={setSelectedProvider}
-            className="grid grid-cols-2 sm:grid-cols-3 gap-3"
+            value={selectedOption} 
+            onValueChange={(v) => setSelectedOption(v as CalendarOption)}
+            className="space-y-3"
           >
-            {calendarProviders.map((provider) => (
-              <div key={provider.id}>
-                <RadioGroupItem
-                  value={provider.id}
-                  id={provider.id}
-                  className="peer sr-only"
-                  disabled={provider.disabled}
-                />
-                <Label
-                  htmlFor={provider.id}
-                  className={`flex flex-col items-center justify-center rounded-lg border-2 p-3 cursor-pointer transition-all
-                    peer-checked:border-primary peer-checked:bg-primary/5
-                    hover:border-primary/50 hover:bg-muted/50
-                    ${provider.disabled ? "opacity-50 cursor-not-allowed" : ""}
-                  `}
+            {calendarOptions.map((option) => {
+              const IconComponent = typeof option.icon === 'string' ? null : option.icon;
+              return (
+                <label
+                  key={option.id}
+                  className={`flex items-start gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    selectedOption === option.id 
+                      ? 'border-primary bg-primary/5' 
+                      : option.available 
+                        ? 'hover:border-primary/50 hover:bg-muted/50'
+                        : 'opacity-50 cursor-not-allowed'
+                  }`}
                 >
-                  <span className="text-2xl mb-1">{provider.icon}</span>
-                  <span className="text-xs font-medium text-center">{provider.name}</span>
-                  {provider.disabled && (
-                    <Badge variant="secondary" className="text-[10px] mt-1">Soon</Badge>
-                  )}
-                </Label>
-              </div>
-            ))}
+                  <RadioGroupItem 
+                    value={option.id} 
+                    className="mt-1" 
+                    disabled={!option.available}
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      {IconComponent ? (
+                        <IconComponent className="h-5 w-5 text-primary" />
+                      ) : (
+                        <span className="text-xl">{option.icon as string}</span>
+                      )}
+                      <span className="font-medium">{option.name}</span>
+                      {option.recommended && (
+                        <Badge variant="default" className="text-[10px]">Recommended</Badge>
+                      )}
+                      {!option.available && (
+                        <Badge variant="secondary" className="text-[10px]">Coming Soon</Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">{option.description}</p>
+                  </div>
+                </label>
+              );
+            })}
           </RadioGroup>
-        </div>
-
-        {/* Booking URL Input */}
-        <div className="space-y-2 pt-4 border-t">
-          <Label htmlFor="booking-url">Your Booking Link</Label>
-          <Input
-            id="booking-url"
-            type="url"
-            placeholder={selectedProviderData?.placeholder || "https://your-booking-link.com"}
-            value={bookingUrl}
-            onChange={(e) => setBookingUrl(e.target.value)}
-          />
-          <p className="text-xs text-muted-foreground">
-            Paste the link where customers can book appointments with you
-          </p>
         </div>
 
         {/* Booking Mode Selection */}
         <div className="space-y-3 pt-4 border-t">
-          <Label className="font-medium">How should AI handle bookings?</Label>
+          <Label className="font-medium">When AI books an appointment:</Label>
           <RadioGroup 
             value={bookingMode} 
             onValueChange={(value) => setBookingMode(value as 'auto_book' | 'pending_approval')}
@@ -189,11 +235,11 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
               <RadioGroupItem value="auto_book" className="mt-1" />
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm">Auto-Book Appointments</span>
+                  <span className="font-medium text-sm">Confirm Immediately</span>
                   <Badge variant="default" className="text-[10px]">Recommended</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  AI confirms appointments instantly based on your availability
+                  AI confirms appointments instantly - customer gets immediate confirmation
                 </p>
               </div>
             </label>
@@ -207,7 +253,7 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
               <div className="flex-1">
                 <span className="font-medium text-sm">Require My Approval</span>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  AI schedules as pending - you confirm each booking manually
+                  AI schedules as pending - you must confirm each booking manually
                 </p>
               </div>
             </label>
@@ -217,32 +263,31 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
             <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/30">
               <AlertCircle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
               <p className="text-xs text-muted-foreground">
-                You'll need to confirm each appointment in your Bookings page before the customer receives confirmation.
+                Pending bookings appear in your Bookings page. You must confirm before the customer receives confirmation.
               </p>
             </div>
           )}
         </div>
 
-        {/* Info Box */}
+        {/* What AI Does */}
         <div className="rounded-lg bg-muted/50 p-4 text-sm">
-          <p className="font-medium mb-2">What your AI will do:</p>
+          <p className="font-medium mb-2">How AI books appointments:</p>
           <ul className="space-y-1 text-muted-foreground">
             <li className="flex items-start gap-2">
               <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-              <span>Answer questions about availability</span>
+              <span>Checks your calendar for available time slots</span>
             </li>
             <li className="flex items-start gap-2">
               <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-              <span>Send customers your booking link via text</span>
+              <span>Offers available times to customers on calls or via text</span>
             </li>
             <li className="flex items-start gap-2">
               <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-              <span>
-                {bookingMode === 'auto_book' 
-                  ? 'Confirm appointments automatically'
-                  : 'Schedule appointments as pending for your review'
-                }
-              </span>
+              <span>Books the appointment directly into your calendar</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <span>Sends confirmation to the customer</span>
             </li>
           </ul>
         </div>
@@ -250,16 +295,22 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3">
           <Button 
-            onClick={handleSave} 
-            disabled={saving || !bookingUrl.trim()}
+            onClick={handleContinue} 
+            disabled={saving || connectingOAuth || !selectedOptionData?.available}
             className="flex-1 gap-2"
           >
-            {saving ? (
+            {(saving || connectingOAuth) ? (
               <Loader2 className="h-4 w-4 animate-spin" />
+            ) : selectedOption === 'google' ? (
+              <RefreshCw className="h-4 w-4" />
             ) : (
               <Check className="h-4 w-4" />
             )}
-            {saving ? "Saving..." : "Connect Calendar"}
+            {saving ? "Setting up..." : 
+             connectingOAuth ? "Connecting..." :
+             selectedOption === 'closeloop' ? "Use CloseLoop Calendar" :
+             selectedOption === 'google' ? "Connect Google Calendar" :
+             "Connect Calendar"}
           </Button>
           
           {onSkip && (
@@ -273,18 +324,12 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
           )}
         </div>
 
-        {/* Help link */}
-        <div className="text-center">
-          <a 
-            href="https://calendly.com/signup" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-xs text-primary hover:underline inline-flex items-center gap-1"
-          >
-            Don't have a booking system? Create a free Calendly account
-            <ExternalLink className="h-3 w-3" />
-          </a>
-        </div>
+        {/* Help text */}
+        {selectedOption === 'closeloop' && (
+          <p className="text-xs text-center text-muted-foreground">
+            After setup, configure your available hours in Settings → Business Hours
+          </p>
+        )}
       </CardContent>
     </Card>
   );

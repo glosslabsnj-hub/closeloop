@@ -31,7 +31,7 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
 
   const steps: SetupStep[] = [
     { id: "phone", title: "Connect Phone", icon: Phone, isComplete: phoneComplete },
-    { id: "calendar", title: "Connect Calendar", icon: Calendar, isComplete: calendarComplete },
+    { id: "calendar", title: "Set Availability", icon: Calendar, isComplete: calendarComplete },
     { id: "test", title: "Test AI", icon: Mic, isComplete: testComplete },
     { id: "golive", title: "Go Live", icon: Power, isComplete: goLiveComplete },
   ];
