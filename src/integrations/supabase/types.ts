@@ -919,15 +919,18 @@ export type Database = {
       }
       food_orders: {
         Row: {
+          address_json: Json | null
           created_at: string
           customer_id: string | null
           customer_name: string | null
           customer_phone: string | null
           delivery_address: string | null
+          handoff_state: Json | null
           id: string
           items_json: Json
           order_number: string
           order_type: string
+          requested_time: string | null
           scheduled_at: string | null
           special_instructions: string | null
           status: Database["public"]["Enums"]["order_status"]
@@ -935,18 +938,22 @@ export type Database = {
           tax_cents: number | null
           tenant_id: string
           total_cents: number | null
+          totals_estimate: Json | null
           updated_at: string
         }
         Insert: {
+          address_json?: Json | null
           created_at?: string
           customer_id?: string | null
           customer_name?: string | null
           customer_phone?: string | null
           delivery_address?: string | null
+          handoff_state?: Json | null
           id?: string
           items_json?: Json
           order_number: string
           order_type?: string
+          requested_time?: string | null
           scheduled_at?: string | null
           special_instructions?: string | null
           status?: Database["public"]["Enums"]["order_status"]
@@ -954,18 +961,22 @@ export type Database = {
           tax_cents?: number | null
           tenant_id: string
           total_cents?: number | null
+          totals_estimate?: Json | null
           updated_at?: string
         }
         Update: {
+          address_json?: Json | null
           created_at?: string
           customer_id?: string | null
           customer_name?: string | null
           customer_phone?: string | null
           delivery_address?: string | null
+          handoff_state?: Json | null
           id?: string
           items_json?: Json
           order_number?: string
           order_type?: string
+          requested_time?: string | null
           scheduled_at?: string | null
           special_instructions?: string | null
           status?: Database["public"]["Enums"]["order_status"]
@@ -973,6 +984,7 @@ export type Database = {
           tax_cents?: number | null
           tenant_id?: string
           total_cents?: number | null
+          totals_estimate?: Json | null
           updated_at?: string
         }
         Relationships: [
@@ -985,6 +997,51 @@ export type Database = {
           },
           {
             foreignKeyName: "food_orders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      handoff_attempts: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          id: string
+          method: string
+          order_id: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          method: string
+          order_id: string
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          method?: string
+          order_id?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "handoff_attempts_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "food_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "handoff_attempts_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1457,6 +1514,59 @@ export type Database = {
             foreignKeyName: "opportunities_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_delivery_settings: {
+        Row: {
+          auto_print: boolean | null
+          cancel_window_minutes: number | null
+          created_at: string | null
+          enabled: boolean | null
+          handoff_methods: Json | null
+          notify_email: string | null
+          notify_phone: string | null
+          print_format: string | null
+          tenant_id: string
+          updated_at: string | null
+          webhook_secret: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          auto_print?: boolean | null
+          cancel_window_minutes?: number | null
+          created_at?: string | null
+          enabled?: boolean | null
+          handoff_methods?: Json | null
+          notify_email?: string | null
+          notify_phone?: string | null
+          print_format?: string | null
+          tenant_id: string
+          updated_at?: string | null
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          auto_print?: boolean | null
+          cancel_window_minutes?: number | null
+          created_at?: string | null
+          enabled?: boolean | null
+          handoff_methods?: Json | null
+          notify_email?: string | null
+          notify_phone?: string | null
+          print_format?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_delivery_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -1983,6 +2093,7 @@ export type Database = {
         | "out_for_delivery"
         | "completed"
         | "cancelled"
+        | "needs_followup"
       plan_code: "text" | "voice" | "both"
       price_type: "fixed" | "starting_at" | "quote_only"
       reservation_status:
@@ -2187,6 +2298,7 @@ export const Constants = {
         "out_for_delivery",
         "completed",
         "cancelled",
+        "needs_followup",
       ],
       plan_code: ["text", "voice", "both"],
       price_type: ["fixed", "starting_at", "quote_only"],

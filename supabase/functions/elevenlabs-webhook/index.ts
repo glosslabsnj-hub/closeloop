@@ -221,6 +221,119 @@ async function processCallData(
     customerName,
     serviceRequested,
   });
+
+  // Check if this is a food order - create food_order record if applicable
+  const tenantId = payload.dynamic_variables?.tenant_id || (existingContext as Record<string, unknown>)?.tenant_id;
+  if (tenantId) {
+    await processFoodOrderIfApplicable(supabase, String(tenantId), dataCollection, customerName, payload);
+  }
+}
+
+// Process food orders from AI calls
+// deno-lint-ignore no-explicit-any
+async function processFoodOrderIfApplicable(
+  supabase: any,
+  tenantId: string,
+  dataCollection: Record<string, string>,
+  customerName: string | null,
+  payload: ElevenLabsWebhookPayload
+) {
+  // Check if tenant is in food mode
+  const { data: tenant } = await supabase
+    .from("tenants")
+    .select("business_mode, enabled_modules")
+    .eq("id", tenantId)
+    .single();
+
+  if (!tenant) return;
+
+  const isFoodMode = tenant.business_mode === "food" || 
+    (Array.isArray(tenant.enabled_modules) && 
+      ["food_orders", "menu_knowledge"].some((m: string) => tenant.enabled_modules.includes(m)));
+
+  if (!isFoodMode) return;
+
+  // Check if there's order data in the collection
+  const orderConfirmed = dataCollection.order_confirmed === "true" || dataCollection.order_confirmed === "yes";
+  const orderItems = dataCollection.order_items || dataCollection.items;
+  
+  if (!orderConfirmed && !orderItems) return;
+
+  console.log("Processing food order for tenant:", tenantId);
+
+  // Parse order items if provided as string
+  let parsedItems: Array<{ name: string; qty: number; modifiers?: string[]; item_notes?: string }> = [];
+  try {
+    if (typeof orderItems === "string") {
+      // Try to parse as JSON first
+      try {
+        parsedItems = JSON.parse(orderItems);
+      } catch {
+        // If not JSON, split by comma/newline and create simple items
+        parsedItems = orderItems.split(/[,\n]/).filter(Boolean).map(item => ({
+          name: item.trim(),
+          qty: 1,
+        }));
+      }
+    }
+  } catch (e) {
+    console.error("Failed to parse order items:", e);
+  }
+
+  // Generate order number
+  const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}`;
+
+  // Determine status based on certainty
+  const hasUncertainty = dataCollection.needs_clarification === "true" || 
+    dataCollection.uncertain === "true" ||
+    (parsedItems.length === 0 && orderItems);
+  
+  const status = hasUncertainty ? "needs_followup" : "confirmed";
+
+  // Create the food order
+  const { data: newOrder, error: orderError } = await supabase
+    .from("food_orders")
+    .insert({
+      tenant_id: tenantId,
+      order_number: orderNumber,
+      order_type: dataCollection.order_type || "pickup",
+      status,
+      customer_name: customerName || dataCollection.customer_name || "Phone Customer",
+      customer_phone: payload.dynamic_variables?.caller_phone || null,
+      items_json: parsedItems.length > 0 ? parsedItems : [{ name: "Order details in special instructions", qty: 1 }],
+      special_instructions: dataCollection.special_instructions || 
+        (orderItems && parsedItems.length === 0 ? `Customer order: ${orderItems}` : null),
+      requested_time: dataCollection.requested_time ? new Date(dataCollection.requested_time).toISOString() : null,
+      delivery_address: dataCollection.delivery_address || null,
+      address_json: dataCollection.delivery_address ? { street: dataCollection.delivery_address } : null,
+    })
+    .select()
+    .single();
+
+  if (orderError) {
+    console.error("Failed to create food order:", orderError);
+    return;
+  }
+
+  console.log("Created food order:", newOrder.id, newOrder.order_number);
+
+  // Trigger order handoff
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    await fetch(`${supabaseUrl}/functions/v1/order-handoff`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+      },
+      body: JSON.stringify({
+        order_id: newOrder.id,
+        tenant_id: tenantId,
+      }),
+    });
+  } catch (e) {
+    console.error("Failed to trigger order handoff:", e);
+  }
 }
 
 /**
