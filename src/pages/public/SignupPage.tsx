@@ -9,12 +9,20 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Phone, Loader2, CheckCircle2, CreditCard, Lock, ArrowLeft, MessageSquare, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { plans, type PlanInfo } from "@/components/pricing/PricingCards";
-import type { PlanCode } from "@/types/database";
+import {
+  getLadderStep,
+  getTierInfo,
+  getDefaultStepForTier,
+  formatPrice,
+  type PlanSku,
+  type PlanTier,
+} from "@/config/pricing";
 
 export default function SignupPage() {
   const [searchParams] = useSearchParams();
-  const planCode = searchParams.get("plan") as PlanCode | null;
+  const skuParam = searchParams.get("sku") as PlanSku | null;
+  // Also support legacy ?plan= parameter
+  const legacyPlan = searchParams.get("plan");
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,15 +31,27 @@ export default function SignupPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Get selected plan info
-  const selectedPlan = plans.find((p) => p.code === planCode) || plans[1]; // Default to voice plan
+  // Determine the selected SKU
+  let selectedSku: PlanSku = "voice-200"; // default
+  if (skuParam) {
+    const step = getLadderStep(skuParam);
+    if (step) selectedSku = skuParam;
+  } else if (legacyPlan) {
+    // Map legacy plan codes to new SKUs
+    if (legacyPlan === "text") selectedSku = "sms-500";
+    else if (legacyPlan === "voice") selectedSku = "voice-200";
+    else if (legacyPlan === "both") selectedSku = "both-200-500";
+  }
 
-  // Redirect to pricing if no plan selected
+  const selectedStep = getLadderStep(selectedSku);
+  const tierInfo = selectedStep ? getTierInfo(selectedStep.tier) : null;
+
+  // Redirect to pricing if no valid plan selected
   useEffect(() => {
-    if (!planCode) {
+    if (!selectedStep) {
       navigate("/#pricing");
     }
-  }, [planCode, navigate]);
+  }, [selectedStep, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,8 +61,8 @@ export default function SignupPage() {
       // Sign up the user - the plan will be stored after onboarding
       await signUp(email, password);
       
-      // Store selected plan in sessionStorage for after onboarding
-      sessionStorage.setItem("selectedPlan", selectedPlan.code);
+      // Store selected SKU in sessionStorage for after onboarding
+      sessionStorage.setItem("selectedPlan", selectedSku);
       
       toast({
         title: "Account created!",
@@ -60,9 +80,9 @@ export default function SignupPage() {
     }
   };
 
-  const getPlanIcon = (code: PlanCode) => {
-    switch (code) {
-      case "text":
+  const getPlanIcon = (tier: PlanTier) => {
+    switch (tier) {
+      case "sms":
         return MessageSquare;
       case "voice":
         return Phone;
@@ -71,11 +91,11 @@ export default function SignupPage() {
     }
   };
 
-  const PlanIcon = getPlanIcon(selectedPlan.code);
-
-  if (!planCode) {
+  if (!selectedStep || !tierInfo) {
     return null; // Will redirect
   }
+
+  const PlanIcon = getPlanIcon(selectedStep.tier);
 
   return (
     <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center py-12 px-4">
@@ -93,20 +113,31 @@ export default function SignupPage() {
           <CardHeader className="text-center pb-2">
             <div className="flex justify-center mb-4">
               <div className={`flex h-14 w-14 items-center justify-center rounded-xl ${
-                selectedPlan.highlight ? 'bg-primary' : 'bg-primary/10'
+                tierInfo.highlight ? 'bg-primary' : 'bg-primary/10'
               }`}>
-                <PlanIcon className={`h-7 w-7 ${selectedPlan.highlight ? 'text-primary-foreground' : 'text-primary'}`} />
+                <PlanIcon className={`h-7 w-7 ${tierInfo.highlight ? 'text-primary-foreground' : 'text-primary'}`} />
               </div>
             </div>
             <Badge variant="secondary" className="mx-auto mb-2">
-              {selectedPlan.name}
+              {tierInfo.displayName}
             </Badge>
             <CardTitle className="text-2xl">Start your 7-day free trial</CardTitle>
             <CardDescription>
-              ${selectedPlan.price}/month after trial ends. Cancel anytime.
+              {formatPrice(selectedStep.price)}/month after trial ends. Cancel anytime.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Selected Plan Details */}
+            <div className="bg-muted/50 rounded-lg p-3 text-sm">
+              <div className="font-medium mb-1">{selectedStep.name}</div>
+              <div className="text-muted-foreground">
+                {selectedStep.includedMinutes && `${selectedStep.includedMinutes.toLocaleString()} minutes`}
+                {selectedStep.includedMinutes && selectedStep.includedSmsSegments && " + "}
+                {selectedStep.includedSmsSegments && `${selectedStep.includedSmsSegments.toLocaleString()} SMS segments`}
+                {" included"}
+              </div>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Account Details */}
               <div className="space-y-4">
@@ -204,7 +235,7 @@ export default function SignupPage() {
               {[
                 "No charge for 7 days",
                 "Cancel anytime before trial ends",
-                `Then $${selectedPlan.price}/month`,
+                `Then ${formatPrice(selectedStep.price)}/month`,
               ].map((item) => (
                 <div key={item} className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CheckCircle2 className="h-4 w-4 text-primary" />

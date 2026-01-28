@@ -1829,11 +1829,56 @@ export type Database = {
           },
         ]
       }
+      subscription_usage: {
+        Row: {
+          billing_period_end: string
+          billing_period_start: string
+          created_at: string | null
+          id: string
+          sms_segments_used: number | null
+          tenant_id: string
+          updated_at: string | null
+          voice_minutes_used: number | null
+        }
+        Insert: {
+          billing_period_end: string
+          billing_period_start: string
+          created_at?: string | null
+          id?: string
+          sms_segments_used?: number | null
+          tenant_id: string
+          updated_at?: string | null
+          voice_minutes_used?: number | null
+        }
+        Update: {
+          billing_period_end?: string
+          billing_period_start?: string
+          created_at?: string | null
+          id?: string
+          sms_segments_used?: number | null
+          tenant_id?: string
+          updated_at?: string | null
+          voice_minutes_used?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_usage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           created_at: string
           current_period_end: string | null
           id: string
+          included_minutes: number | null
+          included_sms_segments: number | null
+          overage_minute_rate_cents: number | null
+          overage_sms_rate_cents: number | null
           plan_code: Database["public"]["Enums"]["plan_code"]
           status: Database["public"]["Enums"]["subscription_status"]
           stripe_customer_id: string | null
@@ -1845,6 +1890,10 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           id?: string
+          included_minutes?: number | null
+          included_sms_segments?: number | null
+          overage_minute_rate_cents?: number | null
+          overage_sms_rate_cents?: number | null
           plan_code: Database["public"]["Enums"]["plan_code"]
           status?: Database["public"]["Enums"]["subscription_status"]
           stripe_customer_id?: string | null
@@ -1856,6 +1905,10 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           id?: string
+          included_minutes?: number | null
+          included_sms_segments?: number | null
+          overage_minute_rate_cents?: number | null
+          overage_sms_rate_cents?: number | null
           plan_code?: Database["public"]["Enums"]["plan_code"]
           status?: Database["public"]["Enums"]["subscription_status"]
           stripe_customer_id?: string | null
@@ -1916,6 +1969,60 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "sync_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_locations: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_primary: boolean | null
+          location_name: string
+          monthly_fee_cents: number
+          phone_number_id: string | null
+          status: string | null
+          stripe_subscription_item_id: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          location_name: string
+          monthly_fee_cents: number
+          phone_number_id?: string | null
+          status?: string | null
+          stripe_subscription_item_id?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          location_name?: string
+          monthly_fee_cents?: number
+          phone_number_id?: string | null
+          status?: string | null
+          stripe_subscription_item_id?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_locations_phone_number_id_fkey"
+            columns: ["phone_number_id"]
+            isOneToOne: false
+            referencedRelation: "phone_numbers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_locations_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2334,7 +2441,19 @@ export type Database = {
         | "completed"
         | "cancelled"
         | "needs_followup"
-      plan_code: "text" | "voice" | "both"
+      plan_code:
+        | "text"
+        | "voice"
+        | "both"
+        | "sms-500"
+        | "sms-1500"
+        | "sms-3500"
+        | "voice-200"
+        | "voice-600"
+        | "voice-1500"
+        | "both-200-500"
+        | "both-600-1500"
+        | "both-1500-3500"
       price_type: "fixed" | "starting_at" | "quote_only"
       reservation_status:
         | "pending"
@@ -2540,7 +2659,20 @@ export const Constants = {
         "cancelled",
         "needs_followup",
       ],
-      plan_code: ["text", "voice", "both"],
+      plan_code: [
+        "text",
+        "voice",
+        "both",
+        "sms-500",
+        "sms-1500",
+        "sms-3500",
+        "voice-200",
+        "voice-600",
+        "voice-1500",
+        "both-200-500",
+        "both-600-1500",
+        "both-1500-3500",
+      ],
       price_type: ["fixed", "starting_at", "quote_only"],
       reservation_status: [
         "pending",
