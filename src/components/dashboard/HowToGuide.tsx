@@ -92,7 +92,7 @@ export function HowToGuide() {
                 <p className="text-sm text-muted-foreground">
                   When someone calls your business number and you don't answer (busy, away, or after hours), 
                   the call automatically forwards to your CloseLoop AI. Your AI answers professionally, 
-                  qualifies the lead, and can book appointments for you.
+                  qualifies the lead, and books appointments directly into your calendar.
                 </p>
               </div>
 
