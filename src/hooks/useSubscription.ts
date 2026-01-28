@@ -91,6 +91,27 @@ export function useSubscription(tenantId: string | null): UseSubscriptionResult 
 
     if (settingsError) throw settingsError;
 
+    // Provision Twilio number for voice/both plans
+    if (["voice", "both"].includes(planCode)) {
+      try {
+        console.log("Provisioning Twilio number for voice plan...");
+        const { data, error: provisionError } = await supabase.functions.invoke("provision-twilio-number", {
+          body: { tenant_id: tenantId, number_type: "local" },
+        });
+        
+        if (provisionError) {
+          console.error("Failed to provision number:", provisionError);
+        } else if (data?.success) {
+          console.log("Provisioned number:", data.phone_number);
+        } else {
+          console.error("Provisioning failed:", data?.error);
+        }
+      } catch (err) {
+        console.error("Error calling provision function:", err);
+        // Don't fail subscription creation if provisioning fails
+      }
+    }
+
     // Mark onboarding as complete
     await supabase
       .from("tenants")
