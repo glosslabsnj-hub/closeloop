@@ -123,27 +123,31 @@ export function PhoneConnectionStep({ onComplete, isComplete }: PhoneConnectionS
 
     setProvisioning(true);
     try {
-      // Mock provisioning - in production this would call Twilio to provision a number
-      const mockNewNumber = `+1 (${Math.floor(Math.random() * 900 + 100)}) ${Math.floor(Math.random() * 900 + 100)}-${Math.floor(Math.random() * 9000 + 1000)}`;
-      
-      await saveSettings({
-        closeloop_number: mockNewNumber,
-        phone_connected: true,
-        phone_method: "closeloop_number",
-        setup_step_phone: true,
+      // Call the Twilio provisioning edge function
+      const { data, error } = await supabase.functions.invoke("provision-twilio-number", {
+        body: { 
+          tenant_id: tenant.id,
+          number_type: "local"
+        },
       });
+
+      if (error) throw error;
+      if (!data?.success) {
+        throw new Error(data?.error || "Failed to provision number");
+      }
 
       await refreshTenant();
       toast({
         title: "New Number Provisioned! 🎉",
-        description: `Your new CloseLoop number is ${mockNewNumber}`,
+        description: `Your new CloseLoop number is ${data.friendly_name || data.phone_number}`,
       });
       onComplete();
     } catch (error: any) {
+      console.error("Provisioning error:", error);
       toast({
         variant: "destructive",
         title: "Provisioning Failed",
-        description: error.message,
+        description: error.message || "Failed to provision phone number",
       });
     } finally {
       setProvisioning(false);
