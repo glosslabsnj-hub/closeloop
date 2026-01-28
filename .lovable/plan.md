@@ -1,162 +1,103 @@
 
-
-# Twilio Phone Number Provisioning Integration
+# Dashboard & Voice Agent Improvements
 
 ## Overview
+This plan addresses three key issues:
+1. The dashboard shows one generic agent instead of separate Voice and SMS agents
+2. The voice selector shows hardcoded voices instead of voices from your ElevenLabs agent
+3. The AI literally says "business name" instead of your actual business name
 
-This implementation will integrate Twilio with your platform so that when a new customer pays (subscribes), they are automatically assigned a unique Twilio phone number from your account. Customers can then forward their business calls to this assigned number.
+---
 
-## Current Architecture
+## What You'll Get
 
-- **Subscription Flow**: When a user completes onboarding, a subscription is created in the `subscriptions` table with status `trialing`
-- **Phone Setup**: Currently uses mock numbers generated from tenant ID hash
-- **Database Fields**: `assistant_settings` already has `closeloop_number` field for storing the assigned number
-- **Edge Functions**: `test-call-phone` exists as a placeholder for Twilio integration
+### 1. Unified Agent Control Card with Voice & SMS Tabs
+A single card on the dashboard that shows both agents (if you have both), with tabs to switch between them:
+- **Voice Agent Tab**: Toggle on/off, phone number display, connection status, test button
+- **SMS Agent Tab**: Toggle on/off, delay setting (how many seconds before auto-reply)
+- Users with only one plan see only that agent (no tabs)
 
-## Implementation Plan
+### 2. Simplified Voice Selection
+Instead of 8 hardcoded voices, the Voice & Tone settings page will show a cleaner interface:
+- Remove the voice picker entirely (since voices are managed in ElevenLabs)
+- Keep tone/personality selector
+- Keep greeting and fallback script editors
 
-### Step 1: Add Twilio Secrets
-
-Add the following secrets to Lovable Cloud:
-- `TWILIO_ACCOUNT_SID` - Your Twilio Account SID
-- `TWILIO_AUTH_TOKEN` - Your Twilio Auth Token
-
-### Step 2: Create Edge Function for Phone Provisioning
-
-Create a new edge function `provision-twilio-number` that:
-
-1. Receives a `tenant_id` and optional area code preference
-2. Searches for available Twilio phone numbers (local or toll-free)
-3. Purchases/provisions the number via Twilio API
-4. Configures the number's webhook URLs for voice/SMS handling
-5. Returns the provisioned number
-
-```text
-+-------------------+     +------------------------+     +-------------+
-|  Subscription     | --> | provision-twilio-number| --> |   Twilio    |
-|  Created/Paid     |     |    Edge Function       |     |    API      |
-+-------------------+     +------------------------+     +-------------+
-         |                          |                          |
-         |                          v                          |
-         |                 +------------------+                 |
-         |                 | assistant_settings|<---------------+
-         |                 | closeloop_number  |     Phone Number
-         +-----------------+------------------+
-```
-
-### Step 3: Integrate with Subscription Flow
-
-Modify the subscription creation process to automatically trigger phone provisioning:
-
-**Option A: Database Trigger (Recommended)**
-- Create a database trigger on `subscriptions` table
-- When status changes to `active` (after payment), call the edge function
-
-**Option B: Application-Level Integration**
-- Call the provisioning edge function after successful payment/subscription activation
-- Update `OnboardingPage.tsx` to trigger provisioning after subscription creation
-
-### Step 4: Update Phone Connection UI
-
-Update `PhoneConnectionStep.tsx` to:
-- Show "Provisioning your number..." state when waiting for Twilio
-- Display the real Twilio number once provisioned
-- Remove mock number generation
-
-### Step 5: Track Provisioned Numbers
-
-Add database fields to track Twilio metadata:
-- `twilio_phone_sid` - The Twilio Phone Number SID for management
-- `twilio_provisioned_at` - Timestamp of provisioning
+### 3. Fixed Business Name in AI Conversations
+The AI will correctly say "Elite Auto Detailing" instead of "business name" in both:
+- Browser-based test calls
+- Real phone calls
 
 ---
 
 ## Technical Details
 
-### Edge Function: `provision-twilio-number`
+### Dashboard Agent Control Card
 
-```text
-Request Body:
-{
-  "tenant_id": "uuid",
-  "area_code": "optional - preferred area code",
-  "number_type": "local" | "toll_free"
-}
+**Current behavior**: Single "AI Agent" card with generic toggle
 
-Response:
-{
-  "success": true,
-  "phone_number": "+1234567890",
-  "phone_sid": "PN...",
-  "friendly_name": "(234) 567-8901"
-}
-```
+**New behavior**: 
+- Detect subscription type from `subscription.plan_code` (text, voice, or both)
+- If "both": Show tabbed interface with Voice Agent and SMS Agent sections
+- If "voice" only: Show just Voice Agent controls
+- If "text" only: Show just SMS Agent controls
 
-The function will:
-1. Validate the tenant exists and has an active subscription
-2. Check if tenant already has a number assigned (prevent duplicates)
-3. Search Twilio for available numbers matching criteria
-4. Purchase the first available number
-5. Configure webhooks (voice URL, SMS URL) to point to your handlers
-6. Update `assistant_settings.closeloop_number` with the new number
-7. Return the provisioned number details
+**Voice Agent section includes**:
+- On/off toggle (controls `go_live_enabled` + `voice_ai_enabled`)
+- Phone number display with copy button
+- Connection status badge
+- Quick "Test AI" button
 
-### Database Migration
+**SMS Agent section includes**:
+- On/off toggle (controls `instant_text_enabled`)
+- Delay slider (0-60 seconds, controls `sms_first_delay_seconds`)
+- Status indicator
 
-Add tracking columns to `assistant_settings`:
+### Voice Selector Changes
 
-```sql
-ALTER TABLE assistant_settings 
-ADD COLUMN twilio_phone_sid TEXT,
-ADD COLUMN twilio_provisioned_at TIMESTAMPTZ;
-```
+**Current behavior**: VoiceSelector.tsx shows 8 hardcoded ElevenLabs voice options
 
-### Webhook Configuration
+**New behavior**: 
+- Remove the VoiceSelector component from the AI Assistant page
+- Keep only ToneSelector for personality configuration
+- Voice is managed directly in your ElevenLabs agent configuration
 
-When provisioning, set these webhooks on the Twilio number:
-- **Voice URL**: Points to your inbound call handler edge function
-- **SMS URL**: Points to your inbound SMS handler edge function
-- **Status Callback**: For delivery receipts and call status updates
+### Business Name Fix
 
----
+**Root cause**: 
+- For browser tests: The `elevenlabs-conversation-token` function gets a token without passing any business context
+- The ElevenLabs agent has a variable `{{business_name}}` in its prompt, but when no value is provided, it falls back to the literal text
 
-## Files to Create/Modify
+**Solution for browser tests**:
+1. Update `elevenlabs-conversation-token` to accept `tenantId`
+2. Fetch tenant name from database
+3. Use the ElevenLabs conversation API with `overrides` to inject the business name dynamically
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `supabase/functions/provision-twilio-number/index.ts` | Create | Main provisioning logic |
-| `src/pages/app/OnboardingPage.tsx` | Modify | Trigger provisioning after payment |
-| `src/components/dashboard/PhoneConnectionStep.tsx` | Modify | Show real Twilio number, loading state |
-| `src/components/dashboard/ConnectPhoneDialog.tsx` | Modify | Use real provisioning instead of mock |
-| Database migration | Create | Add `twilio_phone_sid`, `twilio_provisioned_at` columns |
+**Solution for phone calls**:
+1. The `twilio-inbound` function already passes `business_name` in `dynamic_variables`
+2. Verify the ElevenLabs agent prompt uses `{{business_name}}` syntax correctly
+3. If needed, ensure the agent is configured to use dynamic variables
 
 ---
 
-## Security Considerations
+## Files to Change
 
-1. **Service Role Only**: The edge function uses `SUPABASE_SERVICE_ROLE_KEY` to update database
-2. **Tenant Validation**: Verify tenant has active subscription before provisioning
-3. **Idempotency**: Check if number already assigned to prevent duplicate purchases
-4. **Rate Limiting**: Add protection against rapid provisioning attempts
-5. **Secrets**: Twilio credentials stored securely in Lovable Cloud secrets
-
----
-
-## Cost Notes
-
-- Twilio local numbers: ~$1.15/month per number
-- Twilio toll-free numbers: ~$2.00/month per number
-- Per-minute voice costs apply for inbound/outbound calls
-- Numbers are charged to your Twilio account automatically
+| File | Change |
+|------|--------|
+| `src/components/dashboard/AgentControlCard.tsx` | Rewrite with tabbed Voice/SMS agents based on subscription |
+| `src/pages/app/AIAssistantPage.tsx` | Remove VoiceSelector, simplify to tone + scripts only |
+| `src/components/ai/VoiceSelector.tsx` | Delete this file |
+| `supabase/functions/elevenlabs-conversation-token/index.ts` | Add business context injection for browser tests |
+| `src/components/ai/VoiceAgentTest.tsx` | Pass tenant context when starting conversation |
 
 ---
 
-## Rollout Steps
-
-1. Add Twilio secrets (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`)
-2. Run database migration for new columns
-3. Deploy the `provision-twilio-number` edge function
-4. Update the frontend components
-5. Test with a new trial signup
-6. Verify the number appears and calls can be forwarded
+## Testing Checklist
+After implementation:
+1. Test dashboard with "both" plan - verify two tabs appear
+2. Test dashboard with "voice" only - verify no tabs, just voice controls
+3. Test dashboard with "text" only - verify no tabs, just SMS controls
+4. Test browser voice call - verify AI says actual business name
+5. Test real phone call - verify AI says actual business name
+6. Verify SMS delay slider saves correctly
 
