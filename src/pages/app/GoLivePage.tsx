@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { 
   MessageSquare, Phone, Sparkles, Check, ArrowRight, Loader2, 
-  Zap, Clock, Bot, Shield
+  Zap, Bot, Shield
 } from "lucide-react";
 import type { PlanCode, PlanPackage } from "@/types/database";
 
@@ -75,11 +75,12 @@ export default function GoLivePage() {
       await refreshTenant();
       
       toast({
-        title: "You're Live! 🎉",
-        description: "Your AI assistant is ready. Complete the setup checklist to get started.",
+        title: "Payment successful! 🎉",
+        description: "Now let's set up your business.",
       });
 
-      navigate("/app/dashboard");
+      // Redirect to onboarding after payment
+      navigate("/app/onboarding");
     } catch (error: any) {
       console.error("Subscription error:", error);
       toast({
@@ -110,11 +111,11 @@ export default function GoLivePage() {
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-primary text-sm font-medium mb-4">
             <Zap className="h-4 w-4" />
-            Almost there!
+            Step 1 of 2
           </div>
           <h1 className="text-4xl font-bold mb-3">Choose Your Plan</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Select the package that fits your business needs. All plans include a 14-day free trial.
+            Select the package that fits your business needs. You'll set up your business next.
           </p>
         </div>
 
@@ -123,10 +124,6 @@ export default function GoLivePage() {
           <div className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
             <span>Cancel anytime</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            <span>14-day free trial</span>
           </div>
           <div className="flex items-center gap-2">
             <Bot className="h-4 w-4" />
@@ -195,11 +192,11 @@ export default function GoLivePage() {
                     {isProcessingThis ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Activating...
+                        Processing...
                       </>
                     ) : (
                       <>
-                        Start Free Trial
+                        Get Started
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </>
                     )}
