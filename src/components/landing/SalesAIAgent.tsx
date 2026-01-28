@@ -189,12 +189,13 @@ export function SalesAIAgent() {
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      // Initial greeting
+      // Direct opening - get to value fast
       setMessages([{
         role: 'assistant',
-        content: "**Hi! I'm the CloseLoop Sales Concierge.**\n\n• I'll help you find the right AI receptionist setup\n• Takes about 2 minutes\n• Then you'll complete a guided onboarding so the AI learns your business",
-        options: ["Let's get started", "Tell me more first"],
+        content: "Tell me your business type and roughly how many calls you get per day, and I'll recommend the best setup in 60 seconds.",
+        options: ['Service business', 'Towing / urgent dispatch', 'Restaurant', 'Medical / Dental', 'Other'],
       }]);
+      setCurrentQuestion(0); // Start at business_type question
     }
   }, [isOpen]);
 

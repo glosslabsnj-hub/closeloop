@@ -372,17 +372,13 @@ export function Copilot({ isOpen, onClose }: CopilotProps) {
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      const modeName = businessMode === 'food' ? 'Food' :
-                       businessMode === 'dispatch' ? 'Dispatch' :
-                       businessMode === 'medical' ? 'Medical' :
-                       'Service';
       setMessages([{
         role: 'assistant',
-        content: `Hi! I'm your CloseLoop Copilot. You're in ${modeName} mode.`,
-        nextActions: ["How does this work?", "Run a test call"],
+        content: "What are you trying to do right now?",
+        nextActions: ["Finish setup", "Test calls", "Push bookings/orders to my system", "Troubleshoot something"],
       }]);
     }
-  }, [isOpen, businessMode]);
+  }, [isOpen]);
 
   useEffect(() => {
     if (scrollRef.current) {
