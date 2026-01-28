@@ -218,7 +218,7 @@ async function resetAllTestData(tenantId: string, mode: BusinessMode) {
   const testData = INDUSTRY_TEST_DATA[mode];
   const config = BUSINESS_MODES[mode];
   
-  // 1. Update tenant name, mode, and modules
+  // 1. Update tenant name, mode, and modules (preserve phone_public)
   const { error: tenantError } = await supabase
     .from("tenants")
     .update({
@@ -226,10 +226,14 @@ async function resetAllTestData(tenantId: string, mode: BusinessMode) {
       business_mode: mode,
       enabled_modules: config.modules,
       hipaa_mode: config.hipaa,
+      // phone_public is explicitly NOT updated to preserve it
     })
     .eq("id", tenantId);
   
   if (tenantError) throw tenantError;
+  
+  // Note: assistant_settings (phone numbers, Twilio config) are NOT touched
+  // to preserve the phone connection for AI calls
 
   // 2. Clear ALL industry-specific tables first
   await clearAllIndustrySpecificData(tenantId);
