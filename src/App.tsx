@@ -26,6 +26,7 @@ import ServicesPage from "@/pages/app/ServicesPage";
 import AutomationsPage from "@/pages/app/AutomationsPage";
 import AIAssistantPage from "@/pages/app/AIAssistantPage";
 import SettingsPage from "@/pages/app/SettingsPage";
+import SimulatorPage from "@/pages/app/SimulatorPage";
 
 // Admin Pages
 import AdminOverviewPage from "@/pages/admin/AdminOverviewPage";
@@ -64,6 +65,7 @@ const App = () => (
               <Route path="/app/services" element={<ServicesPage />} />
               <Route path="/app/automations" element={<AutomationsPage />} />
               <Route path="/app/ai-assistant" element={<AIAssistantPage />} />
+              <Route path="/app/simulator" element={<SimulatorPage />} />
               <Route path="/app/settings" element={<SettingsPage />} />
             </Route>
 

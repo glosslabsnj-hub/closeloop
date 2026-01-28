@@ -1,69 +1,75 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useBusinessContext } from "@/hooks/useBusinessContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import AIReadinessScore from "@/components/knowledge/AIReadinessScore";
+import KnowledgeGapQueue from "@/components/knowledge/KnowledgeGapQueue";
+import VoiceSelector from "@/components/ai/VoiceSelector";
+import ToneSelector from "@/components/ai/ToneSelector";
+import LiveFAQList from "@/components/ai/LiveFAQList";
 import {
   Bot,
-  Phone,
   Play,
   Mic,
-  Volume2,
   MessageSquare,
   HelpCircle,
-  Plus,
-  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-const voiceOptions = [
-  { id: "alloy", name: "Alloy", description: "Balanced, professional" },
-  { id: "echo", name: "Echo", description: "Warm, friendly" },
-  { id: "fable", name: "Fable", description: "Expressive, engaging" },
-  { id: "onyx", name: "Onyx", description: "Deep, authoritative" },
-  { id: "nova", name: "Nova", description: "Bright, energetic" },
-];
-
-const toneOptions = [
-  { value: "friendly", label: "Friendly", description: "Warm and approachable" },
-  { value: "professional", label: "Professional", description: "Polished and formal" },
-  { value: "luxury", label: "Luxury", description: "Refined and exclusive" },
-  { value: "direct", label: "Direct", description: "Efficient and to-the-point" },
-];
-
-const demoFAQs = [
-  { id: "1", title: "What are your hours?", content: "We're open Monday through Friday from 9am to 5pm, and Saturday from 10am to 2pm." },
-  { id: "2", title: "How long does a full detail take?", content: "A full detail typically takes 3-4 hours depending on the size and condition of the vehicle." },
-  { id: "3", title: "Do you offer mobile service?", content: "Yes! We can come to your home or office for an additional $25 travel fee." },
-];
 
 export default function AIAssistantPage() {
   const { tenant } = useAuth();
   const { toast } = useToast();
-  const [aiEnabled, setAiEnabled] = useState(true);
+  const { context, loading: contextLoading, refetch } = useBusinessContext(tenant?.id || null);
+  
+  const [aiEnabled, setAiEnabled] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState("echo");
-  const [selectedTone, setSelectedTone] = useState("friendly");
-  const [greeting, setGreeting] = useState("Hi, thank you for calling! How can I help you today?");
-  const [fallback, setFallback] = useState("I'd be happy to have someone call you back. What's the best number to reach you?");
+  const [selectedTone, setSelectedTone] = useState<string>("friendly");
+  const [greeting, setGreeting] = useState("");
+  const [fallback, setFallback] = useState("");
   const [testing, setTesting] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Load AI assistant settings
+  useEffect(() => {
+    if (tenant?.id) {
+      loadAssistantSettings();
+    }
+  }, [tenant?.id]);
+
+  const loadAssistantSettings = async () => {
+    if (!tenant?.id) return;
+
+    const { data } = await supabase
+      .from('ai_assistants')
+      .select('*')
+      .eq('tenant_id', tenant.id)
+      .single();
+
+    if (data) {
+      setAiEnabled(data.is_enabled);
+      setSelectedVoice(data.voice_id || 'echo');
+      setSelectedTone(data.tone);
+      setGreeting(data.greeting_script || '');
+      setFallback(data.fallback_script || '');
+    } else {
+      // Set defaults from context
+      setGreeting(`Hi, thank you for calling ${tenant.name}! How can I help you today?`);
+      setFallback("I'd be happy to have someone call you back. What's the best number to reach you?");
+    }
+  };
 
   const handleTestCall = () => {
     setTesting(true);
     toast({
       title: "🎙️ AI Test Call",
-      description: "Listen to how your AI assistant sounds...",
+      description: "Simulating how your AI assistant would handle a call...",
     });
     setTimeout(() => {
       setTesting(false);
@@ -72,6 +78,56 @@ export default function AIAssistantPage() {
         description: "Your AI assistant is ready to take calls!",
       });
     }, 3000);
+  };
+
+  const handleSave = async () => {
+    if (!tenant?.id) return;
+
+    setSaving(true);
+    try {
+      // Check if assistant exists
+      const { data: existing } = await supabase
+        .from('ai_assistants')
+        .select('id')
+        .eq('tenant_id', tenant.id)
+        .single();
+
+      const assistantData = {
+        tenant_id: tenant.id,
+        is_enabled: aiEnabled,
+        voice_id: selectedVoice,
+        tone: selectedTone as any,
+        greeting_script: greeting,
+        fallback_script: fallback,
+      };
+
+      if (existing) {
+        await supabase
+          .from('ai_assistants')
+          .update(assistantData)
+          .eq('id', existing.id);
+      } else {
+        await supabase
+          .from('ai_assistants')
+          .insert([{ ...assistantData, name: 'AI Assistant' }]);
+      }
+
+      // Update tenant ai_enabled flag
+      await supabase
+        .from('tenants')
+        .update({ ai_enabled: aiEnabled })
+        .eq('id', tenant.id);
+
+      toast({ title: "Settings saved!" });
+    } catch (error: any) {
+      toast({ 
+        variant: "destructive", 
+        title: "Failed to save", 
+        description: error.message 
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -93,6 +149,9 @@ export default function AIAssistantPage() {
           </div>
         </div>
       </div>
+
+      {/* AI Readiness Score */}
+      <AIReadinessScore compact />
 
       {/* Main Banner */}
       <Card className={aiEnabled ? "border-primary/50 bg-primary/5" : ""}>
@@ -129,65 +188,17 @@ export default function AIAssistantPage() {
             <HelpCircle className="h-4 w-4" />
             Knowledge Base
           </TabsTrigger>
+          <TabsTrigger value="gaps" className="gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            Knowledge Gaps
+          </TabsTrigger>
         </TabsList>
 
         {/* Voice & Tone Tab */}
         <TabsContent value="voice" className="space-y-6">
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Voice Selection */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Voice</CardTitle>
-                <CardDescription>Choose how your AI sounds</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {voiceOptions.map((voice) => (
-                  <button
-                    key={voice.id}
-                    onClick={() => setSelectedVoice(voice.id)}
-                    className={`w-full p-3 rounded-lg border text-left transition-colors ${
-                      selectedVoice === voice.id
-                        ? "border-primary bg-primary/5"
-                        : "hover:bg-secondary"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{voice.name}</p>
-                        <p className="text-sm text-muted-foreground">{voice.description}</p>
-                      </div>
-                      <Button variant="ghost" size="icon">
-                        <Volume2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </button>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* Tone Selection */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Personality</CardTitle>
-                <CardDescription>Set the tone of conversations</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {toneOptions.map((tone) => (
-                  <button
-                    key={tone.value}
-                    onClick={() => setSelectedTone(tone.value)}
-                    className={`w-full p-3 rounded-lg border text-left transition-colors ${
-                      selectedTone === tone.value
-                        ? "border-primary bg-primary/5"
-                        : "hover:bg-secondary"
-                    }`}
-                  >
-                    <p className="font-medium">{tone.label}</p>
-                    <p className="text-sm text-muted-foreground">{tone.description}</p>
-                  </button>
-                ))}
-              </CardContent>
-            </Card>
+            <VoiceSelector selected={selectedVoice} onSelect={setSelectedVoice} />
+            <ToneSelector selected={selectedTone} onSelect={setSelectedTone} />
           </div>
         </TabsContent>
 
@@ -224,44 +235,21 @@ export default function AIAssistantPage() {
           </Card>
         </TabsContent>
 
-        {/* Knowledge Base Tab */}
+        {/* Knowledge Base Tab - Live from DB */}
         <TabsContent value="knowledge" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg">FAQs</CardTitle>
-                  <CardDescription>Answers to common questions</CardDescription>
-                </div>
-                <Button size="sm" className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add FAQ
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {demoFAQs.map((faq) => (
-                <div key={faq.id} className="p-4 rounded-lg border">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="font-medium">{faq.title}</p>
-                      <p className="text-sm text-muted-foreground mt-1">{faq.content}</p>
-                    </div>
-                    <Button variant="ghost" size="icon" className="text-destructive">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+          <LiveFAQList />
+        </TabsContent>
+
+        {/* Knowledge Gaps Tab */}
+        <TabsContent value="gaps" className="space-y-6">
+          <KnowledgeGapQueue />
         </TabsContent>
       </Tabs>
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button onClick={() => toast({ title: "Settings saved!" })}>
-          Save Changes
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? "Saving..." : "Save Changes"}
         </Button>
       </div>
     </div>

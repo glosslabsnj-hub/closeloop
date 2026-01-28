@@ -15,6 +15,15 @@ export type Automation = Tables<"automations">;
 export type AuditLog = Tables<"audit_logs">;
 export type UserRole = Tables<"user_roles">;
 
+// New tables
+export type Customer = Tables<"customers">;
+export type Opportunity = Tables<"opportunities">;
+export type CustomerMergeQueue = Tables<"customer_merge_queue">;
+export type KnowledgeGap = Tables<"knowledge_gaps">;
+export type SyncEvent = Tables<"sync_events">;
+export type BusinessFAQ = Tables<"business_faqs">;
+export type ObjectionResponse = Tables<"objection_responses">;
+
 // AI-related types
 export interface AIAssistant {
   id: string;
@@ -32,6 +41,8 @@ export interface AICallSession {
   id: string;
   tenant_id: string;
   lead_id: string | null;
+  customer_id: string | null;
+  opportunity_id: string | null;
   call_direction: "inbound" | "outbound";
   started_at: string;
   ended_at: string | null;
@@ -51,6 +62,75 @@ export interface AIKnowledgeBase {
   priority_weight: number;
   created_at: string;
 }
+
+// Business context for AI injection
+export interface BusinessContext {
+  business: {
+    name: string;
+    tagline: string | null;
+    industry: string;
+    phone: string | null;
+    website: string | null;
+    address: string | null;
+    years_in_business: number | null;
+    timezone: string;
+  };
+  hours: Record<string, { open: string; close: string; closed: boolean }>;
+  service_area: { type: string; miles?: number; codes?: string[] } | null;
+  services: Array<{
+    name: string;
+    description: string | null;
+    duration_minutes: number;
+    price_type: string;
+    price_amount: number | null;
+    deposit_required: boolean | null;
+    deposit_amount: number | null;
+    preparation_instructions: string | null;
+    upsell_suggestions: string[] | null;
+  }>;
+  booking_rules: {
+    min_lead_hours: number | null;
+    max_advance_days: number | null;
+    buffer_minutes: number | null;
+    closed_dates: string[] | null;
+  };
+  policies: {
+    cancellation: string | null;
+    deposit: string | null;
+    refund: string | null;
+    payment_methods: string[] | null;
+  };
+  intake_fields: Array<{
+    key: string;
+    label: string;
+    type: string;
+    options?: string[];
+    required: boolean;
+  }>;
+  faqs: Array<{ question: string; answer: string }>;
+  objection_responses: Array<{ objection: string; response: string }>;
+  guardrails: {
+    never_promise: string[] | null;
+    ai_enabled: boolean;
+  };
+}
+
+// Customer resolver result
+export interface CustomerResolverResult {
+  customer_id: string;
+  is_new: boolean;
+  has_conflict: boolean;
+  conflict_id: string | null;
+}
+
+// Opportunity status types
+export type OpportunityStatus = 'new' | 'contacted' | 'qualified' | 'quoted' | 'booked' | 'completed' | 'lost';
+
+// Knowledge gap types
+export type KnowledgeGapType = 'missing_policy' | 'missing_pricing' | 'missing_service_area' | 'unanswered_question' | 'missing_hours' | 'missing_faq' | 'other';
+
+// Sync event types
+export type SyncEventType = 'customer_created' | 'customer_updated' | 'opportunity_created' | 'opportunity_updated' | 'booking_created' | 'booking_updated' | 'call_completed';
 
 // Enums
 export type IndustryType = Enums<"industry_type">;
