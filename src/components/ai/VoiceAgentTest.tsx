@@ -61,17 +61,10 @@ export default function VoiceAgentTest() {
       console.log("Starting conversation with business context:", data.dynamicVariables);
 
       // Start the conversation with WebSocket using signed URL
-      // The signed URL already includes agent ID and allows us to pass overrides
+      // Pass dynamic variables directly - the agent uses these via {{variable_name}} syntax
       await conversation.startSession({
         signedUrl: data.signedUrl,
-        overrides: {
-          agent: {
-            prompt: {
-              prompt: `You are a helpful AI assistant for ${data.dynamicVariables?.business_name || "our business"}. Today's hours are ${data.dynamicVariables?.business_hours_today || "our regular hours"}.`,
-            },
-            firstMessage: `Hi, thank you for calling ${data.dynamicVariables?.business_name || "us"}! How can I help you today?`,
-          },
-        },
+        dynamicVariables: data.dynamicVariables,
       });
     } catch (error: any) {
       console.error("Failed to start conversation:", error);
