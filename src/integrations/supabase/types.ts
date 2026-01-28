@@ -553,6 +553,87 @@ export type Database = {
           },
         ]
       }
+      catering_requests: {
+        Row: {
+          budget_range: string | null
+          created_at: string
+          customer_email: string | null
+          customer_id: string | null
+          customer_name: string
+          customer_phone: string | null
+          dietary_restrictions: string | null
+          event_date: string | null
+          event_time: string | null
+          event_type: string | null
+          guest_count: number | null
+          id: string
+          location: string | null
+          menu_preferences: string | null
+          notes: string | null
+          quote_amount_cents: number | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          budget_range?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          dietary_restrictions?: string | null
+          event_date?: string | null
+          event_time?: string | null
+          event_type?: string | null
+          guest_count?: number | null
+          id?: string
+          location?: string | null
+          menu_preferences?: string | null
+          notes?: string | null
+          quote_amount_cents?: number | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          budget_range?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          dietary_restrictions?: string | null
+          event_date?: string | null
+          event_time?: string | null
+          event_type?: string | null
+          guest_count?: number | null
+          id?: string
+          location?: string | null
+          menu_preferences?: string | null
+          notes?: string | null
+          quote_amount_cents?: number | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catering_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catering_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           channel: Database["public"]["Enums"]["channel_type"]
@@ -725,6 +806,189 @@ export type Database = {
           },
         ]
       }
+      dispatch_jobs: {
+        Row: {
+          arrived_at: string | null
+          assigned_crew: string | null
+          assigned_vehicle: string | null
+          completed_at: string | null
+          created_at: string
+          customer_id: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          description: string | null
+          dispatched_at: string | null
+          dropoff_address: string | null
+          dropoff_lat: number | null
+          dropoff_lng: number | null
+          estimated_duration_minutes: number | null
+          id: string
+          job_number: string
+          job_type: string | null
+          notes: string | null
+          pickup_address: string | null
+          pickup_lat: number | null
+          pickup_lng: number | null
+          price_cents: number | null
+          priority: Database["public"]["Enums"]["dispatch_priority"]
+          requested_at: string | null
+          scheduled_at: string | null
+          status: Database["public"]["Enums"]["dispatch_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          arrived_at?: string | null
+          assigned_crew?: string | null
+          assigned_vehicle?: string | null
+          completed_at?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          description?: string | null
+          dispatched_at?: string | null
+          dropoff_address?: string | null
+          dropoff_lat?: number | null
+          dropoff_lng?: number | null
+          estimated_duration_minutes?: number | null
+          id?: string
+          job_number: string
+          job_type?: string | null
+          notes?: string | null
+          pickup_address?: string | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
+          price_cents?: number | null
+          priority?: Database["public"]["Enums"]["dispatch_priority"]
+          requested_at?: string | null
+          scheduled_at?: string | null
+          status?: Database["public"]["Enums"]["dispatch_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          arrived_at?: string | null
+          assigned_crew?: string | null
+          assigned_vehicle?: string | null
+          completed_at?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          description?: string | null
+          dispatched_at?: string | null
+          dropoff_address?: string | null
+          dropoff_lat?: number | null
+          dropoff_lng?: number | null
+          estimated_duration_minutes?: number | null
+          id?: string
+          job_number?: string
+          job_type?: string | null
+          notes?: string | null
+          pickup_address?: string | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
+          price_cents?: number | null
+          priority?: Database["public"]["Enums"]["dispatch_priority"]
+          requested_at?: string | null
+          scheduled_at?: string | null
+          status?: Database["public"]["Enums"]["dispatch_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispatch_jobs_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispatch_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      food_orders: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          delivery_address: string | null
+          id: string
+          items_json: Json
+          order_number: string
+          order_type: string
+          scheduled_at: string | null
+          special_instructions: string | null
+          status: Database["public"]["Enums"]["order_status"]
+          subtotal_cents: number | null
+          tax_cents: number | null
+          tenant_id: string
+          total_cents: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          delivery_address?: string | null
+          id?: string
+          items_json?: Json
+          order_number: string
+          order_type?: string
+          scheduled_at?: string | null
+          special_instructions?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+          subtotal_cents?: number | null
+          tax_cents?: number | null
+          tenant_id: string
+          total_cents?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          delivery_address?: string | null
+          id?: string
+          items_json?: Json
+          order_number?: string
+          order_type?: string
+          scheduled_at?: string | null
+          special_instructions?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+          subtotal_cents?: number | null
+          tax_cents?: number | null
+          tenant_id?: string
+          total_cents?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "food_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "food_orders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge_gaps: {
         Row: {
           ai_session_id: string | null
@@ -824,6 +1088,220 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "leads_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medical_intakes: {
+        Row: {
+          ai_summary: string | null
+          call_session_id: string | null
+          consent_timestamp: string | null
+          created_at: string
+          customer_id: string | null
+          id: string
+          insurance_provider: string | null
+          intake_type: string | null
+          preferred_date: string | null
+          preferred_time_range: string | null
+          reason_for_visit: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+          urgency_level: string | null
+          verbal_consent_given: boolean | null
+        }
+        Insert: {
+          ai_summary?: string | null
+          call_session_id?: string | null
+          consent_timestamp?: string | null
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          insurance_provider?: string | null
+          intake_type?: string | null
+          preferred_date?: string | null
+          preferred_time_range?: string | null
+          reason_for_visit?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          urgency_level?: string | null
+          verbal_consent_given?: boolean | null
+        }
+        Update: {
+          ai_summary?: string | null
+          call_session_id?: string | null
+          consent_timestamp?: string | null
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          insurance_provider?: string | null
+          intake_type?: string | null
+          preferred_date?: string | null
+          preferred_time_range?: string | null
+          reason_for_visit?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          urgency_level?: string | null
+          verbal_consent_given?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_intakes_call_session_id_fkey"
+            columns: ["call_session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_call_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_intakes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_intakes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medical_settings: {
+        Row: {
+          created_at: string
+          id: string
+          intake_fields_json: Json | null
+          require_verbal_consent: boolean
+          retention_days: number
+          scheduling_rules_json: Json | null
+          store_recordings: boolean
+          store_transcripts: boolean
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          intake_fields_json?: Json | null
+          require_verbal_consent?: boolean
+          retention_days?: number
+          scheduling_rules_json?: Json | null
+          store_recordings?: boolean
+          store_transcripts?: boolean
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          intake_fields_json?: Json | null
+          require_verbal_consent?: boolean
+          retention_days?: number
+          scheduling_rules_json?: Json | null
+          store_recordings?: boolean
+          store_transcripts?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_documents: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_url: string | null
+          id: string
+          parsed_json: Json | null
+          parsed_text: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_url?: string | null
+          id?: string
+          parsed_json?: Json | null
+          parsed_text?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_url?: string | null
+          id?: string
+          parsed_json?: Json | null
+          parsed_text?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_items: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          dietary_tags: string[] | null
+          id: string
+          is_available: boolean
+          name: string
+          prep_time_minutes: number | null
+          price_cents: number | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          dietary_tags?: string[] | null
+          id?: string
+          is_available?: boolean
+          name: string
+          prep_time_minutes?: number | null
+          price_cents?: number | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          dietary_tags?: string[] | null
+          id?: string
+          is_available?: boolean
+          name?: string
+          prep_time_minutes?: number | null
+          price_cents?: number | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_items_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1012,6 +1490,72 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "phone_numbers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reservations: {
+        Row: {
+          created_at: string
+          customer_email: string | null
+          customer_id: string | null
+          customer_name: string
+          customer_phone: string | null
+          id: string
+          party_size: number
+          reservation_date: string
+          reservation_time: string
+          special_requests: string | null
+          status: Database["public"]["Enums"]["reservation_status"]
+          table_preference: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          id?: string
+          party_size?: number
+          reservation_date: string
+          reservation_time: string
+          special_requests?: string | null
+          status?: Database["public"]["Enums"]["reservation_status"]
+          table_preference?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          id?: string
+          party_size?: number
+          reservation_date?: string
+          reservation_time?: string
+          special_requests?: string | null
+          status?: Database["public"]["Enums"]["reservation_status"]
+          table_preference?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservations_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1208,6 +1752,7 @@ export type Database = {
           ai_never_promise: string[] | null
           ai_readiness_score: number | null
           appointment_buffer_minutes: number | null
+          business_mode: Database["public"]["Enums"]["business_mode"]
           calendar_last_synced_at: string | null
           calendar_sync_enabled: boolean | null
           calendar_sync_provider: string | null
@@ -1217,6 +1762,8 @@ export type Database = {
           created_at: string
           custom_industry: string | null
           deposit_policy: string | null
+          enabled_modules: Json | null
+          hipaa_mode: boolean
           hours_json: Json | null
           id: string
           industry: Database["public"]["Enums"]["industry_type"]
@@ -1239,6 +1786,7 @@ export type Database = {
           ai_never_promise?: string[] | null
           ai_readiness_score?: number | null
           appointment_buffer_minutes?: number | null
+          business_mode?: Database["public"]["Enums"]["business_mode"]
           calendar_last_synced_at?: string | null
           calendar_sync_enabled?: boolean | null
           calendar_sync_provider?: string | null
@@ -1248,6 +1796,8 @@ export type Database = {
           created_at?: string
           custom_industry?: string | null
           deposit_policy?: string | null
+          enabled_modules?: Json | null
+          hipaa_mode?: boolean
           hours_json?: Json | null
           id?: string
           industry?: Database["public"]["Enums"]["industry_type"]
@@ -1270,6 +1820,7 @@ export type Database = {
           ai_never_promise?: string[] | null
           ai_readiness_score?: number | null
           appointment_buffer_minutes?: number | null
+          business_mode?: Database["public"]["Enums"]["business_mode"]
           calendar_last_synced_at?: string | null
           calendar_sync_enabled?: boolean | null
           calendar_sync_provider?: string | null
@@ -1279,6 +1830,8 @@ export type Database = {
           created_at?: string
           custom_industry?: string | null
           deposit_policy?: string | null
+          enabled_modules?: Json | null
+          hipaa_mode?: boolean
           hours_json?: Json | null
           id?: string
           industry?: Database["public"]["Enums"]["industry_type"]
@@ -1383,7 +1936,16 @@ export type Database = {
         | "completed"
         | "canceled"
         | "no_show"
+      business_mode: "service" | "dispatch" | "food" | "medical" | "general"
       channel_type: "sms" | "email" | "internal"
+      dispatch_priority: "low" | "normal" | "high" | "urgent"
+      dispatch_status:
+        | "pending"
+        | "assigned"
+        | "en_route"
+        | "on_site"
+        | "completed"
+        | "cancelled"
       industry_type:
         | "detailing"
         | "hvac"
@@ -1410,8 +1972,23 @@ export type Database = {
       message_direction: "inbound" | "outbound"
       message_status: "queued" | "sent" | "delivered" | "failed"
       missed_call_behavior: "text_only" | "ai_callback" | "both"
+      order_status:
+        | "pending"
+        | "confirmed"
+        | "preparing"
+        | "ready"
+        | "out_for_delivery"
+        | "completed"
+        | "cancelled"
       plan_code: "text" | "voice" | "both"
       price_type: "fixed" | "starting_at" | "quote_only"
+      reservation_status:
+        | "pending"
+        | "confirmed"
+        | "seated"
+        | "completed"
+        | "cancelled"
+        | "no_show"
       subscription_status: "active" | "trialing" | "past_due" | "canceled"
       user_role: "owner" | "staff" | "super_admin"
       voice_mode: "always_on" | "busy_mode" | "overflow" | "after_hours_only"
@@ -1561,7 +2138,17 @@ export const Constants = {
         "canceled",
         "no_show",
       ],
+      business_mode: ["service", "dispatch", "food", "medical", "general"],
       channel_type: ["sms", "email", "internal"],
+      dispatch_priority: ["low", "normal", "high", "urgent"],
+      dispatch_status: [
+        "pending",
+        "assigned",
+        "en_route",
+        "on_site",
+        "completed",
+        "cancelled",
+      ],
       industry_type: [
         "detailing",
         "hvac",
@@ -1589,8 +2176,25 @@ export const Constants = {
       message_direction: ["inbound", "outbound"],
       message_status: ["queued", "sent", "delivered", "failed"],
       missed_call_behavior: ["text_only", "ai_callback", "both"],
+      order_status: [
+        "pending",
+        "confirmed",
+        "preparing",
+        "ready",
+        "out_for_delivery",
+        "completed",
+        "cancelled",
+      ],
       plan_code: ["text", "voice", "both"],
       price_type: ["fixed", "starting_at", "quote_only"],
+      reservation_status: [
+        "pending",
+        "confirmed",
+        "seated",
+        "completed",
+        "cancelled",
+        "no_show",
+      ],
       subscription_status: ["active", "trialing", "past_due", "canceled"],
       user_role: ["owner", "staff", "super_admin"],
       voice_mode: ["always_on", "busy_mode", "overflow", "after_hours_only"],

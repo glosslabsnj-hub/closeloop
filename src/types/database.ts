@@ -153,6 +153,9 @@ export type SubscriptionStatus = Enums<"subscription_status">;
 export type VoiceMode = Enums<"voice_mode">;
 export type MissedCallBehavior = Enums<"missed_call_behavior">;
 
+// Business mode types
+export type BusinessMode = "service" | "dispatch" | "food" | "medical" | "general";
+
 // Enums
 export type IndustryType = Enums<"industry_type">;
 export type LeadSource = Enums<"lead_source">;
@@ -164,6 +167,10 @@ export type MessageDirection = Enums<"message_direction">;
 export type MessageStatus = Enums<"message_status">;
 export type AutomationTrigger = Enums<"automation_trigger">;
 export type UserRoleType = Enums<"user_role">;
+export type OrderStatus = "pending" | "confirmed" | "preparing" | "ready" | "out_for_delivery" | "completed" | "cancelled";
+export type ReservationStatus = "pending" | "confirmed" | "seated" | "completed" | "cancelled" | "no_show";
+export type DispatchStatus = "pending" | "assigned" | "en_route" | "on_site" | "completed" | "cancelled";
+export type DispatchPriority = "low" | "normal" | "high" | "urgent";
 
 // Dashboard metrics
 export interface DashboardMetrics {
