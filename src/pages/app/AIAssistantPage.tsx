@@ -16,6 +16,8 @@ import VoiceSelector from "@/components/ai/VoiceSelector";
 import ToneSelector from "@/components/ai/ToneSelector";
 import LiveFAQList from "@/components/ai/LiveFAQList";
 import VoiceAgentTest from "@/components/ai/VoiceAgentTest";
+import BookingBehaviorSettings from "@/components/ai/BookingBehaviorSettings";
+import CalendarSyncSettings from "@/components/ai/CalendarSyncSettings";
 import {
   Bot,
   Play,
@@ -24,6 +26,7 @@ import {
   HelpCircle,
   AlertTriangle,
   Settings,
+  CalendarCheck,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -187,6 +190,10 @@ export default function AIAssistantPage() {
             <Mic className="h-4 w-4" />
             Voice & Tone
           </TabsTrigger>
+          <TabsTrigger value="booking" className="gap-2">
+            <CalendarCheck className="h-4 w-4" />
+            Booking
+          </TabsTrigger>
           <TabsTrigger value="scripts" className="gap-2">
             <MessageSquare className="h-4 w-4" />
             Scripts
@@ -210,6 +217,14 @@ export default function AIAssistantPage() {
           <div className="grid md:grid-cols-2 gap-6">
             <VoiceSelector selected={selectedVoice} onSelect={setSelectedVoice} />
             <ToneSelector selected={selectedTone} onSelect={setSelectedTone} />
+          </div>
+        </TabsContent>
+
+        {/* Booking Tab */}
+        <TabsContent value="booking" className="space-y-6">
+          <div className="grid lg:grid-cols-2 gap-6">
+            <BookingBehaviorSettings />
+            <CalendarSyncSettings />
           </div>
         </TabsContent>
 

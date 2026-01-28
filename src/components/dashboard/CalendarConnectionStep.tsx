@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Check, Loader2, ExternalLink, Link2 } from "lucide-react";
+import { Calendar, Check, Loader2, ExternalLink, Link2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface CalendarConnectionStepProps {
@@ -31,6 +31,9 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
   
   const [selectedProvider, setSelectedProvider] = useState<string>("calendly");
   const [bookingUrl, setBookingUrl] = useState((assistantSettings as any)?.booking_url || "");
+  const [bookingMode, setBookingMode] = useState<'auto_book' | 'pending_approval'>(
+    (assistantSettings as any)?.ai_booking_mode || 'auto_book'
+  );
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -63,6 +66,7 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
           tenant_id: tenant.id,
           booking_url: bookingUrl.trim(),
           calendar_provider: selectedProvider,
+          ai_booking_mode: bookingMode,
           setup_step_calendar: true,
           updated_at: new Date().toISOString(),
         } as any, {
@@ -169,6 +173,56 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
           </p>
         </div>
 
+        {/* Booking Mode Selection */}
+        <div className="space-y-3 pt-4 border-t">
+          <Label className="font-medium">How should AI handle bookings?</Label>
+          <RadioGroup 
+            value={bookingMode} 
+            onValueChange={(value) => setBookingMode(value as 'auto_book' | 'pending_approval')}
+            className="space-y-2"
+          >
+            <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+              bookingMode === 'auto_book' 
+                ? 'border-primary bg-primary/5' 
+                : 'hover:bg-muted/50'
+            }`}>
+              <RadioGroupItem value="auto_book" className="mt-1" />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-sm">Auto-Book Appointments</span>
+                  <Badge variant="default" className="text-[10px]">Recommended</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  AI confirms appointments instantly based on your availability
+                </p>
+              </div>
+            </label>
+
+            <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+              bookingMode === 'pending_approval' 
+                ? 'border-primary bg-primary/5' 
+                : 'hover:bg-muted/50'
+            }`}>
+              <RadioGroupItem value="pending_approval" className="mt-1" />
+              <div className="flex-1">
+                <span className="font-medium text-sm">Require My Approval</span>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  AI schedules as pending - you confirm each booking manually
+                </p>
+              </div>
+            </label>
+          </RadioGroup>
+
+          {bookingMode === 'pending_approval' && (
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/30">
+              <AlertCircle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-muted-foreground">
+                You'll need to confirm each appointment in your Bookings page before the customer receives confirmation.
+              </p>
+            </div>
+          )}
+        </div>
+
         {/* Info Box */}
         <div className="rounded-lg bg-muted/50 p-4 text-sm">
           <p className="font-medium mb-2">What your AI will do:</p>
@@ -183,7 +237,12 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
             </li>
             <li className="flex items-start gap-2">
               <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-              <span>Guide them through the booking process</span>
+              <span>
+                {bookingMode === 'auto_book' 
+                  ? 'Confirm appointments automatically'
+                  : 'Schedule appointments as pending for your review'
+                }
+              </span>
             </li>
           </ul>
         </div>

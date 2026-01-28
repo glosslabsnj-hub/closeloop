@@ -90,11 +90,19 @@ export interface BusinessContext {
     preparation_instructions: string | null;
     upsell_suggestions: string[] | null;
   }>;
+  availability_slots?: Array<{
+    day_of_week: number;
+    start_time: string;
+    end_time: string;
+    is_available: boolean;
+  }>;
   booking_rules: {
     min_lead_hours: number | null;
     max_advance_days: number | null;
     buffer_minutes: number | null;
     closed_dates: string[] | null;
+    booking_mode: 'auto_book' | 'pending_approval';
+    booking_url: string | null;
   };
   policies: {
     cancellation: string | null;
