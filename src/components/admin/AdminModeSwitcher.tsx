@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { BusinessMode } from "@/types/database";
-import { INDUSTRY_TEST_DATA, TEST_PHONES } from "@/data/industryTestData";
+import { INDUSTRY_TEST_DATA, TEST_PHONES, getRelativeDate } from "@/data/industryTestData";
 
 interface ModeConfig {
   label: string;
@@ -62,6 +62,158 @@ const BUSINESS_MODES: Record<BusinessMode, ModeConfig> = {
   },
 };
 
+async function clearAllIndustrySpecificData(tenantId: string) {
+  // Clear all industry-specific tables to avoid stale data
+  await Promise.all([
+    supabase.from("menu_items").delete().eq("tenant_id", tenantId),
+    supabase.from("reservations").delete().eq("tenant_id", tenantId),
+    supabase.from("food_orders").delete().eq("tenant_id", tenantId),
+    supabase.from("catering_requests").delete().eq("tenant_id", tenantId),
+    supabase.from("dispatch_jobs").delete().eq("tenant_id", tenantId),
+    supabase.from("medical_intakes").delete().eq("tenant_id", tenantId),
+  ]);
+}
+
+async function insertFoodModeData(tenantId: string) {
+  const testData = INDUSTRY_TEST_DATA.food;
+  
+  // Insert menu items
+  if (testData.menuItems && testData.menuItems.length > 0) {
+    const menuRecords = testData.menuItems.map(item => ({
+      tenant_id: tenantId,
+      name: item.name,
+      category: item.category,
+      description: item.description,
+      price_cents: item.price_cents,
+      dietary_tags: item.dietary_tags,
+      prep_time_minutes: item.prep_time_minutes,
+      is_available: item.is_available,
+    }));
+    
+    const { error } = await supabase.from("menu_items").insert(menuRecords);
+    if (error) console.error("Menu items insert error:", error);
+  }
+  
+  // Insert reservations with computed dates
+  if (testData.reservations && testData.reservations.length > 0) {
+    const reservationRecords = testData.reservations.map(res => ({
+      tenant_id: tenantId,
+      customer_name: res.customer_name,
+      customer_phone: res.customer_phone,
+      party_size: res.party_size,
+      reservation_date: getRelativeDate(res.reservation_date),
+      reservation_time: res.reservation_time,
+      status: res.status,
+      special_requests: res.special_requests,
+      table_preference: res.table_preference,
+    }));
+    
+    const { error } = await supabase.from("reservations").insert(reservationRecords);
+    if (error) console.error("Reservations insert error:", error);
+  }
+  
+  // Insert food orders
+  if (testData.orders && testData.orders.length > 0) {
+    const orderRecords = testData.orders.map(order => ({
+      tenant_id: tenantId,
+      order_number: order.order_number,
+      order_type: order.order_type,
+      customer_name: order.customer_name,
+      customer_phone: order.customer_phone,
+      items_json: order.items_json,
+      subtotal_cents: order.subtotal_cents,
+      tax_cents: order.tax_cents,
+      total_cents: order.total_cents,
+      status: order.status,
+      special_instructions: order.special_instructions,
+      delivery_address: order.delivery_address,
+    }));
+    
+    const { error } = await supabase.from("food_orders").insert(orderRecords);
+    if (error) console.error("Food orders insert error:", error);
+  }
+  
+  // Insert catering requests with computed dates
+  if (testData.cateringRequests && testData.cateringRequests.length > 0) {
+    const cateringRecords = testData.cateringRequests.map(req => ({
+      tenant_id: tenantId,
+      customer_name: req.customer_name,
+      customer_phone: req.customer_phone,
+      customer_email: req.customer_email,
+      event_type: req.event_type,
+      event_date: getRelativeDate(req.event_date),
+      event_time: req.event_time,
+      guest_count: req.guest_count,
+      budget_range: req.budget_range,
+      menu_preferences: req.menu_preferences,
+      dietary_restrictions: req.dietary_restrictions,
+      location: req.location,
+      status: req.status,
+      quote_amount_cents: req.quote_amount_cents,
+      notes: req.notes,
+    }));
+    
+    const { error } = await supabase.from("catering_requests").insert(cateringRecords);
+    if (error) console.error("Catering requests insert error:", error);
+  }
+}
+
+async function insertDispatchModeData(tenantId: string) {
+  const testData = INDUSTRY_TEST_DATA.dispatch;
+  
+  if (testData.dispatchJobs && testData.dispatchJobs.length > 0) {
+    const now = new Date();
+    
+    const dispatchRecords = testData.dispatchJobs.map((job, index) => ({
+      tenant_id: tenantId,
+      job_number: job.job_number,
+      job_type: job.job_type,
+      priority: job.priority,
+      status: job.status,
+      customer_name: job.customer_name,
+      customer_phone: job.customer_phone,
+      pickup_address: job.pickup_address,
+      dropoff_address: job.dropoff_address,
+      description: job.description,
+      assigned_crew: job.assigned_crew,
+      assigned_vehicle: job.assigned_vehicle,
+      estimated_duration_minutes: job.estimated_duration_minutes,
+      price_cents: job.price_cents,
+      notes: job.notes,
+      requested_at: new Date(now.getTime() - (index + 1) * 1800000).toISOString(), // 30 min apart
+      dispatched_at: job.status !== "pending" ? new Date(now.getTime() - index * 1200000).toISOString() : null,
+      arrived_at: job.status === "on_site" || job.status === "completed" ? new Date(now.getTime() - index * 600000).toISOString() : null,
+      completed_at: job.status === "completed" ? new Date(now.getTime() - 3600000).toISOString() : null,
+    }));
+    
+    const { error } = await supabase.from("dispatch_jobs").insert(dispatchRecords);
+    if (error) console.error("Dispatch jobs insert error:", error);
+  }
+}
+
+async function insertMedicalModeData(tenantId: string) {
+  const testData = INDUSTRY_TEST_DATA.medical;
+  
+  if (testData.medicalIntakes && testData.medicalIntakes.length > 0) {
+    const intakeRecords = testData.medicalIntakes.map(intake => ({
+      tenant_id: tenantId,
+      intake_type: intake.intake_type,
+      urgency_level: intake.urgency_level,
+      reason_for_visit: intake.reason_for_visit,
+      status: intake.status,
+      verbal_consent_given: intake.verbal_consent_given,
+      consent_timestamp: intake.verbal_consent_given ? new Date().toISOString() : null,
+      insurance_provider: intake.insurance_provider,
+      preferred_date: getRelativeDate(intake.preferred_date),
+      preferred_time_range: intake.preferred_time_range,
+      ai_summary: intake.ai_summary,
+    }));
+    
+    const { error } = await supabase.from("medical_intakes").insert(intakeRecords);
+    if (error) console.error("Medical intakes insert error:", error);
+  }
+}
+
 async function resetAllTestData(tenantId: string, mode: BusinessMode) {
   const testData = INDUSTRY_TEST_DATA[mode];
   const config = BUSINESS_MODES[mode];
@@ -79,7 +231,10 @@ async function resetAllTestData(tenantId: string, mode: BusinessMode) {
   
   if (tenantError) throw tenantError;
 
-  // 2. Replace services
+  // 2. Clear ALL industry-specific tables first
+  await clearAllIndustrySpecificData(tenantId);
+
+  // 3. Replace common tables (services, FAQs, knowledge base, etc.)
   await supabase.from("services").delete().eq("tenant_id", tenantId);
   if (testData.services.length > 0) {
     const { error: servicesError } = await supabase
@@ -96,7 +251,7 @@ async function resetAllTestData(tenantId: string, mode: BusinessMode) {
     if (servicesError) console.error("Services insert error:", servicesError);
   }
 
-  // 3. Replace FAQs
+  // 4. Replace FAQs
   await supabase.from("business_faqs").delete().eq("tenant_id", tenantId);
   if (testData.faqs.length > 0) {
     const { error: faqsError } = await supabase
@@ -110,7 +265,7 @@ async function resetAllTestData(tenantId: string, mode: BusinessMode) {
     if (faqsError) console.error("FAQs insert error:", faqsError);
   }
 
-  // 4. Replace knowledge base policies
+  // 5. Replace knowledge base policies
   await supabase.from("ai_knowledge_base").delete().eq("tenant_id", tenantId);
   if (testData.policies.length > 0) {
     const { error: policiesError } = await supabase
@@ -125,7 +280,7 @@ async function resetAllTestData(tenantId: string, mode: BusinessMode) {
     if (policiesError) console.error("Policies insert error:", policiesError);
   }
 
-  // 5. Replace objection responses
+  // 6. Replace objection responses
   await supabase.from("objection_responses").delete().eq("tenant_id", tenantId);
   if (testData.objections.length > 0) {
     const { error: objectionsError } = await supabase
@@ -139,7 +294,7 @@ async function resetAllTestData(tenantId: string, mode: BusinessMode) {
     if (objectionsError) console.error("Objections insert error:", objectionsError);
   }
 
-  // 6. Replace availability hours
+  // 7. Replace availability hours
   await supabase.from("availability_slots").delete().eq("tenant_id", tenantId);
   if (testData.hours.length > 0) {
     const { error: hoursError } = await supabase
@@ -154,12 +309,12 @@ async function resetAllTestData(tenantId: string, mode: BusinessMode) {
     if (hoursError) console.error("Hours insert error:", hoursError);
   }
 
-  // 7. Replace call sessions
+  // 8. Replace call sessions
   await supabase.from("ai_call_sessions").delete().eq("tenant_id", tenantId);
   const now = new Date();
   const callRecords = testData.calls.map((data, index) => ({
     tenant_id: tenantId,
-    caller_phone: TEST_PHONES[index],
+    caller_phone: TEST_PHONES[index % TEST_PHONES.length],
     call_direction: "inbound" as const,
     started_at: new Date(now.getTime() - (index + 1) * 3600000).toISOString(),
     ended_at: new Date(now.getTime() - (index + 1) * 3600000 + 300000).toISOString(),
@@ -178,6 +333,15 @@ async function resetAllTestData(tenantId: string, mode: BusinessMode) {
     .insert(callRecords);
 
   if (callsError) console.error("Calls insert error:", callsError);
+
+  // 9. Insert industry-specific data based on mode
+  if (mode === "food") {
+    await insertFoodModeData(tenantId);
+  } else if (mode === "dispatch") {
+    await insertDispatchModeData(tenantId);
+  } else if (mode === "medical") {
+    await insertMedicalModeData(tenantId);
+  }
 }
 
 export function AdminModeSwitcher() {
