@@ -185,6 +185,7 @@ export type Database = {
       }
       assistant_settings: {
         Row: {
+          ai_booking_mode: string | null
           ai_callback_delay_minutes: number | null
           booking_url: string | null
           business_phone_number: string | null
@@ -196,6 +197,8 @@ export type Database = {
           instant_text_enabled: boolean
           missed_call_behavior: Database["public"]["Enums"]["missed_call_behavior"]
           overflow_rings: number
+          pending_booking_notify_email: boolean | null
+          pending_booking_notify_sms: boolean | null
           phone_connected: boolean
           phone_method: string | null
           setup_completed_at: string | null
@@ -209,6 +212,7 @@ export type Database = {
           voice_mode: Database["public"]["Enums"]["voice_mode"]
         }
         Insert: {
+          ai_booking_mode?: string | null
           ai_callback_delay_minutes?: number | null
           booking_url?: string | null
           business_phone_number?: string | null
@@ -220,6 +224,8 @@ export type Database = {
           instant_text_enabled?: boolean
           missed_call_behavior?: Database["public"]["Enums"]["missed_call_behavior"]
           overflow_rings?: number
+          pending_booking_notify_email?: boolean | null
+          pending_booking_notify_sms?: boolean | null
           phone_connected?: boolean
           phone_method?: string | null
           setup_completed_at?: string | null
@@ -233,6 +239,7 @@ export type Database = {
           voice_mode?: Database["public"]["Enums"]["voice_mode"]
         }
         Update: {
+          ai_booking_mode?: string | null
           ai_callback_delay_minutes?: number | null
           booking_url?: string | null
           business_phone_number?: string | null
@@ -244,6 +251,8 @@ export type Database = {
           instant_text_enabled?: boolean
           missed_call_behavior?: Database["public"]["Enums"]["missed_call_behavior"]
           overflow_rings?: number
+          pending_booking_notify_email?: boolean | null
+          pending_booking_notify_sms?: boolean | null
           phone_connected?: boolean
           phone_method?: string | null
           setup_completed_at?: string | null
@@ -332,6 +341,88 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "automations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      availability_slots: {
+        Row: {
+          created_at: string | null
+          day_of_week: number
+          end_time: string
+          id: string
+          is_available: boolean | null
+          start_time: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          day_of_week: number
+          end_time: string
+          id?: string
+          is_available?: boolean | null
+          start_time: string
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          is_available?: boolean | null
+          start_time?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "availability_slots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      blocked_times: {
+        Row: {
+          created_at: string | null
+          end_at: string
+          external_event_id: string | null
+          id: string
+          reason: string | null
+          source: string | null
+          start_at: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          end_at: string
+          external_event_id?: string | null
+          id?: string
+          reason?: string | null
+          source?: string | null
+          start_at: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string | null
+          end_at?: string
+          external_event_id?: string | null
+          id?: string
+          reason?: string | null
+          source?: string | null
+          start_at?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blocked_times_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1058,6 +1149,9 @@ export type Database = {
           ai_never_promise: string[] | null
           ai_readiness_score: number | null
           appointment_buffer_minutes: number | null
+          calendar_last_synced_at: string | null
+          calendar_sync_enabled: boolean | null
+          calendar_sync_provider: string | null
           cancellation_policy: string | null
           closed_dates: Json | null
           context_fields_json: Json | null
@@ -1086,6 +1180,9 @@ export type Database = {
           ai_never_promise?: string[] | null
           ai_readiness_score?: number | null
           appointment_buffer_minutes?: number | null
+          calendar_last_synced_at?: string | null
+          calendar_sync_enabled?: boolean | null
+          calendar_sync_provider?: string | null
           cancellation_policy?: string | null
           closed_dates?: Json | null
           context_fields_json?: Json | null
@@ -1114,6 +1211,9 @@ export type Database = {
           ai_never_promise?: string[] | null
           ai_readiness_score?: number | null
           appointment_buffer_minutes?: number | null
+          calendar_last_synced_at?: string | null
+          calendar_sync_enabled?: boolean | null
+          calendar_sync_provider?: string | null
           cancellation_policy?: string | null
           closed_dates?: Json | null
           context_fields_json?: Json | null
