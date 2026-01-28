@@ -300,6 +300,41 @@ export type Database = {
           },
         ]
       }
+      business_faqs: {
+        Row: {
+          answer: string
+          created_at: string | null
+          id: string
+          priority_weight: number | null
+          question: string
+          tenant_id: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string | null
+          id?: string
+          priority_weight?: number | null
+          question: string
+          tenant_id: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string | null
+          id?: string
+          priority_weight?: number | null
+          question?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_faqs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           channel: Database["public"]["Enums"]["channel_type"]
@@ -437,42 +472,86 @@ export type Database = {
           },
         ]
       }
+      objection_responses: {
+        Row: {
+          created_at: string | null
+          id: string
+          objection: string
+          priority_weight: number | null
+          response: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          objection: string
+          priority_weight?: number | null
+          response: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          objection?: string
+          priority_weight?: number | null
+          response?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objection_responses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       services: {
         Row: {
           created_at: string
           deposit_amount: number | null
+          deposit_required: boolean | null
           description: string | null
           duration_minutes: number
           id: string
           is_active: boolean
           name: string
+          preparation_instructions: string | null
           price_amount: number | null
           price_type: Database["public"]["Enums"]["price_type"]
           tenant_id: string
+          upsell_suggestions: string[] | null
         }
         Insert: {
           created_at?: string
           deposit_amount?: number | null
+          deposit_required?: boolean | null
           description?: string | null
           duration_minutes?: number
           id?: string
           is_active?: boolean
           name: string
+          preparation_instructions?: string | null
           price_amount?: number | null
           price_type?: Database["public"]["Enums"]["price_type"]
           tenant_id: string
+          upsell_suggestions?: string[] | null
         }
         Update: {
           created_at?: string
           deposit_amount?: number | null
+          deposit_required?: boolean | null
           description?: string | null
           duration_minutes?: number
           id?: string
           is_active?: boolean
           name?: string
+          preparation_instructions?: string | null
           price_amount?: number | null
           price_type?: Database["public"]["Enums"]["price_type"]
           tenant_id?: string
+          upsell_suggestions?: string[] | null
         }
         Relationships: [
           {
@@ -518,40 +597,82 @@ export type Database = {
       }
       tenants: {
         Row: {
+          address: string | null
           ai_enabled: boolean
+          ai_never_promise: string[] | null
+          appointment_buffer_minutes: number | null
+          cancellation_policy: string | null
+          closed_dates: Json | null
           context_fields_json: Json | null
           created_at: string
           custom_industry: string | null
+          deposit_policy: string | null
           hours_json: Json | null
           id: string
           industry: Database["public"]["Enums"]["industry_type"]
+          max_advance_days: number | null
+          min_lead_hours: number | null
           name: string
+          payment_methods: string[] | null
           phone_public: string | null
+          refund_policy: string | null
+          service_area_json: Json | null
+          tagline: string | null
           timezone: string
+          website_url: string | null
+          years_in_business: number | null
         }
         Insert: {
+          address?: string | null
           ai_enabled?: boolean
+          ai_never_promise?: string[] | null
+          appointment_buffer_minutes?: number | null
+          cancellation_policy?: string | null
+          closed_dates?: Json | null
           context_fields_json?: Json | null
           created_at?: string
           custom_industry?: string | null
+          deposit_policy?: string | null
           hours_json?: Json | null
           id?: string
           industry?: Database["public"]["Enums"]["industry_type"]
+          max_advance_days?: number | null
+          min_lead_hours?: number | null
           name: string
+          payment_methods?: string[] | null
           phone_public?: string | null
+          refund_policy?: string | null
+          service_area_json?: Json | null
+          tagline?: string | null
           timezone?: string
+          website_url?: string | null
+          years_in_business?: number | null
         }
         Update: {
+          address?: string | null
           ai_enabled?: boolean
+          ai_never_promise?: string[] | null
+          appointment_buffer_minutes?: number | null
+          cancellation_policy?: string | null
+          closed_dates?: Json | null
           context_fields_json?: Json | null
           created_at?: string
           custom_industry?: string | null
+          deposit_policy?: string | null
           hours_json?: Json | null
           id?: string
           industry?: Database["public"]["Enums"]["industry_type"]
+          max_advance_days?: number | null
+          min_lead_hours?: number | null
           name?: string
+          payment_methods?: string[] | null
           phone_public?: string | null
+          refund_policy?: string | null
+          service_area_json?: Json | null
+          tagline?: string | null
           timezone?: string
+          website_url?: string | null
+          years_in_business?: number | null
         }
         Relationships: []
       }
