@@ -58,6 +58,12 @@ interface CopilotContext {
       has_urgent_sms: boolean;
     };
   };
+  knowledge_status: {
+    pending_suggestions_count: number;
+    unresolved_conflicts_count: number;
+    processing_uploads_count: number;
+    last_upload_status: string | null;
+  };
   navigation_map: NavigationItem[];
   recent_activity: {
     calls: Array<{ id: string; started_at: string; outcome: string; summary: string }>;
@@ -275,6 +281,9 @@ serve(async (req) => {
       recentBookingsResult,
       recentOrdersResult,
       recentDispatchResult,
+      knowledgeSourcesResult,
+      suggestionsResult,
+      conflictsResult,
     ] = await Promise.all([
       supabase.from("tenants").select("*").eq("id", tenantId).single(),
       supabase.from("assistant_settings").select("*").eq("tenant_id", tenantId).single(),
@@ -290,6 +299,9 @@ serve(async (req) => {
       supabase.from("bookings").select("id, start_at, status, service_id, services(name)").eq("tenant_id", tenantId).order("start_at", { ascending: false }).limit(10),
       supabase.from("food_orders").select("id, created_at, status, order_number").eq("tenant_id", tenantId).order("created_at", { ascending: false }).limit(10),
       supabase.from("dispatch_jobs").select("id, created_at, status, job_number, priority").eq("tenant_id", tenantId).order("created_at", { ascending: false }).limit(10),
+      supabase.from("knowledge_sources").select("id, status").eq("tenant_id", tenantId).order("created_at", { ascending: false }).limit(1),
+      supabase.from("extracted_knowledge_suggestions").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "pending_review"),
+      supabase.from("knowledge_conflicts").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "unresolved"),
     ]);
 
     const tenant = tenantResult.data;
@@ -412,6 +424,12 @@ serve(async (req) => {
           has_webhook: !!dispatchDelivery?.webhook_url,
           has_urgent_sms: !!dispatchDelivery?.urgent_sms_phone,
         },
+      },
+      knowledge_status: {
+        pending_suggestions_count: suggestionsResult.count || 0,
+        unresolved_conflicts_count: conflictsResult.count || 0,
+        processing_uploads_count: (knowledgeSourcesResult.data || []).filter((s: any) => s.status === 'processing' || s.status === 'uploading').length,
+        last_upload_status: knowledgeSourcesResult.data?.[0]?.status || null,
       },
       navigation_map: navigationMap,
       recent_activity: {

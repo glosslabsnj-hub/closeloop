@@ -1096,6 +1096,57 @@ export type Database = {
           },
         ]
       }
+      extracted_knowledge_suggestions: {
+        Row: {
+          created_at: string
+          extracted_data: Json
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_id: string
+          status: Database["public"]["Enums"]["suggestion_status"]
+          suggestion_type: Database["public"]["Enums"]["suggestion_type"]
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          extracted_data?: Json
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_id: string
+          status?: Database["public"]["Enums"]["suggestion_status"]
+          suggestion_type: Database["public"]["Enums"]["suggestion_type"]
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          extracted_data?: Json
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_id?: string
+          status?: Database["public"]["Enums"]["suggestion_status"]
+          suggestion_type?: Database["public"]["Enums"]["suggestion_type"]
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extracted_knowledge_suggestions_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extracted_knowledge_suggestions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       food_orders: {
         Row: {
           address_json: Json | null
@@ -1270,6 +1321,69 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_conflicts: {
+        Row: {
+          conflict_type: Database["public"]["Enums"]["conflict_type"]
+          created_at: string
+          differing_fields: string[]
+          entity_type: string
+          existing_data: Json
+          existing_entity_id: string | null
+          id: string
+          proposed_data: Json
+          resolved_at: string | null
+          resolved_by: string | null
+          source_id: string
+          status: Database["public"]["Enums"]["conflict_status"]
+          tenant_id: string
+        }
+        Insert: {
+          conflict_type?: Database["public"]["Enums"]["conflict_type"]
+          created_at?: string
+          differing_fields?: string[]
+          entity_type: string
+          existing_data?: Json
+          existing_entity_id?: string | null
+          id?: string
+          proposed_data?: Json
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_id: string
+          status?: Database["public"]["Enums"]["conflict_status"]
+          tenant_id: string
+        }
+        Update: {
+          conflict_type?: Database["public"]["Enums"]["conflict_type"]
+          created_at?: string
+          differing_fields?: string[]
+          entity_type?: string
+          existing_data?: Json
+          existing_entity_id?: string | null
+          id?: string
+          proposed_data?: Json
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_id?: string
+          status?: Database["public"]["Enums"]["conflict_status"]
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_conflicts_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_conflicts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge_gaps: {
         Row: {
           ai_session_id: string | null
@@ -1319,6 +1433,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "knowledge_gaps_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_sources: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          file_name: string
+          file_url: string | null
+          id: string
+          processed_at: string | null
+          source_type: Database["public"]["Enums"]["knowledge_source_type"]
+          status: Database["public"]["Enums"]["knowledge_source_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          file_name: string
+          file_url?: string | null
+          id?: string
+          processed_at?: string | null
+          source_type?: Database["public"]["Enums"]["knowledge_source_type"]
+          status?: Database["public"]["Enums"]["knowledge_source_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          file_name?: string
+          file_url?: string | null
+          id?: string
+          processed_at?: string | null
+          source_type?: Database["public"]["Enums"]["knowledge_source_type"]
+          status?: Database["public"]["Enums"]["knowledge_source_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_sources_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1788,6 +1949,60 @@ export type Database = {
             foreignKeyName: "order_delivery_settings_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      owner_notifications: {
+        Row: {
+          action_path: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          related_source_id: string | null
+          severity: Database["public"]["Enums"]["notification_severity"]
+          tenant_id: string
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+        }
+        Insert: {
+          action_path?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          related_source_id?: string | null
+          severity?: Database["public"]["Enums"]["notification_severity"]
+          tenant_id: string
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+        }
+        Update: {
+          action_path?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          related_source_id?: string | null
+          severity?: Database["public"]["Enums"]["notification_severity"]
+          tenant_id?: string
+          title?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_notifications_related_source_id_fkey"
+            columns: ["related_source_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_notifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -2591,6 +2806,17 @@ export type Database = {
         | "no_show"
       business_mode: "service" | "dispatch" | "food" | "medical" | "general"
       channel_type: "sms" | "email" | "internal"
+      conflict_status:
+        | "unresolved"
+        | "keep_existing"
+        | "accept_upload"
+        | "custom_merged"
+      conflict_type:
+        | "price_mismatch"
+        | "description_mismatch"
+        | "name_mismatch"
+        | "duration_mismatch"
+        | "other"
       delivery_entity_type:
         | "order"
         | "booking"
@@ -2627,11 +2853,26 @@ export type Database = {
         | "pet_grooming"
         | "towing"
         | "locksmith"
+      knowledge_source_status: "uploading" | "processing" | "ready" | "failed"
+      knowledge_source_type:
+        | "menu_pdf"
+        | "pricing"
+        | "services_doc"
+        | "faq_doc"
+        | "general"
       lead_source: "missed_call" | "website_form" | "manual" | "referral"
       lead_status: "new" | "contacted" | "qualified" | "booked" | "lost" | "won"
       message_direction: "inbound" | "outbound"
       message_status: "queued" | "sent" | "delivered" | "failed"
       missed_call_behavior: "text_only" | "ai_callback" | "both"
+      notification_severity: "info" | "warning" | "critical"
+      notification_type:
+        | "upload_processing"
+        | "upload_ready"
+        | "upload_failed"
+        | "suggestions_pending"
+        | "conflicts_detected"
+        | "conflicts_resolved"
       order_status:
         | "pending"
         | "confirmed"
@@ -2663,6 +2904,8 @@ export type Database = {
         | "cancelled"
         | "no_show"
       subscription_status: "active" | "trialing" | "past_due" | "canceled"
+      suggestion_status: "pending_review" | "approved" | "rejected" | "merged"
+      suggestion_type: "service" | "faq" | "menu_item" | "policy" | "objection"
       user_role: "owner" | "staff" | "super_admin"
       voice_mode: "always_on" | "busy_mode" | "overflow" | "after_hours_only"
       webhook_auth_mode: "none" | "header" | "basic"
@@ -2814,6 +3057,19 @@ export const Constants = {
       ],
       business_mode: ["service", "dispatch", "food", "medical", "general"],
       channel_type: ["sms", "email", "internal"],
+      conflict_status: [
+        "unresolved",
+        "keep_existing",
+        "accept_upload",
+        "custom_merged",
+      ],
+      conflict_type: [
+        "price_mismatch",
+        "description_mismatch",
+        "name_mismatch",
+        "duration_mismatch",
+        "other",
+      ],
       delivery_entity_type: [
         "order",
         "booking",
@@ -2853,11 +3109,28 @@ export const Constants = {
         "towing",
         "locksmith",
       ],
+      knowledge_source_status: ["uploading", "processing", "ready", "failed"],
+      knowledge_source_type: [
+        "menu_pdf",
+        "pricing",
+        "services_doc",
+        "faq_doc",
+        "general",
+      ],
       lead_source: ["missed_call", "website_form", "manual", "referral"],
       lead_status: ["new", "contacted", "qualified", "booked", "lost", "won"],
       message_direction: ["inbound", "outbound"],
       message_status: ["queued", "sent", "delivered", "failed"],
       missed_call_behavior: ["text_only", "ai_callback", "both"],
+      notification_severity: ["info", "warning", "critical"],
+      notification_type: [
+        "upload_processing",
+        "upload_ready",
+        "upload_failed",
+        "suggestions_pending",
+        "conflicts_detected",
+        "conflicts_resolved",
+      ],
       order_status: [
         "pending",
         "confirmed",
@@ -2892,6 +3165,8 @@ export const Constants = {
         "no_show",
       ],
       subscription_status: ["active", "trialing", "past_due", "canceled"],
+      suggestion_status: ["pending_review", "approved", "rejected", "merged"],
+      suggestion_type: ["service", "faq", "menu_item", "policy", "objection"],
       user_role: ["owner", "staff", "super_admin"],
       voice_mode: ["always_on", "busy_mode", "overflow", "after_hours_only"],
       webhook_auth_mode: ["none", "header", "basic"],
