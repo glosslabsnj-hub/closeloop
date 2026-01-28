@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useMemo } from "react";
+import { AdminModeSwitcher } from "@/components/admin/AdminModeSwitcher";
 
 interface NavItem {
   href: string;
@@ -133,6 +134,9 @@ export function AppLayout() {
 
   return (
     <div className="min-h-screen bg-secondary/30">
+      {/* Admin Mode Switcher Banner */}
+      <AdminModeSwitcher />
+      
       {/* Top Navigation - Mobile First */}
       <header className="sticky top-0 z-50 border-b bg-background">
         <div className="flex h-14 items-center justify-between px-4">
