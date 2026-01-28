@@ -24,9 +24,9 @@ export default function SignupPage() {
       await signUp(email, password);
       toast({
         title: "Account created!",
-        description: "Let's set up your business.",
+        description: "Choose your plan to get started.",
       });
-      navigate("/app/onboarding");
+      navigate("/app/go-live");
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -48,9 +48,9 @@ export default function SignupPage() {
                 <Phone className="h-6 w-6 text-primary-foreground" />
               </div>
             </div>
-            <CardTitle className="text-2xl">Start your free trial</CardTitle>
+            <CardTitle className="text-2xl">Create your account</CardTitle>
             <CardDescription>
-              Get started in 60 seconds. No credit card required.
+              Get started in 60 seconds. Choose your plan after signup.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -92,9 +92,9 @@ export default function SignupPage() {
 
             <div className="mt-6 space-y-3">
               {[
-                "14-day free trial",
-                "No credit card required",
-                "AI assistant included",
+                "Setup takes under 5 minutes",
+                "AI assistant trained on your business",
+                "Cancel anytime",
               ].map((item) => (
                 <div key={item} className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CheckCircle2 className="h-4 w-4 text-primary" />
