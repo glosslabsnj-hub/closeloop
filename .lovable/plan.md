@@ -1,258 +1,164 @@
 
 
-# Dashboard Reconfiguration Plan
+# Fix Plan: Dashboard Setup & Phone Persistence Issues
 
-## Overview
+## Problem Summary
 
-Transform the current dashboard into a **setup-first experience** that guides non-technical business owners through getting their AI agent running smoothly. The new dashboard will prioritize clarity, eliminate confusion, and make the path to "AI is live and booking appointments" unmistakable.
+After thorough investigation, I identified **4 distinct issues**:
 
----
+### Issue 1: RLS Policy Blocks Insert on `assistant_settings`
+**Root Cause**: The user `test1234@gmail.com` has no `tenant_users` record (they may have signed up but never completed onboarding). When the app tries to upsert to `assistant_settings`, the RLS `INSERT` policy fails because `has_tenant_access()` returns false.
 
-## Current State Analysis
+The code is trying to upsert to the demo tenant (`a0000000-0000-0000-0000-000000000001`) which belongs to a different user.
 
-The existing dashboard shows:
-- A setup checklist (hidden when complete)
-- Demo metrics and revenue banners
-- Recent activity and quick actions
+### Issue 2: Dashboard Shows Without Checking Tenant
+**Root Cause**: Users who have no tenant are being shown the Dashboard with setup steps instead of being redirected to complete onboarding. The AppLayout doesn't properly gate users without tenants.
 
-**Problems identified:**
-1. Setup checklist is buried and not prominent enough
-2. Phone connection flow is confusing (forwarding instructions unclear)
-3. No calendar integration support
-4. Agent status is not immediately visible
-5. Too much demo data shown before the user is even set up
-6. The Quick Setup Wizard in Simulator is disconnected from the main dashboard
+### Issue 3: Phone Number Doesn't Persist in Settings Tab
+**Root Cause**: The Settings page uses `useTenantSettings()` which updates the `tenants` table's `phone_public` field, but the phone number entered in the setup wizard goes to `assistant_settings.business_phone_number`. These are different fields and different tables.
 
----
+### Issue 4: Calendar Step Uses Upsert But No Record Exists
+**Root Cause**: For new tenants, `assistant_settings` must first be created (via `initialize_assistant_settings()` RPC during onboarding). The calendar step uses `upsert` but when no row exists and the RLS check fails, it fails with the observed error.
 
-## Proposed Dashboard Structure
-
-### New Layout: Three-Phase Experience
-
-**Phase 1: Incomplete Setup** - Full-screen setup wizard with progress tracking
-**Phase 2: Setup Complete but Not Live** - Dashboard with prominent "Go Live" CTA
-**Phase 3: Fully Live** - Performance metrics with agent status header
+### Issue 5: Each Business Needs Unique Forwarding Number
+**Root Cause**: The `CarrierInstructions` component shows a hardcoded forwarding number (`+1 (555) 123-4567`) instead of a unique per-tenant number. Each tenant should receive a dedicated forwarding number.
 
 ---
 
-## Component Architecture
+## Fix Implementation Plan
 
-### 1. New Command Center Component
-A prominent status banner at the top of the dashboard showing:
-- Agent Status (Live/Offline/Needs Attention)
-- Connection Health (Phone, Calendar)
-- Quick test button
-- One-click toggle to enable/disable AI
+### Fix 1: Redirect Users Without Tenants to Onboarding
 
-### 2. Redesigned Setup Flow
-Replace the checklist with a **visual step-by-step wizard**:
+**File**: `src/components/layouts/AppLayout.tsx`
 
-```text
-+-------------------------------------------------------------+
-|  Get Your AI Running                                    3/4  |
-|  =========================================================  |
-|  [1. Phone] --> [2. Calendar] --> [3. Test AI] --> [4. Go Live]  |
-|       Done          Active          Locked           Locked     |
-+-------------------------------------------------------------+
+**Change**: Add a check for users without a tenant and redirect them to the onboarding page. Currently the app only checks for subscription, not for tenant existence.
+
+**Logic**:
+```typescript
+// Add after loading check
+if (!loading && user && !tenant) {
+  // User is logged in but has no tenant - send to onboarding
+  if (location.pathname !== "/app/onboarding") {
+    navigate("/app/onboarding");
+    return;
+  }
+}
 ```
 
-### 3. Setup Steps Detail
+### Fix 2: Ensure Assistant Settings Row Exists Before Setup Steps
 
-**Step 1: Connect Your Business Phone**
-- Two clear options with radio selection:
-  - "Get a new CloseLoop number" (provisions via Twilio - mock for now)
-  - "Use my existing number" (shows forwarding instructions)
-- Phone number input field
-- Visual confirmation when connected
-- Provider-specific forwarding instructions (ATT, Verizon, T-Mobile, etc.)
+**File**: `src/components/dashboard/PhoneConnectionStep.tsx`
+**File**: `src/components/dashboard/CalendarConnectionStep.tsx`
 
-**Step 2: Connect Your Calendar**
-- Universal booking link option (Calendly, Cal.com, Acuity, etc.)
-- Paste booking URL field
-- Future: OAuth buttons for Google Calendar, Outlook, Apple Calendar
-- Explanation of what AI can do: "Your AI will direct customers to book here"
+**Change**: Before attempting to upsert, first check if the row exists. If not, use `insert` instead of `upsert`, or ensure the row is created via the `initialize_assistant_settings` RPC at the right time.
 
-**Step 3: Test Your AI**
-- Browser-based voice test (existing VoiceAgentTest component)
-- "Call My Phone" option (existing functionality)
-- Preview of what customers will hear
-- System prompt preview showing business context
+Better approach: Use **`UPDATE`** when the row is guaranteed to exist (after onboarding creates it), and only use `INSERT` if it doesn't.
 
-**Step 4: Go Live**
-- Big toggle switch
-- Confirmation modal
-- Success celebration animation
+**Implementation Pattern**:
+```typescript
+// Check if settings exist first
+const { data: existing } = await supabase
+  .from("assistant_settings")
+  .select("tenant_id")
+  .eq("tenant_id", tenant.id)
+  .maybeSingle();
 
-### 4. Post-Setup Dashboard
-Once live, show:
-- Agent Status Card (prominent, top of page)
-- Key Metrics (calls handled, bookings made, texts sent)
-- Recent Activity Feed
-- Quick Actions
-
----
-
-## Database Changes
-
-Add new columns to `assistant_settings`:
-```sql
--- Booking calendar URL (universal approach)
-booking_url TEXT,
--- Calendar provider (for future OAuth integrations)
-calendar_provider TEXT, -- 'google', 'outlook', 'apple', 'calendly', 'acuity', 'cal_com', 'other'
--- Track setup completion
-setup_completed_at TIMESTAMP,
--- Track individual setup step completion
-setup_step_phone BOOLEAN DEFAULT false,
-setup_step_calendar BOOLEAN DEFAULT false,
-setup_step_tested BOOLEAN DEFAULT false,
--- Phone provisioning method
-phone_method TEXT -- 'closeloop_number' or 'forwarded'
+if (existing) {
+  // UPDATE existing row
+  await supabase.from("assistant_settings").update({...}).eq("tenant_id", tenant.id);
+} else {
+  // INSERT new row
+  await supabase.from("assistant_settings").insert({...});
+}
 ```
 
----
+### Fix 3: Generate Unique Per-Tenant Forwarding Numbers
 
-## New Components to Create
+**File**: `src/components/dashboard/CarrierInstructions.tsx`
+**File**: `src/components/dashboard/PhoneConnectionStep.tsx`
 
-1. **`src/components/dashboard/AgentStatusBanner.tsx`**
-   - Shows AI online/offline status
-   - Connection health indicators
-   - Quick test button
-   - Go Live toggle
+**Change**: Instead of hardcoding `+1 (555) 123-4567`, generate a unique forwarding number per tenant and store it in `assistant_settings.closeloop_number`.
 
-2. **`src/components/dashboard/SetupWizard.tsx`**
-   - Full-screen setup experience
-   - Step-by-step progress
-   - Replaces old SetupChecklist
+**Implementation**:
+1. Add a database function or edge function to provision/generate a unique CloseLoop number per tenant
+2. Store this in `assistant_settings.closeloop_number`
+3. Display the tenant's unique number in `CarrierInstructions`
 
-3. **`src/components/dashboard/PhoneConnectionStep.tsx`**
-   - Dual-option phone setup
-   - Provider-specific instructions
-   - Number verification
-
-4. **`src/components/dashboard/CalendarConnectionStep.tsx`**
-   - Booking URL input
-   - Provider selection
-   - Future OAuth integration points
-
-5. **`src/components/dashboard/TestAIStep.tsx`**
-   - Integrated voice test
-   - Call-my-phone option
-   - System prompt preview
-
-6. **`src/components/dashboard/GoLiveStep.tsx`**
-   - Final confirmation
-   - Toggle with celebration
-
-7. **`src/components/dashboard/LiveDashboard.tsx`**
-   - Post-setup metrics view
-   - Agent status
-   - Activity feed
-
----
-
-## Updated Page Flow
-
-```text
-DashboardPage.tsx
-├── isSetupComplete?
-│   ├── NO: <SetupWizard />
-│   │   ├── Step 1: <PhoneConnectionStep />
-│   │   ├── Step 2: <CalendarConnectionStep />
-│   │   ├── Step 3: <TestAIStep />
-│   │   └── Step 4: <GoLiveStep />
-│   │
-│   └── YES: <LiveDashboard />
-│       ├── <AgentStatusBanner />
-│       ├── <MetricsGrid />
-│       └── <ActivityFeed />
+For MVP (mock mode), we can generate a deterministic number based on tenant ID:
+```typescript
+const generateForwardingNumber = (tenantId: string) => {
+  // Generate consistent number from tenant ID hash
+  const hash = tenantId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const areaCode = 800 + (hash % 100); // 800-899
+  const exchange = 200 + (hash % 800); // 200-999
+  const subscriber = 1000 + (hash % 9000); // 1000-9999
+  return `+1 (${areaCode}) ${exchange}-${subscriber}`;
+};
 ```
 
----
+### Fix 4: Sync Phone Number Fields Between Settings and Setup
 
-## UX Improvements
+**File**: `src/pages/app/SettingsPage.tsx`
 
-1. **Progress Persistence**: Each step saves to database immediately
-2. **Skip Options**: Non-critical steps can be skipped with clear warning
-3. **Help Text**: Every field has simple, jargon-free explanations
-4. **Mobile-First**: Full functionality on phone screens
-5. **Error Recovery**: Clear messages when something fails
-6. **Celebration Moments**: Confetti or animation when going live
+**Change**: The Settings page "Public Phone Number" field should read/write from the same source as the setup wizard. Either:
+- Option A: Use `assistant_settings.business_phone_number` for both
+- Option B: Keep `tenants.phone_public` but sync it during setup
 
----
+**Recommended**: Option A - update Settings to also update `assistant_settings.business_phone_number` when the phone is changed, and load from it.
 
-## Phone Carrier Instructions
+### Fix 5: Add Skip Button for Calendar Step
 
-Include expandable sections with specific instructions for:
-- Verizon: `*72 + forwarding number`
-- AT&T: `*21*number#`
-- T-Mobile: `**21*number#`
-- Sprint: `*72 + number`
-- Generic: Settings > Phone > Call Forwarding
+**File**: `src/components/dashboard/CalendarConnectionStep.tsx`
+
+**Change**: The `onSkip` prop exists but isn't always shown. Ensure the skip button is visible and functional.
 
 ---
 
-## Technical Details
+## Technical Implementation Details
 
-### Files to Create
+### Step 1: Update AppLayout for Tenant Gate
+Add tenant existence check to redirect users without tenants to onboarding.
 
-| File | Purpose |
-|------|---------|
-| `src/components/dashboard/SetupWizard.tsx` | Main wizard container |
-| `src/components/dashboard/AgentStatusBanner.tsx` | Status display |
-| `src/components/dashboard/PhoneConnectionStep.tsx` | Phone setup step |
-| `src/components/dashboard/CalendarConnectionStep.tsx` | Calendar connection |
-| `src/components/dashboard/TestAIStep.tsx` | AI testing step |
-| `src/components/dashboard/GoLiveStep.tsx` | Final activation |
-| `src/components/dashboard/LiveDashboard.tsx` | Post-setup view |
-| `src/components/dashboard/CarrierInstructions.tsx` | Forwarding help |
+### Step 2: Fix PhoneConnectionStep
+- Check for existing `assistant_settings` row before upsert
+- Generate unique forwarding number per tenant
+- Pass correct number to CarrierInstructions
 
-### Files to Modify
+### Step 3: Fix CalendarConnectionStep  
+- Use update instead of upsert when settings exist
+- Ensure skip button works correctly
+- Only enable "coming soon" for Google Calendar, allow skip
 
-| File | Changes |
-|------|---------|
-| `src/pages/app/DashboardPage.tsx` | Complete rewrite with new flow |
-| `src/components/dashboard/SetupChecklist.tsx` | Archive or remove |
-| `src/components/dashboard/ConnectPhoneDialog.tsx` | Enhance with dual options |
+### Step 4: Update CarrierInstructions
+- Accept the tenant's unique forwarding number as prop
+- Remove hardcoded number
 
-### Database Migration
-
-```sql
--- Add calendar and setup tracking to assistant_settings
-ALTER TABLE assistant_settings 
-ADD COLUMN IF NOT EXISTS booking_url TEXT,
-ADD COLUMN IF NOT EXISTS calendar_provider TEXT,
-ADD COLUMN IF NOT EXISTS setup_completed_at TIMESTAMP WITH TIME ZONE,
-ADD COLUMN IF NOT EXISTS setup_step_phone BOOLEAN DEFAULT false,
-ADD COLUMN IF NOT EXISTS setup_step_calendar BOOLEAN DEFAULT false,
-ADD COLUMN IF NOT EXISTS setup_step_tested BOOLEAN DEFAULT false,
-ADD COLUMN IF NOT EXISTS phone_method TEXT;
-```
+### Step 5: Fix SettingsPage Phone Field
+- Read `business_phone_number` from `assistant_settings` via AuthContext
+- Update both `tenants.phone_public` and `assistant_settings.business_phone_number`
 
 ---
 
-## Implementation Order
+## Effort Estimates
 
-1. **Database migration** - Add new columns
-2. **PhoneConnectionStep** - Enhanced phone setup with dual options
-3. **CalendarConnectionStep** - Booking URL capture
-4. **TestAIStep** - Integrate existing voice test
-5. **GoLiveStep** - Activation with toggle
-6. **SetupWizard** - Container with step navigation
-7. **AgentStatusBanner** - Status display component
-8. **LiveDashboard** - Post-setup metrics
-9. **DashboardPage rewrite** - Tie everything together
-10. **Mobile optimization pass** - Ensure great mobile UX
+| Fix | Effort | Priority |
+|-----|--------|----------|
+| AppLayout tenant gate | 15 min | P0 |
+| PhoneConnectionStep upsert fix | 20 min | P0 |
+| CalendarConnectionStep upsert fix | 15 min | P0 |
+| Unique forwarding numbers | 20 min | P0 |
+| Settings phone sync | 15 min | P1 |
+
+**Total: ~1.5 hours**
 
 ---
 
-## Success Metrics
+## Acceptance Criteria
 
-After implementation, users should be able to:
-- Complete full setup in under 5 minutes
-- Understand exactly what each step requires
-- Test their AI before going live
-- See clear status of their agent at a glance
-- Connect their booking calendar easily
-- Know their phone is properly connected
+1. Users without a tenant are redirected to `/app/onboarding`
+2. Phone connection step successfully saves and marks step complete
+3. Calendar step successfully saves with CloseLoop Calendar option
+4. Each tenant sees their own unique forwarding number
+5. Phone number saved in Settings persists when returning to the tab
+6. Calendar step can be skipped if user chooses Google Calendar (coming soon)
 
