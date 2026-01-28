@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +12,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { signUp, refreshTenant } = useAuth();
+  const { signUp } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -23,43 +22,11 @@ export default function SignupPage() {
 
     try {
       await signUp(email, password);
-      
-      // Get the newly created user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        // Create a minimal tenant for this user
-        const { data: tenant, error: tenantError } = await supabase
-          .from("tenants")
-          .insert({
-            name: "My Business", // Placeholder - will be updated in onboarding
-            industry: "other",
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York",
-          })
-          .select()
-          .single();
-
-        if (tenantError) throw tenantError;
-
-        // Link user to tenant
-        const { error: linkError } = await supabase
-          .from("tenant_users")
-          .insert({
-            tenant_id: tenant.id,
-            user_id: user.id,
-            role: "owner",
-          });
-
-        if (linkError) throw linkError;
-
-        await refreshTenant();
-      }
-
       toast({
         title: "Account created!",
-        description: "Choose your plan to get started.",
+        description: "Let's set up your business.",
       });
-      navigate("/app/go-live");
+      navigate("/app/onboarding");
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -81,9 +48,9 @@ export default function SignupPage() {
                 <Phone className="h-6 w-6 text-primary-foreground" />
               </div>
             </div>
-            <CardTitle className="text-2xl">Create your account</CardTitle>
+            <CardTitle className="text-2xl">Start your free trial</CardTitle>
             <CardDescription>
-              Get started in 60 seconds. Choose your plan after signup.
+              Get started in 60 seconds. No credit card required.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -125,9 +92,9 @@ export default function SignupPage() {
 
             <div className="mt-6 space-y-3">
               {[
-                "Setup takes under 5 minutes",
-                "AI assistant trained on your business",
-                "Cancel anytime",
+                "14-day free trial",
+                "No credit card required",
+                "AI assistant included",
               ].map((item) => (
                 <div key={item} className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CheckCircle2 className="h-4 w-4 text-primary" />

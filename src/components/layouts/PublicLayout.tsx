@@ -26,7 +26,7 @@ export function PublicLayout() {
             </Link>
             <Link to="/signup">
               <Button size="sm">
-                Get Started
+                Start Free Trial
               </Button>
             </Link>
           </nav>

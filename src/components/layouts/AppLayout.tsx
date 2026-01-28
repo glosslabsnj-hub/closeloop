@@ -2,7 +2,6 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,8 +21,6 @@ import {
   Zap,
   Briefcase,
   FlaskConical,
-  Lock,
-  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
@@ -40,14 +37,8 @@ const navItems = [
   { href: "/app/settings", label: "Settings", icon: Settings },
 ];
 
-// Routes that are always accessible (even without subscription)
-const alwaysAccessibleRoutes = [
-  "/app/settings",
-  "/app/go-live",
-];
-
 export function AppLayout() {
-  const { user, tenant, signOut, loading, hasActiveSubscription } = useAuth();
+  const { user, tenant, signOut, loading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -56,19 +47,6 @@ export function AppLayout() {
       navigate("/login");
     }
   }, [user, loading, navigate]);
-
-  // Check if user needs to go through go-live
-  useEffect(() => {
-    if (!loading && tenant && !hasActiveSubscription) {
-      // If no subscription and not on allowed routes, redirect to go-live
-      const isAllowedRoute = alwaysAccessibleRoutes.some(route => 
-        location.pathname.startsWith(route)
-      );
-      if (!isAllowedRoute && location.pathname !== "/app/go-live") {
-        navigate("/app/go-live");
-      }
-    }
-  }, [loading, tenant, hasActiveSubscription, location.pathname, navigate]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -86,10 +64,6 @@ export function AppLayout() {
   if (!user) {
     return null;
   }
-
-  // Check if current route is accessible
-  const isRouteAccessible = hasActiveSubscription || 
-    alwaysAccessibleRoutes.some(route => location.pathname.startsWith(route));
 
   return (
     <div className="min-h-screen bg-secondary/30">
@@ -141,25 +115,19 @@ export function AppLayout() {
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.href;
-              const isLocked = !hasActiveSubscription && 
-                !alwaysAccessibleRoutes.some(route => item.href.startsWith(route));
-              
               return (
                 <Link
                   key={item.href}
-                  to={isLocked ? "/app/go-live" : item.href}
+                  to={item.href}
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                     isActive
                       ? "bg-primary text-primary-foreground"
-                      : isLocked
-                        ? "text-muted-foreground/50 cursor-not-allowed"
-                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                   )}
                 >
                   <Icon className="h-4 w-4" />
                   {item.label}
-                  {isLocked && <Lock className="h-3 w-3 ml-auto" />}
                 </Link>
               );
             })}
@@ -172,20 +140,13 @@ export function AppLayout() {
             {navItems.slice(0, 5).map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.href;
-              const isLocked = !hasActiveSubscription && 
-                !alwaysAccessibleRoutes.some(route => item.href.startsWith(route));
-              
               return (
                 <Link
                   key={item.href}
-                  to={isLocked ? "/app/go-live" : item.href}
+                  to={item.href}
                   className={cn(
                     "flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors",
-                    isActive 
-                      ? "text-primary" 
-                      : isLocked 
-                        ? "text-muted-foreground/50" 
-                        : "text-muted-foreground"
+                    isActive ? "text-primary" : "text-muted-foreground"
                   )}
                 >
                   <Icon className="h-5 w-5" />
@@ -198,36 +159,7 @@ export function AppLayout() {
 
         {/* Page Content */}
         <main className="flex-1 md:ml-64 pb-20 md:pb-0">
-          {isRouteAccessible ? (
-            <Outlet />
-          ) : (
-            <div className="p-6 flex items-center justify-center min-h-[60vh]">
-              <Card className="max-w-md text-center">
-                <CardHeader>
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted mb-2">
-                    <Lock className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <CardTitle>Subscription Required</CardTitle>
-                  <CardDescription>
-                    Choose a plan to unlock all features and start using CloseLoop.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Button onClick={() => navigate("/app/go-live")} className="w-full">
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Choose a Plan
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => navigate("/app/settings")}
-                    className="w-full"
-                  >
-                    Billing Settings
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+          <Outlet />
         </main>
       </div>
     </div>
