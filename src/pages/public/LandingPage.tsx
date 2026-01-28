@@ -10,14 +10,16 @@ import {
   BarChart3,
   ArrowRight,
   CheckCircle2,
-  PlayCircle,
   Star,
   Shield,
   Clock,
   CreditCard,
+  Zap,
 } from "lucide-react";
 import { PricingCards } from "@/components/pricing/PricingCards";
 import { TIERS } from "@/config/pricing";
+import { IndustryDemoSelector } from "@/components/landing/IndustryDemoSelector";
+import { SalesAIAgent } from "@/components/landing/SalesAIAgent";
 
 const features = [
   {
@@ -73,6 +75,9 @@ const testimonials = [
 export default function LandingPage() {
   return (
     <div>
+      {/* Sales AI Agent */}
+      <SalesAIAgent />
+
       {/* Hero Section */}
       <section className="relative overflow-hidden py-16 md:py-24 lg:py-32">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/30" />
@@ -91,6 +96,23 @@ export default function LandingPage() {
               CloseLoop turns every call, text, and inquiry into booked appointments with deposits. 
               AI answers your phone 24/7 and pushes every lead to booking.
             </p>
+            
+            {/* Value Props - Simple & Clear */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 text-left max-w-2xl mx-auto">
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <span className="text-sm">AI answers calls & texts 24/7</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <span className="text-sm">Captures real customer data</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <span className="text-sm">Pushes to booking or dispatch</span>
+              </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="#pricing">
                 <Button size="lg" className="w-full sm:w-auto gap-2">
@@ -98,13 +120,15 @@ export default function LandingPage() {
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
-              <Button size="lg" variant="outline" className="w-full sm:w-auto gap-2">
-                <PlayCircle className="h-4 w-4" />
-                Watch Demo
-              </Button>
+              <a href="#demo">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto gap-2">
+                  <Zap className="h-4 w-4" />
+                  Hear It In Action
+                </Button>
+              </a>
             </div>
             <p className="text-sm text-muted-foreground mt-4">
-              Plans starting at ${TIERS[0].startingPrice}/month • 7-day free trial
+              <strong>10 minutes to go live</strong> • Plans from ${TIERS[0].startingPrice}/month • 7-day free trial
             </p>
           </div>
         </div>
@@ -164,8 +188,13 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Industry Demo Section */}
+      <section id="demo">
+        <IndustryDemoSelector />
+      </section>
+
       {/* How It Works */}
-      <section className="py-16 md:py-24 bg-secondary/30">
+      <section className="py-16 md:py-24">
         <div className="container">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
