@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Star, Shield, Lock } from "lucide-react";
+import { Star, Shield, Lock, Quote } from "lucide-react";
 
 const testimonials = [
   {
@@ -24,10 +24,13 @@ const testimonials = [
 
 export function TestimonialsSection() {
   return (
-    <section className="py-16 md:py-24 bg-secondary/30">
+    <section className="py-20 md:py-28 bg-secondary/30">
       <div className="container">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+        <div className="text-center mb-14">
+          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">
+            Testimonials
+          </p>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
             Trusted by local businesses
           </h2>
           <p className="text-lg text-muted-foreground">
@@ -35,19 +38,22 @@ export function TestimonialsSection() {
           </p>
         </div>
         
-        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-12">
+        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-14">
           {testimonials.map((testimonial, i) => (
-            <Card key={i} className="bg-card">
-              <CardContent className="p-6">
-                <div className="flex gap-1 mb-4">
+            <Card key={i} className="bg-card hover:shadow-lg transition-shadow duration-300 relative overflow-hidden group">
+              {/* Quote decoration */}
+              <Quote className="absolute top-4 right-4 h-8 w-8 text-primary/10 group-hover:text-primary/20 transition-colors" />
+              
+              <CardContent className="p-7">
+                <div className="flex gap-0.5 mb-5">
                   {[...Array(testimonial.rating)].map((_, j) => (
-                    <Star key={j} className="h-4 w-4 fill-primary text-primary" />
+                    <Star key={j} className="h-5 w-5 fill-primary text-primary" />
                   ))}
                 </div>
-                <p className="text-foreground mb-4 leading-relaxed">
+                <p className="text-foreground mb-6 leading-relaxed">
                   "{testimonial.quote}"
                 </p>
-                <div>
+                <div className="pt-4 border-t border-border">
                   <p className="font-semibold">{testimonial.author}</p>
                   <p className="text-sm text-muted-foreground">{testimonial.role}</p>
                 </div>
@@ -58,19 +64,23 @@ export function TestimonialsSection() {
         
         {/* Trust & Security */}
         <div className="max-w-3xl mx-auto">
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-8 p-6 rounded-2xl bg-card border">
-            <div className="flex items-center gap-3">
-              <Shield className="h-6 w-6 text-primary" />
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10 p-8 rounded-2xl bg-card border shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <Shield className="h-6 w-6 text-primary" />
+              </div>
               <div>
-                <p className="font-medium">Secure & Private</p>
+                <p className="font-semibold">Secure & Private</p>
                 <p className="text-sm text-muted-foreground">Enterprise-grade security</p>
               </div>
             </div>
-            <div className="hidden sm:block h-10 w-px bg-border" />
-            <div className="flex items-center gap-3">
-              <Lock className="h-6 w-6 text-primary" />
+            <div className="hidden sm:block h-12 w-px bg-border" />
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <Lock className="h-6 w-6 text-primary" />
+              </div>
               <div>
-                <p className="font-medium">HIPAA-Ready Options</p>
+                <p className="font-semibold">HIPAA-Ready Options</p>
                 <p className="text-sm text-muted-foreground">For medical practices</p>
               </div>
             </div>

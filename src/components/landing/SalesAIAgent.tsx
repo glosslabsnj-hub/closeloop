@@ -7,7 +7,7 @@ import {
   MessageCircle, Bot, Sparkles, 
   ArrowRight, X, Minimize2, Maximize2, HelpCircle, Volume2
 } from "lucide-react";
-import { TIERS, LADDER_STEPS, getTierInfo, getDefaultStepForTier } from "@/config/pricing";
+import { getTierInfo, getDefaultStepForTier } from "@/config/pricing";
 import { Link } from "react-router-dom";
 
 interface Message {
@@ -202,7 +202,7 @@ export function SalesAIAgent() {
     return (
       <Button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-24 md:bottom-6 right-4 md:right-6 z-50 h-14 w-14 rounded-full shadow-lg hover:scale-105 transition-transform"
+        className="fixed bottom-24 md:bottom-6 right-4 md:right-6 z-50 h-14 w-14 rounded-full shadow-xl hover:scale-110 transition-all duration-200 bg-primary hover:bg-primary/90"
         size="icon"
       >
         <MessageCircle className="h-6 w-6" />
@@ -211,13 +211,13 @@ export function SalesAIAgent() {
   }
 
   return (
-    <Card className={`fixed bottom-24 md:bottom-6 right-4 md:right-6 z-50 shadow-2xl border-2 transition-all duration-200 ${
-      isMinimized ? 'w-72 h-14' : 'w-[350px] md:w-[400px] h-[500px]'
+    <Card className={`fixed bottom-24 md:bottom-6 right-4 md:right-6 z-50 shadow-2xl border transition-all duration-300 ${
+      isMinimized ? 'w-72 h-14' : 'w-[360px] md:w-[400px] h-[520px]'
     }`}>
       {/* Header */}
-      <CardHeader className="p-3 border-b flex flex-row items-center justify-between bg-card rounded-t-lg">
+      <CardHeader className="p-4 border-b flex flex-row items-center justify-between bg-gradient-to-r from-card to-muted/30 rounded-t-lg">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
+          <div className="h-11 w-11 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-md">
             <Bot className="h-5 w-5 text-primary-foreground" />
           </div>
           <div>
@@ -250,12 +250,12 @@ export function SalesAIAgent() {
       {!isMinimized && (
         <>
           {/* Messages */}
-          <ScrollArea className="h-[380px] p-4" ref={scrollRef}>
+          <ScrollArea className="h-[400px] p-4" ref={scrollRef}>
             <div className="space-y-4">
               {messages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className="max-w-[90%]">
-                    <div className={`rounded-2xl px-4 py-2.5 text-sm ${
+                    <div className={`rounded-2xl px-4 py-3 text-sm ${
                       msg.role === 'user' 
                         ? 'bg-primary text-primary-foreground' 
                         : 'bg-muted'
@@ -272,11 +272,11 @@ export function SalesAIAgent() {
                             variant="outline"
                             size="sm"
                             onClick={() => handleQuickAction(action)}
-                            className="justify-start text-left h-auto py-2 px-3 text-sm"
+                            className="justify-start text-left h-auto py-2.5 px-4 text-sm hover:bg-primary/5 hover:border-primary/30 transition-colors"
                           >
-                            {action.includes("demo") && <Volume2 className="h-4 w-4 mr-2 shrink-0" />}
-                            {action.includes("work") && <HelpCircle className="h-4 w-4 mr-2 shrink-0" />}
-                            {action.includes("choose") && <Sparkles className="h-4 w-4 mr-2 shrink-0" />}
+                            {action.includes("demo") && <Volume2 className="h-4 w-4 mr-2 shrink-0 text-primary" />}
+                            {action.includes("work") && <HelpCircle className="h-4 w-4 mr-2 shrink-0 text-primary" />}
+                            {action.includes("choose") && <Sparkles className="h-4 w-4 mr-2 shrink-0 text-primary" />}
                             {action}
                           </Button>
                         ))}
@@ -292,7 +292,7 @@ export function SalesAIAgent() {
                             variant="outline"
                             size="sm"
                             onClick={() => handleOptionClick(opt)}
-                            className="text-sm h-9"
+                            className="text-sm h-9 hover:bg-primary/5 hover:border-primary/30 transition-colors"
                           >
                             {opt}
                           </Button>
@@ -302,29 +302,29 @@ export function SalesAIAgent() {
 
                     {/* Recommendation Card */}
                     {msg.recommendation && (
-                      <Card className="mt-3 border-primary">
-                        <CardContent className="p-4 space-y-4">
+                      <Card className="mt-4 border-primary/30 shadow-md">
+                        <CardContent className="p-5 space-y-4">
                           <div className="flex items-center justify-between">
-                            <Badge className="gap-1 bg-primary text-primary-foreground">
+                            <Badge className="gap-1 bg-primary text-primary-foreground px-3 py-1">
                               <Sparkles className="h-3 w-3" />
                               Recommended
                             </Badge>
-                            <span className="font-bold text-xl">
-                              ${msg.recommendation.price}/mo
+                            <span className="font-bold text-2xl">
+                              ${msg.recommendation.price}<span className="text-sm font-normal text-muted-foreground">/mo</span>
                             </span>
                           </div>
 
-                          <div className="space-y-1 text-sm">
-                            <p><span className="text-muted-foreground">Type:</span> {msg.recommendation.businessType}</p>
-                            <p><span className="text-muted-foreground">Plan:</span> {msg.recommendation.planName}</p>
+                          <div className="space-y-1.5 text-sm">
+                            <p><span className="text-muted-foreground">Type:</span> <span className="font-medium">{msg.recommendation.businessType}</span></p>
+                            <p><span className="text-muted-foreground">Plan:</span> <span className="font-medium">{msg.recommendation.planName}</span></p>
                           </div>
 
                           <div>
-                            <p className="text-xs font-medium text-muted-foreground mb-2">What you get:</p>
-                            <ul className="text-sm space-y-1">
+                            <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">What you get:</p>
+                            <ul className="text-sm space-y-1.5">
                               {msg.recommendation.keyFeatures.map((f, k) => (
                                 <li key={k} className="flex items-center gap-2">
-                                  <span className="text-primary">✓</span> {f}
+                                  <span className="text-primary font-bold">✓</span> {f}
                                 </li>
                               ))}
                             </ul>
@@ -334,7 +334,7 @@ export function SalesAIAgent() {
                             to={`/signup?tier=${msg.recommendation.tier}&sku=${msg.recommendation.sku}&mode=${msg.recommendation.businessMode}`}
                             className="block"
                           >
-                            <Button className="w-full gap-2">
+                            <Button className="w-full gap-2 h-11 font-semibold">
                               Start with this setup
                               <ArrowRight className="h-4 w-4" />
                             </Button>
@@ -353,7 +353,7 @@ export function SalesAIAgent() {
           </ScrollArea>
 
           {/* Footer */}
-          <div className="p-2 border-t bg-muted/30">
+          <div className="p-3 border-t bg-muted/20">
             <p className="text-xs text-center text-muted-foreground">
               Powered by CloseLoop
             </p>

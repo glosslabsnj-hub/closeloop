@@ -1,66 +1,75 @@
-import { Settings, Bot, BarChart3 } from "lucide-react";
+import { Settings, Bot, BarChart3, ArrowRight } from "lucide-react";
 
 const steps = [
   {
-    number: "01",
+    number: "1",
     icon: Settings,
     title: "Set up your business",
-    description: "Tell us your services, hours, and how you want leads handled. Our guided setup takes about 10 minutes.",
-    color: "text-primary",
-    bgColor: "bg-primary/10",
+    description: "Add your services, hours, and preferences",
+    detail: "10-minute guided setup",
   },
   {
-    number: "02",
+    number: "2",
     icon: Bot,
     title: "AI answers every call",
-    description: "Our AI greets callers naturally, answers questions about your business, and captures their details.",
-    color: "text-primary",
-    bgColor: "bg-primary/10",
+    description: "Greets callers and captures their info",
+    detail: "24/7, unlimited calls",
   },
   {
-    number: "03",
+    number: "3",
     icon: BarChart3,
-    title: "Jobs appear in your system",
-    description: "Bookings, dispatch jobs, or orders flow directly to CloseLoop or push to your existing tools.",
-    color: "text-primary",
-    bgColor: "bg-primary/10",
+    title: "Jobs appear instantly",
+    description: "Bookings flow to CloseLoop or your system",
+    detail: "Real-time delivery",
   },
 ];
 
 export function HowItWorksSection() {
   return (
-    <section className="py-16 md:py-24 bg-background">
-      <div className="container">
-        <div className="text-center mb-12 md:mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+    <section className="py-20 md:py-28 bg-background relative">
+      {/* Subtle background */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-muted/30 via-transparent to-transparent pointer-events-none" />
+      
+      <div className="container relative">
+        <div className="text-center mb-16">
+          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">
             How it works
+          </p>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
+            Go live in three steps
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Go live in three simple steps
+          <p className="text-lg text-muted-foreground max-w-xl mx-auto">
+            From sign-up to answering calls in under 15 minutes
           </p>
         </div>
         
         <div className="max-w-5xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-8 md:gap-12">
+          <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
             {steps.map((step, index) => (
-              <div key={step.number} className="relative text-center">
+              <div key={step.number} className="relative group">
                 {/* Connector line for desktop */}
                 {index < steps.length - 1 && (
-                  <div className="hidden md:block absolute top-12 left-[60%] w-[80%] h-[2px] bg-border" />
+                  <div className="hidden md:flex absolute top-14 left-[60%] w-full items-center">
+                    <div className="flex-1 h-[2px] bg-gradient-to-r from-border to-transparent" />
+                    <ArrowRight className="h-4 w-4 text-muted-foreground/50 -ml-2" />
+                  </div>
                 )}
                 
-                {/* Step number badge */}
-                <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-card border-2 border-border shadow-sm mb-6 relative">
-                  <step.icon className={`h-10 w-10 ${step.color}`} />
-                  <span className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center">
-                    {step.number.replace('0', '')}
-                  </span>
+                <div className="text-center">
+                  {/* Step icon with number */}
+                  <div className="relative inline-flex mb-6">
+                    <div className="h-28 w-28 rounded-2xl bg-gradient-to-br from-card to-muted/50 border-2 border-border shadow-sm flex items-center justify-center group-hover:border-primary/30 group-hover:shadow-md transition-all duration-300">
+                      <step.icon className="h-12 w-12 text-primary" />
+                    </div>
+                    <span className="absolute -top-2 -right-2 w-9 h-9 rounded-full bg-primary text-primary-foreground text-lg font-bold flex items-center justify-center shadow-lg">
+                      {step.number}
+                    </span>
+                  </div>
+                  
+                  <h3 className="text-xl font-semibold mb-2">{step.title}</h3>
+                  <p className="text-muted-foreground mb-2">{step.description}</p>
+                  <p className="text-sm text-primary font-medium">{step.detail}</p>
                 </div>
-                
-                <h3 className="text-xl font-semibold mb-3">{step.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  {step.description}
-                </p>
               </div>
             ))}
           </div>

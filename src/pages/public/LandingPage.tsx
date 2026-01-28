@@ -11,7 +11,7 @@ import { SalesAIAgent } from "@/components/landing/SalesAIAgent";
 
 export default function LandingPage() {
   return (
-    <div className="pb-20 md:pb-0">
+    <div className="pb-24 md:pb-0">
       {/* Sales AI Agent */}
       <SalesAIAgent />
       
@@ -26,7 +26,7 @@ export default function LandingPage() {
         <IndustryDemoPlayer />
       </section>
 
-      {/* How It Works - 3 Steps */}
+      {/* How It Works */}
       <HowItWorksSection />
 
       {/* Who It's For */}
