@@ -17,6 +17,7 @@ import {
   CreditCard,
 } from "lucide-react";
 import { PricingCards } from "@/components/pricing/PricingCards";
+import { TIERS } from "@/config/pricing";
 
 const features = [
   {
@@ -46,8 +47,8 @@ const features = [
   },
   {
     icon: BarChart3,
-    title: "Revenue Dashboard",
-    description: "See exactly how much revenue CloseLoop recovered. Track your ROI in real-time.",
+    title: "Usage Dashboard",
+    description: "Track your voice minutes and SMS usage in real-time. Upgrade anytime as you grow.",
   },
 ];
 
@@ -103,7 +104,7 @@ export default function LandingPage() {
               </Button>
             </div>
             <p className="text-sm text-muted-foreground mt-4">
-              7-day free trial • No charge until trial ends
+              Plans starting at ${TIERS[0].startingPrice}/month • 7-day free trial
             </p>
           </div>
         </div>

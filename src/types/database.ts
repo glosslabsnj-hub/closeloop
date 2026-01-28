@@ -1,5 +1,6 @@
 // Extended types for CloseLoop application
 import type { Tables, Enums } from "@/integrations/supabase/types";
+import type { PlanSku, PlanTier } from "@/config/pricing";
 
 export type Tenant = Tables<"tenants"> & {
   ai_enabled?: boolean;
@@ -23,13 +24,45 @@ export type KnowledgeGap = Tables<"knowledge_gaps">;
 export type SyncEvent = Tables<"sync_events">;
 export type BusinessFAQ = Tables<"business_faqs">;
 export type ObjectionResponse = Tables<"objection_responses">;
-export type Subscription = Tables<"subscriptions">;
+export type Subscription = Tables<"subscriptions"> & {
+  // Extended fields for usage tracking
+  included_minutes?: number | null;
+  included_sms_segments?: number | null;
+  overage_minute_rate_cents?: number | null;
+  overage_sms_rate_cents?: number | null;
+};
 export type AssistantSettings = Tables<"assistant_settings"> & {
   // Extended fields added by migrations (optional since they may not exist in DB response)
   forwarding_phone_e164?: string | null;
   connect_status?: string | null;
 };
 export type PhoneNumber = Tables<"phone_numbers">;
+
+// Usage tracking
+export type SubscriptionUsage = {
+  id: string;
+  tenant_id: string;
+  billing_period_start: string;
+  billing_period_end: string;
+  voice_minutes_used: number;
+  sms_segments_used: number;
+  created_at: string;
+  updated_at: string;
+};
+
+// Multi-location support
+export type TenantLocation = {
+  id: string;
+  tenant_id: string;
+  location_name: string;
+  phone_number_id: string | null;
+  is_primary: boolean;
+  monthly_fee_cents: number;
+  stripe_subscription_item_id: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
 
 // AI-related types
 export interface AIAssistant {
@@ -147,7 +180,9 @@ export type KnowledgeGapType = 'missing_policy' | 'missing_pricing' | 'missing_s
 // Sync event types
 export type SyncEventType = 'customer_created' | 'customer_updated' | 'opportunity_created' | 'opportunity_updated' | 'booking_created' | 'booking_updated' | 'call_completed';
 
-// Subscription types
+// Subscription types - re-export from pricing config for convenience
+export type { PlanSku, PlanTier };
+// Legacy plan code type (for backward compatibility)
 export type PlanCode = Enums<"plan_code">;
 export type SubscriptionStatus = Enums<"subscription_status">;
 export type VoiceMode = Enums<"voice_mode">;
@@ -197,7 +232,7 @@ export interface OnboardingState {
   greetingScript: string;
 }
 
-// Plan package info for UI
+// Plan package info for UI (legacy - kept for backward compatibility)
 export interface PlanPackage {
   code: PlanCode;
   name: string;

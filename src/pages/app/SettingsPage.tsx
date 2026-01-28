@@ -1,14 +1,19 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantSettings, useAvailabilitySlots, useAssistantSettings } from "@/hooks/useSettings";
 import { useFoodMode } from "@/hooks/useFoodMode";
 import { useModuleEnabled, useTenantConfig } from "@/hooks/useTenantConfig";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useUsage } from "@/hooks/useUsage";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -16,13 +21,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Building2, Clock, Users, CreditCard, Bell, Lock, Loader2, Bug, UtensilsCrossed, Calendar, Truck, Stethoscope } from "lucide-react";
+import { Building2, Clock, Users, CreditCard, Bell, Lock, Loader2, Bug, UtensilsCrossed, Calendar, Truck, Stethoscope, BarChart3, ArrowUpRight } from "lucide-react";
 import { CallContextDebugger } from "@/components/ai/CallContextDebugger";
 import { FoodOrderSettings } from "@/components/settings/FoodOrderSettings";
 import { BookingDeliverySettings } from "@/components/settings/BookingDeliverySettings";
 import { DispatchDeliverySettings } from "@/components/settings/DispatchDeliverySettings";
 import { MedicalHIPAASettings } from "@/components/settings/MedicalHIPAASettings";
 import { MobileSettingsTabs } from "@/components/settings/MobileSettingsTabs";
+import { getLadderStep, getTierInfo, formatPrice, type PlanSku } from "@/config/pricing";
 
 const timezones = [
   { value: "America/New_York", label: "Eastern Time" },
@@ -46,8 +52,10 @@ interface HoursState {
 }
 
 export default function SettingsPage() {
-  const { user, signOut, subscription } = useAuth();
-  const { tenant, updateTenant, isUpdating } = useTenantSettings();
+  const { user, signOut, tenant } = useAuth();
+  const { subscription, planSku, hasVoice, hasSms } = useSubscription(tenant?.id || null);
+  const { usage, nextUpgrade } = useUsage(tenant?.id || null, planSku);
+  const { tenant: tenantData, updateTenant, isUpdating } = useTenantSettings();
   const { settings: assistantSettings, updateSettings, isUpdating: isUpdatingSettings } = useAssistantSettings();
   const { slots, saveSlots, isSaving } = useAvailabilitySlots();
   const { isFoodMode } = useFoodMode();
@@ -74,21 +82,21 @@ export default function SettingsPage() {
 
   // Initialize from tenant and assistant settings
   useEffect(() => {
-    if (tenant) {
-      setBusinessName(tenant.name || "");
-      setTimezone(tenant.timezone || "America/New_York");
-      setTagline(tenant.tagline || "");
+    if (tenantData) {
+      setBusinessName(tenantData.name || "");
+      setTimezone(tenantData.timezone || "America/New_York");
+      setTagline(tenantData.tagline || "");
     }
-  }, [tenant]);
+  }, [tenantData]);
 
   // Load phone from assistant_settings (primary source) or fall back to tenant
   useEffect(() => {
     if (assistantSettings?.business_phone_number) {
       setPhone(assistantSettings.business_phone_number);
-    } else if (tenant?.phone_public) {
-      setPhone(tenant.phone_public);
+    } else if (tenantData?.phone_public) {
+      setPhone(tenantData.phone_public);
     }
-  }, [assistantSettings, tenant]);
+  }, [assistantSettings, tenantData]);
 
   // Initialize hours from slots
   useEffect(() => {
@@ -139,12 +147,11 @@ export default function SettingsPage() {
     await saveSlots.mutateAsync(slotsToSave);
   };
 
-  const planLabel = subscription?.plan_code === "both" 
-    ? "Pro Plan ($249/mo)" 
-    : subscription?.plan_code === "voice" 
-    ? "Voice Plan ($199/mo)" 
-    : subscription?.plan_code === "text"
-    ? "Text Plan ($99/mo)"
+  // Get plan info from pricing config
+  const step = planSku ? getLadderStep(planSku) : null;
+  const tierInfo = step ? getTierInfo(step.tier) : null;
+  const planLabel = step && tierInfo 
+    ? `${tierInfo.displayName} (${formatPrice(step.price)}/mo)`
     : "No Plan";
 
   const isSavingBusiness = isUpdating || isUpdatingSettings;
@@ -375,12 +382,13 @@ export default function SettingsPage() {
               <CardTitle>Subscription</CardTitle>
               <CardDescription>Manage your plan and billing</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <div className="p-4 rounded-lg border-2 border-primary bg-primary/5">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <p className="font-semibold text-lg">{planLabel}</p>
                     <p className="text-sm text-muted-foreground">
+                      {step?.shortName && `${step.shortName} included • `}
                       {subscription?.status === "active"
                         ? "Billed monthly"
                         : subscription?.status === "trialing"
@@ -388,25 +396,47 @@ export default function SettingsPage() {
                         : "Inactive"}
                     </p>
                   </div>
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full ${
-                      subscription?.status === "active" || subscription?.status === "trialing"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground"
-                    }`}
-                  >
+                  <Badge variant={subscription?.status === "trialing" ? "secondary" : "default"}>
                     {subscription?.status || "No subscription"}
-                  </span>
+                  </Badge>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
-                    Change Plan
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    Update Payment
-                  </Button>
+                  <Link to="/app/go-live">
+                    <Button variant="outline" size="sm">Change Plan</Button>
+                  </Link>
+                  <Button variant="outline" size="sm">Update Payment</Button>
                 </div>
               </div>
+
+              {/* Usage Summary */}
+              {usage && (hasVoice || hasSms) && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Current Usage</span>
+                    <Link to="/app/usage" className="text-sm text-primary hover:underline flex items-center gap-1">
+                      View Details <ArrowUpRight className="h-3 w-3" />
+                    </Link>
+                  </div>
+                  {hasVoice && usage.includedMinutes !== null && (
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span>Voice: {usage.voiceMinutesUsed} / {usage.includedMinutes} min</span>
+                        <span>{usage.voicePercentUsed}%</span>
+                      </div>
+                      <Progress value={usage.voicePercentUsed} />
+                    </div>
+                  )}
+                  {hasSms && usage.includedSmsSegments !== null && (
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span>SMS: {usage.smsSegmentsUsed} / {usage.includedSmsSegments}</span>
+                        <span>{usage.smsPercentUsed}%</span>
+                      </div>
+                      <Progress value={usage.smsPercentUsed} />
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

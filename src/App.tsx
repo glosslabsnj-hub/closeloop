@@ -30,6 +30,7 @@ import SimulatorPage from "@/pages/app/SimulatorPage";
 import GoLivePage from "@/pages/app/GoLivePage";
 import CallsPage from "@/pages/app/CallsPage";
 import BusinessBrainPage from "@/pages/app/BusinessBrainPage";
+import UsagePage from "@/pages/app/UsagePage";
 
 // Module-specific pages
 import OrdersPage from "@/pages/app/OrdersPage";
@@ -81,6 +82,7 @@ const App = () => (
               <Route path="/app/ai-assistant" element={<AIAssistantPage />} />
               <Route path="/app/simulator" element={<SimulatorPage />} />
               <Route path="/app/business-brain" element={<BusinessBrainPage />} />
+              <Route path="/app/usage" element={<UsagePage />} />
               <Route path="/app/settings" element={<SettingsPage />} />
               {/* Module-specific routes */}
               <Route path="/app/orders" element={<OrdersPage />} />
