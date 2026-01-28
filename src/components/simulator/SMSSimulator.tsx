@@ -7,13 +7,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { resolveCustomer, createOpportunity, createSyncEvent } from "@/hooks/useCustomerResolver";
-import { MessageSquare, Send, User } from "lucide-react";
+import { MessageSquare, Send, User, Loader2, Brain, AlertTriangle } from "lucide-react";
 
 interface SimulatedSMS {
   direction: 'inbound' | 'outbound';
   content: string;
   timestamp: Date;
+  metadata?: {
+    intent?: string;
+    confidence?: string;
+    sources?: Array<{ type: string; id: string }>;
+    knowledgeGap?: boolean;
+  };
 }
 
 export default function SMSSimulator() {
@@ -31,24 +38,51 @@ export default function SMSSimulator() {
     hasConflict: boolean;
   } | null>(null);
   const [opportunityId, setOpportunityId] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
-  const simulateAIResponse = (customerMessage: string): string => {
-    const lowerMessage = customerMessage.toLowerCase();
-    
-    if (lowerMessage.includes('price') || lowerMessage.includes('quote')) {
-      return "Thanks for reaching out! I can help with pricing. What service are you interested in? 🚗";
+  const getAIResponse = async (customerMessage: string): Promise<SimulatedSMS> => {
+    if (!tenant?.id) {
+      return {
+        direction: 'outbound',
+        content: "Thanks for reaching out! We'll get back to you shortly.",
+        timestamp: new Date(),
+      };
     }
-    if (lowerMessage.includes('book') || lowerMessage.includes('appointment')) {
-      return "I'd be happy to help you book! What day works best for you?";
+
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-plan-response', {
+        body: {
+          tenantId: tenant.id,
+          userMessage: customerMessage,
+          channel: 'sms',
+          customerId: resolvedCustomer?.id,
+        },
+      });
+
+      if (error) throw error;
+
+      const plan = data.plan;
+      
+      return {
+        direction: 'outbound',
+        content: plan.draft_reply,
+        timestamp: new Date(),
+        metadata: {
+          intent: plan.intent,
+          confidence: plan.confidence,
+          sources: plan.sources_used,
+          knowledgeGap: plan.knowledge_gap_detected,
+        },
+      };
+    } catch (error) {
+      console.error('AI response error:', error);
+      return {
+        direction: 'outbound',
+        content: "Thanks for your message! Someone from our team will get back to you shortly.",
+        timestamp: new Date(),
+        metadata: { confidence: 'low' },
+      };
     }
-    if (lowerMessage.includes('cancel')) {
-      return "I understand. Please call us at least 24hrs in advance to avoid any fees. Would you like to reschedule instead?";
-    }
-    if (lowerMessage.includes('thank')) {
-      return "You're welcome! Let us know if you need anything else. Have a great day! 😊";
-    }
-    
-    return `Thanks for your message! Someone from ${tenant?.name || 'our team'} will get back to you shortly. Is there anything specific I can help you with in the meantime?`;
   };
 
   const startConversation = async () => {
@@ -62,6 +96,7 @@ export default function SMSSimulator() {
       return;
     }
 
+    setAiLoading(true);
     try {
       // Resolve customer through the unified pipeline
       const result = await resolveCustomer(
@@ -112,10 +147,12 @@ export default function SMSSimulator() {
         title: "Failed to start conversation",
         description: error.message,
       });
+    } finally {
+      setAiLoading(false);
     }
   };
 
-  const sendInboundSMS = () => {
+  const sendInboundSMS = async () => {
     if (!newMessage.trim()) return;
 
     const inboundMsg: SimulatedSMS = {
@@ -124,14 +161,13 @@ export default function SMSSimulator() {
       timestamp: new Date(),
     };
 
-    const aiResponse: SimulatedSMS = {
-      direction: 'outbound',
-      content: simulateAIResponse(newMessage),
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, inboundMsg, aiResponse]);
+    setMessages(prev => [...prev, inboundMsg]);
     setNewMessage('');
+    setAiLoading(true);
+
+    const aiResponse = await getAIResponse(newMessage);
+    setMessages(prev => [...prev, aiResponse]);
+    setAiLoading(false);
   };
 
   const resetSimulator = () => {
@@ -148,10 +184,14 @@ export default function SMSSimulator() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <MessageSquare className="h-5 w-5" />
-          SMS Simulator (Mock Mode)
+          SMS Simulator
+          <Badge variant="secondary" className="gap-1">
+            <Brain className="h-3 w-3" />
+            AI-Powered
+          </Badge>
         </CardTitle>
         <CardDescription>
-          Test the customer resolution pipeline with simulated text messages
+          Test your AI text responses with real business data and knowledge retrieval
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -178,9 +218,9 @@ export default function SMSSimulator() {
               </div>
             </div>
             
-            <Button onClick={startConversation} className="w-full gap-2">
-              <MessageSquare className="h-4 w-4" />
-              Start SMS Conversation
+            <Button onClick={startConversation} className="w-full gap-2" disabled={aiLoading}>
+              {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
+              {aiLoading ? "Starting..." : "Start SMS Conversation"}
             </Button>
           </>
         ) : (
@@ -205,7 +245,7 @@ export default function SMSSimulator() {
             )}
 
             {/* Message Thread */}
-            <div className="border rounded-lg p-3 h-64 overflow-y-auto space-y-3">
+            <div className="border rounded-lg p-3 h-72 overflow-y-auto space-y-3">
               {messages.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">
                   Type a message to simulate an inbound SMS
@@ -217,19 +257,54 @@ export default function SMSSimulator() {
                     className={`flex ${msg.direction === 'inbound' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className={`max-w-[80%] p-2 rounded-lg ${
+                      className={`max-w-[85%] p-3 rounded-lg ${
                         msg.direction === 'inbound'
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-muted'
                       }`}
                     >
                       <p className="text-sm">{msg.content}</p>
+                      {msg.metadata && msg.direction === 'outbound' && (
+                        <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t border-primary/10">
+                          {msg.metadata.intent && (
+                            <Badge variant="outline" className="text-[10px]">
+                              {msg.metadata.intent}
+                            </Badge>
+                          )}
+                          {msg.metadata.confidence && (
+                            <Badge 
+                              variant="outline" 
+                              className={`text-[10px] ${
+                                msg.metadata.confidence === 'high' ? 'border-green-500 text-green-700' :
+                                msg.metadata.confidence === 'medium' ? 'border-yellow-500 text-yellow-700' :
+                                'border-red-500 text-red-700'
+                              }`}
+                            >
+                              {msg.metadata.confidence}
+                            </Badge>
+                          )}
+                          {msg.metadata.knowledgeGap && (
+                            <Badge variant="destructive" className="text-[10px] gap-0.5">
+                              <AlertTriangle className="h-2.5 w-2.5" />
+                              Gap
+                            </Badge>
+                          )}
+                        </div>
+                      )}
                       <p className="text-xs opacity-70 mt-1">
                         {msg.timestamp.toLocaleTimeString()}
                       </p>
                     </div>
                   </div>
                 ))
+              )}
+              {aiLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-muted p-3 rounded-lg flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm text-muted-foreground">AI composing...</span>
+                  </div>
+                </div>
               )}
             </div>
 
@@ -247,8 +322,9 @@ export default function SMSSimulator() {
                 }}
                 rows={2}
                 className="flex-1"
+                disabled={aiLoading}
               />
-              <Button onClick={sendInboundSMS} size="icon">
+              <Button onClick={sendInboundSMS} size="icon" disabled={aiLoading}>
                 <Send className="h-4 w-4" />
               </Button>
             </div>

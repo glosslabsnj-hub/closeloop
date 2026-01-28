@@ -7,13 +7,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { resolveCustomer, createOpportunity, createSyncEvent } from "@/hooks/useCustomerResolver";
-import { Phone, PhoneIncoming, PhoneOff, User, MessageCircle, CheckCircle2 } from "lucide-react";
+import { Phone, PhoneIncoming, PhoneOff, User, MessageCircle, Loader2, Brain, AlertTriangle } from "lucide-react";
 
 interface SimulatedMessage {
   role: 'customer' | 'ai';
   content: string;
   timestamp: Date;
+  metadata?: {
+    intent?: string;
+    confidence?: string;
+    sources?: Array<{ type: string; id: string }>;
+    knowledgeGap?: boolean;
+  };
 }
 
 export default function CallSimulator() {
@@ -32,28 +39,51 @@ export default function CallSimulator() {
     hasConflict: boolean;
   } | null>(null);
   const [opportunityId, setOpportunityId] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
-  const simulateAIResponse = (customerMessage: string): string => {
-    // Simple mock AI responses based on keywords
-    const lowerMessage = customerMessage.toLowerCase();
-    
-    if (lowerMessage.includes('price') || lowerMessage.includes('cost') || lowerMessage.includes('how much')) {
-      return "I'd be happy to help with pricing! Let me look up our current rates for you. What service are you interested in?";
+  const getAIResponse = async (customerMessage: string): Promise<SimulatedMessage> => {
+    if (!tenant?.id) {
+      return {
+        role: 'ai',
+        content: "I'm sorry, I'm having trouble accessing the system. Let me have someone call you back.",
+        timestamp: new Date(),
+      };
     }
-    if (lowerMessage.includes('appointment') || lowerMessage.includes('book') || lowerMessage.includes('schedule')) {
-      return "I can help you schedule an appointment! What day and time works best for you?";
+
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-plan-response', {
+        body: {
+          tenantId: tenant.id,
+          userMessage: customerMessage,
+          channel: 'call',
+          customerId: resolvedCustomer?.id,
+        },
+      });
+
+      if (error) throw error;
+
+      const plan = data.plan;
+      
+      return {
+        role: 'ai',
+        content: plan.draft_reply,
+        timestamp: new Date(),
+        metadata: {
+          intent: plan.intent,
+          confidence: plan.confidence,
+          sources: plan.sources_used,
+          knowledgeGap: plan.knowledge_gap_detected,
+        },
+      };
+    } catch (error) {
+      console.error('AI response error:', error);
+      return {
+        role: 'ai',
+        content: "I'd be happy to help! Let me have someone call you back with more details.",
+        timestamp: new Date(),
+        metadata: { confidence: 'low' },
+      };
     }
-    if (lowerMessage.includes('hours') || lowerMessage.includes('open')) {
-      return "We're typically open Monday through Friday from 9am to 5pm, and Saturday from 10am to 2pm.";
-    }
-    if (lowerMessage.includes('cancel')) {
-      return "I understand. Our cancellation policy requires 24 hours notice. Would you like me to help you reschedule instead?";
-    }
-    if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
-      return `Hi there! Thank you for calling ${tenant?.name || 'our business'}. How can I help you today?`;
-    }
-    
-    return "I understand. Let me see how I can help you with that. Could you tell me more about what you're looking for?";
   };
 
   const startCall = async () => {
@@ -67,6 +97,7 @@ export default function CallSimulator() {
       return;
     }
 
+    setAiLoading(true);
     try {
       // Resolve customer through the unified pipeline
       const result = await resolveCustomer(
@@ -102,12 +133,11 @@ export default function CallSimulator() {
         { phone: callerPhone, name: callerName, source: 'simulator_call' }
       );
 
+      // Get AI greeting
+      const greetingResponse = await getAIResponse('Hello');
+      
       setIsCallActive(true);
-      setCallLog([{
-        role: 'ai',
-        content: `Hi, thank you for calling ${tenant.name}! How can I help you today?`,
-        timestamp: new Date(),
-      }]);
+      setCallLog([greetingResponse]);
 
       toast({
         title: result.is_new ? "New customer created" : "Existing customer found",
@@ -122,10 +152,12 @@ export default function CallSimulator() {
         title: "Failed to start call",
         description: error.message,
       });
+    } finally {
+      setAiLoading(false);
     }
   };
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!customerInput.trim()) return;
 
     const customerMessage: SimulatedMessage = {
@@ -134,14 +166,13 @@ export default function CallSimulator() {
       timestamp: new Date(),
     };
 
-    const aiResponse: SimulatedMessage = {
-      role: 'ai',
-      content: simulateAIResponse(customerInput),
-      timestamp: new Date(),
-    };
-
-    setCallLog(prev => [...prev, customerMessage, aiResponse]);
+    setCallLog(prev => [...prev, customerMessage]);
     setCustomerInput('');
+    setAiLoading(true);
+
+    const aiResponse = await getAIResponse(customerInput);
+    setCallLog(prev => [...prev, aiResponse]);
+    setAiLoading(false);
   };
 
   const endCall = async () => {
@@ -178,10 +209,14 @@ export default function CallSimulator() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Phone className="h-5 w-5" />
-          Call Simulator (Mock Mode)
+          Call Simulator
+          <Badge variant="secondary" className="gap-1">
+            <Brain className="h-3 w-3" />
+            AI-Powered
+          </Badge>
         </CardTitle>
         <CardDescription>
-          Test the customer resolution pipeline with simulated inbound calls
+          Test your AI voice assistant with real business data and knowledge retrieval
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -218,9 +253,9 @@ export default function CallSimulator() {
               </div>
             </div>
             
-            <Button onClick={startCall} className="w-full gap-2">
-              <PhoneIncoming className="h-4 w-4" />
-              Simulate Inbound Call
+            <Button onClick={startCall} className="w-full gap-2" disabled={aiLoading}>
+              {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <PhoneIncoming className="h-4 w-4" />}
+              {aiLoading ? "Connecting..." : "Simulate Inbound Call"}
             </Button>
           </>
         ) : (
@@ -245,26 +280,61 @@ export default function CallSimulator() {
             )}
 
             {/* Call Log */}
-            <div className="border rounded-lg p-3 h-64 overflow-y-auto space-y-3">
+            <div className="border rounded-lg p-3 h-72 overflow-y-auto space-y-3">
               {callLog.map((msg, idx) => (
                 <div
                   key={idx}
                   className={`flex ${msg.role === 'customer' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[80%] p-2 rounded-lg ${
+                    className={`max-w-[85%] p-3 rounded-lg ${
                       msg.role === 'customer'
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted'
                     }`}
                   >
                     <p className="text-sm">{msg.content}</p>
+                    {msg.metadata && msg.role === 'ai' && (
+                      <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t border-primary/10">
+                        {msg.metadata.intent && (
+                          <Badge variant="outline" className="text-[10px]">
+                            {msg.metadata.intent}
+                          </Badge>
+                        )}
+                        {msg.metadata.confidence && (
+                          <Badge 
+                            variant="outline" 
+                            className={`text-[10px] ${
+                              msg.metadata.confidence === 'high' ? 'border-green-500 text-green-700' :
+                              msg.metadata.confidence === 'medium' ? 'border-yellow-500 text-yellow-700' :
+                              'border-red-500 text-red-700'
+                            }`}
+                          >
+                            {msg.metadata.confidence}
+                          </Badge>
+                        )}
+                        {msg.metadata.knowledgeGap && (
+                          <Badge variant="destructive" className="text-[10px] gap-0.5">
+                            <AlertTriangle className="h-2.5 w-2.5" />
+                            Gap
+                          </Badge>
+                        )}
+                      </div>
+                    )}
                     <p className="text-xs opacity-70 mt-1">
                       {msg.timestamp.toLocaleTimeString()}
                     </p>
                   </div>
                 </div>
               ))}
+              {aiLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-muted p-3 rounded-lg flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm text-muted-foreground">AI thinking...</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Message Input */}
@@ -281,8 +351,9 @@ export default function CallSimulator() {
                 }}
                 rows={2}
                 className="flex-1"
+                disabled={aiLoading}
               />
-              <Button onClick={sendMessage} size="icon">
+              <Button onClick={sendMessage} size="icon" disabled={aiLoading}>
                 <MessageCircle className="h-4 w-4" />
               </Button>
             </div>
