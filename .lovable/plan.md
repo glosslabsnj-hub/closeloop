@@ -1,496 +1,383 @@
 
-# New Pricing Model Implementation Plan
+# Upload-to-Knowledge Notification System Implementation Plan
 
 ## Overview
 
-This plan updates the entire pricing system from the current flat-rate 3-tier model ($99/$199/$249.99) to a usage-based ladder system with included limits, overage billing, and multi-location support.
+This plan adds an **Owner Notification System** and enhanced **UX messaging** to ensure business owners always know when uploads are processing, when suggestions are pending, and when conflicts need resolution. The core principle: **"Structured Business Brain (truth layer) ALWAYS overrides uploads until the owner approves merges."**
+
+---
 
 ## Current State Analysis
 
-**Current Pricing (to be replaced):**
-- Text: $99/mo (flat-rate unlimited)
-- Voice: $199/mo (flat-rate unlimited)
-- Both: $249.99/mo (flat-rate unlimited)
+**Existing Infrastructure:**
+- `knowledge_gaps` table exists for tracking unanswered AI questions
+- `ai_knowledge_base` table stores structured knowledge
+- `menu_documents` table stores uploaded documents with parsed content
+- No `knowledge_sources`, `extracted_knowledge_suggestions`, or `knowledge_conflicts` tables exist
+- No `notifications` table exists
+- Dashboard has `UsageThresholdBanner` pattern for alerts
+- Copilot has context-aware response generation
 
-**Files Requiring Updates:**
-- `src/components/pricing/PricingCards.tsx` - Main pricing UI
-- `src/pages/public/PricingPage.tsx` - Public pricing page
-- `src/pages/public/LandingPage.tsx` - Landing page pricing section
-- `src/pages/public/SignupPage.tsx` - Signup with plan selection
-- `src/pages/app/GoLivePage.tsx` - Plan selection after onboarding
-- `src/pages/app/SettingsPage.tsx` - Billing tab with plan display
-- `src/hooks/useSubscription.ts` - Subscription creation logic
-- `src/types/database.ts` - TypeScript types
-- `supabase/functions/stripe-webhook/index.ts` - Stripe webhook handler
-- Database schema (subscriptions table, new usage tracking tables)
+**Key Finding:** The upload-to-knowledge extraction pipeline tables don't exist yet. We need to create the complete infrastructure.
 
 ---
 
-## Phase 1: Create Centralized Pricing Configuration
+## Database Schema
 
-### 1.1 Create `src/config/pricing.ts`
+### New Tables
 
-Single source of truth for all pricing data:
+**1. `knowledge_sources` - Tracks uploaded documents**
+```text
++----------------------+---------------------------+
+| Column               | Type                      |
++----------------------+---------------------------+
+| id                   | uuid PK                   |
+| tenant_id            | uuid FK                   |
+| file_name            | text                      |
+| file_url             | text nullable             |
+| source_type          | enum (menu_pdf, pricing,  |
+|                      | services_doc, faq_doc,    |
+|                      | general)                  |
+| status               | enum (uploading,          |
+|                      | processing, ready, failed)|
+| processed_at         | timestamptz nullable      |
+| error_message        | text nullable             |
+| created_at           | timestamptz               |
+| updated_at           | timestamptz               |
++----------------------+---------------------------+
+```
 
+**2. `extracted_knowledge_suggestions` - AI-extracted items pending review**
+```text
++----------------------+---------------------------+
+| Column               | Type                      |
++----------------------+---------------------------+
+| id                   | uuid PK                   |
+| tenant_id            | uuid FK                   |
+| source_id            | uuid FK knowledge_sources |
+| suggestion_type      | enum (service, faq,       |
+|                      | menu_item, policy,        |
+|                      | objection)                |
+| extracted_data       | jsonb                     |
+| status               | enum (pending_review,     |
+|                      | approved, rejected,       |
+|                      | merged)                   |
+| reviewed_at          | timestamptz nullable      |
+| reviewed_by          | uuid nullable             |
+| created_at           | timestamptz               |
++----------------------+---------------------------+
+```
+
+**3. `knowledge_conflicts` - Detected conflicts between uploads and existing data**
+```text
++----------------------+---------------------------+
+| Column               | Type                      |
++----------------------+---------------------------+
+| id                   | uuid PK                   |
+| tenant_id            | uuid FK                   |
+| source_id            | uuid FK knowledge_sources |
+| conflict_type        | enum (price_mismatch,     |
+|                      | description_mismatch,     |
+|                      | name_mismatch, other)     |
+| entity_type          | text (service, menu_item, |
+|                      | faq, policy)              |
+| existing_entity_id   | uuid nullable             |
+| existing_data        | jsonb                     |
+| proposed_data        | jsonb                     |
+| differing_fields     | text[] (e.g. ["price",    |
+|                      | "description"])           |
+| status               | enum (unresolved,         |
+|                      | keep_existing,            |
+|                      | accept_upload,            |
+|                      | custom_merged)            |
+| resolved_at          | timestamptz nullable      |
+| resolved_by          | uuid nullable             |
+| created_at           | timestamptz               |
++----------------------+---------------------------+
+```
+
+**4. `owner_notifications` - In-app notifications**
+```text
++----------------------+---------------------------+
+| Column               | Type                      |
++----------------------+---------------------------+
+| id                   | uuid PK                   |
+| tenant_id            | uuid FK                   |
+| type                 | enum (upload_processing,  |
+|                      | upload_ready, upload_fail,|
+|                      | suggestions_pending,      |
+|                      | conflicts_detected,       |
+|                      | conflicts_resolved)       |
+| title                | text                      |
+| message              | text                      |
+| severity             | enum (info, warning,      |
+|                      | critical) default info    |
+| is_read              | boolean default false     |
+| action_path          | text nullable (deep link) |
+| related_source_id    | uuid nullable             |
+| created_at           | timestamptz               |
++----------------------+---------------------------+
+```
+
+**5. Database Triggers**
+- On `knowledge_sources.status` change to `ready` or `failed`: insert notification
+- On insert to `extracted_knowledge_suggestions` with `pending_review`: insert notification
+- On insert to `knowledge_conflicts` with `unresolved`: insert notification
+- On `knowledge_conflicts` resolution (when unresolved count reaches 0): insert notification
+
+---
+
+## UI Components
+
+### 1. Dashboard Knowledge Status Card (`BusinessBrainStatusCard.tsx`)
+
+**Location:** Displayed on `LiveDashboard` above `DashboardByMode`
+
+**Content:**
+- AI Readiness Score (from existing hook)
+- Pending Suggestions count (with badge if > 0)
+- Unresolved Conflicts count (prominent if > 0)
+- "Review Updates" button linking to Business Brain Updates tab
+
+### 2. Conflict Warning Banner (`KnowledgeConflictBanner.tsx`)
+
+**Location:** Top of dashboard when `unresolved_conflicts > 0`
+
+**Content:**
+```text
+"Action needed: We found conflicts between your uploads and your 
+current Business Brain. The AI will keep using your existing 
+settings until you review."
+[Resolve Conflicts] button
+```
+
+### 3. Business Brain Updates Tab
+
+**Location:** New tab in `BusinessBrainPage.tsx`
+
+**Structure:**
+- **Explanation Block (top):**
+  "Uploads do not automatically change what the AI says. Your Business Brain is the source of truth. If we detect differences, you review and choose what's correct."
+
+- **Sub-tabs:**
+  - **Processing** - Active uploads with status indicators
+  - **Suggestions** - Pending extracted items to approve/reject
+  - **Conflicts** - Items needing resolution (highlight differing fields)
+
+### 4. Conflict Resolution UI (`KnowledgeConflictResolver.tsx`)
+
+**Per conflict:**
+- Side-by-side comparison: "Existing (Current Truth)" vs "Proposed (From Upload)"
+- Highlighted differing fields
+- Actions:
+  - "Keep Existing" (AI continues using current data)
+  - "Accept Upload" (replaces existing)
+  - "Edit & Save" (custom merge)
+
+**After all conflicts resolved:**
+- Confirmation message: "Great — your AI knowledge is now updated and consistent."
+
+### 5. Notification Bell & Dropdown (`NotificationBell.tsx`)
+
+**Location:** Top navbar (AppLayout.tsx)
+
+**Features:**
+- Bell icon with unread count badge
+- Dropdown showing recent notifications
+- Click notification to navigate to `action_path`
+- "Mark all as read" action
+
+### 6. Onboarding Upload Helper Text
+
+**Location:** Any upload field during onboarding
+
+**Text:**
+```text
+"Uploads speed up setup. If uploads create conflicts, you'll 
+review them before the AI uses them."
+```
+
+**Skip message:**
+```text
+"You can add documents later. Until your Business Brain is 
+complete, the AI may ask a few extra questions."
+```
+
+---
+
+## Copilot Awareness
+
+### New Query Handler in `generateResponse()`
+
+**Query patterns to handle:**
+- "Did the AI learn my menu/pricing sheet?"
+- "Did my upload work?"
+- "Is my [document] being used?"
+
+**Response logic:**
+1. Check `knowledge_sources` for recent uploads
+2. If `status = processing`: "Your upload is still being processed..."
+3. If `status = ready` with pending suggestions or unresolved conflicts:
+   "Your upload was processed, but it needs review before the AI uses it."
+   Steps: 
+   1. Go to Business Brain → Updates
+   2. Approve Suggestions / Resolve Conflicts
+4. If all merged and no conflicts:
+   "Yes — it's been merged into your Business Brain and the AI will use it."
+
+### Extended Copilot Context
+
+Add to `copilot-context` edge function:
 ```typescript
-// Tier definitions
-export type PlanTier = "sms" | "voice" | "both";
-
-// Ladder SKU codes
-export type PlanSku = 
-  // SMS tier
-  | "sms-500" | "sms-1500" | "sms-3500"
-  // Voice tier
-  | "voice-200" | "voice-600" | "voice-1500"
-  // Both tier
-  | "both-200-500" | "both-600-1500" | "both-1500-3500";
-
-export interface PlanLadderStep {
-  sku: PlanSku;
-  tier: PlanTier;
-  name: string;
-  price: number;
-  includedMinutes: number | null;
-  includedSmsSegments: number | null;
-  overageMinuteRate: number | null;
-  overageSmsRate: number;
-  stripePriceId: string | null; // Populated after Stripe setup
-}
-
-export interface TierInfo {
-  tier: PlanTier;
-  displayName: string;
-  startingPrice: number;
-  description: string;
-  features: string[];
-  highlight?: boolean;
-}
-
-export const PRICING_CONFIG = {
-  tiers: [...],
-  ladderSteps: [...],
-  locationAddOns: {
-    smsOnly: 49,
-    voiceOrBoth: 99,
-  },
-  trialDays: 7,
-  includedInAllPlans: [
-    "Business Brain (knowledge editing, FAQs, services, menu, policies)",
-    "Integration syncing (webhook delivery + Google Sheets export)",
-    "Handoff delivery for bookings, dispatch, and orders",
-    "Multi-tenant dashboard with module gating",
-  ],
-};
-```
-
----
-
-## Phase 2: Database Schema Changes
-
-### 2.1 Expand `plan_code` Enum
-
-Replace current `["text", "voice", "both"]` with new ladder SKUs:
-
-```sql
--- Create new enum with all ladder SKUs
-ALTER TYPE public.plan_code ADD VALUE 'sms-500';
-ALTER TYPE public.plan_code ADD VALUE 'sms-1500';
-ALTER TYPE public.plan_code ADD VALUE 'sms-3500';
-ALTER TYPE public.plan_code ADD VALUE 'voice-200';
-ALTER TYPE public.plan_code ADD VALUE 'voice-600';
-ALTER TYPE public.plan_code ADD VALUE 'voice-1500';
-ALTER TYPE public.plan_code ADD VALUE 'both-200-500';
-ALTER TYPE public.plan_code ADD VALUE 'both-600-1500';
-ALTER TYPE public.plan_code ADD VALUE 'both-1500-3500';
-```
-
-### 2.2 Add `subscription_usage` Table
-
-Track monthly usage per tenant:
-
-```sql
-CREATE TABLE subscription_usage (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  billing_period_start timestamptz NOT NULL,
-  billing_period_end timestamptz NOT NULL,
-  voice_minutes_used integer DEFAULT 0,
-  sms_segments_used integer DEFAULT 0,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now(),
-  UNIQUE(tenant_id, billing_period_start)
-);
-```
-
-### 2.3 Add `tenant_locations` Table
-
-Support multi-location add-ons:
-
-```sql
-CREATE TABLE tenant_locations (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  location_name text NOT NULL,
-  phone_number_id uuid REFERENCES phone_numbers(id),
-  is_primary boolean DEFAULT false,
-  monthly_fee_cents integer NOT NULL, -- 4900 or 9900
-  stripe_subscription_item_id text,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
-```
-
-### 2.4 Update `subscriptions` Table
-
-Add fields for usage tracking and Stripe integration:
-
-```sql
-ALTER TABLE subscriptions ADD COLUMN included_minutes integer;
-ALTER TABLE subscriptions ADD COLUMN included_sms_segments integer;
-ALTER TABLE subscriptions ADD COLUMN overage_minute_rate_cents integer;
-ALTER TABLE subscriptions ADD COLUMN overage_sms_rate_cents integer;
-```
-
----
-
-## Phase 3: Update UI Components
-
-### 3.1 Rewrite `PricingCards.tsx`
-
-Transform to show tier-based "starting at" pricing with expandable ladder options:
-
-- Display 3 tier cards: SMS ($129), Voice ($249), Both ($299)
-- Each card shows "starting at" price
-- Click to expand shows ladder options within that tier
-- Features list pulled from centralized config
-- "What's included in all plans" section
-
-### 3.2 Update `GoLivePage.tsx`
-
-Two-step plan selection:
-1. Choose tier (SMS, Voice, or Both)
-2. Choose usage level within tier (ladder step)
-
-Show included limits and overage rates clearly.
-
-### 3.3 Update `SignupPage.tsx`
-
-- Accept both tier and SKU in URL params (`?tier=voice&sku=voice-200`)
-- Display selected plan with included limits
-- Show overage rates
-
-### 3.4 Update `SettingsPage.tsx` Billing Tab
-
-- Show current plan SKU and tier
-- Display included limits vs. current usage
-- Show projected overage cost
-- "Upgrade" button to next ladder step
-- "Change Tier" button for tier switches
-
-### 3.5 Update `LandingPage.tsx`
-
-- Update pricing section with new "starting at" prices
-- Update FAQ to remove "unlimited" claims
-- Add usage/overage FAQ
-
-### 3.6 Update `PricingPage.tsx`
-
-- Same tier-based display as PricingCards
-- Update FAQ section with usage-based answers
-
----
-
-## Phase 4: Create Usage Tracking System
-
-### 4.1 Create Edge Function: `track-usage`
-
-Called after each call/SMS to increment usage counters:
-
-```typescript
-// POST /track-usage
-// Body: { tenant_id, event_type: "voice_minute" | "sms_segment", quantity: number }
-```
-
-### 4.2 Update `twilio-inbound` Function
-
-Track voice minutes when call ends (use call duration).
-
-### 4.3 Update `ai-text-reply` Function
-
-Track SMS segments sent (count based on message length).
-
-### 4.4 Create Hook: `useUsage.ts`
-
-Fetch current billing period usage:
-
-```typescript
-export function useUsage(tenantId: string | null) {
-  // Returns: { voiceMinutesUsed, smsSegmentsUsed, includedMinutes, includedSms, projectedOverage, loading }
-}
-```
-
----
-
-## Phase 5: Create Usage Dashboard Page
-
-### 5.1 Create `src/pages/app/UsagePage.tsx`
-
-New page at `/app/usage` showing:
-
-- **Current Plan Card**: SKU, tier, price
-- **Voice Usage** (if applicable):
-  - Progress bar (used / included)
-  - Minutes used this period
-  - Projected overage cost
-- **SMS Usage** (if applicable):
-  - Progress bar (used / included)
-  - Segments used this period
-  - Projected overage cost
-- **Upgrade Options**:
-  - Next ladder step within tier
-  - Comparison of cost vs. overage
-- **Billing History** (future)
-
-### 5.2 Add Navigation Link
-
-Add "Usage" to Settings or as standalone nav item.
-
----
-
-## Phase 6: Multi-Location Support
-
-### 6.1 Create `src/components/settings/LocationsSettings.tsx`
-
-UI for managing additional locations:
-
-- List current locations with phone numbers
-- "Add Location" button
-- Shows monthly add-on fee ($49 or $99)
-- Delete/deactivate location
-
-### 6.2 Create Edge Function: `add-location`
-
-- Verify active subscription
-- Determine add-on price based on plan tier
-- Provision new Twilio number
-- Create subscription item in Stripe
-- Insert into `tenant_locations`
-
-### 6.3 Update `SettingsPage.tsx`
-
-Add "Locations" tab for multi-location management.
-
----
-
-## Phase 7: Update Subscription Logic
-
-### 7.1 Update `useSubscription.ts`
-
-- `createSubscription(sku: PlanSku)` instead of `planCode`
-- Populate `included_minutes` and `included_sms_segments` from config
-- Only provision Twilio number for voice/both tiers
-
-### 7.2 Update `initialize_assistant_settings` Function
-
-Map new SKUs to feature flags:
-
-```sql
--- voice_ai_enabled = sku starts with 'voice' or 'both'
--- instant_text_enabled = sku starts with 'sms' or 'both'
-```
-
----
-
-## Phase 8: Stripe Integration Updates
-
-### 8.1 Create Stripe Products & Prices (Manual or Script)
-
-Create in Stripe Dashboard or via API:
-
-**Products:**
-- SMS Instant Respond
-- AI Voice Receptionist
-- Voice + SMS Bundle
-- Location Add-On (SMS)
-- Location Add-On (Voice/Both)
-
-**Prices (one per ladder step):**
-- sms-500: $129/mo
-- sms-1500: $149/mo
-- sms-3500: $199/mo
-- voice-200: $249/mo
-- voice-600: $299/mo
-- voice-1500: $499/mo
-- both-200-500: $299/mo
-- both-600-1500: $399/mo
-- both-1500-3500: $649/mo
-
-### 8.2 Update `stripe-webhook/index.ts`
-
-- Handle new SKU metadata
-- Provision phone numbers for voice/both tiers only
-- Handle usage reporting (Stripe metered billing for overages)
-
-### 8.3 Store Price IDs
-
-Add to `src/config/pricing.ts`:
-
-```typescript
-stripePriceIds: {
-  "sms-500": "price_xxx",
-  "sms-1500": "price_xxx",
-  // ...
+knowledge_status: {
+  pending_suggestions_count: number;
+  unresolved_conflicts_count: number;
+  processing_uploads_count: number;
+  last_upload_status: string | null;
 }
 ```
 
 ---
 
-## Phase 9: Feature Enforcement
+## Hooks & Data Fetching
 
-### 9.1 Update `useTenantConfig.ts`
+### `useKnowledgeUploads.ts`
+- Fetch `knowledge_sources` for current tenant
+- Real-time subscription for status changes
 
-Derive feature flags from plan SKU:
+### `useKnowledgeSuggestions.ts`
+- Fetch `extracted_knowledge_suggestions` with `pending_review` status
+- Approve/reject mutations
 
-```typescript
-const hasVoice = sku?.startsWith("voice") || sku?.startsWith("both");
-const hasSms = sku?.startsWith("sms") || sku?.startsWith("both");
-```
+### `useKnowledgeConflicts.ts`
+- Fetch `knowledge_conflicts` with `unresolved` status
+- Resolve mutations (keep_existing, accept_upload, custom_merge)
+- Count unresolved for badges
 
-### 9.2 Update Phone Provisioning Logic
-
-Only provision for voice/both plans:
-
-```typescript
-if (!hasVoice) {
-  // Don't provision Twilio number
-  // Hide phone-related UI
-}
-```
-
-### 9.3 Enforce in Edge Functions
-
-- `twilio-inbound`: Check voice entitlement before processing
-- `ai-text-reply`: Check SMS entitlement before sending
+### `useNotifications.ts`
+- Fetch `owner_notifications` ordered by created_at desc
+- Mark as read mutations
+- Real-time subscription for new notifications
 
 ---
 
-## Phase 10: Testing & Validation
+## Processing Pipeline (Edge Function Enhancements)
 
-### 10.1 Create Pricing Tests
+### `process-knowledge-upload/index.ts` (new function)
 
-`src/test/pricing.test.ts`:
+**Triggered by:** Storage upload webhook or manual invocation
 
-```typescript
-describe("Pricing Config", () => {
-  it("all ladder steps have valid prices", () => {...});
-  it("all SKUs map to correct tier", () => {...});
-  it("overage rates are correctly set", () => {...});
-});
-```
-
-### 10.2 End-to-End Test Checklist
-
-1. Sign up with SMS-500 plan
-   - Verify no phone number provisioned
-   - Verify SMS features enabled
-   - Verify voice features disabled
-
-2. Sign up with Voice-200 plan
-   - Verify phone number provisioned
-   - Verify voice features enabled
-   - Verify SMS features enabled (voice plans include SMS follow-up)
-
-3. Sign up with Both-200-500 plan
-   - Verify phone number provisioned
-   - Verify both features enabled
-
-4. Upgrade within tier
-   - SMS-500 to SMS-1500
-   - Verify limits updated
-
-5. Usage tracking
-   - Make test call
-   - Verify minutes tracked
+**Flow:**
+1. Update `knowledge_sources.status = 'processing'`
+2. Insert notification: "Your [file] is being processed..."
+3. Parse document (reuse existing parsing logic)
+4. Extract structured items (services, FAQs, menu items, etc.)
+5. For each extracted item:
+   - Check for matching existing entity
+   - If match found with differences → create `knowledge_conflict`
+   - If no match → create `extracted_knowledge_suggestion`
+6. Update `knowledge_sources.status = 'ready'`
+7. Insert notification: "Your [file] is ready for review" with action_path
 
 ---
 
-## Implementation Order
+## Email Digest (Optional - Nice-to-Have)
 
-**Week 1: Foundation**
-1. Create `src/config/pricing.ts` (centralized config)
-2. Database migrations (new tables, enum expansion)
-3. Update TypeScript types
+### `send-conflict-notification/index.ts` (new function)
 
-**Week 2: Core UI**
-4. Rewrite `PricingCards.tsx`
-5. Update `GoLivePage.tsx`
-6. Update `SignupPage.tsx`
-7. Update `LandingPage.tsx` and `PricingPage.tsx`
+**Triggered by:** Database webhook on `knowledge_conflicts` insert
 
-**Week 3: Usage & Billing**
-8. Create usage tracking tables and functions
-9. Create `UsagePage.tsx`
-10. Update `SettingsPage.tsx` billing tab
-11. Update `useSubscription.ts`
+**Conditions:**
+- Only if tenant has admin email configured
+- Tenant setting `email_conflict_notifications = true` (default off)
 
-**Week 4: Advanced Features**
-12. Multi-location UI and edge functions
-13. Stripe integration (products, prices, webhook)
-14. Feature enforcement
-15. Testing
+**Email Content:**
+- Subject: "Action needed: Update your AI knowledge"
+- Body: "[Business Name], we found differences between your upload and your current settings. Review them to keep your AI accurate. [Review Now] button"
+
+---
+
+## File Structure
+
+```text
+src/
+├── hooks/
+│   ├── useKnowledgeUploads.ts        (new)
+│   ├── useKnowledgeSuggestions.ts    (new)
+│   ├── useKnowledgeConflicts.ts      (new)
+│   └── useNotifications.ts           (new)
+├── components/
+│   ├── dashboard/
+│   │   ├── BusinessBrainStatusCard.tsx    (new)
+│   │   ├── KnowledgeConflictBanner.tsx    (new)
+│   │   └── LiveDashboard.tsx              (modify)
+│   ├── knowledge/
+│   │   ├── KnowledgeUpdatesTab.tsx        (new)
+│   │   ├── SuggestionReviewList.tsx       (new)
+│   │   ├── KnowledgeConflictResolver.tsx  (new)
+│   │   └── ProcessingUploadsCard.tsx      (new)
+│   ├── notifications/
+│   │   └── NotificationBell.tsx           (new)
+│   └── layouts/
+│       └── AppLayout.tsx                  (modify - add bell)
+├── pages/app/
+│   └── BusinessBrainPage.tsx              (modify - add Updates tab)
+
+supabase/
+├── functions/
+│   ├── process-knowledge-upload/index.ts  (new)
+│   └── copilot-context/index.ts           (modify)
+├── migrations/
+│   └── [timestamp]_knowledge_notifications.sql (new)
+```
 
 ---
 
 ## Technical Details
 
-### New Files to Create
+### RLS Policies
 
-| File | Purpose |
-|------|---------|
-| `src/config/pricing.ts` | Centralized pricing configuration |
-| `src/pages/app/UsagePage.tsx` | Usage dashboard |
-| `src/hooks/useUsage.ts` | Usage data fetching |
-| `src/components/settings/LocationsSettings.tsx` | Multi-location management |
-| `supabase/functions/track-usage/index.ts` | Usage tracking edge function |
-| `supabase/functions/add-location/index.ts` | Location provisioning |
-| `src/test/pricing.test.ts` | Pricing validation tests |
+All new tables will have RLS enabled with policies:
+- SELECT: `has_tenant_access(auth.uid(), tenant_id)`
+- INSERT: Service role only (via triggers/edge functions)
+- UPDATE: `has_tenant_access(auth.uid(), tenant_id)` for resolution actions
+- DELETE: Not allowed (audit trail)
 
-### Files to Update
+### Real-time Subscriptions
 
-| File | Changes |
-|------|---------|
-| `src/components/pricing/PricingCards.tsx` | Complete rewrite for tier/ladder display |
-| `src/pages/public/PricingPage.tsx` | New FAQ content, tier display |
-| `src/pages/public/LandingPage.tsx` | Update pricing section |
-| `src/pages/public/SignupPage.tsx` | Handle new SKU codes |
-| `src/pages/app/GoLivePage.tsx` | Two-step tier+SKU selection |
-| `src/pages/app/SettingsPage.tsx` | Usage display, upgrade buttons |
-| `src/hooks/useSubscription.ts` | New SKU handling, limits population |
-| `src/types/database.ts` | New types for SKUs, usage |
-| `supabase/functions/stripe-webhook/index.ts` | New SKU handling |
-| `supabase/functions/twilio-inbound/index.ts` | Usage tracking |
-| `supabase/functions/ai-text-reply/index.ts` | SMS segment tracking |
+Enable real-time for:
+- `owner_notifications` - for bell badge updates
+- `knowledge_sources` - for processing status updates
+- `knowledge_conflicts` - for conflict count updates
 
-### Database Migrations
+### Migration Safety
 
-1. Expand `plan_code` enum with new SKUs
-2. Create `subscription_usage` table
-3. Create `tenant_locations` table
-4. Add usage limit columns to `subscriptions`
-5. Update `initialize_assistant_settings` function
+- Tables are additive (no breaking changes)
+- Default statuses ensure existing tenants unaffected
+- Triggers only fire on new inserts/updates
 
 ---
 
-## Summary
+## Acceptance Criteria
 
-This plan transforms CloseLoop from flat-rate unlimited pricing to a sophisticated usage-based model with:
+1. **Upload a pricing sheet that conflicts with existing service prices:**
+   - Conflicts are created in `knowledge_conflicts` table
+   - Dashboard banner appears immediately ("Action needed...")
+   - Notification created with action link to conflicts page
+   - AI continues using existing structured prices until owner resolves
 
-- **3 tiers** (SMS, Voice, Both) at different price points
-- **3 ladder steps per tier** for usage scaling
-- **Included limits** with overage billing
-- **Multi-location support** with add-on pricing
-- **Usage dashboard** for transparency
-- **Single source of truth** in `pricing.ts`
-- **Full Stripe integration** for billing
+2. **Notification lifecycle works correctly:**
+   - Bell shows unread count
+   - Clicking notification navigates to correct page
+   - Mark as read updates badge
 
-All changes maintain backward compatibility during migration and ensure no pricing information is scattered across the codebase.
+3. **Conflict resolution flow:**
+   - "Keep Existing" preserves current data, marks conflict resolved
+   - "Accept Upload" updates entity with proposed data
+   - "Edit & Save" allows custom merge
+   - After all resolved, confirmation message appears
+
+4. **Copilot correctly answers upload status questions:**
+   - Processing: "Still processing..."
+   - Needs review: "Processed but needs your review..."
+   - All merged: "Yes, it's been merged and AI will use it."
