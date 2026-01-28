@@ -8,11 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Phone, PhoneOff, Mic, MicOff, Volume2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-interface VoiceAgentTestProps {
-  agentId: string;
-}
-
-export default function VoiceAgentTest({ agentId }: VoiceAgentTestProps) {
+export default function VoiceAgentTest() {
   const { tenant } = useAuth();
   const { toast } = useToast();
   const [isConnecting, setIsConnecting] = useState(false);
@@ -43,24 +39,15 @@ export default function VoiceAgentTest({ agentId }: VoiceAgentTestProps) {
   });
 
   const startConversation = useCallback(async () => {
-    if (!agentId) {
-      toast({
-        variant: "destructive",
-        title: "No Agent Configured",
-        description: "Please configure your ElevenLabs Agent ID first.",
-      });
-      return;
-    }
-
     setIsConnecting(true);
     try {
       // Request microphone permission
       await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      // Get token from edge function
+      // Get token from edge function (uses global agent ID from env)
       const { data, error } = await supabase.functions.invoke(
         "elevenlabs-conversation-token",
-        { body: { agentId } }
+        { body: { tenantId: tenant?.id } }
       );
 
       if (error || !data?.token) {
@@ -82,7 +69,7 @@ export default function VoiceAgentTest({ agentId }: VoiceAgentTestProps) {
     } finally {
       setIsConnecting(false);
     }
-  }, [conversation, agentId, toast]);
+  }, [conversation, tenant?.id, toast]);
 
   const stopConversation = useCallback(async () => {
     await conversation.endSession();
@@ -155,7 +142,7 @@ export default function VoiceAgentTest({ agentId }: VoiceAgentTestProps) {
             <Button
               size="lg"
               onClick={startConversation}
-              disabled={isConnecting || !agentId}
+              disabled={isConnecting}
               className="gap-2"
             >
               {isConnecting ? (
@@ -193,11 +180,9 @@ export default function VoiceAgentTest({ agentId }: VoiceAgentTestProps) {
           )}
         </div>
 
-        {!agentId && (
-          <p className="text-center text-sm text-muted-foreground">
-            Configure your ElevenLabs Agent ID in Settings to test voice calls.
-          </p>
-        )}
+        <p className="text-center text-sm text-muted-foreground">
+          Speak naturally with your AI assistant. It will use your business knowledge to answer questions.
+        </p>
       </CardContent>
     </Card>
   );
