@@ -20,6 +20,7 @@ import {
   Bot,
   Zap,
   Briefcase,
+  FlaskConical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
@@ -32,6 +33,7 @@ const navItems = [
   { href: "/app/services", label: "Services", icon: Briefcase },
   { href: "/app/automations", label: "Automations", icon: Zap },
   { href: "/app/ai-assistant", label: "AI Assistant", icon: Bot },
+  { href: "/app/simulator", label: "Simulator", icon: FlaskConical },
   { href: "/app/settings", label: "Settings", icon: Settings },
 ];
 

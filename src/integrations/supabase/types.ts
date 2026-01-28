@@ -63,9 +63,11 @@ export type Database = {
           booking_id: string | null
           call_direction: Database["public"]["Enums"]["ai_call_direction"]
           created_at: string
+          customer_id: string | null
           ended_at: string | null
           id: string
           lead_id: string | null
+          opportunity_id: string | null
           outcome: Database["public"]["Enums"]["ai_call_outcome"] | null
           started_at: string
           summary: string | null
@@ -76,9 +78,11 @@ export type Database = {
           booking_id?: string | null
           call_direction: Database["public"]["Enums"]["ai_call_direction"]
           created_at?: string
+          customer_id?: string | null
           ended_at?: string | null
           id?: string
           lead_id?: string | null
+          opportunity_id?: string | null
           outcome?: Database["public"]["Enums"]["ai_call_outcome"] | null
           started_at?: string
           summary?: string | null
@@ -89,9 +93,11 @@ export type Database = {
           booking_id?: string | null
           call_direction?: Database["public"]["Enums"]["ai_call_direction"]
           created_at?: string
+          customer_id?: string | null
           ended_at?: string | null
           id?: string
           lead_id?: string | null
+          opportunity_id?: string | null
           outcome?: Database["public"]["Enums"]["ai_call_outcome"] | null
           started_at?: string
           summary?: string | null
@@ -107,10 +113,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ai_call_sessions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ai_call_sessions_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_call_sessions_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
             referencedColumns: ["id"]
           },
           {
@@ -339,25 +359,38 @@ export type Database = {
         Row: {
           channel: Database["public"]["Enums"]["channel_type"]
           created_at: string
+          customer_id: string | null
           id: string
           lead_id: string
+          opportunity_id: string | null
           tenant_id: string
         }
         Insert: {
           channel?: Database["public"]["Enums"]["channel_type"]
           created_at?: string
+          customer_id?: string | null
           id?: string
           lead_id: string
+          opportunity_id?: string | null
           tenant_id: string
         }
         Update: {
           channel?: Database["public"]["Enums"]["channel_type"]
           created_at?: string
+          customer_id?: string | null
           id?: string
           lead_id?: string
+          opportunity_id?: string | null
           tenant_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "conversations_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "conversations_lead_id_fkey"
             columns: ["lead_id"]
@@ -366,7 +399,183 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "conversations_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "conversations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_merge_queue: {
+        Row: {
+          conflict_type: string
+          created_at: string
+          existing_customer_id: string
+          id: string
+          incoming_email: string | null
+          incoming_name: string | null
+          incoming_phone_e164: string
+          resolution: string | null
+          resolved: boolean
+          resolved_at: string | null
+          resolved_by: string | null
+          source: string
+          tenant_id: string
+        }
+        Insert: {
+          conflict_type: string
+          created_at?: string
+          existing_customer_id: string
+          id?: string
+          incoming_email?: string | null
+          incoming_name?: string | null
+          incoming_phone_e164: string
+          resolution?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source: string
+          tenant_id: string
+        }
+        Update: {
+          conflict_type?: string
+          created_at?: string
+          existing_customer_id?: string
+          id?: string
+          incoming_email?: string | null
+          incoming_name?: string | null
+          incoming_phone_e164?: string
+          resolution?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_merge_queue_existing_customer_id_fkey"
+            columns: ["existing_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_merge_queue_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          notes: string | null
+          phone_e164: string
+          phone_raw: string | null
+          source: string | null
+          tags: string[] | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          notes?: string | null
+          phone_e164: string
+          phone_raw?: string | null
+          source?: string | null
+          tags?: string[] | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          notes?: string | null
+          phone_e164?: string
+          phone_raw?: string | null
+          source?: string | null
+          tags?: string[] | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_gaps: {
+        Row: {
+          ai_session_id: string | null
+          created_at: string
+          customer_question: string | null
+          description: string
+          gap_type: string
+          id: string
+          occurrence_count: number
+          priority: number
+          resolution_notes: string | null
+          resolved: boolean
+          resolved_at: string | null
+          resolved_by: string | null
+          tenant_id: string
+        }
+        Insert: {
+          ai_session_id?: string | null
+          created_at?: string
+          customer_question?: string | null
+          description: string
+          gap_type: string
+          id?: string
+          occurrence_count?: number
+          priority?: number
+          resolution_notes?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          tenant_id: string
+        }
+        Update: {
+          ai_session_id?: string | null
+          created_at?: string
+          customer_question?: string | null
+          description?: string
+          gap_type?: string
+          id?: string
+          occurrence_count?: number
+          priority?: number
+          resolution_notes?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_gaps_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -507,6 +716,73 @@ export type Database = {
           },
         ]
       }
+      opportunities: {
+        Row: {
+          closed_at: string | null
+          context_json: Json | null
+          created_at: string
+          customer_id: string
+          id: string
+          notes: string | null
+          service_id: string | null
+          source: string
+          status: string
+          tenant_id: string
+          updated_at: string
+          value_cents: number | null
+        }
+        Insert: {
+          closed_at?: string | null
+          context_json?: Json | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          notes?: string | null
+          service_id?: string | null
+          source?: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          value_cents?: number | null
+        }
+        Update: {
+          closed_at?: string | null
+          context_json?: Json | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          notes?: string | null
+          service_id?: string | null
+          source?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          value_cents?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunities_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       services: {
         Row: {
           created_at: string
@@ -563,6 +839,56 @@ export type Database = {
           },
         ]
       }
+      sync_events: {
+        Row: {
+          created_at: string
+          entity_id: string
+          entity_type: string
+          error_message: string | null
+          event_type: string
+          id: string
+          payload_json: Json
+          sync_target: string | null
+          synced: boolean
+          synced_at: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          error_message?: string | null
+          event_type: string
+          id?: string
+          payload_json?: Json
+          sync_target?: string | null
+          synced?: boolean
+          synced_at?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          payload_json?: Json
+          sync_target?: string | null
+          synced?: boolean
+          synced_at?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_users: {
         Row: {
           created_at: string
@@ -600,6 +926,7 @@ export type Database = {
           address: string | null
           ai_enabled: boolean
           ai_never_promise: string[] | null
+          ai_readiness_score: number | null
           appointment_buffer_minutes: number | null
           cancellation_policy: string | null
           closed_dates: Json | null
@@ -613,6 +940,7 @@ export type Database = {
           max_advance_days: number | null
           min_lead_hours: number | null
           name: string
+          onboarding_completed_at: string | null
           payment_methods: string[] | null
           phone_public: string | null
           refund_policy: string | null
@@ -626,6 +954,7 @@ export type Database = {
           address?: string | null
           ai_enabled?: boolean
           ai_never_promise?: string[] | null
+          ai_readiness_score?: number | null
           appointment_buffer_minutes?: number | null
           cancellation_policy?: string | null
           closed_dates?: Json | null
@@ -639,6 +968,7 @@ export type Database = {
           max_advance_days?: number | null
           min_lead_hours?: number | null
           name: string
+          onboarding_completed_at?: string | null
           payment_methods?: string[] | null
           phone_public?: string | null
           refund_policy?: string | null
@@ -652,6 +982,7 @@ export type Database = {
           address?: string | null
           ai_enabled?: boolean
           ai_never_promise?: string[] | null
+          ai_readiness_score?: number | null
           appointment_buffer_minutes?: number | null
           cancellation_policy?: string | null
           closed_dates?: Json | null
@@ -665,6 +996,7 @@ export type Database = {
           max_advance_days?: number | null
           min_lead_hours?: number | null
           name?: string
+          onboarding_completed_at?: string | null
           payment_methods?: string[] | null
           phone_public?: string | null
           refund_policy?: string | null
@@ -702,6 +1034,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_ai_readiness: { Args: { _tenant_id: string }; Returns: number }
+      fn_build_business_context: { Args: { _tenant_id: string }; Returns: Json }
       get_user_tenant_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
@@ -713,6 +1047,22 @@ export type Database = {
       has_tenant_access: {
         Args: { _tenant_id: string; _user_id: string }
         Returns: boolean
+      }
+      normalize_phone_e164: { Args: { phone: string }; Returns: string }
+      resolve_customer: {
+        Args: {
+          _email?: string
+          _name?: string
+          _phone: string
+          _source?: string
+          _tenant_id: string
+        }
+        Returns: {
+          conflict_id: string
+          customer_id: string
+          has_conflict: boolean
+          is_new: boolean
+        }[]
       }
     }
     Enums: {
