@@ -365,6 +365,30 @@ export default function OnboardingPage() {
         console.error("Assistant settings error:", settingsError);
       }
 
+      // Provision Twilio number for voice/both plans
+      if (["voice", "both"].includes(planCode)) {
+        try {
+          console.log("Provisioning Twilio number for voice plan...");
+          const { data: provisionData, error: provisionError } = await supabase.functions.invoke(
+            "provision-twilio-number",
+            {
+              body: { tenant_id: tenant.id, number_type: "local" },
+            }
+          );
+
+          if (provisionError) {
+            console.error("Failed to provision Twilio number:", provisionError);
+          } else if (provisionData?.success) {
+            console.log("Provisioned Twilio number:", provisionData.phone_number);
+          } else {
+            console.error("Provisioning failed:", provisionData?.error);
+          }
+        } catch (provErr) {
+          console.error("Error calling provision function:", provErr);
+          // Don't fail onboarding if provisioning fails - it can be retried later
+        }
+      }
+
       // Mark onboarding as complete
       await supabase
         .from("tenants")
