@@ -107,8 +107,14 @@ export function AppLayout() {
     }
   }, [loading, user, tenant, isSuperAdmin, location.pathname, navigate]);
 
-  // Check if user needs to go through go-live
+  // Check if user needs to go through go-live (with debounce to prevent race conditions)
   useEffect(() => {
+    // Skip check if coming from onboarding (give time for subscription to be created)
+    const justCompletedOnboarding = sessionStorage.getItem("selectedPlan") !== null;
+    if (justCompletedOnboarding) {
+      return; // Let onboarding handle the navigation
+    }
+    
     if (!loading && tenant && !hasActiveSubscription) {
       // If no subscription and not on allowed routes, redirect to go-live
       const isAllowedRoute = alwaysAccessibleRoutes.some(route => 
