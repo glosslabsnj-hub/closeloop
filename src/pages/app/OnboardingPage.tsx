@@ -14,6 +14,7 @@ import {
 import { industryConfigs } from "@/data/industryTemplates";
 import { getIndustryBySlug, industryCatalog } from "@/data/industryCatalog";
 import { resolveIndustryTemplate } from "@/lib/templateResolver";
+import { hasVoiceFeature } from "@/config/pricing";
 import BusinessIdentityForm, { BusinessIdentity } from "@/components/onboarding/BusinessIdentityForm";
 import ServiceEditorAdvanced, { AdvancedService } from "@/components/onboarding/ServiceEditorAdvanced";
 import BookingPoliciesEditor, { BookingPolicies } from "@/components/onboarding/BookingPoliciesEditor";
@@ -412,10 +413,13 @@ export default function OnboardingPage() {
         console.error("Assistant settings error:", settingsError);
       }
 
-      // Provision Twilio number for voice/both plans
-      if (["voice", "both"].includes(planCode)) {
+      // Provision Twilio number for voice/both plans (supports both legacy and SKU-based codes)
+      // hasVoiceFeature handles both legacy codes ("voice", "both") and SKU-based codes ("voice-200", "both-200-500")
+      const shouldProvision = planCode.startsWith("voice") || planCode.startsWith("both");
+
+      if (shouldProvision) {
         try {
-          console.log("Provisioning Twilio number for voice plan...");
+          console.log("TwilioProvision: start", { tenantId, planCode });
           const { data: provisionData, error: provisionError } = await supabase.functions.invoke(
             "provision-twilio-number",
             {
@@ -424,16 +428,21 @@ export default function OnboardingPage() {
           );
 
           if (provisionError) {
-            console.error("Failed to provision Twilio number:", provisionError);
+            console.error("TwilioProvision: error", { message: provisionError.message });
           } else if (provisionData?.success) {
-            console.log("Provisioned Twilio number:", provisionData.phone_number);
+            console.log("TwilioProvision: success", { 
+              phone_e164: provisionData.phone_number,
+              twilio_sid: provisionData.phone_sid 
+            });
           } else {
-            console.error("Provisioning failed:", provisionData?.error);
+            console.error("TwilioProvision: failed", { error: provisionData?.error });
           }
-        } catch (provErr) {
-          console.error("Error calling provision function:", provErr);
+        } catch (provErr: any) {
+          console.error("TwilioProvision: exception", { message: provErr?.message });
           // Don't fail onboarding if provisioning fails - it can be retried later
         }
+      } else {
+        console.log("TwilioProvision: skipped", { reason: "no-voice-feature", planCode });
       }
 
       // Mark onboarding as complete

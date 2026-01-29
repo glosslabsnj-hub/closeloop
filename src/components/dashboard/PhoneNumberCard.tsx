@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { useSubscription } from "@/hooks/useSubscription";
 import { 
   Phone, 
   Copy, 
@@ -15,7 +16,8 @@ import {
   Clock, 
   AlertCircle,
   Loader2,
-  PhoneCall
+  PhoneCall,
+  AlertTriangle
 } from "lucide-react";
 
 type ConnectStatus = "provisioning" | "awaiting_first_call" | "provisioned" | "connected" | "forwarding_verified" | "error" | "subscription_canceled" | null;
@@ -89,6 +91,8 @@ function getStatusConfig(status: ConnectStatus): {
 export function PhoneNumberCard() {
   const { tenant, assistantSettings, refreshTenant } = useAuth();
   const { toast } = useToast();
+  const subscription = useSubscription(tenant?.id ?? null);
+  const hasVoice = subscription?.hasVoice ?? false;
   const [isProvisioning, setIsProvisioning] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
 
@@ -204,6 +208,9 @@ export function PhoneNumberCard() {
   const StatusIcon = statusConfig.icon;
   const hasNumber = !!phoneData?.phoneNumber;
   const isConnected = phoneData?.connectStatus === "connected" || phoneData?.connectStatus === "forwarding_verified";
+  
+  // Show urgent repair state if user has a voice plan but no number assigned
+  const needsRepair = hasVoice && !hasNumber;
 
   return (
     <Card className={`overflow-hidden transition-all ${
@@ -292,27 +299,67 @@ export function PhoneNumberCard() {
           </div>
         ) : (
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              You need a phone number for your AI to answer calls.
-            </p>
-            
-            <Button 
-              onClick={handleRetryProvision} 
-              disabled={isProvisioning}
-              className="gap-2"
-            >
-              {isProvisioning ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Provisioning...
-                </>
-              ) : (
-                <>
-                  <Phone className="h-4 w-4" />
-                  Get Phone Number
-                </>
-              )}
-            </Button>
+            {needsRepair ? (
+              <>
+                {/* Urgent repair notice for voice plan users without a number */}
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-destructive mb-1">
+                        Phone Number Missing
+                      </p>
+                      <p className="text-muted-foreground">
+                        Your plan includes AI voice, but no phone number was assigned. Click below to provision one now.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <Button 
+                  onClick={handleRetryProvision} 
+                  disabled={isProvisioning}
+                  variant="destructive"
+                  className="gap-2 w-full"
+                >
+                  {isProvisioning ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Provisioning...
+                    </>
+                  ) : (
+                    <>
+                      <Phone className="h-4 w-4" />
+                      Provision Missing Number
+                    </>
+                  )}
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  You need a phone number for your AI to answer calls.
+                </p>
+                
+                <Button 
+                  onClick={handleRetryProvision} 
+                  disabled={isProvisioning}
+                  className="gap-2"
+                >
+                  {isProvisioning ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Provisioning...
+                    </>
+                  ) : (
+                    <>
+                      <Phone className="h-4 w-4" />
+                      Get Phone Number
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
           </div>
         )}
       </CardContent>

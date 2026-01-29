@@ -6,6 +6,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
 };
 
+// Determine if a plan SKU includes voice features (supports both legacy and new SKU codes)
+function hasVoiceFeature(planCode: string | null): boolean {
+  if (!planCode) return false;
+  return planCode.startsWith("voice") || planCode.startsWith("both");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -79,20 +85,38 @@ serve(async (req) => {
 
       console.log(`Extracted: tenant_id=${tenantId}, plan_code=${planCode}, status=${subscriptionStatus}`);
 
-      // Provision phone number if conditions are met
-      if (tenantId && planCode && ["voice", "both"].includes(planCode)) {
+      // Provision phone number if conditions are met (supports both legacy and SKU-based codes)
+      const shouldProvision = hasVoiceFeature(planCode);
+      console.log(`TwilioProvision: evaluating tenant=${tenantId}, plan=${planCode}, shouldProvision=${shouldProvision}`);
+
+      if (tenantId && shouldProvision) {
         if (subscriptionStatus === "active" || subscriptionStatus === "trialing") {
-          console.log(`Triggering phone provisioning for tenant ${tenantId}`);
+          console.log(`TwilioProvision: start for tenant ${tenantId}`);
           
-          // Call the provision function
+          // Call the provision function (already idempotent)
           const provisionResult = await provisionForwardingNumber(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, tenantId);
           
           if (provisionResult.success) {
-            console.log(`Successfully provisioned number for tenant ${tenantId}: ${provisionResult.phone_number}`);
+            console.log(`TwilioProvision: success tenant=${tenantId} phone=${provisionResult.phone_number}`);
           } else {
-            console.error(`Failed to provision number for tenant ${tenantId}: ${provisionResult.error}`);
+            console.error(`TwilioProvision: error tenant=${tenantId} error=${provisionResult.error}`);
+            // Log to twilio_event_logs for visibility
+            try {
+              await supabase.from("twilio_event_logs").insert({
+                tenant_id: tenantId,
+                event_type: "provision_failed",
+                stage: "stripe_webhook",
+                error_message: provisionResult.error,
+              });
+            } catch (e) {
+              console.error("Failed to log provision error:", e);
+            }
           }
+        } else {
+          console.log(`TwilioProvision: skipped tenant=${tenantId} reason=subscription-not-active status=${subscriptionStatus}`);
         }
+      } else if (tenantId && !shouldProvision) {
+        console.log(`TwilioProvision: skipped tenant=${tenantId} reason=no-voice-feature plan=${planCode}`);
       }
     }
 
