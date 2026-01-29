@@ -55,7 +55,7 @@ export function PublicLayout() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t py-12 md:py-16 bg-muted/30">
+      <footer className="border-t py-12 md:py-16 bg-card/50">
         <div className="container">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">

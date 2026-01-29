@@ -140,7 +140,7 @@ export function AppLayout() {
     alwaysAccessibleRoutes.some(route => location.pathname.startsWith(route));
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="min-h-screen bg-background">
       {/* Admin Mode Switcher Banner */}
       <AdminModeSwitcher />
       
