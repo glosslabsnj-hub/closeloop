@@ -149,20 +149,38 @@ async function processCallData(
   const locationId = existingContext.location_id as string || payload.dynamic_variables?.location_id || null;
   const hipaaMode = existingContext.hipaa_mode === true || payload.dynamic_variables?.hipaa_mode === true || payload.dynamic_variables?.hipaa_mode === "true";
 
-  // Get intelligence settings for confidence thresholds
-  const { data: intelligenceSettings } = await supabase
-    .from("tenant_intelligence_settings")
-    .select("memory_enabled, min_confidence_threshold")
-    .eq("tenant_id", tenantId)
-    .maybeSingle();
+  // Get intelligence settings and retention settings in parallel
+  const [intelligenceResult, retentionResult] = await Promise.all([
+    supabase
+      .from("tenant_intelligence_settings")
+      .select("memory_enabled, min_confidence_threshold")
+      .eq("tenant_id", tenantId)
+      .maybeSingle(),
+    supabase
+      .from("data_retention_settings")
+      .select("store_transcripts, store_caller_phone, allow_customer_memory, phi_minimization_enabled")
+      .eq("tenant_id", tenantId)
+      .maybeSingle(),
+  ]);
+  
+  const intelligenceSettings = intelligenceResult.data;
+  const retentionSettings = retentionResult.data;
   
   const memoryEnabled = intelligenceSettings?.memory_enabled === true;
   const minConfidence = intelligenceSettings?.min_confidence_threshold || 0.65;
+  
+  // Determine data retention behavior
+  const storeTranscripts = retentionSettings?.store_transcripts !== false && !hipaaMode;
+  const storeCallerPhone = retentionSettings?.store_caller_phone !== false && !hipaaMode;
+  const allowCustomerMemory = retentionSettings?.allow_customer_memory !== false && !hipaaMode;
+  const phiMinimization = retentionSettings?.phi_minimization_enabled === true || hipaaMode;
 
-  // Build transcript text
-  const transcriptText = payload.transcript
-    ?.map(t => `${t.role === "user" ? "Customer" : "AI"}: ${t.message}`)
-    .join("\n") || null;
+  // Build transcript text (only if storing is allowed)
+  const transcriptText = storeTranscripts 
+    ? (payload.transcript
+        ?.map(t => `${t.role === "user" ? "Customer" : "AI"}: ${t.message}`)
+        .join("\n") || null)
+    : null;
 
   const analysis = payload.analysis || {};
   const dataCollection = analysis.data_collection || {};
@@ -198,8 +216,8 @@ async function processCallData(
   // ===== CUSTOMER RESOLUTION & LINKING =====
   let customerId = session.customer_id;
   
-  // If no customer linked yet, try to find/create one
-  if (!customerId && callerPhoneE164 && !hipaaMode) {
+  // If no customer linked yet, try to find/create one (only if allowed by retention settings)
+  if (!customerId && callerPhoneE164 && !phiMinimization && storeCallerPhone) {
     // Check for existing customer
     const { data: existingCustomer } = await supabase
       .from("customers")
@@ -340,8 +358,8 @@ async function processCallData(
       });
     }
 
-    // Observation 3: Customer preference (ONLY if NOT HIPAA mode)
-    if (!hipaaMode && callerPhoneE164 && customerName && outcome === "booked") {
+    // Observation 3: Customer preference (ONLY if allowed by retention settings)
+    if (allowCustomerMemory && callerPhoneE164 && customerName && outcome === "booked") {
       const customerKey = `customer_${callerPhoneE164.replace(/\D/g, "").slice(-10)}`;
       observations.push({
         type: "customer_preference",

@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Building2, Clock, Users, CreditCard, Bell, Lock, Loader2, Bug, UtensilsCrossed, Calendar, Truck, Stethoscope, Webhook, Zap, Brain } from "lucide-react";
+import { Building2, Clock, Users, CreditCard, Bell, Lock, Loader2, Bug, UtensilsCrossed, Calendar, Truck, Stethoscope, Webhook, Zap, Brain, Database } from "lucide-react";
 import { CallContextDebugger } from "@/components/ai/CallContextDebugger";
 import { FoodOrderSettings } from "@/components/settings/FoodOrderSettings";
 import { BookingDeliverySettings } from "@/components/settings/BookingDeliverySettings";
@@ -29,6 +29,7 @@ import { DeliveryIntegrationsSettings } from "@/components/settings/DeliveryInte
 import { AutomationRulesSettings } from "@/components/settings/AutomationRulesSettings";
 import { IntelligenceSettingsForm } from "@/components/settings/IntelligenceSettingsForm";
 import { AIBusinessPolicies } from "@/components/settings/AIBusinessPolicies";
+import { DataControlsPanel } from "@/components/settings/DataControlsPanel";
 
 const timezones = [
   { value: "America/New_York", label: "Eastern Time" },
@@ -152,6 +153,7 @@ export default function SettingsPage() {
     { value: "business", label: "Business", icon: Building2, visible: true },
     { value: "hours", label: "Hours", icon: Clock, visible: true },
     { value: "intelligence", label: "AI Intelligence", icon: Brain, visible: true },
+    { value: "data-controls", label: "Data Controls", icon: Database, visible: true },
     { value: "delivery", label: "Delivery", icon: Webhook, visible: true },
     { value: "automation", label: "Automation", icon: Zap, visible: true },
     { value: "team", label: "Team", icon: Users, visible: true },
@@ -191,6 +193,10 @@ export default function SettingsPage() {
           <TabsTrigger value="intelligence" className="gap-2">
             <Brain className="h-4 w-4" />
             AI Intelligence
+          </TabsTrigger>
+          <TabsTrigger value="data-controls" className="gap-2">
+            <Database className="h-4 w-4" />
+            Data Controls
           </TabsTrigger>
           <TabsTrigger value="delivery" className="gap-2">
             <Webhook className="h-4 w-4" />
@@ -359,6 +365,11 @@ export default function SettingsPage() {
         <TabsContent value="intelligence" className="space-y-6">
           <IntelligenceSettingsForm />
           <AIBusinessPolicies />
+        </TabsContent>
+
+        {/* Data Controls Tab - Available for all tenants */}
+        <TabsContent value="data-controls" className="space-y-6">
+          <DataControlsPanel />
         </TabsContent>
 
         {/* Automation Rules Tab */}
