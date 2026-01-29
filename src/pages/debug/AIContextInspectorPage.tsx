@@ -338,7 +338,7 @@ export default function AIContextInspectorPage() {
                           )}
 
                           {/* Quick Summary of What AI Can See */}
-                          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
+                          <div className="grid grid-cols-2 md:grid-cols-6 gap-2 text-sm">
                             <div className="p-2 rounded bg-muted/50">
                               <span className="text-muted-foreground">Services:</span>
                               <span className="ml-1 font-medium">{servicesCount}</span>
@@ -346,6 +346,14 @@ export default function AIContextInspectorPage() {
                             <div className="p-2 rounded bg-muted/50">
                               <span className="text-muted-foreground">Menu:</span>
                               <span className="ml-1 font-medium">{menuCount}</span>
+                            </div>
+                            <div className="p-2 rounded bg-muted/50">
+                              <span className="text-muted-foreground">Menu Summary:</span>
+                              <span className="ml-1 font-medium">
+                                {typeof contextOfferings?.menu_summary === "string" 
+                                  ? `${(contextOfferings.menu_summary as string).length} chars` 
+                                  : "0 chars"}
+                              </span>
                             </div>
                             <div className="p-2 rounded bg-muted/50">
                               <span className="text-muted-foreground">FAQs:</span>
@@ -356,9 +364,9 @@ export default function AIContextInspectorPage() {
                               </span>
                             </div>
                             <div className="p-2 rounded bg-muted/50">
-                              <span className="text-muted-foreground">Hours:</span>
-                              <span className="ml-1 font-medium">
-                                {String(contextTenant?.hours_today || "Not set")}
+                              <span className="text-muted-foreground">Hours Today:</span>
+                              <span className="ml-1 font-medium text-xs">
+                                {String(contextTenant?.hours_today || "Not set").slice(0, 20)}
                               </span>
                             </div>
                             <div className="p-2 rounded bg-muted/50">
@@ -381,7 +389,21 @@ export default function AIContextInspectorPage() {
                               {servicesCount > 0 ? <CheckCircle2 className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
                               context_has_services: {servicesCount > 0 ? "true" : "false"}
                             </Badge>
+                            {/* Show menu_summary length badge for food mode */}
+                            {businessMode === "food" && (
+                              <Badge variant={typeof contextOfferings?.menu_summary === "string" && (contextOfferings.menu_summary as string).length > 0 ? "default" : "destructive"}>
+                                menu_summary: {typeof contextOfferings?.menu_summary === "string" ? `${(contextOfferings.menu_summary as string).length}/1500 chars` : "0 chars"}
+                              </Badge>
+                            )}
                           </div>
+                          
+                          {/* Missing Sections Warning */}
+                          {missingSections.length > 0 && (
+                            <div className="p-2 rounded border border-destructive/30 bg-destructive/5">
+                              <span className="text-sm font-medium text-destructive">Missing Sections: </span>
+                              <span className="text-sm">{missingSections.join(", ")}</span>
+                            </div>
+                          )}
 
                           {/* Dynamic Variables (what was sent to ElevenLabs) */}
                           {snapshot.dynamic_variables_json && Object.keys(snapshot.dynamic_variables_json).length > 0 && (
