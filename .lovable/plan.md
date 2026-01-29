@@ -1,155 +1,199 @@
 
+# Make Workflows Fully Functional - End-to-End Implementation
 
-# Delete Test Users Cleanup
+## Problem Summary
 
-## Summary
-Remove all test user accounts except your admin account (`jackangelini@icloud.com`). The template industry data is stored as static code, so no user accounts are needed to maintain it.
+The workflow system is **80% built** but has a critical gap: **workflows are never automatically triggered** when business events happen. The `trigger-workflow` edge function exists and is well-implemented, but it's not called when:
+- Orders are created/confirmed
+- Bookings are created/confirmed  
+- Dispatch jobs are created
+- Reservations/catering/intakes are created
+- Calls end
 
-## Users to Delete (10 accounts)
+Currently, workflows can only be triggered manually via:
+1. Retry button on failed runs
+2. Dry run testing
 
-| Email | Reason |
-|-------|--------|
-| `test1@gmail.com` | Test account, no tenant |
-| `test123@gmail.com` | Test account, no tenant |
-| `test122@gmail.com` | Test account, no tenant |
-| `test1232@gmail.com` | Test account, no tenant |
-| `test1234@gmail.com` | Test account, no tenant |
-| `testvoice@closeloop.test` | Test account, no tenant |
-| `voicetest123@example.com` | Test account, no tenant |
-| `newbusiness2025@testmail.com` | Test account, no tenant |
-| `blueboxer@test.com` | Test account with orphan tenant |
-| `test123@example.com` | Test account, no tenant |
+## Architecture Analysis
 
-## User to Keep
+```
+Current Flow (Broken):
+=======================
+AI Call → order created → order-handoff (webhooks/email/SMS only) → END
+                                          ❌ trigger-workflow NOT called
 
-| Email | Role | Reason |
-|-------|------|--------|
-| `jackangelini@icloud.com` | super_admin | Your admin account with template tenant |
-
-## Implementation Steps
-
-### Step 1: Delete Related Data First
-Clean up any data associated with test tenants before deleting users:
-
-```sql
--- Delete the orphan tenant created by blueboxer@test.com
-DELETE FROM tenants WHERE id = '9a99dcab-ce42-4bc2-8c5e-9cfc7af91603';
-
--- Clean up any tenant_users entries (cascade should handle this, but be explicit)
-DELETE FROM tenant_users WHERE user_id NOT IN (
-  SELECT id FROM auth.users WHERE email = 'jackangelini@icloud.com'
-);
+Required Flow:
+==============
+AI Call → order created → trigger-workflow → find matching workflow → execute nodes
+                                                                ↓
+                                        [print_ticket, notify_sms, webhook_push, etc.]
 ```
 
-### Step 2: Delete Test Users
-Delete all users except your admin account using an edge function or the Supabase Admin API:
+## What Needs to Be Done
 
-```sql
--- This requires service_role access (edge function)
--- Delete users from auth.users
-SELECT auth.admin_delete_user(id) 
-FROM auth.users 
-WHERE email != 'jackangelini@icloud.com';
+### 1. Wire Up Automatic Workflow Triggering in Handoff Functions
+
+Add calls to `trigger-workflow` in each handoff edge function when entities are created/confirmed:
+
+**Files to modify:**
+- `supabase/functions/order-handoff/index.ts` - trigger on order.created/confirmed
+- `supabase/functions/booking-handoff/index.ts` - trigger on booking.created/confirmed
+- `supabase/functions/dispatch-handoff/index.ts` - trigger on dispatch.created/confirmed
+- `supabase/functions/universal-delivery/index.ts` - trigger for reservations/catering/intakes
+- `supabase/functions/elevenlabs-webhook/index.ts` - trigger on call.ended
+
+For each, add after the entity is created/confirmed:
+```typescript
+// Trigger workflow if any active workflow matches
+try {
+  await fetch(`${supabaseUrl}/functions/v1/trigger-workflow`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${supabaseServiceKey}`,
+    },
+    body: JSON.stringify({
+      tenant_id: tenantId,
+      trigger: "order.confirmed", // or appropriate trigger
+      entity_type: "order",
+      entity_id: orderId,
+    }),
+  });
+} catch (e) {
+  console.error("Failed to trigger workflow:", e);
+}
 ```
 
-Since direct `auth.users` modifications require service role access, I'll create an edge function to safely perform this cleanup.
+### 2. Add Print Ticket Execution for Food Mode
 
-### Step 3: Edge Function Implementation
+The `print_ticket` node currently just sets a flag on the order. We need to:
+1. Create a **print queue system** that the dashboard can poll
+2. Add a **PrintQueueCard** component to the Orders page that shows pending prints
+3. Optionally open the print dialog automatically when orders come in
 
-Create a `cleanup-test-users` edge function that:
-1. Accepts the admin user's email to preserve
-2. Deletes all other users using `supabase.auth.admin.deleteUser()`
-3. Cleans up orphan tenant data via cascade
+**Implementation:**
+- Add `print_queue` table (or use existing `handoff_state.print_requested`)
+- Create `usePrintQueue` hook to fetch orders awaiting print
+- Add floating print notification/button on OrdersPage
+- Connect to `OrderTicketPage` for actual printing
+
+### 3. Enhance Workflow Edit Page with Testing
+
+Add a "Test Workflow" button that:
+- Lets user pick a sample entity (recent order, booking, etc.)
+- Runs the workflow in dry-run mode
+- Shows simulated results
+
+**Add to WorkflowEditPage.tsx:**
+- "Test with Sample Data" button
+- Entity picker dialog (recent orders/bookings/etc based on trigger type)
+- Display dry-run results inline
+
+### 4. Create Pre-built Workflow Templates with Nodes
+
+Currently, templates only set trigger + name. Add actual pre-configured nodes:
+
+```typescript
+// Food - Order Confirmed template
+{
+  trigger: "order.confirmed",
+  nodes: [
+    { node_type: "print_ticket", config: { format: "thermal", copies: 1 } },
+    { node_type: "notify_sms", config: { to: "{{customer_phone}}", message: "Your order #{{order_number}} is confirmed! We'll have it ready for {{requested_time}}." } },
+  ]
+}
+```
+
+### 5. Add Status Banner for Workflow Activity
+
+Show users when workflows are running/completed on the Dashboard:
+- Recent workflow activity card
+- Success/failure counts
+- Link to workflow runs page
 
 ## Technical Details
 
-### Edge Function: `supabase/functions/cleanup-test-users/index.ts`
+### Changes to Edge Functions
 
+**order-handoff/index.ts (around line 195):**
 ```typescript
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// After successful order handoff, trigger workflow
+const eventType = order.status === "confirmed" ? "order.confirmed" : "order.created";
+try {
+  await fetch(`${supabaseUrl}/functions/v1/trigger-workflow`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${supabaseKey}`,
+    },
+    body: JSON.stringify({
+      tenant_id,
+      trigger: eventType,
+      entity_type: "order",
+      entity_id: order_id,
+    }),
+  });
+} catch (e) {
+  console.error("Failed to trigger workflow:", e);
+}
+```
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, content-type",
+**Similar pattern for:**
+- booking-handoff → booking.created / booking.confirmed
+- dispatch-handoff → dispatch.created / dispatch.confirmed
+- elevenlabs-webhook → call.ended (after call session is saved)
+
+### New Print Queue Component
+
+**src/components/orders/PrintQueueNotification.tsx:**
+- Subscribe to orders with `handoff_state.print_requested = true`
+- Show toast/floating button when prints are pending
+- One-click to open print dialog for each
+
+### Workflow Template Improvements
+
+**WorkflowsPage.tsx - handleCreateFromTemplate:**
+```typescript
+const handleCreateFromTemplate = async (template: WorkflowTemplate) => {
+  // Create workflow
+  const workflow = await createWorkflow.mutateAsync({
+    name: template.name,
+    trigger: template.trigger,
+  });
+  
+  // Add pre-configured nodes
+  for (const nodeConfig of template.nodes || []) {
+    await addNode.mutateAsync({
+      workflow_id: workflow.id,
+      ...nodeConfig,
+    });
+  }
+  
+  navigate(`/app/workflows/${workflow.id}`);
 };
-
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  
-  const supabase = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false }
-  });
-
-  const { preserveEmail } = await req.json();
-  
-  if (!preserveEmail) {
-    return new Response(JSON.stringify({ error: "preserveEmail required" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    });
-  }
-
-  // Get all users except the preserved one
-  const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
-  
-  if (listError) {
-    return new Response(JSON.stringify({ error: listError.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    });
-  }
-
-  const usersToDelete = users.filter(u => u.email !== preserveEmail);
-  const results = [];
-
-  for (const user of usersToDelete) {
-    const { error } = await supabase.auth.admin.deleteUser(user.id);
-    results.push({
-      email: user.email,
-      deleted: !error,
-      error: error?.message
-    });
-  }
-
-  return new Response(JSON.stringify({
-    preserved: preserveEmail,
-    deleted: results.filter(r => r.deleted).length,
-    failed: results.filter(r => !r.deleted).length,
-    details: results
-  }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" }
-  });
-});
 ```
 
-### Invoking the Cleanup
+## Files to Create/Modify
 
-After deploying, invoke with:
-```typescript
-const { data } = await supabase.functions.invoke('cleanup-test-users', {
-  body: { preserveEmail: 'jackangelini@icloud.com' }
-});
-```
+| File | Action | Description |
+|------|--------|-------------|
+| `supabase/functions/order-handoff/index.ts` | Modify | Add trigger-workflow call after handoff |
+| `supabase/functions/booking-handoff/index.ts` | Modify | Add trigger-workflow call |
+| `supabase/functions/dispatch-handoff/index.ts` | Modify | Add trigger-workflow call |
+| `supabase/functions/elevenlabs-webhook/index.ts` | Modify | Add call.ended trigger |
+| `supabase/functions/universal-delivery/index.ts` | Modify | Add triggers for reservation/catering/intake |
+| `src/components/orders/PrintQueueNotification.tsx` | Create | Floating print notification for pending tickets |
+| `src/pages/app/OrdersPage.tsx` | Modify | Add PrintQueueNotification component |
+| `src/pages/app/WorkflowsPage.tsx` | Modify | Enhance templates with pre-built nodes |
+| `src/pages/app/WorkflowEditPage.tsx` | Modify | Add test workflow button |
+| `src/hooks/usePrintQueue.ts` | Create | Hook to monitor print queue |
+| `src/components/dashboard/WorkflowActivityCard.tsx` | Create | Show recent workflow runs on dashboard |
 
-## Why Template Industries Still Work
+## Acceptance Criteria
 
-The Admin Mode Switcher in `AdminModeSwitcher.tsx` uses static data from `src/data/industryTestData.ts` to reset tenant data. It:
-
-1. Updates your tenant's `business_mode` and `enabled_modules`
-2. Clears and repopulates industry-specific tables (menu_items, dispatch_jobs, etc.)
-3. Uses predefined `TEST_PHONES` array for consistent test data
-
-This is all driven by **your super_admin tenant**, not by separate user accounts.
-
-## Verification
-
-After cleanup:
-- Only `jackangelini@icloud.com` should exist in `auth.users`
-- Only tenant `a0000000-0000-0000-0000-000000000001` should exist
-- Admin Mode Switcher should still work for all 5 business modes
-
+1. **Food Mode**: When AI takes a phone order and confirms it, a workflow with "Print Ticket" node automatically triggers and marks order for printing
+2. **Service Mode**: When a booking is confirmed, workflow triggers and sends confirmation SMS
+3. **Dispatch Mode**: When a dispatch job is created, workflow triggers and notifies the team
+4. **All Modes**: Workflow runs are logged and visible in the workflow history page
+5. **Templates**: Clicking a template creates a ready-to-activate workflow with pre-configured nodes
+6. **Testing**: Users can test workflows with dry-run before activating
