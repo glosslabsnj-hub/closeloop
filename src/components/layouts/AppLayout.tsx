@@ -140,7 +140,7 @@ export function AppLayout() {
     alwaysAccessibleRoutes.some(route => location.pathname.startsWith(route));
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="min-h-screen bg-background">
       {/* Admin Mode Switcher Banner */}
       <AdminModeSwitcher />
       
@@ -190,7 +190,7 @@ export function AppLayout() {
       {/* Main Content */}
       <div className="flex">
         {/* Desktop Sidebar */}
-        <aside className="hidden md:flex w-64 flex-col fixed left-0 top-16 bottom-0 border-r bg-background">
+        <aside className="hidden md:flex w-64 flex-col fixed left-0 top-16 bottom-0 border-r bg-card">
           <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
             {navItems.map((item) => {
               const Icon = item.icon;
