@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Power, Check, Loader2, Sparkles, Phone, Calendar, MessageSquare, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useSubscription } from "@/hooks/useSubscription";
+import { hasVoiceFeature, hasSmsFeature } from "@/config/pricing";
 
 interface GoLiveStepProps {
   onComplete: () => void;
@@ -27,17 +27,16 @@ interface GoLiveStepProps {
 
 export function GoLiveStep({ onComplete, isComplete, canActivate }: GoLiveStepProps) {
   const { tenant, assistantSettings, refreshTenant } = useAuth();
-  const { subscription } = useSubscription(tenant?.id || null);
   const { toast } = useToast();
   
   const [showConfirm, setShowConfirm] = useState(false);
   const [activating, setActivating] = useState(false);
   const isLive = assistantSettings?.go_live_enabled || false;
 
-  // Plan-based feature filtering
-  const planCode = subscription?.plan_code;
-  const hasVoice = planCode === "voice" || planCode === "both";
-  const hasSms = planCode === "text" || planCode === "both";
+  // Plan-based feature filtering using centralized helpers
+  const planCode = (assistantSettings as any)?.plan_code || null;
+  const hasVoice = hasVoiceFeature(planCode);
+  const hasSms = hasSmsFeature(planCode);
 
   // Filter features based on plan capabilities
   const features = useMemo(() => {

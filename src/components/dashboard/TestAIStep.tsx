@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Mic, Check, Loader2, PhoneCall, Volume2, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useSubscription } from "@/hooks/useSubscription";
+import { hasVoiceFeature, hasSmsFeature } from "@/config/pricing";
 import VoiceAgentTest from "@/components/ai/VoiceAgentTest";
 import SMSSimulator from "@/components/simulator/SMSSimulator";
 
@@ -18,13 +18,13 @@ interface TestAIStepProps {
 }
 
 export function TestAIStep({ onComplete, isComplete }: TestAIStepProps) {
-  const { tenant, refreshTenant } = useAuth();
+  const { tenant, refreshTenant, subscription } = useAuth();
   const { toast } = useToast();
-  const { subscription } = useSubscription(tenant?.id || null);
   
+  // Use centralized helpers for feature detection
   const planCode = subscription?.plan_code;
-  const hasVoice = planCode === "voice" || planCode === "both";
-  const hasSms = planCode === "text" || planCode === "both";
+  const hasVoice = hasVoiceFeature(planCode);
+  const hasSms = hasSmsFeature(planCode);
   
   const [testPhoneNumber, setTestPhoneNumber] = useState("");
   const [callingPhone, setCallingPhone] = useState(false);

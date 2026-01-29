@@ -10,16 +10,15 @@ import { UsageThresholdBanner } from "./UsageThresholdBanner";
 import { Copilot, CopilotTrigger } from "./Copilot";
 import { BusinessBrainStatusCard } from "./BusinessBrainStatusCard";
 import { KnowledgeConflictBanner } from "./KnowledgeConflictBanner";
-import { useSubscription } from "@/hooks/useSubscription";
+import { hasVoiceFeature } from "@/config/pricing";
 
 export function LiveDashboard() {
-  const { tenant, assistantSettings } = useAuth();
-  const { subscription } = useSubscription(tenant?.id || null);
+  const { tenant, assistantSettings, subscription } = useAuth();
   const [copilotOpen, setCopilotOpen] = useState(false);
   
   const isLive = assistantSettings?.go_live_enabled;
-  const planCode = subscription?.plan_code;
-  const hasVoice = planCode === "voice" || planCode === "both";
+  // Use centralized helper for voice feature detection
+  const hasVoice = hasVoiceFeature(subscription?.plan_code);
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto animate-fade-in">
