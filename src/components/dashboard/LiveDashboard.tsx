@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { AgentControlCard } from "./AgentControlCard";
-import { QuickStatsCard } from "./QuickStatsCard";
+import { DashboardHeroCard } from "./DashboardHeroCard";
+import { TodayQueueCard } from "./TodayQueueCard";
 import { RecentActivityCard } from "./RecentActivityCard";
 import { QuickLinksCard } from "./QuickLinksCard";
-import { DashboardByMode } from "./DashboardByMode";
 import { GoLiveChecklist } from "./GoLiveChecklist";
 import { UsageThresholdBanner } from "./UsageThresholdBanner";
 import { Copilot, CopilotTrigger } from "./Copilot";
@@ -18,35 +17,30 @@ export function LiveDashboard() {
   const isLive = assistantSettings?.go_live_enabled;
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto animate-fade-in">
-      {/* Knowledge Conflict Warning - Highest Priority */}
+    <div className="space-y-6 max-w-5xl mx-auto animate-fade-in">
+      {/* Critical Banners - Stacked at top */}
       <KnowledgeConflictBanner />
-
-      {/* Usage Threshold Warning */}
       <UsageThresholdBanner threshold={80} />
 
-      {/* Go Live Checklist - Show if not live yet */}
-      {!isLive && <GoLiveChecklist />}
+      {/* HERO: Agent Status + Key Stats (full width) */}
+      <DashboardHeroCard />
 
-      {/* Agent Control - Primary Focus */}
-      <AgentControlCard />
-
-      {/* Mode-Specific Today View */}
-      <DashboardByMode />
-
-      {/* Two Column Layout for Brain Status & Stats */}
+      {/* Two Column: Queue + Quick Actions */}
       <div className="grid md:grid-cols-2 gap-6">
-        <BusinessBrainStatusCard />
-        <QuickStatsCard />
-      </div>
-
-      {/* Two Column Layout for Activity & Links */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <RecentActivityCard />
+        <TodayQueueCard />
         <QuickLinksCard />
       </div>
 
-      {/* Copilot */}
+      {/* Full Width: Recent Activity */}
+      <RecentActivityCard />
+
+      {/* Two Column: Brain Status + Setup/Checklist */}
+      <div className="grid md:grid-cols-2 gap-6">
+        <BusinessBrainStatusCard />
+        {!isLive && <GoLiveChecklist />}
+      </div>
+
+      {/* Copilot FAB */}
       {copilotOpen ? (
         <Copilot isOpen={copilotOpen} onClose={() => setCopilotOpen(false)} />
       ) : (

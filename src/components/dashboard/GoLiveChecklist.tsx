@@ -87,24 +87,24 @@ export function GoLiveChecklist() {
   if (goLiveEnabled) {
     return (
       <Card className="border-primary/50 bg-gradient-to-br from-primary/5 to-transparent">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <Rocket className="h-6 w-6 text-primary" />
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <Rocket className="h-5 w-5 text-primary" />
             </div>
-            <div className="flex-1">
-              <h3 className="font-semibold flex items-center gap-2">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-sm flex items-center gap-2">
                 You're Live!
-                <Badge variant="default">Active</Badge>
+                <Badge variant="default" className="text-xs">Active</Badge>
               </h3>
-              <p className="text-sm text-muted-foreground">
-                Your AI is answering calls 24/7
+              <p className="text-xs text-muted-foreground">
+                AI answering calls 24/7
               </p>
             </div>
             <Link to="/app/calls">
-              <Button variant="outline" size="sm" className="gap-2">
-                View Calls
-                <ArrowRight className="h-4 w-4" />
+              <Button variant="outline" size="sm" className="gap-1 text-xs shrink-0">
+                Calls
+                <ArrowRight className="h-3 w-3" />
               </Button>
             </Link>
           </div>
@@ -113,84 +113,55 @@ export function GoLiveChecklist() {
     );
   }
 
+  // Compact checklist for when not live
+  const incompleteItems = checklistItems.filter(i => !i.isComplete && i.required).slice(0, 2);
+
   return (
     <Card>
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              Go Live Checklist
-            </CardTitle>
-            <CardDescription>
-              Complete these steps to activate your AI
-            </CardDescription>
-          </div>
-          <Badge variant={canGoLive ? "default" : "secondary"}>
-            {requiredComplete}/{requiredTotal} complete
+          <CardTitle className="text-base font-medium flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            Setup Progress
+          </CardTitle>
+          <Badge variant={canGoLive ? "default" : "secondary"} className="text-xs">
+            {requiredComplete}/{requiredTotal}
           </Badge>
         </div>
-        <Progress value={progress} className="h-2 mt-2" />
+        <Progress value={progress} className="h-1.5 mt-2" />
       </CardHeader>
-      <CardContent className="space-y-3">
-        {checklistItems.map((item) => {
+      <CardContent className="space-y-2">
+        {incompleteItems.map((item) => {
           const Icon = item.icon;
           return (
-            <div 
+            <Link 
               key={item.id}
-              className={`flex items-center gap-3 p-3 rounded-lg border ${
-                item.isComplete ? 'bg-primary/5 border-primary/20' : 'bg-muted/50'
-              }`}
+              to={item.link}
+              className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
             >
-              <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                item.isComplete ? 'bg-primary text-primary-foreground' : 'bg-muted'
-              }`}>
-                {item.isComplete ? (
-                  <CheckCircle2 className="h-4 w-4" />
-                ) : (
-                  <Icon className="h-4 w-4" />
-                )}
+              <div className="h-7 w-7 rounded-full flex items-center justify-center bg-muted">
+                <Icon className="h-3.5 w-3.5 text-muted-foreground" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className={`font-medium text-sm ${item.isComplete ? 'text-foreground' : ''}`}>
-                    {item.label}
-                  </span>
-                  {!item.required && (
-                    <Badge variant="outline" className="text-xs">Optional</Badge>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground truncate">
-                  {item.description}
-                </p>
+                <span className="text-sm font-medium">{item.label}</span>
               </div>
-              {!item.isComplete && (
-                <Link to={item.link}>
-                  <Button variant="outline" size="sm" className="text-xs shrink-0">
-                    {item.linkLabel}
-                  </Button>
-                </Link>
-              )}
-            </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+            </Link>
           );
         })}
 
-        {/* Go Live Button */}
-        <div className="pt-3 border-t">
-          {canGoLive ? (
-            <Link to="/app/go-live">
-              <Button className="w-full gap-2">
-                <Rocket className="h-4 w-4" />
-                Go Live Now
-              </Button>
-            </Link>
-          ) : (
-            <Button className="w-full gap-2" disabled>
-              <Circle className="h-4 w-4" />
-              Complete Required Steps to Go Live
+        {canGoLive ? (
+          <Link to="/app/go-live">
+            <Button className="w-full gap-2 mt-2" size="sm">
+              <Rocket className="h-4 w-4" />
+              Go Live Now
             </Button>
-          )}
-        </div>
+          </Link>
+        ) : (
+          <p className="text-xs text-muted-foreground text-center pt-1">
+            Complete {requiredTotal - requiredComplete} more step{requiredTotal - requiredComplete > 1 ? 's' : ''} to go live
+          </p>
+        )}
       </CardContent>
     </Card>
   );
