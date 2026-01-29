@@ -16,11 +16,18 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Phone, Search, Pencil, Loader2 } from "lucide-react";
+import { Phone, Search, Pencil, Loader2, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { CallEditDialog } from "@/components/calls/CallEditDialog";
 import { useToast } from "@/hooks/use-toast";
 import { ModuleUnavailablePage } from "@/components/shared/ModuleUnavailablePage";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import type { Json } from "@/integrations/supabase/types";
 
 interface CallSession {
   id: string;
@@ -31,9 +38,16 @@ interface CallSession {
   outcome: string | null;
   summary: string | null;
   context_json: Record<string, unknown> | null;
+  extracted_payload: Record<string, unknown> | null;
+  customer_id: string | null;
+  customer?: {
+    id: string;
+    full_name: string;
+    phone_e164: string;
+  } | null;
 }
 
-type CallStatus = "booked" | "thinking" | "no_book";
+type CallStatus = "booked" | "thinking" | "no_book" | "order" | "dispatch";
 
 export default function CallsPage() {
   // P0-3: Route protection - redirect if ai_voice module not enabled
@@ -50,15 +64,39 @@ export default function CallsPage() {
     queryFn: async () => {
       if (!tenant?.id) return [];
       
+      // Fetch calls with linked customer data
       const { data, error } = await supabase
         .from("ai_call_sessions")
-        .select("*")
+        .select(`
+          id,
+          started_at,
+          ended_at,
+          caller_phone,
+          call_direction,
+          outcome,
+          summary,
+          context_json,
+          extracted_payload,
+          customer_id,
+          customer:customers!ai_call_sessions_customer_id_fkey (
+            id,
+            full_name,
+            phone_e164
+          )
+        `)
         .eq("tenant_id", tenant.id)
         .order("started_at", { ascending: false })
         .limit(100);
 
       if (error) throw error;
-      return data as CallSession[];
+      
+      // Transform the data to match our interface
+      return (data || []).map(row => ({
+        ...row,
+        context_json: row.context_json as Record<string, unknown> | null,
+        extracted_payload: row.extracted_payload as Record<string, unknown> | null,
+        customer: Array.isArray(row.customer) ? row.customer[0] : row.customer,
+      })) as CallSession[];
     },
     enabled: !!tenant?.id,
   });
@@ -70,7 +108,7 @@ export default function CallsPage() {
         .update({
           outcome: updates.outcome as "booked" | "escalated" | "followup" | "lost" | null,
           summary: updates.summary,
-          context_json: updates.context_json as unknown as Record<string, never>,
+          context_json: updates.context_json as unknown as Json,
         })
         .eq("id", id);
       
@@ -91,8 +129,8 @@ export default function CallsPage() {
   const filteredCalls = deduplicatedCalls.filter(call => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
-    const customerName = getCustomerName(call.context_json);
-    const serviceRequested = getServiceRequested(call.context_json);
+    const customerName = getCustomerName(call);
+    const serviceRequested = getServiceRequested(call);
     return (
       call.caller_phone?.toLowerCase().includes(query) ||
       call.summary?.toLowerCase().includes(query) ||
@@ -105,9 +143,14 @@ export default function CallsPage() {
     switch (outcome) {
       case "booked":
         return "booked";
+      case "order":
+        return "order";
+      case "dispatch":
+        return "dispatch";
       case "followup":
       case "lead_captured":
       case "info_provided":
+      case "message":
         return "thinking";
       case "lost":
       case "escalated":
@@ -117,7 +160,7 @@ export default function CallsPage() {
     }
   };
 
-  const getStatusBadge = (status: CallStatus) => {
+  const getStatusBadge = (status: CallStatus, outcome: string | null) => {
     switch (status) {
       case "booked":
         return (
@@ -125,10 +168,22 @@ export default function CallsPage() {
             Booked
           </Badge>
         );
+      case "order":
+        return (
+          <Badge variant="success">
+            Order
+          </Badge>
+        );
+      case "dispatch":
+        return (
+          <Badge variant="success">
+            Dispatch
+          </Badge>
+        );
       case "thinking":
         return (
           <Badge variant="warning">
-            Thinking
+            {outcome === "message" ? "Message" : outcome === "lead_captured" ? "Lead" : "Thinking"}
           </Badge>
         );
       case "no_book":
@@ -214,13 +269,28 @@ export default function CallsPage() {
               <TableBody>
                 {filteredCalls.map((call) => {
                   const status = getCallStatus(call.outcome);
-                  const customerName = getCustomerName(call.context_json);
-                  const serviceRequested = getServiceRequested(call.context_json);
+                  const customerName = getCustomerName(call);
+                  const serviceRequested = getServiceRequested(call);
+                  const extractedDetails = getExtractedDetails(call);
                   
                   return (
                     <TableRow key={call.id}>
                       <TableCell className="font-medium">
-                        {customerName}
+                        <div className="flex items-center gap-1">
+                          {customerName}
+                          {call.customer_id && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Linked to customer record</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {format(new Date(call.started_at), "MMM d, yyyy")}
@@ -229,7 +299,22 @@ export default function CallsPage() {
                         {formatPhone(call.caller_phone)}
                       </TableCell>
                       <TableCell>
-                        {serviceRequested || (
+                        {serviceRequested ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="cursor-help">{serviceRequested}</span>
+                              </TooltipTrigger>
+                              {extractedDetails && (
+                                <TooltipContent className="max-w-xs">
+                                  <pre className="text-xs whitespace-pre-wrap">
+                                    {extractedDetails}
+                                  </pre>
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
                           <span className="text-muted-foreground italic">
                             Not specified
                           </span>
@@ -242,12 +327,12 @@ export default function CallsPage() {
                           </span>
                         ) : (
                           <span className="text-muted-foreground italic text-sm">
-                            No summary available
+                            {call.ended_at ? "No summary available" : "Call in progress..."}
                           </span>
                         )}
                       </TableCell>
                       <TableCell className="text-center">
-                        {getStatusBadge(status)}
+                        {getStatusBadge(status, call.outcome)}
                       </TableCell>
                       <TableCell>
                         <Button
@@ -296,31 +381,82 @@ export default function CallsPage() {
 
 // Helper functions
 
-function getCustomerName(contextJson: Record<string, unknown> | null): string {
-  if (!contextJson) return "Unknown";
-  return (
-    (contextJson.customer_name as string) ||
-    (contextJson.name as string) ||
-    (contextJson.caller_name as string) ||
-    "Unknown"
-  );
+function getCustomerName(call: CallSession): string {
+  // Priority: linked customer record > context_json > extracted_payload > Unknown
+  if (call.customer?.full_name && call.customer.full_name !== "Unknown") {
+    return call.customer.full_name;
+  }
+  
+  const contextJson = call.context_json;
+  if (contextJson) {
+    const name = contextJson.customer_name || contextJson.name || contextJson.caller_name;
+    if (name && typeof name === "string" && name !== "Unknown") {
+      return name;
+    }
+  }
+  
+  const extractedPayload = call.extracted_payload;
+  if (extractedPayload?.customer_name && typeof extractedPayload.customer_name === "string") {
+    return extractedPayload.customer_name;
+  }
+  
+  return "Unknown caller";
 }
 
-function getServiceRequested(contextJson: Record<string, unknown> | null): string {
-  if (!contextJson) return "";
-  return (
-    (contextJson.service_requested as string) ||
-    (contextJson.service as string) ||
-    (contextJson.reason as string) ||
-    (contextJson.inquiry_type as string) ||
-    ""
-  );
+function getServiceRequested(call: CallSession): string {
+  // Priority: extracted_payload > context_json
+  const extractedPayload = call.extracted_payload;
+  if (extractedPayload) {
+    const service = extractedPayload.service_requested || 
+      extractedPayload.items_raw || 
+      (Array.isArray(extractedPayload.items) ? (extractedPayload.items as Array<{name: string}>).map(i => i.name).join(", ") : null) ||
+      extractedPayload.job_type ||
+      extractedPayload.appointment_type;
+    if (service && typeof service === "string") {
+      return service;
+    }
+  }
+  
+  const contextJson = call.context_json;
+  if (contextJson) {
+    const service = contextJson.service_requested || 
+      contextJson.service || 
+      contextJson.reason || 
+      contextJson.inquiry_type;
+    if (service && typeof service === "string") {
+      return service;
+    }
+  }
+  
+  return "";
+}
+
+function getExtractedDetails(call: CallSession): string | null {
+  const extractedPayload = call.extracted_payload;
+  if (!extractedPayload || Object.keys(extractedPayload).length === 0) {
+    return null;
+  }
+  
+  // Format key fields for tooltip
+  const details: string[] = [];
+  
+  if (extractedPayload.order_type) details.push(`Type: ${extractedPayload.order_type}`);
+  if (extractedPayload.delivery_address) details.push(`Address: ${extractedPayload.delivery_address}`);
+  if (extractedPayload.pickup_address) details.push(`Pickup: ${extractedPayload.pickup_address}`);
+  if (extractedPayload.dropoff_address) details.push(`Dropoff: ${extractedPayload.dropoff_address}`);
+  if (extractedPayload.preferred_date) details.push(`Date: ${extractedPayload.preferred_date}`);
+  if (extractedPayload.preferred_time) details.push(`Time: ${extractedPayload.preferred_time}`);
+  if (extractedPayload.vehicle) details.push(`Vehicle: ${extractedPayload.vehicle}`);
+  if (extractedPayload.urgency) details.push(`Urgency: ${extractedPayload.urgency}`);
+  if (extractedPayload.notes) details.push(`Notes: ${extractedPayload.notes}`);
+  
+  return details.length > 0 ? details.join("\n") : null;
 }
 
 function formatPhone(phone: string | null): string {
   if (!phone) return "Unknown";
   // If already formatted or international, return as-is
-  if (phone.includes("(") || phone.startsWith("+")) return phone;
+  if (phone.includes("(") || (phone.startsWith("+") && phone.length > 12)) return phone;
   // Try to format US numbers
   const cleaned = phone.replace(/\D/g, "");
   if (cleaned.length === 10) {

@@ -71,6 +71,7 @@ export type Database = {
           customer_id: string | null
           elevenlabs_conversation_id: string | null
           ended_at: string | null
+          extracted_payload: Json | null
           id: string
           lead_id: string | null
           opportunity_id: string | null
@@ -90,6 +91,7 @@ export type Database = {
           customer_id?: string | null
           elevenlabs_conversation_id?: string | null
           ended_at?: string | null
+          extracted_payload?: Json | null
           id?: string
           lead_id?: string | null
           opportunity_id?: string | null
@@ -109,6 +111,7 @@ export type Database = {
           customer_id?: string | null
           elevenlabs_conversation_id?: string | null
           ended_at?: string | null
+          extracted_payload?: Json | null
           id?: string
           lead_id?: string | null
           opportunity_id?: string | null
@@ -211,6 +214,57 @@ export type Database = {
           },
           {
             foreignKeyName: "ai_context_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_event_logs: {
+        Row: {
+          call_sid: string | null
+          conversation_id: string | null
+          created_at: string
+          error_message: string | null
+          event_data: Json | null
+          id: string
+          session_id: string | null
+          stage: string
+          tenant_id: string
+        }
+        Insert: {
+          call_sid?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          event_data?: Json | null
+          id?: string
+          session_id?: string | null
+          stage: string
+          tenant_id: string
+        }
+        Update: {
+          call_sid?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          event_data?: Json | null
+          id?: string
+          session_id?: string | null
+          stage?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_event_logs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_call_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_event_logs_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -3649,7 +3703,15 @@ export type Database = {
     }
     Enums: {
       ai_call_direction: "inbound" | "outbound"
-      ai_call_outcome: "booked" | "followup" | "lost" | "escalated"
+      ai_call_outcome:
+        | "booked"
+        | "followup"
+        | "lost"
+        | "escalated"
+        | "order"
+        | "dispatch"
+        | "message"
+        | "lead_captured"
       ai_knowledge_type: "faq" | "objection" | "policy" | "upsell"
       ai_tone: "friendly" | "professional" | "luxury" | "direct"
       audit_event_type:
@@ -3958,7 +4020,16 @@ export const Constants = {
   public: {
     Enums: {
       ai_call_direction: ["inbound", "outbound"],
-      ai_call_outcome: ["booked", "followup", "lost", "escalated"],
+      ai_call_outcome: [
+        "booked",
+        "followup",
+        "lost",
+        "escalated",
+        "order",
+        "dispatch",
+        "message",
+        "lead_captured",
+      ],
       ai_knowledge_type: ["faq", "objection", "policy", "upsell"],
       ai_tone: ["friendly", "professional", "luxury", "direct"],
       audit_event_type: [

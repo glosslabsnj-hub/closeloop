@@ -30,6 +30,7 @@ interface ElevenLabsWebhookPayload {
     customer_id?: string;
     location_id?: string;
     hipaa_mode?: boolean | string;
+    business_mode?: string;
   };
 }
 
@@ -41,6 +42,33 @@ function normalizeToE164(phone: string): string {
   if (digits.length === 10) return `+1${digits}`;
   if (phone.startsWith("+")) return phone;
   return digits.length > 0 ? `+${digits}` : "";
+}
+
+// Log event to ai_event_logs table
+// deno-lint-ignore no-explicit-any
+async function logEventStage(
+  supabase: any,
+  tenantId: string,
+  sessionId: string | null,
+  callSid: string | null,
+  conversationId: string,
+  stage: string,
+  eventData: Record<string, unknown> = {},
+  errorMessage: string | null = null
+) {
+  try {
+    await supabase.from("ai_event_logs").insert({
+      tenant_id: tenantId,
+      session_id: sessionId,
+      call_sid: callSid,
+      conversation_id: conversationId,
+      stage,
+      event_data: eventData,
+      error_message: errorMessage,
+    });
+  } catch (e) {
+    console.error(`Failed to log event stage ${stage}:`, e);
+  }
 }
 
 serve(async (req) => {
@@ -57,6 +85,7 @@ serve(async (req) => {
       agent_id: payload.agent_id,
       has_transcript: !!payload.transcript?.length,
       has_analysis: !!payload.analysis,
+      dynamic_variables: payload.dynamic_variables,
     }));
 
     if (payload.type !== "conversation.ended" && payload.type !== "conversation_ended") {
@@ -74,7 +103,7 @@ serve(async (req) => {
     // Find the call session by conversation_id
     const { data: session, error: sessionError } = await supabase
       .from("ai_call_sessions")
-      .select("id, tenant_id, context_json, customer_id, caller_phone")
+      .select("id, tenant_id, context_json, customer_id, caller_phone, twilio_call_sid")
       .eq("elevenlabs_conversation_id", payload.conversation_id)
       .single();
 
@@ -85,7 +114,7 @@ serve(async (req) => {
       if (payload.dynamic_variables?.caller_phone && payload.dynamic_variables?.tenant_id) {
         const { data: fallbackSession } = await supabase
           .from("ai_call_sessions")
-          .select("id, tenant_id, context_json, customer_id, caller_phone")
+          .select("id, tenant_id, context_json, customer_id, caller_phone, twilio_call_sid")
           .eq("tenant_id", payload.dynamic_variables.tenant_id)
           .eq("caller_phone", normalizeToE164(payload.dynamic_variables.caller_phone))
           .is("elevenlabs_conversation_id", null)
@@ -131,10 +160,11 @@ interface SessionData {
   context_json: Record<string, unknown> | null;
   customer_id: string | null;
   caller_phone: string | null;
+  twilio_call_sid: string | null;
 }
 
+// deno-lint-ignore no-explicit-any
 async function processCallData(
-  // deno-lint-ignore no-explicit-any
   supabase: any,
   supabaseUrl: string,
   supabaseKey: string,
@@ -148,9 +178,17 @@ async function processCallData(
   const callerPhoneE164 = normalizeToE164(callerPhone);
   const locationId = existingContext.location_id as string || payload.dynamic_variables?.location_id || null;
   const hipaaMode = existingContext.hipaa_mode === true || payload.dynamic_variables?.hipaa_mode === true || payload.dynamic_variables?.hipaa_mode === "true";
+  const businessMode = existingContext.business_mode as string || payload.dynamic_variables?.business_mode || "general";
+
+  // Log call_end event
+  await logEventStage(supabase, tenantId, sessionId, session.twilio_call_sid, payload.conversation_id, "call_end", {
+    duration_secs: payload.metadata?.call_duration_secs,
+    has_transcript: !!payload.transcript?.length,
+    has_analysis: !!payload.analysis,
+  });
 
   // Get intelligence settings and retention settings in parallel
-  const [intelligenceResult, retentionResult] = await Promise.all([
+  const [intelligenceResult, retentionResult, tenantResult] = await Promise.all([
     supabase
       .from("tenant_intelligence_settings")
       .select("memory_enabled, min_confidence_threshold")
@@ -161,10 +199,17 @@ async function processCallData(
       .select("store_transcripts, store_caller_phone, allow_customer_memory, phi_minimization_enabled")
       .eq("tenant_id", tenantId)
       .maybeSingle(),
+    supabase
+      .from("tenants")
+      .select("business_mode, enabled_modules")
+      .eq("id", tenantId)
+      .single(),
   ]);
   
   const intelligenceSettings = intelligenceResult.data;
   const retentionSettings = retentionResult.data;
+  const tenant = tenantResult.data;
+  const tenantBusinessMode = tenant?.business_mode || businessMode;
   
   const memoryEnabled = intelligenceSettings?.memory_enabled === true;
   const minConfidence = intelligenceSettings?.min_confidence_threshold || 0.65;
@@ -185,7 +230,7 @@ async function processCallData(
   const analysis = payload.analysis || {};
   const dataCollection = analysis.data_collection || {};
   
-  // Extract customer info from call
+  // ===== EXTRACT CUSTOMER INFO =====
   const customerName = 
     dataCollection.customer_name ||
     dataCollection.name ||
@@ -201,17 +246,37 @@ async function processCallData(
     extractFromTranscript(payload.transcript, "service") ||
     null;
 
-  // Determine outcome
+  // ===== DETERMINE OUTCOME BASED ON BUSINESS MODE =====
   let outcome: string = "lost";
-  if (analysis.call_successful === true || dataCollection.booking_confirmed === "true" || dataCollection.booking_confirmed === "yes") {
-    outcome = "booked";
-  } else if (dataCollection.callback_requested === "true" || dataCollection.callback_requested === "yes") {
-    outcome = "followup";
-  } else if (analysis.call_successful === false) {
-    outcome = "lost";
-  } else if (customerName || serviceRequested) {
-    outcome = "lead_captured";
+  
+  // Check for mode-specific outcomes first
+  if (tenantBusinessMode === "food") {
+    if (dataCollection.order_confirmed === "true" || dataCollection.order_confirmed === "yes" || dataCollection.order_items) {
+      outcome = "order";
+    }
+  } else if (tenantBusinessMode === "dispatch") {
+    if (dataCollection.job_created === "true" || dataCollection.dispatch_confirmed === "true" || dataCollection.pickup_address) {
+      outcome = "dispatch";
+    }
   }
+  
+  // Generic outcomes
+  if (outcome === "lost") {
+    if (analysis.call_successful === true || dataCollection.booking_confirmed === "true" || dataCollection.booking_confirmed === "yes") {
+      outcome = "booked";
+    } else if (dataCollection.callback_requested === "true" || dataCollection.callback_requested === "yes") {
+      outcome = "followup";
+    } else if (dataCollection.message_taken === "true") {
+      outcome = "message";
+    } else if (analysis.call_successful === false) {
+      outcome = "lost";
+    } else if (customerName || serviceRequested) {
+      outcome = "lead_captured";
+    }
+  }
+
+  // ===== BUILD EXTRACTED PAYLOAD (MODE-SPECIFIC) =====
+  const extractedPayload = buildExtractedPayload(tenantBusinessMode, dataCollection, payload.transcript);
 
   // ===== CUSTOMER RESOLUTION & LINKING =====
   let customerId = session.customer_id;
@@ -237,6 +302,7 @@ async function processCallData(
             updated_at: new Date().toISOString(),
           })
           .eq("id", customerId);
+        console.log(`Updated customer name: ${customerId} -> ${customerName}`);
       } else {
         // Just update last seen
         await supabase
@@ -245,13 +311,13 @@ async function processCallData(
           .eq("id", customerId);
       }
       console.log(`Linked to existing customer: ${customerId}`);
-    } else if (customerName && callerPhoneE164) {
-      // Create new customer
+    } else if (callerPhoneE164) {
+      // Create new customer (with name if we have it, otherwise "Unknown")
       const { data: newCustomer, error: createError } = await supabase
         .from("customers")
         .insert({
           tenant_id: tenantId,
-          full_name: customerName,
+          full_name: customerName || "Unknown",
           phone_e164: callerPhoneE164,
           phone_raw: callerPhone,
           source: "ai_call",
@@ -261,7 +327,7 @@ async function processCallData(
 
       if (!createError && newCustomer) {
         customerId = newCustomer.id;
-        console.log(`Created new customer: ${customerId}`);
+        console.log(`Created new customer: ${customerId} (name: ${customerName || "Unknown"})`);
       }
     }
   }
@@ -277,26 +343,45 @@ async function processCallData(
     ...dataCollection,
   };
 
-  // ===== UPDATE CALL SESSION =====
+  // ===== UPDATE CALL SESSION WITH ALL DATA =====
   const { error: updateError } = await supabase
     .from("ai_call_sessions")
     .update({
       transcript: transcriptText,
       summary: analysis.summary || null,
-      outcome: outcome,
+      outcome: outcome as "booked" | "followup" | "lost" | "escalated",
       ended_at: payload.metadata?.end_time || new Date().toISOString(),
       context_json: updatedContext,
       elevenlabs_conversation_id: payload.conversation_id,
       customer_id: customerId,
+      extracted_payload: extractedPayload,
     })
     .eq("id", sessionId);
 
   if (updateError) {
     console.error("Failed to update session:", updateError);
+    await logEventStage(supabase, tenantId, sessionId, session.twilio_call_sid, payload.conversation_id, "summary_save_error", {}, updateError.message);
     throw updateError;
   }
 
-  console.log("Updated session:", sessionId, { outcome, hasTranscript: !!transcriptText, hasSummary: !!analysis.summary, customerId });
+  // Log summary saved event
+  await logEventStage(supabase, tenantId, sessionId, session.twilio_call_sid, payload.conversation_id, "summary_saved", {
+    outcome,
+    has_transcript: !!transcriptText,
+    has_summary: !!analysis.summary,
+    customer_id: customerId,
+    customer_name: customerName,
+    extracted_fields: Object.keys(extractedPayload),
+  });
+
+  console.log("Updated session:", sessionId, { 
+    outcome, 
+    hasTranscript: !!transcriptText, 
+    hasSummary: !!analysis.summary, 
+    customerId,
+    customerName,
+    extractedPayloadKeys: Object.keys(extractedPayload),
+  });
 
   // ===== RECORD AUDIT EVENT =====
   try {
@@ -370,7 +455,7 @@ async function processCallData(
     // Observation 2: Time pattern (day/hour of successful engagement)
     const callHour = new Date().getHours();
     const callDay = new Date().getDay();
-    if (outcome === "booked" || outcome === "lead_captured") {
+    if (outcome === "booked" || outcome === "lead_captured" || outcome === "order") {
       observations.push({
         type: "time_pattern",
         subjectKey: `day_${callDay}_hour_${callHour}`,
@@ -380,7 +465,7 @@ async function processCallData(
     }
 
     // Observation 3: Customer preference (ONLY if allowed by retention settings)
-    if (allowCustomerMemory && callerPhoneE164 && customerName && outcome === "booked") {
+    if (allowCustomerMemory && callerPhoneE164 && customerName && (outcome === "booked" || outcome === "order")) {
       const customerKey = `customer_${callerPhoneE164.replace(/\D/g, "").slice(-10)}`;
       observations.push({
         type: "customer_preference",
@@ -426,14 +511,133 @@ async function processCallData(
     }
   }
 
+  // Log extraction saved
+  await logEventStage(supabase, tenantId, sessionId, session.twilio_call_sid, payload.conversation_id, "extraction_saved", {
+    business_mode: tenantBusinessMode,
+    extracted_payload: extractedPayload,
+  });
+
   // ===== PROCESS FOOD ORDER IF APPLICABLE =====
-  if (tenantId) {
-    await processFoodOrderIfApplicable(supabase, supabaseUrl, supabaseKey, tenantId, dataCollection, customerName, customerId, payload);
+  if (tenantId && (tenantBusinessMode === "food" || outcome === "order")) {
+    await processFoodOrderIfApplicable(supabase, supabaseUrl, supabaseKey, tenantId, dataCollection, customerName, customerId, payload, extractedPayload);
   }
 }
 
+// Build extracted payload based on business mode
+function buildExtractedPayload(
+  businessMode: string,
+  dataCollection: Record<string, string>,
+  transcript?: ElevenLabsWebhookPayload["transcript"]
+): Record<string, unknown> {
+  const payload: Record<string, unknown> = {};
+  
+  // Always include common fields
+  if (dataCollection.customer_name || dataCollection.name) {
+    payload.customer_name = dataCollection.customer_name || dataCollection.name;
+  }
+  if (dataCollection.callback_number) {
+    payload.callback_number = dataCollection.callback_number;
+  }
+  if (dataCollection.notes || dataCollection.special_instructions) {
+    payload.notes = dataCollection.notes || dataCollection.special_instructions;
+  }
+  
+  switch (businessMode) {
+    case "food":
+      // Food mode: order items, modifiers, totals, pickup/delivery, address
+      if (dataCollection.order_items || dataCollection.items) {
+        try {
+          const items = dataCollection.order_items || dataCollection.items;
+          payload.items = typeof items === "string" ? JSON.parse(items) : items;
+        } catch {
+          payload.items_raw = dataCollection.order_items || dataCollection.items;
+        }
+      }
+      if (dataCollection.order_type) payload.order_type = dataCollection.order_type;
+      if (dataCollection.delivery_address) payload.delivery_address = dataCollection.delivery_address;
+      if (dataCollection.pickup_time || dataCollection.requested_time) {
+        payload.requested_time = dataCollection.pickup_time || dataCollection.requested_time;
+      }
+      if (dataCollection.total_estimate) payload.total_estimate = dataCollection.total_estimate;
+      if (dataCollection.special_instructions) payload.special_instructions = dataCollection.special_instructions;
+      if (dataCollection.modifiers) {
+        try {
+          payload.modifiers = typeof dataCollection.modifiers === "string" ? JSON.parse(dataCollection.modifiers) : dataCollection.modifiers;
+        } catch {
+          payload.modifiers_raw = dataCollection.modifiers;
+        }
+      }
+      break;
+      
+    case "service":
+      // Service mode: service requested, schedule preference, intake fields
+      if (dataCollection.service_requested || dataCollection.service) {
+        payload.service_requested = dataCollection.service_requested || dataCollection.service;
+      }
+      if (dataCollection.preferred_date || dataCollection.schedule_date) {
+        payload.preferred_date = dataCollection.preferred_date || dataCollection.schedule_date;
+      }
+      if (dataCollection.preferred_time || dataCollection.schedule_time) {
+        payload.preferred_time = dataCollection.preferred_time || dataCollection.schedule_time;
+      }
+      if (dataCollection.address || dataCollection.service_address) {
+        payload.address = dataCollection.address || dataCollection.service_address;
+      }
+      if (dataCollection.vehicle) payload.vehicle = dataCollection.vehicle;
+      if (dataCollection.vehicle_year) payload.vehicle_year = dataCollection.vehicle_year;
+      if (dataCollection.vehicle_make) payload.vehicle_make = dataCollection.vehicle_make;
+      if (dataCollection.vehicle_model) payload.vehicle_model = dataCollection.vehicle_model;
+      // Capture any additional intake fields
+      for (const key of Object.keys(dataCollection)) {
+        if (key.startsWith("intake_") || key.startsWith("custom_")) {
+          payload[key] = dataCollection[key];
+        }
+      }
+      break;
+      
+    case "dispatch":
+      // Dispatch mode: pickup/dropoff, vehicle, urgency
+      if (dataCollection.pickup_address) payload.pickup_address = dataCollection.pickup_address;
+      if (dataCollection.dropoff_address) payload.dropoff_address = dataCollection.dropoff_address;
+      if (dataCollection.vehicle_type || dataCollection.vehicle) {
+        payload.vehicle = dataCollection.vehicle_type || dataCollection.vehicle;
+      }
+      if (dataCollection.is_drivable !== undefined) {
+        payload.is_drivable = dataCollection.is_drivable === "true" || dataCollection.is_drivable === "yes";
+      }
+      if (dataCollection.urgency || dataCollection.priority) {
+        payload.urgency = dataCollection.urgency || dataCollection.priority;
+      }
+      if (dataCollection.job_type) payload.job_type = dataCollection.job_type;
+      if (dataCollection.eta_requested) payload.eta_requested = dataCollection.eta_requested;
+      break;
+      
+    case "medical":
+      // Medical mode: minimal intake, no PHI stored
+      if (dataCollection.appointment_type) payload.appointment_type = dataCollection.appointment_type;
+      if (dataCollection.is_new_patient !== undefined) {
+        payload.is_new_patient = dataCollection.is_new_patient === "true" || dataCollection.is_new_patient === "yes";
+      }
+      if (dataCollection.preferred_date) payload.preferred_date = dataCollection.preferred_date;
+      if (dataCollection.callback_requested !== undefined) {
+        payload.callback_requested = dataCollection.callback_requested === "true";
+      }
+      // Do NOT store symptoms or other PHI
+      break;
+      
+    default:
+      // General mode: service/reason
+      if (dataCollection.service_requested || dataCollection.reason) {
+        payload.service_requested = dataCollection.service_requested || dataCollection.reason;
+      }
+      if (dataCollection.message) payload.message = dataCollection.message;
+  }
+  
+  return payload;
+}
+
+// deno-lint-ignore no-explicit-any
 async function processFoodOrderIfApplicable(
-  // deno-lint-ignore no-explicit-any
   supabase: any,
   supabaseUrl: string,
   supabaseKey: string,
@@ -441,7 +645,8 @@ async function processFoodOrderIfApplicable(
   dataCollection: Record<string, string>,
   customerName: string | null,
   customerId: string | null,
-  payload: ElevenLabsWebhookPayload
+  payload: ElevenLabsWebhookPayload,
+  extractedPayload: Record<string, unknown>
 ) {
   const { data: tenant } = await supabase
     .from("tenants")
@@ -479,6 +684,11 @@ async function processFoodOrderIfApplicable(
   } catch (e) {
     console.error("Failed to parse order items:", e);
   }
+  
+  // Use items from extracted payload if available
+  if (Array.isArray(extractedPayload.items)) {
+    parsedItems = extractedPayload.items as typeof parsedItems;
+  }
 
   const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}`;
   const hasUncertainty = dataCollection.needs_clarification === "true" || 
@@ -492,17 +702,17 @@ async function processFoodOrderIfApplicable(
     .insert({
       tenant_id: tenantId,
       order_number: orderNumber,
-      order_type: dataCollection.order_type || "pickup",
+      order_type: (extractedPayload.order_type as string) || dataCollection.order_type || "pickup",
       status,
       customer_id: customerId,
       customer_name: customerName || dataCollection.customer_name || "Phone Customer",
       customer_phone: payload.dynamic_variables?.caller_phone || null,
       items_json: parsedItems.length > 0 ? parsedItems : [{ name: "Order details in special instructions", qty: 1 }],
-      special_instructions: dataCollection.special_instructions || 
+      special_instructions: (extractedPayload.special_instructions as string) || dataCollection.special_instructions || 
         (orderItems && parsedItems.length === 0 ? `Customer order: ${orderItems}` : null),
       requested_time: dataCollection.requested_time ? new Date(dataCollection.requested_time).toISOString() : null,
-      delivery_address: dataCollection.delivery_address || null,
-      address_json: dataCollection.delivery_address ? { street: dataCollection.delivery_address } : null,
+      delivery_address: (extractedPayload.delivery_address as string) || dataCollection.delivery_address || null,
+      address_json: (extractedPayload.delivery_address || dataCollection.delivery_address) ? { street: extractedPayload.delivery_address || dataCollection.delivery_address } : null,
     })
     .select()
     .single();
@@ -579,6 +789,7 @@ function extractFromTranscript(
       /this is ([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
       /i'm ([A-Z][a-z]+)/i,
       /i am ([A-Z][a-z]+)/i,
+      /call me ([A-Z][a-z]+)/i,
     ];
     
     for (const pattern of namePatterns) {
@@ -589,9 +800,11 @@ function extractFromTranscript(
 
   if (type === "service") {
     const servicePatterns = [
-      /need (?:a )?(.+?(?:tow|jump|tire|lockout|delivery|repair|service))/i,
-      /looking for (?:a )?(.+?(?:tow|jump|tire|lockout|delivery|repair|service))/i,
-      /want (?:a )?(.+?(?:tow|jump|tire|lockout|delivery|repair|service))/i,
+      /need (?:a )?(.+?(?:tow|jump|tire|lockout|delivery|repair|service|detail|wash|clean|cut))/i,
+      /looking for (?:a )?(.+?(?:tow|jump|tire|lockout|delivery|repair|service|detail|wash|clean|cut))/i,
+      /want (?:a )?(.+?(?:tow|jump|tire|lockout|delivery|repair|service|detail|wash|clean|cut))/i,
+      /schedule (?:a )?(.+?(?:appointment|service|consultation|visit))/i,
+      /book (?:a )?(.+?(?:appointment|service|consultation|visit))/i,
       /flat tire/i,
       /battery (?:dead|jump|died)/i,
       /locked out/i,
