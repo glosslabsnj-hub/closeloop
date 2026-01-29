@@ -222,6 +222,56 @@ serve(async (req) => {
       created_at: booking.created_at,
     };
 
+    // Record audit event for booking created
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/record-audit-event`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({
+          tenant_id,
+          event_type: booking.status === "confirmed" ? "booking.confirmed" : "booking.created",
+          entity_type: "booking",
+          entity_id: booking_id,
+          actor_type: "system",
+          payload: {
+            service_name: booking.service?.name,
+            customer_name: booking.lead?.full_name,
+            scheduled_start: booking.start_at,
+          },
+          confirmation_summary: booking.status === "confirmed" 
+            ? `Booking confirmed: ${booking.service?.name || "Service"} for ${booking.lead?.full_name || "Customer"} at ${new Date(booking.start_at).toLocaleString()}`
+            : undefined,
+          confirmed_by: "staff",
+        }),
+      });
+    } catch (e) {
+      console.error("Failed to record booking audit event:", e);
+    }
+
+    // Record observation for booking pattern
+    if (booking.service?.name) {
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/record-observation`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify({
+            tenantId: tenant_id,
+            observationType: "service_pattern",
+            subjectKey: `service_${booking.service.id}`,
+            observation: `${booking.service.name} booked at ${new Date(booking.start_at).toLocaleTimeString()}`,
+          }),
+        });
+      } catch (e) {
+        console.error("Failed to record booking observation:", e);
+      }
+    }
+
     // Execute each enabled method
     for (const handoffMethod of methods) {
       if (handoffMethod === "internal") continue; // Always saved internally

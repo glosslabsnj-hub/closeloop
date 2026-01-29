@@ -7,49 +7,22 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-elevenlabs-signature",
 };
 
-/**
- * ElevenLabs Webhook Handler
- * 
- * This endpoint receives post-call data from ElevenLabs after a conversation ends.
- * It updates the ai_call_sessions table with:
- * - Transcript
- * - Summary  
- * - Customer name (extracted from conversation)
- * - Service requested (extracted from conversation)
- * - Outcome (booked, followup, lost, etc.)
- * 
- * Webhook should be configured in ElevenLabs dashboard to POST to:
- * {SUPABASE_URL}/functions/v1/elevenlabs-webhook
- */
-
 interface ElevenLabsWebhookPayload {
   type: string;
   conversation_id: string;
   agent_id: string;
-  
-  // Conversation data
-  transcript?: {
-    role: "user" | "agent";
-    message: string;
-    timestamp?: number;
-  }[];
-  
-  // Analysis/summary
+  transcript?: { role: "user" | "agent"; message: string; timestamp?: number }[];
   analysis?: {
     summary?: string;
     data_collection?: Record<string, string>;
     call_successful?: boolean;
     customer_satisfaction?: string;
   };
-  
-  // Metadata
   metadata?: {
     call_duration_secs?: number;
     start_time?: string;
     end_time?: string;
   };
-  
-  // Dynamic variables passed at call start
   dynamic_variables?: {
     tenant_id?: string;
     caller_phone?: string;
@@ -58,7 +31,6 @@ interface ElevenLabsWebhookPayload {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -74,7 +46,6 @@ serve(async (req) => {
       has_analysis: !!payload.analysis,
     }));
 
-    // Only process conversation.ended or similar events
     if (payload.type !== "conversation.ended" && payload.type !== "conversation_ended") {
       console.log("Ignoring non-ended event type:", payload.type);
       return new Response(
@@ -87,7 +58,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Find the call session by ElevenLabs conversation ID
+    // Find the call session
     const { data: session, error: sessionError } = await supabase
       .from("ai_call_sessions")
       .select("id, tenant_id, context_json")
@@ -97,7 +68,7 @@ serve(async (req) => {
     if (sessionError || !session) {
       console.error("Session not found for conversation:", payload.conversation_id);
       
-      // Try to find by recent caller phone if available
+      // Try fallback by phone
       if (payload.dynamic_variables?.caller_phone && payload.dynamic_variables?.tenant_id) {
         const { data: fallbackSession } = await supabase
           .from("ai_call_sessions")
@@ -111,7 +82,7 @@ serve(async (req) => {
           
         if (fallbackSession) {
           console.log("Found fallback session by phone:", fallbackSession.id);
-          await processCallData(supabase, fallbackSession.id, fallbackSession.context_json, payload);
+          await processCallData(supabase, supabaseUrl, supabaseKey, fallbackSession.id, fallbackSession.tenant_id, fallbackSession.context_json, payload);
           return new Response(
             JSON.stringify({ status: "success", session_id: fallbackSession.id }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -125,7 +96,7 @@ serve(async (req) => {
       );
     }
 
-    await processCallData(supabase, session.id, session.context_json, payload);
+    await processCallData(supabase, supabaseUrl, supabaseKey, session.id, session.tenant_id, session.context_json, payload);
 
     return new Response(
       JSON.stringify({ status: "success", session_id: session.id }),
@@ -144,20 +115,20 @@ serve(async (req) => {
 // deno-lint-ignore no-explicit-any
 async function processCallData(
   supabase: any,
+  supabaseUrl: string,
+  supabaseKey: string,
   sessionId: string,
+  tenantId: string,
   existingContext: Record<string, unknown> | null,
   payload: ElevenLabsWebhookPayload
 ) {
-  // Build full transcript text
   const transcriptText = payload.transcript
     ?.map(t => `${t.role === "user" ? "Customer" : "AI"}: ${t.message}`)
     .join("\n") || null;
 
-  // Extract customer info from analysis or transcript
   const analysis = payload.analysis || {};
   const dataCollection = analysis.data_collection || {};
   
-  // Try to extract customer name from various sources
   const customerName = 
     dataCollection.customer_name ||
     dataCollection.name ||
@@ -165,7 +136,6 @@ async function processCallData(
     extractFromTranscript(payload.transcript, "name") ||
     null;
 
-  // Try to extract service requested
   const serviceRequested =
     dataCollection.service_requested ||
     dataCollection.service ||
@@ -186,7 +156,6 @@ async function processCallData(
     outcome = "lead_captured";
   }
 
-  // Merge extracted data into context
   const updatedContext = {
     ...existingContext,
     customer_name: customerName || (existingContext as Record<string, unknown>)?.customer_name,
@@ -214,31 +183,118 @@ async function processCallData(
     throw updateError;
   }
 
-  console.log("Updated session:", sessionId, {
-    outcome,
-    hasTranscript: !!transcriptText,
-    hasSummary: !!analysis.summary,
-    customerName,
-    serviceRequested,
-  });
+  console.log("Updated session:", sessionId, { outcome, hasTranscript: !!transcriptText, hasSummary: !!analysis.summary });
 
-  // Check if this is a food order - create food_order record if applicable
-  const tenantId = payload.dynamic_variables?.tenant_id || (existingContext as Record<string, unknown>)?.tenant_id;
+  // Record audit event for call ended
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/record-audit-event`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({
+        tenant_id: tenantId,
+        event_type: "call.ended",
+        entity_type: "call",
+        entity_id: sessionId,
+        actor_type: "ai",
+        payload: {
+          outcome,
+          duration_secs: payload.metadata?.call_duration_secs,
+          customer_name: customerName,
+          service_requested: serviceRequested,
+        },
+      }),
+    });
+  } catch (e) {
+    console.error("Failed to record call.ended audit event:", e);
+  }
+
+  // Record observations from the call (confidence >= 0.65 threshold)
+  const callerPhone = payload.dynamic_variables?.caller_phone;
+  
+  // Observation 1: Service preference
+  if (serviceRequested && outcome !== "lost") {
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/record-observation`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({
+          tenantId,
+          observationType: "service_pattern",
+          subjectKey: `service_${serviceRequested.toLowerCase().replace(/\s+/g, "_").substring(0, 30)}`,
+          observation: `Customer inquired about ${serviceRequested}`,
+        }),
+      });
+    } catch (e) {
+      console.error("Failed to record service observation:", e);
+    }
+  }
+
+  // Observation 2: Time pattern (what hour/day they called)
+  const callHour = new Date().getHours();
+  const callDay = new Date().getDay();
+  if (outcome === "booked" || outcome === "lead_captured") {
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/record-observation`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({
+          tenantId,
+          observationType: "time_pattern",
+          subjectKey: `day_${callDay}_hour_${callHour}`,
+          observation: `Successful engagement at ${callHour}:00 on day ${callDay}`,
+        }),
+      });
+    } catch (e) {
+      console.error("Failed to record time pattern observation:", e);
+    }
+  }
+
+  // Observation 3: Customer preference (if explicit and not HIPAA-blocked)
+  if (callerPhone && customerName && outcome === "booked") {
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/record-observation`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({
+          tenantId,
+          observationType: "customer_preference",
+          subjectKey: `customer_${callerPhone.replace(/\D/g, "").slice(-10)}`,
+          observation: `${customerName} booked ${serviceRequested || "service"} successfully`,
+        }),
+      });
+    } catch (e) {
+      console.error("Failed to record customer preference observation:", e);
+    }
+  }
+
+  // Process food order if applicable
   if (tenantId) {
-    await processFoodOrderIfApplicable(supabase, String(tenantId), dataCollection, customerName, payload);
+    await processFoodOrderIfApplicable(supabase, supabaseUrl, supabaseKey, tenantId, dataCollection, customerName, payload);
   }
 }
 
-// Process food orders from AI calls
 // deno-lint-ignore no-explicit-any
 async function processFoodOrderIfApplicable(
   supabase: any,
+  supabaseUrl: string,
+  supabaseKey: string,
   tenantId: string,
   dataCollection: Record<string, string>,
   customerName: string | null,
   payload: ElevenLabsWebhookPayload
 ) {
-  // Check if tenant is in food mode
   const { data: tenant } = await supabase
     .from("tenants")
     .select("business_mode, enabled_modules")
@@ -253,7 +309,6 @@ async function processFoodOrderIfApplicable(
 
   if (!isFoodMode) return;
 
-  // Check if there's order data in the collection
   const orderConfirmed = dataCollection.order_confirmed === "true" || dataCollection.order_confirmed === "yes";
   const orderItems = dataCollection.order_items || dataCollection.items;
   
@@ -261,15 +316,12 @@ async function processFoodOrderIfApplicable(
 
   console.log("Processing food order for tenant:", tenantId);
 
-  // Parse order items if provided as string
   let parsedItems: Array<{ name: string; qty: number; modifiers?: string[]; item_notes?: string }> = [];
   try {
     if (typeof orderItems === "string") {
-      // Try to parse as JSON first
       try {
         parsedItems = JSON.parse(orderItems);
       } catch {
-        // If not JSON, split by comma/newline and create simple items
         parsedItems = orderItems.split(/[,\n]/).filter(Boolean).map(item => ({
           name: item.trim(),
           qty: 1,
@@ -280,17 +332,13 @@ async function processFoodOrderIfApplicable(
     console.error("Failed to parse order items:", e);
   }
 
-  // Generate order number
   const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}`;
-
-  // Determine status based on certainty
   const hasUncertainty = dataCollection.needs_clarification === "true" || 
     dataCollection.uncertain === "true" ||
     (parsedItems.length === 0 && orderItems);
   
   const status = hasUncertainty ? "needs_followup" : "confirmed";
 
-  // Create the food order
   const { data: newOrder, error: orderError } = await supabase
     .from("food_orders")
     .insert({
@@ -317,14 +365,43 @@ async function processFoodOrderIfApplicable(
 
   console.log("Created food order:", newOrder.id, newOrder.order_number);
 
+  // Record audit event
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/record-audit-event`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({
+        tenant_id: tenantId,
+        event_type: status === "confirmed" ? "order.confirmed" : "order.created",
+        entity_type: "order",
+        entity_id: newOrder.id,
+        actor_type: "ai",
+        payload: {
+          order_number: orderNumber,
+          order_type: dataCollection.order_type || "pickup",
+          item_count: parsedItems.length,
+        },
+        // For confirmed orders, create a dispute-safe receipt
+        confirmation_summary: status === "confirmed" 
+          ? `Order #${orderNumber}: ${parsedItems.map(i => `${i.qty}x ${i.name}`).join(", ") || "See special instructions"}`
+          : undefined,
+        confirmed_by: "customer_voice",
+      }),
+    });
+  } catch (e) {
+    console.error("Failed to record order audit event:", e);
+  }
+
   // Trigger order handoff
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     await fetch(`${supabaseUrl}/functions/v1/order-handoff`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        "Authorization": `Bearer ${supabaseKey}`,
       },
       body: JSON.stringify({
         order_id: newOrder.id,
@@ -336,10 +413,6 @@ async function processFoodOrderIfApplicable(
   }
 }
 
-/**
- * Simple extraction from transcript - looks for patterns like:
- * "My name is John" or "I need a tow"
- */
 function extractFromTranscript(
   transcript: ElevenLabsWebhookPayload["transcript"],
   type: "name" | "service"
@@ -352,7 +425,6 @@ function extractFromTranscript(
     .join(" ");
 
   if (type === "name") {
-    // Look for "My name is X" or "This is X" or "I'm X"
     const namePatterns = [
       /my name is ([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
       /this is ([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
@@ -367,7 +439,6 @@ function extractFromTranscript(
   }
 
   if (type === "service") {
-    // Look for service keywords
     const servicePatterns = [
       /need (?:a )?(.+?(?:tow|jump|tire|lockout|delivery|repair|service))/i,
       /looking for (?:a )?(.+?(?:tow|jump|tire|lockout|delivery|repair|service))/i,

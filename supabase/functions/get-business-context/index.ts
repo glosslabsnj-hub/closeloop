@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { tenantId } = await req.json();
+    const { tenantId, locationId, customerId, includeIntelligence = true } = await req.json();
     
     if (!tenantId) {
       return new Response(
@@ -32,13 +32,15 @@ serve(async (req) => {
       servicesResult,
       faqsResult,
       objectionsResult,
-      assistantResult
+      assistantResult,
+      intelligenceSettingsResult
     ] = await Promise.all([
       supabase.from("tenants").select("*").eq("id", tenantId).single(),
       supabase.from("services").select("*").eq("tenant_id", tenantId).eq("is_active", true),
       supabase.from("business_faqs").select("*").eq("tenant_id", tenantId).order("priority_weight", { ascending: false }),
       supabase.from("objection_responses").select("*").eq("tenant_id", tenantId).order("priority_weight", { ascending: false }),
-      supabase.from("ai_assistants").select("*").eq("tenant_id", tenantId).single()
+      supabase.from("ai_assistants").select("*").eq("tenant_id", tenantId).single(),
+      supabase.from("tenant_intelligence_settings").select("*").eq("tenant_id", tenantId).single()
     ]);
 
     if (tenantResult.error) {
@@ -54,6 +56,71 @@ serve(async (req) => {
     const faqs = faqsResult.data || [];
     const objections = objectionsResult.data || [];
     const assistant = assistantResult.data;
+    const intelligenceSettings = intelligenceSettingsResult.data;
+
+    // Fetch intent rules and memory hints if intelligence is enabled
+    let intentRules: Array<{ name: string; type: string; action: Record<string, unknown>; priority: number }> = [];
+    let memoryHints: Array<{ type: string; summary: string; usage: string; confidence: number }> = [];
+    
+    if (includeIntelligence) {
+      // Fetch active intent rules (owner-created, not suggested)
+      const { data: rules } = await supabase
+        .from("business_intent_rules")
+        .select("id, name, rule_type, action_json, priority")
+        .eq("tenant_id", tenantId)
+        .eq("is_enabled", true)
+        .eq("is_suggested", false)
+        .order("priority", { ascending: false });
+
+      if (rules && rules.length > 0) {
+        intentRules = rules.map(r => ({
+          name: r.name,
+          type: r.rule_type,
+          action: r.action_json || {},
+          priority: r.priority || 0,
+        }));
+      }
+
+      // Fetch memory hints if memory is enabled
+      const memoryEnabled = intelligenceSettings?.memory_enabled === true;
+      const hipaaMode = tenant.business_mode === "medical" && tenant.hipaa_mode === true;
+      
+      if (memoryEnabled && !hipaaMode) {
+        const minConfidence = intelligenceSettings?.min_confidence_threshold || 0.65;
+        const minObservations = intelligenceSettings?.min_observation_threshold || 3;
+        
+        let memoryQuery = supabase
+          .from("business_memory")
+          .select("memory_type, summary, confidence_score, subject_key, observation_count")
+          .eq("tenant_id", tenantId)
+          .eq("is_active", true)
+          .gte("confidence_score", minConfidence)
+          .gte("observation_count", minObservations)
+          .order("confidence_score", { ascending: false })
+          .limit(5);
+
+        // Location scoping
+        if (locationId && !intelligenceSettings?.share_memory_across_locations) {
+          memoryQuery = memoryQuery.eq("location_id", locationId);
+        }
+
+        // HIPAA: exclude customer preferences
+        if (hipaaMode) {
+          memoryQuery = memoryQuery.neq("memory_type", "customer_preference");
+        }
+
+        const { data: memories } = await memoryQuery;
+
+        if (memories && memories.length > 0) {
+          memoryHints = memories.map(m => ({
+            type: m.memory_type,
+            summary: m.summary,
+            usage: determineUsage(m.memory_type),
+            confidence: m.confidence_score,
+          }));
+        }
+      }
+    }
 
     // Build comprehensive context for AI
     const context = {
@@ -66,6 +133,7 @@ serve(async (req) => {
         website: tenant.website_url,
         yearsInBusiness: tenant.years_in_business,
         timezone: tenant.timezone,
+        mode: tenant.business_mode || "general",
       },
       hours: tenant.hours_json,
       policies: {
@@ -80,6 +148,7 @@ serve(async (req) => {
         bufferMinutes: tenant.appointment_buffer_minutes,
       },
       services: services.map(s => ({
+        id: s.id,
         name: s.name,
         description: s.description,
         duration: s.duration_minutes,
@@ -104,6 +173,14 @@ serve(async (req) => {
         fallback: assistant.fallback_script,
       } : null,
       neverPromise: tenant.ai_never_promise || [],
+      // Intelligence layers
+      intent_rules: intentRules,
+      memory_hints: memoryHints,
+      intelligence_settings: intelligenceSettings ? {
+        memory_enabled: intelligenceSettings.memory_enabled || false,
+        min_confidence: intelligenceSettings.min_confidence_threshold || 0.65,
+        share_memory_across_locations: intelligenceSettings.share_memory_across_locations || false,
+      } : { memory_enabled: false, min_confidence: 0.65, share_memory_across_locations: false },
     };
 
     // Generate system prompt for AI agent
@@ -122,8 +199,24 @@ serve(async (req) => {
   }
 });
 
+function determineUsage(memoryType: string): string {
+  switch (memoryType) {
+    case "time_pattern":
+      return "timing_preference";
+    case "customer_preference":
+      return "personalize";
+    case "capacity_pattern":
+      return "suggest_alternatives";
+    case "service_pattern":
+    case "exception_pattern":
+    default:
+      return "context";
+  }
+}
+
+// deno-lint-ignore no-explicit-any
 function buildSystemPrompt(context: any): string {
-  const { business, services, faqs, objectionHandling, aiSettings, neverPromise, policies, hours } = context;
+  const { business, services, faqs, objectionHandling, aiSettings, neverPromise, policies, hours, intent_rules, memory_hints } = context;
   
   let prompt = `You are an AI voice assistant for ${business.name}`;
   if (business.tagline) prompt += ` - ${business.tagline}`;
@@ -144,6 +237,7 @@ ${business.yearsInBusiness ? `- In business for ${business.yearsInBusiness} year
 
   if (services.length > 0) {
     prompt += `SERVICES OFFERED:\n`;
+    // deno-lint-ignore no-explicit-any
     services.forEach((s: any) => {
       prompt += `- ${s.name}`;
       if (s.duration) prompt += ` (${s.duration} minutes)`;
@@ -181,6 +275,7 @@ ${business.yearsInBusiness ? `- In business for ${business.yearsInBusiness} year
 
   if (faqs.length > 0) {
     prompt += `FREQUENTLY ASKED QUESTIONS:\n`;
+    // deno-lint-ignore no-explicit-any
     faqs.slice(0, 10).forEach((f: any) => {
       prompt += `Q: ${f.question}\nA: ${f.answer}\n\n`;
     });
@@ -188,6 +283,7 @@ ${business.yearsInBusiness ? `- In business for ${business.yearsInBusiness} year
 
   if (objectionHandling.length > 0) {
     prompt += `OBJECTION HANDLING:\n`;
+    // deno-lint-ignore no-explicit-any
     objectionHandling.slice(0, 5).forEach((o: any) => {
       prompt += `If customer says: "${o.objection}"\nRespond with: "${o.response}"\n\n`;
     });
@@ -201,6 +297,50 @@ ${business.yearsInBusiness ? `- In business for ${business.yearsInBusiness} year
     prompt += `\n`;
   }
 
+  // DECISION HIERARCHY: Hard constraints → Business Brain → Intent Rules → Memory hints
+  prompt += `DECISION PRIORITY (follow this order):\n`;
+  prompt += `1. HARD CONSTRAINTS - Never violate policies, never promise what's in "never promise" list\n`;
+  prompt += `2. BUSINESS BRAIN - Use FAQs, services, and objection handling first\n`;
+  prompt += `3. INTENT RULES - Apply negotiation/behavior rules from business owner\n`;
+  prompt += `4. MEMORY HINTS - Use for personalization and timing suggestions only\n\n`;
+
+  // Add intent rules (behavior policies from owner)
+  if (intent_rules && intent_rules.length > 0) {
+    prompt += `BEHAVIOR RULES (from business owner):\n`;
+    // deno-lint-ignore no-explicit-any
+    intent_rules.forEach((rule: any) => {
+      const action = rule.action || {};
+      if (action.guidance) {
+        prompt += `- ${rule.name}: ${action.guidance}\n`;
+      } else if (action.suggest_alternative) {
+        prompt += `- ${rule.name}: Suggest alternatives when applicable\n`;
+      } else if (action.max_discount_percent !== undefined) {
+        prompt += `- ${rule.name}: Max discount ${action.max_discount_percent}%\n`;
+      } else {
+        prompt += `- ${rule.name}\n`;
+      }
+    });
+    prompt += `\n`;
+  }
+
+  // Add memory hints (for personalization, NOT upsells)
+  if (memory_hints && memory_hints.length > 0) {
+    prompt += `CONTEXT HINTS (use for personalization, NOT for pushing upsells):\n`;
+    // deno-lint-ignore no-explicit-any
+    memory_hints.forEach((hint: any) => {
+      if (hint.usage === "personalize") {
+        prompt += `- Personalization: ${hint.summary}\n`;
+      } else if (hint.usage === "timing_preference") {
+        prompt += `- Timing insight: ${hint.summary}\n`;
+      } else if (hint.usage === "suggest_alternatives") {
+        prompt += `- Alternative suggestion: ${hint.summary}\n`;
+      } else {
+        prompt += `- Context: ${hint.summary}\n`;
+      }
+    });
+    prompt += `\n`;
+  }
+
   prompt += `IMPORTANT GUIDELINES:
 1. Be helpful, friendly, and professional
 2. If you don't know something specific, offer to have someone call them back
@@ -208,6 +348,7 @@ ${business.yearsInBusiness ? `- In business for ${business.yearsInBusiness} year
 4. Collect caller's name and phone number if they want a callback
 5. Never make up information about services, prices, or availability
 6. If a question is outside your knowledge, use the fallback script
+7. Use memory hints ONLY for personalization - never push upsells based on them
 
 `;
 
