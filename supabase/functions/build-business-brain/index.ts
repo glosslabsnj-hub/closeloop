@@ -7,6 +7,28 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+interface MemoryHint {
+  type: string;
+  summary: string;
+  confidence: number;
+  usage: string;
+}
+
+interface IntentRuleMatch {
+  type: string;
+  name: string;
+  action: Record<string, any>;
+  reason: string;
+}
+
+interface IntelligenceSection {
+  memory_enabled: boolean;
+  hints: MemoryHint[];
+  rules: IntentRuleMatch[];
+  active_rules_count: number;
+  hipaa_restricted: boolean;
+}
+
 interface BusinessBrain {
   business: {
     name: string;
@@ -82,6 +104,7 @@ interface BusinessBrain {
     greeting: string | null;
     fallback: string | null;
   } | null;
+  intelligence?: IntelligenceSection;
 }
 
 serve(async (req) => {
@@ -113,6 +136,9 @@ serve(async (req) => {
       assistantSettingsResult,
       availabilitySlotsResult,
       knowledgeBaseResult,
+      intelligenceSettingsResult,
+      memoryResult,
+      intentRulesResult,
     ] = await Promise.all([
       supabase.from("tenants").select("*").eq("id", tenantId).single(),
       supabase.from("services").select("*").eq("tenant_id", tenantId).eq("is_active", true),
@@ -122,6 +148,9 @@ serve(async (req) => {
       supabase.from("assistant_settings").select("*").eq("tenant_id", tenantId).single(),
       supabase.from("availability_slots").select("*").eq("tenant_id", tenantId).eq("is_available", true).order("day_of_week").order("start_time"),
       supabase.from("ai_knowledge_base").select("*").eq("tenant_id", tenantId).order("priority_weight", { ascending: false }),
+      supabase.from("tenant_intelligence_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
+      supabase.from("business_memory").select("*").eq("tenant_id", tenantId).eq("is_active", true).gte("confidence_score", 0.65).gte("observation_count", 3).order("confidence_score", { ascending: false }).limit(10),
+      supabase.from("business_intent_rules").select("*").eq("tenant_id", tenantId).eq("is_enabled", true).eq("is_suggested", false).order("priority", { ascending: false }),
     ]);
 
     if (tenantResult.error) {
@@ -140,6 +169,45 @@ serve(async (req) => {
     const assistantSettings = assistantSettingsResult.data;
     const availabilitySlots = availabilitySlotsResult.data || [];
     const knowledgeBase = knowledgeBaseResult.data || [];
+    const intelligenceSettings = intelligenceSettingsResult.data;
+    const memories = memoryResult.data || [];
+    const intentRules = intentRulesResult.data || [];
+
+    // Build intelligence section if enabled
+    const hipaaMode = tenant.business_mode === "medical" && tenant.hipaa_mode === true;
+    let intelligenceSection: IntelligenceSection | undefined;
+
+    if (intelligenceSettings?.memory_enabled || intentRules.length > 0) {
+      // Filter memories for HIPAA compliance
+      const filteredMemories = hipaaMode 
+        ? memories.filter((m: any) => m.memory_type !== "customer_preference")
+        : memories;
+
+      const hints: MemoryHint[] = filteredMemories.map((m: any) => ({
+        type: m.memory_type,
+        summary: m.summary,
+        confidence: m.confidence_score,
+        usage: m.memory_type === "time_pattern" ? "timing_preference" 
+             : m.memory_type === "customer_preference" ? "personalize"
+             : m.memory_type === "capacity_pattern" ? "suggest_alternatives"
+             : "context",
+      }));
+
+      const rules: IntentRuleMatch[] = intentRules.map((r: any) => ({
+        type: r.rule_type,
+        name: r.name,
+        action: r.action_json || {},
+        reason: r.description || "Configured rule",
+      }));
+
+      intelligenceSection = {
+        memory_enabled: intelligenceSettings?.memory_enabled || false,
+        hints,
+        rules,
+        active_rules_count: intentRules.length,
+        hipaa_restricted: hipaaMode,
+      };
+    }
 
     // Extract pricing rules from services
     const quoteOnlyServices = services
@@ -249,6 +317,7 @@ serve(async (req) => {
         greeting: assistant.greeting_script,
         fallback: assistant.fallback_script,
       } : null,
+      intelligence: intelligenceSection,
     };
 
     return new Response(

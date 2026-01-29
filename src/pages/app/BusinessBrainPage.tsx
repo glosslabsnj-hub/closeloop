@@ -32,10 +32,12 @@ import KnowledgeGapQueue from "@/components/knowledge/KnowledgeGapQueue";
 import { KnowledgeUpdatesTab } from "@/components/knowledge/KnowledgeUpdatesTab";
 import { KnowledgeUploadHub } from "@/components/knowledge/KnowledgeUploadHub";
 import { KnowledgeConflictBanner } from "@/components/dashboard/KnowledgeConflictBanner";
+import { BusinessMemoryTab } from "@/components/knowledge/BusinessMemoryTab";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useKnowledgeConflicts } from "@/hooks/useKnowledgeConflicts";
+import { useIntelligenceSettings } from "@/hooks/useIntelligenceSettings";
 import { useKnowledgeSuggestions } from "@/hooks/useKnowledgeSuggestions";
 
 export default function BusinessBrainPage() {
@@ -47,6 +49,7 @@ export default function BusinessBrainPage() {
   
   const { unresolvedCount: conflictsCount } = useKnowledgeConflicts();
   const { pendingCount: suggestionsCount } = useKnowledgeSuggestions();
+  const { settings: intelligenceSettings } = useIntelligenceSettings();
 
   // Fetch knowledge stats
   const { data: knowledgeStats } = useQuery({
@@ -228,6 +231,14 @@ export default function BusinessBrainPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="memory" className="relative">
+            Memory
+            {intelligenceSettings?.memory_enabled && (
+              <Badge variant="secondary" className="ml-2 h-5 px-1.5">
+                <Brain className="h-3 w-3" />
+              </Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="updates" className="relative">
             Updates
             {updatesActionNeeded && (
@@ -448,6 +459,10 @@ export default function BusinessBrainPage() {
               </CollapsibleContent>
             </Card>
           </Collapsible>
+        </TabsContent>
+
+        <TabsContent value="memory" className="mt-6">
+          <BusinessMemoryTab />
         </TabsContent>
 
         <TabsContent value="updates" className="mt-6">

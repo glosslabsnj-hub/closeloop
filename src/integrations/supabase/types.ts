@@ -600,6 +600,122 @@ export type Database = {
           },
         ]
       }
+      business_intent_rules: {
+        Row: {
+          action_json: Json
+          condition_json: Json
+          created_at: string | null
+          description: string | null
+          id: string
+          is_enabled: boolean | null
+          is_suggested: boolean | null
+          name: string
+          priority: number | null
+          rule_type: Database["public"]["Enums"]["intent_rule_type"]
+          suggested_reason: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          action_json?: Json
+          condition_json?: Json
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          is_suggested?: boolean | null
+          name: string
+          priority?: number | null
+          rule_type: Database["public"]["Enums"]["intent_rule_type"]
+          suggested_reason?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          action_json?: Json
+          condition_json?: Json
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          is_suggested?: boolean | null
+          name?: string
+          priority?: number | null
+          rule_type?: Database["public"]["Enums"]["intent_rule_type"]
+          suggested_reason?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_intent_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_memory: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          first_observed_at: string | null
+          id: string
+          is_active: boolean | null
+          last_observed_at: string | null
+          location_id: string | null
+          memory_type: Database["public"]["Enums"]["memory_type"]
+          observation_count: number | null
+          subject_key: string | null
+          summary: string
+          tenant_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          first_observed_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_observed_at?: string | null
+          location_id?: string | null
+          memory_type: Database["public"]["Enums"]["memory_type"]
+          observation_count?: number | null
+          subject_key?: string | null
+          summary: string
+          tenant_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          first_observed_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_observed_at?: string | null
+          location_id?: string | null
+          memory_type?: Database["public"]["Enums"]["memory_type"]
+          observation_count?: number | null
+          subject_key?: string | null
+          summary?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_memory_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_memory_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catering_requests: {
         Row: {
           budget_range: string | null
@@ -2315,6 +2431,47 @@ export type Database = {
           },
         ]
       }
+      tenant_intelligence_settings: {
+        Row: {
+          copilot_can_suggest_rules: boolean | null
+          created_at: string | null
+          memory_enabled: boolean | null
+          min_confidence_threshold: number | null
+          min_observation_threshold: number | null
+          share_memory_across_locations: boolean | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          copilot_can_suggest_rules?: boolean | null
+          created_at?: string | null
+          memory_enabled?: boolean | null
+          min_confidence_threshold?: number | null
+          min_observation_threshold?: number | null
+          share_memory_across_locations?: boolean | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          copilot_can_suggest_rules?: boolean | null
+          created_at?: string | null
+          memory_enabled?: boolean | null
+          min_confidence_threshold?: number | null
+          min_observation_threshold?: number | null
+          share_memory_across_locations?: boolean | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_intelligence_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_locations: {
         Row: {
           created_at: string | null
@@ -2769,6 +2926,10 @@ export type Database = {
         Args: { _tenant_id: string }
         Returns: undefined
       }
+      initialize_intelligence_settings: {
+        Args: { _tenant_id: string }
+        Returns: undefined
+      }
       normalize_phone_e164: { Args: { phone: string }; Returns: string }
       resolve_customer: {
         Args: {
@@ -2853,6 +3014,12 @@ export type Database = {
         | "pet_grooming"
         | "towing"
         | "locksmith"
+      intent_rule_type:
+        | "time_preference"
+        | "upsell_rule"
+        | "discount_guardrail"
+        | "urgency_handling"
+        | "capacity_protection"
       knowledge_source_status: "uploading" | "processing" | "ready" | "failed"
       knowledge_source_type:
         | "menu_pdf"
@@ -2862,6 +3029,12 @@ export type Database = {
         | "general"
       lead_source: "missed_call" | "website_form" | "manual" | "referral"
       lead_status: "new" | "contacted" | "qualified" | "booked" | "lost" | "won"
+      memory_type:
+        | "customer_preference"
+        | "time_pattern"
+        | "service_pattern"
+        | "capacity_pattern"
+        | "exception_pattern"
       message_direction: "inbound" | "outbound"
       message_status: "queued" | "sent" | "delivered" | "failed"
       missed_call_behavior: "text_only" | "ai_callback" | "both"
@@ -3109,6 +3282,13 @@ export const Constants = {
         "towing",
         "locksmith",
       ],
+      intent_rule_type: [
+        "time_preference",
+        "upsell_rule",
+        "discount_guardrail",
+        "urgency_handling",
+        "capacity_protection",
+      ],
       knowledge_source_status: ["uploading", "processing", "ready", "failed"],
       knowledge_source_type: [
         "menu_pdf",
@@ -3119,6 +3299,13 @@ export const Constants = {
       ],
       lead_source: ["missed_call", "website_form", "manual", "referral"],
       lead_status: ["new", "contacted", "qualified", "booked", "lost", "won"],
+      memory_type: [
+        "customer_preference",
+        "time_pattern",
+        "service_pattern",
+        "capacity_pattern",
+        "exception_pattern",
+      ],
       message_direction: ["inbound", "outbound"],
       message_status: ["queued", "sent", "delivered", "failed"],
       missed_call_behavior: ["text_only", "ai_callback", "both"],
