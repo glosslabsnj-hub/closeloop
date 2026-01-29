@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   RefreshCw, 
   Copy, 
@@ -18,9 +19,14 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
+  Zap,
+  List,
+  TrendingUp,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+
+type ChannelFilter = "all" | "voice" | "sms" | "browser_test";
 
 export default function AIContextInspectorPage() {
   const { tenant, isSuperAdmin } = useAuth();
@@ -28,6 +34,8 @@ export default function AIContextInspectorPage() {
   const { snapshots, loading, refetch } = useAIContextSnapshots(tenantId);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<GoldenPathTestResult[] | null>(null);
+  const [channelFilter, setChannelFilter] = useState<ChannelFilter>("all");
+  const [generatingContext, setGeneratingContext] = useState(false);
 
   // Only accessible to admins/super-admins in dev
   if (!tenantId && !isSuperAdmin) {
@@ -37,6 +45,21 @@ export default function AIContextInspectorPage() {
       </div>
     );
   }
+
+  // Filter snapshots by channel
+  const filteredSnapshots = channelFilter === "all" 
+    ? snapshots 
+    : snapshots.filter(s => s.channel === channelFilter);
+
+  // Calculate summary metrics
+  const metrics = {
+    total: snapshots.length,
+    voice: snapshots.filter(s => s.channel === "voice").length,
+    sms: snapshots.filter(s => s.channel === "sms").length,
+    browserTest: snapshots.filter(s => s.channel === "browser_test").length,
+    complete: snapshots.filter(s => !s.missing_sections || s.missing_sections.length === 0).length,
+    withGaps: snapshots.filter(s => s.missing_sections && s.missing_sections.length > 0).length,
+  };
 
   const getChannelIcon = (channel: string) => {
     switch (channel) {
@@ -75,6 +98,42 @@ export default function AIContextInspectorPage() {
     });
   };
 
+  const handleGenerateTestContext = async () => {
+    if (!tenantId) {
+      toast({ title: "No tenant selected", variant: "destructive" });
+      return;
+    }
+    
+    setGeneratingContext(true);
+    try {
+      // Call the get-business-context edge function directly to generate a test snapshot
+      const { data, error } = await supabase.functions.invoke("get-business-context", {
+        body: { tenantId },
+      });
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      toast({ 
+        title: "Context generated successfully", 
+        description: "Refresh to see the new snapshot" 
+      });
+      
+      // Refetch snapshots to show the new one
+      setTimeout(() => refetch(), 500);
+    } catch (err) {
+      console.error("Failed to generate test context:", err);
+      toast({ 
+        title: "Failed to generate context", 
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive" 
+      });
+    } finally {
+      setGeneratingContext(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -83,10 +142,79 @@ export default function AIContextInspectorPage() {
             <h1 className="text-2xl font-bold">AI Context Inspector</h1>
             <p className="text-muted-foreground">Debug what the AI sees during calls and SMS</p>
           </div>
-          <Button onClick={refetch} variant="outline" size="sm" disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleGenerateTestContext} 
+              variant="outline" 
+              size="sm" 
+              disabled={generatingContext || !tenantId}
+            >
+              <Zap className={`h-4 w-4 mr-2 ${generatingContext ? "animate-pulse" : ""}`} />
+              {generatingContext ? "Generating..." : "Generate Test Context"}
+            </Button>
+            <Button onClick={refetch} variant="outline" size="sm" disabled={loading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
+        </div>
+
+        {/* Summary Metrics */}
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+          <Card className="p-3">
+            <div className="flex items-center gap-2">
+              <List className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-2xl font-bold">{metrics.total}</p>
+                <p className="text-xs text-muted-foreground">Total Snapshots</p>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-3">
+            <div className="flex items-center gap-2">
+              <Phone className="h-4 w-4 text-primary" />
+              <div>
+                <p className="text-2xl font-bold">{metrics.voice}</p>
+                <p className="text-xs text-muted-foreground">Voice Calls</p>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-3">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-accent-foreground" />
+              <div>
+                <p className="text-2xl font-bold">{metrics.sms}</p>
+                <p className="text-xs text-muted-foreground">SMS</p>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-3">
+            <div className="flex items-center gap-2">
+              <Monitor className="h-4 w-4 text-secondary-foreground" />
+              <div>
+                <p className="text-2xl font-bold">{metrics.browserTest}</p>
+                <p className="text-xs text-muted-foreground">Browser Tests</p>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-primary" />
+              <div>
+                <p className="text-2xl font-bold">{metrics.complete}</p>
+                <p className="text-xs text-muted-foreground">Complete</p>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-destructive" />
+              <div>
+                <p className="text-2xl font-bold">{metrics.withGaps}</p>
+                <p className="text-xs text-muted-foreground">With Gaps</p>
+              </div>
+            </div>
+          </Card>
         </div>
 
         <Tabs defaultValue="snapshots">
@@ -95,18 +223,65 @@ export default function AIContextInspectorPage() {
             <TabsTrigger value="tests">Golden Path Tests</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="snapshots" className="mt-4">
-            {snapshots.length === 0 ? (
+          <TabsContent value="snapshots" className="mt-4 space-y-4">
+            {/* Channel Filter */}
+            <div className="flex gap-2">
+              <Button 
+                variant={channelFilter === "all" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => setChannelFilter("all")}
+              >
+                All ({metrics.total})
+              </Button>
+              <Button 
+                variant={channelFilter === "voice" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => setChannelFilter("voice")}
+              >
+                <Phone className="h-3 w-3 mr-1" />
+                Voice ({metrics.voice})
+              </Button>
+              <Button 
+                variant={channelFilter === "sms" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => setChannelFilter("sms")}
+              >
+                <MessageSquare className="h-3 w-3 mr-1" />
+                SMS ({metrics.sms})
+              </Button>
+              <Button 
+                variant={channelFilter === "browser_test" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => setChannelFilter("browser_test")}
+              >
+                <Monitor className="h-3 w-3 mr-1" />
+                Browser ({metrics.browserTest})
+              </Button>
+            </div>
+
+            {filteredSnapshots.length === 0 ? (
               <Card>
                 <CardContent className="py-8 text-center text-muted-foreground">
-                  No context snapshots recorded yet. Make a test call or send an SMS to see data here.
+                  {channelFilter === "all" 
+                    ? "No context snapshots recorded yet. Make a test call or send an SMS to see data here."
+                    : `No ${channelFilter.replace("_", " ")} snapshots found.`
+                  }
                 </CardContent>
               </Card>
             ) : (
               <div className="space-y-3">
-                {snapshots.map((snapshot) => {
+                {filteredSnapshots.map((snapshot) => {
                   const isExpanded = expandedId === snapshot.id;
                   const missingSections = snapshot.missing_sections || [];
+                  const contextJson = snapshot.context_json as Record<string, unknown>;
+                  
+                  // Extract key info from context for display
+                  const contextTenant = contextJson?.tenant as Record<string, unknown> | undefined;
+                  const contextOfferings = contextJson?.offerings as Record<string, unknown> | undefined;
+                  const businessName = contextTenant?.business_name as string || "Unknown";
+                  const businessMode = contextTenant?.business_mode as string || "general";
+                  const servicesCount = Array.isArray(contextOfferings?.services) ? (contextOfferings.services as unknown[]).length : 0;
+                  const menuCount = Array.isArray(contextOfferings?.menu) ? (contextOfferings.menu as unknown[]).length : 0;
                   
                   return (
                     <Card key={snapshot.id} className="overflow-hidden">
@@ -122,10 +297,12 @@ export default function AIContextInspectorPage() {
                           
                           <div>
                             <p className="font-medium text-sm">
-                              Session: {snapshot.session_id.slice(0, 20)}...
+                              {businessName} <span className="text-muted-foreground">({businessMode})</span>
                             </p>
                             <p className="text-xs text-muted-foreground">
                               {format(new Date(snapshot.created_at), "MMM d, h:mm:ss a")}
+                              {servicesCount > 0 && ` • ${servicesCount} services`}
+                              {menuCount > 0 && ` • ${menuCount} menu items`}
                             </p>
                           </div>
                         </div>
@@ -159,6 +336,32 @@ export default function AIContextInspectorPage() {
                               ))}
                             </div>
                           )}
+
+                          {/* Quick Summary of What AI Can See */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                            <div className="p-2 rounded bg-muted/50">
+                              <span className="text-muted-foreground">Services:</span>
+                              <span className="ml-1 font-medium">{servicesCount}</span>
+                            </div>
+                            <div className="p-2 rounded bg-muted/50">
+                              <span className="text-muted-foreground">Menu:</span>
+                              <span className="ml-1 font-medium">{menuCount}</span>
+                            </div>
+                            <div className="p-2 rounded bg-muted/50">
+                              <span className="text-muted-foreground">FAQs:</span>
+                              <span className="ml-1 font-medium">
+                                {Array.isArray((contextJson?.knowledge as Record<string, unknown>)?.faqs) 
+                                  ? ((contextJson?.knowledge as Record<string, unknown>)?.faqs as unknown[]).length 
+                                  : 0}
+                              </span>
+                            </div>
+                            <div className="p-2 rounded bg-muted/50">
+                              <span className="text-muted-foreground">Hours:</span>
+                              <span className="ml-1 font-medium">
+                                {String(contextTenant?.hours_today || "Not set")}
+                              </span>
+                            </div>
+                          </div>
 
                           <div className="flex gap-2">
                             <Button 
