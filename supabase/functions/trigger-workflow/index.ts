@@ -15,6 +15,8 @@ interface TriggerWorkflowRequest {
   details?: Record<string, any>;
   customer?: Record<string, any>;
   summary?: string;
+  dry_run?: boolean; // If true, simulate without sending webhooks/SMS
+  retry_run_id?: string; // If set, this is a retry of a previous run
 }
 
 // Helper for consistent JSON responses with CORS
@@ -335,7 +337,8 @@ async function executeNode(
   runId: string,
   node: any,
   context: Record<string, any>,
-  tenantId: string
+  tenantId: string,
+  isDryRun: boolean = false
 ): Promise<Record<string, any>> {
   const config = node.config ?? {};
   let output: Record<string, any> = {};
@@ -344,23 +347,30 @@ async function executeNode(
   try {
     switch (node.node_type) {
       case "print_ticket":
-        output = await executePrintTicket(supabase, config, context);
+        output = isDryRun 
+          ? { dry_run: true, would_print: { format: config?.format || "thermal", copies: config?.copies || 1 } }
+          : await executePrintTicket(supabase, config, context);
         break;
 
       case "notify_sms":
-        output = await executeNotifySms(config, context, tenantId);
+        output = isDryRun
+          ? { dry_run: true, would_send: { to: resolveTemplate(config?.to || "{{customer_phone}}", context), message: resolveTemplate(config?.message || "", context) } }
+          : await executeNotifySms(config, context, tenantId);
         break;
 
       case "notify_email":
-        output = await executeNotifyEmail(config, context);
+        output = isDryRun
+          ? { dry_run: true, would_send: { to: resolveTemplate(config?.to || "{{customer_email}}", context), subject: resolveTemplate(config?.subject || "", context) } }
+          : await executeNotifyEmail(config, context);
         break;
 
       case "webhook_push":
-        output = await executeWebhookPush(config, context);
+        output = await executeWebhookPush(supabase, config, context, node.id, runId, tenantId, isDryRun);
         break;
 
       case "delay":
         output = executeDelay(config);
+        if (isDryRun) output.dry_run = true;
         break;
 
       case "branch":
@@ -368,11 +378,14 @@ async function executeNode(
         break;
 
       case "set_field":
-        output = await executeSetField(supabase, config, context);
+        output = isDryRun
+          ? { dry_run: true, would_set: { path: config?.path || config?.entity_field, value: resolveTemplate(String(config?.value || ""), context) } }
+          : await executeSetField(supabase, config, context);
         break;
 
       case "assign_to_user":
         output = await executeAssignToUser(supabase, config, context);
+        if (isDryRun) output.dry_run = true;
         break;
 
       default:
@@ -491,8 +504,13 @@ async function executeNotifyEmail(
 }
 
 async function executeWebhookPush(
+  supabase: any,
   config: any,
-  context: Record<string, any>
+  context: Record<string, any>,
+  nodeId: string,
+  runId: string,
+  tenantId: string,
+  isDryRun: boolean
 ): Promise<Record<string, any>> {
   // Allow config URL or fallback to delivery settings
   const url = config?.url || context.delivery?.webhook_url;
@@ -503,28 +521,99 @@ async function executeWebhookPush(
     return { ok: false, skipped: true, reason: "No webhook URL configured" };
   }
 
+  // Build idempotency key from entity_id + node_id
+  const idempotencyKey = `${context.entity_id}:${nodeId}`;
+
+  // Check for existing execution (idempotency)
+  const { data: existing } = await supabase
+    .from("webhook_executions")
+    .select("id, status, response_code")
+    .eq("idempotency_key", idempotencyKey)
+    .maybeSingle();
+
+  if (existing && existing.status === "success") {
+    return {
+      idempotent_skip: true,
+      reason: "Webhook already executed for this entity+node",
+      previous_status: existing.response_code,
+    };
+  }
+
   // Build body from template
   let body: any = config?.body_template || context;
   if (typeof body === "object") {
     body = JSON.parse(resolveTemplate(JSON.stringify(body), context));
   }
 
-  const response = await fetch(url, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      ...headers,
-    },
-    body: JSON.stringify(body),
-  });
+  // Dry run mode - return simulated output
+  if (isDryRun) {
+    return {
+      dry_run: true,
+      would_send: {
+        url,
+        method,
+        headers,
+        body,
+      },
+    };
+  }
 
-  const responseText = await response.text();
+  // Record webhook execution attempt
+  const { data: execution } = await supabase
+    .from("webhook_executions")
+    .insert({
+      tenant_id: tenantId,
+      run_id: runId,
+      node_id: nodeId,
+      entity_id: context.entity_id,
+      idempotency_key: idempotencyKey,
+      status: "pending",
+    })
+    .select()
+    .single();
 
-  return {
-    status_code: response.status,
-    response: responseText.slice(0, 1000),
-    success: response.ok,
-  };
+  try {
+    const response = await fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        ...headers,
+      },
+      body: JSON.stringify(body),
+    });
+
+    const responseText = await response.text();
+
+    // Update execution record
+    if (execution) {
+      await supabase
+        .from("webhook_executions")
+        .update({
+          status: response.ok ? "success" : "failed",
+          response_code: response.status,
+          response_body: responseText.slice(0, 2000),
+        })
+        .eq("id", execution.id);
+    }
+
+    return {
+      status_code: response.status,
+      response: responseText.slice(0, 1000),
+      success: response.ok,
+    };
+  } catch (error) {
+    // Update execution record with error
+    if (execution) {
+      await supabase
+        .from("webhook_executions")
+        .update({
+          status: "failed",
+          response_body: String(error).slice(0, 2000),
+        })
+        .eq("id", execution.id);
+    }
+    throw error;
+  }
 }
 
 function executeDelay(config: any): Record<string, any> {
@@ -670,13 +759,26 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body: TriggerWorkflowRequest = await req.json();
-    const { tenant_id, trigger, entity_type, entity_id, location_id, details, customer, summary } = body;
+    const { tenant_id, trigger, entity_type, entity_id, location_id, details, customer, summary, dry_run, retry_run_id } = body;
+
+    const isDryRun = dry_run === true;
 
     if (!tenant_id || !trigger || !entity_type || !entity_id) {
       return json(400, { error: "Missing required fields: tenant_id, trigger, entity_type, entity_id" });
     }
 
-    console.log(`[trigger-workflow] Triggering ${trigger} for ${entity_type}/${entity_id}`);
+    console.log(`[trigger-workflow] Triggering ${trigger} for ${entity_type}/${entity_id}${isDryRun ? " (DRY RUN)" : ""}`);
+
+    // Get retry count if this is a retry
+    let retryCount = 0;
+    if (retry_run_id) {
+      const { data: parentRun } = await supabase
+        .from("workflow_runs")
+        .select("retry_count")
+        .eq("id", retry_run_id)
+        .single();
+      retryCount = (parentRun?.retry_count || 0) + 1;
+    }
 
     // Find matching active workflow
     const workflow = await getActiveWorkflow(supabase, tenant_id, trigger, location_id);
@@ -703,6 +805,7 @@ serve(async (req) => {
       customer: customer ?? {},
       summary: summary ?? "",
       trigger,
+      is_dry_run: isDryRun,
     };
 
     // Create workflow run
@@ -716,6 +819,9 @@ serve(async (req) => {
         entity_id,
         status: "running",
         context,
+        is_dry_run: isDryRun,
+        retry_count: retryCount,
+        parent_run_id: retry_run_id || null,
       })
       .select()
       .single();
@@ -748,7 +854,7 @@ serve(async (req) => {
       if (!node) continue;
 
       try {
-        const result = await executeNode(supabase, run.id, node, context, tenant_id);
+        const result = await executeNode(supabase, run.id, node, context, tenant_id, isDryRun);
         stepsExecuted++;
 
         // Handle delay nodes - schedule continuation

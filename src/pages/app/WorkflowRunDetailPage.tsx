@@ -1,18 +1,23 @@
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, CheckCircle, XCircle, Clock, Ban, SkipForward } from "lucide-react";
+import { ArrowLeft, CheckCircle, XCircle, Clock, Ban, SkipForward, RefreshCw, AlertTriangle, FlaskConical } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
-import { useWorkflowRunDetails, useCancelWorkflowRun } from "@/hooks/useWorkflowRuns";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useWorkflowRunDetails, useCancelWorkflowRun, useRetryWorkflowRun } from "@/hooks/useWorkflowRuns";
 import { TRIGGER_METADATA, NODE_TYPE_METADATA, type WorkflowRunStepStatus } from "@/types/workflow";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function WorkflowRunDetailPage() {
   const { id, runId } = useParams<{ id: string; runId: string }>();
   const { data: run, isLoading } = useWorkflowRunDetails(runId ?? null);
   const cancelRun = useCancelWorkflowRun();
+  const retryRun = useRetryWorkflowRun();
+  const { isSuperAdmin } = useAuth();
+  
+  const isDryRun = (run?.context as any)?.is_dry_run === true;
 
   if (isLoading) {
     return (
@@ -55,17 +60,40 @@ export default function WorkflowRunDetailPage() {
           </div>
         </div>
         
-        {run.status === "running" && (
-          <Button
-            variant="outline"
-            onClick={() => cancelRun.mutate(run.id)}
-            disabled={cancelRun.isPending}
-          >
-            <Ban className="h-4 w-4 mr-2" />
-            Cancel Run
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {run.status === "failed" && (
+            <Button
+              variant="outline"
+              onClick={() => retryRun.mutate(run.id)}
+              disabled={retryRun.isPending}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${retryRun.isPending ? "animate-spin" : ""}`} />
+              Retry Run
+            </Button>
+          )}
+          {run.status === "running" && (
+            <Button
+              variant="outline"
+              onClick={() => cancelRun.mutate(run.id)}
+              disabled={cancelRun.isPending}
+            >
+              <Ban className="h-4 w-4 mr-2" />
+              Cancel Run
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* Dry Run Banner */}
+      {isDryRun && (
+        <Alert>
+          <FlaskConical className="h-4 w-4" />
+          <AlertTitle>Dry Run Mode</AlertTitle>
+          <AlertDescription>
+            This was a simulation. No webhooks were sent, no SMS/email delivered, no database changes made.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Run Summary */}
       <Card>
@@ -73,6 +101,7 @@ export default function WorkflowRunDetailPage() {
           <CardTitle className="text-lg flex items-center gap-2">
             <RunStatusIcon status={run.status} />
             Run Status: {run.status}
+            {isDryRun && <Badge variant="outline" className="ml-2">Dry Run</Badge>}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -106,10 +135,25 @@ export default function WorkflowRunDetailPage() {
           </div>
           
           {run.error && (
-            <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
-              <div className="text-sm font-medium text-destructive">Error</div>
-              <div className="text-sm text-destructive/80 mt-1">{run.error}</div>
-            </div>
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Execution Failed</AlertTitle>
+              <AlertDescription>
+                {run.error}
+                {isSuperAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => retryRun.mutate(run.id)}
+                    disabled={retryRun.isPending}
+                  >
+                    <RefreshCw className={`h-3 w-3 mr-1 ${retryRun.isPending ? "animate-spin" : ""}`} />
+                    Retry Now
+                  </Button>
+                )}
+              </AlertDescription>
+            </Alert>
           )}
         </CardContent>
       </Card>

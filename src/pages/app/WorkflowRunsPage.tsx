@@ -13,7 +13,7 @@ import { TRIGGER_METADATA, NODE_TYPE_METADATA, type WorkflowRunStatus } from "@/
 export default function WorkflowRunsPage() {
   const { id } = useParams<{ id: string }>();
   const { data: workflow, isLoading: loadingWorkflow } = useWorkflow(id ?? null);
-  const { data: runs, isLoading: loadingRuns, refetch } = useWorkflowRuns(id ?? null);
+  const { data: runs, isLoading: loadingRuns, refetch } = useWorkflowRuns(id ?? null, { limit: 25 });
   const retryRun = useRetryWorkflowRun();
 
   const isLoading = loadingWorkflow || loadingRuns;
