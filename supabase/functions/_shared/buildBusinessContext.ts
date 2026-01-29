@@ -357,10 +357,16 @@ function normalizeMenuItems(items: Array<{
   }));
 }
 
+// Maximum menu summary length for ElevenLabs dynamic variables
+const MENU_SUMMARY_MAX_LENGTH = 1500;
+
 /**
- * Build menu summary for AI context
+ * Build menu summary for AI context with strict size constraints
  * Creates a structured menu listing that allows the AI to take orders
  * Format: "Category: Item ($X.XX), Item ($X.XX). Category: Item..."
+ * 
+ * CRITICAL: Output must be <= 1500 chars to fit ElevenLabs context
+ * For large menus, compression is applied: top categories + representative items
  */
 function buildMenuSummary(items: NormalizedMenuItem[]): string {
   if (items.length === 0) return "";
@@ -382,30 +388,71 @@ function buildMenuSummary(items: NormalizedMenuItem[]): string {
     });
   }
   
-  // Build the summary with more detail for ordering
-  const parts = Object.entries(byCategory).map(([cat, categoryItems]) => {
-    const itemStrings = categoryItems.slice(0, 8).map(item => {
+  const categoryNames = Object.keys(byCategory);
+  const totalItems = Object.values(byCategory).reduce((sum, arr) => sum + arr.length, 0);
+  
+  if (totalItems === 0) return "";
+  
+  // Determine if compression is needed (estimate: ~40 chars per item)
+  const estimatedSize = totalItems * 40;
+  const needsCompression = estimatedSize > MENU_SUMMARY_MAX_LENGTH;
+  
+  // Build the summary - compress for large menus
+  const itemsPerCategory = needsCompression ? 5 : 8;
+  const categoriesToInclude = needsCompression ? Math.min(categoryNames.length, 6) : categoryNames.length;
+  
+  const parts: string[] = [];
+  let usedCategories = 0;
+  
+  for (const [cat, categoryItems] of Object.entries(byCategory)) {
+    if (usedCategories >= categoriesToInclude) break;
+    
+    const itemStrings = categoryItems.slice(0, itemsPerCategory).map(item => {
       let str = `${item.name} (${item.price})`;
-      // Include modifiers hint if they exist
-      if (item.modifiers.length > 0) {
+      // Include modifiers hint if they exist (only if not compressing)
+      if (!needsCompression && item.modifiers.length > 0) {
         const modHint = item.modifiers.slice(0, 2).join("/");
         str += ` [${modHint}]`;
       }
       return str;
     });
-    const suffix = categoryItems.length > 8 ? `, +${categoryItems.length - 8} more` : "";
-    return `${cat}: ${itemStrings.join(", ")}${suffix}`;
-  });
+    const suffix = categoryItems.length > itemsPerCategory ? `, +${categoryItems.length - itemsPerCategory} more` : "";
+    parts.push(`${cat}: ${itemStrings.join(", ")}${suffix}`);
+    usedCategories++;
+  }
   
   let result = parts.join(". ");
   
-  // Add total item count
-  const totalItems = Object.values(byCategory).reduce((sum, arr) => sum + arr.length, 0);
-  if (totalItems > 0) {
+  // Add header with count and compression indicator
+  if (needsCompression) {
+    const remainingCategories = categoryNames.length - categoriesToInclude;
+    result = `[${totalItems} items, ${categoryNames.length} categories${remainingCategories > 0 ? `, showing top ${categoriesToInclude}` : ""}] ` + result;
+  } else {
     result = `[${totalItems} items available] ` + result;
   }
   
-  return truncate(result, 1200);
+  // Final safety truncation to ensure we never exceed limit
+  return truncate(result, MENU_SUMMARY_MAX_LENGTH);
+}
+
+/**
+ * Extract menu metadata for dynamic variables
+ */
+function getMenuMetadata(items: NormalizedMenuItem[]): { hasMore: boolean; topCategories: string[] } {
+  const byCategory: Record<string, number> = {};
+  for (const item of items) {
+    if (!item.is_available) continue;
+    byCategory[item.category] = (byCategory[item.category] || 0) + 1;
+  }
+  
+  const sortedCategories = Object.entries(byCategory)
+    .sort((a, b) => b[1] - a[1])
+    .map(([cat]) => cat);
+  
+  return {
+    hasMore: Object.keys(byCategory).length > 6 || items.length > 30,
+    topCategories: sortedCategories.slice(0, 6),
+  };
 }
 
 function buildFaqsSummary(faqs: Array<{ question: string; answer: string }>): string {
@@ -728,6 +775,13 @@ IMPORTANT ORDER RULES:
 - Always collect: items, name, phone, and address (if delivery)
 
 `;
+  } else if (ctx.tenant.business_mode === "food") {
+    // Food mode but no menu - explain limitation and offer alternative
+    prompt += `MENU STATUS: Menu items are not yet configured for this business.
+If a customer asks to place an order, politely say: "I apologize, but I don't have our menu available at the moment. Would you like me to have someone call you back with our menu options, or you can visit our website?"
+Do NOT claim you cannot take orders if menu IS available above.
+
+`;
   }
 
   // Hours - ALWAYS include if available
@@ -880,8 +934,11 @@ export function buildDynamicVariables(
   const hasMenu = ctx.offerings.menu.length > 0;
   const hasServices = ctx.offerings.services.length > 0;
   
+  // Get menu metadata for large menus
+  const menuMetadata = getMenuMetadata(ctx.offerings.menu);
+  
   return {
-    // Core identifiers (NEVER null)
+    // Core identifiers (NEVER null - always default to empty string)
     tenant_id: ctx.tenant.tenant_id || "",
     location_id: ctx._meta.location_id || "",
     business_name: ctx.tenant.business_name || "Our Business",
@@ -911,6 +968,11 @@ export function buildDynamicVariables(
     ].filter(Boolean).join(". ") || "",
     faqs_summary: ctx.knowledge.faqs_summary || "",
     
+    // Menu metadata for large menus (allows AI to ask about specific categories)
+    menu_has_more: menuMetadata.hasMore ? "true" : "false",
+    menu_top_categories: menuMetadata.topCategories.join(", ") || "",
+    menu_summary_length: String(ctx.offerings.menu_summary?.length || 0),
+    
     // AI assistant settings (NEVER null)
     greeting_script: ctx.ai_settings.greeting_script || "",
     fallback_script: ctx.ai_settings.fallback_script || "",
@@ -921,12 +983,13 @@ export function buildDynamicVariables(
     memory_hints_summary: ctx.safety.hipaa_mode ? "" : (ctx.intelligence.memory_hints_summary || ""),
     memory_enabled: ctx.intelligence.settings.memory_enabled,
     
-    // DEBUG flags - for /debug/ai-context page verification
+    // DEBUG flags - for /debug/ai-context page verification (NEVER null)
     context_has_hours: hasHours ? "true" : "false",
     context_has_menu: hasMenu ? "true" : "false",
     context_has_services: hasServices ? "true" : "false",
     context_menu_count: String(ctx.offerings.menu.length),
     context_services_count: String(ctx.offerings.services.length),
+    context_missing_sections: ctx._meta.missing_sections.join(",") || "",
   };
 }
 
