@@ -35,8 +35,10 @@ export function ConnectPhoneDialog({
   const [existingNumber, setExistingNumber] = useState("");
   const [copied, setCopied] = useState(false);
 
-  // Mock CloseLoop forwarding number
-  const closeloopForwardingNumber = "+1 (555) 123-4567";
+  // Get real provisioned number from currentSettings
+  const closeloopForwardingNumber = currentSettings?.forwarding_phone_e164 
+    || currentSettings?.closeloop_number 
+    || "(Pending provisioning)";
 
   const handleConnectExisting = async () => {
     if (!tenant || !existingNumber.trim()) return;

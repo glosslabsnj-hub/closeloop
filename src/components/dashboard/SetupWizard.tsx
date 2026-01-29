@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,6 @@ type SetupStep = {
 
 export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
   const { tenant, assistantSettings } = useAuth();
-  const [activeStep, setActiveStep] = useState<number>(0);
 
   // Determine completion status from assistant_settings
   const phoneComplete = (assistantSettings as any)?.setup_step_phone || assistantSettings?.phone_connected || false;
@@ -29,21 +28,35 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
   const testComplete = (assistantSettings as any)?.setup_step_tested || false;
   const goLiveComplete = assistantSettings?.go_live_enabled || false;
 
-  const steps: SetupStep[] = [
+  const steps: SetupStep[] = useMemo(() => [
     { id: "phone", title: "Connect Phone", icon: Phone, isComplete: phoneComplete },
     { id: "calendar", title: "Set Availability", icon: Calendar, isComplete: calendarComplete },
     { id: "test", title: "Test AI", icon: Mic, isComplete: testComplete },
     { id: "golive", title: "Go Live", icon: Power, isComplete: goLiveComplete },
-  ];
+  ], [phoneComplete, calendarComplete, testComplete, goLiveComplete]);
+
+  // Calculate first incomplete step
+  const firstIncompleteIndex = useMemo(() => {
+    const idx = steps.findIndex(s => !s.isComplete);
+    return idx === -1 ? steps.length - 1 : idx;
+  }, [steps]);
+
+  // Use unified state - initialize to first incomplete step
+  const [activeStep, setActiveStep] = useState<number>(firstIncompleteIndex);
+  const [userSelectedStep, setUserSelectedStep] = useState<boolean>(false);
+
+  // Auto-advance only when completion status changes, unless user manually selected
+  useEffect(() => {
+    if (!userSelectedStep) {
+      setActiveStep(firstIncompleteIndex);
+    }
+  }, [firstIncompleteIndex, userSelectedStep]);
 
   const completedCount = steps.filter(s => s.isComplete).length;
   const progress = (completedCount / steps.length) * 100;
 
-  // Auto-advance to first incomplete step
-  const firstIncompleteIndex = steps.findIndex(s => !s.isComplete);
-  const currentStep = firstIncompleteIndex === -1 ? steps.length - 1 : firstIncompleteIndex;
-
   const handleStepComplete = (stepIndex: number) => {
+    setUserSelectedStep(false); // Reset manual selection on completion
     if (stepIndex < steps.length - 1) {
       setActiveStep(stepIndex + 1);
     } else {
@@ -51,7 +64,18 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
     }
   };
 
-  const handleCalendarSkip = () => {
+  const handleStepClick = (index: number) => {
+    const step = steps[index];
+    const isClickable = index <= activeStep || step.isComplete;
+    if (isClickable) {
+      setUserSelectedStep(true);
+      setActiveStep(index);
+    }
+  };
+
+  const handleCalendarSkip = async () => {
+    // The CalendarConnectionStep handles saving, we just move forward
+    setUserSelectedStep(false);
     setActiveStep(2); // Move to test step
   };
 
@@ -80,13 +104,13 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
       <div className="flex items-center justify-between gap-2 overflow-x-auto pb-2">
         {steps.map((step, index) => {
           const Icon = step.icon;
-          const isCurrent = index === currentStep;
-          const isClickable = index <= currentStep || step.isComplete;
+          const isCurrent = index === activeStep;
+          const isClickable = index <= activeStep || step.isComplete;
           
           return (
             <button
               key={step.id}
-              onClick={() => isClickable && setActiveStep(index)}
+              onClick={() => handleStepClick(index)}
               disabled={!isClickable}
               className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-all min-w-[80px] ${
                 step.isComplete 
@@ -117,14 +141,14 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
 
       {/* Current Step Content */}
       <div className="min-h-[400px]">
-        {currentStep === 0 && (
+        {activeStep === 0 && (
           <PhoneConnectionStep 
             onComplete={() => handleStepComplete(0)}
             isComplete={phoneComplete}
           />
         )}
         
-        {currentStep === 1 && (
+        {activeStep === 1 && (
           <CalendarConnectionStep 
             onComplete={() => handleStepComplete(1)}
             isComplete={calendarComplete}
@@ -132,14 +156,14 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
           />
         )}
         
-        {currentStep === 2 && (
+        {activeStep === 2 && (
           <TestAIStep 
             onComplete={() => handleStepComplete(2)}
             isComplete={testComplete}
           />
         )}
         
-        {currentStep === 3 && (
+        {activeStep === 3 && (
           <GoLiveStep 
             onComplete={() => handleStepComplete(3)}
             isComplete={goLiveComplete}

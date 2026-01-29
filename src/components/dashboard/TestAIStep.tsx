@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mic, Check, Loader2, PhoneCall, Volume2 } from "lucide-react";
+import { Mic, Check, Loader2, PhoneCall, Volume2, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useSubscription } from "@/hooks/useSubscription";
 import VoiceAgentTest from "@/components/ai/VoiceAgentTest";
+import SMSSimulator from "@/components/simulator/SMSSimulator";
 
 interface TestAIStepProps {
   onComplete: () => void;
@@ -18,10 +20,18 @@ interface TestAIStepProps {
 export function TestAIStep({ onComplete, isComplete }: TestAIStepProps) {
   const { tenant, refreshTenant } = useAuth();
   const { toast } = useToast();
+  const { subscription } = useSubscription(tenant?.id || null);
+  
+  const planCode = subscription?.plan_code;
+  const hasVoice = planCode === "voice" || planCode === "both";
+  const hasSms = planCode === "text" || planCode === "both";
   
   const [testPhoneNumber, setTestPhoneNumber] = useState("");
   const [callingPhone, setCallingPhone] = useState(false);
   const [hasTested, setHasTested] = useState(false);
+  
+  // Default to appropriate tab based on plan
+  const defaultTab = hasVoice ? "browser" : "sms";
 
   const handleTestCallToPhone = async () => {
     if (!testPhoneNumber.trim()) {
@@ -126,73 +136,102 @@ export function TestAIStep({ onComplete, isComplete }: TestAIStepProps) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Mic className="h-5 w-5 text-primary" />
-          Test Your AI Voice Agent
+          {hasVoice ? <Mic className="h-5 w-5 text-primary" /> : <MessageSquare className="h-5 w-5 text-primary" />}
+          {hasVoice ? "Test Your AI Voice Agent" : "Test Your AI Text Responses"}
         </CardTitle>
         <CardDescription>
-          Experience your AI as customers will. Make a test call to hear it in action.
+          {hasVoice 
+            ? "Experience your AI as customers will. Make a test call to hear it in action."
+            : "See how your AI responds to text messages from customers."
+          }
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Test Methods */}
-        <Tabs defaultValue="browser" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="browser" className="gap-2">
-              <Volume2 className="h-4 w-4" />
-              Browser Test
-            </TabsTrigger>
-            <TabsTrigger value="phone" className="gap-2">
-              <PhoneCall className="h-4 w-4" />
-              Call My Phone
-            </TabsTrigger>
+        <Tabs defaultValue={defaultTab} className="w-full">
+          <TabsList className={`grid w-full ${hasVoice && hasSms ? "grid-cols-3" : "grid-cols-2"}`}>
+            {hasVoice && (
+              <>
+                <TabsTrigger value="browser" className="gap-2">
+                  <Volume2 className="h-4 w-4" />
+                  Browser Test
+                </TabsTrigger>
+                <TabsTrigger value="phone" className="gap-2">
+                  <PhoneCall className="h-4 w-4" />
+                  Call My Phone
+                </TabsTrigger>
+              </>
+            )}
+            {hasSms && (
+              <TabsTrigger value="sms" className="gap-2">
+                <MessageSquare className="h-4 w-4" />
+                SMS Test
+              </TabsTrigger>
+            )}
           </TabsList>
 
-          <TabsContent value="browser" className="mt-4">
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Speak directly to your AI through your browser's microphone. This is the quickest way to test.
-              </p>
-              
-              <VoiceAgentTest />
-            </div>
-          </TabsContent>
+          {hasVoice && (
+            <>
+              <TabsContent value="browser" className="mt-4">
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Speak directly to your AI through your browser's microphone. This is the quickest way to test.
+                  </p>
+                  
+                  <VoiceAgentTest />
+                </div>
+              </TabsContent>
 
-          <TabsContent value="phone" className="mt-4">
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Have your AI call you to experience exactly what your customers will hear.
-              </p>
-              
-              <div className="space-y-2">
-                <Label htmlFor="test-phone">Your Phone Number</Label>
-                <Input
-                  id="test-phone"
-                  type="tel"
-                  placeholder="+1 (555) 123-4567"
-                  value={testPhoneNumber}
-                  onChange={(e) => setTestPhoneNumber(e.target.value)}
-                />
+              <TabsContent value="phone" className="mt-4">
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Have your AI call you to experience exactly what your customers will hear.
+                  </p>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="test-phone">Your Phone Number</Label>
+                    <Input
+                      id="test-phone"
+                      type="tel"
+                      placeholder="+1 (555) 123-4567"
+                      value={testPhoneNumber}
+                      onChange={(e) => setTestPhoneNumber(e.target.value)}
+                    />
+                  </div>
+
+                  <Button
+                    onClick={handleTestCallToPhone}
+                    disabled={callingPhone || !testPhoneNumber.trim()}
+                    className="w-full gap-2"
+                    variant="outline"
+                  >
+                    {callingPhone ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <PhoneCall className="h-4 w-4" />
+                    )}
+                    {callingPhone ? "Calling..." : "Call My Phone"}
+                  </Button>
+
+                  <p className="text-xs text-center text-muted-foreground">
+                    Demo mode: Real calls require Twilio integration
+                  </p>
+                </div>
+              </TabsContent>
+            </>
+          )}
+
+          {hasSms && (
+            <TabsContent value="sms" className="mt-4">
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Simulate an incoming text message to see how your AI responds to customers.
+                </p>
+                
+                <SMSSimulator />
               </div>
-
-              <Button
-                onClick={handleTestCallToPhone}
-                disabled={callingPhone || !testPhoneNumber.trim()}
-                className="w-full gap-2"
-                variant="outline"
-              >
-                {callingPhone ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <PhoneCall className="h-4 w-4" />
-                )}
-                {callingPhone ? "Calling..." : "Call My Phone"}
-              </Button>
-
-              <p className="text-xs text-center text-muted-foreground">
-                Demo mode: Real calls require Twilio integration
-              </p>
-            </div>
-          </TabsContent>
+            </TabsContent>
+          )}
         </Tabs>
 
         {/* Complete Step */}
