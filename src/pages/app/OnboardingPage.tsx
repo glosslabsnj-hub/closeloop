@@ -241,6 +241,19 @@ export default function OnboardingPage() {
         throw new Error("Unable to generate business id. Please refresh and try again.");
       }
 
+      // Determine business mode and enabled modules from industry
+      const industryEntry = getIndustryBySlug(businessIdentity.industry);
+      const businessMode = industryEntry?.businessMode || "service";
+      const enabledModules = industryEntry?.enabledModules || ["ai_voice", "instant_text_back", "booking"];
+      const isFoodMode = businessMode === "food" || enabledModules.includes("food_orders");
+      
+      console.log("Onboarding: business mode determined", { 
+        industry: businessIdentity.industry, 
+        businessMode, 
+        enabledModules,
+        isFoodMode 
+      });
+
       // Create tenant with all the collected data
       const tenantData = {
         id: tenantId,
@@ -264,6 +277,9 @@ export default function OnboardingPage() {
         payment_methods: policies.paymentMethods,
         ai_never_promise: policies.aiNeverPromise,
         ai_enabled: false,
+        business_mode: businessMode,
+        enabled_modules: enabledModules,
+        hipaa_mode: industryEntry?.hipaaMode || false,
       };
 
       const { error: tenantError } = await supabase
@@ -312,6 +328,54 @@ export default function OnboardingPage() {
 
         if (servicesError) {
           console.error("Services creation error:", servicesError);
+        }
+      }
+
+      // Create menu items for food mode (using industry test data as defaults)
+      if (isFoodMode) {
+        const { INDUSTRY_TEST_DATA } = await import("@/data/industryTestData");
+        const foodTestData = INDUSTRY_TEST_DATA.food;
+        
+        if (foodTestData.menuItems && foodTestData.menuItems.length > 0) {
+          const menuItemsToInsert = foodTestData.menuItems.map(item => ({
+            tenant_id: tenantId,
+            name: item.name,
+            description: item.description || null,
+            category: item.category,
+            price_cents: item.price_cents,
+            dietary_tags: item.dietary_tags || [],
+            modifiers: [], // Will be populated by user later
+            prep_time_minutes: item.prep_time_minutes,
+            is_available: item.is_available,
+          }));
+
+          const { error: menuError } = await supabase
+            .from("menu_items")
+            .insert(menuItemsToInsert);
+
+          if (menuError) {
+            console.error("Menu items creation error:", menuError);
+          } else {
+            console.log(`Created ${menuItemsToInsert.length} menu items for food tenant`);
+          }
+        }
+
+        // Create food order settings
+        const { error: foodSettingsError } = await supabase
+          .from("food_order_settings")
+          .insert({
+            tenant_id: tenantId,
+            accepts_pickup: true,
+            accepts_delivery: true,
+            accepts_dine_in: true,
+            delivery_radius_miles: 5,
+            delivery_minimum_cents: 1500,
+            estimated_prep_minutes: 20,
+            order_confirmation_mode: "auto_confirm",
+          });
+
+        if (foodSettingsError) {
+          console.error("Food order settings creation error:", foodSettingsError);
         }
       }
 
