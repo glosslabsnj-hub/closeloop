@@ -100,15 +100,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // Set up auth state listener first
+    let isMounted = true;
+
+    // Listener for ONGOING auth changes (does NOT control isLoading)
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
+        if (!isMounted) return;
+        
         setSession(session);
         setUser(session?.user ?? null);
 
+        // Fire and forget - don't await, don't set loading
         if (session?.user) {
-          // Wait for tenant data before marking as loaded
-          await fetchTenantData(session.user.id);
+          fetchTenantData(session.user.id);
         } else {
           setTenant(null);
           setTenantUser(null);
@@ -117,24 +121,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSubscription(null);
           setAssistantSettings(null);
         }
-
-        setLoading(false);
       }
     );
 
-    // Then check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    // INITIAL load (controls isLoading)
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!isMounted) return;
 
-      if (session?.user) {
-        await fetchTenantData(session.user.id);
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        // Fetch tenant data BEFORE setting loading false
+        if (session?.user) {
+          await fetchTenantData(session.user.id);
+        }
+      } catch (error) {
+        console.error("Error initializing auth:", error);
+      } finally {
+        if (isMounted) setLoading(false);
       }
+    };
 
-      setLoading(false);
-    });
+    initializeAuth();
 
     return () => {
+      isMounted = false;
       authSub.unsubscribe();
     };
   }, []);
