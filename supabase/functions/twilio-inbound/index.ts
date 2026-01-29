@@ -174,6 +174,36 @@ function buildMemoryHintsSummary(hints: Array<{ type: string; summary: string; u
   }).join("; ");
 }
 
+// Helper to log events to twilio_event_logs table
+async function logTwilioEvent(
+  supabaseUrl: string,
+  supabaseKey: string,
+  tenantId: string | null,
+  callSid: string,
+  toNumber: string,
+  fromNumber: string,
+  stage: string,
+  httpStatus: number | null,
+  errorMessage: string | null,
+  rawPayload: Record<string, unknown> | null
+) {
+  try {
+    const sb = createClient(supabaseUrl, supabaseKey);
+    await sb.from("twilio_event_logs").insert({
+      tenant_id: tenantId,
+      twilio_call_sid: callSid,
+      to_number: toNumber,
+      from_number: fromNumber,
+      stage,
+      http_status: httpStatus,
+      error_message: errorMessage,
+      raw_payload: rawPayload,
+    });
+  } catch (e) {
+    console.error("Failed to log twilio event:", e);
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -187,17 +217,20 @@ serve(async (req) => {
 
   // Parse Twilio's form data
   let formData: URLSearchParams;
+  let toNumber = "";
+  let fromNumber = "";
+  let callSid = "";
+
   try {
     const body = await req.text();
     formData = new URLSearchParams(body);
+    toNumber = formData.get("To") || "";
+    fromNumber = formData.get("From") || "";
+    callSid = formData.get("CallSid") || "";
   } catch (error) {
     console.error("Failed to parse request body:", error);
     return twimlResponse(hangupTwiml("We're experiencing technical difficulties. Please try again later."));
   }
-
-  const toNumber = formData.get("To") || "";
-  const fromNumber = formData.get("From") || "";
-  const callSid = formData.get("CallSid") || "";
 
   console.log(`Inbound call: From=${fromNumber}, To=${toNumber}, CallSid=${callSid}`);
 
@@ -207,12 +240,17 @@ serve(async (req) => {
     return twimlResponse(hangupTwiml("We're experiencing technical difficulties. Please try again later."));
   }
 
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  // Log initial event
+  await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, null, callSid, toNumber, fromNumber, "request_received", null, null, { method: req.method });
+
   if (!ELEVENLABS_API_KEY || !ELEVENLABS_AGENT_ID) {
     console.error("Missing ElevenLabs configuration");
+    await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, null, callSid, toNumber, fromNumber, "config_error", null, "Missing ELEVENLABS_API_KEY or ELEVENLABS_AGENT_ID", null);
     return twimlResponse(hangupTwiml("Our voice assistant is currently unavailable. Please leave a message or try again later."));
   }
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   const callerPhoneE164 = normalizeToE164(fromNumber);
 
   try {
@@ -225,11 +263,13 @@ serve(async (req) => {
 
     if (phoneError) {
       console.error("Database error looking up phone number:", phoneError);
+      await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, null, callSid, toNumber, fromNumber, "db_error_phone_lookup", null, phoneError.message, { code: phoneError.code });
       return twimlResponse(hangupTwiml("We're experiencing technical difficulties. Please try again later."));
     }
 
     if (!phoneRecord) {
       console.error(`No tenant found for number: ${toNumber}`);
+      await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, null, callSid, toNumber, fromNumber, "no_tenant_found", null, `No tenant found for number: ${toNumber}`, null);
       return twimlResponse(hangupTwiml("This number is not currently in service. Please check the number and try again."));
     }
 
@@ -568,8 +608,12 @@ serve(async (req) => {
     if (!registerCallResponse.ok) {
       const errorText = await registerCallResponse.text();
       console.error(`ElevenLabs register-call failed [${registerCallResponse.status}]:`, errorText);
+      await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, tenantId, callSid, toNumber, fromNumber, "elevenlabs_register_failed", registerCallResponse.status, errorText.substring(0, 500), null);
       return twimlResponse(hangupTwiml("Our voice assistant is temporarily unavailable. Please try again later."));
     }
+
+    // Log successful ElevenLabs call
+    await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, tenantId, callSid, toNumber, fromNumber, "elevenlabs_register_success", 200, null, null);
 
     // Parse ElevenLabs response to get conversation_id for webhook linkage
     const responseText = await registerCallResponse.text();
@@ -606,6 +650,15 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("Error handling inbound call:", error);
+    const errorMsg = error instanceof Error ? error.message : "Unknown error";
+    // Try to log even on catch
+    try {
+      const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
+      const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+      if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+        await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, null, callSid || "unknown", toNumber || "unknown", fromNumber || "unknown", "unhandled_exception", 500, errorMsg, null);
+      }
+    } catch { /* ignore logging errors */ }
     return twimlResponse(hangupTwiml("We're experiencing technical difficulties. Please try again later."));
   }
 });
