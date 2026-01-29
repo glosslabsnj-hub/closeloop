@@ -37,29 +37,30 @@ function escapeXml(text: string): string {
 
 // Get current day's hours from hours_json
 function getTodayHours(hoursJson: Record<string, unknown> | null): string {
-  if (!hoursJson) return "Hours not available";
+  if (!hoursJson) return "";
   
   const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
   const today = days[new Date().getDay()];
-  const todayHours = hoursJson[today] as { open?: string; close?: string; closed?: boolean } | undefined;
+  const todayHours = hoursJson[today] as { open?: string; close?: string; closed?: boolean; isOpen?: boolean } | undefined;
   
-  if (!todayHours || todayHours.closed) return "Closed today";
+  if (!todayHours) return "";
+  if (todayHours.closed === true || todayHours.isOpen === false) return "Closed today";
   if (todayHours.open && todayHours.close) {
     return `${todayHours.open} - ${todayHours.close}`;
   }
-  return "Hours not available";
+  return "";
 }
 
 // Truncate text to max length with ellipsis
-function truncate(text: string | null, maxLength: number): string | null {
-  if (!text) return null;
+function truncate(text: string | null | undefined, maxLength: number): string {
+  if (!text) return "";
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength - 3) + "...";
 }
 
 // Build service summary from services array
-function buildServiceSummary(services: Array<{ name: string; description?: string | null; price_amount?: number | null; duration_minutes?: number }> | null): string | null {
-  if (!services || services.length === 0) return null;
+function buildServiceSummary(services: Array<{ name: string; description?: string | null; price_amount?: number | null; duration_minutes?: number }> | null): string {
+  if (!services || services.length === 0) return "";
   
   const summaries = services.slice(0, 5).map(s => {
     let line = s.name;
@@ -75,8 +76,8 @@ function buildServiceSummary(services: Array<{ name: string; description?: strin
 }
 
 // Build menu summary from menu items
-function buildMenuSummary(menuItems: Array<{ name: string; category?: string | null; price_cents?: number | null }> | null): string | null {
-  if (!menuItems || menuItems.length === 0) return null;
+function buildMenuSummary(menuItems: Array<{ name: string; category?: string | null; price_cents?: number | null }> | null): string {
+  if (!menuItems || menuItems.length === 0) return "";
   
   // Group by category
   const byCategory: Record<string, string[]> = {};
@@ -102,7 +103,7 @@ function buildPoliciesSummary(tenant: {
   deposit_policy?: string | null;
   refund_policy?: string | null;
   payment_methods?: string[] | null;
-}): string | null {
+}): string {
   const parts: string[] = [];
   
   if (tenant.cancellation_policy) {
@@ -115,7 +116,7 @@ function buildPoliciesSummary(tenant: {
     parts.push(`Payment: ${tenant.payment_methods.join(", ")}`);
   }
   
-  if (parts.length === 0) return null;
+  if (parts.length === 0) return "";
   return truncate(parts.join(". "), 600);
 }
 
@@ -125,18 +126,52 @@ function hasModule(enabledModules: string[] | null, moduleName: string): boolean
   return enabledModules.includes(moduleName);
 }
 
-// Redact context for HIPAA mode
-function redactForHipaa(context: Record<string, unknown>): Record<string, unknown> {
-  return {
-    tenant_id: context.tenant_id,
-    business_mode: context.business_mode,
-    enabled_modules: context.enabled_modules,
-    hipaa_mode: context.hipaa_mode,
-    caller_phone: "[REDACTED]",
-    // Keep non-PHI fields
-    hours_today: context.hours_today,
-    booking_link: context.booking_link,
-  };
+// Normalize phone number to E.164 format
+function normalizeToE164(phone: string): string {
+  if (!phone) return "";
+  // Remove all non-digit characters
+  const digits = phone.replace(/\D/g, "");
+  // If starts with 1 and has 11 digits, format with +
+  if (digits.length === 11 && digits.startsWith("1")) {
+    return `+${digits}`;
+  }
+  // If 10 digits, assume US and add +1
+  if (digits.length === 10) {
+    return `+1${digits}`;
+  }
+  // If already starts with +, return as-is
+  if (phone.startsWith("+")) {
+    return phone;
+  }
+  // Default: return with + prefix
+  return digits.length > 0 ? `+${digits}` : "";
+}
+
+// Build FAQs summary for AI
+function buildFAQsSummary(faqs: Array<{ question: string; answer: string }> | null): string {
+  if (!faqs || faqs.length === 0) return "";
+  return faqs.slice(0, 5).map(f => `Q: ${truncate(f.question, 80)} A: ${truncate(f.answer, 120)}`).join(" | ");
+}
+
+// Build intent rules summary for AI prompt
+function buildIntentRulesSummary(rules: Array<{ name: string; type: string; action: Record<string, unknown>; priority: number }> | null): string {
+  if (!rules || rules.length === 0) return "";
+  return rules.slice(0, 5).map(r => {
+    const action = r.action || {};
+    if (action.guidance) return `${r.name}: ${truncate(String(action.guidance), 80)}`;
+    if (action.max_discount_percent !== undefined) return `${r.name}: Max ${action.max_discount_percent}% discount`;
+    return r.name;
+  }).join("; ");
+}
+
+// Build memory hints summary for AI prompt (non-HIPAA only)
+function buildMemoryHintsSummary(hints: Array<{ type: string; summary: string; usage: string; confidence: number }> | null): string {
+  if (!hints || hints.length === 0) return "";
+  return hints.slice(0, 3).map(h => {
+    if (h.usage === "personalize") return `Personalize: ${truncate(h.summary, 60)}`;
+    if (h.usage === "timing_preference") return `Timing: ${truncate(h.summary, 60)}`;
+    return truncate(h.summary, 60);
+  }).join("; ");
 }
 
 serve(async (req) => {
@@ -178,12 +213,13 @@ serve(async (req) => {
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const callerPhoneE164 = normalizeToE164(fromNumber);
 
   try {
     // Lookup tenant by the "To" number
     const { data: phoneRecord, error: phoneError } = await supabase
       .from("phone_numbers")
-      .select("tenant_id, status")
+      .select("tenant_id, status, location_id")
       .eq("phone_e164", toNumber)
       .maybeSingle();
 
@@ -198,17 +234,70 @@ serve(async (req) => {
     }
 
     const tenantId = phoneRecord.tenant_id;
-    console.log(`Resolved tenant: ${tenantId}`);
+    const locationId = phoneRecord.location_id || null;
+    console.log(`Resolved tenant: ${tenantId}, location: ${locationId}`);
 
-    // Get assistant settings for this tenant
-    const { data: settings, error: settingsError } = await supabase
-      .from("assistant_settings")
-      .select("voice_ai_enabled, voice_mode, connect_status, booking_url")
-      .eq("tenant_id", tenantId)
-      .maybeSingle();
+    // Fetch all required data in parallel for comprehensive context
+    const [
+      tenantResult,
+      settingsResult,
+      servicesResult,
+      menuItemsResult,
+      faqsResult,
+      assistantResult,
+      intelligenceSettingsResult,
+    ] = await Promise.all([
+      supabase
+        .from("tenants")
+        .select("name, tagline, timezone, hours_json, website_url, business_mode, enabled_modules, hipaa_mode, cancellation_policy, deposit_policy, refund_policy, payment_methods")
+        .eq("id", tenantId)
+        .single(),
+      supabase
+        .from("assistant_settings")
+        .select("voice_ai_enabled, voice_mode, connect_status, booking_url, calendar_provider")
+        .eq("tenant_id", tenantId)
+        .maybeSingle(),
+      supabase
+        .from("services")
+        .select("name, description, price_amount, duration_minutes")
+        .eq("tenant_id", tenantId)
+        .eq("is_active", true)
+        .limit(10),
+      supabase
+        .from("menu_items")
+        .select("name, category, price_cents")
+        .eq("tenant_id", tenantId)
+        .eq("is_available", true)
+        .limit(30),
+      supabase
+        .from("business_faqs")
+        .select("question, answer")
+        .eq("tenant_id", tenantId)
+        .order("priority_weight", { ascending: false })
+        .limit(10),
+      supabase
+        .from("ai_assistants")
+        .select("greeting_script, fallback_script, tone")
+        .eq("tenant_id", tenantId)
+        .maybeSingle(),
+      supabase
+        .from("tenant_intelligence_settings")
+        .select("memory_enabled, min_confidence_threshold, min_observation_threshold, share_memory_across_locations")
+        .eq("tenant_id", tenantId)
+        .maybeSingle(),
+    ]);
 
-    if (settingsError) {
-      console.error("Error fetching assistant settings:", settingsError);
+    const tenant = tenantResult.data;
+    const settings = settingsResult.data;
+    const services = servicesResult.data;
+    const menuItems = menuItemsResult.data;
+    const faqs = faqsResult.data;
+    const assistant = assistantResult.data;
+    const intelligenceSettings = intelligenceSettingsResult.data;
+
+    if (tenantResult.error || !tenant) {
+      console.error("Error fetching tenant:", tenantResult.error);
+      return twimlResponse(hangupTwiml("We're experiencing technical difficulties. Please try again later."));
     }
 
     // Update connect_status to forwarding_verified on first real call
@@ -226,47 +315,11 @@ serve(async (req) => {
       return twimlResponse(hangupTwiml("Thank you for calling. We're currently unavailable. Please try again later or visit our website."));
     }
 
-    // Check voice_mode (implement business logic)
+    // Check voice_mode
     const voiceMode = settings?.voice_mode || "always_on";
     if (voiceMode === "off") {
       console.log(`Voice mode is off for tenant ${tenantId}`);
       return twimlResponse(hangupTwiml("Thank you for calling. We're currently unavailable. Please try again later."));
-    }
-
-    // Fetch all required data in parallel
-    const [tenantResult, assistantResult, servicesResult, menuItemsResult] = await Promise.all([
-      supabase
-        .from("tenants")
-        .select("name, tagline, hours_json, website_url, business_mode, enabled_modules, hipaa_mode, cancellation_policy, deposit_policy, refund_policy, payment_methods")
-        .eq("id", tenantId)
-        .single(),
-      supabase
-        .from("ai_assistants")
-        .select("greeting_script, fallback_script")
-        .eq("tenant_id", tenantId)
-        .maybeSingle(),
-      supabase
-        .from("services")
-        .select("name, description, price_amount, duration_minutes")
-        .eq("tenant_id", tenantId)
-        .eq("is_active", true)
-        .limit(10),
-      supabase
-        .from("menu_items")
-        .select("name, category, price_cents")
-        .eq("tenant_id", tenantId)
-        .eq("is_available", true)
-        .limit(30),
-    ]);
-
-    const { data: tenant, error: tenantError } = tenantResult;
-    const { data: assistant } = assistantResult;
-    const { data: services } = servicesResult;
-    const { data: menuItems } = menuItemsResult;
-
-    if (tenantError || !tenant) {
-      console.error("Error fetching tenant:", tenantError);
-      return twimlResponse(hangupTwiml("We're experiencing technical difficulties. Please try again later."));
     }
 
     // Parse enabled_modules
@@ -277,13 +330,100 @@ serve(async (req) => {
     const businessMode = tenant.business_mode || "general";
     const hipaaMode = tenant.hipaa_mode === true;
 
-    // Build summaries based on business mode
-    let serviceSummary: string | null = null;
-    let menuSummary: string | null = null;
-    let policiesSummary: string | null = null;
+    // ===== CUSTOMER RESOLUTION =====
+    // Resolve or create customer by phone number (dedupe by phone_e164)
+    let customerId: string | null = null;
+    if (callerPhoneE164) {
+      const { data: existingCustomer } = await supabase
+        .from("customers")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .eq("phone_e164", callerPhoneE164)
+        .maybeSingle();
 
-    // Include service_summary for service/dispatch/general modes
-    if (["service", "dispatch", "general"].includes(businessMode)) {
+      if (existingCustomer) {
+        customerId = existingCustomer.id;
+        // Update last_seen timestamp
+        await supabase
+          .from("customers")
+          .update({ updated_at: new Date().toISOString() })
+          .eq("id", customerId);
+        console.log(`Resolved existing customer: ${customerId}`);
+      }
+    }
+
+    // ===== FETCH INTELLIGENCE LAYERS =====
+    let intentRules: Array<{ name: string; type: string; action: Record<string, unknown>; priority: number }> = [];
+    let memoryHints: Array<{ type: string; summary: string; usage: string; confidence: number }> = [];
+    
+    // Fetch active intent rules (priority sorted, owner-created only)
+    const { data: rules } = await supabase
+      .from("business_intent_rules")
+      .select("id, name, rule_type, action_json, priority")
+      .eq("tenant_id", tenantId)
+      .eq("is_enabled", true)
+      .eq("is_suggested", false)
+      .order("priority", { ascending: false })
+      .limit(10);
+
+    if (rules && rules.length > 0) {
+      intentRules = rules.map(r => ({
+        name: r.name,
+        type: r.rule_type,
+        action: r.action_json || {},
+        priority: r.priority || 0,
+      }));
+    }
+
+    // Fetch memory hints (only if memory enabled AND not HIPAA mode for customer prefs)
+    const memoryEnabled = intelligenceSettings?.memory_enabled === true;
+    if (memoryEnabled) {
+      const minConfidence = intelligenceSettings?.min_confidence_threshold || 0.65;
+      const minObservations = intelligenceSettings?.min_observation_threshold || 3;
+      
+      let memoryQuery = supabase
+        .from("business_memory")
+        .select("memory_type, summary, confidence_score, subject_key, observation_count")
+        .eq("tenant_id", tenantId)
+        .eq("is_active", true)
+        .gte("confidence_score", minConfidence)
+        .gte("observation_count", minObservations)
+        .order("confidence_score", { ascending: false })
+        .limit(5);
+
+      // Location scoping
+      if (locationId && !intelligenceSettings?.share_memory_across_locations) {
+        memoryQuery = memoryQuery.eq("location_id", locationId);
+      }
+
+      // HIPAA: exclude customer preferences entirely
+      if (hipaaMode) {
+        memoryQuery = memoryQuery.neq("memory_type", "customer_preference");
+      }
+
+      const { data: memories } = await memoryQuery;
+
+      if (memories && memories.length > 0) {
+        memoryHints = memories.map(m => ({
+          type: m.memory_type,
+          summary: m.summary,
+          usage: determineUsage(m.memory_type),
+          confidence: m.confidence_score,
+        }));
+      }
+    }
+
+    // ===== BUILD BUSINESS CONTEXT =====
+    const hoursToday = getTodayHours(tenant.hours_json as Record<string, unknown> | null);
+    
+    // Build summaries based on business mode
+    let serviceSummary = "";
+    let menuSummary = "";
+    let policiesSummary = "";
+    let faqsSummary = "";
+
+    // Include service_summary for service/dispatch/general/medical modes
+    if (["service", "dispatch", "general", "medical"].includes(businessMode)) {
       serviceSummary = buildServiceSummary(services);
     }
 
@@ -292,63 +432,102 @@ serve(async (req) => {
       menuSummary = buildMenuSummary(menuItems);
     }
 
-    // Build policies summary
+    // Build policies and FAQs summaries
     policiesSummary = buildPoliciesSummary(tenant);
+    faqsSummary = buildFAQsSummary(faqs);
+
+    // Build intent rules and memory hints summaries
+    const intentRulesSummary = buildIntentRulesSummary(intentRules);
+    // Only include memory hints summary if NOT in HIPAA mode (general business insights are OK)
+    const memoryHintsSummary = hipaaMode ? "" : buildMemoryHintsSummary(memoryHints);
 
     // Determine booking_link based on enabled modules
-    let bookingLink: string | null = null;
+    let bookingLink = "";
     if (hasModule(enabledModules, "booking") || hasModule(enabledModules, "reservations")) {
-      bookingLink = settings?.booking_url || tenant.website_url || null;
+      bookingLink = settings?.booking_url || tenant.website_url || "";
     }
 
-    // Build dynamic variables according to contract
-    const hoursToday = getTodayHours(tenant.hours_json as Record<string, unknown> | null);
-    
-    // ElevenLabs only accepts primitive types (string, number, boolean) for dynamic_variables
-    // Arrays and objects must be converted to strings
-    const dynamicVariables: Record<string, string | number | boolean | null> = {
-      // Required fields
+    // Calendar/availability status
+    const calendarConnected = !!settings?.calendar_provider;
+
+    // ===== PREPARE DYNAMIC VARIABLES (ALL STRINGS, NO NULLS) =====
+    // ElevenLabs only accepts primitive types - ensure no nulls/undefined
+    const dynamicVariables: Record<string, string | number | boolean> = {
+      // Core identifiers
       tenant_id: tenantId,
+      location_id: locationId || "",
       business_name: tenant.name || "Our Business",
       business_mode: businessMode,
-      enabled_modules: enabledModules.join(","), // Convert array to comma-separated string
+      enabled_modules: enabledModules.join(","),
       hipaa_mode: hipaaMode,
-      caller_phone: fromNumber,
+      timezone: tenant.timezone || "America/New_York",
+      
+      // Caller info
+      caller_phone: hipaaMode ? "" : callerPhoneE164, // Redact for HIPAA
+      customer_id: customerId || "",
+      
+      // Hours and availability
       hours_today: hoursToday,
+      calendar_connected: calendarConnected,
+      booking_link: bookingLink,
       
-      // Conditional fields (all must be strings or null)
-      booking_link: bookingLink || "",
-      service_summary: serviceSummary || "",
-      menu_summary: menuSummary || "",
-      policies_summary: policiesSummary || "",
+      // Business Brain content (truncated for token efficiency)
+      service_summary: serviceSummary,
+      menu_summary: menuSummary,
+      policies_summary: policiesSummary,
+      faqs_summary: faqsSummary,
       
-      // Scripts from ai_assistants table
+      // AI assistant settings
       greeting_script: assistant?.greeting_script || "",
       fallback_script: assistant?.fallback_script || "",
+      tone: assistant?.tone || "friendly",
+      
+      // Intelligence layers
+      intent_rules_summary: intentRulesSummary,
+      memory_hints_summary: memoryHintsSummary,
+      memory_enabled: memoryEnabled,
     };
 
     console.log(`Building context for tenant ${tenantId}:`, {
       business_mode: businessMode,
       enabled_modules: enabledModules,
       hipaa_mode: hipaaMode,
+      customer_id: customerId,
       has_service_summary: !!serviceSummary,
       has_menu_summary: !!menuSummary,
-      has_policies_summary: !!policiesSummary,
+      has_faqs: !!faqsSummary,
+      intent_rules_count: intentRules.length,
+      memory_hints_count: memoryHints.length,
     });
 
-    // Prepare context for storage (redact if HIPAA mode)
-    const contextForStorage = hipaaMode 
-      ? redactForHipaa(dynamicVariables)
-      : dynamicVariables;
+    // ===== PREPARE CONTEXT FOR STORAGE =====
+    const contextForStorage: Record<string, unknown> = {
+      tenant_id: tenantId,
+      location_id: locationId,
+      business_mode: businessMode,
+      enabled_modules: enabledModules,
+      hipaa_mode: hipaaMode,
+      customer_id: customerId,
+      caller_phone: hipaaMode ? "[REDACTED]" : callerPhoneE164,
+      hours_today: hoursToday,
+      booking_link: bookingLink,
+      intent_rules_count: intentRules.length,
+      memory_hints_count: memoryHints.length,
+      intelligence_settings: {
+        memory_enabled: memoryEnabled,
+        min_confidence: intelligenceSettings?.min_confidence_threshold || 0.65,
+      },
+    };
 
-    // Create call session record with context
+    // ===== CREATE CALL SESSION RECORD =====
     const { data: callSession, error: sessionError } = await supabase
       .from("ai_call_sessions")
       .insert({
         tenant_id: tenantId,
         call_direction: "inbound",
         twilio_call_sid: callSid,
-        caller_phone: fromNumber,
+        caller_phone: callerPhoneE164 || fromNumber,
+        customer_id: customerId,
         started_at: new Date().toISOString(),
         context_json: contextForStorage,
       })
@@ -362,7 +541,7 @@ serve(async (req) => {
       console.log(`Created call session: ${callSession?.id}`);
     }
 
-    // Call ElevenLabs register-call API
+    // ===== CALL ELEVENLABS REGISTER-CALL API =====
     const registerCallPayload = {
       agent_id: ELEVENLABS_AGENT_ID,
       from_number: fromNumber,
@@ -392,18 +571,15 @@ serve(async (req) => {
       return twimlResponse(hangupTwiml("Our voice assistant is temporarily unavailable. Please try again later."));
     }
 
-    // P0-2: Parse ElevenLabs response to get conversation_id for webhook linkage
-    // ElevenLabs returns TwiML but we need to check for any JSON metadata first
+    // Parse ElevenLabs response to get conversation_id for webhook linkage
     const responseText = await registerCallResponse.text();
     
-    // Try to extract conversation_id from response headers or parse JSON if present
+    // Try to extract conversation_id from response headers or embedded data
     const conversationIdHeader = registerCallResponse.headers.get("x-conversation-id");
     let conversationId: string | null = conversationIdHeader;
     
-    // If no header, try to parse conversation_id from any embedded data
-    // ElevenLabs may embed it in a comment or data attribute in the TwiML
+    // If no header, try to parse conversation_id from TwiML
     if (!conversationId) {
-      // Look for conversation ID pattern in TwiML response
       const match = responseText.match(/conversation[_-]?id[="':]+([a-zA-Z0-9_-]+)/i);
       if (match) {
         conversationId = match[1];
@@ -433,3 +609,19 @@ serve(async (req) => {
     return twimlResponse(hangupTwiml("We're experiencing technical difficulties. Please try again later."));
   }
 });
+
+// Helper to determine usage for memory type
+function determineUsage(memoryType: string): string {
+  switch (memoryType) {
+    case "time_pattern":
+      return "timing_preference";
+    case "customer_preference":
+      return "personalize";
+    case "capacity_pattern":
+      return "suggest_alternatives";
+    case "service_pattern":
+    case "exception_pattern":
+    default:
+      return "context";
+  }
+}
