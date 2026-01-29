@@ -269,6 +269,34 @@ serve(async (req) => {
       console.error("Error creating call session:", sessionError);
     } else {
       console.log(`Created call session: ${callSession?.id}`);
+      
+      // Log call_start and context_built events
+      await supabase.from("ai_event_logs").insert([
+        {
+          tenant_id: tenantId,
+          session_id: callSession?.id,
+          call_sid: callSid,
+          stage: "call_start",
+          event_data: {
+            caller_phone: context.safety.store_caller_phone ? callerPhoneE164 : "[REDACTED]",
+            customer_id: customerId,
+          },
+        },
+        {
+          tenant_id: tenantId,
+          session_id: callSession?.id,
+          call_sid: callSid,
+          stage: "context_built",
+          event_data: {
+            business_mode: context.tenant.business_mode,
+            services_count: context.offerings.services.length,
+            menu_count: context.offerings.menu.length,
+            faqs_count: context.knowledge.faqs.length,
+            intent_rules_count: context.intelligence.intent_rules.length,
+            missing_sections: context._meta.missing_sections,
+          },
+        },
+      ]);
     }
 
     // ===== CALL ELEVENLABS REGISTER-CALL API =====
