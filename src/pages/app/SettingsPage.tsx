@@ -28,7 +28,7 @@ import { MultiLocationManager } from "@/components/settings/MultiLocationManager
 import { DeliveryIntegrationsSettings } from "@/components/settings/DeliveryIntegrationsSettings";
 import { AutomationRulesSettings } from "@/components/settings/AutomationRulesSettings";
 import { IntelligenceSettingsForm } from "@/components/settings/IntelligenceSettingsForm";
-import { IntentRulesManager } from "@/components/settings/IntentRulesManager";
+import { AIBusinessPolicies } from "@/components/settings/AIBusinessPolicies";
 
 const timezones = [
   { value: "America/New_York", label: "Eastern Time" },
@@ -358,7 +358,7 @@ export default function SettingsPage() {
         {/* AI Intelligence Tab */}
         <TabsContent value="intelligence" className="space-y-6">
           <IntelligenceSettingsForm />
-          <IntentRulesManager />
+          <AIBusinessPolicies />
         </TabsContent>
 
         {/* Automation Rules Tab */}
