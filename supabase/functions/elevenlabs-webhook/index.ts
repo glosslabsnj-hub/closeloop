@@ -71,6 +71,55 @@ async function logEventStage(
   }
 }
 
+// Parse conversation_id robustly from various payload structures
+function parseConversationId(payload: Record<string, unknown>): string {
+  // Direct field
+  if (typeof payload.conversation_id === "string" && payload.conversation_id) {
+    return payload.conversation_id;
+  }
+  
+  // Nested in data
+  if (payload.data && typeof payload.data === "object") {
+    const data = payload.data as Record<string, unknown>;
+    if (typeof data.conversation_id === "string" && data.conversation_id) {
+      return data.conversation_id;
+    }
+  }
+  
+  // Nested in conversation object
+  if (payload.conversation && typeof payload.conversation === "object") {
+    const conv = payload.conversation as Record<string, unknown>;
+    if (typeof conv.id === "string" && conv.id) {
+      return conv.id;
+    }
+    if (typeof conv.conversation_id === "string" && conv.conversation_id) {
+      return conv.conversation_id;
+    }
+  }
+  
+  // Header field (sometimes ElevenLabs sends it this way)
+  if (typeof payload.id === "string" && payload.id) {
+    return payload.id;
+  }
+  
+  return "unknown";
+}
+
+// Parse event type robustly
+function parseEventType(payload: Record<string, unknown>): string {
+  if (typeof payload.type === "string") return payload.type;
+  if (typeof payload.event === "string") return payload.event;
+  if (typeof payload.event_type === "string") return payload.event_type;
+  
+  // Check in data object
+  if (payload.data && typeof payload.data === "object") {
+    const data = payload.data as Record<string, unknown>;
+    if (typeof data.type === "string") return data.type;
+  }
+  
+  return "unknown";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -80,15 +129,54 @@ serve(async (req) => {
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
+  // Capture raw body for robust parsing
+  let rawBody = "";
+  let parsedPayload: Record<string, unknown> = {};
+  
   try {
-    const payload: ElevenLabsWebhookPayload = await req.json();
+    rawBody = await req.text();
+    parsedPayload = JSON.parse(rawBody);
+  } catch (parseError) {
+    console.error("Failed to parse webhook body:", parseError);
+    await logEventStage(
+      supabase,
+      "unknown",
+      null,
+      null,
+      "unknown",
+      "webhook_parse_error",
+      { raw_body_length: rawBody.length, raw_body_preview: rawBody.substring(0, 200) },
+      parseError instanceof Error ? parseError.message : "JSON parse failed"
+    );
+    // Return 200 to prevent retries
+    return new Response(
+      JSON.stringify({ status: "error", reason: "parse_failed" }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  try {
+    // Robustly parse conversation_id and event type first
+    const conversationId = parseConversationId(parsedPayload);
+    const eventType = parseEventType(parsedPayload);
     
-    const payloadSize = JSON.stringify(payload).length;
+    // Build typed payload with parsed values
+    const payload: ElevenLabsWebhookPayload = {
+      type: eventType,
+      conversation_id: conversationId,
+      agent_id: typeof parsedPayload.agent_id === "string" ? parsedPayload.agent_id : "",
+      transcript: Array.isArray(parsedPayload.transcript) ? parsedPayload.transcript as ElevenLabsWebhookPayload["transcript"] : undefined,
+      analysis: parsedPayload.analysis as ElevenLabsWebhookPayload["analysis"],
+      metadata: parsedPayload.metadata as ElevenLabsWebhookPayload["metadata"],
+      dynamic_variables: parsedPayload.dynamic_variables as ElevenLabsWebhookPayload["dynamic_variables"],
+    };
+    
+    const payloadSize = rawBody.length;
     const tenantIdFromPayload = payload.dynamic_variables?.tenant_id || "unknown";
     
     console.log("ElevenLabs webhook received:", JSON.stringify({
-      type: payload.type,
-      conversation_id: payload.conversation_id,
+      type: eventType,
+      conversation_id: conversationId,
       agent_id: payload.agent_id,
       has_transcript: !!payload.transcript?.length,
       has_analysis: !!payload.analysis,
@@ -96,29 +184,39 @@ serve(async (req) => {
       payload_size: payloadSize,
     }));
 
-    // Log every webhook hit immediately
+    // Log every webhook hit immediately with full metadata
     await logEventStage(
       supabase,
       tenantIdFromPayload,
       null,
       null,
-      payload.conversation_id,
+      conversationId,
       "webhook_received",
       {
-        type: payload.type,
+        event_type: eventType,
+        conversation_id: conversationId,
         payload_size: payloadSize,
         has_transcript: !!payload.transcript?.length,
         has_analysis: !!payload.analysis,
         transcript_length: payload.transcript?.length || 0,
         analysis_keys: payload.analysis ? Object.keys(payload.analysis) : [],
         data_collection_keys: payload.analysis?.data_collection ? Object.keys(payload.analysis.data_collection) : [],
+        dynamic_variables_keys: payload.dynamic_variables ? Object.keys(payload.dynamic_variables) : [],
+        tenant_id_from_variables: tenantIdFromPayload,
       }
     );
 
-    if (payload.type !== "conversation.ended" && payload.type !== "conversation_ended") {
-      console.log("Ignoring non-ended event type:", payload.type);
+    // Check for conversation ended events (various formats)
+    const isConversationEnded = 
+      eventType === "conversation.ended" || 
+      eventType === "conversation_ended" ||
+      eventType === "call.ended" ||
+      eventType === "session.ended";
+    
+    if (!isConversationEnded) {
+      console.log("Ignoring non-ended event type:", eventType);
       return new Response(
-        JSON.stringify({ status: "ignored", reason: "not conversation end event" }),
+        JSON.stringify({ status: "ignored", reason: "not conversation end event", event_type: eventType }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
