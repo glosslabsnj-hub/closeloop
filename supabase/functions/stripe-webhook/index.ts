@@ -232,13 +232,13 @@ async function provisionForwardingNumber(
     };
   }
 
-  // Update assistant_settings
+  // Update assistant_settings with awaiting_first_call status
   const { error: upsertError } = await supabase
     .from("assistant_settings")
     .upsert({
       tenant_id: tenantId,
       forwarding_phone_e164: purchaseData.phone_number,
-      connect_status: "provisioned",
+      connect_status: "awaiting_first_call",
       phone_connected: true,
       closeloop_number: purchaseData.phone_number,
       twilio_phone_sid: purchaseData.sid,
