@@ -12,13 +12,13 @@ import { BusinessBrainStatusCard } from "./BusinessBrainStatusCard";
 import { KnowledgeConflictBanner } from "./KnowledgeConflictBanner";
 
 export function LiveDashboard() {
-  const { tenant, assistantSettings } = useAuth();
+  const { assistantSettings } = useAuth();
   const [copilotOpen, setCopilotOpen] = useState(false);
   
   const isLive = assistantSettings?.go_live_enabled;
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-4xl mx-auto animate-fade-in">
       {/* Knowledge Conflict Warning - Highest Priority */}
       <KnowledgeConflictBanner />
 
