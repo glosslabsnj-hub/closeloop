@@ -5,9 +5,9 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { useSubscription } from "@/hooks/useSubscription";
 import { useQuery } from "@tanstack/react-query";
 import { useBusinessContext, calculateReadinessFromContext } from "@/hooks/useBusinessContext";
+import { hasVoiceFeature, hasSmsFeature } from "@/config/pricing";
 import { 
   Phone, 
   MessageSquare,
@@ -23,15 +23,15 @@ import { useToast } from "@/hooks/use-toast";
 import { startOfDay, endOfDay, startOfWeek, endOfWeek } from "date-fns";
 
 export function DashboardHeroCard() {
-  const { tenant, assistantSettings, refreshTenant } = useAuth();
-  const { subscription } = useSubscription(tenant?.id || null);
+  const { tenant, assistantSettings, refreshTenant, subscription } = useAuth();
   const { context } = useBusinessContext(tenant?.id || null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Use centralized helpers for feature detection
   const planCode = subscription?.plan_code;
-  const hasVoice = planCode === "voice" || planCode === "both";
-  const hasSms = planCode === "text" || planCode === "both";
+  const hasVoice = hasVoiceFeature(planCode);
+  const hasSms = hasSmsFeature(planCode);
 
   const voiceEnabled = assistantSettings?.voice_ai_enabled && assistantSettings?.go_live_enabled;
   const smsEnabled = assistantSettings?.instant_text_enabled || false;

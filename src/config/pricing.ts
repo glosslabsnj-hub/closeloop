@@ -259,15 +259,32 @@ export function getLocationAddOnPrice(tier: PlanTier): number {
   return tier === "sms" ? LOCATION_ADD_ONS.smsOnly : LOCATION_ADD_ONS.voiceOrBoth;
 }
 
-// Feature entitlement checks based on SKU
-export function hasVoiceFeature(sku: PlanSku | null | undefined): boolean {
+// Feature entitlement checks based on SKU - handles both new SKUs and legacy plan codes
+export function hasVoiceFeature(sku: string | null | undefined): boolean {
   if (!sku) return false;
   return sku.startsWith("voice") || sku.startsWith("both");
 }
 
-export function hasSmsFeature(sku: PlanSku | null | undefined): boolean {
+export function hasSmsFeature(sku: string | null | undefined): boolean {
   if (!sku) return false;
-  return sku.startsWith("sms") || sku.startsWith("both");
+  return sku.startsWith("sms") || sku.startsWith("both") || sku === "text";
+}
+
+// Get plan family/tier from any SKU (new or legacy)
+export function getPlanFamily(sku: string | null | undefined): PlanTier | "unknown" {
+  if (!sku) return "unknown";
+  if (sku.startsWith("both")) return "both";
+  if (sku.startsWith("voice")) return "voice";
+  if (sku.startsWith("sms") || sku === "text") return "sms";
+  // Legacy exact matches
+  if (sku === "both") return "both";
+  if (sku === "voice") return "voice";
+  return "unknown";
+}
+
+// Alias for Twilio provisioning checks
+export function isEligibleForTwilioProvision(sku: string | null | undefined): boolean {
+  return hasVoiceFeature(sku);
 }
 
 // Legacy compatibility: map old plan codes to new SKUs

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,8 +7,9 @@ import {
   Phone, Mic, MessageSquare, Settings, Play, Power,
   Check, ChevronRight, AlertCircle
 } from "lucide-react";
-import type { PlanCode, AssistantSettings } from "@/types/database";
+import type { AssistantSettings } from "@/types/database";
 import { ConnectPhoneDialog } from "./ConnectPhoneDialog";
+import { hasVoiceFeature, hasSmsFeature } from "@/config/pricing";
 
 interface SetupStep {
   id: string;
@@ -22,12 +23,14 @@ interface SetupStep {
 }
 
 interface SetupChecklistProps {
-  planCode: PlanCode;
+  planCode: string | null;
   assistantSettings: AssistantSettings | null;
   onRefresh: () => void;
 }
 
 export function SetupChecklist({ planCode, assistantSettings, onRefresh }: SetupChecklistProps) {
+  const hasVoice = hasVoiceFeature(planCode);
+  const hasSms = hasSmsFeature(planCode);
   const navigate = useNavigate();
   const [showConnectPhone, setShowConnectPhone] = useState(false);
   
@@ -51,7 +54,8 @@ export function SetupChecklist({ planCode, assistantSettings, onRefresh }: Setup
       },
     ];
 
-    if (planCode === "text") {
+    // SMS-only plans (no voice)
+    if (hasSms && !hasVoice) {
       return [
         ...baseSteps,
         {
@@ -59,7 +63,7 @@ export function SetupChecklist({ planCode, assistantSettings, onRefresh }: Setup
           title: "Send Test Missed Call",
           description: "Simulate a missed call to see the instant text-back in action",
           icon: MessageSquare,
-          completed: false, // Would track in DB
+          completed: false,
           action: () => navigate("/app/simulator"),
           actionLabel: "Open Simulator",
         },
@@ -75,7 +79,8 @@ export function SetupChecklist({ planCode, assistantSettings, onRefresh }: Setup
       ];
     }
 
-    if (planCode === "voice") {
+    // Voice-only plans (no SMS)
+    if (hasVoice && !hasSms) {
       return [
         ...baseSteps,
         {

@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
-import { useSubscription } from "@/hooks/useSubscription";
+import { hasVoiceFeature, hasSmsFeature } from "@/config/pricing";
 import { 
   Phone, 
   MessageSquare,
@@ -24,18 +24,17 @@ import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 
 export function AgentControlCard() {
-  const { tenant, assistantSettings, refreshTenant } = useAuth();
-  const { subscription } = useSubscription(tenant?.id || null);
+  const { tenant, assistantSettings, refreshTenant, subscription } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   
   const [smsDelay, setSmsDelay] = useState(assistantSettings?.sms_first_delay_seconds || 5);
   const [updatingDelay, setUpdatingDelay] = useState(false);
 
-  // Determine which agents are available based on plan
+  // Use centralized helpers for feature detection
   const planCode = subscription?.plan_code;
-  const hasVoice = planCode === "voice" || planCode === "both";
-  const hasSms = planCode === "text" || planCode === "both";
+  const hasVoice = hasVoiceFeature(planCode);
+  const hasSms = hasSmsFeature(planCode);
   const showTabs = hasVoice && hasSms;
 
   // Voice agent state
