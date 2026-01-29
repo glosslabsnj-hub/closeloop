@@ -112,17 +112,38 @@ export default function QuickSetupWizard({ onComplete }: QuickSetupWizardProps) 
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Show exact error reason for debugging
+        const errorDetail = error.message || "Unknown error";
+        toast({
+          variant: "destructive",
+          title: "Test Call Failed",
+          description: `${errorDetail}. Check /debug/telephony for details.`,
+        });
+        return;
+      }
+
+      if (data?.error) {
+        // Handle non-2xx response that still returned JSON
+        toast({
+          variant: "destructive",
+          title: "Test Call Error",
+          description: data.error,
+        });
+        return;
+      }
 
       toast({
         title: "📞 Test Call Initiated",
-        description: "Your phone should ring in a few seconds. Answer to talk to your AI!",
+        description: data?.message || "Your phone should ring in a few seconds. Answer to talk to your AI!",
       });
     } catch (error: any) {
-      // Since this is mock mode, show a demo toast
+      // Show full error for troubleshooting
+      const errorMessage = error?.message || String(error);
       toast({
-        title: "📞 Demo Mode",
-        description: "In production, your AI would call this number. Use browser test for now!",
+        variant: "destructive",
+        title: "Test Call Failed",
+        description: `Error: ${errorMessage}. Visit /debug/telephony for troubleshooting.`,
       });
     } finally {
       setCallingPhone(false);

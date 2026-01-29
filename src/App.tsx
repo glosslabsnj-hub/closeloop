@@ -53,6 +53,9 @@ import AdminSupportPage from "@/pages/admin/AdminSupportPage";
 import AdminDemoLibraryPage from "@/pages/admin/AdminDemoLibraryPage";
 import AdminGoldenPathPage from "@/pages/admin/AdminGoldenPathPage";
 
+// Debug Pages
+import TelephonyDebugPage from "@/pages/debug/TelephonyDebugPage";
+
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -115,6 +118,9 @@ const App = () => (
               <Route path="/admin/demo-library" element={<AdminDemoLibraryPage />} />
               <Route path="/admin/golden-path" element={<AdminGoldenPathPage />} />
             </Route>
+
+            {/* Debug Routes (dev/admin only) */}
+            <Route path="/debug/telephony" element={<TelephonyDebugPage />} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>

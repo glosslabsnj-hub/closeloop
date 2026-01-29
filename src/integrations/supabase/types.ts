@@ -2815,6 +2815,53 @@ export type Database = {
         }
         Relationships: []
       }
+      twilio_event_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          from_number: string
+          http_status: number | null
+          id: string
+          raw_payload: Json | null
+          stage: string
+          tenant_id: string | null
+          to_number: string
+          twilio_call_sid: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          from_number: string
+          http_status?: number | null
+          id?: string
+          raw_payload?: Json | null
+          stage: string
+          tenant_id?: string | null
+          to_number: string
+          twilio_call_sid: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          from_number?: string
+          http_status?: number | null
+          id?: string
+          raw_payload?: Json | null
+          stage?: string
+          tenant_id?: string | null
+          to_number?: string
+          twilio_call_sid?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twilio_event_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       universal_delivery_settings: {
         Row: {
           auth_header_name: string | null
