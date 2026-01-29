@@ -862,6 +862,7 @@ export type Database = {
           deposit_paid: boolean
           deposit_required: boolean
           end_at: string
+          external_event_id: string | null
           id: string
           lead_id: string
           notes: string | null
@@ -876,6 +877,7 @@ export type Database = {
           deposit_paid?: boolean
           deposit_required?: boolean
           end_at: string
+          external_event_id?: string | null
           id?: string
           lead_id: string
           notes?: string | null
@@ -890,6 +892,7 @@ export type Database = {
           deposit_paid?: boolean
           deposit_required?: boolean
           end_at?: string
+          external_event_id?: string | null
           id?: string
           lead_id?: string
           notes?: string | null
@@ -1067,6 +1070,126 @@ export type Database = {
           },
           {
             foreignKeyName: "business_memory_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      busy_blocks: {
+        Row: {
+          block_type: string
+          booking_id: string | null
+          created_at: string
+          end_at: string
+          expires_at: string | null
+          external_event_id: string | null
+          id: string
+          is_active: boolean
+          metadata_json: Json | null
+          source_connection_id: string | null
+          start_at: string
+          tenant_id: string
+        }
+        Insert: {
+          block_type: string
+          booking_id?: string | null
+          created_at?: string
+          end_at: string
+          expires_at?: string | null
+          external_event_id?: string | null
+          id?: string
+          is_active?: boolean
+          metadata_json?: Json | null
+          source_connection_id?: string | null
+          start_at: string
+          tenant_id: string
+        }
+        Update: {
+          block_type?: string
+          booking_id?: string | null
+          created_at?: string
+          end_at?: string
+          expires_at?: string | null
+          external_event_id?: string | null
+          id?: string
+          is_active?: boolean
+          metadata_json?: Json | null
+          source_connection_id?: string | null
+          start_at?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "busy_blocks_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "busy_blocks_source_connection_id_fkey"
+            columns: ["source_connection_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "busy_blocks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_connections: {
+        Row: {
+          auth_type: string
+          config_json: Json | null
+          created_at: string
+          display_name: string | null
+          id: string
+          last_sync_at: string | null
+          provider: string
+          scopes_json: Json | null
+          status: string
+          sync_error: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          auth_type: string
+          config_json?: Json | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          last_sync_at?: string | null
+          provider: string
+          scopes_json?: Json | null
+          status?: string
+          sync_error?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          auth_type?: string
+          config_json?: Json | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          last_sync_at?: string | null
+          provider?: string
+          scopes_json?: Json | null
+          status?: string
+          sync_error?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_connections_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -4122,7 +4245,41 @@ export type Database = {
     }
     Functions: {
       calculate_ai_readiness: { Args: { _tenant_id: string }; Returns: number }
+      cleanup_expired_holds: { Args: never; Returns: number }
       fn_build_business_context: { Args: { _tenant_id: string }; Returns: Json }
+      fn_compute_available_slots: {
+        Args: {
+          _buffer_minutes?: number
+          _business_hours?: Json
+          _duration_minutes?: number
+          _end_date: string
+          _start_date: string
+          _tenant_id: string
+        }
+        Returns: {
+          slot_end: string
+          slot_start: string
+        }[]
+      }
+      fn_confirm_booking: {
+        Args: {
+          _hold_id: string
+          _lead_id?: string
+          _notes?: string
+          _service_id?: string
+        }
+        Returns: string
+      }
+      fn_place_hold: {
+        Args: {
+          _end_at: string
+          _hold_minutes?: number
+          _session_id?: string
+          _start_at: string
+          _tenant_id: string
+        }
+        Returns: string
+      }
       get_user_tenant_id: { Args: { _user_id: string }; Returns: string }
       has_active_subscription: {
         Args: { _tenant_id: string }
