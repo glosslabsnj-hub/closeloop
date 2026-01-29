@@ -88,7 +88,7 @@ export default function GoLivePage() {
   const tierInfo = selectedTier ? TIERS.find((t) => t.tier === selectedTier) : null;
 
   return (
-    <div className="min-h-screen py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20 py-12 px-4">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">

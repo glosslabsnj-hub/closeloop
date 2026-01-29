@@ -35,7 +35,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center py-12 px-4">
+    <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center py-12 px-4 bg-gradient-to-b from-background to-muted/30">
       <Card className="w-full max-w-md shadow-soft-lg animate-scale-fade-in">
         <CardHeader className="text-center space-y-4 pb-6">
           <div className="flex justify-center">
