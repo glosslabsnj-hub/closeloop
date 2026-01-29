@@ -11,7 +11,8 @@ import {
   FileText, CheckCircle2, Loader2, ArrowRight, ArrowLeft, 
   Users, Sparkles, Edit2, Brain
 } from "lucide-react";
-import { ExtendedIndustryType, industryConfigs } from "@/data/industryTemplates";
+import { industryConfigs } from "@/data/industryTemplates";
+import { getIndustryBySlug, industryCatalog } from "@/data/industryCatalog";
 import { resolveIndustryTemplate } from "@/lib/templateResolver";
 import BusinessIdentityForm, { BusinessIdentity } from "@/components/onboarding/BusinessIdentityForm";
 import ServiceEditorAdvanced, { AdvancedService } from "@/components/onboarding/ServiceEditorAdvanced";
@@ -52,7 +53,7 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   
   // Track if industry template has been initialized to prevent re-loading on every render
-  const initializedIndustryRef = useRef<ExtendedIndustryType | null>(null);
+  const initializedIndustryRef = useRef<string | null>(null);
   
   // Track upload conflicts for Step 2
   const [uploadConflictCount, setUploadConflictCount] = useState(0);
@@ -110,12 +111,13 @@ export default function OnboardingPage() {
   useEffect(() => {
     const storedIndustry = sessionStorage.getItem("selectedIndustry");
     if (storedIndustry && storedIndustry !== businessIdentity.industry) {
-      // Validate it's a real industry key
-      if (storedIndustry in industryConfigs) {
+      // Validate it's a real industry key (check both legacy and new catalog)
+      const isValidIndustry = storedIndustry in industryConfigs || getIndustryBySlug(storedIndustry);
+      if (isValidIndustry) {
         console.log(`[Onboarding] Loading stored industry from sessionStorage: ${storedIndustry}`);
         setBusinessIdentity(prev => ({
           ...prev,
-          industry: storedIndustry as ExtendedIndustryType
+          industry: storedIndustry
         }));
       }
       // Clear after use
