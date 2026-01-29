@@ -1,377 +1,337 @@
 
-# PAGE FLOW AUDIT REPORT
-## CloseLoop Application - Full Navigation & Routing Audit
+# Knowledge Upload System Enhancement Plan
+
+## Overview
+
+This plan implements three major enhancements:
+1. **Process Knowledge Upload Edge Function** - Automatically parse documents, extract knowledge items, detect conflicts, and create notifications
+2. **Switch Button Visibility Fix** - Make toggle switches visible when OFF (currently white-on-white)
+3. **Central Upload Hub in Business Brain** - Allow all businesses to upload documents (menus, services, FAQs, policies) with intelligent conflict detection
 
 ---
 
-## 1) PRE-LOGIN PAGES
+## Part 1: Switch Button Visibility Fix
 
-### Routes Audited:
-- `/` (LandingPage)
-- `/pricing` (PricingPage)
-- `/login` (LoginPage)
-- `/signup` (SignupPage)
+### Problem
+The Switch component uses `bg-input` when unchecked, which maps to a light gray color (`220 13% 91%` in light mode). On white backgrounds, this creates poor contrast and makes OFF switches nearly invisible.
 
-### STATUS: **PASS**
+### Solution
+Update the global Switch component to use a more visible background when unchecked.
 
-### Findings:
+### File Changes
 
-**CTA Buttons & Routing:**
-- HeroSection: "Get Started Free" → `/signup` ✅
-- HeroSection: "Hear a Real Call" → `#demo` (anchor) ✅
-- FinalCTASection: "Get Started Free" → `/signup` ✅
-- MobileStickyBar: "Get Started" → `/signup` ✅
-- MobileStickyBar: Play button → `#demo` ✅
-- PublicLayout header: "Start Free Trial" → `/signup` ✅
-- PublicLayout header: "Log in" → `/login` ✅
-- PricingPage: Each plan CTA → `/signup?sku={selected_sku}` ✅
-- PricingPage: Final CTA → `/signup` ✅
-
-**Login/Signup Cross-Links:**
-- LoginPage: "Start free trial" → `/signup` ✅
-- SignupPage: "Sign in" → `/login` ✅
-- SignupPage: "Change plan" → `/#pricing` ✅
-
-**No Pre-Login → Protected Route Issues:**
-- All public CTAs route to `/signup` or `/login`
-- No direct links to `/app/*` routes from public pages
-
-**Mobile vs Desktop:**
-- MobileStickyBar provides consistent mobile CTAs
-- PublicLayout shows condensed nav on mobile
-
-### ISSUES: None
+**`src/components/ui/switch.tsx`**
+- Change `data-[state=unchecked]:bg-input` to `data-[state=unchecked]:bg-muted-foreground/20`
+- This provides a visible gray background while maintaining the design system
+- Works in both light and dark modes
 
 ---
 
-## 2) AUTHENTICATION & GATING
+## Part 2: Central Upload Hub in Business Brain
 
-### STATUS: **PASS**
+### New UI Components
 
-### Findings:
+**1. Upload Hub Card (`src/components/knowledge/KnowledgeUploadHub.tsx`)**
 
-**AppLayout Auth Gating (lines 87-113):**
+A central upload interface with:
+- Drag-and-drop zone
+- Document type selector dropdown (Menu, Services, FAQ, Policy, General)
+- File type indicators (PDF, Image, Word, Excel)
+- Upload progress indicator
+- Helper text explaining what each document type should contain
+
+**Content for document type descriptions:**
+- **Menu**: "Price list, menu PDF, or photos of your menu boards"
+- **Services & Pricing**: "Service catalogs, pricing sheets, or rate cards"
+- **FAQs**: "Frequently asked questions document or knowledge base export"
+- **Policies**: "Cancellation policy, refund policy, terms of service"
+- **General**: "Any other business information for your AI"
+
+**2. Integration with Business Brain Page**
+
+Add the Upload Hub to the Business Brain Overview tab:
+- Position: After the "Knowledge Completion" card and before "What Your AI Knows"
+- Card with title "Upload Documents" and description "Speed up AI setup by uploading existing business documents"
+- Links to the Updates tab for processing status
+
+**3. Upload State Indicators**
+
+- Processing spinner with file name
+- Success checkmark with "Ready for review" link
+- Error state with retry option
+
+### Storage Bucket
+
+Create a new storage bucket for knowledge documents:
+- Bucket name: `knowledge-documents`
+- Public: No (authenticated access only)
+- RLS policies for tenant isolation
+
+---
+
+## Part 3: Process Knowledge Upload Edge Function
+
+### Function: `supabase/functions/process-knowledge-upload/index.ts`
+
+**Triggered by:** Direct invocation after file upload completes
+
+**Input:**
 ```typescript
-// Redirect unauthenticated users
-useEffect(() => {
-  if (!loading && !user) {
-    navigate("/login");
-  }
-}, [user, loading, navigate]);
-
-// Redirect users without tenant to onboarding
-useEffect(() => {
-  if (!loading && user && !tenant && !isSuperAdmin) {
-    if (location.pathname !== "/app/onboarding") {
-      navigate("/app/onboarding");
-    }
-  }
-}, [loading, user, tenant, isSuperAdmin, location.pathname, navigate]);
-
-// Subscription gating
-useEffect(() => {
-  if (!loading && tenant && !hasActiveSubscription) {
-    const isAllowedRoute = alwaysAccessibleRoutes.some(route => 
-      location.pathname.startsWith(route)
-    );
-    if (!isAllowedRoute && location.pathname !== "/app/go-live") {
-      navigate("/app/go-live");
-    }
-  }
-}, [loading, tenant, hasActiveSubscription, location.pathname, navigate]);
+{
+  sourceId: string;      // knowledge_sources.id
+  tenantId: string;      // For context
+  fileUrl: string;       // Storage URL
+  sourceType: string;    // menu_pdf, services_doc, etc.
+}
 ```
 
-**Always Accessible Routes:**
-- `/app/settings`
-- `/app/go-live`
+**Processing Flow:**
 
-**AdminLayout Auth Gating (lines 50-54):**
+```text
+1. Fetch document from storage
+         |
+         v
+2. Determine parsing strategy based on file type
+   - PDF: Extract text via Lovable AI
+   - Images (PNG/JPG): OCR via Lovable AI vision
+   - DOCX/XLSX: Convert to text format
+         |
+         v
+3. Send to Lovable AI with extraction prompt
+   - Model: google/gemini-2.5-flash (fast, cost-effective)
+   - Structured output via tool calling
+         |
+         v
+4. For each extracted item:
+   a. Check if matching entity exists
+   b. If match found:
+      - Compare fields
+      - If different → create knowledge_conflict
+   c. If no match:
+      - Create extracted_knowledge_suggestion
+         |
+         v
+5. Update knowledge_sources.status to 'ready' or 'failed'
+         |
+         v
+6. Database triggers create owner_notifications automatically
+```
+
+**AI Extraction Prompt Strategy:**
+
+Use tool calling with structured schemas for each document type:
+
 ```typescript
-useEffect(() => {
-  if (!loading && (!user || !isSuperAdmin)) {
-    navigate("/login");
+// Menu extraction tool
+{
+  name: "extract_menu_items",
+  parameters: {
+    items: [{
+      name: string,
+      description: string,
+      price_cents: number,
+      category: string
+    }]
   }
-}, [user, isSuperAdmin, loading, navigate]);
-```
+}
 
-**Session Persistence:**
-- AuthContext uses `onAuthStateChange` listener before `getSession()` ✅
-- Session persists on refresh via Supabase auth
-
-**Logout Flow:**
-- `signOut()` clears session
-- Navigates to `/` (home) ✅
-
-### ISSUES: None
-
----
-
-## 3) ONBOARDING FLOW
-
-### Routes:
-- `/app/onboarding` (OnboardingPage - no layout wrapper)
-
-### STATUS: **PASS**
-
-### Findings:
-
-**8-Step Flow:**
-1. Business Identity
-2. Services & Pricing
-3. Booking Policies
-4. Customer Intake
-5. FAQs
-6. Objection Handling
-7. Policies
-8. Review & Launch
-
-**Navigation Logic:**
-- "Continue" advances to next step ✅
-- "Back" returns to previous step ✅
-- Step indicators allow clicking completed steps ✅
-- Cannot skip ahead to incomplete steps ✅
-
-**Completion Redirect:**
-- `handleComplete()` creates tenant, then navigates to `/app/dashboard` ✅
-
-**Already Onboarded Protection:**
-```typescript
-useEffect(() => {
-  if (!authLoading && tenant) {
-    navigate("/app/dashboard", { replace: true });
+// Services extraction tool
+{
+  name: "extract_services",
+  parameters: {
+    services: [{
+      name: string,
+      description: string,
+      price_amount: number,
+      price_type: "fixed" | "starting_at" | "quote_only",
+      duration_minutes: number
+    }]
   }
-}, [authLoading, tenant, navigate]);
+}
+
+// FAQ extraction tool
+{
+  name: "extract_faqs",
+  parameters: {
+    faqs: [{
+      question: string,
+      answer: string
+    }]
+  }
+}
+
+// Policy extraction tool
+{
+  name: "extract_policies",
+  parameters: {
+    cancellation: string | null,
+    refund: string | null,
+    deposit: string | null,
+    general: string | null
+  }
+}
 ```
 
-**Edge Cases:**
-- Refresh mid-onboarding: State is local, user restarts from step 1 (expected behavior for session-based wizard)
-- No tenant created until final step completes
+**Conflict Detection Logic:**
 
-### ISSUES: None
+For each extracted item:
+1. Query existing entities by normalized name match (case-insensitive, trimmed)
+2. If match found, compare key fields:
+   - Menu items: price_cents, description, category
+   - Services: price_amount, duration_minutes, description
+   - FAQs: answer (fuzzy match threshold: 80% similarity)
+3. If any field differs significantly, create a conflict record with:
+   - `existing_data`: Current values from database
+   - `proposed_data`: Extracted values from document
+   - `differing_fields`: Array of field names that differ
 
----
-
-## 4) DASHBOARD NAVIGATION
-
-### Routes Audited:
-- `/app/dashboard` → DashboardPage ✅
-- `/app/inbox` → InboxPage ✅
-- `/app/calls` → CallsPage ✅
-- `/app/leads` → LeadsPage ✅
-- `/app/bookings` → BookingsPage ✅
-- `/app/services` → ServicesPage ✅
-- `/app/automations` → AutomationsPage ✅
-- `/app/ai-assistant` → AIAssistantPage ✅
-- `/app/simulator` → SimulatorPage ✅
-- `/app/business-brain` → BusinessBrainPage ✅
-- `/app/usage` → UsagePage ✅
-- `/app/settings` → SettingsPage ✅
-- `/app/orders` → OrdersPage ✅
-- `/app/reservations` → ReservationsPage ✅
-- `/app/catering` → CateringPage ✅
-- `/app/menu-center` → MenuCenterPage ✅
-- `/app/dispatch` → DispatchPage ✅
-- `/app/medical-intake` → MedicalIntakePage ✅
-- `/app/orders/:orderId/ticket` → OrderTicketPage ✅
-
-### STATUS: **PARTIAL**
-
-### Findings:
-
-**Sidebar Navigation (AppLayout):**
-- All nav items correctly defined in `allNavItems` array
-- Proper icons and href paths
-- Module gating filters items based on `enabledModules`
-
-**QuickLinksCard Navigation:**
-- "Inbox" → `/app/inbox` ✅
-- "Bookings" → `/app/bookings` ✅
-- "Leads" → `/app/leads` ✅
-- "Services" → `/app/services` ✅
-
-**BusinessBrainPage Internal Links:**
-- "Services" section → `/app/services` ✅
-- "Menu Items" section → `/app/menu-center` ✅
-- "FAQs" section → `/app/ai-assistant` ✅
-- "Policies" section → `/app/ai-assistant` ✅
-- "Test AI" button → `/app/simulator` ✅
-
-### ISSUES FOUND:
-
-**ISSUE 1: Copilot Links Reference Wrong Paths**
-In `Copilot.tsx`, several links use incorrect paths:
-- Line 185: `"/app/menu"` → Should be `/app/menu-center`
-- Line 265: `"/app/menu"` → Should be `/app/menu-center`
-- Line 200: `"/app/brain"` → Should be `/app/business-brain`
-- Line 246: `"/app/brain"` → Should be `/app/business-brain`
-
-**ISSUE 2: QuickLinksCard Not Mode-Aware**
-The QuickLinksCard shows "Bookings" for all modes, even when booking module is disabled (e.g., food mode). Users clicking this will be redirected by module gating, but it creates confusion.
+**Error Handling:**
+- Parse failures: Set status to 'failed' with descriptive error_message
+- Partial extraction: Create suggestions for valid items, log warnings for skipped
+- API rate limits: Retry with exponential backoff (max 3 attempts)
 
 ---
 
-## 5) MODE & MODULE GATING
+## Part 4: Conflict Warning UX
 
-### STATUS: **PASS**
+### Persistent Banner
 
-### Findings:
+**File: `src/components/dashboard/KnowledgeConflictBanner.tsx`** (already exists)
 
-**Module-Gated Pages Use `useModuleRequired`:**
-- OrdersPage: `useModuleRequired(["food_orders"])` ✅
-- DispatchPage: `useModuleRequired(["dispatch_queue"])` ✅
-- BookingsPage: `useModuleRequired(["booking"])` ✅
-- ReservationsPage: `useModuleRequired(["reservations"])` ✅
-- CateringPage: `useModuleRequired(["catering"])` ✅
-- MedicalIntakePage: `useModuleRequired(["medical_intake"])` ✅
+Current implementation is correct. Ensure it's visible in:
+- LiveDashboard (already added)
+- BusinessBrainPage Overview tab (add if missing)
 
-**Sidebar Filtering:**
+### Badge Integration
+
+**Files to update:**
+- `src/components/layouts/AppLayout.tsx` - Add badge to "Business Brain" sidebar item
+- Already have badge in tabs for Updates
+
+### Toast Notifications
+
+When upload processing completes, show toast:
+- Success: "Upload processed! Review suggestions to update your AI."
+- Conflict: "Upload found differences with your current settings. Review conflicts."
+- Failure: "Upload processing failed. Please try again."
+
+---
+
+## Database Changes
+
+### Storage Bucket
+
+```sql
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('knowledge-documents', 'knowledge-documents', false);
+
+-- RLS: Users can upload to their tenant folder
+CREATE POLICY "Tenant users can upload documents"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'knowledge-documents' AND
+  (storage.foldername(name))[1] = (
+    SELECT id::text FROM tenants 
+    WHERE id IN (SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid())
+  )
+);
+
+-- RLS: Users can view their tenant's documents
+CREATE POLICY "Tenant users can view documents"
+ON storage.objects FOR SELECT
+USING (
+  bucket_id = 'knowledge-documents' AND
+  (storage.foldername(name))[1] IN (
+    SELECT tenant_id::text FROM tenant_users WHERE user_id = auth.uid()
+  )
+);
+```
+
+---
+
+## File Structure
+
+```text
+New Files:
+├── src/components/knowledge/KnowledgeUploadHub.tsx
+├── supabase/functions/process-knowledge-upload/index.ts
+
+Modified Files:
+├── src/components/ui/switch.tsx (visibility fix)
+├── src/pages/app/BusinessBrainPage.tsx (add Upload Hub)
+├── src/components/layouts/AppLayout.tsx (add badge to Business Brain nav)
+```
+
+---
+
+## Technical Implementation Details
+
+### Upload Flow (Frontend)
+
 ```typescript
-const navItems = useMemo(() => {
-  return allNavItems.filter(item => {
-    if (!item.requiredModules) return true;
-    return item.requiredModules.some(mod => enabledModules.includes(mod));
-  });
-}, [enabledModules]);
+// 1. User selects file and document type
+// 2. Create knowledge_sources record (status: 'uploading')
+// 3. Upload file to storage: knowledge-documents/{tenantId}/{sourceId}/{filename}
+// 4. Update knowledge_sources with file_url
+// 5. Call process-knowledge-upload edge function
+// 6. Edge function updates status → triggers create notifications
+// 7. Frontend receives real-time update via subscription
+// 8. Show toast notification
 ```
 
-**Direct URL Access Protection:**
-- If module not enabled, `useModuleRequired` redirects to `/app/dashboard` ✅
-- Shows loading spinner during check ✅
+### Edge Function CORS Headers
 
-**Settings Page Mode-Aware Tabs:**
-- Food tab: Only shows if `isFoodMode` ✅
-- Booking Delivery tab: Only shows if `isBookingEnabled` ✅
-- Dispatch Delivery tab: Only shows if `isDispatchEnabled` ✅
-- HIPAA tab: Only shows if `isMedicalMode || hipaaMode` ✅
-
-### ISSUES: None
-
----
-
-## 6) SETTINGS & ACTION BUTTONS
-
-### STATUS: **PASS**
-
-### Findings:
-
-**Settings Page Tabs:**
-- Business, Hours, Delivery, Automation, Team, Billing, Notifications, Developer (always visible)
-- Food, Booking Delivery, Dispatch Delivery, HIPAA (conditionally visible)
-- Tab switching works correctly via state
-
-**Save/Update Actions:**
-- Business settings: `handleSaveBusiness()` - updates tenant and stays on page ✅
-- Hours settings: `handleSaveHours()` - saves slots and stays on page ✅
-
-**User Dropdown (AppLayout):**
-- "Settings" → `/app/settings` ✅
-- "Log out" → Signs out and navigates to `/` ✅
-
-**Dashboard Actions:**
-- SetupWizard steps complete and advance ✅
-- GoLiveStep activates and navigates to dashboard ✅
-
-**Orders/Dispatch/Bookings Actions:**
-- Status dropdowns update inline ✅
-- Print ticket → `/app/orders/:orderId/ticket` ✅
-- View details → Opens drawer ✅
-
-### ISSUES: None
-
----
-
-## 7) ERROR STATES & FALLBACKS
-
-### STATUS: **PASS**
-
-### Findings:
-
-**404 Handling:**
 ```typescript
-<Route path="*" element={<NotFound />} />
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
 ```
-- NotFound page shows 404 message
-- "Return to Home" link → `/` ✅
-- Console logs attempted route for debugging
 
-**Empty State Handling:**
-- InboxPage: Shows "No conversations yet" with icon ✅
-- BookingsPage: Shows "No bookings for this day" with "Add Booking" button ✅
-- OrdersPage: Shows "No orders found" in table ✅
-- DispatchPage: Shows "No jobs found" in table ✅
+### Lovable AI Integration
 
-**Loading States:**
-- All pages show spinner while loading ✅
-- Module gating shows spinner during check ✅
-
-**No Infinite Redirect Loops:**
-- Auth gating checks `loading` state before redirecting
-- `alwaysAccessibleRoutes` prevents subscription-less users from being stuck
-
-### ISSUES: None
+- Uses `LOVABLE_API_KEY` (already configured as secret)
+- Model: `google/gemini-2.5-flash` for fast extraction
+- Endpoint: `https://ai.gateway.lovable.dev/v1/chat/completions`
+- Use tool calling for structured output
 
 ---
 
-## CRITICAL FIXES (BLOCKING)
+## Acceptance Criteria
 
-None - No blocking navigation issues found.
+1. **Switch Visibility**
+   - All toggle switches visible when OFF on white backgrounds
+   - Maintains visual distinction between ON (primary color) and OFF states
+   - Works in both light and dark modes
 
----
+2. **Upload Hub**
+   - Drag-and-drop file upload works
+   - Document type selector shows appropriate types
+   - Supported formats: PDF, PNG, JPG, DOCX, XLSX
+   - Upload progress visible
+   - Success/failure states clear
 
-## IMPORTANT FIXES (SHOULD FIX)
+3. **Document Processing**
+   - Menu PDFs extract item names, prices, descriptions
+   - Service documents extract service details
+   - FAQ documents extract Q&A pairs
+   - Policies are identified and extracted
+   - Processing takes < 30 seconds for typical documents
 
-### 1. Copilot Wrong Path References
-**File:** `src/components/dashboard/Copilot.tsx`
-**Lines:** 185, 265, 200, 246
-**Issue:** References to `/app/menu` and `/app/brain` don't match actual routes
-**Fix:** Update to `/app/menu-center` and `/app/business-brain`
+4. **Conflict Detection**
+   - When extracted item matches existing entity with different values, conflict is created
+   - Conflict clearly shows "Existing" vs "Proposed" values
+   - Differing fields are highlighted
+   - Resolution options: Keep Existing, Accept Upload, Edit & Save
 
----
+5. **Notifications**
+   - Upload start: "Processing your upload" notification
+   - Upload complete: "Ready for review" notification
+   - Conflicts detected: "Action needed" notification with critical severity
+   - All conflicts resolved: "All resolved" confirmation
 
-## MINOR FIXES (NICE TO HAVE)
-
-### 1. QuickLinksCard Mode Awareness
-**File:** `src/components/dashboard/QuickLinksCard.tsx`
-**Issue:** Shows "Bookings" link even when booking module is disabled
-**Fix:** Filter links based on enabled modules, similar to sidebar
-
-### 2. NotFound Page Could Use App Layout for Authenticated Users
-**Issue:** 404 page always shows plain layout with link to `/`
-**Fix:** Detect if user is authenticated and show link to `/app/dashboard` instead
-
----
-
-## OVERALL NAVIGATION HEALTH SCORE
-
-# 92/100
-
-**Breakdown:**
-- Route definitions: 100%
-- Auth gating: 100%
-- Module gating: 100%
-- Pre-login flows: 100%
-- Onboarding flow: 100%
-- Dashboard navigation: 95% (Copilot links incorrect)
-- Settings & actions: 100%
-- Error handling: 100%
-- Mode awareness: 90% (QuickLinksCard not filtered)
-
----
-
-## TOP 5 ROUTING RISKS TO USERS
-
-1. **Copilot Directing Users to 404** - Users asking "Where is my menu?" get directed to `/app/menu` which doesn't exist
-2. **QuickLinksCard Booking Link Confusion** - Food mode users see "Bookings" but it redirects them away
-3. **OnboardingPage State Loss on Refresh** - Users who refresh lose all progress (acceptable but could be improved)
-4. **NotFound Page Generic** - Authenticated users see "Return to Home" instead of "Return to Dashboard"
-5. **No Breadcrumb Navigation** - Deep pages (e.g., Order Ticket) don't show navigation path back
-
----
-
-## RECOMMENDED NEXT ACTIONS (ORDERED)
-
-1. **Fix Copilot path references** - Update `/app/menu` → `/app/menu-center` and `/app/brain` → `/app/business-brain` in Copilot.tsx
-2. **Make QuickLinksCard mode-aware** - Filter links based on enabled modules
-3. **Enhance NotFound for authenticated users** - Show dashboard link if logged in
-4. **Add breadcrumbs to detail pages** - OrderTicketPage should show path back to Orders
-5. **Consider onboarding state persistence** - Store partial progress in localStorage or database
+6. **User Experience**
+   - No automatic changes to AI knowledge without owner review
+   - Clear messaging: "Your Business Brain is the source of truth"
+   - Progress visible at every step
+   - Helpful error messages on failure
