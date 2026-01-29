@@ -32,6 +32,8 @@ import { useTenantConfig, type BusinessMode } from "@/hooks/useTenantConfig";
 import { supabase } from "@/integrations/supabase/client";
 import { SimpleAutomationPanel } from "@/components/workflows/SimpleAutomationPanel";
 import { HelpGuideWorkflows } from "@/components/help/HelpGuideWorkflows";
+import { WorkflowRunLogCard } from "@/components/workflows/WorkflowRunLogCard";
+import { TestTriggerButton } from "@/components/workflows/TestTriggerButton";
 
 // Pre-configured node for workflow templates
 interface TemplateNode {
@@ -758,6 +760,7 @@ export default function WorkflowsPage() {
               title="Active"
               description="These workflows are running"
               workflows={activeWorkflows}
+              tenantId={tenantId!}
               onPause={(id) => pauseWorkflow.mutateAsync(id)}
               onDelete={handleDelete}
             />
@@ -769,6 +772,7 @@ export default function WorkflowsPage() {
               title="Drafts"
               description="Work in progress"
               workflows={draftWorkflows}
+              tenantId={tenantId!}
               onActivate={(id) => activateWorkflow.mutateAsync(id)}
               onDelete={handleDelete}
             />
@@ -780,9 +784,15 @@ export default function WorkflowsPage() {
               title="Paused"
               description="Temporarily stopped"
               workflows={pausedWorkflows}
+              tenantId={tenantId!}
               onActivate={(id) => activateWorkflow.mutateAsync(id)}
               onDelete={handleDelete}
             />
+          )}
+
+          {/* Recent Runs */}
+          {tenantId && (
+            <WorkflowRunLogCard tenantId={tenantId} limit={10} />
           )}
         </>
       )}
@@ -794,6 +804,7 @@ function WorkflowSection({
   title,
   description,
   workflows,
+  tenantId,
   onActivate,
   onPause,
   onDelete,
@@ -801,6 +812,7 @@ function WorkflowSection({
   title: string;
   description: string;
   workflows: Workflow[];
+  tenantId: string;
   onActivate?: (id: string) => void;
   onPause?: (id: string) => void;
   onDelete: (id: string) => void;
@@ -834,6 +846,14 @@ function WorkflowSection({
               </div>
               
               <div className="flex items-center gap-2 flex-wrap">
+                {/* Test Trigger Button */}
+                <TestTriggerButton
+                  tenantId={tenantId}
+                  workflowId={workflow.id}
+                  trigger={workflow.trigger}
+                  disabled={workflow.status !== "active"}
+                />
+                
                 {onActivate && workflow.status !== "active" && (
                   <Button
                     variant="ghost"

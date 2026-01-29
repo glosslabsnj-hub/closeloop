@@ -172,6 +172,57 @@ export function useDryRunWorkflow() {
   });
 }
 
+// Test trigger a workflow with sample payload
+export function useTestTriggerWorkflow() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ 
+      tenantId, 
+      workflowId, 
+      trigger, 
+      dryRun = false 
+    }: { 
+      tenantId: string; 
+      workflowId: string;
+      trigger: string;
+      dryRun?: boolean;
+    }) => {
+      const { data, error } = await supabase.functions.invoke("trigger-workflow", {
+        body: {
+          tenant_id: tenantId,
+          trigger,
+          entity_type: trigger.split(".")[0], // order, booking, dispatch, etc.
+          entity_id: `test_${Date.now()}`,
+          details: {
+            test_trigger: true,
+            workflow_id: workflowId,
+          },
+          dry_run: dryRun,
+        },
+      });
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["workflow-runs"] });
+      queryClient.invalidateQueries({ queryKey: ["tenant-workflow-runs"] });
+      
+      const isDryRun = variables.dryRun;
+      toast({ 
+        title: isDryRun ? "Test Run Complete (Dry Run)" : "Test Run Complete", 
+        description: `${isDryRun ? "Simulated" : "Executed"} ${data.steps_executed || 0} steps. Status: ${data.status}`,
+        variant: data.status === "success" ? "default" : "destructive"
+      });
+    },
+    onError: (error) => {
+      toast({ title: "Test trigger failed", description: String(error), variant: "destructive" });
+    },
+  });
+}
+
 // Cancel a running workflow
 export function useCancelWorkflowRun() {
   const queryClient = useQueryClient();
