@@ -24,6 +24,7 @@ import LeadsPage from "@/pages/app/LeadsPage";
 import BookingsPage from "@/pages/app/BookingsPage";
 import ServicesPage from "@/pages/app/ServicesPage";
 import AutomationsPage from "@/pages/app/AutomationsPage";
+import IntegrationsPage from "@/pages/app/IntegrationsPage";
 import AIAssistantPage from "@/pages/app/AIAssistantPage";
 import SettingsPage from "@/pages/app/SettingsPage";
 import SimulatorPage from "@/pages/app/SimulatorPage";
@@ -52,6 +53,7 @@ import AdminTenantsPage from "@/pages/admin/AdminTenantsPage";
 import AdminSupportPage from "@/pages/admin/AdminSupportPage";
 import AdminDemoLibraryPage from "@/pages/admin/AdminDemoLibraryPage";
 import AdminGoldenPathPage from "@/pages/admin/AdminGoldenPathPage";
+import AdminSetupRequestsPage from "@/pages/admin/AdminSetupRequestsPage";
 
 // Debug Pages
 import TelephonyDebugPage from "@/pages/debug/TelephonyDebugPage";
@@ -89,6 +91,7 @@ const App = () => (
               <Route path="/app/bookings" element={<BookingsPage />} />
               <Route path="/app/services" element={<ServicesPage />} />
               <Route path="/app/automations" element={<AutomationsPage />} />
+              <Route path="/app/integrations" element={<IntegrationsPage />} />
               <Route path="/app/ai-assistant" element={<AIAssistantPage />} />
               <Route path="/app/simulator" element={<SimulatorPage />} />
               <Route path="/app/business-brain" element={<BusinessBrainPage />} />
@@ -118,6 +121,7 @@ const App = () => (
               <Route path="/admin/support" element={<AdminSupportPage />} />
               <Route path="/admin/demo-library" element={<AdminDemoLibraryPage />} />
               <Route path="/admin/golden-path" element={<AdminGoldenPathPage />} />
+              <Route path="/admin/setup-requests" element={<AdminSetupRequestsPage />} />
             </Route>
 
             {/* Debug Routes (dev/admin only) */}
