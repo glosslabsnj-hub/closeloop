@@ -1,193 +1,155 @@
 
 
-# Fix Twilio Number Provisioning for SKU-Based Pricing
+# Delete Test Users Cleanup
 
-## Problem Summary
-Twilio phone numbers are not being provisioned for new users because the provisioning logic checks for exact matches against legacy plan codes (`"voice"`, `"both"`) while the new pricing model uses SKU-based codes (`"voice-200"`, `"both-200-500"`, etc.).
+## Summary
+Remove all test user accounts except your admin account (`jackangelini@icloud.com`). The template industry data is stored as static code, so no user accounts are needed to maintain it.
 
-## Root Cause Analysis
-| Location | Current Check | Fails For |
-|----------|--------------|-----------|
-| `OnboardingPage.tsx:416` | `["voice", "both"].includes(planCode)` | `"voice-200"`, `"both-200-500"` |
-| `stripe-webhook/index.ts:83` | `["voice", "both"].includes(planCode)` | `"voice-200"`, `"both-200-500"` |
+## Users to Delete (10 accounts)
 
-**Already Fixed:** `useSubscription.ts:131` correctly uses `hasVoiceFeature(sku)` which handles both legacy and new SKUs.
+| Email | Reason |
+|-------|--------|
+| `test1@gmail.com` | Test account, no tenant |
+| `test123@gmail.com` | Test account, no tenant |
+| `test122@gmail.com` | Test account, no tenant |
+| `test1232@gmail.com` | Test account, no tenant |
+| `test1234@gmail.com` | Test account, no tenant |
+| `testvoice@closeloop.test` | Test account, no tenant |
+| `voicetest123@example.com` | Test account, no tenant |
+| `newbusiness2025@testmail.com` | Test account, no tenant |
+| `blueboxer@test.com` | Test account with orphan tenant |
+| `test123@example.com` | Test account, no tenant |
 
-## Solution Overview
+## User to Keep
 
-### A. Fix OnboardingPage.tsx (Client Trigger)
-Replace the legacy check with the existing `hasVoiceFeature()` helper:
+| Email | Role | Reason |
+|-------|------|--------|
+| `jackangelini@icloud.com` | super_admin | Your admin account with template tenant |
 
-```typescript
-// Before (line 416)
-if (["voice", "both"].includes(planCode)) {
+## Implementation Steps
 
-// After
-import { hasVoiceFeature } from "@/config/pricing";
-// ...
-if (hasVoiceFeature(planCode)) {
+### Step 1: Delete Related Data First
+Clean up any data associated with test tenants before deleting users:
+
+```sql
+-- Delete the orphan tenant created by blueboxer@test.com
+DELETE FROM tenants WHERE id = '9a99dcab-ce42-4bc2-8c5e-9cfc7af91603';
+
+-- Clean up any tenant_users entries (cascade should handle this, but be explicit)
+DELETE FROM tenant_users WHERE user_id NOT IN (
+  SELECT id FROM auth.users WHERE email = 'jackangelini@icloud.com'
+);
 ```
 
-### B. Fix stripe-webhook Edge Function (Server Backup Trigger)
-Create a server-side version of `hasVoiceFeature()` and use it:
+### Step 2: Delete Test Users
+Delete all users except your admin account using an edge function or the Supabase Admin API:
 
-```typescript
-// Add helper function at top of file
-function hasVoiceFeature(planCode: string | null): boolean {
-  if (!planCode) return false;
-  return planCode.startsWith("voice") || planCode.startsWith("both");
-}
-
-// Replace line 83
-if (tenantId && planCode && hasVoiceFeature(planCode)) {
+```sql
+-- This requires service_role access (edge function)
+-- Delete users from auth.users
+SELECT auth.admin_delete_user(id) 
+FROM auth.users 
+WHERE email != 'jackangelini@icloud.com';
 ```
 
-### C. Create Shared Guard Function (Prevent Future Regressions)
-Add a reusable `shouldProvisionTwilio()` function to both locations:
+Since direct `auth.users` modifications require service role access, I'll create an edge function to safely perform this cleanup.
 
-```typescript
-function shouldProvisionTwilio(
-  planSku: string | null,
-  existingTwilioSid: string | null | undefined,
-  existingPhoneNumber: string | null | undefined
-): boolean {
-  // Must have a voice-enabled plan
-  if (!hasVoiceFeature(planSku)) return false;
-  // Must not already have a number
-  if (existingTwilioSid || existingPhoneNumber) return false;
-  return true;
-}
-```
+### Step 3: Edge Function Implementation
 
-### D. Enhanced Logging
-Add structured logs for observability:
-
-**Client (OnboardingPage.tsx):**
-```typescript
-console.log("TwilioProvision: evaluating", { tenantId, planCode, hasVoice: hasVoiceFeature(planCode) });
-// On skip: console.log("TwilioProvision: skipped", { reason: "no-voice-feature" });
-// On success: console.log("TwilioProvision: success", { phone_e164, twilio_sid });
-// On error: console.error("TwilioProvision: error", { message });
-```
-
-**Server (stripe-webhook):**
-Same pattern, plus log to `twilio_event_logs` table on failure.
-
-### E. Add Retry Button in PhoneNumberCard
-Modify `PhoneNumberCard.tsx` to show "Provision Missing Number" button when:
-- Tenant has a voice-enabled plan (`hasVoice` from subscription)
-- No phone number exists
-
-This is already partially implemented - the "Get Phone Number" button shows when no number exists. We'll enhance it to be more prominent for affected tenants.
-
-## Files to Modify
-
-| File | Change |
-|------|--------|
-| `src/pages/app/OnboardingPage.tsx` | Import `hasVoiceFeature`, replace legacy check at line 416 |
-| `supabase/functions/stripe-webhook/index.ts` | Add `hasVoiceFeature()` helper, replace check at line 83 |
-| `src/components/dashboard/PhoneNumberCard.tsx` | Add plan context check to show repair button for voice plans |
+Create a `cleanup-test-users` edge function that:
+1. Accepts the admin user's email to preserve
+2. Deletes all other users using `supabase.auth.admin.deleteUser()`
+3. Cleans up orphan tenant data via cascade
 
 ## Technical Details
 
-### OnboardingPage.tsx Changes
+### Edge Function: `supabase/functions/cleanup-test-users/index.ts`
 
-**Line 1-30 (add import):**
 ```typescript
-import { hasVoiceFeature } from "@/config/pricing";
-```
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-**Lines 415-437 (replace provisioning block):**
-```typescript
-// Provision Twilio number for voice/both plans
-const shouldProvision = hasVoiceFeature(planCode);
-console.log("TwilioProvision: evaluating", { tenantId, planCode, shouldProvision });
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, content-type",
+};
 
-if (shouldProvision) {
-  try {
-    console.log("TwilioProvision: start", { tenantId, planCode });
-    const { data: provisionData, error: provisionError } = await supabase.functions.invoke(
-      "provision-twilio-number",
-      {
-        body: { tenant_id: tenantId, number_type: "local" },
-      }
-    );
-
-    if (provisionError) {
-      console.error("TwilioProvision: error", { message: provisionError.message });
-    } else if (provisionData?.success) {
-      console.log("TwilioProvision: success", { 
-        phone_e164: provisionData.phone_number,
-        twilio_sid: provisionData.phone_sid 
-      });
-    } else {
-      console.error("TwilioProvision: failed", { error: provisionData?.error });
-    }
-  } catch (provErr: any) {
-    console.error("TwilioProvision: exception", { message: provErr?.message });
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
   }
-} else {
-  console.log("TwilioProvision: skipped", { reason: "no-voice-feature", planCode });
-}
-```
 
-### stripe-webhook/index.ts Changes
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  
+  const supabase = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  });
 
-**Add helper function after line 8:**
-```typescript
-// Determine if a plan SKU includes voice features
-function hasVoiceFeature(planCode: string | null): boolean {
-  if (!planCode) return false;
-  return planCode.startsWith("voice") || planCode.startsWith("both");
-}
-```
-
-**Replace lines 82-96:**
-```typescript
-// Provision phone number if conditions are met
-const shouldProvision = hasVoiceFeature(planCode);
-console.log(`TwilioProvision: evaluating tenant=${tenantId}, plan=${planCode}, shouldProvision=${shouldProvision}`);
-
-if (tenantId && shouldProvision) {
-  if (subscriptionStatus === "active" || subscriptionStatus === "trialing") {
-    console.log(`TwilioProvision: start for tenant ${tenantId}`);
-    
-    // Call the provision function (already idempotent)
-    const provisionResult = await provisionForwardingNumber(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, tenantId);
-    
-    if (provisionResult.success) {
-      console.log(`TwilioProvision: success tenant=${tenantId} phone=${provisionResult.phone_number}`);
-    } else {
-      console.error(`TwilioProvision: error tenant=${tenantId} error=${provisionResult.error}`);
-      // Log to twilio_event_logs for visibility
-      await supabase.from("twilio_event_logs").insert({
-        tenant_id: tenantId,
-        event_type: "provision_failed",
-        stage: "stripe_webhook",
-        error_message: provisionResult.error,
-      }).catch(e => console.error("Failed to log provision error:", e));
-    }
-  } else {
-    console.log(`TwilioProvision: skipped tenant=${tenantId} reason=subscription-not-active status=${subscriptionStatus}`);
+  const { preserveEmail } = await req.json();
+  
+  if (!preserveEmail) {
+    return new Response(JSON.stringify({ error: "preserveEmail required" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
   }
-} else if (tenantId && !shouldProvision) {
-  console.log(`TwilioProvision: skipped tenant=${tenantId} reason=no-voice-feature plan=${planCode}`);
-}
+
+  // Get all users except the preserved one
+  const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
+  
+  if (listError) {
+    return new Response(JSON.stringify({ error: listError.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
+  }
+
+  const usersToDelete = users.filter(u => u.email !== preserveEmail);
+  const results = [];
+
+  for (const user of usersToDelete) {
+    const { error } = await supabase.auth.admin.deleteUser(user.id);
+    results.push({
+      email: user.email,
+      deleted: !error,
+      error: error?.message
+    });
+  }
+
+  return new Response(JSON.stringify({
+    preserved: preserveEmail,
+    deleted: results.filter(r => r.deleted).length,
+    failed: results.filter(r => !r.deleted).length,
+    details: results
+  }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" }
+  });
+});
 ```
 
-## Acceptance Tests
+### Invoking the Cleanup
 
-| Test | Expected Result |
-|------|----------------|
-| 1. New tenant selects "both-200-500" | Provisioning runs, `phone_numbers` row created, dashboard shows number |
-| 2. Existing legacy tenant "both" | Unaffected, still provisions correctly |
-| 3. Stripe webhook backup path | Provisions if client trigger fails |
-| 4. Idempotency | Repeated calls don't buy multiple numbers |
-| 5. Status after provisioning | `connect_status = "awaiting_first_call"` |
+After deploying, invoke with:
+```typescript
+const { data } = await supabase.functions.invoke('cleanup-test-users', {
+  body: { preserveEmail: 'jackangelini@icloud.com' }
+});
+```
 
-## Migration for Affected Tenants
-The `PhoneNumberCard` already shows a "Get Phone Number" button when no number exists. Affected tenants with voice plans can click this button to trigger manual provisioning. No additional migration needed since:
-1. The `provision-twilio-number` edge function is already idempotent
-2. The button already calls this function
-3. After this fix, new signups will work automatically
+## Why Template Industries Still Work
+
+The Admin Mode Switcher in `AdminModeSwitcher.tsx` uses static data from `src/data/industryTestData.ts` to reset tenant data. It:
+
+1. Updates your tenant's `business_mode` and `enabled_modules`
+2. Clears and repopulates industry-specific tables (menu_items, dispatch_jobs, etc.)
+3. Uses predefined `TEST_PHONES` array for consistent test data
+
+This is all driven by **your super_admin tenant**, not by separate user accounts.
+
+## Verification
+
+After cleanup:
+- Only `jackangelini@icloud.com` should exist in `auth.users`
+- Only tenant `a0000000-0000-0000-0000-000000000001` should exist
+- Admin Mode Switcher should still work for all 5 business modes
 
