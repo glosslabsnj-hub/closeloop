@@ -62,13 +62,16 @@ export default function BusinessIdentityForm({ data, onChange }: BusinessIdentit
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Industry *</Label>
-          <Select 
+        <Select 
             value={data.industry} 
             onValueChange={(value) => {
-              update('industry', value as ExtendedIndustryType);
-              if (value !== "other") {
-                update('customIndustry', '');
-              }
+              const newIndustry = value as ExtendedIndustryType;
+              // Batch both changes in a single update to prevent race condition
+              onChange({ 
+                ...data, 
+                industry: newIndustry, 
+                customIndustry: newIndustry !== "other" ? "" : data.customIndustry 
+              });
             }}
           >
             <SelectTrigger>

@@ -22,8 +22,9 @@ export function resolveIndustryTemplate(industry: ExtendedIndustryType): Industr
   // Check if the industry exists in our configs
   const config = industryConfigs[industry];
   
+  console.log(`[templateResolver] Requested: ${industry}, Found: ${!!config}, Label: ${config?.label || 'NONE'}`);
+  
   if (config) {
-    console.log(`[templateResolver] Loaded template for industry: ${industry}`);
     return config;
   }
   
