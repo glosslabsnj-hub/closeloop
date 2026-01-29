@@ -2223,6 +2223,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          location_id: string | null
           phone_e164: string
           purpose: string
           status: string
@@ -2232,6 +2233,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          location_id?: string | null
           phone_e164: string
           purpose?: string
           status?: string
@@ -2241,6 +2243,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          location_id?: string | null
           phone_e164?: string
           purpose?: string
           status?: string
@@ -2248,6 +2251,13 @@ export type Database = {
           twilio_sid?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "phone_numbers_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_locations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "phone_numbers_tenant_id_fkey"
             columns: ["tenant_id"]
