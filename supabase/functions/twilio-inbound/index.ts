@@ -174,6 +174,14 @@ function buildMemoryHintsSummary(hints: Array<{ type: string; summary: string; u
   }).join("; ");
 }
 
+// Helper to mask phone number for PHI compliance
+function maskPhone(phone: string, shouldMask: boolean): string {
+  if (!shouldMask || !phone) return phone;
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length <= 4) return "[REDACTED]";
+  return `+***-***-${digits.slice(-4)}`;
+}
+
 // Helper to log events to twilio_event_logs table
 async function logTwilioEvent(
   supabaseUrl: string,
@@ -185,19 +193,20 @@ async function logTwilioEvent(
   stage: string,
   httpStatus: number | null,
   errorMessage: string | null,
-  rawPayload: Record<string, unknown> | null
+  rawPayload: Record<string, unknown> | null,
+  maskPhi: boolean = false
 ) {
   try {
     const sb = createClient(supabaseUrl, supabaseKey);
     await sb.from("twilio_event_logs").insert({
       tenant_id: tenantId,
       twilio_call_sid: callSid,
-      to_number: toNumber,
-      from_number: fromNumber,
+      to_number: toNumber, // Twilio number, not PHI
+      from_number: maskPhi ? maskPhone(fromNumber, true) : fromNumber,
       stage,
       http_status: httpStatus,
       error_message: errorMessage,
-      raw_payload: rawPayload,
+      raw_payload: maskPhi ? null : rawPayload, // Don't store raw payload in HIPAA mode
     });
   } catch (e) {
     console.error("Failed to log twilio event:", e);
@@ -286,6 +295,7 @@ serve(async (req) => {
       faqsResult,
       assistantResult,
       intelligenceSettingsResult,
+      retentionSettingsResult,
     ] = await Promise.all([
       supabase
         .from("tenants")
@@ -325,6 +335,11 @@ serve(async (req) => {
         .select("memory_enabled, min_confidence_threshold, min_observation_threshold, share_memory_across_locations")
         .eq("tenant_id", tenantId)
         .maybeSingle(),
+      supabase
+        .from("data_retention_settings")
+        .select("store_caller_phone, phi_minimization_enabled, allow_customer_memory")
+        .eq("tenant_id", tenantId)
+        .maybeSingle(),
     ]);
 
     const tenant = tenantResult.data;
@@ -334,6 +349,7 @@ serve(async (req) => {
     const faqs = faqsResult.data;
     const assistant = assistantResult.data;
     const intelligenceSettings = intelligenceSettingsResult.data;
+    const retentionSettings = retentionSettingsResult.data;
 
     if (tenantResult.error || !tenant) {
       console.error("Error fetching tenant:", tenantResult.error);
@@ -369,6 +385,11 @@ serve(async (req) => {
     
     const businessMode = tenant.business_mode || "general";
     const hipaaMode = tenant.hipaa_mode === true;
+    
+    // Determine PHI handling based on retention settings and HIPAA mode
+    const storeCallerPhone = retentionSettings?.store_caller_phone !== false && !hipaaMode;
+    const phiMinimization = retentionSettings?.phi_minimization_enabled === true || hipaaMode;
+    const allowCustomerMemory = retentionSettings?.allow_customer_memory !== false && !hipaaMode;
 
     // ===== CUSTOMER RESOLUTION =====
     // Resolve or create customer by phone number (dedupe by phone_e164)
@@ -548,7 +569,7 @@ serve(async (req) => {
       enabled_modules: enabledModules,
       hipaa_mode: hipaaMode,
       customer_id: customerId,
-      caller_phone: hipaaMode ? "[REDACTED]" : callerPhoneE164,
+      caller_phone: phiMinimization ? "[REDACTED]" : callerPhoneE164,
       hours_today: hoursToday,
       booking_link: bookingLink,
       intent_rules_count: intentRules.length,
@@ -556,6 +577,11 @@ serve(async (req) => {
       intelligence_settings: {
         memory_enabled: memoryEnabled,
         min_confidence: intelligenceSettings?.min_confidence_threshold || 0.65,
+      },
+      data_retention: {
+        store_caller_phone: storeCallerPhone,
+        phi_minimization: phiMinimization,
+        allow_customer_memory: allowCustomerMemory,
       },
     };
 
@@ -566,7 +592,8 @@ serve(async (req) => {
         tenant_id: tenantId,
         call_direction: "inbound",
         twilio_call_sid: callSid,
-        caller_phone: callerPhoneE164 || fromNumber,
+        // Respect retention settings: mask phone if PHI minimization enabled
+        caller_phone: storeCallerPhone ? (callerPhoneE164 || fromNumber) : maskPhone(callerPhoneE164 || fromNumber, true),
         customer_id: customerId,
         started_at: new Date().toISOString(),
         context_json: contextForStorage,
@@ -608,12 +635,12 @@ serve(async (req) => {
     if (!registerCallResponse.ok) {
       const errorText = await registerCallResponse.text();
       console.error(`ElevenLabs register-call failed [${registerCallResponse.status}]:`, errorText);
-      await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, tenantId, callSid, toNumber, fromNumber, "elevenlabs_register_failed", registerCallResponse.status, errorText.substring(0, 500), null);
+      await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, tenantId, callSid, toNumber, fromNumber, "elevenlabs_register_failed", registerCallResponse.status, errorText.substring(0, 500), null, phiMinimization);
       return twimlResponse(hangupTwiml("Our voice assistant is temporarily unavailable. Please try again later."));
     }
 
-    // Log successful ElevenLabs call
-    await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, tenantId, callSid, toNumber, fromNumber, "elevenlabs_register_success", 200, null, null);
+    // Log successful ElevenLabs call (with PHI masking if applicable)
+    await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, tenantId, callSid, toNumber, fromNumber, "elevenlabs_register_success", 200, null, null, phiMinimization);
 
     // Parse ElevenLabs response to get conversation_id for webhook linkage
     const responseText = await registerCallResponse.text();

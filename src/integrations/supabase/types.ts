@@ -1064,6 +1064,62 @@ export type Database = {
           },
         ]
       }
+      data_retention_settings: {
+        Row: {
+          allow_customer_memory: boolean
+          audit_log_retention_days: number | null
+          call_summary_retention_days: number | null
+          created_at: string
+          phi_minimization_enabled: boolean
+          recording_retention_days: number | null
+          require_verbal_consent: boolean
+          store_caller_phone: boolean
+          store_recordings: boolean
+          store_transcripts: boolean
+          tenant_id: string
+          transcript_retention_days: number | null
+          updated_at: string
+        }
+        Insert: {
+          allow_customer_memory?: boolean
+          audit_log_retention_days?: number | null
+          call_summary_retention_days?: number | null
+          created_at?: string
+          phi_minimization_enabled?: boolean
+          recording_retention_days?: number | null
+          require_verbal_consent?: boolean
+          store_caller_phone?: boolean
+          store_recordings?: boolean
+          store_transcripts?: boolean
+          tenant_id: string
+          transcript_retention_days?: number | null
+          updated_at?: string
+        }
+        Update: {
+          allow_customer_memory?: boolean
+          audit_log_retention_days?: number | null
+          call_summary_retention_days?: number | null
+          created_at?: string
+          phi_minimization_enabled?: boolean
+          recording_retention_days?: number | null
+          require_verbal_consent?: boolean
+          store_caller_phone?: boolean
+          store_recordings?: boolean
+          store_transcripts?: boolean
+          tenant_id?: string
+          transcript_retention_days?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_retention_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       delivery_attempts: {
         Row: {
           created_at: string
@@ -3506,6 +3562,10 @@ export type Database = {
         Returns: undefined
       }
       initialize_intelligence_settings: {
+        Args: { _tenant_id: string }
+        Returns: undefined
+      }
+      initialize_retention_settings: {
         Args: { _tenant_id: string }
         Returns: undefined
       }
