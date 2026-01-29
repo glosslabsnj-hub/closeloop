@@ -40,6 +40,7 @@ import MenuCenterPage from "@/pages/app/MenuCenterPage";
 import DispatchPage from "@/pages/app/DispatchPage";
 import MedicalIntakePage from "@/pages/app/MedicalIntakePage";
 import OrderTicketPage from "@/pages/app/OrderTicketPage";
+import HelpCenterPage from "@/pages/app/HelpCenterPage";
 
 // Admin Pages
 import AdminOverviewPage from "@/pages/admin/AdminOverviewPage";
@@ -94,6 +95,7 @@ const App = () => (
               <Route path="/app/dispatch" element={<DispatchPage />} />
               <Route path="/app/medical-intake" element={<MedicalIntakePage />} />
               <Route path="/app/orders/:orderId/ticket" element={<OrderTicketPage />} />
+              <Route path="/app/help" element={<HelpCenterPage />} />
             </Route>
 
             {/* Admin Routes */}
