@@ -236,14 +236,24 @@ ${business.yearsInBusiness ? `- In business for ${business.yearsInBusiness} year
   }
 
   if (services.length > 0) {
-    prompt += `SERVICES OFFERED:\n`;
+    prompt += `SERVICES AND PRICING:\n`;
+    prompt += `IMPORTANT: You have full access to service pricing. Quote prices when they exist!\n\n`;
     // deno-lint-ignore no-explicit-any
     services.forEach((s: any) => {
-      prompt += `- ${s.name}`;
-      if (s.duration) prompt += ` (${s.duration} minutes)`;
-      if (s.priceType === "fixed" && s.priceAmount) prompt += ` - $${s.priceAmount}`;
-      else if (s.priceType === "starting_at" && s.priceAmount) prompt += ` - Starting at $${s.priceAmount}`;
-      else if (s.priceType === "quote_only") prompt += ` - Quote required`;
+      prompt += `• ${s.name}`;
+      if (s.duration) prompt += ` (${s.duration} min)`;
+      
+      // Strict pricing logic
+      if (s.priceType === "fixed" && s.priceAmount !== null && s.priceAmount > 0) {
+        prompt += ` — $${s.priceAmount} (exact price, quote this directly)`;
+      } else if (s.priceType === "starting_at" && s.priceAmount !== null && s.priceAmount > 0) {
+        prompt += ` — Starts at $${s.priceAmount} (mention factors that affect final price)`;
+      } else if (s.priceType === "quote_only" || !s.priceAmount) {
+        prompt += ` — Quote required (ask 1-2 questions, then offer to schedule estimate)`;
+      } else if (s.priceAmount !== null && s.priceAmount > 0) {
+        // Legacy fallback: if we have a price but no type, assume it's quotable
+        prompt += ` — $${s.priceAmount}`;
+      }
       prompt += `\n`;
       if (s.description) prompt += `  ${s.description}\n`;
     });
@@ -341,7 +351,15 @@ ${business.yearsInBusiness ? `- In business for ${business.yearsInBusiness} year
     prompt += `\n`;
   }
 
-  prompt += `IMPORTANT GUIDELINES:
+  prompt += `PRICING BEHAVIOR (CRITICAL):
+1. If a service has an exact price listed → Quote it directly: "Drain cleaning is $149"
+2. If a service says "Starts at" → Say "starts at $X" and briefly mention what affects final price
+3. If a service says "Quote required" OR no price exists → Ask 1-2 clarifying questions, then offer to schedule an estimate
+4. NEVER say "I don't have access to pricing" when pricing exists in the services list above
+5. Match service requests by synonyms (e.g., "clogged drain" = "drain cleaning")
+6. If a service is not found → Ask what they need help with and offer to connect them with a specialist
+
+IMPORTANT GUIDELINES:
 1. Be helpful, friendly, and professional
 2. If you don't know something specific, offer to have someone call them back
 3. Try to book appointments when appropriate
@@ -349,6 +367,7 @@ ${business.yearsInBusiness ? `- In business for ${business.yearsInBusiness} year
 5. Never make up information about services, prices, or availability
 6. If a question is outside your knowledge, use the fallback script
 7. Use memory hints ONLY for personalization - never push upsells based on them
+8. NEVER vocalize placeholders like "None" or empty fields - skip them or ask a follow-up
 
 `;
 
