@@ -230,8 +230,14 @@ export function DashboardHeroCard() {
                 <div className="flex items-center gap-2 mt-0.5">
                   <p className="text-sm text-muted-foreground">
                     {isAnyActive 
-                      ? `Answering calls for ${tenant?.name || "your business"}` 
-                      : "Toggle to start answering calls"
+                      ? hasVoice && hasSms
+                        ? `Answering calls & texts for ${tenant?.name || "your business"}`
+                        : hasVoice
+                          ? `Answering calls for ${tenant?.name || "your business"}`
+                          : `Sending instant text-backs for ${tenant?.name || "your business"}`
+                      : hasVoice 
+                        ? "Toggle to start answering calls"
+                        : "Toggle to enable instant text responses"
                     }
                   </p>
                   {closeloopNumber && (

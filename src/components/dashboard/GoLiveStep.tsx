@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Power, Check, Loader2, Sparkles, Phone, Calendar, MessageSquare, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useSubscription } from "@/hooks/useSubscription";
 
 interface GoLiveStepProps {
   onComplete: () => void;
@@ -26,11 +27,33 @@ interface GoLiveStepProps {
 
 export function GoLiveStep({ onComplete, isComplete, canActivate }: GoLiveStepProps) {
   const { tenant, assistantSettings, refreshTenant } = useAuth();
+  const { subscription } = useSubscription(tenant?.id || null);
   const { toast } = useToast();
   
   const [showConfirm, setShowConfirm] = useState(false);
   const [activating, setActivating] = useState(false);
   const isLive = assistantSettings?.go_live_enabled || false;
+
+  // Plan-based feature filtering
+  const planCode = subscription?.plan_code;
+  const hasVoice = planCode === "voice" || planCode === "both";
+  const hasSms = planCode === "text" || planCode === "both";
+
+  // Filter features based on plan capabilities
+  const features = useMemo(() => {
+    const allFeatures = [];
+    if (hasVoice) {
+      allFeatures.push({ icon: Phone, text: "Answer calls you miss or can't take" });
+    }
+    if (hasSms) {
+      allFeatures.push({ icon: MessageSquare, text: "Send instant texts to missed callers" });
+    }
+    allFeatures.push(
+      { icon: Calendar, text: "Direct customers to book appointments" },
+      { icon: Shield, text: "Work 24/7, even when you're closed" }
+    );
+    return allFeatures;
+  }, [hasVoice, hasSms]);
 
   const handleGoLive = async () => {
     if (!tenant) return;
@@ -152,22 +175,12 @@ export function GoLiveStep({ onComplete, isComplete, canActivate }: GoLiveStepPr
           <div className="space-y-3">
             <p className="text-sm font-medium">When you go live, your AI will:</p>
             <div className="grid gap-3">
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                <Phone className="h-5 w-5 text-primary" />
-                <span className="text-sm">Answer calls you miss or can't take</span>
-              </div>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                <MessageSquare className="h-5 w-5 text-primary" />
-                <span className="text-sm">Send instant texts to missed callers</span>
-              </div>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                <Calendar className="h-5 w-5 text-primary" />
-                <span className="text-sm">Direct customers to book appointments</span>
-              </div>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                <Shield className="h-5 w-5 text-primary" />
-                <span className="text-sm">Work 24/7, even when you're closed</span>
-              </div>
+              {features.map((feature, index) => (
+                <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                  <feature.icon className="h-5 w-5 text-primary" />
+                  <span className="text-sm">{feature.text}</span>
+                </div>
+              ))}
             </div>
           </div>
 
