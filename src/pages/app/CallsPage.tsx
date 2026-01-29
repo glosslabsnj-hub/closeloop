@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useModuleRequired } from "@/hooks/useModuleRequired";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,10 +15,11 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Phone, Search, Pencil } from "lucide-react";
+import { Phone, Search, Pencil, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { CallEditDialog } from "@/components/calls/CallEditDialog";
 import { useToast } from "@/hooks/use-toast";
+import { ModuleUnavailablePage } from "@/components/shared/ModuleUnavailablePage";
 
 interface CallSession {
   id: string;
@@ -33,6 +35,9 @@ interface CallSession {
 type CallStatus = "booked" | "thinking" | "no_book";
 
 export default function CallsPage() {
+  // P0-3: Route protection - redirect if ai_voice module not enabled
+  const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["ai_voice"]);
+  
   const { tenant } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -115,24 +120,43 @@ export default function CallsPage() {
     switch (status) {
       case "booked":
         return (
-          <Badge className="bg-green-500 hover:bg-green-600 text-white border-0">
+          <Badge className="bg-emerald-500/90 hover:bg-emerald-600/90 text-white border-0">
             Booked
           </Badge>
         );
       case "thinking":
         return (
-          <Badge className="bg-amber-500 hover:bg-amber-600 text-white border-0">
+          <Badge className="bg-amber-500/90 hover:bg-amber-600/90 text-white border-0">
             Thinking
           </Badge>
         );
       case "no_book":
         return (
-          <Badge className="bg-red-500 hover:bg-red-600 text-white border-0">
+          <Badge className="bg-destructive hover:bg-destructive/90 text-destructive-foreground border-0">
             No Book
           </Badge>
         );
     }
   };
+
+  // Module gating - show unavailable page if module not enabled
+  if (moduleLoading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!isAllowed) {
+    return (
+      <ModuleUnavailablePage
+        title="Calls Not Available"
+        description="The Calls page requires Voice AI to be enabled for your account."
+        moduleName="Voice AI"
+      />
+    );
+  }
 
   return (
     <div className="p-4 md:p-6 space-y-6">
