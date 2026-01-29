@@ -58,21 +58,125 @@ function truncate(text: string | null | undefined, maxLength: number): string {
   return text.substring(0, maxLength - 3) + "...";
 }
 
-// Build service summary from services array
-function buildServiceSummary(services: Array<{ name: string; description?: string | null; price_amount?: number | null; duration_minutes?: number }> | null): string {
+// Normalized service type for AI context
+interface NormalizedService {
+  id: string;
+  name: string;
+  description: string;
+  price_type: "fixed" | "starting_at" | "quote_required";
+  price_amount: number | null;
+  duration_minutes: number;
+  synonyms: string[];
+}
+
+// Common service synonyms for better matching
+const SERVICE_SYNONYMS: Record<string, string[]> = {
+  "drain cleaning": ["clogged drain", "drain unclog", "drain clog", "slow drain", "blocked drain", "drain backup"],
+  "leak detection": ["water leak", "leak repair", "leaking pipe", "pipe leak"],
+  "water heater repair": ["hot water heater", "water heater issue", "no hot water"],
+  "toilet repair": ["toilet fix", "running toilet", "clogged toilet", "toilet problem"],
+  "faucet installation": ["faucet repair", "faucet replacement", "dripping faucet"],
+  "ac tune-up": ["ac service", "air conditioning service", "ac maintenance"],
+  "furnace inspection": ["heater inspection", "heating service", "furnace service"],
+  "emergency repair": ["emergency service", "urgent repair", "same day service"],
+  "oil change": ["oil service", "oil and filter"],
+  "tire rotation": ["rotate tires", "tire service"],
+  "wheel alignment": ["alignment", "car alignment"],
+  "full detail": ["complete detail", "full service detail"],
+  "interior detail": ["inside detail", "interior cleaning"],
+  "exterior detail": ["outside detail", "exterior wash"],
+};
+
+// Normalize raw service data into AI-ready format
+function normalizeServices(services: Array<{
+  id: string;
+  name: string;
+  description?: string | null;
+  price_type?: string | null;
+  price_amount?: number | null;
+  duration_minutes: number;
+}> | null): NormalizedService[] {
+  if (!services || services.length === 0) return [];
+  
+  return services.map(s => {
+    const priceAmount = s.price_amount ?? null;
+    const hasPrice = priceAmount !== null && priceAmount > 0;
+    
+    // Determine price_type
+    let priceType: "fixed" | "starting_at" | "quote_required" = "quote_required";
+    if (s.price_type === "fixed" && hasPrice) {
+      priceType = "fixed";
+    } else if (s.price_type === "starting_at" && hasPrice) {
+      priceType = "starting_at";
+    } else if (s.price_type === "quote_only" || !hasPrice) {
+      priceType = "quote_required";
+    } else if (hasPrice) {
+      // Legacy: if price exists but no type, assume fixed
+      priceType = "fixed";
+    }
+    
+    // Find synonyms for this service
+    const nameLower = s.name.toLowerCase();
+    const synonyms: string[] = [];
+    for (const [key, syns] of Object.entries(SERVICE_SYNONYMS)) {
+      if (nameLower.includes(key) || key.includes(nameLower)) {
+        synonyms.push(...syns);
+      }
+    }
+    
+    return {
+      id: s.id,
+      name: s.name,
+      description: s.description || "",
+      price_type: priceType,
+      price_amount: s.price_amount ?? null,
+      duration_minutes: s.duration_minutes,
+      synonyms,
+    };
+  });
+}
+
+// Build service summary from services array (for dynamic variable - compact)
+function buildServiceSummary(services: NormalizedService[] | null): string {
   if (!services || services.length === 0) return "";
   
-  const summaries = services.slice(0, 5).map(s => {
+  const summaries = services.slice(0, 8).map(s => {
     let line = s.name;
-    if (s.price_amount) line += ` ($${s.price_amount})`;
-    if (s.duration_minutes) line += ` - ${s.duration_minutes}min`;
+    if (s.price_type === "fixed" && s.price_amount) {
+      line += ` ($${s.price_amount})`;
+    } else if (s.price_type === "starting_at" && s.price_amount) {
+      line += ` (from $${s.price_amount})`;
+    } else {
+      line += ` (quote)`;
+    }
     return line;
   });
   
   let result = summaries.join("; ");
-  if (services.length > 5) result += `; and ${services.length - 5} more services`;
+  if (services.length > 8) result += `; +${services.length - 8} more`;
   
-  return truncate(result, 600);
+  return truncate(result, 800);
+}
+
+// Build detailed service JSON for AI prompt injection
+function buildServicesForPrompt(services: NormalizedService[]): string {
+  if (services.length === 0) return "No services configured yet.";
+  
+  return services.map(s => {
+    let priceText = "";
+    if (s.price_type === "fixed" && s.price_amount) {
+      priceText = `$${s.price_amount} (exact price)`;
+    } else if (s.price_type === "starting_at" && s.price_amount) {
+      priceText = `Starting at $${s.price_amount} (final price varies)`;
+    } else {
+      priceText = "Quote required";
+    }
+    
+    let line = `• ${s.name}: ${priceText}`;
+    if (s.duration_minutes) line += `, ${s.duration_minutes} min`;
+    if (s.synonyms.length > 0) line += ` [also: ${s.synonyms.slice(0, 3).join(", ")}]`;
+    return line;
+  }).join("\n");
 }
 
 // Build menu summary from menu items
@@ -309,10 +413,10 @@ serve(async (req) => {
         .maybeSingle(),
       supabase
         .from("services")
-        .select("name, description, price_amount, duration_minutes")
+        .select("id, name, description, price_type, price_amount, duration_minutes")
         .eq("tenant_id", tenantId)
         .eq("is_active", true)
-        .limit(10),
+        .limit(15),
       supabase
         .from("menu_items")
         .select("name, category, price_cents")
@@ -477,15 +581,20 @@ serve(async (req) => {
     // ===== BUILD BUSINESS CONTEXT =====
     const hoursToday = getTodayHours(tenant.hours_json as Record<string, unknown> | null);
     
+    // Normalize services for consistent pricing handling
+    const normalizedServices = normalizeServices(services);
+    
     // Build summaries based on business mode
     let serviceSummary = "";
+    let servicesForPrompt = "";
     let menuSummary = "";
     let policiesSummary = "";
     let faqsSummary = "";
 
     // Include service_summary for service/dispatch/general/medical modes
     if (["service", "dispatch", "general", "medical"].includes(businessMode)) {
-      serviceSummary = buildServiceSummary(services);
+      serviceSummary = buildServiceSummary(normalizedServices);
+      servicesForPrompt = buildServicesForPrompt(normalizedServices);
     }
 
     // Include menu_summary for food mode
@@ -534,6 +643,7 @@ serve(async (req) => {
       
       // Business Brain content (truncated for token efficiency)
       service_summary: serviceSummary,
+      services_pricing: servicesForPrompt, // Detailed pricing for AI quoting
       menu_summary: menuSummary,
       policies_summary: policiesSummary,
       faqs_summary: faqsSummary,
@@ -554,7 +664,9 @@ serve(async (req) => {
       enabled_modules: enabledModules,
       hipaa_mode: hipaaMode,
       customer_id: customerId,
+      services_count: normalizedServices.length,
       has_service_summary: !!serviceSummary,
+      has_services_pricing: !!servicesForPrompt,
       has_menu_summary: !!menuSummary,
       has_faqs: !!faqsSummary,
       intent_rules_count: intentRules.length,

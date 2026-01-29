@@ -57,6 +57,13 @@ SMS CONVERSATION GUIDELINES:
 4. If booking is relevant, ask for their preferred date/time
 5. Always be helpful and responsive
 
+PRICING BEHAVIOR FOR SMS:
+1. If customer asks about pricing and a service has an exact price → Quote it: "Drain cleaning is $149"
+2. If it's a "starts at" price → Say "starting at $X, final price depends on the job"
+3. If no price exists → Offer to have someone call with a quote or schedule an on-site estimate
+4. NEVER say "I don't have access to pricing" when pricing exists in the services context
+5. Match requests by common terms (e.g., "clogged drain" = "drain cleaning")
+
 `;
 
     // Add intent rules context for SMS
