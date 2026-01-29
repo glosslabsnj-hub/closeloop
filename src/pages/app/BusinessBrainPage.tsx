@@ -29,6 +29,8 @@ import {
 import AIReadinessScore from "@/components/knowledge/AIReadinessScore";
 import KnowledgeGapQueue from "@/components/knowledge/KnowledgeGapQueue";
 import { KnowledgeUpdatesTab } from "@/components/knowledge/KnowledgeUpdatesTab";
+import { KnowledgeUploadHub } from "@/components/knowledge/KnowledgeUploadHub";
+import { KnowledgeConflictBanner } from "@/components/dashboard/KnowledgeConflictBanner";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -203,8 +205,14 @@ export default function BusinessBrainPage() {
         </TabsList>
 
         <TabsContent value="overview" className="mt-6 space-y-6">
+          {/* Conflict Banner */}
+          <KnowledgeConflictBanner />
+          
           {/* AI Readiness Score */}
           <AIReadinessScore />
+          
+          {/* Upload Hub */}
+          <KnowledgeUploadHub />
 
       {/* Quick Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

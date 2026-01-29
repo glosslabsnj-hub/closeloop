@@ -1,8 +1,10 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useKnowledgeConflicts } from "@/hooks/useKnowledgeConflicts";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DropdownMenu,
@@ -33,6 +35,7 @@ import {
   Cake,
   Stethoscope,
   HelpCircle,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useMemo } from "react";
@@ -75,6 +78,7 @@ const alwaysAccessibleRoutes = [
 export function AppLayout() {
   const { user, tenant, signOut, loading, hasActiveSubscription, isSuperAdmin } = useAuth();
   const { enabledModules } = useTenantConfig();
+  const { unresolvedCount: conflictsCount } = useKnowledgeConflicts();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -193,6 +197,7 @@ export function AppLayout() {
               const isActive = location.pathname === item.href;
               const isLocked = !hasActiveSubscription && 
                 !alwaysAccessibleRoutes.some(route => item.href.startsWith(route));
+              const showBadge = item.href === "/app/business-brain" && conflictsCount > 0;
               
               return (
                 <Link
@@ -209,6 +214,11 @@ export function AppLayout() {
                 >
                   <Icon className="h-4 w-4" />
                   {item.label}
+                  {showBadge && (
+                    <Badge variant="destructive" className="ml-auto h-5 px-1.5 text-xs">
+                      <AlertTriangle className="h-3 w-3" />
+                    </Badge>
+                  )}
                   {isLocked && <Lock className="h-3 w-3 ml-auto" />}
                 </Link>
               );
