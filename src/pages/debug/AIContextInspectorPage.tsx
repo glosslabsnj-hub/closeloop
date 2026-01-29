@@ -338,7 +338,7 @@ export default function AIContextInspectorPage() {
                           )}
 
                           {/* Quick Summary of What AI Can See */}
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
                             <div className="p-2 rounded bg-muted/50">
                               <span className="text-muted-foreground">Services:</span>
                               <span className="ml-1 font-medium">{servicesCount}</span>
@@ -361,6 +361,26 @@ export default function AIContextInspectorPage() {
                                 {String(contextTenant?.hours_today || "Not set")}
                               </span>
                             </div>
+                            <div className="p-2 rounded bg-muted/50">
+                              <span className="text-muted-foreground">Mode:</span>
+                              <span className="ml-1 font-medium capitalize">{businessMode}</span>
+                            </div>
+                          </div>
+                          
+                          {/* Debug Flags (context_has_*) */}
+                          <div className="flex flex-wrap gap-2">
+                            <Badge variant={contextTenant?.hours_today ? "default" : "secondary"}>
+                              {contextTenant?.hours_today ? <CheckCircle2 className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
+                              context_has_hours: {contextTenant?.hours_today ? "true" : "false"}
+                            </Badge>
+                            <Badge variant={menuCount > 0 ? "default" : "secondary"}>
+                              {menuCount > 0 ? <CheckCircle2 className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
+                              context_has_menu: {menuCount > 0 ? "true" : "false"}
+                            </Badge>
+                            <Badge variant={servicesCount > 0 ? "default" : "secondary"}>
+                              {servicesCount > 0 ? <CheckCircle2 className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
+                              context_has_services: {servicesCount > 0 ? "true" : "false"}
+                            </Badge>
                           </div>
 
                           <div className="flex gap-2">

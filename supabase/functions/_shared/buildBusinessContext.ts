@@ -172,18 +172,52 @@ function truncate(text: string | null | undefined, maxLength: number): string {
   return text.substring(0, maxLength - 3) + "...";
 }
 
-function getTodayHours(hoursJson: Record<string, unknown> | null): string {
+/**
+ * Get today's hours with timezone-aware computation
+ * Returns a human-readable string like "9:00 AM - 5:00 PM" or "Closed today"
+ */
+function getTodayHours(hoursJson: Record<string, unknown> | null, timezone?: string): string {
   if (!hoursJson) return "";
   
+  // Get current day in the tenant's timezone
   const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-  const today = days[new Date().getDay()];
+  let todayIndex: number;
+  
+  try {
+    // Use tenant timezone if provided
+    const tz = timezone || "America/New_York";
+    const now = new Date();
+    // Get day name in the tenant's timezone
+    const dayName = now.toLocaleDateString("en-US", { timeZone: tz, weekday: "long" }).toLowerCase();
+    todayIndex = days.indexOf(dayName);
+    if (todayIndex === -1) todayIndex = now.getDay();
+  } catch {
+    todayIndex = new Date().getDay();
+  }
+  
+  const today = days[todayIndex];
   const todayHours = hoursJson[today] as { open?: string; close?: string; closed?: boolean; isOpen?: boolean } | undefined;
   
-  if (!todayHours) return "";
-  if (todayHours.closed === true || todayHours.isOpen === false) return "Closed today";
+  if (!todayHours) {
+    // Try to find ANY hours data to provide a fallback
+    for (const day of days) {
+      const dayData = hoursJson[day] as { open?: string; close?: string; closed?: boolean; isOpen?: boolean } | undefined;
+      if (dayData?.open && dayData?.close && dayData.closed !== true && dayData.isOpen !== false) {
+        // Has hours data but not for today - business might be closed today
+        return `Closed today (${today.charAt(0).toUpperCase() + today.slice(1)})`;
+      }
+    }
+    return "";
+  }
+  
+  if (todayHours.closed === true || todayHours.isOpen === false) {
+    return `Closed today (${today.charAt(0).toUpperCase() + today.slice(1)})`;
+  }
+  
   if (todayHours.open && todayHours.close) {
     return `${todayHours.open} - ${todayHours.close}`;
   }
+  
   return "";
 }
 
@@ -309,6 +343,7 @@ function normalizeMenuItems(items: Array<{
   modifiers?: string[] | null;
   dietary_tags?: string[] | null;
   is_available?: boolean;
+  prep_time_minutes?: number | null;
 }> | null): NormalizedMenuItem[] {
   if (!items || items.length === 0) return [];
   
@@ -322,25 +357,55 @@ function normalizeMenuItems(items: Array<{
   }));
 }
 
+/**
+ * Build menu summary for AI context
+ * Creates a structured menu listing that allows the AI to take orders
+ * Format: "Category: Item ($X.XX), Item ($X.XX). Category: Item..."
+ */
 function buildMenuSummary(items: NormalizedMenuItem[]): string {
   if (items.length === 0) return "";
   
-  const byCategory: Record<string, string[]> = {};
-  for (const item of items.slice(0, 25)) {
+  // Group items by category
+  const byCategory: Record<string, Array<{ name: string; price: string; modifiers: string[] }>> = {};
+  
+  for (const item of items) {
+    if (!item.is_available) continue;
+    
     const cat = item.category;
     if (!byCategory[cat]) byCategory[cat] = [];
-    const priceStr = item.price_cents ? ` ($${(item.price_cents / 100).toFixed(2)})` : "";
-    byCategory[cat].push(`${item.name}${priceStr}`);
+    
+    const priceStr = item.price_cents ? `$${(item.price_cents / 100).toFixed(2)}` : "market price";
+    byCategory[cat].push({
+      name: item.name,
+      price: priceStr,
+      modifiers: item.modifiers || [],
+    });
   }
   
-  const parts = Object.entries(byCategory).map(([cat, names]) => {
-    return `${cat}: ${names.slice(0, 6).join(", ")}${names.length > 6 ? "..." : ""}`;
+  // Build the summary with more detail for ordering
+  const parts = Object.entries(byCategory).map(([cat, categoryItems]) => {
+    const itemStrings = categoryItems.slice(0, 8).map(item => {
+      let str = `${item.name} (${item.price})`;
+      // Include modifiers hint if they exist
+      if (item.modifiers.length > 0) {
+        const modHint = item.modifiers.slice(0, 2).join("/");
+        str += ` [${modHint}]`;
+      }
+      return str;
+    });
+    const suffix = categoryItems.length > 8 ? `, +${categoryItems.length - 8} more` : "";
+    return `${cat}: ${itemStrings.join(", ")}${suffix}`;
   });
   
   let result = parts.join(". ");
-  if (items.length > 25) result += `. Plus ${items.length - 25} more items.`;
   
-  return truncate(result, 1000);
+  // Add total item count
+  const totalItems = Object.values(byCategory).reduce((sum, arr) => sum + arr.length, 0);
+  if (totalItems > 0) {
+    result = `[${totalItems} items available] ` + result;
+  }
+  
+  return truncate(result, 1200);
 }
 
 function buildFaqsSummary(faqs: Array<{ question: string; answer: string }>): string {
@@ -540,7 +605,7 @@ export async function buildBusinessContext(
       years_in_business: tenant.years_in_business,
       service_area: tenant.service_area_json as BusinessContext["tenant"]["service_area"],
       hours: normalizeHours(tenant.hours_json as Record<string, unknown>),
-      hours_today: getTodayHours(tenant.hours_json as Record<string, unknown>),
+      hours_today: getTodayHours(tenant.hours_json as Record<string, unknown>, tenant.timezone),
     },
     offerings: {
       services: normalizedServices,
@@ -810,28 +875,34 @@ export function buildDynamicVariables(
   if (ctx.operations.modules.sms_enabled) enabledModulesArray.push("instant_text_back");
   if (ctx.operations.modules.medical_intake_enabled) enabledModulesArray.push("medical_intake");
 
+  // Compute debug flags for context completeness
+  const hasHours = Object.keys(ctx.tenant.hours).length > 0 || Boolean(ctx.tenant.hours_today);
+  const hasMenu = ctx.offerings.menu.length > 0;
+  const hasServices = ctx.offerings.services.length > 0;
+  
   return {
-    // Core identifiers
-    tenant_id: ctx.tenant.tenant_id,
+    // Core identifiers (NEVER null)
+    tenant_id: ctx.tenant.tenant_id || "",
     location_id: ctx._meta.location_id || "",
     business_name: ctx.tenant.business_name || "Our Business",
-    business_mode: ctx.tenant.business_mode,
-    enabled_modules: enabledModulesArray.join(","),
+    business_mode: ctx.tenant.business_mode || "general",
+    enabled_modules: enabledModulesArray.join(",") || "",
     hipaa_mode: ctx.safety.hipaa_mode,
-    timezone: ctx.tenant.timezone,
+    timezone: ctx.tenant.timezone || "America/New_York",
     
-    // Caller info (respect PHI settings)
-    caller_phone: ctx.safety.hipaa_mode ? "" : callerPhoneE164,
+    // Caller info (respect PHI settings) - NEVER null
+    caller_phone: ctx.safety.hipaa_mode ? "" : (callerPhoneE164 || ""),
     customer_id: customerId || "",
     
-    // Hours and availability
-    hours_today: ctx.tenant.hours_today || "Hours not available",
+    // Hours and availability - CRITICAL for answering hours questions
+    hours_today: ctx.tenant.hours_today || "",
     calendar_connected: ctx.operations.availability.calendar_connected,
-    booking_link: ctx.operations.availability.booking_url,
+    booking_link: ctx.operations.availability.booking_url || "",
     
     // Business Brain content - CRITICAL: these power the AI's knowledge
+    // For food mode, menu_summary is primary; for service mode, services_pricing is primary
     service_summary: ctx.offerings.services_summary || "",
-    services_pricing: ctx.offerings.services_for_prompt || "No services configured yet.",
+    services_pricing: ctx.offerings.services_for_prompt || "",
     menu_summary: ctx.offerings.menu_summary || "",
     policies_summary: [
       ctx.policies.cancellation && `Cancellation: ${ctx.policies.cancellation}`,
@@ -840,7 +911,7 @@ export function buildDynamicVariables(
     ].filter(Boolean).join(". ") || "",
     faqs_summary: ctx.knowledge.faqs_summary || "",
     
-    // AI assistant settings
+    // AI assistant settings (NEVER null)
     greeting_script: ctx.ai_settings.greeting_script || "",
     fallback_script: ctx.ai_settings.fallback_script || "",
     tone: ctx.ai_settings.tone || "friendly",
@@ -849,6 +920,13 @@ export function buildDynamicVariables(
     intent_rules_summary: ctx.intelligence.intent_rules_summary || "",
     memory_hints_summary: ctx.safety.hipaa_mode ? "" : (ctx.intelligence.memory_hints_summary || ""),
     memory_enabled: ctx.intelligence.settings.memory_enabled,
+    
+    // DEBUG flags - for /debug/ai-context page verification
+    context_has_hours: hasHours ? "true" : "false",
+    context_has_menu: hasMenu ? "true" : "false",
+    context_has_services: hasServices ? "true" : "false",
+    context_menu_count: String(ctx.offerings.menu.length),
+    context_services_count: String(ctx.offerings.services.length),
   };
 }
 

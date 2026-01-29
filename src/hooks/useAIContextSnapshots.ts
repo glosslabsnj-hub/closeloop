@@ -90,6 +90,7 @@ export function runGoldenPathTests(context: Record<string, unknown> | null): Gol
   if (!tenant?.business_name) tenantMissing.push("business_name");
   if (!tenant?.timezone) tenantMissing.push("timezone");
   if (!tenant?.hours || Object.keys(tenant.hours as object || {}).length === 0) tenantMissing.push("hours");
+  if (!tenant?.hours_today) tenantMissing.push("hours_today");
 
   results.push({
     mode: businessMode,
@@ -97,6 +98,15 @@ export function runGoldenPathTests(context: Record<string, unknown> | null): Gol
     passed: tenantMissing.length === 0,
     missingKeys: tenantMissing,
     details: tenantMissing.length === 0 ? "All tenant fields present" : `Missing: ${tenantMissing.join(", ")}`,
+  });
+
+  // Hours test - specific for "What time do you close?" scenario
+  results.push({
+    mode: businessMode,
+    testName: "Hours answerable",
+    passed: !!tenant?.hours_today && String(tenant.hours_today).length > 0,
+    missingKeys: !!tenant?.hours_today ? [] : ["hours_today"],
+    details: tenant?.hours_today ? `Today: ${tenant.hours_today}` : "Hours not available - AI cannot answer hours questions",
   });
 
   // Service mode tests
@@ -138,7 +148,27 @@ export function runGoldenPathTests(context: Record<string, unknown> | null): Gol
       testName: "Menu items",
       passed: menuMissing.length === 0,
       missingKeys: menuMissing,
-      details: menuMissing.length === 0 ? "Menu items present" : `Missing: ${menuMissing.join(", ")}`,
+      details: menuMissing.length === 0 ? `${menu?.length || 0} menu items available` : `Missing: ${menuMissing.join(", ")}`,
+    });
+
+    // Menu summary test - AI needs this to take orders
+    const menuSummary = offerings?.menu_summary as string | undefined;
+    results.push({
+      mode: businessMode,
+      testName: "Menu summary (for ordering)",
+      passed: !!menuSummary && menuSummary.length > 0,
+      missingKeys: menuSummary ? [] : ["menu_summary"],
+      details: menuSummary ? `${menuSummary.slice(0, 80)}...` : "No menu summary - AI cannot take orders",
+    });
+
+    // Food ordering module test
+    const modules = operations?.modules as Record<string, boolean> | undefined;
+    results.push({
+      mode: businessMode,
+      testName: "Food orders enabled",
+      passed: modules?.orders_enabled === true,
+      missingKeys: modules?.orders_enabled ? [] : ["food_orders_module"],
+      details: modules?.orders_enabled ? "Food orders module enabled" : "Food orders module disabled",
     });
   }
 
