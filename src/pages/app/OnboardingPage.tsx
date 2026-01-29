@@ -153,7 +153,7 @@ export default function OnboardingPage() {
   // Show loading while checking auth state
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-secondary/30">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
           <p className="text-muted-foreground">Loading...</p>
@@ -165,7 +165,7 @@ export default function OnboardingPage() {
   // If tenant already exists, show redirect message (fallback while navigating)
   if (tenant) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-secondary/30">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <CheckCircle2 className="h-8 w-8 mx-auto text-success" />
           <p className="text-muted-foreground">You already have a business set up. Redirecting to dashboard...</p>
@@ -427,7 +427,7 @@ export default function OnboardingPage() {
   const StepIcon = stepInfo[step - 1].icon;
 
   return (
-    <div className="min-h-screen bg-secondary/30 py-8 px-4">
+    <div className="min-h-screen py-8 px-4">
       <div className="max-w-2xl mx-auto">
         {/* Progress */}
         <div className="mb-6">

@@ -211,7 +211,7 @@ export default function PricingPage() {
         </div>
 
         {/* Included in all plans */}
-        <div className="max-w-4xl mx-auto text-center mb-12 p-6 rounded-2xl bg-secondary/30">
+        <div className="max-w-4xl mx-auto text-center mb-12 p-6 rounded-2xl bg-card border">
           <h3 className="font-semibold mb-4">Included in all plans</h3>
           <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm">
             <div className="flex items-center gap-2">
