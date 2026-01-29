@@ -1,373 +1,315 @@
 
 
-# Comprehensive Workflow Help & Setup Guide System
+# Fix Voice Agent Business Context Injection
 
 ## Summary
 
-This plan creates an industry-aware, step-by-step workflow help system that makes setting up automations easy for every business owner. The system will include:
+The voice agent is not receiving correct tenant business context because there are **two different context-building pathways** that are not aligned:
 
-1. **Enhanced Automations Help Guide** - Completely rewritten with step-by-step instructions for each industry
-2. **Variable Reference Guide** - Business-friendly explanations of all available variables with examples
-3. **In-Context Help Tabs** - Help accessible directly from the Workflows/SimpleAutomationPanel page
-4. **Interactive Setup Wizards** - Guided flows for connecting webhooks, Zapier, and testing automations
+1. **`twilio-inbound`** (real phone calls) → Uses the canonical `buildBusinessContext()` from `_shared/buildBusinessContext.ts` ✅
+2. **`elevenlabs-conversation-token`** (browser test calls) → Uses a **completely different, incomplete** inline context builder ❌
 
-## Current State
+The browser test path only fetches basic tenant info (name, hours, booking URL) and misses: services, menu items, FAQs, objections, policies, modules, intake fields, and intelligence layers.
 
-- `HelpGuideAutomations.tsx` exists but is generic - lacks step-by-step setup instructions
-- Variables are shown in `VariablePicker` but without explanations of what they mean
-- No inline help on the `SimpleAutomationPanel` or `WorkflowsPage`
-- Webhook/Zapier setup requires technical knowledge
+## Root Cause Analysis
 
-## Solution Architecture
+### Current Flow for Browser Tests (`elevenlabs-conversation-token`)
 
-### 1. Create Comprehensive Workflow Help Guide Component
+The `elevenlabs-conversation-token` edge function fetches only:
+- `tenants.name`
+- `tenants.hours_json`
+- `tenants.website_url`
+- `assistant_settings.booking_url`
+- `ai_assistants.greeting_script`, `fallback_script`
 
-**New Component:** `src/components/help/HelpGuideWorkflows.tsx`
+**Missing completely:**
+- Services and pricing
+- Menu items (for food mode)
+- FAQs and objection responses
+- Policies (cancellation, deposit, refund)
+- Intake fields
+- Enabled modules
+- Intent rules
+- Memory hints
+- HIPAA settings
+- AI never-promise list
 
-This replaces/enhances `HelpGuideAutomations.tsx` with:
+### Current Flow for Real Calls (`twilio-inbound`)
 
-- **Industry-specific setup guides** - Separate accordion sections for each business mode
-- **Step-by-step walkthroughs** - Numbered steps with screenshots/illustrations
-- **Real examples** - Actual message templates businesses can copy
-- **Variable dictionary** - Plain-English explanations of each variable
-- **Troubleshooting section** - Common issues and fixes
+Uses the canonical `buildBusinessContext()` which fetches everything correctly and injects it as `dynamic_variables` into the ElevenLabs register-call API.
 
-Structure:
-```
-- Getting Started with Automations
-- How Automations Work (simple trigger → action diagram)
-- Setting Up Your First Automation
-  - Service Business: Booking Confirmations
-  - Food Business: Order Confirmations + Kitchen Tickets
-  - Dispatch Business: Job Notifications
-  - Medical Practice: Appointment Confirmations
-- Understanding Variables (with examples)
-  - Customer Information Variables
-  - Order/Booking Details Variables
-  - Business Information Variables
-- Connecting External Tools
-  - Setting Up Webhooks
-  - Connecting to Zapier
-  - Common Integrations
-- Testing Your Automations
-- Troubleshooting
-```
+**This is working correctly** - the issue is that browser tests bypass this entirely.
 
-### 2. Create Variable Reference Component
+## Solution
 
-**New Component:** `src/components/workflows/VariableGuide.tsx`
+### 1. Refactor `elevenlabs-conversation-token` to Use Canonical Builder
 
-A visual, business-friendly variable reference that:
-- Groups variables by category (Customer, Order, Business, etc.)
-- Shows what each variable displays (with example values)
-- Allows one-click copy to clipboard
-- Accessible from message editor and help center
+Replace the inline minimal context with the shared `buildBusinessContext()` function, matching what `twilio-inbound` does.
 
-Example format:
-```
-Customer Information
---------------------
-{{customer_name}}     → "John Smith"         The customer's full name
-{{customer_phone}}    → "(555) 123-4567"     Customer's phone number
-{{customer_email}}    → "john@example.com"   Customer's email address
+**Key changes:**
+- Import `buildBusinessContext` and `storeContextSnapshot` from `_shared/buildBusinessContext.ts`
+- Call `buildBusinessContext()` with `channel: "browser_test"`
+- Use the same `buildDynamicVariables()` helper to flatten the context
+- Store a context snapshot for debugging
 
-Order Details
--------------
-{{order_number}}      → "#1234"              The order reference number
-{{items_summary}}     → "2x Pizza, 1x Salad" List of items ordered
-{{total_formatted}}   → "$45.99"             Total amount with currency
-```
+### 2. Update Dynamic Variables for Browser Tests
 
-### 3. Add Help Tab to Workflows Page
+The `buildDynamicVariables()` helper in `twilio-inbound` flattens the `BusinessContext` into key-value pairs for ElevenLabs. We need to either:
+- **Option A:** Move `buildDynamicVariables()` into `_shared/buildBusinessContext.ts` and export it
+- **Option B:** Duplicate the helper in `elevenlabs-conversation-token`
 
-**Modify:** `src/pages/app/WorkflowsPage.tsx`
+**Recommendation:** Option A - move to shared module for consistency.
 
-Add a "Help" tab alongside Simple/Advanced modes that shows:
-- Quick start guide for their business mode
-- Links to full documentation
-- Video tutorials (placeholder for future)
-- Contact support option
+### 3. Add Enhanced Logging (Dev Only)
 
-### 4. Enhance SimpleAutomationPanel with Inline Help
-
-**Modify:** `src/components/workflows/SimpleAutomationPanel.tsx`
-
-Add:
-- Help icon next to each automation toggle with tooltip explaining what it does
-- "How does this work?" expandable section for each category
-- Link to full guide at bottom of each section
-
-### 5. Create Industry-Specific Setup Guides
-
-**New File:** `src/data/workflowGuides.ts`
-
-Centralized data file containing:
-- Step-by-step setup instructions per business mode
-- Default message templates with explanations
-- Variable mappings with business-friendly descriptions
-- Common use cases and examples
-
-### 6. Enhance QuickMessageEditor with Variable Descriptions
-
-**Modify:** `src/components/workflows/QuickMessageEditor.tsx`
-
-Improve the variable section to show:
-- Description of what each variable contains
-- Example output for each variable
-- Categorized grouping (Customer, Order, Business)
-- "Preview" showing what the final message might look like
-
-### 7. Enhanced WebhookSetup with Guided Flow
-
-**Modify:** `src/components/workflows/WebhookSetup.tsx`
-
-Add:
-- Zapier-specific integration guide with step-by-step
-- Copy-paste payload examples
-- Test webhook functionality
-- Common integration templates (Slack, Google Sheets, etc.)
-
-## File Changes
-
-### New Files
-
-| File | Purpose |
-|------|---------|
-| `src/components/help/HelpGuideWorkflows.tsx` | Comprehensive workflow documentation component |
-| `src/components/workflows/VariableGuide.tsx` | Visual variable reference with examples |
-| `src/data/workflowGuides.ts` | Centralized guide content and templates |
-| `src/components/workflows/InlineHelpTooltip.tsx` | Reusable help tooltip for automation toggles |
-| `src/components/workflows/IntegrationGuide.tsx` | Step-by-step external integration help |
-
-### Modified Files
-
-| File | Changes |
-|------|---------|
-| `src/pages/app/HelpCenterPage.tsx` | Add workflows category, update to use new guide |
-| `src/components/help/HelpGuideAutomations.tsx` | Complete rewrite with industry-specific guides |
-| `src/components/workflows/SimpleAutomationPanel.tsx` | Add inline help icons and expandable guides |
-| `src/components/workflows/QuickMessageEditor.tsx` | Enhanced variable picker with descriptions |
-| `src/components/workflows/WebhookSetup.tsx` | Add Zapier guide and test functionality |
-| `src/pages/app/WorkflowsPage.tsx` | Add Help tab option |
-| `src/types/workflow.ts` | Add variable descriptions to TEMPLATE_VARIABLES |
-
-## Detailed Component Designs
-
-### HelpGuideWorkflows.tsx Structure
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ 🚀 How Automations Work                                        │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  📞 Something Happens  →  ⚡ Automation Runs  →  📱 Action Sent │
-│  (Order placed)           (Your workflow)        (SMS sent)     │
-│                                                                 │
-│  Automations run automatically when business events happen.    │
-│  You set them up once, and they work 24/7.                     │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────┐
-│ 📋 Setup Guide for [Your Business Type]                        │
-├─────────────────────────────────────────────────────────────────┤
-│ ▼ Step 1: Enable Customer Notifications                        │
-│ ▼ Step 2: Customize Your Messages                               │
-│ ▼ Step 3: Set Up Kitchen/Team Alerts (if applicable)           │
-│ ▼ Step 4: Connect External Tools (optional)                    │
-│ ▼ Step 5: Test Your Automations                                │
-└─────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────┐
-│ 📝 Message Variables                                            │
-├─────────────────────────────────────────────────────────────────┤
-│ Use these placeholders to personalize your messages:           │
-│                                                                 │
-│ Customer Info:                                                  │
-│ ┌──────────────────┬────────────────────────────────────────┐  │
-│ │ {{customer_name}}│ Customer's name → "Sarah Johnson"     │  │
-│ │ {{customer_phone}}│ Phone number → "(555) 123-4567"      │  │
-│ └──────────────────┴────────────────────────────────────────┘  │
-│                                                                 │
-│ Order/Booking Info:                                             │
-│ ┌──────────────────┬────────────────────────────────────────┐  │
-│ │ {{order_number}} │ Order ID → "#1234"                     │  │
-│ │ {{service_name}} │ Service booked → "Haircut & Style"     │  │
-│ └──────────────────┴────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### VariableGuide.tsx Design
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ Variable Reference                                    [Search 🔍]│
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│ 👤 Customer Information                                         │
-│ ─────────────────────────────────────────────────────────────── │
-│ ┌─────────────────────────────────────────────────────────────┐│
-│ │ {{customer_name}}                               [Copy]      ││
-│ │ The customer's full name                                    ││
-│ │ Example: "Sarah Johnson"                                    ││
-│ └─────────────────────────────────────────────────────────────┘│
-│ ┌─────────────────────────────────────────────────────────────┐│
-│ │ {{customer_phone}}                              [Copy]      ││
-│ │ Customer's phone number                                     ││
-│ │ Example: "(555) 123-4567"                                   ││
-│ └─────────────────────────────────────────────────────────────┘│
-│                                                                 │
-│ 🛒 Order Details (Food Mode)                                    │
-│ ─────────────────────────────────────────────────────────────── │
-│ ┌─────────────────────────────────────────────────────────────┐│
-│ │ {{order_number}}                                [Copy]      ││
-│ │ The order reference number                                  ││
-│ │ Example: "#1234"                                            ││
-│ └─────────────────────────────────────────────────────────────┘│
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### workflowGuides.ts Data Structure
+Update `twilio-inbound` to log which context keys are present:
 
 ```typescript
-export const VARIABLE_DESCRIPTIONS = {
-  customer_name: {
-    label: "Customer Name",
-    description: "The customer's full name",
-    example: "Sarah Johnson",
-    category: "customer",
-  },
-  customer_phone: {
-    label: "Customer Phone",
-    description: "Customer's phone number in formatted form",
-    example: "(555) 123-4567",
-    category: "customer",
-  },
-  order_number: {
-    label: "Order Number",
-    description: "The unique order reference number",
-    example: "#1234",
-    category: "order",
-    modes: ["food"],
-  },
-  // ... all variables with descriptions
-};
-
-export const INDUSTRY_GUIDES = {
-  food: {
-    title: "Restaurant & Food Service",
-    automations: [
-      {
-        id: "order-confirmed",
-        title: "Order Confirmation Text",
-        description: "Let customers know their order was received",
-        steps: [
-          "Toggle ON 'Text when order is confirmed'",
-          "Click 'Edit message' to customize",
-          "Use {{customer_name}} to personalize",
-          "Include {{order_number}} so they can reference it",
-        ],
-        defaultMessage: "Hi {{customer_name}}! Your order #{{order_number}} is confirmed. We'll have it ready shortly!",
-        variables: ["customer_name", "customer_phone", "order_number", "items_summary", "total_formatted"],
-      },
-      // ... more automations
-    ],
-  },
-  service: { /* ... */ },
-  dispatch: { /* ... */ },
-  medical: { /* ... */ },
-};
+console.log(`Context for tenant ${tenantId}:`, {
+  business_name: context.tenant.business_name,
+  business_mode: context.tenant.business_mode,
+  services_count: context.offerings.services.length,
+  menu_count: context.offerings.menu.length,
+  faqs_count: context.knowledge.faqs.length,
+  has_hours: Object.keys(context.tenant.hours).length > 0,
+  has_policies: !!context.policies.cancellation,
+  missing_sections: context._meta.missing_sections,
+});
 ```
 
-## User Experience Flow
+(This is already partially done - just need to ensure it's comprehensive)
 
-### Business Owner Setting Up Automations
+### 4. Update AI Context Inspector Page
 
-1. Owner goes to Workflows page → sees Simple Mode with toggles
-2. Hovers over help icon → sees quick explanation
-3. Clicks "Need help?" link → opens help tab or modal
-4. Sees step-by-step guide tailored to their industry
-5. Follows numbered steps to enable and customize
-6. Uses variable reference to understand personalization
-7. Tests automation and sees it work
+The debug page at `/debug/ai-context` already exists and shows the last 20 context snapshots. Enhancements needed:
+- Add filter by channel (voice, sms, browser_test)
+- Show a summary card with key metrics
+- Add a "Test Context Now" button that calls `get-business-context` directly
 
-### Editing a Message
+## Implementation Details
 
-1. Owner clicks "Edit message" on an automation
-2. Sees message editor with enhanced variable picker
-3. Variables grouped by category with descriptions
-4. Preview section shows example of final message
-5. One-click insert for any variable
-6. Character count and SMS segment indicator
-7. Save → immediately active
+### File: `supabase/functions/_shared/buildBusinessContext.ts`
 
-### Setting Up Zapier
+**Changes:**
+1. Export the `buildDynamicVariables()` function (currently it's private in `twilio-inbound`)
+2. Add a helper function for browser tests specifically
 
-1. Owner toggles ON "Push call summaries to CRM"
-2. Clicks "Set up webhook" or sees "Connect Zapier" button
-3. Opens guided setup modal with:
-   - Step 1: Create a Zap in Zapier
-   - Step 2: Choose "Webhooks by Zapier" trigger
-   - Step 3: Copy this webhook URL from CloseLoop
-   - Step 4: Send test to verify connection
-   - Step 5: Build your Zap action
-4. Copy-paste examples for common integrations
-5. Test button confirms connection works
-
-## Acceptance Criteria
-
-1. **Every business mode has a complete setup guide** - Food, Service, Dispatch, Medical, and General all have step-by-step instructions
-2. **Variables are understandable** - Each variable shows name, description, and example value
-3. **Help is accessible everywhere** - From Workflows page, Help Center, and inline in the automation panel
-4. **Non-technical language** - No jargon; uses terms like "order number" not "order_id"
-5. **Copy-paste ready** - Example messages and webhook payloads can be copied directly
-6. **Searchable** - Can search help content to find specific topics
-7. **Mobile-friendly** - Works well on smaller screens
-
-## Technical Notes
-
-### Variable Descriptions Enhancement
-
-Update `src/types/workflow.ts` to include descriptions:
+Add new export at the end:
 
 ```typescript
-export interface VariableInfo {
-  key: string;
-  label: string;
-  description: string;
-  example: string;
-  category: "customer" | "order" | "booking" | "dispatch" | "call" | "business";
-  modes?: BusinessMode[]; // If only applicable to certain modes
-}
+export function buildDynamicVariables(
+  ctx: BusinessContext, 
+  callerPhoneE164: string, 
+  customerId: string | null
+): Record<string, string | number | boolean> {
+  const enabledModulesArray: string[] = [];
+  if (ctx.operations.modules.booking_enabled) enabledModulesArray.push("booking");
+  if (ctx.operations.modules.dispatch_enabled) enabledModulesArray.push("dispatch_queue");
+  if (ctx.operations.modules.orders_enabled) enabledModulesArray.push("food_orders");
+  if (ctx.operations.modules.reservations_enabled) enabledModulesArray.push("reservations");
+  if (ctx.operations.modules.catering_enabled) enabledModulesArray.push("catering");
+  if (ctx.operations.modules.voice_enabled) enabledModulesArray.push("ai_voice");
+  if (ctx.operations.modules.sms_enabled) enabledModulesArray.push("instant_text_back");
+  if (ctx.operations.modules.medical_intake_enabled) enabledModulesArray.push("medical_intake");
 
-export const VARIABLE_INFO: Record<string, VariableInfo> = {
-  customer_name: {
-    key: "customer_name",
-    label: "Customer Name",
-    description: "The customer's full name",
-    example: "Sarah Johnson",
-    category: "customer",
-  },
-  // ... all variables
-};
-```
-
-### Help Context Hook
-
-Create a hook to provide context-aware help:
-
-```typescript
-export function useWorkflowHelp(businessMode: BusinessMode) {
-  const guide = INDUSTRY_GUIDES[businessMode];
-  const variables = getVariablesForMode(businessMode);
-  
   return {
-    guide,
-    variables,
-    getAutomationHelp: (triggerId: string) => guide.automations.find(a => a.id === triggerId),
-    getVariableDescription: (key: string) => VARIABLE_INFO[key],
+    // Core identifiers
+    tenant_id: ctx.tenant.tenant_id,
+    location_id: ctx._meta.location_id || "",
+    business_name: ctx.tenant.business_name || "Our Business",
+    business_mode: ctx.tenant.business_mode,
+    enabled_modules: enabledModulesArray.join(","),
+    hipaa_mode: ctx.safety.hipaa_mode,
+    timezone: ctx.tenant.timezone,
+    
+    // Caller info (respect PHI settings)
+    caller_phone: ctx.safety.hipaa_mode ? "" : callerPhoneE164,
+    customer_id: customerId || "",
+    
+    // Hours and availability
+    hours_today: ctx.tenant.hours_today,
+    calendar_connected: ctx.operations.availability.calendar_connected,
+    booking_link: ctx.operations.availability.booking_url,
+    
+    // Business Brain content
+    service_summary: ctx.offerings.services_summary,
+    services_pricing: ctx.offerings.services_for_prompt,
+    menu_summary: ctx.offerings.menu_summary,
+    policies_summary: [
+      ctx.policies.cancellation && `Cancellation: ${ctx.policies.cancellation}`,
+      ctx.policies.deposit && `Deposit: ${ctx.policies.deposit}`,
+      ctx.policies.payment_methods.length > 0 && `Payment: ${ctx.policies.payment_methods.join(", ")}`,
+    ].filter(Boolean).join(". "),
+    faqs_summary: ctx.knowledge.faqs_summary,
+    
+    // AI assistant settings
+    greeting_script: ctx.ai_settings.greeting_script,
+    fallback_script: ctx.ai_settings.fallback_script,
+    tone: ctx.ai_settings.tone,
+    
+    // Intelligence layers
+    intent_rules_summary: ctx.intelligence.intent_rules_summary,
+    memory_hints_summary: ctx.safety.hipaa_mode ? "" : ctx.intelligence.memory_hints_summary,
+    memory_enabled: ctx.intelligence.settings.memory_enabled,
   };
 }
 ```
+
+### File: `supabase/functions/elevenlabs-conversation-token/index.ts`
+
+**Complete rewrite to use canonical builder:**
+
+```typescript
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { 
+  buildBusinessContext, 
+  storeContextSnapshot, 
+  buildDynamicVariables 
+} from "../_shared/buildBusinessContext.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const ELEVENLABS_AGENT_ID = Deno.env.get("ELEVENLABS_AGENT_ID");
+    const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY_2") || Deno.env.get("ELEVENLABS_API_KEY");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    // ... validation checks ...
+
+    let tenantId: string | null = null;
+    let locationId: string | null = null;
+    
+    try {
+      const body = await req.json();
+      tenantId = body.tenantId;
+      locationId = body.locationId || null;
+    } catch {
+      // No body - continue without context
+    }
+
+    let dynamicVariables: Record<string, string | number | boolean> = {
+      business_name: "our business",
+      business_mode: "general",
+      // ... minimal defaults ...
+    };
+
+    // If tenantId provided, build full business context
+    if (tenantId && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      const sessionId = `browser_test_${Date.now()}`;
+
+      const { context } = await buildBusinessContext(supabase, {
+        tenantId,
+        locationId,
+        customerId: null,
+        channel: "browser_test",
+        sessionId,
+        callerPhone: null,
+        includeIntelligence: true,
+      });
+
+      // Store snapshot for debugging
+      await storeContextSnapshot(supabase, context);
+
+      // Build flattened dynamic variables
+      dynamicVariables = buildDynamicVariables(context, "browser_test", null);
+      
+      console.log("Browser test context built:", {
+        tenant_id: tenantId,
+        business_name: context.tenant.business_name,
+        services_count: context.offerings.services.length,
+        menu_count: context.offerings.menu.length,
+        faqs_count: context.knowledge.faqs.length,
+        missing_sections: context._meta.missing_sections,
+      });
+    }
+
+    // Get signed URL from ElevenLabs
+    const response = await fetch(
+      `https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=${ELEVENLABS_AGENT_ID}`,
+      {
+        method: "GET",
+        headers: { "xi-api-key": ELEVENLABS_API_KEY },
+      }
+    );
+
+    // ... rest of function ...
+
+    return new Response(
+      JSON.stringify({ 
+        signedUrl: data.signed_url,
+        dynamicVariables 
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    // ... error handling ...
+  }
+});
+```
+
+### File: `supabase/functions/twilio-inbound/index.ts`
+
+**Changes:**
+1. Import `buildDynamicVariables` from shared module instead of defining inline
+2. Keep existing functionality - just reduce duplication
+
+### File: `src/pages/debug/AIContextInspectorPage.tsx`
+
+**Enhancements:**
+1. Add channel filter tabs (All / Voice / SMS / Browser Test)
+2. Add a "Generate Test Context" button that calls `get-business-context` 
+3. Show summary metrics at the top
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `supabase/functions/_shared/buildBusinessContext.ts` | Export `buildDynamicVariables()` function |
+| `supabase/functions/elevenlabs-conversation-token/index.ts` | Complete rewrite to use canonical builder |
+| `supabase/functions/twilio-inbound/index.ts` | Import shared `buildDynamicVariables`, remove duplicate |
+| `src/pages/debug/AIContextInspectorPage.tsx` | Add channel filter, test button, and summary metrics |
+
+## Validation Checklist
+
+After implementation, verify:
+
+1. **Food tenant context** includes:
+   - `menu_summary` with actual menu items
+   - `hours_today` with correct hours
+   - `enabled_modules` includes "food_orders"
+
+2. **Service tenant context** includes:
+   - `services_pricing` with full service list and prices
+   - `service_summary` with summary text
+   - FAQs and objections
+
+3. **Browser test** stores context snapshot in `ai_context_snapshots` table
+
+4. **`/debug/ai-context`** shows:
+   - Snapshots from all channels
+   - "Complete" badge when no missing sections
+   - Golden path tests pass
+
+## Testing Approach
+
+1. Create a test tenant with food mode
+2. Add menu items, hours, policies
+3. Start a browser test call
+4. Verify:
+   - Console shows full context being injected
+   - AI responds with menu knowledge
+   - Context snapshot appears in debug page
+   - No "missing_sections" in snapshot
 
