@@ -46,20 +46,20 @@ export function QuickLinksCard() {
 
   return (
     <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base font-medium">Quick Access</CardTitle>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base font-medium">Quick Actions</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-3">
           {quickLinks.map((link) => (
             <Button
               key={link.label}
-              variant="ghost"
-              className="h-auto py-3 px-3 justify-start gap-3 hover:bg-muted"
+              variant="outline"
+              className="h-auto py-4 px-4 flex-col items-start gap-2 hover:bg-muted hover:border-primary/30 transition-all group"
               onClick={() => navigate(link.href)}
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
-                <link.icon className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-muted group-hover:bg-primary/10 transition-colors">
+                <link.icon className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
               </div>
               <div className="text-left">
                 <span className="text-sm font-medium block">{link.label}</span>
