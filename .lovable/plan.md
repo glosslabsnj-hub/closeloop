@@ -1,372 +1,440 @@
 
-# Comprehensive Dashboard Review & Improvement Plan
-## Ensuring Full Functionality Across All Business Modes + Easy Voice & SMS Setup
+
+# Business Brain Redesign
+## Enhanced Clarity, Dark Theme Compatibility & Industry Navigation
 
 ---
 
-## Review Summary
+## Overview
 
-After thoroughly analyzing the user dashboard across all business modes (service, dispatch, food, medical, general), I've identified both **working functionality** and **areas for improvement** to ensure seamless setup for both calls and SMS.
+This plan transforms the Business Brain page into a more **understandable**, **visually appealing**, and **industry-adaptive** experience. The key focuses are:
 
----
-
-## Current State Assessment
-
-### What's Working Well
-
-| Component | Status | Notes |
-|-----------|--------|-------|
-| DashboardHeroCard | Working | Agent toggle fixed, metrics display real data |
-| TodayQueueCard | Working | Mode-adaptive querying for each business type |
-| QuickLinksCard | Working | Shows module-relevant navigation links |
-| RecentActivityCard | Working | Fetches real calls and bookings |
-| BusinessBrainStatusCard | Working | Shows AI readiness and pending knowledge |
-| GoLiveChecklist | Working | Tracks setup progress |
-| SetupWizard | Working | 4-step guided setup flow |
-| VoiceAgentTest | Working | Browser-based ElevenLabs WebRTC test |
-| CarrierInstructions | Working | Clear forwarding instructions by carrier |
-| Copilot | Working | Floating assistant |
-
-### Business Mode Coverage
-
-| Mode | Dashboard Cards | Queue Content | Quick Links |
-|------|-----------------|---------------|-------------|
-| Service | All working | Pending bookings | Bookings, Leads, Services |
-| Dispatch | All working | Pending/urgent jobs | Dispatch, Leads |
-| Food | All working | Active orders | Orders, Menu, Reservations |
-| Medical | All working | Pending intakes | Intakes, Bookings |
-| General | All working | No specific queue | Inbox, Leads |
+1. **Fix the white/light boxes** - Replace light-mode colors with dark-theme-compatible alternatives
+2. **Make AI Readiness Score actionable** - Clear breakdown of what's missing and direct links to fix each item
+3. **Improve visual hierarchy** - Color-coded icons and cards for easier scanning
+4. **Industry-aware guidance** - Contextual hints based on business mode
 
 ---
 
 ## Issues Found
 
-### Issue 1: Toggle Logic Discrepancy for SMS-Only Plans (Medium Priority)
+### Problem 1: White Boxes in Dark Theme
+Several components use light-mode background colors that appear as harsh white boxes:
 
-**Location:** `DashboardHeroCard.tsx` lines 91-108
+| Component | Issue | Location |
+|-----------|-------|----------|
+| AIReadinessScore | `bg-green-50` for success state | Line 114 |
+| AIReadinessScore | `bg-yellow-50` for warning state | Line 122 |
+| ScoreItem | `bg-green-50` for complete items | Line 201 |
+| ScoreItem | `bg-muted` appears light | Line 201 |
+| KnowledgeUpdatesTab | `text-green-700` poor contrast on dark | Line 43 |
 
-**Problem:** When a user has an SMS-only plan (no voice), the toggle correctly updates `instant_text_enabled`, but the **display logic** for `isAnyActive` doesn't properly account for this because it checks:
+### Problem 2: Score Breakdown Not Actionable
+Current score breakdown shows checkmarks but:
+- No links to fix incomplete items
+- No clear explanation of point values
+- Generic labels don't explain what's needed
 
-```typescript
-const voiceEnabled = assistantSettings?.voice_ai_enabled && assistantSettings?.go_live_enabled;
-const smsEnabled = assistantSettings?.instant_text_enabled || false;
-const isAnyActive = voiceEnabled || smsEnabled;
+### Problem 3: Missing Industry Context
+- Food mode should emphasize Menu Items
+- Service mode should emphasize Services & Pricing
+- Medical mode should show HIPAA compliance status
+- No contextual tips based on business type
+
+---
+
+## Solution Plan
+
+### Phase 1: Dark Theme Color Fixes
+
+#### 1.1 AIReadinessScore.tsx - Replace Light Background Colors
+
+**Status Banners:**
+```tsx
+// SUCCESS state - Line 114
+// FROM:
+<div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-lg">
+
+// TO:
+<div className="flex items-center gap-2 text-green-400 bg-green-500/15 border border-green-500/30 p-3 rounded-lg">
 ```
 
-This works, BUT the messaging says "Answering calls for..." even when only SMS is active. This is confusing for SMS-only users.
+```tsx
+// WARNING state - Line 122
+// FROM:
+<div className="flex items-center gap-2 text-yellow-600 bg-yellow-50 p-3 rounded-lg">
 
-**Fix:** Dynamic messaging based on plan capabilities.
-
----
-
-### Issue 2: SetupWizard Step Navigation Bug (Low Priority)
-
-**Location:** `SetupWizard.tsx` lines 42-44
-
-**Problem:** The `activeStep` state and `currentStep` calculation are separate, causing potential desync:
-- `activeStep` is user-controlled via `setActiveStep`
-- `currentStep` is computed from `firstIncompleteIndex`
-
-When user clicks on a step icon, `activeStep` changes but the render uses `currentStep` for content display.
-
-**Fix:** Use a unified controlled state or ensure `currentStep` always respects `activeStep` when explicitly set.
-
----
-
-### Issue 3: Phone Connection Step Shows Mock Number (High Priority)
-
-**Location:** `PhoneConnectionStep.tsx` line 41-47, `ConnectPhoneDialog.tsx` line 39
-
-**Problem:** The `closeloopNumber` is correctly sourced from `assistantSettings?.forwarding_phone_e164` or `assistantSettings?.closeloop_number`, but `ConnectPhoneDialog.tsx` still uses a **hardcoded mock number** on line 39:
-
-```typescript
-const closeloopForwardingNumber = "+1 (555) 123-4567";
+// TO:
+<div className="flex items-center gap-2 text-amber-400 bg-amber-500/15 border border-amber-500/30 p-3 rounded-lg">
 ```
 
-This means the forwarding instructions in the dialog show fake numbers instead of the actual provisioned Twilio number.
+**ScoreItem Component - Line 201:**
+```tsx
+// FROM:
+<div className={`flex items-center gap-2 p-2 rounded ${complete ? 'bg-green-50' : 'bg-muted'}`}>
 
-**Fix:** Pass the real provisioned number to the dialog or fetch from assistant settings.
-
----
-
-### Issue 4: Calendar Step Missing Skip Persistence (Medium Priority)
-
-**Location:** `CalendarConnectionStep.tsx` lines 140-164
-
-**Problem:** When a user clicks "Skip for now", it correctly sets `setup_step_calendar: true`, but the **SetupWizard's `handleCalendarSkip`** only calls `setActiveStep(2)` without waiting for the save to complete. This could cause a race condition.
-
-**Fix:** Make `onSkip` async and await the save operation.
-
----
-
-### Issue 5: SMS-Only Plan Missing Instant-Text Guidance (High Priority)
-
-**Location:** `PhoneConnectionStep.tsx`, `GoLiveStep.tsx`
-
-**Problem:** For SMS-only plans, the setup wizard still focuses heavily on "answering calls" language, which is confusing. SMS-only customers need guidance on:
-1. How missed calls trigger instant text-back
-2. Configuring the text-back delay
-3. What the text messages will say
-
-**Fix:** Add plan-aware messaging throughout the setup flow.
-
----
-
-### Issue 6: TestAIStep Missing SMS Test Option (Medium Priority)
-
-**Location:** `TestAIStep.tsx`
-
-**Problem:** The "Test AI" step only shows:
-- Browser voice test (WebRTC)
-- Call my phone test
-
-For SMS-only customers, neither of these is relevant. There should be an SMS test option.
-
-**Fix:** Add an SMS test tab that uses the SMS simulator or sends a real test text.
-
----
-
-### Issue 7: GoLiveStep Missing Plan-Specific Confirmation (Low Priority)
-
-**Location:** `GoLiveStep.tsx` lines 151-172
-
-**Problem:** The "What happens when you go live" section shows:
-- Answer calls you miss (voice)
-- Send instant texts (sms)
-- Direct customers to book appointments
-- Work 24/7
-
-This is correct but could be more targeted. SMS-only plans shouldn't prominently show "Answer calls" as the first item.
-
-**Fix:** Filter the features list based on plan capabilities.
-
----
-
-## Improvement Plan
-
-### Phase 1: Critical Fixes
-
-#### 1.1 Fix ConnectPhoneDialog Mock Number
-
-**File:** `src/components/dashboard/ConnectPhoneDialog.tsx`
-
-Replace the hardcoded mock number with the real provisioned number from assistant settings:
-
-```typescript
-// Line 39: Change from
-const closeloopForwardingNumber = "+1 (555) 123-4567";
-
-// To: Get from currentSettings prop
-const closeloopForwardingNumber = currentSettings?.forwarding_phone_e164 
-  || currentSettings?.closeloop_number 
-  || "(Pending provisioning)";
+// TO:
+<div className={`flex items-center gap-2 p-2.5 rounded-lg border ${
+  complete 
+    ? 'bg-emerald-500/10 border-emerald-500/30' 
+    : 'bg-muted/50 border-border'
+}`}>
 ```
 
 ---
 
-#### 1.2 Plan-Aware Messaging in DashboardHeroCard
+#### 1.2 KnowledgeUpdatesTab.tsx - Fix Success Alert
 
-**File:** `src/components/dashboard/DashboardHeroCard.tsx`
+```tsx
+// Line 42-47 - FROM:
+<Alert className="border-green-500/50 bg-green-500/10">
+  <AlertDescription className="text-green-700 dark:text-green-400">
 
-Update the status message to reflect actual capabilities:
-
-```typescript
-// Lines 230-236: Update the subtitle text
-<p className="text-sm text-muted-foreground">
-  {isAnyActive 
-    ? hasVoice && hasSms
-      ? `Answering calls and texts for ${tenant?.name || "your business"}`
-      : hasVoice
-        ? `Answering calls for ${tenant?.name || "your business"}`
-        : `Sending instant text-backs for ${tenant?.name || "your business"}`
-    : hasVoice 
-      ? "Toggle to start answering calls"
-      : "Toggle to enable instant text responses"
-  }
-</p>
-```
-
-Also update the icon in line 212:
-
-```typescript
-// Show SMS icon for SMS-only plans, Phone for voice plans
-{hasVoice ? <Phone className="h-7 w-7" /> : <MessageSquare className="h-7 w-7" />}
+// TO:
+<Alert className="border-emerald-500/30 bg-emerald-500/10">
+  <AlertDescription className="text-emerald-400">
 ```
 
 ---
 
-#### 1.3 Add SMS Test to TestAIStep
+### Phase 2: Enhanced AI Readiness Score Card
 
-**File:** `src/components/dashboard/TestAIStep.tsx`
+Transform the readiness score into an **actionable checklist** with:
+- Clear point values for each category
+- Direct links to fix each item
+- Industry-specific items (Menu for food, Services for service, etc.)
+- Visual progress ring or gauge
 
-Add a third tab for SMS testing (especially for SMS-only plans):
+**New Structure:**
 
-```typescript
-// Add a new TabsTrigger
-<TabsTrigger value="sms" className="gap-2">
-  <MessageSquare className="h-4 w-4" />
-  SMS Test
-</TabsTrigger>
-
-// Add TabsContent for SMS
-<TabsContent value="sms" className="mt-4">
-  <div className="space-y-4">
-    <p className="text-sm text-muted-foreground">
-      Simulate an inbound SMS to see how your AI responds to text messages.
-    </p>
-    <SMSSimulator />
-  </div>
-</TabsContent>
+```tsx
+<Card className="border-primary/20 bg-gradient-to-br from-card to-primary/5">
+  <CardHeader>
+    <div className="flex items-center justify-between">
+      {/* Left: Title + description */}
+      <div className="flex items-center gap-3">
+        <div className="h-12 w-12 rounded-xl bg-primary/15 flex items-center justify-center">
+          <Brain className="h-6 w-6 text-primary" />
+        </div>
+        <div>
+          <CardTitle>AI Readiness Score</CardTitle>
+          <CardDescription>How prepared your AI is to handle conversations</CardDescription>
+        </div>
+      </div>
+      
+      {/* Right: Large score with ring */}
+      <div className="relative">
+        {/* Circular progress indicator */}
+        <div className="h-20 w-20 rounded-full border-4 border-muted flex items-center justify-center"
+          style={{ 
+            background: `conic-gradient(
+              hsl(var(--primary)) ${score * 3.6}deg, 
+              hsl(var(--muted)) 0deg
+            )` 
+          }}
+        >
+          <div className="h-16 w-16 rounded-full bg-card flex items-center justify-center">
+            <span className="text-2xl font-bold">{score}%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </CardHeader>
+  
+  <CardContent className="space-y-4">
+    {/* Status message */}
+    {score >= 80 ? (
+      <div className="flex items-center gap-2 text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-lg">
+        <CheckCircle2 className="h-5 w-5" />
+        <span>Your AI is ready to handle customer conversations!</span>
+      </div>
+    ) : (
+      <div className="flex items-center gap-2 text-amber-400 bg-amber-500/10 border border-amber-500/20 p-3 rounded-lg">
+        <AlertCircle className="h-5 w-5" />
+        <span>Complete these items to improve your AI's knowledge</span>
+      </div>
+    )}
+    
+    {/* Actionable Checklist */}
+    <div className="grid gap-2">
+      {scoreItems.map(item => (
+        <Link to={item.href} key={item.id}>
+          <div className={`flex items-center justify-between p-3 rounded-lg border transition-colors hover:bg-muted/50 ${
+            item.complete 
+              ? 'bg-emerald-500/5 border-emerald-500/20' 
+              : 'bg-muted/30 border-border'
+          }`}>
+            <div className="flex items-center gap-3">
+              <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
+                item.complete ? item.iconBg : 'bg-muted'
+              }`}>
+                <item.icon className={`h-4 w-4 ${
+                  item.complete ? item.iconColor : 'text-muted-foreground'
+                }`} />
+              </div>
+              <div>
+                <p className="font-medium text-sm">{item.label}</p>
+                <p className="text-xs text-muted-foreground">{item.description}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs">
+                {item.complete ? `+${item.points} pts` : `+${item.points} pts`}
+              </Badge>
+              {item.complete ? (
+                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
+          </div>
+        </Link>
+      ))}
+    </div>
+  </CardContent>
+</Card>
 ```
 
-Import SMSSimulator component and conditionally show based on plan.
-
----
-
-### Phase 2: Setup Flow Improvements
-
-#### 2.1 Fix SetupWizard Step Sync
-
-**File:** `src/components/dashboard/SetupWizard.tsx`
-
-Replace the dual-state logic with a unified approach:
-
-```typescript
-// Line 24: Use only activeStep, remove currentStep computation from render
-const [activeStep, setActiveStep] = useState<number>(() => {
-  // Initialize to first incomplete step
-  const steps = [
-    { isComplete: phoneComplete },
-    { isComplete: calendarComplete },
-    { isComplete: testComplete },
-    { isComplete: goLiveComplete },
+**Score Items with Industry Awareness:**
+```tsx
+const getScoreItems = (context, businessMode) => {
+  const baseItems = [
+    {
+      id: 'identity',
+      label: 'Business Identity',
+      description: 'Name, phone, address, tagline',
+      icon: Building2,
+      iconBg: 'bg-blue-500/15',
+      iconColor: 'text-blue-400',
+      href: '/app/settings',
+      points: 20,
+      complete: !!(context?.business.name && context?.business.phone),
+    },
+    {
+      id: 'hours',
+      label: 'Business Hours',
+      description: 'When you are open',
+      icon: Clock,
+      iconBg: 'bg-purple-500/15',
+      iconColor: 'text-purple-400',
+      href: '/app/settings',
+      points: 10,
+      complete: !!(context?.hours && Object.keys(context.hours).length > 0),
+    },
+    // ... more items
   ];
-  const firstIncomplete = steps.findIndex(s => !s.isComplete);
-  return firstIncomplete === -1 ? steps.length - 1 : firstIncomplete;
-});
-
-// Update activeStep when completion status changes
-useEffect(() => {
-  const firstIncompleteIndex = steps.findIndex(s => !s.isComplete);
-  if (firstIncompleteIndex !== -1 && firstIncompleteIndex > activeStep) {
-    // Don't auto-advance if user manually went back
-  } else if (firstIncompleteIndex !== -1) {
-    setActiveStep(firstIncompleteIndex);
+  
+  // Add industry-specific items
+  if (businessMode === 'food') {
+    baseItems.push({
+      id: 'menu',
+      label: 'Menu Items',
+      description: 'Your menu with prices',
+      icon: UtensilsCrossed,
+      iconBg: 'bg-orange-500/15',
+      iconColor: 'text-orange-400',
+      href: '/app/menu-center',
+      points: 20,
+      complete: (context?.menu_items?.length || 0) >= 5,
+    });
+  } else {
+    baseItems.push({
+      id: 'services',
+      label: 'Services & Pricing',
+      description: 'What you offer and pricing',
+      icon: Sparkles,
+      iconBg: 'bg-emerald-500/15',
+      iconColor: 'text-emerald-400',
+      href: '/app/services',
+      points: 20,
+      complete: (context?.services?.length || 0) >= 3,
+    });
   }
-}, [phoneComplete, calendarComplete, testComplete, goLiveComplete]);
-
-// Use activeStep for rendering instead of currentStep
+  
+  return baseItems;
+};
 ```
 
 ---
 
-#### 2.2 Plan-Aware GoLiveStep Features
+### Phase 3: Industry-Specific Dashboard Hints
 
-**File:** `src/components/dashboard/GoLiveStep.tsx`
+Add a contextual tip banner on the Business Brain page based on business mode:
 
-Filter the feature list based on plan:
+```tsx
+const getModeHint = (businessMode: string, stats: any) => {
+  switch (businessMode) {
+    case 'food':
+      return stats.menuItems < 5 
+        ? { icon: UtensilsCrossed, text: "Add your menu items to help AI answer food questions accurately", link: "/app/menu-center" }
+        : null;
+    case 'dispatch':
+      return { icon: Truck, text: "Make sure your service areas are defined so AI knows where you operate", link: "/app/settings" };
+    case 'medical':
+      return { icon: ShieldCheck, text: "HIPAA mode is active — recordings and transcripts are not stored", type: "info" };
+    case 'service':
+      return stats.services < 3 
+        ? { icon: Briefcase, text: "Add your services and pricing so customers know what you offer", link: "/app/services" }
+        : null;
+    default:
+      return null;
+  }
+};
+```
 
-```typescript
-// Get plan info from context or props
-const { subscription } = useAuth();
-const planCode = subscription?.plan_code as string;
-const hasVoice = planCode?.startsWith("voice") || planCode?.startsWith("both");
-const hasSms = planCode?.startsWith("sms") || planCode?.startsWith("both");
-
-// Filter features
-const features = [
-  hasVoice && { icon: Phone, text: "Answer calls you miss or can't take" },
-  hasSms && { icon: MessageSquare, text: "Send instant texts to missed callers" },
-  { icon: Calendar, text: "Direct customers to book appointments" },
-  { icon: Shield, text: "Work 24/7, even when you're closed" },
-].filter(Boolean);
+**Banner Component:**
+```tsx
+{modeHint && (
+  <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+    <div className="h-8 w-8 rounded-lg bg-primary/15 flex items-center justify-center">
+      <modeHint.icon className="h-4 w-4 text-primary" />
+    </div>
+    <p className="text-sm flex-1">{modeHint.text}</p>
+    {modeHint.link && (
+      <Button size="sm" variant="outline" asChild>
+        <Link to={modeHint.link}>Add Now</Link>
+      </Button>
+    )}
+  </div>
+)}
 ```
 
 ---
 
-### Phase 3: UI/UX Polish
+### Phase 4: Knowledge Sections List Enhancement
 
-#### 3.1 SMS-Specific Setup Guidance
+Update the "What Your AI Knows" section with colored icons matching the theme:
 
-For SMS-only plans, add a step explaining:
-1. How call forwarding works with SMS text-back
-2. Configurable delay (0-120 seconds)
-3. What the auto-response messages contain
+```tsx
+const knowledgeSections = [
+  {
+    id: "identity",
+    title: "Business Identity",
+    description: "Name, tagline, hours, contact info",
+    icon: Building2,
+    iconBg: "bg-blue-500/15",
+    iconColor: "text-blue-400",
+    href: "/app/settings",
+    // ...
+  },
+  {
+    id: "services",
+    title: "Services & Pricing",
+    icon: Briefcase,
+    iconBg: "bg-emerald-500/15",
+    iconColor: "text-emerald-400",
+    // ...
+  },
+  {
+    id: "menu",
+    title: "Menu Items",
+    icon: UtensilsCrossed,
+    iconBg: "bg-orange-500/15",
+    iconColor: "text-orange-400",
+    modes: ["food"],
+    // ...
+  },
+  // ... etc
+];
+```
 
-This would be in `PhoneConnectionStep.tsx` when detecting an SMS-only plan.
-
----
-
-#### 3.2 Industry-Specific Dashboard Hints
-
-Add subtle contextual hints in the dashboard based on business mode:
-
-| Mode | Dashboard Hint |
-|------|----------------|
-| Food | "Pro tip: Add menu items to help AI answer food questions" |
-| Dispatch | "Urgent jobs are highlighted in red in your queue" |
-| Medical | "HIPAA mode is enabled - recordings are not stored" |
-| Service | "Add your services and pricing to improve bookings" |
-
-This would be a small banner or tooltip in the LiveDashboard component.
-
----
-
-## File Changes Summary
-
-### Files to Modify
-
-| File | Changes | Priority |
-|------|---------|----------|
-| `src/components/dashboard/ConnectPhoneDialog.tsx` | Fix hardcoded mock number | High |
-| `src/components/dashboard/DashboardHeroCard.tsx` | Plan-aware messaging | High |
-| `src/components/dashboard/TestAIStep.tsx` | Add SMS test tab | Medium |
-| `src/components/dashboard/SetupWizard.tsx` | Fix step sync logic | Medium |
-| `src/components/dashboard/GoLiveStep.tsx` | Plan-aware features | Low |
-| `src/components/dashboard/PhoneConnectionStep.tsx` | SMS-specific guidance | Low |
-
----
-
-## Testing Checklist
-
-After implementation, verify these flows work end-to-end:
-
-### Voice Plan Setup
-1. Select Voice or Both plan on GoLive page
-2. Twilio number is provisioned
-3. PhoneConnectionStep shows real Twilio number
-4. CarrierInstructions display correct forwarding number
-5. VoiceAgentTest connects to ElevenLabs
-6. Toggle AI on dashboard enables `go_live_enabled` + `voice_ai_enabled`
-7. Real calls forward to Twilio and ElevenLabs answers
-
-### SMS Plan Setup
-1. Select SMS plan on GoLive page
-2. PhoneConnectionStep shows forwarding guidance
-3. TestAIStep has SMS test option
-4. Toggle AI on dashboard enables `instant_text_enabled`
-5. Dashboard shows "Sending instant text-backs" message
-
-### Mode-Specific Testing
-1. Service mode: TodayQueueCard shows pending bookings
-2. Dispatch mode: TodayQueueCard shows pending/urgent jobs
-3. Food mode: TodayQueueCard shows active orders
-4. Medical mode: TodayQueueCard shows pending intakes + HIPAA badge
+**Updated row rendering:**
+```tsx
+<div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+  isComplete ? section.iconBg : 'bg-muted/50'
+}`}>
+  <Icon className={`h-5 w-5 ${
+    isComplete ? section.iconColor : 'text-muted-foreground'
+  }`} />
+</div>
+```
 
 ---
 
-## Dependencies
+### Phase 5: Quick Stats Grid Enhancement
 
-All changes are frontend-only. No database migrations or edge function changes required.
+Update the three stat cards with consistent dark-theme styling and colored accents:
+
+**Knowledge Completion Card:**
+```tsx
+<Card>
+  <CardHeader className="pb-2">
+    <CardTitle className="text-sm font-medium flex items-center gap-2">
+      <div className="h-6 w-6 rounded bg-primary/15 flex items-center justify-center">
+        <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+      </div>
+      Knowledge Completion
+    </CardTitle>
+  </CardHeader>
+  <CardContent>
+    <div className="flex items-center gap-4">
+      <Progress value={completionPercent} className="flex-1" />
+      <span className="text-lg font-bold text-primary">{completionPercent}%</span>
+    </div>
+    <p className="text-xs text-muted-foreground mt-2">
+      {completedSections} of {totalSections} sections complete
+    </p>
+  </CardContent>
+</Card>
+```
+
+**Knowledge Gaps Card:**
+```tsx
+<Card className={(knowledgeStats?.gaps || 0) > 0 ? "border-amber-500/30" : ""}>
+  <CardHeader className="pb-2">
+    <CardTitle className="text-sm font-medium flex items-center gap-2">
+      <div className={`h-6 w-6 rounded flex items-center justify-center ${
+        (knowledgeStats?.gaps || 0) > 0 ? 'bg-amber-500/15' : 'bg-muted'
+      }`}>
+        <AlertTriangle className={`h-3.5 w-3.5 ${
+          (knowledgeStats?.gaps || 0) > 0 ? 'text-amber-400' : 'text-muted-foreground'
+        }`} />
+      </div>
+      Knowledge Gaps
+      {/* Badge */}
+    </CardTitle>
+  </CardHeader>
+  {/* Content */}
+</Card>
+```
+
+---
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/components/knowledge/AIReadinessScore.tsx` | Full redesign with actionable items, dark theme colors, industry-awareness |
+| `src/components/knowledge/KnowledgeUpdatesTab.tsx` | Fix success alert colors |
+| `src/pages/app/BusinessBrainPage.tsx` | Add industry hints, colored icons for sections, enhanced stat cards |
+| `src/components/knowledge/KnowledgeGapQueue.tsx` | Fix any remaining light-mode colors |
+| `src/hooks/useBusinessContext.ts` | Potentially add industry-specific scoring weights |
+
+---
+
+## Visual Improvements Summary
+
+### Before (Issues):
+- White/light boxes clash with dark background
+- Score breakdown shows generic checkmarks only
+- No clear path to improve score
+- No industry-specific guidance
+
+### After (Improvements):
+- All backgrounds use proper dark theme colors (`bg-[color]-500/10`, `bg-[color]-500/15`)
+- Actionable score breakdown with direct links and point values
+- Color-coded icons for each category (blue for identity, purple for hours, emerald for services, etc.)
+- Industry-specific tips and items (Menu for food, Services for service businesses)
+- Clear status banners with proper dark-theme contrast
 
 ---
 
 ## Result
 
 After implementation:
-- All business modes display correct mode-specific content
-- Voice and SMS setup flows are clear and distinct
-- No hardcoded mock data in production UI
-- Toggle behavior matches plan capabilities
-- Test options available for both voice and SMS
-- Setup wizard step navigation is reliable
+- No more harsh white boxes on dark background
+- Users clearly understand how to improve their AI readiness score
+- Each knowledge category has a unique color for visual scanning
+- Industry-specific guidance helps users focus on relevant items
+- Consistent premium dark theme throughout the Business Brain
+
