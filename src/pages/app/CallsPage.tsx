@@ -339,7 +339,7 @@ export default function CallsPage() {
                           <span className="line-clamp-2 text-sm">
                             {call.summary}
                           </span>
-                        ) : call.ended_at ? (
+                        ) : call.ended_at && isWebhookMissing(call.ended_at) ? (
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -352,10 +352,15 @@ export default function CallsPage() {
                                 </Link>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Post-call webhook may have failed. Click to view event logs.</p>
+                                <p>Post-call webhook may have failed. Call ended over 2 minutes ago without summary.</p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
+                        ) : call.ended_at ? (
+                          <span className="text-muted-foreground italic text-sm flex items-center gap-1">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Processing...
+                          </span>
                         ) : (
                           <span className="text-muted-foreground italic text-sm">
                             Awaiting AI summary...
@@ -482,6 +487,15 @@ function getExtractedDetails(call: CallSession): string | null {
   if (extractedPayload.notes) details.push(`Notes: ${extractedPayload.notes}`);
   
   return details.length > 0 ? details.join("\n") : null;
+}
+
+// Check if webhook is missing (call ended more than 2 minutes ago without summary)
+function isWebhookMissing(endedAt: string | null): boolean {
+  if (!endedAt) return false;
+  const endedTime = new Date(endedAt).getTime();
+  const now = Date.now();
+  const twoMinutesMs = 2 * 60 * 1000;
+  return (now - endedTime) > twoMinutesMs;
 }
 
 function formatPhone(phone: string | null): string {
