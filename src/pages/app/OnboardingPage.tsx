@@ -445,7 +445,11 @@ export default function OnboardingPage() {
       // Clear the stored plan
       sessionStorage.removeItem("selectedPlan");
 
+      // Wait for tenant data refresh to complete before navigating
       await refreshTenant();
+      
+      // Small delay to ensure auth context has updated state
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       toast({
         title: "You're all set! 🎉",
