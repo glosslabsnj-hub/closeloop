@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import {
   Select,
@@ -21,7 +20,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -47,111 +45,273 @@ import {
   Check,
   X,
   RefreshCw,
-  Info
+  Clock,
+  Percent,
+  Phone,
+  Zap
 } from "lucide-react";
 import { 
   useIntentRules, 
   IntentRule, 
   IntentRuleType,
   ruleTypeLabels,
-  ruleTypeDescriptions
 } from "@/hooks/useIntentRules";
+import { useAuth } from "@/contexts/AuthContext";
+import { useServices } from "@/hooks/useServices";
 
-const ruleTypeIconMap: Record<IntentRuleType, React.ReactNode> = {
-  time_preference: <Calendar className="h-4 w-4" />,
-  upsell_rule: <Package className="h-4 w-4" />,
-  discount_guardrail: <DollarSign className="h-4 w-4" />,
-  urgency_handling: <AlertTriangle className="h-4 w-4" />,
-  capacity_protection: <BarChart3 className="h-4 w-4" />,
-};
+// Pre-built rule templates that business owners can understand
+interface RuleTemplate {
+  id: string;
+  name: string;
+  description: string;
+  icon: React.ReactNode;
+  rule_type: IntentRuleType;
+  fields: TemplateField[];
+  buildCondition: (values: Record<string, any>) => Record<string, any>;
+  buildAction: (values: Record<string, any>) => Record<string, any>;
+}
+
+interface TemplateField {
+  key: string;
+  label: string;
+  type: "time" | "number" | "text" | "select" | "service";
+  placeholder?: string;
+  defaultValue?: any;
+  options?: { value: string; label: string }[];
+  suffix?: string;
+}
+
+const RULE_TEMPLATES: RuleTemplate[] = [
+  {
+    id: "peak_hours",
+    name: "Protect Peak Hours",
+    description: "When callers want peak times, AI suggests earlier or later alternatives first",
+    icon: <Clock className="h-5 w-5" />,
+    rule_type: "time_preference",
+    fields: [
+      { key: "start_hour", label: "Peak starts at", type: "time", defaultValue: "17:00" },
+      { key: "end_hour", label: "Peak ends at", type: "time", defaultValue: "19:00" },
+    ],
+    buildCondition: (values) => ({
+      time_range: {
+        start_hour: parseInt(values.start_hour?.split(":")[0] || "17"),
+        end_hour: parseInt(values.end_hour?.split(":")[0] || "19"),
+      },
+    }),
+    buildAction: () => ({
+      suggest: "earlier or later alternatives before offering peak times",
+      behavior: "negotiate_time",
+    }),
+  },
+  {
+    id: "same_day_protection",
+    name: "Discourage Same-Day Bookings",
+    description: "When you're busy, AI suggests tomorrow or later for non-urgent requests",
+    icon: <Calendar className="h-5 w-5" />,
+    rule_type: "capacity_protection",
+    fields: [
+      { 
+        key: "capacity_threshold", 
+        label: "When capacity is above", 
+        type: "number", 
+        defaultValue: 70,
+        suffix: "%" 
+      },
+    ],
+    buildCondition: (values) => ({
+      is_same_day: true,
+      capacity_threshold: values.capacity_threshold || 70,
+    }),
+    buildAction: () => ({
+      suggest: "tomorrow or next available day",
+      behavior: "discourage_same_day",
+    }),
+  },
+  {
+    id: "upsell_addon",
+    name: "Suggest Add-On Services",
+    description: "When a caller books a service, AI offers a relevant add-on",
+    icon: <Package className="h-5 w-5" />,
+    rule_type: "upsell_rule",
+    fields: [
+      { key: "service_name", label: "When booking", type: "service", defaultValue: "" },
+      { key: "addon_name", label: "Suggest adding", type: "text", placeholder: "e.g., Deep conditioning treatment" },
+    ],
+    buildCondition: (values) => ({
+      service_name: values.service_name,
+    }),
+    buildAction: (values) => ({
+      suggest: values.addon_name || "an add-on service",
+      behavior: "upsell",
+    }),
+  },
+  {
+    id: "no_discounts",
+    name: "No Discounts Without Approval",
+    description: "AI never offers discounts and directs callers to call back for special requests",
+    icon: <DollarSign className="h-5 w-5" />,
+    rule_type: "discount_guardrail",
+    fields: [],
+    buildCondition: () => ({
+      always: true,
+    }),
+    buildAction: () => ({
+      behavior: "never_discount",
+      message: "I can't offer discounts, but I can have the owner call you back to discuss options.",
+    }),
+  },
+  {
+    id: "loyalty_discount",
+    name: "Mention Loyalty Program",
+    description: "When callers ask about discounts, AI mentions your loyalty or referral program",
+    icon: <Percent className="h-5 w-5" />,
+    rule_type: "discount_guardrail",
+    fields: [
+      { key: "program_name", label: "Program name", type: "text", placeholder: "e.g., VIP rewards program", defaultValue: "loyalty program" },
+    ],
+    buildCondition: () => ({
+      mentions_discount: true,
+    }),
+    buildAction: (values) => ({
+      suggest: `our ${values.program_name || "loyalty program"}`,
+      behavior: "redirect_to_loyalty",
+    }),
+  },
+  {
+    id: "emergency_handling",
+    name: "Priority for Emergencies",
+    description: "When caller describes an emergency, AI tries to fit them in ASAP",
+    icon: <AlertTriangle className="h-5 w-5" />,
+    rule_type: "urgency_handling",
+    fields: [],
+    buildCondition: () => ({
+      is_emergency: true,
+    }),
+    buildAction: () => ({
+      behavior: "prioritize",
+      message: "I understand this is urgent. Let me find the soonest available time for you.",
+    }),
+  },
+  {
+    id: "callback_after_hours",
+    name: "After-Hours Callback",
+    description: "When callers want times outside your hours, AI offers to have you call back",
+    icon: <Phone className="h-5 w-5" />,
+    rule_type: "time_preference",
+    fields: [],
+    buildCondition: () => ({
+      outside_hours: true,
+    }),
+    buildAction: () => ({
+      behavior: "offer_callback",
+      message: "That time is outside our regular hours. I can have someone call you back to discuss availability.",
+    }),
+  },
+];
 
 interface RuleCardProps {
   rule: IntentRule;
   onToggle: (id: string, isEnabled: boolean) => void;
   onDelete: (id: string) => void;
-  onEdit: (rule: IntentRule) => void;
 }
 
-function RuleCard({ rule, onToggle, onDelete, onEdit }: RuleCardProps) {
-  // Format condition for display
-  const formatCondition = (condition: Record<string, any>): string => {
-    if (condition.time_range) {
-      return `Time: ${condition.time_range.start_hour}:00-${condition.time_range.end_hour}:00`;
-    }
-    if (condition.service_name) {
-      return `Service: ${condition.service_name}`;
-    }
-    if (condition.capacity_threshold) {
-      return `Capacity ≥ ${condition.capacity_threshold}%`;
-    }
-    if (condition.is_same_day) {
-      return "Same-day booking";
-    }
-    if (condition.is_emergency) {
-      return "Emergency call";
-    }
-    return "Always applies";
+function RuleCard({ rule, onToggle, onDelete }: RuleCardProps) {
+  const getIcon = () => {
+    const iconMap: Record<IntentRuleType, React.ReactNode> = {
+      time_preference: <Calendar className="h-4 w-4" />,
+      upsell_rule: <Package className="h-4 w-4" />,
+      discount_guardrail: <DollarSign className="h-4 w-4" />,
+      urgency_handling: <AlertTriangle className="h-4 w-4" />,
+      capacity_protection: <BarChart3 className="h-4 w-4" />,
+    };
+    return iconMap[rule.rule_type] || <Zap className="h-4 w-4" />;
   };
 
-  // Format action for display
-  const formatAction = (action: Record<string, any>): string => {
+  // Format condition/action for human-readable display
+  const getReadableDescription = (): string => {
+    const condition = rule.condition_json;
+    const action = rule.action_json;
+    
+    let when = "";
+    let then = "";
+
+    // Parse condition
+    if (condition.time_range) {
+      when = `Peak hours (${condition.time_range.start_hour}:00–${condition.time_range.end_hour}:00)`;
+    } else if (condition.is_same_day && condition.capacity_threshold) {
+      when = `Same-day booking when ${condition.capacity_threshold}%+ full`;
+    } else if (condition.service_name) {
+      when = `Booking "${condition.service_name}"`;
+    } else if (condition.always) {
+      when = "Any discount request";
+    } else if (condition.mentions_discount) {
+      when = "Caller asks about discounts";
+    } else if (condition.is_emergency) {
+      when = "Emergency situation";
+    } else if (condition.outside_hours) {
+      when = "Request outside business hours";
+    } else {
+      when = "Always";
+    }
+
+    // Parse action
     if (action.suggest) {
-      return action.suggest;
+      then = `Suggest ${action.suggest}`;
+    } else if (action.message) {
+      then = action.message;
+    } else if (action.behavior) {
+      const behaviors: Record<string, string> = {
+        negotiate_time: "Negotiate alternatives",
+        discourage_same_day: "Suggest later date",
+        upsell: "Offer add-on",
+        never_discount: "Decline & offer callback",
+        redirect_to_loyalty: "Mention loyalty program",
+        prioritize: "Prioritize booking",
+        offer_callback: "Offer callback",
+      };
+      then = behaviors[action.behavior] || action.behavior;
+    } else {
+      then = "Apply rule";
     }
-    if (action.behavior) {
-      return action.behavior;
-    }
-    if (action.message) {
-      return action.message;
-    }
-    return JSON.stringify(action);
+
+    return `${when} → ${then}`;
   };
 
   return (
-    <div className={`p-4 rounded-lg border ${rule.is_enabled ? "bg-card" : "bg-muted/50"}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3 flex-1">
-          <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${
-            rule.is_enabled ? "bg-primary/15" : "bg-muted"
+    <div className={`p-4 rounded-lg border transition-colors ${rule.is_enabled ? "bg-card" : "bg-muted/50 opacity-75"}`}>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${
+            rule.is_enabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
           }`}>
-            {ruleTypeIconMap[rule.rule_type]}
+            {getIcon()}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="font-medium">{rule.name}</span>
-              <Badge variant="outline" className="text-xs">
-                {ruleTypeLabels[rule.rule_type]}
-              </Badge>
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="font-medium truncate">{rule.name}</span>
             </div>
-            {rule.description && (
-              <p className="text-sm text-muted-foreground mb-2">{rule.description}</p>
-            )}
-            <div className="text-xs space-y-1">
-              <p><span className="text-muted-foreground">When:</span> {formatCondition(rule.condition_json)}</p>
-              <p><span className="text-muted-foreground">Then:</span> {formatAction(rule.action_json)}</p>
-            </div>
+            <p className="text-sm text-muted-foreground truncate">
+              {getReadableDescription()}
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <Switch
             checked={rule.is_enabled}
             onCheckedChange={(checked) => onToggle(rule.id, checked)}
           />
-          <Button variant="ghost" size="sm" onClick={() => onEdit(rule)}>
-            <Edit className="h-4 w-4" />
-          </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <Trash2 className="h-4 w-4 text-destructive" />
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete this rule?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will permanently delete "{rule.name}". This action cannot be undone.
+                  This will permanently delete "{rule.name}".
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -177,33 +337,23 @@ interface SuggestedRuleCardProps {
 function SuggestedRuleCard({ rule, onApprove, onDismiss }: SuggestedRuleCardProps) {
   return (
     <div className="p-4 rounded-lg border border-amber-500/30 bg-amber-500/5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3 flex-1">
-          <div className="h-10 w-10 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3 flex-1">
+          <div className="h-9 w-9 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
             <Lightbulb className="h-5 w-5 text-amber-500" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30 text-xs">
-                Suggested Rule
-              </Badge>
-              <span className="font-medium">{rule.name}</span>
-            </div>
-            {rule.description && (
-              <p className="text-sm text-muted-foreground mb-2">{rule.description}</p>
-            )}
+            <span className="font-medium">{rule.name}</span>
             {rule.suggested_reason && (
-              <p className="text-xs text-amber-600 italic">
-                Reason: {rule.suggested_reason}
-              </p>
+              <p className="text-sm text-amber-600">{rule.suggested_reason}</p>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <Button size="sm" onClick={() => onApprove(rule.id)}>
             <Check className="h-4 w-4 mr-1" />
-            Approve
+            Enable
           </Button>
           <Button variant="ghost" size="sm" onClick={() => onDismiss(rule.id)}>
             <X className="h-4 w-4" />
@@ -215,93 +365,63 @@ function SuggestedRuleCard({ rule, onApprove, onDismiss }: SuggestedRuleCardProp
 }
 
 export function IntentRulesManager() {
+  const { tenant } = useAuth();
   const { 
     activeRules, 
     inactiveRules,
     suggestedRules,
     isLoading, 
     createRule,
-    updateRule,
     deleteRule,
     toggleRule,
     approveRule,
     dismissRule,
     isCreating 
   } = useIntentRules();
+  const { services } = useServices();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingRule, setEditingRule] = useState<IntentRule | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<RuleTemplate | null>(null);
+  const [fieldValues, setFieldValues] = useState<Record<string, any>>({});
 
-  // Form state
-  const [formType, setFormType] = useState<IntentRuleType>("time_preference");
-  const [formName, setFormName] = useState("");
-  const [formDescription, setFormDescription] = useState("");
-  const [formCondition, setFormCondition] = useState("{}");
-  const [formAction, setFormAction] = useState("{}");
-  const [formPriority, setFormPriority] = useState(0);
-
-  const resetForm = () => {
-    setFormType("time_preference");
-    setFormName("");
-    setFormDescription("");
-    setFormCondition("{}");
-    setFormAction("{}");
-    setFormPriority(0);
-    setEditingRule(null);
-  };
-
-  const openCreateDialog = () => {
-    resetForm();
-    setIsDialogOpen(true);
-  };
-
-  const openEditDialog = (rule: IntentRule) => {
-    setEditingRule(rule);
-    setFormType(rule.rule_type);
-    setFormName(rule.name);
-    setFormDescription(rule.description || "");
-    setFormCondition(JSON.stringify(rule.condition_json, null, 2));
-    setFormAction(JSON.stringify(rule.action_json, null, 2));
-    setFormPriority(rule.priority);
-    setIsDialogOpen(true);
-  };
-
-  const handleSubmit = async () => {
-    try {
-      const condition = JSON.parse(formCondition);
-      const action = JSON.parse(formAction);
-
-      if (editingRule) {
-        await updateRule.mutateAsync({
-          ruleId: editingRule.id,
-          updates: {
-            rule_type: formType,
-            name: formName,
-            description: formDescription || null,
-            condition_json: condition,
-            action_json: action,
-            priority: formPriority,
-          },
-        });
-      } else {
-        await createRule.mutateAsync({
-          rule_type: formType,
-          name: formName,
-          description: formDescription || null,
-          condition_json: condition,
-          action_json: action,
-          priority: formPriority,
-          is_enabled: true,
-          is_suggested: false,
-          suggested_reason: null,
-        });
+  const openTemplateDialog = (template: RuleTemplate) => {
+    setSelectedTemplate(template);
+    // Initialize with default values
+    const defaults: Record<string, any> = {};
+    template.fields.forEach(f => {
+      if (f.defaultValue !== undefined) {
+        defaults[f.key] = f.defaultValue;
       }
+    });
+    setFieldValues(defaults);
+    setIsDialogOpen(true);
+  };
 
-      setIsDialogOpen(false);
-      resetForm();
-    } catch (e) {
-      console.error("Invalid JSON in condition or action");
-    }
+  const handleCreateRule = async () => {
+    if (!selectedTemplate) return;
+
+    const condition = selectedTemplate.buildCondition(fieldValues);
+    const action = selectedTemplate.buildAction(fieldValues);
+
+    await createRule.mutateAsync({
+      rule_type: selectedTemplate.rule_type,
+      name: selectedTemplate.name,
+      description: selectedTemplate.description,
+      condition_json: condition,
+      action_json: action,
+      priority: 50,
+      is_enabled: true,
+      is_suggested: false,
+      suggested_reason: null,
+    });
+
+    setIsDialogOpen(false);
+    setSelectedTemplate(null);
+    setFieldValues({});
+  };
+
+  const updateFieldValue = (key: string, value: any) => {
+    setFieldValues(prev => ({ ...prev, [key]: value }));
   };
 
   if (isLoading) {
@@ -314,154 +434,28 @@ export function IntentRulesManager() {
     );
   }
 
+  const allRules = [...activeRules, ...inactiveRules];
+
   return (
     <div className="space-y-6">
-      {/* Header Card */}
+      {/* Header */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>AI Negotiation Rules</CardTitle>
-              <CardDescription>
-                Configure how your AI handles scheduling, upsells, and special situations
-              </CardDescription>
-            </div>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button onClick={openCreateDialog}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Rule
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>{editingRule ? "Edit Rule" : "Create New Rule"}</DialogTitle>
-                  <DialogDescription>
-                    Rules guide AI behavior but never override availability or invent pricing.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label>Rule Type</Label>
-                    <Select value={formType} onValueChange={(v) => setFormType(v as IntentRuleType)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(Object.keys(ruleTypeLabels) as IntentRuleType[]).map((type) => (
-                          <SelectItem key={type} value={type}>
-                            <div className="flex items-center gap-2">
-                              {ruleTypeIconMap[type]}
-                              <span>{ruleTypeLabels[type]}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      {ruleTypeDescriptions[formType]}
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Name</Label>
-                    <Input 
-                      value={formName} 
-                      onChange={(e) => setFormName(e.target.value)} 
-                      placeholder="e.g., Peak Hours Preference"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Description (optional)</Label>
-                    <Input 
-                      value={formDescription} 
-                      onChange={(e) => setFormDescription(e.target.value)} 
-                      placeholder="Brief description of this rule"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Condition (JSON)</Label>
-                    <Textarea 
-                      value={formCondition} 
-                      onChange={(e) => setFormCondition(e.target.value)}
-                      className="font-mono text-sm"
-                      rows={3}
-                      placeholder='{"time_range": {"start_hour": 15, "end_hour": 18}}'
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      When this condition is met, the action will apply
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Action (JSON)</Label>
-                    <Textarea 
-                      value={formAction} 
-                      onChange={(e) => setFormAction(e.target.value)}
-                      className="font-mono text-sm"
-                      rows={3}
-                      placeholder='{"suggest": "earlier or later alternatives"}'
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      What the AI should do when the condition matches
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Priority (0-100)</Label>
-                    <Input 
-                      type="number"
-                      value={formPriority} 
-                      onChange={(e) => setFormPriority(parseInt(e.target.value) || 0)}
-                      min={0}
-                      max={100}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Higher priority rules are evaluated first
-                    </p>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleSubmit} disabled={isCreating || !formName}>
-                    {editingRule ? "Save Changes" : "Create Rule"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
+          <CardTitle>AI Negotiation Rules</CardTitle>
+          <CardDescription>
+            Tell your AI how to handle common situations. These rules guide behavior — they never override your availability or pricing.
+          </CardDescription>
         </CardHeader>
       </Card>
-
-      {/* Info Banner */}
-      <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/10">
-        <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-        <div className="text-sm">
-          <p className="font-medium">How Rules Work</p>
-          <ul className="text-muted-foreground mt-1 space-y-1">
-            <li>• Rules guide AI behavior — they never override availability or invent pricing</li>
-            <li>• AI may negotiate options, NOT outcomes</li>
-            <li>• Higher priority rules are checked first</li>
-            <li>• Copilot may suggest rules based on patterns (requires your approval)</li>
-          </ul>
-        </div>
-      </div>
 
       {/* Suggested Rules */}
       {suggestedRules.length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Lightbulb className="h-5 w-5 text-amber-500" />
-              Suggested by Copilot
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Lightbulb className="h-4 w-4 text-amber-500" />
+              Suggested for You
             </CardTitle>
-            <CardDescription>
-              Rules recommended based on observed patterns. Review and approve to enable.
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {suggestedRules.map((rule) => (
@@ -476,55 +470,170 @@ export function IntentRulesManager() {
         </Card>
       )}
 
-      {/* Active Rules */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Active Rules</CardTitle>
-          <CardDescription>
-            These rules are currently influencing AI behavior
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {activeRules.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>No active rules</p>
-              <p className="text-sm">Add rules to customize how your AI handles calls</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {activeRules.map((rule) => (
-                <RuleCard
-                  key={rule.id}
-                  rule={rule}
-                  onToggle={(id, isEnabled) => toggleRule.mutate({ ruleId: id, isEnabled })}
-                  onDelete={(id) => deleteRule.mutate(id)}
-                  onEdit={openEditDialog}
-                />
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Inactive Rules */}
-      {inactiveRules.length > 0 && (
+      {/* Active/Inactive Rules */}
+      {allRules.length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg text-muted-foreground">Inactive Rules</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Your Rules</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {inactiveRules.map((rule) => (
+            {allRules.map((rule) => (
               <RuleCard
                 key={rule.id}
                 rule={rule}
                 onToggle={(id, isEnabled) => toggleRule.mutate({ ruleId: id, isEnabled })}
                 onDelete={(id) => deleteRule.mutate(id)}
-                onEdit={openEditDialog}
               />
             ))}
           </CardContent>
         </Card>
       )}
+
+      {/* Add New Rule - Template Selection */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Add a Rule
+          </CardTitle>
+          <CardDescription>
+            Choose a rule type to get started. We'll handle the technical details.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {RULE_TEMPLATES.map((template) => (
+              <button
+                key={template.id}
+                onClick={() => openTemplateDialog(template)}
+                className="flex items-start gap-3 p-4 rounded-lg border bg-card hover:bg-accent/50 hover:border-primary/30 transition-colors text-left"
+              >
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 text-primary">
+                  {template.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm">{template.name}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                    {template.description}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Template Configuration Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedTemplate?.icon}
+              {selectedTemplate?.name}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedTemplate?.description}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedTemplate && (
+            <div className="space-y-4 py-4">
+              {selectedTemplate.fields.length === 0 ? (
+                <div className="text-center py-4 text-muted-foreground">
+                  <Check className="h-8 w-8 mx-auto mb-2 text-primary" />
+                  <p>No configuration needed — just enable it!</p>
+                </div>
+              ) : (
+                selectedTemplate.fields.map((field) => (
+                  <div key={field.key} className="space-y-2">
+                    <Label>{field.label}</Label>
+                    {field.type === "time" && (
+                      <Input
+                        type="time"
+                        value={fieldValues[field.key] || field.defaultValue || ""}
+                        onChange={(e) => updateFieldValue(field.key, e.target.value)}
+                      />
+                    )}
+                    {field.type === "number" && (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          value={fieldValues[field.key] || field.defaultValue || ""}
+                          onChange={(e) => updateFieldValue(field.key, parseInt(e.target.value) || 0)}
+                          className="w-24"
+                        />
+                        {field.suffix && (
+                          <span className="text-sm text-muted-foreground">{field.suffix}</span>
+                        )}
+                      </div>
+                    )}
+                    {field.type === "text" && (
+                      <Input
+                        value={fieldValues[field.key] || ""}
+                        onChange={(e) => updateFieldValue(field.key, e.target.value)}
+                        placeholder={field.placeholder}
+                      />
+                    )}
+                    {field.type === "service" && (
+                      <Select
+                        value={fieldValues[field.key] || ""}
+                        onValueChange={(v) => updateFieldValue(field.key, v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a service" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {services.map((service) => (
+                            <SelectItem key={service.id} value={service.name}>
+                              {service.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    {field.type === "select" && field.options && (
+                      <Select
+                        value={fieldValues[field.key] || ""}
+                        onValueChange={(v) => updateFieldValue(field.key, v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {field.options.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateRule} disabled={isCreating}>
+              {isCreating ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Rule
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
