@@ -764,6 +764,69 @@ IMPORTANT GUIDELINES:
   return prompt;
 }
 
+// ============= DYNAMIC VARIABLES BUILDER (for ElevenLabs injection) =============
+
+/**
+ * Flattens BusinessContext into key-value pairs for ElevenLabs dynamic_variables
+ * Used by both twilio-inbound (voice calls) and elevenlabs-conversation-token (browser tests)
+ */
+export function buildDynamicVariables(
+  ctx: BusinessContext, 
+  callerPhoneE164: string, 
+  customerId: string | null
+): Record<string, string | number | boolean> {
+  const enabledModulesArray: string[] = [];
+  if (ctx.operations.modules.booking_enabled) enabledModulesArray.push("booking");
+  if (ctx.operations.modules.dispatch_enabled) enabledModulesArray.push("dispatch_queue");
+  if (ctx.operations.modules.orders_enabled) enabledModulesArray.push("food_orders");
+  if (ctx.operations.modules.reservations_enabled) enabledModulesArray.push("reservations");
+  if (ctx.operations.modules.catering_enabled) enabledModulesArray.push("catering");
+  if (ctx.operations.modules.voice_enabled) enabledModulesArray.push("ai_voice");
+  if (ctx.operations.modules.sms_enabled) enabledModulesArray.push("instant_text_back");
+  if (ctx.operations.modules.medical_intake_enabled) enabledModulesArray.push("medical_intake");
+
+  return {
+    // Core identifiers
+    tenant_id: ctx.tenant.tenant_id,
+    location_id: ctx._meta.location_id || "",
+    business_name: ctx.tenant.business_name || "Our Business",
+    business_mode: ctx.tenant.business_mode,
+    enabled_modules: enabledModulesArray.join(","),
+    hipaa_mode: ctx.safety.hipaa_mode,
+    timezone: ctx.tenant.timezone,
+    
+    // Caller info (respect PHI settings)
+    caller_phone: ctx.safety.hipaa_mode ? "" : callerPhoneE164,
+    customer_id: customerId || "",
+    
+    // Hours and availability
+    hours_today: ctx.tenant.hours_today || "Hours not available",
+    calendar_connected: ctx.operations.availability.calendar_connected,
+    booking_link: ctx.operations.availability.booking_url,
+    
+    // Business Brain content - CRITICAL: these power the AI's knowledge
+    service_summary: ctx.offerings.services_summary || "",
+    services_pricing: ctx.offerings.services_for_prompt || "No services configured yet.",
+    menu_summary: ctx.offerings.menu_summary || "",
+    policies_summary: [
+      ctx.policies.cancellation && `Cancellation: ${ctx.policies.cancellation}`,
+      ctx.policies.deposit && `Deposit: ${ctx.policies.deposit}`,
+      ctx.policies.payment_methods.length > 0 && `Payment: ${ctx.policies.payment_methods.join(", ")}`,
+    ].filter(Boolean).join(". ") || "",
+    faqs_summary: ctx.knowledge.faqs_summary || "",
+    
+    // AI assistant settings
+    greeting_script: ctx.ai_settings.greeting_script || "",
+    fallback_script: ctx.ai_settings.fallback_script || "",
+    tone: ctx.ai_settings.tone || "friendly",
+    
+    // Intelligence layers
+    intent_rules_summary: ctx.intelligence.intent_rules_summary || "",
+    memory_hints_summary: ctx.safety.hipaa_mode ? "" : (ctx.intelligence.memory_hints_summary || ""),
+    memory_enabled: ctx.intelligence.settings.memory_enabled,
+  };
+}
+
 // ============= SNAPSHOT STORAGE =============
 
 export async function storeContextSnapshot(
