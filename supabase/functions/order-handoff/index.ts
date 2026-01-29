@@ -110,6 +110,26 @@ serve(async (req) => {
 
     const businessName = tenant?.name || "Restaurant";
 
+    // Record observation for order pattern
+    try {
+      const orderHour = new Date(order.created_at).getHours();
+      await fetch(`${supabaseUrl}/functions/v1/record-observation`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({
+          tenantId: tenant_id,
+          observationType: "time_pattern",
+          subjectKey: `order_hour_${orderHour}`,
+          observation: `${order.order_type} order placed at ${orderHour}:00`,
+        }),
+      });
+    } catch (e) {
+      console.error("Failed to record order time observation:", e);
+    }
+
     // Run each enabled method
     for (const handoffMethod of methodsToRun) {
       if (handoffMethod === "internal") {

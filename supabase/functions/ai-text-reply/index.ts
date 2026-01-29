@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { tenantId, customerMessage, customerName, conversationType } = await req.json();
+    const { tenantId, customerMessage, customerName, customerPhone, conversationType, locationId } = await req.json();
     
     if (!tenantId) {
       return new Response(
@@ -27,14 +27,18 @@ serve(async (req) => {
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get business context
+    // Get business context with intelligence layers
     const contextResponse = await fetch(`${supabaseUrl}/functions/v1/get-business-context`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${supabaseKey}`,
       },
-      body: JSON.stringify({ tenantId }),
+      body: JSON.stringify({ 
+        tenantId, 
+        locationId,
+        includeIntelligence: true 
+      }),
     });
 
     if (!contextResponse.ok) {
@@ -43,7 +47,7 @@ serve(async (req) => {
 
     const { context, systemPrompt } = await contextResponse.json();
 
-    // Build SMS-specific prompt
+    // Build SMS-specific prompt with intelligence layers
     let smsPrompt = systemPrompt + `
 
 SMS CONVERSATION GUIDELINES:
@@ -54,6 +58,27 @@ SMS CONVERSATION GUIDELINES:
 5. Always be helpful and responsive
 
 `;
+
+    // Add intent rules context for SMS
+    if (context.intent_rules && context.intent_rules.length > 0) {
+      smsPrompt += `ACTIVE RULES TO FOLLOW:\n`;
+      for (const rule of context.intent_rules) {
+        const guidance = rule.action?.guidance || rule.action?.suggest_alternative || "";
+        if (guidance) {
+          smsPrompt += `- ${rule.name}: ${guidance}\n`;
+        }
+      }
+      smsPrompt += `\n`;
+    }
+
+    // Add memory hints for personalization (NOT upsells)
+    if (context.memory_hints && context.memory_hints.length > 0) {
+      smsPrompt += `PERSONALIZATION HINTS (use subtly, never push sales):\n`;
+      for (const hint of context.memory_hints) {
+        smsPrompt += `- ${hint.summary}\n`;
+      }
+      smsPrompt += `\n`;
+    }
 
     // Determine the type of response needed
     let userPrompt = "";
@@ -78,6 +103,7 @@ Generate an appropriate SMS response that:
 - Is helpful and actionable
 - Stays under 320 characters if possible
 - Maintains the business's tone and personality
+- Applies any relevant behavior rules from the business owner
 
 Generate ONLY the SMS message text, nothing else.`;
     } else {
@@ -137,10 +163,60 @@ Generate ONLY the SMS message text, nothing else.`;
       throw new Error("No message generated");
     }
 
+    // Record observation for inbound SMS
+    if (customerMessage && customerPhone) {
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/record-observation`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify({
+            tenantId,
+            locationId: locationId || null,
+            observationType: "customer_preference",
+            subjectKey: `sms_${customerPhone?.replace(/\D/g, "").slice(-10)}`,
+            observation: `Customer texted: ${customerMessage.substring(0, 100)}`,
+          }),
+        });
+      } catch (obsError) {
+        console.error("Failed to record SMS observation:", obsError);
+        // Non-blocking - continue with response
+      }
+    }
+
+    // Record audit event
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/record-audit-event`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          location_id: locationId || null,
+          event_type: "sms.received",
+          entity_type: "sms",
+          actor_type: "ai",
+          payload: {
+            conversation_type: conversationType,
+            has_customer_message: !!customerMessage,
+          },
+        }),
+      });
+    } catch (auditError) {
+      console.error("Failed to record audit event:", auditError);
+      // Non-blocking
+    }
+
     return new Response(
       JSON.stringify({ 
         message: generatedMessage,
         businessName: context.business.name,
+        intentRulesApplied: context.intent_rules?.length || 0,
+        memoryHintsUsed: context.memory_hints?.length || 0,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

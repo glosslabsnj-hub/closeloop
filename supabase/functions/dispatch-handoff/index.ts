@@ -217,7 +217,7 @@ serve(async (req) => {
       },
       job_type: dispatch.job_type,
       priority: dispatch.priority,
-      urgency: dispatch.priority, // Map priority to urgency for payload
+      urgency: dispatch.priority,
       description: dispatch.description,
       notes: dispatch.notes,
       status: dispatch.status,
@@ -229,6 +229,57 @@ serve(async (req) => {
     };
 
     const isUrgent = dispatch.priority === "high" || dispatch.priority === "urgent";
+
+    // Record audit event for dispatch created
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/record-audit-event`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({
+          tenant_id,
+          event_type: dispatch.status === "confirmed" ? "dispatch.confirmed" : "dispatch.created",
+          entity_type: "dispatch",
+          entity_id: dispatch_id,
+          actor_type: "system",
+          payload: {
+            job_number: dispatch.job_number,
+            job_type: dispatch.job_type,
+            priority: dispatch.priority,
+            pickup_address: dispatch.pickup_address,
+          },
+          confirmation_summary: dispatch.status === "confirmed"
+            ? `Dispatch #${dispatch.job_number}: ${dispatch.job_type || "Job"} at ${dispatch.pickup_address || "location pending"}`
+            : undefined,
+          confirmed_by: "staff",
+        }),
+      });
+    } catch (e) {
+      console.error("Failed to record dispatch audit event:", e);
+    }
+
+    // Record observation for dispatch pattern
+    if (dispatch.job_type) {
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/record-observation`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify({
+            tenantId: tenant_id,
+            observationType: "service_pattern",
+            subjectKey: `dispatch_${dispatch.job_type.toLowerCase().replace(/\s+/g, "_").substring(0, 30)}`,
+            observation: `${dispatch.job_type} dispatch created with ${dispatch.priority} priority`,
+          }),
+        });
+      } catch (e) {
+        console.error("Failed to record dispatch observation:", e);
+      }
+    }
 
     // Execute each enabled method
     for (const handoffMethod of methods) {
