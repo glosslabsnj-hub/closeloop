@@ -222,6 +222,28 @@ serve(async (req) => {
     // ===== BUILD DYNAMIC VARIABLES FOR ELEVENLABS =====
     const dynamicVariables = buildDynamicVariables(context, callerPhoneE164, customerId);
 
+    // ===== LOG DYNAMIC VARIABLES FOR INSTRUMENTATION =====
+    // Redact sensitive values for storage
+    const redactedDynamicVariables: Record<string, string> = {};
+    const sensitiveKeys = ["caller_phone", "customer_id"];
+    for (const [key, value] of Object.entries(dynamicVariables)) {
+      const stringValue = String(value);
+      if (sensitiveKeys.includes(key) && value && stringValue !== "") {
+        redactedDynamicVariables[key] = context.safety.phi_minimization ? "[REDACTED]" : stringValue.slice(0, 20);
+      } else if (stringValue.length > 200) {
+        redactedDynamicVariables[key] = stringValue.slice(0, 200) + `... [${stringValue.length} chars]`;
+      } else {
+        redactedDynamicVariables[key] = stringValue;
+      }
+    }
+
+    // Store dynamic variables in context snapshot for debugging
+    await supabase
+      .from("ai_context_snapshots")
+      .update({ dynamic_variables_json: redactedDynamicVariables })
+      .eq("tenant_id", tenantId)
+      .eq("session_id", callSid);
+
     console.log(`Building context for tenant ${tenantId}:`, {
       business_mode: context.tenant.business_mode,
       hipaa_mode: context.safety.hipaa_mode,
@@ -270,7 +292,7 @@ serve(async (req) => {
     } else {
       console.log(`Created call session: ${callSession?.id}`);
       
-      // Log call_start and context_built events
+      // Log call_start, context_built, and dynamic_variables_built events
       await supabase.from("ai_event_logs").insert([
         {
           tenant_id: tenantId,
@@ -294,6 +316,23 @@ serve(async (req) => {
             faqs_count: context.knowledge.faqs.length,
             intent_rules_count: context.intelligence.intent_rules.length,
             missing_sections: context._meta.missing_sections,
+          },
+        },
+        {
+          tenant_id: tenantId,
+          session_id: callSession?.id,
+          call_sid: callSid,
+          stage: "dynamic_variables_built",
+          event_data: {
+            variable_keys: Object.keys(dynamicVariables),
+            business_name: String(dynamicVariables.business_name || "").slice(0, 50),
+            business_mode: String(dynamicVariables.business_mode || ""),
+            hours_today: String(dynamicVariables.hours_today || "").slice(0, 100),
+            menu_summary_length: String(dynamicVariables.menu_summary || "").length,
+            service_summary_length: String(dynamicVariables.service_summary || "").length,
+            context_has_hours: String(dynamicVariables.context_has_hours || "false"),
+            context_has_menu: String(dynamicVariables.context_has_menu || "false"),
+            context_has_services: String(dynamicVariables.context_has_services || "false"),
           },
         },
       ]);

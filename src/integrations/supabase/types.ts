@@ -167,6 +167,7 @@ export type Database = {
           context_json: Json
           created_at: string
           customer_id: string | null
+          dynamic_variables_json: Json | null
           id: string
           location_id: string | null
           missing_sections: string[]
@@ -179,6 +180,7 @@ export type Database = {
           context_json?: Json
           created_at?: string
           customer_id?: string | null
+          dynamic_variables_json?: Json | null
           id?: string
           location_id?: string | null
           missing_sections?: string[]
@@ -191,6 +193,7 @@ export type Database = {
           context_json?: Json
           created_at?: string
           customer_id?: string | null
+          dynamic_variables_json?: Json | null
           id?: string
           location_id?: string | null
           missing_sections?: string[]

@@ -10,6 +10,7 @@ export interface AIContextSnapshot {
   location_id: string | null;
   call_sid: string | null;
   context_json: Record<string, unknown>;
+  dynamic_variables_json: Record<string, string> | null;
   missing_sections: string[];
   created_at: string;
 }

@@ -383,6 +383,40 @@ export default function AIContextInspectorPage() {
                             </Badge>
                           </div>
 
+                          {/* Dynamic Variables (what was sent to ElevenLabs) */}
+                          {snapshot.dynamic_variables_json && Object.keys(snapshot.dynamic_variables_json).length > 0 && (
+                            <div className="space-y-2">
+                              <h4 className="text-sm font-medium flex items-center gap-2">
+                                <Zap className="h-4 w-4 text-primary" />
+                                Dynamic Variables Sent to AI
+                              </h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                                {Object.entries(snapshot.dynamic_variables_json).map(([key, value]) => {
+                                  const isLong = typeof value === "string" && value.length > 100;
+                                  const displayValue = isLong ? value.slice(0, 100) + "..." : value;
+                                  const hasValue = value && value !== "" && value !== "false";
+                                  
+                                  return (
+                                    <div 
+                                      key={key} 
+                                      className={`p-2 rounded border ${hasValue ? "bg-primary/5 border-primary/20" : "bg-muted/50 border-muted"}`}
+                                    >
+                                      <span className="font-mono text-muted-foreground">{key}:</span>
+                                      <span className={`ml-1 ${hasValue ? "text-foreground" : "text-muted-foreground"}`}>
+                                        {displayValue || "(empty)"}
+                                      </span>
+                                      {isLong && (
+                                        <Badge variant="outline" className="ml-1 text-xs">
+                                          {value.length} chars
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
                           <div className="flex gap-2">
                             <Button 
                               size="sm" 
@@ -393,8 +427,21 @@ export default function AIContextInspectorPage() {
                               }}
                             >
                               <Copy className="h-4 w-4 mr-2" />
-                              Copy JSON
+                              Copy Context JSON
                             </Button>
+                            {snapshot.dynamic_variables_json && (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCopyContext(snapshot.dynamic_variables_json as Record<string, unknown>);
+                                }}
+                              >
+                                <Copy className="h-4 w-4 mr-2" />
+                                Copy Dynamic Vars
+                              </Button>
+                            )}
                             <Button 
                               size="sm" 
                               variant="outline"
@@ -408,11 +455,29 @@ export default function AIContextInspectorPage() {
                             </Button>
                           </div>
 
-                          <ScrollArea className="h-[400px] rounded-md border bg-muted/30 p-4">
-                            <pre className="text-xs font-mono whitespace-pre-wrap">
-                              {JSON.stringify(snapshot.context_json, null, 2)}
-                            </pre>
-                          </ScrollArea>
+                          <Tabs defaultValue="context" className="w-full">
+                            <TabsList className="grid w-full grid-cols-2">
+                              <TabsTrigger value="context">context_json</TabsTrigger>
+                              <TabsTrigger value="dynamic_vars">dynamic_variables_json</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="context">
+                              <ScrollArea className="h-[400px] rounded-md border bg-muted/30 p-4">
+                                <pre className="text-xs font-mono whitespace-pre-wrap">
+                                  {JSON.stringify(snapshot.context_json, null, 2)}
+                                </pre>
+                              </ScrollArea>
+                            </TabsContent>
+                            <TabsContent value="dynamic_vars">
+                              <ScrollArea className="h-[400px] rounded-md border bg-muted/30 p-4">
+                                <pre className="text-xs font-mono whitespace-pre-wrap">
+                                  {snapshot.dynamic_variables_json 
+                                    ? JSON.stringify(snapshot.dynamic_variables_json, null, 2)
+                                    : "(No dynamic variables recorded for this snapshot)"
+                                  }
+                                </pre>
+                              </ScrollArea>
+                            </TabsContent>
+                          </Tabs>
                         </CardContent>
                       )}
                     </Card>
