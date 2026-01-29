@@ -162,23 +162,31 @@ export function DashboardHeroCard() {
       label: "Calls Today",
       value: stats?.callsToday || 0,
       icon: Phone,
+      iconBg: "bg-emerald-500/15",
+      iconColor: "text-emerald-400",
     },
     {
       label: "Bookings",
       value: stats?.bookingsThisWeek || 0,
       icon: Calendar,
       sublabel: "this week",
+      iconBg: "bg-blue-500/15",
+      iconColor: "text-blue-400",
     },
     {
       label: "Revenue",
       value: `$${(stats?.revenueRecovered || 0).toLocaleString()}`,
       icon: TrendingUp,
       sublabel: "recovered",
+      iconBg: "bg-amber-500/15",
+      iconColor: "text-amber-400",
     },
     {
       label: "AI Ready",
       value: `${readinessScore}%`,
       icon: Brain,
+      iconBg: "bg-purple-500/15",
+      iconColor: "text-purple-400",
     },
   ];
 
@@ -271,8 +279,8 @@ export function DashboardHeroCard() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {metrics.map((metric) => (
               <div key={metric.label} className="flex items-center gap-3">
-                <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-background border border-border/50">
-                  <metric.icon className="h-4 w-4 text-muted-foreground" />
+                <div className={`flex items-center justify-center h-9 w-9 rounded-lg ${metric.iconBg}`}>
+                  <metric.icon className={`h-4 w-4 ${metric.iconColor}`} />
                 </div>
                 <div>
                   <p className="text-lg font-bold leading-none">{metric.value}</p>

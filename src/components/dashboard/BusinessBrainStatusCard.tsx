@@ -52,7 +52,9 @@ export function BusinessBrainStatusCard() {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Brain className="h-4 w-4" />
+            <div className="flex items-center justify-center h-6 w-6 rounded-md bg-purple-500/15">
+              <Brain className="h-3.5 w-3.5 text-purple-400" />
+            </div>
             Business Brain Status
           </CardTitle>
           {hasActionNeeded && (
@@ -77,7 +79,9 @@ export function BusinessBrainStatusCard() {
           {processingCount > 0 && (
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-muted-foreground">
-                <Upload className="h-4 w-4 animate-pulse" />
+                <div className="flex items-center justify-center h-5 w-5 rounded bg-blue-500/15">
+                  <Upload className="h-3 w-3 text-blue-400 animate-pulse" />
+                </div>
                 Processing uploads
               </span>
               <Badge variant="outline">{processingCount}</Badge>
@@ -87,7 +91,9 @@ export function BusinessBrainStatusCard() {
           {suggestionsCount > 0 && (
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-muted-foreground">
-                <FileText className="h-4 w-4" />
+                <div className="flex items-center justify-center h-5 w-5 rounded bg-amber-500/15">
+                  <FileText className="h-3 w-3 text-amber-400" />
+                </div>
                 Pending suggestions
               </span>
               <Badge variant="secondary">{suggestionsCount}</Badge>
@@ -97,7 +103,9 @@ export function BusinessBrainStatusCard() {
           {conflictsCount > 0 && (
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-destructive">
-                <AlertTriangle className="h-4 w-4" />
+                <div className="flex items-center justify-center h-5 w-5 rounded bg-rose-500/15">
+                  <AlertTriangle className="h-3 w-3 text-rose-400" />
+                </div>
                 Unresolved conflicts
               </span>
               <Badge variant="destructive">{conflictsCount}</Badge>
