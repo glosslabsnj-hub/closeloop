@@ -83,18 +83,18 @@ export function RecentActivityCard() {
     refetchInterval: 30000,
   });
 
-  const getIcon = (type: string) => {
+  const getIconStyle = (type: string) => {
     switch (type) {
       case "call":
-        return <Phone className="h-3.5 w-3.5 text-primary" />;
+        return { icon: <Phone className="h-3.5 w-3.5 text-emerald-400" />, bg: "bg-emerald-500/15" };
       case "booking":
-        return <Calendar className="h-3.5 w-3.5 text-primary" />;
+        return { icon: <Calendar className="h-3.5 w-3.5 text-blue-400" />, bg: "bg-blue-500/15" };
       case "order":
-        return <UtensilsCrossed className="h-3.5 w-3.5 text-primary" />;
+        return { icon: <UtensilsCrossed className="h-3.5 w-3.5 text-orange-400" />, bg: "bg-orange-500/15" };
       case "dispatch":
-        return <Truck className="h-3.5 w-3.5 text-primary" />;
+        return { icon: <Truck className="h-3.5 w-3.5 text-sky-400" />, bg: "bg-sky-500/15" };
       default:
-        return <Phone className="h-3.5 w-3.5" />;
+        return { icon: <Phone className="h-3.5 w-3.5 text-muted-foreground" />, bg: "bg-muted" };
     }
   };
 
@@ -140,27 +140,30 @@ export function RecentActivityCard() {
       <CardContent>
         {hasActivity ? (
           <div className="space-y-1">
-            {activities.map((activity) => (
-              <div 
-                key={activity.id} 
-                className="flex items-center justify-between py-2.5 px-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
-                onClick={() => navigate("/app/calls")}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                    {getIcon(activity.type)}
+            {activities.map((activity) => {
+              const style = getIconStyle(activity.type);
+              return (
+                <div 
+                  key={activity.id} 
+                  className="flex items-center justify-between py-2.5 px-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                  onClick={() => navigate("/app/calls")}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-full ${style.bg}`}>
+                      {style.icon}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{activity.name}</p>
+                      <p className="text-xs text-muted-foreground">{activity.action}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium">{activity.name}</p>
-                    <p className="text-xs text-muted-foreground">{activity.action}</p>
+                  <div className="text-right">
+                    <p className="text-xs font-medium capitalize">{activity.outcome}</p>
+                    <p className="text-xs text-muted-foreground">{activity.time}</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs font-medium capitalize">{activity.outcome}</p>
-                  <p className="text-xs text-muted-foreground">{activity.time}</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-6 text-muted-foreground">

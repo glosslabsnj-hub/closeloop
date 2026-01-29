@@ -143,9 +143,9 @@ export function TodayQueueCard() {
               {/* Pending */}
               <div className="flex items-center gap-2">
                 <div className={`flex items-center justify-center h-8 w-8 rounded-lg ${
-                  stats?.pendingItems ? "bg-accent text-accent-foreground" : "bg-muted"
+                  stats?.pendingItems ? "bg-amber-500/15" : "bg-muted"
                 }`}>
-                  <Clock className="h-4 w-4" />
+                  <Clock className={`h-4 w-4 ${stats?.pendingItems ? "text-amber-400" : "text-muted-foreground"}`} />
                 </div>
                 <div>
                   <p className="text-lg font-bold leading-none">{stats?.pendingItems || 0}</p>
@@ -157,9 +157,9 @@ export function TodayQueueCard() {
               {(businessMode === "dispatch" || businessMode === "medical") && (
                 <div className="flex items-center gap-2">
                   <div className={`flex items-center justify-center h-8 w-8 rounded-lg ${
-                    stats?.urgentItems ? "bg-destructive/10 text-destructive" : "bg-muted"
+                    stats?.urgentItems ? "bg-rose-500/15" : "bg-muted"
                   }`}>
-                    <AlertCircle className="h-4 w-4" />
+                    <AlertCircle className={`h-4 w-4 ${stats?.urgentItems ? "text-rose-400" : "text-muted-foreground"}`} />
                   </div>
                   <div>
                     <p className="text-lg font-bold leading-none">{stats?.urgentItems || 0}</p>
@@ -171,9 +171,9 @@ export function TodayQueueCard() {
               {/* Completed */}
               <div className="flex items-center gap-2">
                 <div className={`flex items-center justify-center h-8 w-8 rounded-lg ${
-                  stats?.completedItems ? "bg-primary/10 text-primary" : "bg-muted"
+                  stats?.completedItems ? "bg-emerald-500/15" : "bg-muted"
                 }`}>
-                  <CheckCircle2 className="h-4 w-4" />
+                  <CheckCircle2 className={`h-4 w-4 ${stats?.completedItems ? "text-emerald-400" : "text-muted-foreground"}`} />
                 </div>
                 <div>
                   <p className="text-lg font-bold leading-none">{stats?.completedItems || 0}</p>
