@@ -96,11 +96,14 @@ export function DashboardHeroCard() {
         updated_at: new Date().toISOString(),
       };
 
+      // Update voice settings if user has voice capability
       if (hasVoice) {
         updates.go_live_enabled = enabled;
         updates.voice_ai_enabled = enabled;
       }
-      if (hasSms && !hasVoice) {
+      
+      // Update SMS settings if user has SMS capability
+      if (hasSms) {
         updates.instant_text_enabled = enabled;
       }
 
