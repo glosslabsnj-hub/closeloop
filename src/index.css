@@ -5,105 +5,60 @@
 /* CloseLoop Design System - Premium Modern SaaS */
 @layer base {
   :root {
-    /* Slightly warmer, brighter background for depth */
-    --background: 0 0% 99%;
-    --foreground: 222 47% 11%;
+    /* Dark Mode Background System */
+    --background: 240 10% 6%;
+    --foreground: 0 0% 95%;
 
-    /* Cards with subtle warmth */
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    /* Cards - slightly elevated from background */
+    --card: 240 10% 9%;
+    --card-foreground: 0 0% 95%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover: 240 10% 9%;
+    --popover-foreground: 0 0% 95%;
 
-    /* Primary - Modern Indigo */
-    --primary: 245 75% 60%;
+    /* Primary - Brighter Indigo for dark backgrounds */
+    --primary: 245 80% 67%;
     --primary-foreground: 0 0% 100%;
 
-    /* Warmer secondary for better card differentiation */
-    --secondary: 220 20% 97%;
-    --secondary-foreground: 222 47% 11%;
+    /* Secondary - Subtle dark panel */
+    --secondary: 240 10% 14%;
+    --secondary-foreground: 0 0% 90%;
 
-    /* More readable muted text */
-    --muted: 220 20% 97%;
-    --muted-foreground: 220 13% 46%;
+    /* Muted - For subtle backgrounds and text */
+    --muted: 240 10% 12%;
+    --muted-foreground: 240 5% 55%;
 
-    /* Accent - subtle indigo tint */
-    --accent: 245 60% 97%;
-    --accent-foreground: 245 75% 45%;
+    /* Accent - Indigo tinted for highlights */
+    --accent: 245 50% 18%;
+    --accent-foreground: 245 80% 75%;
 
-    /* Clearer status colors */
-    --destructive: 0 72% 55%;
+    /* Status Colors - Optimized for dark */
+    --destructive: 0 70% 58%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 152 76% 36%;
+    --success: 152 70% 45%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 40 96% 48%;
-    --warning-foreground: 0 0% 100%;
+    --warning: 40 90% 55%;
+    --warning-foreground: 0 0% 10%;
 
-    /* Softer borders for premium feel */
-    --border: 220 20% 92%;
-    --input: 220 20% 90%;
-    --ring: 245 75% 60%;
+    /* Borders & Inputs */
+    --border: 240 10% 18%;
+    --input: 240 10% 15%;
+    --ring: 245 80% 67%;
 
-    /* Increased radius for modern feel */
+    /* Radius */
     --radius: 0.875rem;
 
-    /* Sidebar - dark indigo theme */
-    --sidebar-background: 245 47% 11%;
-    --sidebar-foreground: 240 14% 96%;
-    --sidebar-primary: 245 75% 65%;
+    /* Sidebar - Deepest dark for visual hierarchy */
+    --sidebar-background: 240 10% 4%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 245 80% 70%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 245 47% 16%;
-    --sidebar-accent-foreground: 240 14% 96%;
-    --sidebar-border: 245 47% 18%;
-    --sidebar-ring: 245 75% 65%;
-  }
-
-  .dark {
-    --background: 245 47% 6%;
-    --foreground: 240 14% 96%;
-
-    --card: 245 47% 8%;
-    --card-foreground: 240 14% 96%;
-
-    --popover: 245 47% 8%;
-    --popover-foreground: 240 14% 96%;
-
-    --primary: 245 70% 65%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 245 47% 14%;
-    --secondary-foreground: 240 14% 96%;
-
-    --muted: 245 47% 14%;
-    --muted-foreground: 240 9% 60%;
-
-    --accent: 245 50% 15%;
-    --accent-foreground: 245 70% 75%;
-
-    --destructive: 0 62% 50%;
-    --destructive-foreground: 0 0% 100%;
-
-    --success: 152 76% 36%;
-    --success-foreground: 0 0% 100%;
-
-    --warning: 40 96% 48%;
-    --warning-foreground: 0 0% 100%;
-
-    --border: 245 47% 18%;
-    --input: 245 47% 18%;
-    --ring: 245 70% 65%;
-
-    --sidebar-background: 245 47% 4%;
-    --sidebar-foreground: 240 14% 96%;
-    --sidebar-primary: 245 70% 65%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 245 47% 10%;
-    --sidebar-accent-foreground: 240 14% 96%;
-    --sidebar-border: 245 47% 12%;
-    --sidebar-ring: 245 70% 65%;
+    --sidebar-accent: 240 10% 10%;
+    --sidebar-accent-foreground: 0 0% 90%;
+    --sidebar-border: 240 10% 14%;
+    --sidebar-ring: 245 80% 70%;
   }
 }
 
@@ -160,20 +115,16 @@
   }
 
   .gradient-hero {
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(245 75% 50%) 100%);
+    background: linear-gradient(135deg, hsl(245 80% 35%) 0%, hsl(245 80% 25%) 100%);
   }
 
   .gradient-subtle {
-    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
+    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(240 10% 10%) 100%);
   }
 
   /* Glass effect */
   .glass {
-    @apply bg-white/80 backdrop-blur-lg border border-white/20;
-  }
-
-  .dark .glass {
-    @apply bg-black/40 backdrop-blur-lg border border-white/10;
+    @apply bg-white/5 backdrop-blur-lg border border-white/10;
   }
 
   /* Card elevation */
