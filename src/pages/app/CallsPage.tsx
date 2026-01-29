@@ -229,6 +229,19 @@ export default function CallsPage() {
         </Badge>
       </div>
 
+      {/* Info banner for calls awaiting data */}
+      {deduplicatedCalls.some(c => !c.summary && !c.ended_at) && (
+        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 flex items-start gap-3">
+          <Phone className="h-5 w-5 text-blue-500 mt-0.5 shrink-0" />
+          <div className="text-sm">
+            <p className="font-medium text-blue-700 dark:text-blue-300">Some calls are awaiting AI summary</p>
+            <p className="text-muted-foreground">
+              Call data (summary, service requested) is populated when calls end. You can also click the edit icon to add details manually.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Search */}
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -327,7 +340,7 @@ export default function CallsPage() {
                           </span>
                         ) : (
                           <span className="text-muted-foreground italic text-sm">
-                            {call.ended_at ? "No summary available" : "Call in progress..."}
+                            {call.ended_at ? "No summary available" : "Awaiting AI summary..."}
                           </span>
                         )}
                       </TableCell>
