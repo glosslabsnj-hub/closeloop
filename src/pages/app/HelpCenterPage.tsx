@@ -29,6 +29,7 @@ import { HelpGuideMedical } from "@/components/help/HelpGuideMedical";
 import { HelpGuideBrain } from "@/components/help/HelpGuideBrain";
 import { HelpGuideAutomations } from "@/components/help/HelpGuideAutomations";
 import { HelpGuideSettings } from "@/components/help/HelpGuideSettings";
+import { HelpGuideWorkflows } from "@/components/help/HelpGuideWorkflows";
 
 interface GuideCategory {
   id: string;
@@ -219,7 +220,7 @@ export default function HelpCenterPage() {
         </TabsContent>
 
         <TabsContent value="automations" className="mt-0">
-          <HelpGuideAutomations mode={businessMode} searchQuery={searchQuery} />
+          <HelpGuideWorkflows mode={businessMode} searchQuery={searchQuery} />
         </TabsContent>
 
         <TabsContent value="settings" className="mt-0">

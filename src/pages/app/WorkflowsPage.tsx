@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, GitBranch, Play, Pause, Settings, History, Trash2, Calendar, UtensilsCrossed, Truck, PhoneCall, Lock, ArrowRight, Loader2, ToggleLeft, Sliders } from "lucide-react";
+import { Plus, GitBranch, Play, Pause, Settings, History, Trash2, Calendar, UtensilsCrossed, Truck, PhoneCall, Lock, ArrowRight, Loader2, ToggleLeft, Sliders, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig, type BusinessMode } from "@/hooks/useTenantConfig";
 import { supabase } from "@/integrations/supabase/client";
 import { SimpleAutomationPanel } from "@/components/workflows/SimpleAutomationPanel";
+import { HelpGuideWorkflows } from "@/components/help/HelpGuideWorkflows";
 
 // Pre-configured node for workflow templates
 interface TemplateNode {
@@ -339,7 +340,7 @@ export default function WorkflowsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newTrigger, setNewTrigger] = useState<WorkflowTrigger | "">("");
-  const [viewMode, setViewMode] = useState<"simple" | "advanced">("simple");
+  const [viewMode, setViewMode] = useState<"simple" | "advanced" | "help">("simple");
 
   // Check if user has access to workflows
   const hasWorkflowAccess = useMemo(() => {
@@ -613,8 +614,8 @@ export default function WorkflowsPage() {
         </div>
         
         <div className="flex items-center gap-3">
-          {/* Simple/Advanced Toggle */}
-          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "simple" | "advanced")}>
+          {/* Simple/Advanced/Help Toggle */}
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "simple" | "advanced" | "help")}>
             <TabsList className="h-9">
               <TabsTrigger value="simple" className="text-xs gap-1.5">
                 <ToggleLeft className="h-3.5 w-3.5" />
@@ -623,6 +624,10 @@ export default function WorkflowsPage() {
               <TabsTrigger value="advanced" className="text-xs gap-1.5">
                 <Sliders className="h-3.5 w-3.5" />
                 Advanced
+              </TabsTrigger>
+              <TabsTrigger value="help" className="text-xs gap-1.5">
+                <HelpCircle className="h-3.5 w-3.5" />
+                Help
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -691,6 +696,11 @@ export default function WorkflowsPage() {
       {/* Simple Mode: Toggle-based automation panel */}
       {viewMode === "simple" && (
         <SimpleAutomationPanel onAdvancedClick={() => setViewMode("advanced")} />
+      )}
+
+      {/* Help Mode: Full documentation */}
+      {viewMode === "help" && (
+        <HelpGuideWorkflows mode={businessMode} />
       )}
 
       {/* Advanced Mode: Full workflow list */}
