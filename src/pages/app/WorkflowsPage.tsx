@@ -164,10 +164,22 @@ export default function WorkflowsPage() {
     return workflowModules.some(mod => enabledModules.includes(mod));
   }, [enabledModules]);
 
-  // Get mode-specific templates
+  // Get mode-specific templates (strictly gated by business mode)
   const modeTemplates = useMemo(() => {
     const templates = WORKFLOW_TEMPLATES[businessMode] || WORKFLOW_TEMPLATES.general;
     return [...templates, ...UNIVERSAL_TEMPLATES];
+  }, [businessMode]);
+
+  // Get mode-appropriate triggers for the create dialog
+  const availableTriggers = useMemo(() => {
+    const modeTriggerMap: Record<BusinessMode, WorkflowTrigger[]> = {
+      service: ["booking.created", "booking.confirmed", "booking.completed", "call.ended", "sms.received", "missed_call"],
+      food: ["order.created", "order.confirmed", "order.ready", "order.completed", "reservation.created", "reservation.confirmed", "catering.created", "catering.quoted", "call.ended", "sms.received"],
+      dispatch: ["dispatch.created", "dispatch.confirmed", "dispatch.completed", "call.ended", "sms.received", "missed_call"],
+      medical: ["intake.created", "intake.scheduled", "booking.created", "booking.confirmed", "call.ended", "sms.received"],
+      general: ["call.ended", "sms.received", "missed_call"],
+    };
+    return modeTriggerMap[businessMode] || modeTriggerMap.general;
   }, [businessMode]);
 
   const activeWorkflows = workflows?.filter(w => w.status === "active") || [];
@@ -292,14 +304,20 @@ export default function WorkflowsPage() {
                       <SelectValue placeholder="Select when this workflow runs" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.entries(TRIGGER_METADATA).map(([key, meta]) => (
-                        <SelectItem key={key} value={key}>
-                          <span className="mr-2">{meta.icon}</span>
-                          {meta.label}
-                        </SelectItem>
-                      ))}
+                      {availableTriggers.map((key) => {
+                        const meta = TRIGGER_METADATA[key];
+                        return (
+                          <SelectItem key={key} value={key}>
+                            <span className="mr-2">{meta.icon}</span>
+                            {meta.label}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Only triggers relevant to {businessMode} mode are shown
+                  </p>
                 </div>
               </div>
               <DialogFooter>
@@ -415,14 +433,20 @@ export default function WorkflowsPage() {
                     <SelectValue placeholder="Select when this workflow runs" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(TRIGGER_METADATA).map(([key, meta]) => (
-                      <SelectItem key={key} value={key}>
-                        <span className="mr-2">{meta.icon}</span>
-                        {meta.label}
-                      </SelectItem>
-                    ))}
+                    {availableTriggers.map((key) => {
+                      const meta = TRIGGER_METADATA[key];
+                      return (
+                        <SelectItem key={key} value={key}>
+                          <span className="mr-2">{meta.icon}</span>
+                          {meta.label}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  Only triggers relevant to {businessMode} mode are shown
+                </p>
               </div>
             </div>
             <DialogFooter>

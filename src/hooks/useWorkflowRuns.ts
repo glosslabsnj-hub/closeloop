@@ -110,13 +110,14 @@ export function useRetryWorkflowRun() {
       
       if (runError) throw runError;
       
-      // Trigger the workflow again
+      // Trigger the workflow again with retry_run_id
       const { data, error } = await supabase.functions.invoke("trigger-workflow", {
         body: {
           tenant_id: run.tenant_id,
           trigger: run.trigger,
           entity_type: run.entity_type,
           entity_id: run.entity_id,
+          retry_run_id: runId,
         },
       });
       
@@ -131,6 +132,42 @@ export function useRetryWorkflowRun() {
     },
     onError: (error) => {
       toast({ title: "Failed to retry workflow", description: String(error), variant: "destructive" });
+    },
+  });
+}
+
+// Dry run a workflow (simulate execution without side effects)
+export function useDryRunWorkflow() {
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ tenantId, trigger, entityType, entityId }: { 
+      tenantId: string; 
+      trigger: string; 
+      entityType: string; 
+      entityId: string 
+    }) => {
+      const { data, error } = await supabase.functions.invoke("trigger-workflow", {
+        body: {
+          tenant_id: tenantId,
+          trigger,
+          entity_type: entityType,
+          entity_id: entityId,
+          dry_run: true,
+        },
+      });
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      toast({ 
+        title: "Dry Run Complete", 
+        description: `Simulated ${data.steps_executed || 0} steps without side effects` 
+      });
+    },
+    onError: (error) => {
+      toast({ title: "Dry run failed", description: String(error), variant: "destructive" });
     },
   });
 }

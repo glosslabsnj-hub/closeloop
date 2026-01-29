@@ -2948,6 +2948,67 @@ export type Database = {
         }
         Relationships: []
       }
+      webhook_executions: {
+        Row: {
+          entity_id: string
+          executed_at: string
+          id: string
+          idempotency_key: string
+          node_id: string
+          response_body: string | null
+          response_code: number | null
+          run_id: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          entity_id: string
+          executed_at?: string
+          id?: string
+          idempotency_key: string
+          node_id: string
+          response_body?: string | null
+          response_code?: number | null
+          run_id: string
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          entity_id?: string
+          executed_at?: string
+          id?: string
+          idempotency_key?: string
+          node_id?: string
+          response_body?: string | null
+          response_code?: number | null
+          run_id?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_executions_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhook_executions_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhook_executions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workflow_edges: {
         Row: {
           condition: Json
@@ -3040,34 +3101,40 @@ export type Database = {
       }
       workflow_run_steps: {
         Row: {
+          can_retry: boolean | null
           error: string | null
           finished_at: string | null
           id: string
           node_id: string
           node_type: Database["public"]["Enums"]["workflow_node_type"]
           output: Json
+          retry_count: number | null
           run_id: string
           started_at: string
           status: string
         }
         Insert: {
+          can_retry?: boolean | null
           error?: string | null
           finished_at?: string | null
           id?: string
           node_id: string
           node_type: Database["public"]["Enums"]["workflow_node_type"]
           output?: Json
+          retry_count?: number | null
           run_id: string
           started_at?: string
           status?: string
         }
         Update: {
+          can_retry?: boolean | null
           error?: string | null
           finished_at?: string | null
           id?: string
           node_id?: string
           node_type?: Database["public"]["Enums"]["workflow_node_type"]
           output?: Json
+          retry_count?: number | null
           run_id?: string
           started_at?: string
           status?: string
@@ -3097,6 +3164,9 @@ export type Database = {
           error: string | null
           finished_at: string | null
           id: string
+          is_dry_run: boolean | null
+          parent_run_id: string | null
+          retry_count: number | null
           started_at: string
           status: Database["public"]["Enums"]["workflow_run_status"]
           tenant_id: string
@@ -3110,6 +3180,9 @@ export type Database = {
           error?: string | null
           finished_at?: string | null
           id?: string
+          is_dry_run?: boolean | null
+          parent_run_id?: string | null
+          retry_count?: number | null
           started_at?: string
           status?: Database["public"]["Enums"]["workflow_run_status"]
           tenant_id: string
@@ -3123,6 +3196,9 @@ export type Database = {
           error?: string | null
           finished_at?: string | null
           id?: string
+          is_dry_run?: boolean | null
+          parent_run_id?: string | null
+          retry_count?: number | null
           started_at?: string
           status?: Database["public"]["Enums"]["workflow_run_status"]
           tenant_id?: string
@@ -3130,6 +3206,13 @@ export type Database = {
           workflow_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "workflow_runs_parent_run_id_fkey"
+            columns: ["parent_run_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_runs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workflow_runs_tenant_id_fkey"
             columns: ["tenant_id"]
