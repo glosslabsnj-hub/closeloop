@@ -57,7 +57,7 @@ export function WorkflowRunLogCard({ tenantId, limit = 5, showViewAll = true }: 
         <CardTitle className="text-base">Recent Workflow Runs</CardTitle>
         {showViewAll && (
           <Button variant="ghost" size="sm" asChild>
-            <Link to="/app/workflows?tab=runs">
+            <Link to="/app/automations?tab=history">
               View All
               <ChevronRight className="h-4 w-4 ml-1" />
             </Link>

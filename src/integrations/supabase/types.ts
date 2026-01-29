@@ -503,6 +503,195 @@ export type Database = {
           },
         ]
       }
+      automation_rules: {
+        Row: {
+          action_type: string
+          behavior_json: Json | null
+          created_at: string
+          description: string | null
+          destination_provider: string
+          enabled: boolean
+          field_mapping_json: Json | null
+          id: string
+          integration_id: string | null
+          name: string
+          priority: number
+          tenant_id: string
+          trigger_event: string
+          updated_at: string
+        }
+        Insert: {
+          action_type: string
+          behavior_json?: Json | null
+          created_at?: string
+          description?: string | null
+          destination_provider: string
+          enabled?: boolean
+          field_mapping_json?: Json | null
+          id?: string
+          integration_id?: string | null
+          name: string
+          priority?: number
+          tenant_id: string
+          trigger_event: string
+          updated_at?: string
+        }
+        Update: {
+          action_type?: string
+          behavior_json?: Json | null
+          created_at?: string
+          description?: string | null
+          destination_provider?: string
+          enabled?: boolean
+          field_mapping_json?: Json | null
+          id?: string
+          integration_id?: string | null
+          name?: string
+          priority?: number
+          tenant_id?: string
+          trigger_event?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_rules_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_run_steps: {
+        Row: {
+          action_type: string
+          created_at: string
+          destination_provider: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          request_payload: Json | null
+          response_payload: Json | null
+          run_id: string
+          started_at: string
+          status: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          destination_provider?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          run_id: string
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          destination_provider?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          run_id?: string
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_run_steps_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "automation_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_runs: {
+        Row: {
+          created_at: string
+          entity_id: string
+          entity_type: string
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          payload_snapshot: Json | null
+          retry_count: number
+          rule_id: string | null
+          started_at: string
+          status: string
+          tenant_id: string
+          trigger_event: string
+          workflow_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          payload_snapshot?: Json | null
+          retry_count?: number
+          rule_id?: string | null
+          started_at?: string
+          status?: string
+          tenant_id: string
+          trigger_event: string
+          workflow_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          payload_snapshot?: Json | null
+          retry_count?: number
+          rule_id?: string | null
+          started_at?: string
+          status?: string
+          tenant_id?: string
+          trigger_event?: string
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_runs_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "automation_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_runs_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automations: {
         Row: {
           created_at: string
@@ -1761,6 +1950,107 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      integration_secrets: {
+        Row: {
+          created_at: string
+          encrypted_value: string
+          expires_at: string | null
+          id: string
+          integration_id: string
+          secret_type: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          encrypted_value: string
+          expires_at?: string | null
+          id?: string
+          integration_id: string
+          secret_type: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          encrypted_value?: string
+          expires_at?: string | null
+          id?: string
+          integration_id?: string
+          secret_type?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_secrets_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_secrets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integrations: {
+        Row: {
+          auth_type: string
+          config_json: Json | null
+          created_at: string
+          display_name: string
+          error_message: string | null
+          id: string
+          last_tested_at: string | null
+          provider: string
+          scopes_json: Json | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          auth_type?: string
+          config_json?: Json | null
+          created_at?: string
+          display_name: string
+          error_message?: string | null
+          id?: string
+          last_tested_at?: string | null
+          provider: string
+          scopes_json?: Json | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          auth_type?: string
+          config_json?: Json | null
+          created_at?: string
+          display_name?: string
+          error_message?: string | null
+          id?: string
+          last_tested_at?: string | null
+          provider?: string
+          scopes_json?: Json | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integrations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       knowledge_conflicts: {
         Row: {
