@@ -39,8 +39,8 @@ export function KnowledgeUpdatesTab() {
 
       {/* All Resolved Success Message */}
       {unresolvedCount === 0 && pendingCount === 0 && processingCount === 0 && (
-        <Alert className="border-green-500/50 bg-green-500/10">
-          <AlertDescription className="text-green-700 dark:text-green-400">
+        <Alert className="border-emerald-500/30 bg-emerald-500/10">
+          <AlertDescription className="text-emerald-400">
             <strong>Great!</strong> Your AI knowledge is up to date and consistent. No pending
             reviews or conflicts.
           </AlertDescription>
