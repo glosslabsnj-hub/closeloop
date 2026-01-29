@@ -303,9 +303,11 @@ function buildServicesForPrompt(services: NormalizedService[]): string {
 function normalizeMenuItems(items: Array<{
   id: string;
   name: string;
+  description?: string | null;
   category?: string | null;
   price_cents?: number | null;
   modifiers?: string[] | null;
+  dietary_tags?: string[] | null;
   is_available?: boolean;
 }> | null): NormalizedMenuItem[] {
   if (!items || items.length === 0) return [];
@@ -315,7 +317,7 @@ function normalizeMenuItems(items: Array<{
     name: item.name,
     category: item.category || "Menu",
     price_cents: item.price_cents ?? null,
-    modifiers: item.modifiers || [],
+    modifiers: item.modifiers || item.dietary_tags || [],
     is_available: item.is_available !== false,
   }));
 }
@@ -324,20 +326,21 @@ function buildMenuSummary(items: NormalizedMenuItem[]): string {
   if (items.length === 0) return "";
   
   const byCategory: Record<string, string[]> = {};
-  for (const item of items.slice(0, 20)) {
+  for (const item of items.slice(0, 25)) {
     const cat = item.category;
     if (!byCategory[cat]) byCategory[cat] = [];
-    byCategory[cat].push(item.name);
+    const priceStr = item.price_cents ? ` ($${(item.price_cents / 100).toFixed(2)})` : "";
+    byCategory[cat].push(`${item.name}${priceStr}`);
   }
   
   const parts = Object.entries(byCategory).map(([cat, names]) => {
-    return `${cat}: ${names.slice(0, 4).join(", ")}${names.length > 4 ? "..." : ""}`;
+    return `${cat}: ${names.slice(0, 6).join(", ")}${names.length > 6 ? "..." : ""}`;
   });
   
   let result = parts.join(". ");
-  if (items.length > 20) result += `. Plus ${items.length - 20} more items.`;
+  if (items.length > 25) result += `. Plus ${items.length - 25} more items.`;
   
-  return truncate(result, 600);
+  return truncate(result, 1000);
 }
 
 function buildFaqsSummary(faqs: Array<{ question: string; answer: string }>): string {
@@ -424,7 +427,7 @@ export async function buildBusinessContext(
   ] = await Promise.all([
     supabase.from("tenants").select("*").eq("id", tenantId).single(),
     supabase.from("services").select("*").eq("tenant_id", tenantId).eq("is_active", true).limit(20),
-    supabase.from("menu_items").select("id, name, category, price_cents, modifiers, is_available").eq("tenant_id", tenantId).eq("is_available", true).limit(50),
+    supabase.from("menu_items").select("id, name, description, category, price_cents, modifiers, dietary_tags, is_available").eq("tenant_id", tenantId).eq("is_available", true).limit(50),
     supabase.from("business_faqs").select("question, answer").eq("tenant_id", tenantId).order("priority_weight", { ascending: false }).limit(15),
     supabase.from("objection_responses").select("objection, response").eq("tenant_id", tenantId).order("priority_weight", { ascending: false }).limit(10),
     supabase.from("ai_assistants").select("tone, greeting_script, fallback_script").eq("tenant_id", tenantId).maybeSingle(),
@@ -635,14 +638,36 @@ function buildSystemPrompt(ctx: BusinessContext): string {
     prompt += `SERVICES AND PRICING:\nIMPORTANT: You have full access to service pricing. Quote prices when they exist!\n\n${ctx.offerings.services_for_prompt}\n\n`;
   }
 
-  // Menu for food mode
+  // Menu for food mode - with detailed ordering instructions
   if (ctx.offerings.menu.length > 0) {
-    prompt += `MENU ITEMS:\n${ctx.offerings.menu_summary}\n\n`;
+    prompt += `MENU ITEMS (YOU CAN TAKE ORDERS):\n${ctx.offerings.menu_summary}\n\n`;
+    
+    // Add food-specific ordering instructions
+    prompt += `FOOD ORDERING FLOW:
+You are ENABLED to take food orders. When a customer wants to order:
+
+1. GREET & ASK ORDER TYPE: "Would you like pickup or delivery today?"
+2. TAKE THE ORDER: Listen for items. Confirm each item and any modifications.
+3. ASK FOR MODIFICATIONS: "Would you like to add anything to that?" or "Any special instructions?"
+4. CONFIRM THE ORDER: Repeat the full order back: "So that's [items]. Did I get that right?"
+5. GET CUSTOMER INFO: Ask for name and phone number for the order.
+6. IF DELIVERY: Ask for the delivery address.
+7. GIVE TIME ESTIMATE: "Your order will be ready in about [15-20] minutes."
+8. CLOSE: "Thank you! We'll have that ready for you."
+
+IMPORTANT ORDER RULES:
+- You CAN and SHOULD take orders when the menu is available
+- Confirm the order summary with the customer before completing
+- If an item isn't on the menu, politely say "I don't see that on our menu, but let me suggest..."
+- For unclear items, ask clarifying questions
+- Always collect: items, name, phone, and address (if delivery)
+
+`;
   }
 
-  // Hours
+  // Hours - ALWAYS include if available
   if (Object.keys(ctx.tenant.hours).length > 0) {
-    prompt += `BUSINESS HOURS:\\n`;
+    prompt += `BUSINESS HOURS (YOU KNOW THIS - ANSWER WHEN ASKED):\\n`;
     const dayNames = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
     for (const day of dayNames) {
       const dayHours = ctx.tenant.hours[day];
@@ -651,7 +676,7 @@ function buildSystemPrompt(ctx: BusinessContext): string {
         prompt += `- ${day.charAt(0).toUpperCase() + day.slice(1)}: ${status}\\n`;
       }
     }
-    prompt += `\\n`;
+    prompt += `\\nIMPORTANT: When customers ask about hours, you HAVE this information. Tell them the hours directly. Never say "I don't have access to hours" when hours are listed above.\\n\\n`;
   }
 
   // Policies

@@ -1529,6 +1529,65 @@ export type Database = {
           },
         ]
       }
+      food_order_settings: {
+        Row: {
+          accepts_catering: boolean | null
+          accepts_delivery: boolean | null
+          accepts_dine_in: boolean | null
+          accepts_pickup: boolean | null
+          catering_lead_days: number | null
+          catering_min_guests: number | null
+          created_at: string | null
+          delivery_minimum_cents: number | null
+          delivery_radius_miles: number | null
+          estimated_prep_minutes: number | null
+          menu_notes: string | null
+          order_confirmation_mode: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          accepts_catering?: boolean | null
+          accepts_delivery?: boolean | null
+          accepts_dine_in?: boolean | null
+          accepts_pickup?: boolean | null
+          catering_lead_days?: number | null
+          catering_min_guests?: number | null
+          created_at?: string | null
+          delivery_minimum_cents?: number | null
+          delivery_radius_miles?: number | null
+          estimated_prep_minutes?: number | null
+          menu_notes?: string | null
+          order_confirmation_mode?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          accepts_catering?: boolean | null
+          accepts_delivery?: boolean | null
+          accepts_dine_in?: boolean | null
+          accepts_pickup?: boolean | null
+          catering_lead_days?: number | null
+          catering_min_guests?: number | null
+          created_at?: string | null
+          delivery_minimum_cents?: number | null
+          delivery_radius_miles?: number | null
+          estimated_prep_minutes?: number | null
+          menu_notes?: string | null
+          order_confirmation_mode?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "food_order_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       food_orders: {
         Row: {
           address_json: Json | null
@@ -2091,6 +2150,7 @@ export type Database = {
           dietary_tags: string[] | null
           id: string
           is_available: boolean
+          modifiers: string[] | null
           name: string
           prep_time_minutes: number | null
           price_cents: number | null
@@ -2104,6 +2164,7 @@ export type Database = {
           dietary_tags?: string[] | null
           id?: string
           is_available?: boolean
+          modifiers?: string[] | null
           name: string
           prep_time_minutes?: number | null
           price_cents?: number | null
@@ -2117,6 +2178,7 @@ export type Database = {
           dietary_tags?: string[] | null
           id?: string
           is_available?: boolean
+          modifiers?: string[] | null
           name?: string
           prep_time_minutes?: number | null
           price_cents?: number | null
@@ -2897,6 +2959,7 @@ export type Database = {
           custom_industry: string | null
           deposit_policy: string | null
           enabled_modules: Json | null
+          food_settings: Json | null
           hipaa_mode: boolean
           hours_json: Json | null
           id: string
@@ -2932,6 +2995,7 @@ export type Database = {
           custom_industry?: string | null
           deposit_policy?: string | null
           enabled_modules?: Json | null
+          food_settings?: Json | null
           hipaa_mode?: boolean
           hours_json?: Json | null
           id?: string
@@ -2967,6 +3031,7 @@ export type Database = {
           custom_industry?: string | null
           deposit_policy?: string | null
           enabled_modules?: Json | null
+          food_settings?: Json | null
           hipaa_mode?: boolean
           hours_json?: Json | null
           id?: string
