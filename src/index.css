@@ -2,54 +2,63 @@
 @tailwind components;
 @tailwind utilities;
 
-/* CloseLoop Design System - Bold, Modern SaaS */
+/* CloseLoop Design System - Premium Modern SaaS */
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    /* Slightly warmer, brighter background for depth */
+    --background: 0 0% 99%;
     --foreground: 222 47% 11%;
 
+    /* Cards with subtle warmth */
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    /* Teal accent - bold and energetic */
-    --primary: 172 66% 50%;
+    /* Refined primary - deeper teal with more saturation */
+    --primary: 172 72% 44%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 96%;
+    /* Warmer secondary for better card differentiation */
+    --secondary: 220 20% 97%;
     --secondary-foreground: 222 47% 11%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    /* More readable muted text */
+    --muted: 220 20% 97%;
+    --muted-foreground: 220 13% 46%;
 
-    --accent: 172 66% 95%;
-    --accent-foreground: 172 66% 30%;
+    /* Accent - subtle teal tint */
+    --accent: 172 50% 96%;
+    --accent-foreground: 172 72% 32%;
 
-    --destructive: 0 84% 60%;
+    /* Clearer status colors */
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 76% 36%;
+    --success: 152 76% 36%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
+    --warning: 40 96% 48%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 172 66% 50%;
+    /* Softer borders for premium feel */
+    --border: 220 20% 92%;
+    --input: 220 20% 90%;
+    --ring: 172 72% 44%;
 
-    --radius: 0.75rem;
+    /* Increased radius for modern feel */
+    --radius: 0.875rem;
 
+    /* Sidebar - dark theme */
     --sidebar-background: 222 47% 11%;
     --sidebar-foreground: 220 14% 96%;
-    --sidebar-primary: 172 66% 50%;
+    --sidebar-primary: 172 72% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 222 47% 16%;
     --sidebar-accent-foreground: 220 14% 96%;
     --sidebar-border: 222 47% 18%;
-    --sidebar-ring: 172 66% 50%;
+    --sidebar-ring: 172 72% 50%;
   }
 
   .dark {
@@ -71,16 +80,16 @@
     --muted: 222 47% 14%;
     --muted-foreground: 220 9% 60%;
 
-    --accent: 172 66% 15%;
+    --accent: 172 50% 15%;
     --accent-foreground: 172 66% 70%;
 
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 76% 36%;
+    --success: 152 76% 36%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
+    --warning: 40 96% 48%;
     --warning-foreground: 0 0% 100%;
 
     --border: 222 47% 18%;
@@ -105,22 +114,60 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold tracking-tight;
+  /* Improved typography scale */
+  h1 {
+    @apply text-3xl md:text-4xl font-bold tracking-tight;
+  }
+
+  h2 {
+    @apply text-2xl md:text-3xl font-bold tracking-tight;
+  }
+
+  h3 {
+    @apply text-xl font-semibold tracking-tight;
+  }
+
+  h4 {
+    @apply text-lg font-semibold;
+  }
+
+  /* Improved focus states for accessibility */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
   }
 }
 
 @layer utilities {
+  /* Page layout patterns */
+  .page-header {
+    @apply mb-8;
+  }
+  
+  .page-title {
+    @apply text-2xl md:text-3xl font-bold tracking-tight;
+  }
+  
+  .page-subtitle {
+    @apply text-muted-foreground mt-1 text-sm md:text-base;
+  }
+
+  /* Premium gradients */
   .gradient-primary {
     @apply bg-gradient-to-r from-primary to-primary/80;
   }
 
   .gradient-hero {
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(172 66% 40%) 100%);
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(172 72% 36%) 100%);
   }
 
+  .gradient-subtle {
+    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
+  }
+
+  /* Glass effect */
   .glass {
     @apply bg-white/80 backdrop-blur-lg border border-white/20;
   }
@@ -128,19 +175,91 @@
   .dark .glass {
     @apply bg-black/40 backdrop-blur-lg border border-white/10;
   }
-  
+
+  /* Card elevation */
+  .card-elevated {
+    @apply shadow-sm hover:shadow-md transition-shadow duration-200;
+  }
+
+  .card-interactive {
+    @apply shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200;
+  }
+
+  /* Section spacing */
+  .section-gap {
+    @apply space-y-6 md:space-y-8;
+  }
+
   /* Safe area for mobile sticky bars */
   .safe-area-pb {
     padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
   }
-  
-  /* Smooth animations */
+
+  /* Premium animations */
   @keyframes fade-in {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
   }
-  
+
+  @keyframes slide-up-fade {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes scale-fade-in {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
   .animate-fade-in {
     animation: fade-in 0.5s ease-out;
+  }
+
+  .animate-slide-up-fade {
+    animation: slide-up-fade 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .animate-scale-fade-in {
+    animation: scale-fade-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s infinite;
+  }
+
+  .animate-pulse-soft {
+    animation: pulse-soft 2s ease-in-out infinite;
+  }
+
+  /* Hover effects */
+  .hover-lift {
+    @apply transition-transform duration-200 hover:-translate-y-0.5;
+  }
+
+  .hover-scale {
+    @apply transition-transform duration-200 hover:scale-[1.02];
+  }
+
+  /* Status indicator dot */
+  .status-dot {
+    @apply w-2 h-2 rounded-full;
+  }
+
+  .status-dot-live {
+    @apply bg-success animate-pulse-soft;
+  }
+
+  .status-dot-paused {
+    @apply bg-muted-foreground;
   }
 }
