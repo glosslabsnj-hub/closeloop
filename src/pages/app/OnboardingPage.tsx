@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +11,8 @@ import {
   FileText, CheckCircle2, Loader2, ArrowRight, ArrowLeft, 
   Users, Sparkles, Edit2, Brain
 } from "lucide-react";
-import { industryConfigs, ExtendedIndustryType } from "@/data/industryTemplates";
+import { ExtendedIndustryType } from "@/data/industryTemplates";
+import { resolveIndustryTemplate } from "@/lib/templateResolver";
 import BusinessIdentityForm, { BusinessIdentity } from "@/components/onboarding/BusinessIdentityForm";
 import ServiceEditorAdvanced, { AdvancedService } from "@/components/onboarding/ServiceEditorAdvanced";
 import BookingPoliciesEditor, { BookingPolicies } from "@/components/onboarding/BookingPoliciesEditor";
@@ -21,6 +22,8 @@ import ObjectionEditor, { ObjectionResponse } from "@/components/onboarding/Obje
 import PoliciesEditor, { BusinessPolicies } from "@/components/onboarding/PoliciesEditor";
 import { BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
 import { AIKnowledgePreview } from "@/components/onboarding/AIKnowledgePreview";
+import { ServiceUploader } from "@/components/onboarding/ServiceUploader";
+import { ServiceConflictBanner } from "@/components/onboarding/ServiceConflictBanner";
 import type { PlanCode } from "@/types/database";
 
 const defaultBusinessHours: BusinessHours = {
@@ -48,11 +51,17 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   
-  // Step 1: Business Identity
+  // Track if industry template has been initialized to prevent re-loading on every render
+  const initializedIndustryRef = useRef<ExtendedIndustryType | null>(null);
+  
+  // Track upload conflicts for Step 2
+  const [uploadConflictCount, setUploadConflictCount] = useState(0);
+  
+  // Step 1: Business Identity - NO default industry until user selects
   const [businessIdentity, setBusinessIdentity] = useState<BusinessIdentity>({
     businessName: "",
     tagline: "",
-    industry: "detailing",
+    industry: "other", // Start with "other" so we don't load wrong template
     customIndustry: "",
     phoneNumber: "",
     websiteUrl: "",
@@ -61,7 +70,7 @@ export default function OnboardingPage() {
     timezone: "America/New_York",
   });
   
-  // Step 2: Services
+  // Step 2: Services - empty until industry is selected
   const [services, setServices] = useState<AdvancedService[]>([]);
   
   // Step 3: Booking Policies
@@ -104,11 +113,20 @@ export default function OnboardingPage() {
     }
   }, [authLoading, tenant, navigate]);
 
-  // Initialize data when industry changes
+  // Initialize data when industry changes - uses template resolver
   useEffect(() => {
-    const config = industryConfigs[businessIdentity.industry];
+    const currentIndustry = businessIdentity.industry;
     
-    // Update services
+    // Skip if we've already initialized this industry (prevents re-loading on every change)
+    if (initializedIndustryRef.current === currentIndustry) {
+      return;
+    }
+    
+    // Use the template resolver to get the correct config
+    const config = resolveIndustryTemplate(currentIndustry);
+    console.log(`[Onboarding] Loading template for industry: ${currentIndustry}`, config.label);
+    
+    // Update services from the resolved template
     setServices(config.services.map(s => ({
       ...s,
       description: s.description || "",
@@ -140,6 +158,12 @@ export default function OnboardingPage() {
       paymentMethods: ["cash", "card"],
       aiNeverPromise: [],
     });
+    
+    // Mark this industry as initialized
+    initializedIndustryRef.current = currentIndustry;
+    
+    // Reset conflict count when industry changes
+    setUploadConflictCount(0);
   }, [businessIdentity.industry]);
 
   // Validation
@@ -497,7 +521,33 @@ export default function OnboardingPage() {
             {/* Step 2: Services */}
             {step === 2 && (
               <>
+                {/* Industry template indicator */}
+                <div className="text-sm text-muted-foreground mb-2">
+                  Template: <span className="font-medium text-foreground">{resolveIndustryTemplate(businessIdentity.industry).label}</span>
+                  <span className="ml-2 text-xs">(all fields are editable)</span>
+                </div>
+                
+                {/* Conflict banner if upload found differences */}
+                <ServiceConflictBanner 
+                  conflictCount={uploadConflictCount}
+                  onReviewClick={() => {
+                    toast({
+                      title: "Review after onboarding",
+                      description: "Complete setup first, then review conflicts in Business Brain.",
+                    });
+                  }}
+                />
+                
                 <ServiceEditorAdvanced services={services} onChange={setServices} />
+                
+                {/* Upload option */}
+                <div className="border-t pt-4 mt-4">
+                  <ServiceUploader 
+                    compact
+                    onConflictsFound={(count) => setUploadConflictCount(prev => prev + count)}
+                  />
+                </div>
+                
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setStep(1)}>
                     <ArrowLeft className="mr-2 h-4 w-4" />
@@ -622,7 +672,7 @@ export default function OnboardingPage() {
                       icon={Building2}
                       title="Business"
                       value={businessIdentity.businessName}
-                      subtitle={industryConfigs[businessIdentity.industry].label}
+                      subtitle={resolveIndustryTemplate(businessIdentity.industry).label}
                       onEdit={() => goToStep(1)}
                     />
                     <ReviewSection
