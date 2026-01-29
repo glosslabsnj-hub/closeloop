@@ -193,6 +193,27 @@ serve(async (req) => {
       })
       .eq("id", order_id);
 
+    // Trigger workflow if any active workflow matches this event
+    const eventType = order.status === "confirmed" ? "order.confirmed" : "order.created";
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/trigger-workflow`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({
+          tenant_id,
+          trigger: eventType,
+          entity_type: "order",
+          entity_id: order_id,
+        }),
+      });
+      console.log(`Triggered workflow for ${eventType}:`, order_id);
+    } catch (e) {
+      console.error("Failed to trigger workflow:", e);
+    }
+
     return new Response(JSON.stringify({ status: "success", results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

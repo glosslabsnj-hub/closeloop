@@ -326,6 +326,27 @@ async function processCallData(
     console.error("Failed to record call.ended audit event:", e);
   }
 
+  // ===== TRIGGER CALL.ENDED WORKFLOW =====
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/trigger-workflow`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({
+        tenant_id: tenantId,
+        trigger: "call.ended",
+        entity_type: "call",
+        entity_id: sessionId,
+        location_id: locationId,
+      }),
+    });
+    console.log("Triggered call.ended workflow for session:", sessionId);
+  } catch (e) {
+    console.error("Failed to trigger call.ended workflow:", e);
+  }
+
   // ===== RECORD POST-CALL OBSERVATIONS (CONFIDENCE GATED) =====
   if (memoryEnabled && outcome !== "lost") {
     const observations: Array<{

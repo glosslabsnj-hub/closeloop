@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, GitBranch, Play, Pause, Settings, History, Trash2, Calendar, UtensilsCrossed, Truck, PhoneCall, Lock, ArrowRight } from "lucide-react";
+import { Plus, GitBranch, Play, Pause, Settings, History, Trash2, Calendar, UtensilsCrossed, Truck, PhoneCall, Lock, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,11 +23,19 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useWorkflows, useWorkflowMutations } from "@/hooks/useWorkflows";
+import { useWorkflows, useWorkflowMutations, useWorkflowNodeMutations } from "@/hooks/useWorkflows";
 import { useWorkflowStats } from "@/hooks/useWorkflowRuns";
-import { TRIGGER_METADATA, type WorkflowTrigger, type Workflow } from "@/types/workflow";
+import { TRIGGER_METADATA, NODE_TYPE_METADATA, type WorkflowTrigger, type Workflow, type WorkflowNodeType } from "@/types/workflow";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig, type BusinessMode } from "@/hooks/useTenantConfig";
+import { supabase } from "@/integrations/supabase/client";
+
+// Pre-configured node for workflow templates
+interface TemplateNode {
+  node_type: WorkflowNodeType;
+  name: string;
+  config: Record<string, unknown>;
+}
 
 // Workflow templates by business mode
 interface WorkflowTemplate {
@@ -37,6 +45,7 @@ interface WorkflowTemplate {
   trigger: WorkflowTrigger;
   icon: React.ElementType;
   steps: string[];
+  nodes: TemplateNode[]; // Pre-configured nodes to create
 }
 
 const WORKFLOW_TEMPLATES: Record<BusinessMode, WorkflowTemplate[]> = {
@@ -47,7 +56,31 @@ const WORKFLOW_TEMPLATES: Record<BusinessMode, WorkflowTemplate[]> = {
       description: "Notify customer and update CRM when a booking is confirmed",
       trigger: "booking.confirmed",
       icon: Calendar,
-      steps: ["Notify customer via SMS", "Update CRM record", "Send calendar invite"],
+      steps: ["Notify customer via SMS", "Update CRM record"],
+      nodes: [
+        {
+          node_type: "notify_sms",
+          name: "Send SMS Confirmation",
+          config: {
+            to: "{{customer_phone}}",
+            message: "Hi {{customer_name}}! Your appointment for {{service_name}} on {{start_date}} is confirmed. See you soon!",
+          },
+        },
+        {
+          node_type: "webhook_push",
+          name: "Update CRM",
+          config: {
+            url: "",
+            method: "POST",
+            body_template: {
+              event: "booking.confirmed",
+              customer_name: "{{customer_name}}",
+              service: "{{service_name}}",
+              date: "{{start_date}}",
+            },
+          },
+        },
+      ],
     },
     {
       id: "service-call-ended",
@@ -55,17 +88,51 @@ const WORKFLOW_TEMPLATES: Record<BusinessMode, WorkflowTemplate[]> = {
       description: "Summarize call and push to CRM",
       trigger: "call.ended",
       icon: PhoneCall,
-      steps: ["Generate AI summary", "Push to CRM", "Tag lead"],
+      steps: ["Push call summary to CRM"],
+      nodes: [
+        {
+          node_type: "webhook_push",
+          name: "Push to CRM",
+          config: {
+            url: "",
+            method: "POST",
+            body_template: {
+              event: "call.ended",
+              customer_name: "{{customer_name}}",
+              summary: "{{summary}}",
+              outcome: "{{outcome}}",
+            },
+          },
+        },
+      ],
     },
   ],
   food: [
     {
       id: "food-order-confirmed",
       name: "Order Confirmed",
-      description: "Print ticket, notify kitchen, and SMS customer",
+      description: "Print ticket and SMS customer when order is confirmed",
       trigger: "order.confirmed",
       icon: UtensilsCrossed,
-      steps: ["Print kitchen ticket", "Notify kitchen display", "SMS customer with ETA"],
+      steps: ["Print kitchen ticket", "SMS customer with ETA"],
+      nodes: [
+        {
+          node_type: "print_ticket",
+          name: "Print Kitchen Ticket",
+          config: {
+            format: "thermal",
+            copies: 1,
+          },
+        },
+        {
+          node_type: "notify_sms",
+          name: "SMS Customer",
+          config: {
+            to: "{{customer_phone}}",
+            message: "Hi {{customer_name}}! Your order #{{order_number}} is confirmed. {{#if requested_time}}Ready by {{requested_time}}.{{else}}We'll have it ready shortly!{{/if}}",
+          },
+        },
+      ],
     },
     {
       id: "food-order-ready",
@@ -73,25 +140,70 @@ const WORKFLOW_TEMPLATES: Record<BusinessMode, WorkflowTemplate[]> = {
       description: "Alert customer when order is ready for pickup",
       trigger: "order.ready",
       icon: UtensilsCrossed,
-      steps: ["SMS customer", "Update order status"],
+      steps: ["SMS customer"],
+      nodes: [
+        {
+          node_type: "notify_sms",
+          name: "Notify Customer Ready",
+          config: {
+            to: "{{customer_phone}}",
+            message: "Great news {{customer_name}}! Your order #{{order_number}} is ready for pickup!",
+          },
+        },
+      ],
     },
   ],
   dispatch: [
     {
       id: "dispatch-job-created",
       name: "Dispatch Created",
-      description: "Notify driver and send follow-up SMS",
+      description: "Notify team and send follow-up SMS to customer",
       trigger: "dispatch.created",
       icon: Truck,
-      steps: ["Notify assigned driver", "SMS customer with ETA", "Update dispatch board"],
+      steps: ["SMS customer with ETA", "Notify team via webhook"],
+      nodes: [
+        {
+          node_type: "notify_sms",
+          name: "SMS Customer",
+          config: {
+            to: "{{customer_phone}}",
+            message: "Hi {{customer_name}}! Your {{job_type}} request #{{job_number}} has been received. A driver will be dispatched shortly.",
+          },
+        },
+        {
+          node_type: "webhook_push",
+          name: "Notify Dispatch Team",
+          config: {
+            url: "",
+            method: "POST",
+            body_template: {
+              event: "dispatch.created",
+              job_number: "{{job_number}}",
+              job_type: "{{job_type}}",
+              priority: "{{priority}}",
+              pickup: "{{pickup_address}}",
+            },
+          },
+        },
+      ],
     },
     {
       id: "dispatch-job-completed",
       name: "Job Completed",
-      description: "Send feedback request and update records",
+      description: "Send feedback request to customer",
       trigger: "dispatch.completed",
       icon: Truck,
-      steps: ["Request customer feedback", "Update CRM", "Close job record"],
+      steps: ["Request customer feedback"],
+      nodes: [
+        {
+          node_type: "notify_sms",
+          name: "Request Feedback",
+          config: {
+            to: "{{customer_phone}}",
+            message: "Thank you for using {{business_name}}! How was your experience with job #{{job_number}}? Reply with 1-5 stars.",
+          },
+        },
+      ],
     },
   ],
   medical: [
@@ -101,33 +213,84 @@ const WORKFLOW_TEMPLATES: Record<BusinessMode, WorkflowTemplate[]> = {
       description: "Route intake form and notify staff (HIPAA compliant)",
       trigger: "intake.created",
       icon: Calendar,
-      steps: ["Route to provider", "Update patient record", "Notify front desk"],
+      steps: ["Notify front desk via webhook"],
+      nodes: [
+        {
+          node_type: "webhook_push",
+          name: "Notify Front Desk",
+          config: {
+            url: "",
+            method: "POST",
+            body_template: {
+              event: "intake.created",
+              urgency: "{{urgency_level}}",
+              preferred_date: "{{preferred_date}}",
+            },
+          },
+        },
+      ],
     },
     {
       id: "medical-booking-confirmed",
       name: "Appointment Confirmed",
-      description: "Send confirmation and pre-visit instructions",
+      description: "Send confirmation SMS with pre-visit instructions",
       trigger: "booking.confirmed",
       icon: Calendar,
-      steps: ["Confirm via SMS", "Send pre-visit forms", "Update schedule"],
+      steps: ["Send confirmation SMS"],
+      nodes: [
+        {
+          node_type: "notify_sms",
+          name: "Confirm Appointment",
+          config: {
+            to: "{{customer_phone}}",
+            message: "Your appointment on {{start_date}} is confirmed. Please arrive 15 minutes early with your ID and insurance card.",
+          },
+        },
+      ],
     },
   ],
   general: [
     {
       id: "general-call-ended",
       name: "Call Summary",
-      description: "Generate summary and push to CRM after calls",
+      description: "Push call summary to webhook after calls",
       trigger: "call.ended",
       icon: PhoneCall,
-      steps: ["Generate AI summary", "Push to CRM", "Create follow-up task"],
+      steps: ["Push to CRM"],
+      nodes: [
+        {
+          node_type: "webhook_push",
+          name: "Push Call Summary",
+          config: {
+            url: "",
+            method: "POST",
+            body_template: {
+              event: "call.ended",
+              caller: "{{caller_phone}}",
+              summary: "{{summary}}",
+              outcome: "{{outcome}}",
+            },
+          },
+        },
+      ],
     },
     {
-      id: "general-sms-received",
-      name: "Inbound Message",
-      description: "Process inbound SMS and route appropriately",
-      trigger: "sms.received",
+      id: "general-missed-call",
+      name: "Missed Call Follow-up",
+      description: "Automatically text when a call is missed",
+      trigger: "missed_call",
       icon: PhoneCall,
-      steps: ["Analyze intent", "Auto-reply or escalate", "Log interaction"],
+      steps: ["Send follow-up SMS"],
+      nodes: [
+        {
+          node_type: "notify_sms",
+          name: "Send Callback Text",
+          config: {
+            to: "{{caller_phone}}",
+            message: "Sorry we missed your call! We'll get back to you shortly, or you can leave a message here.",
+          },
+        },
+      ],
     },
   ],
 };
@@ -140,7 +303,24 @@ const UNIVERSAL_TEMPLATES: WorkflowTemplate[] = [
     description: "Push call summaries to your CRM after every call",
     trigger: "call.ended",
     icon: PhoneCall,
-    steps: ["Generate AI summary", "Push to CRM", "Update lead status"],
+    steps: ["Push call summary to CRM"],
+    nodes: [
+      {
+        node_type: "webhook_push",
+        name: "Push to CRM",
+        config: {
+          url: "",
+          method: "POST",
+          body_template: {
+            event: "call.ended",
+            caller: "{{caller_phone}}",
+            customer: "{{customer_name}}",
+            summary: "{{summary}}",
+            outcome: "{{outcome}}",
+          },
+        },
+      },
+    ],
   },
 ];
 
@@ -200,12 +380,38 @@ export default function WorkflowsPage() {
     navigate(`/app/workflows/${workflow.id}`);
   };
 
+  const [creatingFromTemplate, setCreatingFromTemplate] = useState(false);
+  
   const handleCreateFromTemplate = async (template: WorkflowTemplate) => {
-    const workflow = await createWorkflow.mutateAsync({
-      name: template.name,
-      trigger: template.trigger,
-    });
-    navigate(`/app/workflows/${workflow.id}`);
+    setCreatingFromTemplate(true);
+    try {
+      // Create the workflow first
+      const workflow = await createWorkflow.mutateAsync({
+        name: template.name,
+        trigger: template.trigger,
+      });
+      
+      // Add pre-configured nodes from the template
+      if (template.nodes && template.nodes.length > 0) {
+        for (const nodeConfig of template.nodes) {
+          await supabase
+            .from("workflow_nodes")
+            .insert({
+              workflow_id: workflow.id,
+              node_type: nodeConfig.node_type,
+              name: nodeConfig.name,
+              config: nodeConfig.config as any,
+              position: { x: 0, y: 0 },
+            });
+        }
+      }
+      
+      navigate(`/app/workflows/${workflow.id}`);
+    } catch (error) {
+      console.error("Failed to create workflow from template:", error);
+    } finally {
+      setCreatingFromTemplate(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
