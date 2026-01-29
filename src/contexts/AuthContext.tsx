@@ -107,8 +107,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Use setTimeout to defer data fetching
-          setTimeout(() => fetchTenantData(session.user.id), 0);
+          // Wait for tenant data before marking as loaded
+          await fetchTenantData(session.user.id);
         } else {
           setTenant(null);
           setTenantUser(null);
@@ -123,12 +123,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        fetchTenantData(session.user.id);
+        await fetchTenantData(session.user.id);
       }
 
       setLoading(false);
