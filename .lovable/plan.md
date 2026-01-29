@@ -1,137 +1,297 @@
 
-# Theme Color Change Plan
-## Switching to Indigo/Purple Palette
+# Dashboard Layout Reconfiguration Plan
+## Making the Dashboard More User-Friendly, Scannable & Premium
 
 ---
 
-## Overview
+## Current State Analysis
 
-This plan updates the entire application's color theme from teal to a modern **Indigo/Purple** palette while preserving all functionality, layouts, and features. This is a CSS-only change affecting the design system variables.
+The dashboard currently has these components stacked vertically:
+1. **KnowledgeConflictBanner** - Alert for unresolved conflicts
+2. **UsageThresholdBanner** - Warning when approaching limits
+3. **GoLiveChecklist** - Setup steps (when not live)
+4. **AgentControlCard** - Voice/SMS agent toggle
+5. **DashboardByMode** - Mode-specific stats grid (4 cards)
+6. **BusinessBrainStatusCard + QuickStatsCard** - 2-column grid
+7. **RecentActivityCard + QuickLinksCard** - 2-column grid
+8. **Copilot** - Floating assistant
 
----
-
-## New Color Palette
-
-### Primary Colors (Indigo)
-- **Primary**: `245 75% 60%` - Vibrant indigo (#6366F1)
-- **Primary Foreground**: `0 0% 100%` - White text
-
-### Accent Colors (Purple tint)
-- **Accent**: `245 60% 97%` - Very light indigo wash
-- **Accent Foreground**: `245 75% 45%` - Darker indigo for text
-
-### Ring/Focus
-- **Ring**: `245 75% 60%` - Matches primary for consistency
-
-### Sidebar (Dark Theme with Indigo)
-- **Sidebar Background**: `245 47% 11%` - Dark indigo-tinted gray
-- **Sidebar Primary**: `245 75% 65%` - Brighter indigo for dark bg
-- **Sidebar Accent**: `245 47% 16%` - Subtle hover states
-- **Sidebar Ring**: `245 75% 65%`
-
-### Dark Mode (Indigo-based)
-- **Primary**: `245 70% 65%` - Slightly brighter for dark mode
-- **Accent**: `245 50% 15%` - Dark indigo tint
-- **Accent Foreground**: `245 70% 75%` - Light indigo text
+### Current Issues:
+- Too much vertical scrolling required
+- Information hierarchy isn't immediately clear
+- Agent control and key stats are separated
+- Quick stats uses placeholder data (not real)
+- Visual density makes it hard to scan quickly
+- No clear "hero" section to ground the user
 
 ---
 
-## File Changes
+## New Layout Strategy
 
-### File: `src/index.css`
+### Key Principles:
+1. **Hero Zone First** - Big, clear agent status with key metric at top
+2. **Reduce Scroll Depth** - Consolidate related information
+3. **Clear Visual Hierarchy** - Primary → Secondary → Tertiary zones
+4. **Mobile-First** - Single column that flows naturally on mobile
+5. **Scan in 2 Seconds** - User should understand status at a glance
 
-Update CSS custom properties in `:root` and `.dark`:
+---
 
-**Light Mode Changes:**
-```css
-:root {
-  /* Primary - Modern Indigo */
-  --primary: 245 75% 60%;
-  --primary-foreground: 0 0% 100%;
+## New Dashboard Structure
 
-  /* Accent - subtle indigo tint */
-  --accent: 245 60% 97%;
-  --accent-foreground: 245 75% 45%;
+```text
+┌─────────────────────────────────────────────────────────────┐
+│  BANNERS (only when needed)                                 │
+│  • Knowledge Conflict Banner                                │
+│  • Usage Threshold Banner                                   │
+└─────────────────────────────────────────────────────────────┘
 
-  /* Ring matches primary */
-  --ring: 245 75% 60%;
+┌─────────────────────────────────────────────────────────────┐
+│  HERO CARD                                                  │
+│  ┌─────────────────────────────────────────────────────────┐│
+│  │  [Icon] AI Agent Status           [LIVE / PAUSED badge] ││
+│  │  "Answering calls 24/7"                    [Toggle]     ││
+│  ├─────────────────────────────────────────────────────────┤│
+│  │  📞 12 Calls  │  📅 5 Bookings  │  💰 $2.4k  │  🧠 85%  ││
+│  │  Today        │  This Week      │  Recovered │  Ready   ││
+│  └─────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────┘
 
-  /* Sidebar - dark indigo theme */
-  --sidebar-background: 245 47% 11%;
-  --sidebar-foreground: 240 14% 96%;
-  --sidebar-primary: 245 75% 65%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 245 47% 16%;
-  --sidebar-accent-foreground: 240 14% 96%;
-  --sidebar-border: 245 47% 18%;
-  --sidebar-ring: 245 75% 65%;
-}
-```
+┌────────────────────────────┐ ┌────────────────────────────┐
+│  TODAY'S QUEUE             │ │  QUICK ACTIONS             │
+│  Mode-specific pending     │ │  Primary navigation tiles  │
+│  items with counts         │ │  based on business mode    │
+│  (compact stat cards)      │ │                            │
+└────────────────────────────┘ └────────────────────────────┘
 
-**Dark Mode Changes:**
-```css
-.dark {
-  --primary: 245 70% 65%;
-  --primary-foreground: 0 0% 100%;
+┌─────────────────────────────────────────────────────────────┐
+│  RECENT ACTIVITY (Full Width)                               │
+│  Last 4-5 interactions with clear status indicators        │
+│  [View All →]                                               │
+└─────────────────────────────────────────────────────────────┘
 
-  --accent: 245 50% 15%;
-  --accent-foreground: 245 70% 75%;
+┌────────────────────────────┐ ┌────────────────────────────┐
+│  BUSINESS BRAIN STATUS     │ │  SETUP PROGRESS            │
+│  Readiness score + alerts  │ │  (or Go Live Checklist)    │
+│  [Review →]                │ │  [Continue →]              │
+└────────────────────────────┘ └────────────────────────────┘
 
-  --ring: 245 70% 65%;
-
-  --sidebar-background: 245 47% 4%;
-  --sidebar-primary: 245 70% 65%;
-  --sidebar-accent: 245 47% 10%;
-  --sidebar-border: 245 47% 12%;
-  --sidebar-ring: 245 70% 65%;
-}
-```
-
-**Gradient Utility Update:**
-```css
-.gradient-hero {
-  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(245 75% 50%) 100%);
-}
+┌─────────────────────────────────────────────────────────────┐
+│  COPILOT (Floating FAB)                                     │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## What Changes Visually
+## Detailed Component Changes
 
-| Element | Before (Teal) | After (Indigo) |
-|---------|---------------|----------------|
-| Primary buttons | Teal (#14B8A6) | Indigo (#6366F1) |
-| Focus rings | Teal glow | Indigo glow |
-| Active nav items | Teal highlight | Indigo highlight |
-| Links/CTAs | Teal accents | Indigo accents |
-| Hero gradients | Teal gradient | Indigo gradient |
-| Sidebar accents | Teal highlights | Indigo highlights |
-| Badges (primary) | Teal background | Indigo background |
-| Progress bars | Teal fill | Indigo fill |
+### 1. New Hero Card Component
+
+**New File: `src/components/dashboard/DashboardHeroCard.tsx`**
+
+Combines AgentControlCard and QuickStatsCard into one prominent card:
+
+**Structure:**
+```
+┌──────────────────────────────────────────────────────────────┐
+│ Top Section (Agent Status)                                   │
+│ ┌────────────────────────────────────────────────────────┐   │
+│ │ [Icon] AI Agent    [LIVE badge]            [Toggle]    │   │
+│ │ "Answering calls for {business_name}"                  │   │
+│ │ [Test AI] [Configure]                                  │   │
+│ └────────────────────────────────────────────────────────┘   │
+├──────────────────────────────────────────────────────────────┤
+│ Bottom Section (Key Metrics Strip)                           │
+│ ┌────────────┬────────────┬────────────┬─────────────────┐   │
+│ │ 📞 Calls   │ 📅 Booked  │ 💰 Revenue │ 🧠 AI Ready     │   │
+│ │ 12 today   │ 5 this wk  │ $2.4k      │ 85%             │   │
+│ └────────────┴────────────┴────────────┴─────────────────┘   │
+└──────────────────────────────────────────────────────────────┘
+```
+
+**Features:**
+- Gradient background when active (shows "alive" state)
+- Animated ping indicator when live
+- Inline mini-stats strip at bottom
+- Copy phone number button in subtitle
+- Real data from database (replace hardcoded values)
+
+### 2. Simplified "Today's Queue" Section
+
+**Modify: `src/components/dashboard/DashboardByMode.tsx`**
+
+Change from 4 stat cards to a compact horizontal strip:
+
+**Before:** 4 separate clickable cards in a grid
+**After:** Single card with inline stats and pending/urgent badges
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│ 📋 Today's Queue                          [View All →]       │
+├──────────────────────────────────────────────────────────────┤
+│ ⏳ 3 Pending    │  🔴 1 Urgent    │  ✅ 8 Completed          │
+│ [Click to view pending]                                      │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- Compact single row
+- Click anywhere to navigate to relevant page
+- Urgent items highlighted with red badge
+- Mode-aware content (orders for food, jobs for dispatch, etc.)
+
+### 3. Enhanced Quick Actions Grid
+
+**Modify: `src/components/dashboard/QuickLinksCard.tsx`**
+
+Make it more prominent with larger touch targets:
+
+- 2x2 grid of action tiles
+- Each tile: Icon + Label + Description
+- Subtle hover lift effect
+- Mode-aware actions shown first
+
+### 4. Streamlined Recent Activity
+
+**Modify: `src/components/dashboard/RecentActivityCard.tsx`**
+
+Make it full-width with better visual hierarchy:
+
+- Remove hardcoded demo data, use real database queries
+- Show last 5 items (not 4)
+- Better status indicators (colored dots, not just icons)
+- Time displayed as relative ("2m ago")
+- Click entire row to open detail
+
+### 5. Compact GoLiveChecklist / Setup Card
+
+**Modify: `src/components/dashboard/GoLiveChecklist.tsx`**
+
+When not live, show as a secondary card (not prominent):
+
+- Smaller, fits in 2-column layout
+- Shows progress as ring/circle instead of progress bar
+- Just 2-3 most important incomplete items visible
+- "Continue Setup" button
+
+### 6. LiveDashboard Layout Update
+
+**Modify: `src/components/dashboard/LiveDashboard.tsx`**
+
+New structure:
+```tsx
+<div className="space-y-6 max-w-5xl mx-auto">
+  {/* Critical Banners - Stacked at top */}
+  <KnowledgeConflictBanner />
+  <UsageThresholdBanner />
+
+  {/* HERO: Agent + Key Stats (full width) */}
+  <DashboardHeroCard />
+
+  {/* Two Column: Queue + Quick Actions */}
+  <div className="grid md:grid-cols-2 gap-6">
+    <TodayQueueCard />  {/* Mode-specific queue */}
+    <QuickActionsCard /> {/* Quick links */}
+  </div>
+
+  {/* Full Width: Recent Activity */}
+  <RecentActivityCard />
+
+  {/* Two Column: Brain Status + Setup/Checklist */}
+  <div className="grid md:grid-cols-2 gap-6">
+    <BusinessBrainStatusCard />
+    {!isLive && <GoLiveChecklist />}
+    {isLive && <SetupCompleteBadge />}
+  </div>
+
+  {/* Copilot FAB */}
+  <CopilotTrigger />
+</div>
+```
+
+---
+
+## Visual Improvements
+
+### Hero Card Styling
+- Active state: `bg-gradient-to-br from-primary/5 via-transparent to-primary/10`
+- Border: `border-primary/30` when active
+- Shadow: `shadow-lg shadow-primary/5` when active
+- Paused state: Standard card with muted colors
+
+### Metrics Strip
+- Background: `bg-muted/50` subtle panel
+- Dividers: Subtle vertical lines between metrics
+- Icons: Small (h-4 w-4) in muted color
+- Values: Bold, slightly larger
+
+### Status Badges
+- LIVE: Solid primary with pulse animation
+- PAUSED: Secondary/outline variant
+- URGENT: Destructive with count
+
+---
+
+## Data Fetching Updates
+
+### QuickStatsCard → Real Data
+Currently uses hardcoded values. Update to fetch:
+- Calls today: `ai_call_sessions` where `started_at` is today
+- Bookings this week: `bookings` where `created_at` is this week
+- Revenue: Sum of `bookings.deposit_amount` this week
+- AI Readiness: From `useBusinessContext` hook
+
+### RecentActivityCard → Real Data
+Currently uses hardcoded array. Update to fetch:
+- Last 5 records combining calls, bookings, orders
+- Order by timestamp descending
+- Show real customer names/phones
+
+---
+
+## File Changes Summary
+
+### New Files
+1. `src/components/dashboard/DashboardHeroCard.tsx` - Combined agent control + stats
+
+### Modified Files
+2. `src/components/dashboard/LiveDashboard.tsx` - New layout structure
+3. `src/components/dashboard/QuickStatsCard.tsx` - Real data fetching, inline layout
+4. `src/components/dashboard/RecentActivityCard.tsx` - Real data, full width styling
+5. `src/components/dashboard/QuickLinksCard.tsx` - Larger tiles, better styling
+6. `src/components/dashboard/DashboardByMode.tsx` - Compact queue view
+7. `src/components/dashboard/GoLiveChecklist.tsx` - Compact variant when secondary
+
+---
+
+## Mobile Layout
+
+On mobile (< md breakpoint):
+- All sections stack vertically
+- Hero card: Metrics wrap to 2x2 grid
+- Queue + Quick Actions: Stack vertically
+- Touch targets: Minimum 44px height
 
 ---
 
 ## What Stays the Same
 
-- All background colors (white/gray neutrals)
-- All text colors (dark grays)
-- All border colors (light grays)
-- Success color (green)
-- Warning color (orange)
-- Destructive color (red)
-- All layouts, spacing, typography
-- All features and functionality
-- All animations and transitions
-- Border radius and shadows
-
----
-
-## Files Modified
-
-1. **`src/index.css`** - Update CSS custom properties for primary, accent, ring, and sidebar colors in both light and dark modes
+- All existing functionality
+- All navigation destinations
+- All data sources and backend logic
+- Copilot behavior and content
+- Banner trigger logic
+- Agent toggle behavior
+- Setup wizard (when shown instead of LiveDashboard)
 
 ---
 
 ## Result
 
-The application will have a modern, trustworthy Indigo/Purple aesthetic similar to Linear, Stripe, and Notion - conveying professionalism and innovation while maintaining excellent readability and accessibility.
+After implementation:
+- **2-second scan** to understand agent status and key metrics
+- **Reduced scroll** by consolidating related info
+- **Clear hierarchy** with hero card as focal point
+- **Mobile-friendly** single-column flow
+- **Premium feel** with subtle gradients and shadows
+- **Real data** replacing placeholder values
+
