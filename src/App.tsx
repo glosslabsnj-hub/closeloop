@@ -58,6 +58,7 @@ import AdminSetupRequestsPage from "@/pages/admin/AdminSetupRequestsPage";
 // Debug Pages
 import TelephonyDebugPage from "@/pages/debug/TelephonyDebugPage";
 import AIContextInspectorPage from "@/pages/debug/AIContextInspectorPage";
+import AvailabilityDebugPage from "@/pages/debug/AvailabilityDebugPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -127,6 +128,7 @@ const App = () => (
             {/* Debug Routes (dev/admin only) */}
             <Route path="/debug/telephony" element={<TelephonyDebugPage />} />
             <Route path="/debug/ai-context" element={<AIContextInspectorPage />} />
+            <Route path="/debug/availability" element={<AvailabilityDebugPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
