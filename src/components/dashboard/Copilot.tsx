@@ -83,7 +83,7 @@ function generateResponse(query: string, ctx: CopilotContext): Message {
           : "Review your business info is correct",
         "Save and run a test call to verify"
       ],
-      links: [{ label: "Open Business Brain", path: "/app/brain" }],
+      links: [{ label: "Open Business Brain", path: "/app/business-brain" }],
       nextActions: ["Run a test call", "What else is missing?"],
     };
   }
@@ -182,7 +182,7 @@ function generateResponse(query: string, ctx: CopilotContext): Message {
         "Add items with name, price, category, and dietary tags",
         "Items marked unavailable won't be offered by the AI"
       ],
-      links: [{ label: "Open Menu Center", path: "/app/menu" }],
+      links: [{ label: "Open Menu Center", path: "/app/menu-center" }],
       nextActions: ["How do orders work?", "Configure order delivery"],
     };
   }
@@ -197,7 +197,7 @@ function generateResponse(query: string, ctx: CopilotContext): Message {
       if (ctx.setup.missing_critical_fields.length > 0) {
         steps.push(`Missing: ${ctx.setup.missing_critical_fields.slice(0, 3).join(", ")}`);
       }
-      links.push({ label: "Open Business Brain", path: "/app/brain" });
+      links.push({ label: "Open Business Brain", path: "/app/business-brain" });
     }
     
     if (!ctx.phone.is_connected) {
@@ -242,7 +242,7 @@ function generateResponse(query: string, ctx: CopilotContext): Message {
       steps: ctx.setup.missing_critical_fields.length > 0
         ? ctx.setup.missing_critical_fields.map((f, i) => `${i + 1}. Add: ${f}`)
         : ["Your setup looks complete!", "Run a test call to verify"],
-      links: [{ label: "Open Business Brain", path: "/app/brain" }],
+      links: [{ label: "Open Business Brain", path: "/app/business-brain" }],
       nextActions: ["Run a test call", "How does my mode work?"],
     };
   }
@@ -261,7 +261,7 @@ function generateResponse(query: string, ctx: CopilotContext): Message {
         ],
         links: [
           { label: "View Orders", path: "/app/orders" },
-          { label: "Menu Center", path: "/app/menu" },
+          { label: "Menu Center", path: "/app/menu-center" },
         ],
         nextActions: ["Configure order delivery", "Edit my menu"],
       };
