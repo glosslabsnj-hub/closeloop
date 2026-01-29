@@ -32,6 +32,7 @@ import {
   Clock,
   Cake,
   Stethoscope,
+  HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useMemo } from "react";
@@ -61,6 +62,7 @@ const allNavItems: NavItem[] = [
   { href: "/app/business-brain", label: "Business Brain", icon: Bot },
   { href: "/app/automations", label: "Automations", icon: Zap },
   { href: "/app/simulator", label: "Simulator", icon: FlaskConical },
+  { href: "/app/help", label: "Help Center", icon: HelpCircle },
   { href: "/app/settings", label: "Settings", icon: Settings },
 ];
 

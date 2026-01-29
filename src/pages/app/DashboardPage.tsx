@@ -1,14 +1,9 @@
-import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SetupWizard } from "@/components/dashboard/SetupWizard";
 import { LiveDashboard } from "@/components/dashboard/LiveDashboard";
-import { HowToGuide } from "@/components/dashboard/HowToGuide";
-import { LayoutDashboard, BookOpen } from "lucide-react";
 
 export default function DashboardPage() {
   const { tenant, subscription, assistantSettings, refreshTenant } = useAuth();
-  const [activeTab, setActiveTab] = useState<string>("dashboard");
 
   // Determine if setup is complete
   // Setup is complete when: go_live_enabled = true OR setup_completed_at is set
@@ -38,44 +33,18 @@ export default function DashboardPage() {
 
   return (
     <div className="p-4 md:p-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold">
-              {activeTab === "dashboard" ? "Dashboard" : "How To Guides"}
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              {activeTab === "dashboard" 
-                ? (setupComplete ? "Your AI agent overview" : "Complete setup to get started")
-                : "Step-by-step instructions to set up your AI"
-              }
-            </p>
-          </div>
-          
-          <TabsList className="grid grid-cols-2 w-full sm:w-auto">
-            <TabsTrigger value="dashboard" className="gap-2">
-              <LayoutDashboard className="h-4 w-4" />
-              <span className="hidden sm:inline">Dashboard</span>
-            </TabsTrigger>
-            <TabsTrigger value="howto" className="gap-2">
-              <BookOpen className="h-4 w-4" />
-              <span className="hidden sm:inline">How To</span>
-            </TabsTrigger>
-          </TabsList>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <p className="text-muted-foreground text-sm">
+          {setupComplete ? "Your AI agent overview" : "Complete setup to get started"}
+        </p>
+      </div>
 
-        <TabsContent value="dashboard" className="mt-0">
-          {setupComplete ? (
-            <LiveDashboard />
-          ) : (
-            <SetupWizard onSetupComplete={refreshTenant} />
-          )}
-        </TabsContent>
-
-        <TabsContent value="howto" className="mt-0">
-          <HowToGuide />
-        </TabsContent>
-      </Tabs>
+      {setupComplete ? (
+        <LiveDashboard />
+      ) : (
+        <SetupWizard onSetupComplete={refreshTenant} />
+      )}
     </div>
   );
 }
