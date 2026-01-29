@@ -55,7 +55,7 @@ import AdminGoldenPathPage from "@/pages/admin/AdminGoldenPathPage";
 
 // Debug Pages
 import TelephonyDebugPage from "@/pages/debug/TelephonyDebugPage";
-
+import AIContextInspectorPage from "@/pages/debug/AIContextInspectorPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -121,7 +121,7 @@ const App = () => (
 
             {/* Debug Routes (dev/admin only) */}
             <Route path="/debug/telephony" element={<TelephonyDebugPage />} />
-
+            <Route path="/debug/ai-context" element={<AIContextInspectorPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

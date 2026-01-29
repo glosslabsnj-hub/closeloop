@@ -1,10 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buildBusinessContext, storeContextSnapshot } from "../_shared/buildBusinessContext.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
@@ -27,25 +27,22 @@ serve(async (req) => {
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get business context with intelligence layers
-    const contextResponse = await fetch(`${supabaseUrl}/functions/v1/get-business-context`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${supabaseKey}`,
-      },
-      body: JSON.stringify({ 
-        tenantId, 
-        locationId,
-        includeIntelligence: true 
-      }),
+    // Generate session ID for tracking
+    const sessionId = `sms_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // ===== BUILD CANONICAL BUSINESS CONTEXT =====
+    const { context, systemPrompt } = await buildBusinessContext(supabase, {
+      tenantId,
+      locationId: locationId || null,
+      customerId: null,
+      channel: "sms",
+      sessionId,
+      callerPhone: customerPhone,
+      includeIntelligence: true,
     });
 
-    if (!contextResponse.ok) {
-      throw new Error("Failed to fetch business context");
-    }
-
-    const { context, systemPrompt } = await contextResponse.json();
+    // Store context snapshot for debugging
+    await storeContextSnapshot(supabase, context);
 
     // Build SMS-specific prompt with intelligence layers
     let smsPrompt = systemPrompt + `
@@ -57,35 +54,7 @@ SMS CONVERSATION GUIDELINES:
 4. If booking is relevant, ask for their preferred date/time
 5. Always be helpful and responsive
 
-PRICING BEHAVIOR FOR SMS:
-1. If customer asks about pricing and a service has an exact price → Quote it: "Drain cleaning is $149"
-2. If it's a "starts at" price → Say "starting at $X, final price depends on the job"
-3. If no price exists → Offer to have someone call with a quote or schedule an on-site estimate
-4. NEVER say "I don't have access to pricing" when pricing exists in the services context
-5. Match requests by common terms (e.g., "clogged drain" = "drain cleaning")
-
 `;
-
-    // Add intent rules context for SMS
-    if (context.intent_rules && context.intent_rules.length > 0) {
-      smsPrompt += `ACTIVE RULES TO FOLLOW:\n`;
-      for (const rule of context.intent_rules) {
-        const guidance = rule.action?.guidance || rule.action?.suggest_alternative || "";
-        if (guidance) {
-          smsPrompt += `- ${rule.name}: ${guidance}\n`;
-        }
-      }
-      smsPrompt += `\n`;
-    }
-
-    // Add memory hints for personalization (NOT upsells)
-    if (context.memory_hints && context.memory_hints.length > 0) {
-      smsPrompt += `PERSONALIZATION HINTS (use subtly, never push sales):\n`;
-      for (const hint of context.memory_hints) {
-        smsPrompt += `- ${hint.summary}\n`;
-      }
-      smsPrompt += `\n`;
-    }
 
     // Determine the type of response needed
     let userPrompt = "";
@@ -189,7 +158,6 @@ Generate ONLY the SMS message text, nothing else.`;
         });
       } catch (obsError) {
         console.error("Failed to record SMS observation:", obsError);
-        // Non-blocking - continue with response
       }
     }
 
@@ -215,15 +183,15 @@ Generate ONLY the SMS message text, nothing else.`;
       });
     } catch (auditError) {
       console.error("Failed to record audit event:", auditError);
-      // Non-blocking
     }
 
     return new Response(
       JSON.stringify({ 
         message: generatedMessage,
-        businessName: context.business.name,
-        intentRulesApplied: context.intent_rules?.length || 0,
-        memoryHintsUsed: context.memory_hints?.length || 0,
+        businessName: context.tenant.business_name,
+        intentRulesApplied: context.intelligence.intent_rules.length,
+        memoryHintsUsed: context.intelligence.memory_hints.length,
+        missingSections: context._meta.missing_sections,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
