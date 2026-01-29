@@ -211,22 +211,58 @@ export function useWorkflowStats(tenantId: string | null) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
-      const { data, error } = await supabase
-        .from("workflow_runs")
-        .select("status")
-        .eq("tenant_id", tenantId)
-        .gte("started_at", today.toISOString());
+      // Get workflow counts
+      const [runsResult, workflowsResult] = await Promise.all([
+        supabase
+          .from("workflow_runs")
+          .select("status")
+          .eq("tenant_id", tenantId)
+          .gte("started_at", today.toISOString()),
+        supabase
+          .from("workflows")
+          .select("id, status")
+          .eq("tenant_id", tenantId),
+      ]);
       
-      if (error) throw error;
+      if (runsResult.error) throw runsResult.error;
+      if (workflowsResult.error) throw workflowsResult.error;
+      
+      const runs = runsResult.data || [];
+      const workflows = workflowsResult.data || [];
       
       const stats = {
-        total: data.length,
-        success: data.filter(r => r.status === "success").length,
-        failed: data.filter(r => r.status === "failed").length,
-        running: data.filter(r => r.status === "running").length,
+        total: runs.length,
+        total_runs: runs.length,
+        success: runs.filter(r => r.status === "success").length,
+        successful_runs: runs.filter(r => r.status === "success").length,
+        failed: runs.filter(r => r.status === "failed").length,
+        failed_runs: runs.filter(r => r.status === "failed").length,
+        running: runs.filter(r => r.status === "running").length,
+        active_workflows: workflows.filter(w => w.status === "active").length,
       };
       
       return stats;
+    },
+    enabled: !!tenantId,
+  });
+}
+
+// Get recent workflow runs across all workflows
+export function useRecentWorkflowRuns(tenantId: string | null, limit: number = 5) {
+  return useQuery({
+    queryKey: ["recent-workflow-runs", tenantId, limit],
+    queryFn: async () => {
+      if (!tenantId) return [];
+      
+      const { data, error } = await supabase
+        .from("workflow_runs")
+        .select("*, workflow:workflows(name)")
+        .eq("tenant_id", tenantId)
+        .order("started_at", { ascending: false })
+        .limit(limit);
+      
+      if (error) throw error;
+      return data as (WorkflowRun & { workflow: { name: string } | null })[];
     },
     enabled: !!tenantId,
   });

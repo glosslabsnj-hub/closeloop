@@ -617,6 +617,34 @@ serve(async (req) => {
       });
     }
 
+    // Trigger workflow for this entity type if not already handled by specific handoff functions
+    // (reservation, catering, intake are only handled here)
+    if (["reservation", "catering", "intake"].includes(entity_type) && !test_mode) {
+      const triggerMap: Record<string, string> = {
+        reservation: "reservation.created",
+        catering: "catering.created",
+        intake: "intake.created",
+      };
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/trigger-workflow`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify({
+            tenant_id,
+            trigger: triggerMap[entity_type],
+            entity_type,
+            entity_id,
+          }),
+        });
+        console.log(`Triggered workflow for ${triggerMap[entity_type]}:`, entity_id);
+      } catch (e) {
+        console.error("Failed to trigger workflow:", e);
+      }
+    }
+
     return new Response(
       JSON.stringify({ success: true, results, payload: test_mode ? deliveryPayload : undefined }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

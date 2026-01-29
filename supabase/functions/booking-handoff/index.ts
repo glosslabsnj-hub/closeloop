@@ -390,6 +390,27 @@ serve(async (req) => {
       }
     }
 
+    // Trigger workflow if any active workflow matches this event
+    const eventType = booking.status === "confirmed" ? "booking.confirmed" : "booking.created";
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/trigger-workflow`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({
+          tenant_id,
+          trigger: eventType,
+          entity_type: "booking",
+          entity_id: booking_id,
+        }),
+      });
+      console.log(`Triggered workflow for ${eventType}:`, booking_id);
+    } catch (e) {
+      console.error("Failed to trigger workflow:", e);
+    }
+
     return new Response(JSON.stringify({ success: true, results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
