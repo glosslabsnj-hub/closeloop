@@ -1,8 +1,8 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { industryOptions, ExtendedIndustryType } from "@/data/industryTemplates";
+import IndustrySelector from "./IndustrySelector";
+import { type IndustryCatalogEntry } from "@/data/industryCatalog";
 
 const timezones = [
   { value: "America/New_York", label: "Eastern Time (ET)" },
@@ -16,13 +16,16 @@ const timezones = [
 export interface BusinessIdentity {
   businessName: string;
   tagline: string;
-  industry: ExtendedIndustryType;
+  industry: string; // Now using slug from industryCatalog
   customIndustry: string;
   phoneNumber: string;
   websiteUrl: string;
   address: string;
   yearsInBusiness: number | null;
   timezone: string;
+  // New fields for business mode tracking
+  businessMode?: string;
+  enabledModules?: string[];
 }
 
 interface BusinessIdentityFormProps {
@@ -31,8 +34,19 @@ interface BusinessIdentityFormProps {
 }
 
 export default function BusinessIdentityForm({ data, onChange }: BusinessIdentityFormProps) {
-  const update = (field: keyof BusinessIdentity, value: string | number | null) => {
+  const update = (field: keyof BusinessIdentity, value: string | number | null | string[]) => {
     onChange({ ...data, [field]: value });
+  };
+
+  const handleIndustryChange = (slug: string, industry: IndustryCatalogEntry) => {
+    // When industry changes, also update business mode and enabled modules
+    onChange({
+      ...data,
+      industry: slug,
+      customIndustry: slug === "other" ? data.customIndustry : "",
+      businessMode: industry.businessMode,
+      enabledModules: industry.enabledModules,
+    });
   };
 
   return (
@@ -59,48 +73,11 @@ export default function BusinessIdentityForm({ data, onChange }: BusinessIdentit
         <p className="text-xs text-muted-foreground">What makes your business different?</p>
       </div>
       
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Industry *</Label>
-          <Select 
-            value={data.industry} 
-            onValueChange={(value) => {
-              const newIndustry = value as ExtendedIndustryType;
-              // Batch both changes in a single update to prevent race condition
-              onChange({ 
-                ...data, 
-                industry: newIndustry, 
-                customIndustry: newIndustry !== "other" ? "" : data.customIndustry 
-              });
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {industryOptions.map((ind) => (
-                <SelectItem key={ind.value} value={ind.value}>
-                  <span className="flex items-center gap-2">
-                    <span>{ind.icon}</span>
-                    <span>{ind.label}</span>
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="space-y-2">
-          <Label>Years in Business</Label>
-          <Input
-            type="number"
-            min={0}
-            placeholder="e.g., 10"
-            value={data.yearsInBusiness ?? ''}
-            onChange={(e) => update('yearsInBusiness', e.target.value ? parseInt(e.target.value) : null)}
-          />
-        </div>
-      </div>
+      {/* Industry Selector - Full Width */}
+      <IndustrySelector
+        value={data.industry}
+        onChange={handleIndustryChange}
+      />
       
       {data.industry === "other" && (
         <div className="space-y-2">
@@ -114,15 +91,28 @@ export default function BusinessIdentityForm({ data, onChange }: BusinessIdentit
         </div>
       )}
       
-      <div className="space-y-2">
-        <Label htmlFor="phoneNumber">Business phone *</Label>
-        <Input
-          id="phoneNumber"
-          type="tel"
-          placeholder="(555) 123-4567"
-          value={data.phoneNumber}
-          onChange={(e) => update('phoneNumber', e.target.value)}
-        />
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="phoneNumber">Business phone *</Label>
+          <Input
+            id="phoneNumber"
+            type="tel"
+            placeholder="(555) 123-4567"
+            value={data.phoneNumber}
+            onChange={(e) => update('phoneNumber', e.target.value)}
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label>Years in Business</Label>
+          <Input
+            type="number"
+            min={0}
+            placeholder="e.g., 10"
+            value={data.yearsInBusiness ?? ''}
+            onChange={(e) => update('yearsInBusiness', e.target.value ? parseInt(e.target.value) : null)}
+          />
+        </div>
       </div>
       
       <div className="space-y-2">
@@ -149,18 +139,17 @@ export default function BusinessIdentityForm({ data, onChange }: BusinessIdentit
       
       <div className="space-y-2">
         <Label>Timezone</Label>
-        <Select value={data.timezone} onValueChange={(value) => update('timezone', value)}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {timezones.map((tz) => (
-              <SelectItem key={tz.value} value={tz.value}>
-                {tz.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <select
+          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          value={data.timezone}
+          onChange={(e) => update('timezone', e.target.value)}
+        >
+          {timezones.map((tz) => (
+            <option key={tz.value} value={tz.value}>
+              {tz.label}
+            </option>
+          ))}
+        </select>
       </div>
     </div>
   );
