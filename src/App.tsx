@@ -41,6 +41,10 @@ import DispatchPage from "@/pages/app/DispatchPage";
 import MedicalIntakePage from "@/pages/app/MedicalIntakePage";
 import OrderTicketPage from "@/pages/app/OrderTicketPage";
 import HelpCenterPage from "@/pages/app/HelpCenterPage";
+import WorkflowsPage from "@/pages/app/WorkflowsPage";
+import WorkflowEditPage from "@/pages/app/WorkflowEditPage";
+import WorkflowRunsPage from "@/pages/app/WorkflowRunsPage";
+import WorkflowRunDetailPage from "@/pages/app/WorkflowRunDetailPage";
 
 // Admin Pages
 import AdminOverviewPage from "@/pages/admin/AdminOverviewPage";
@@ -96,6 +100,11 @@ const App = () => (
               <Route path="/app/medical-intake" element={<MedicalIntakePage />} />
               <Route path="/app/orders/:orderId/ticket" element={<OrderTicketPage />} />
               <Route path="/app/help" element={<HelpCenterPage />} />
+              <Route path="/app/workflows" element={<WorkflowsPage />} />
+              <Route path="/app/workflows/new" element={<WorkflowEditPage />} />
+              <Route path="/app/workflows/:id" element={<WorkflowEditPage />} />
+              <Route path="/app/workflows/:id/runs" element={<WorkflowRunsPage />} />
+              <Route path="/app/workflows/:id/runs/:runId" element={<WorkflowRunDetailPage />} />
             </Route>
 
             {/* Admin Routes */}
