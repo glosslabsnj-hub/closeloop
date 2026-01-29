@@ -157,6 +157,67 @@ export type Database = {
           },
         ]
       }
+      ai_context_snapshots: {
+        Row: {
+          call_sid: string | null
+          channel: string
+          context_json: Json
+          created_at: string
+          customer_id: string | null
+          id: string
+          location_id: string | null
+          missing_sections: string[]
+          session_id: string
+          tenant_id: string
+        }
+        Insert: {
+          call_sid?: string | null
+          channel: string
+          context_json?: Json
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          location_id?: string | null
+          missing_sections?: string[]
+          session_id: string
+          tenant_id: string
+        }
+        Update: {
+          call_sid?: string | null
+          channel?: string
+          context_json?: Json
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          location_id?: string | null
+          missing_sections?: string[]
+          session_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_context_snapshots_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_context_snapshots_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_context_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_knowledge_base: {
         Row: {
           content: string
