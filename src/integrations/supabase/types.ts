@@ -1088,6 +1088,7 @@ export type Database = {
           id: string
           is_active: boolean
           metadata_json: Json | null
+          session_id: string | null
           source_connection_id: string | null
           start_at: string
           tenant_id: string
@@ -1102,6 +1103,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           metadata_json?: Json | null
+          session_id?: string | null
           source_connection_id?: string | null
           start_at: string
           tenant_id: string
@@ -1116,6 +1118,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           metadata_json?: Json | null
+          session_id?: string | null
           source_connection_id?: string | null
           start_at?: string
           tenant_id?: string
@@ -1190,6 +1193,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "calendar_connections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_tokens: {
+        Row: {
+          access_token: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          provider: string
+          refresh_token: string | null
+          scope: string | null
+          tenant_id: string
+          token_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          provider: string
+          refresh_token?: string | null
+          scope?: string | null
+          tenant_id: string
+          token_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          provider?: string
+          refresh_token?: string | null
+          scope?: string | null
+          tenant_id?: string
+          token_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_tokens_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -4247,6 +4297,7 @@ export type Database = {
       calculate_ai_readiness: { Args: { _tenant_id: string }; Returns: number }
       cleanup_expired_holds: { Args: never; Returns: number }
       fn_build_business_context: { Args: { _tenant_id: string }; Returns: Json }
+      fn_cleanup_expired_holds: { Args: never; Returns: number }
       fn_compute_available_slots: {
         Args: {
           _buffer_minutes?: number
@@ -4279,6 +4330,10 @@ export type Database = {
           _tenant_id: string
         }
         Returns: string
+      }
+      fn_sync_busy_blocks: {
+        Args: { _connection_id: string; _events: Json; _tenant_id: string }
+        Returns: number
       }
       get_user_tenant_id: { Args: { _user_id: string }; Returns: string }
       has_active_subscription: {
