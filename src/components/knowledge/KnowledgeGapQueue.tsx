@@ -51,9 +51,9 @@ const gapTypeLabels: Record<string, string> = {
 };
 
 const priorityColors: Record<number, string> = {
-  1: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-  2: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-  3: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+  1: 'bg-blue-500/15 text-blue-400 border border-blue-500/30',
+  2: 'bg-amber-500/15 text-amber-400 border border-amber-500/30',
+  3: 'bg-rose-500/15 text-rose-400 border border-rose-500/30',
 };
 
 type AddAsType = 'faq' | 'policy' | 'objection';
