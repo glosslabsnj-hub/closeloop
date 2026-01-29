@@ -167,7 +167,7 @@ serve(async (req) => {
           console.error("Error inserting into phone_numbers:", insertError);
         }
         
-        // Update assistant_settings
+        // Update assistant_settings with awaiting_first_call status
         const { error: settingsUpdateError } = await supabase.from("assistant_settings").upsert({
           tenant_id: tenant_id,
           closeloop_number: existingNumber.phone_number,
@@ -175,7 +175,7 @@ serve(async (req) => {
           twilio_provisioned_at: new Date().toISOString(),
           forwarding_phone_e164: existingNumber.phone_number,
           phone_connected: true,
-          connect_status: "provisioned",
+          connect_status: "awaiting_first_call",
           updated_at: new Date().toISOString(),
         }, { onConflict: "tenant_id" });
         
@@ -292,7 +292,7 @@ serve(async (req) => {
       // Continue - we still want to update assistant_settings
     }
 
-    // Update assistant_settings with the new number
+    // Update assistant_settings with the new number and awaiting_first_call status
     const { error: updateError } = await supabase
       .from("assistant_settings")
       .upsert({
@@ -302,7 +302,7 @@ serve(async (req) => {
         twilio_provisioned_at: new Date().toISOString(),
         forwarding_phone_e164: purchaseData.phone_number,
         phone_connected: true,
-        connect_status: "provisioned",
+        connect_status: "awaiting_first_call",
         updated_at: new Date().toISOString(),
       }, {
         onConflict: "tenant_id",

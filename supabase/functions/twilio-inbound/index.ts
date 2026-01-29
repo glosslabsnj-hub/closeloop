@@ -248,13 +248,16 @@ serve(async (req) => {
       .eq("tenant_id", tenantId)
       .maybeSingle();
 
-    // Update connect_status on first real call
-    if (settings?.connect_status !== "forwarding_verified") {
+    // Update connect_status to "connected" on first real call (verifies forwarding works)
+    if (settings?.connect_status !== "connected" && settings?.connect_status !== "forwarding_verified") {
       await supabase
         .from("assistant_settings")
-        .update({ connect_status: "forwarding_verified", updated_at: new Date().toISOString() })
+        .update({ connect_status: "connected", updated_at: new Date().toISOString() })
         .eq("tenant_id", tenantId);
-      console.log(`Updated connect_status to forwarding_verified for tenant ${tenantId}`);
+      console.log(`Updated connect_status to connected for tenant ${tenantId}`);
+      
+      // Also log this milestone event
+      await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, tenantId, callSid, toNumber, fromNumber, "first_call_connected", 200, null, null);
     }
 
     if (settings?.voice_ai_enabled === false) {

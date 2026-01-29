@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { DashboardHeroCard } from "./DashboardHeroCard";
+import { PhoneNumberCard } from "./PhoneNumberCard";
 import { TodayQueueCard } from "./TodayQueueCard";
 import { RecentActivityCard } from "./RecentActivityCard";
 import { QuickLinksCard } from "./QuickLinksCard";
@@ -9,12 +10,16 @@ import { UsageThresholdBanner } from "./UsageThresholdBanner";
 import { Copilot, CopilotTrigger } from "./Copilot";
 import { BusinessBrainStatusCard } from "./BusinessBrainStatusCard";
 import { KnowledgeConflictBanner } from "./KnowledgeConflictBanner";
+import { useSubscription } from "@/hooks/useSubscription";
 
 export function LiveDashboard() {
-  const { assistantSettings } = useAuth();
+  const { tenant, assistantSettings } = useAuth();
+  const { subscription } = useSubscription(tenant?.id || null);
   const [copilotOpen, setCopilotOpen] = useState(false);
   
   const isLive = assistantSettings?.go_live_enabled;
+  const planCode = subscription?.plan_code;
+  const hasVoice = planCode === "voice" || planCode === "both";
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto animate-fade-in">
@@ -24,6 +29,9 @@ export function LiveDashboard() {
 
       {/* HERO: Agent Status + Key Stats (full width) */}
       <DashboardHeroCard />
+
+      {/* Phone Number Card - Prominent for Voice plans */}
+      {hasVoice && <PhoneNumberCard />}
 
       {/* Two Column: Queue + Quick Actions */}
       <div className="grid md:grid-cols-2 gap-6">
