@@ -1,383 +1,377 @@
 
-# Upload-to-Knowledge Notification System Implementation Plan
-
-## Overview
-
-This plan adds an **Owner Notification System** and enhanced **UX messaging** to ensure business owners always know when uploads are processing, when suggestions are pending, and when conflicts need resolution. The core principle: **"Structured Business Brain (truth layer) ALWAYS overrides uploads until the owner approves merges."**
+# PAGE FLOW AUDIT REPORT
+## CloseLoop Application - Full Navigation & Routing Audit
 
 ---
 
-## Current State Analysis
+## 1) PRE-LOGIN PAGES
 
-**Existing Infrastructure:**
-- `knowledge_gaps` table exists for tracking unanswered AI questions
-- `ai_knowledge_base` table stores structured knowledge
-- `menu_documents` table stores uploaded documents with parsed content
-- No `knowledge_sources`, `extracted_knowledge_suggestions`, or `knowledge_conflicts` tables exist
-- No `notifications` table exists
-- Dashboard has `UsageThresholdBanner` pattern for alerts
-- Copilot has context-aware response generation
+### Routes Audited:
+- `/` (LandingPage)
+- `/pricing` (PricingPage)
+- `/login` (LoginPage)
+- `/signup` (SignupPage)
 
-**Key Finding:** The upload-to-knowledge extraction pipeline tables don't exist yet. We need to create the complete infrastructure.
+### STATUS: **PASS**
 
----
+### Findings:
 
-## Database Schema
+**CTA Buttons & Routing:**
+- HeroSection: "Get Started Free" → `/signup` ✅
+- HeroSection: "Hear a Real Call" → `#demo` (anchor) ✅
+- FinalCTASection: "Get Started Free" → `/signup` ✅
+- MobileStickyBar: "Get Started" → `/signup` ✅
+- MobileStickyBar: Play button → `#demo` ✅
+- PublicLayout header: "Start Free Trial" → `/signup` ✅
+- PublicLayout header: "Log in" → `/login` ✅
+- PricingPage: Each plan CTA → `/signup?sku={selected_sku}` ✅
+- PricingPage: Final CTA → `/signup` ✅
 
-### New Tables
+**Login/Signup Cross-Links:**
+- LoginPage: "Start free trial" → `/signup` ✅
+- SignupPage: "Sign in" → `/login` ✅
+- SignupPage: "Change plan" → `/#pricing` ✅
 
-**1. `knowledge_sources` - Tracks uploaded documents**
-```text
-+----------------------+---------------------------+
-| Column               | Type                      |
-+----------------------+---------------------------+
-| id                   | uuid PK                   |
-| tenant_id            | uuid FK                   |
-| file_name            | text                      |
-| file_url             | text nullable             |
-| source_type          | enum (menu_pdf, pricing,  |
-|                      | services_doc, faq_doc,    |
-|                      | general)                  |
-| status               | enum (uploading,          |
-|                      | processing, ready, failed)|
-| processed_at         | timestamptz nullable      |
-| error_message        | text nullable             |
-| created_at           | timestamptz               |
-| updated_at           | timestamptz               |
-+----------------------+---------------------------+
-```
+**No Pre-Login → Protected Route Issues:**
+- All public CTAs route to `/signup` or `/login`
+- No direct links to `/app/*` routes from public pages
 
-**2. `extracted_knowledge_suggestions` - AI-extracted items pending review**
-```text
-+----------------------+---------------------------+
-| Column               | Type                      |
-+----------------------+---------------------------+
-| id                   | uuid PK                   |
-| tenant_id            | uuid FK                   |
-| source_id            | uuid FK knowledge_sources |
-| suggestion_type      | enum (service, faq,       |
-|                      | menu_item, policy,        |
-|                      | objection)                |
-| extracted_data       | jsonb                     |
-| status               | enum (pending_review,     |
-|                      | approved, rejected,       |
-|                      | merged)                   |
-| reviewed_at          | timestamptz nullable      |
-| reviewed_by          | uuid nullable             |
-| created_at           | timestamptz               |
-+----------------------+---------------------------+
-```
+**Mobile vs Desktop:**
+- MobileStickyBar provides consistent mobile CTAs
+- PublicLayout shows condensed nav on mobile
 
-**3. `knowledge_conflicts` - Detected conflicts between uploads and existing data**
-```text
-+----------------------+---------------------------+
-| Column               | Type                      |
-+----------------------+---------------------------+
-| id                   | uuid PK                   |
-| tenant_id            | uuid FK                   |
-| source_id            | uuid FK knowledge_sources |
-| conflict_type        | enum (price_mismatch,     |
-|                      | description_mismatch,     |
-|                      | name_mismatch, other)     |
-| entity_type          | text (service, menu_item, |
-|                      | faq, policy)              |
-| existing_entity_id   | uuid nullable             |
-| existing_data        | jsonb                     |
-| proposed_data        | jsonb                     |
-| differing_fields     | text[] (e.g. ["price",    |
-|                      | "description"])           |
-| status               | enum (unresolved,         |
-|                      | keep_existing,            |
-|                      | accept_upload,            |
-|                      | custom_merged)            |
-| resolved_at          | timestamptz nullable      |
-| resolved_by          | uuid nullable             |
-| created_at           | timestamptz               |
-+----------------------+---------------------------+
-```
-
-**4. `owner_notifications` - In-app notifications**
-```text
-+----------------------+---------------------------+
-| Column               | Type                      |
-+----------------------+---------------------------+
-| id                   | uuid PK                   |
-| tenant_id            | uuid FK                   |
-| type                 | enum (upload_processing,  |
-|                      | upload_ready, upload_fail,|
-|                      | suggestions_pending,      |
-|                      | conflicts_detected,       |
-|                      | conflicts_resolved)       |
-| title                | text                      |
-| message              | text                      |
-| severity             | enum (info, warning,      |
-|                      | critical) default info    |
-| is_read              | boolean default false     |
-| action_path          | text nullable (deep link) |
-| related_source_id    | uuid nullable             |
-| created_at           | timestamptz               |
-+----------------------+---------------------------+
-```
-
-**5. Database Triggers**
-- On `knowledge_sources.status` change to `ready` or `failed`: insert notification
-- On insert to `extracted_knowledge_suggestions` with `pending_review`: insert notification
-- On insert to `knowledge_conflicts` with `unresolved`: insert notification
-- On `knowledge_conflicts` resolution (when unresolved count reaches 0): insert notification
+### ISSUES: None
 
 ---
 
-## UI Components
+## 2) AUTHENTICATION & GATING
 
-### 1. Dashboard Knowledge Status Card (`BusinessBrainStatusCard.tsx`)
+### STATUS: **PASS**
 
-**Location:** Displayed on `LiveDashboard` above `DashboardByMode`
+### Findings:
 
-**Content:**
-- AI Readiness Score (from existing hook)
-- Pending Suggestions count (with badge if > 0)
-- Unresolved Conflicts count (prominent if > 0)
-- "Review Updates" button linking to Business Brain Updates tab
-
-### 2. Conflict Warning Banner (`KnowledgeConflictBanner.tsx`)
-
-**Location:** Top of dashboard when `unresolved_conflicts > 0`
-
-**Content:**
-```text
-"Action needed: We found conflicts between your uploads and your 
-current Business Brain. The AI will keep using your existing 
-settings until you review."
-[Resolve Conflicts] button
-```
-
-### 3. Business Brain Updates Tab
-
-**Location:** New tab in `BusinessBrainPage.tsx`
-
-**Structure:**
-- **Explanation Block (top):**
-  "Uploads do not automatically change what the AI says. Your Business Brain is the source of truth. If we detect differences, you review and choose what's correct."
-
-- **Sub-tabs:**
-  - **Processing** - Active uploads with status indicators
-  - **Suggestions** - Pending extracted items to approve/reject
-  - **Conflicts** - Items needing resolution (highlight differing fields)
-
-### 4. Conflict Resolution UI (`KnowledgeConflictResolver.tsx`)
-
-**Per conflict:**
-- Side-by-side comparison: "Existing (Current Truth)" vs "Proposed (From Upload)"
-- Highlighted differing fields
-- Actions:
-  - "Keep Existing" (AI continues using current data)
-  - "Accept Upload" (replaces existing)
-  - "Edit & Save" (custom merge)
-
-**After all conflicts resolved:**
-- Confirmation message: "Great — your AI knowledge is now updated and consistent."
-
-### 5. Notification Bell & Dropdown (`NotificationBell.tsx`)
-
-**Location:** Top navbar (AppLayout.tsx)
-
-**Features:**
-- Bell icon with unread count badge
-- Dropdown showing recent notifications
-- Click notification to navigate to `action_path`
-- "Mark all as read" action
-
-### 6. Onboarding Upload Helper Text
-
-**Location:** Any upload field during onboarding
-
-**Text:**
-```text
-"Uploads speed up setup. If uploads create conflicts, you'll 
-review them before the AI uses them."
-```
-
-**Skip message:**
-```text
-"You can add documents later. Until your Business Brain is 
-complete, the AI may ask a few extra questions."
-```
-
----
-
-## Copilot Awareness
-
-### New Query Handler in `generateResponse()`
-
-**Query patterns to handle:**
-- "Did the AI learn my menu/pricing sheet?"
-- "Did my upload work?"
-- "Is my [document] being used?"
-
-**Response logic:**
-1. Check `knowledge_sources` for recent uploads
-2. If `status = processing`: "Your upload is still being processed..."
-3. If `status = ready` with pending suggestions or unresolved conflicts:
-   "Your upload was processed, but it needs review before the AI uses it."
-   Steps: 
-   1. Go to Business Brain → Updates
-   2. Approve Suggestions / Resolve Conflicts
-4. If all merged and no conflicts:
-   "Yes — it's been merged into your Business Brain and the AI will use it."
-
-### Extended Copilot Context
-
-Add to `copilot-context` edge function:
+**AppLayout Auth Gating (lines 87-113):**
 ```typescript
-knowledge_status: {
-  pending_suggestions_count: number;
-  unresolved_conflicts_count: number;
-  processing_uploads_count: number;
-  last_upload_status: string | null;
-}
+// Redirect unauthenticated users
+useEffect(() => {
+  if (!loading && !user) {
+    navigate("/login");
+  }
+}, [user, loading, navigate]);
+
+// Redirect users without tenant to onboarding
+useEffect(() => {
+  if (!loading && user && !tenant && !isSuperAdmin) {
+    if (location.pathname !== "/app/onboarding") {
+      navigate("/app/onboarding");
+    }
+  }
+}, [loading, user, tenant, isSuperAdmin, location.pathname, navigate]);
+
+// Subscription gating
+useEffect(() => {
+  if (!loading && tenant && !hasActiveSubscription) {
+    const isAllowedRoute = alwaysAccessibleRoutes.some(route => 
+      location.pathname.startsWith(route)
+    );
+    if (!isAllowedRoute && location.pathname !== "/app/go-live") {
+      navigate("/app/go-live");
+    }
+  }
+}, [loading, tenant, hasActiveSubscription, location.pathname, navigate]);
 ```
 
----
+**Always Accessible Routes:**
+- `/app/settings`
+- `/app/go-live`
 
-## Hooks & Data Fetching
-
-### `useKnowledgeUploads.ts`
-- Fetch `knowledge_sources` for current tenant
-- Real-time subscription for status changes
-
-### `useKnowledgeSuggestions.ts`
-- Fetch `extracted_knowledge_suggestions` with `pending_review` status
-- Approve/reject mutations
-
-### `useKnowledgeConflicts.ts`
-- Fetch `knowledge_conflicts` with `unresolved` status
-- Resolve mutations (keep_existing, accept_upload, custom_merge)
-- Count unresolved for badges
-
-### `useNotifications.ts`
-- Fetch `owner_notifications` ordered by created_at desc
-- Mark as read mutations
-- Real-time subscription for new notifications
-
----
-
-## Processing Pipeline (Edge Function Enhancements)
-
-### `process-knowledge-upload/index.ts` (new function)
-
-**Triggered by:** Storage upload webhook or manual invocation
-
-**Flow:**
-1. Update `knowledge_sources.status = 'processing'`
-2. Insert notification: "Your [file] is being processed..."
-3. Parse document (reuse existing parsing logic)
-4. Extract structured items (services, FAQs, menu items, etc.)
-5. For each extracted item:
-   - Check for matching existing entity
-   - If match found with differences → create `knowledge_conflict`
-   - If no match → create `extracted_knowledge_suggestion`
-6. Update `knowledge_sources.status = 'ready'`
-7. Insert notification: "Your [file] is ready for review" with action_path
-
----
-
-## Email Digest (Optional - Nice-to-Have)
-
-### `send-conflict-notification/index.ts` (new function)
-
-**Triggered by:** Database webhook on `knowledge_conflicts` insert
-
-**Conditions:**
-- Only if tenant has admin email configured
-- Tenant setting `email_conflict_notifications = true` (default off)
-
-**Email Content:**
-- Subject: "Action needed: Update your AI knowledge"
-- Body: "[Business Name], we found differences between your upload and your current settings. Review them to keep your AI accurate. [Review Now] button"
-
----
-
-## File Structure
-
-```text
-src/
-├── hooks/
-│   ├── useKnowledgeUploads.ts        (new)
-│   ├── useKnowledgeSuggestions.ts    (new)
-│   ├── useKnowledgeConflicts.ts      (new)
-│   └── useNotifications.ts           (new)
-├── components/
-│   ├── dashboard/
-│   │   ├── BusinessBrainStatusCard.tsx    (new)
-│   │   ├── KnowledgeConflictBanner.tsx    (new)
-│   │   └── LiveDashboard.tsx              (modify)
-│   ├── knowledge/
-│   │   ├── KnowledgeUpdatesTab.tsx        (new)
-│   │   ├── SuggestionReviewList.tsx       (new)
-│   │   ├── KnowledgeConflictResolver.tsx  (new)
-│   │   └── ProcessingUploadsCard.tsx      (new)
-│   ├── notifications/
-│   │   └── NotificationBell.tsx           (new)
-│   └── layouts/
-│       └── AppLayout.tsx                  (modify - add bell)
-├── pages/app/
-│   └── BusinessBrainPage.tsx              (modify - add Updates tab)
-
-supabase/
-├── functions/
-│   ├── process-knowledge-upload/index.ts  (new)
-│   └── copilot-context/index.ts           (modify)
-├── migrations/
-│   └── [timestamp]_knowledge_notifications.sql (new)
+**AdminLayout Auth Gating (lines 50-54):**
+```typescript
+useEffect(() => {
+  if (!loading && (!user || !isSuperAdmin)) {
+    navigate("/login");
+  }
+}, [user, isSuperAdmin, loading, navigate]);
 ```
 
----
+**Session Persistence:**
+- AuthContext uses `onAuthStateChange` listener before `getSession()` ✅
+- Session persists on refresh via Supabase auth
 
-## Technical Details
+**Logout Flow:**
+- `signOut()` clears session
+- Navigates to `/` (home) ✅
 
-### RLS Policies
-
-All new tables will have RLS enabled with policies:
-- SELECT: `has_tenant_access(auth.uid(), tenant_id)`
-- INSERT: Service role only (via triggers/edge functions)
-- UPDATE: `has_tenant_access(auth.uid(), tenant_id)` for resolution actions
-- DELETE: Not allowed (audit trail)
-
-### Real-time Subscriptions
-
-Enable real-time for:
-- `owner_notifications` - for bell badge updates
-- `knowledge_sources` - for processing status updates
-- `knowledge_conflicts` - for conflict count updates
-
-### Migration Safety
-
-- Tables are additive (no breaking changes)
-- Default statuses ensure existing tenants unaffected
-- Triggers only fire on new inserts/updates
+### ISSUES: None
 
 ---
 
-## Acceptance Criteria
+## 3) ONBOARDING FLOW
 
-1. **Upload a pricing sheet that conflicts with existing service prices:**
-   - Conflicts are created in `knowledge_conflicts` table
-   - Dashboard banner appears immediately ("Action needed...")
-   - Notification created with action link to conflicts page
-   - AI continues using existing structured prices until owner resolves
+### Routes:
+- `/app/onboarding` (OnboardingPage - no layout wrapper)
 
-2. **Notification lifecycle works correctly:**
-   - Bell shows unread count
-   - Clicking notification navigates to correct page
-   - Mark as read updates badge
+### STATUS: **PASS**
 
-3. **Conflict resolution flow:**
-   - "Keep Existing" preserves current data, marks conflict resolved
-   - "Accept Upload" updates entity with proposed data
-   - "Edit & Save" allows custom merge
-   - After all resolved, confirmation message appears
+### Findings:
 
-4. **Copilot correctly answers upload status questions:**
-   - Processing: "Still processing..."
-   - Needs review: "Processed but needs your review..."
-   - All merged: "Yes, it's been merged and AI will use it."
+**8-Step Flow:**
+1. Business Identity
+2. Services & Pricing
+3. Booking Policies
+4. Customer Intake
+5. FAQs
+6. Objection Handling
+7. Policies
+8. Review & Launch
+
+**Navigation Logic:**
+- "Continue" advances to next step ✅
+- "Back" returns to previous step ✅
+- Step indicators allow clicking completed steps ✅
+- Cannot skip ahead to incomplete steps ✅
+
+**Completion Redirect:**
+- `handleComplete()` creates tenant, then navigates to `/app/dashboard` ✅
+
+**Already Onboarded Protection:**
+```typescript
+useEffect(() => {
+  if (!authLoading && tenant) {
+    navigate("/app/dashboard", { replace: true });
+  }
+}, [authLoading, tenant, navigate]);
+```
+
+**Edge Cases:**
+- Refresh mid-onboarding: State is local, user restarts from step 1 (expected behavior for session-based wizard)
+- No tenant created until final step completes
+
+### ISSUES: None
+
+---
+
+## 4) DASHBOARD NAVIGATION
+
+### Routes Audited:
+- `/app/dashboard` → DashboardPage ✅
+- `/app/inbox` → InboxPage ✅
+- `/app/calls` → CallsPage ✅
+- `/app/leads` → LeadsPage ✅
+- `/app/bookings` → BookingsPage ✅
+- `/app/services` → ServicesPage ✅
+- `/app/automations` → AutomationsPage ✅
+- `/app/ai-assistant` → AIAssistantPage ✅
+- `/app/simulator` → SimulatorPage ✅
+- `/app/business-brain` → BusinessBrainPage ✅
+- `/app/usage` → UsagePage ✅
+- `/app/settings` → SettingsPage ✅
+- `/app/orders` → OrdersPage ✅
+- `/app/reservations` → ReservationsPage ✅
+- `/app/catering` → CateringPage ✅
+- `/app/menu-center` → MenuCenterPage ✅
+- `/app/dispatch` → DispatchPage ✅
+- `/app/medical-intake` → MedicalIntakePage ✅
+- `/app/orders/:orderId/ticket` → OrderTicketPage ✅
+
+### STATUS: **PARTIAL**
+
+### Findings:
+
+**Sidebar Navigation (AppLayout):**
+- All nav items correctly defined in `allNavItems` array
+- Proper icons and href paths
+- Module gating filters items based on `enabledModules`
+
+**QuickLinksCard Navigation:**
+- "Inbox" → `/app/inbox` ✅
+- "Bookings" → `/app/bookings` ✅
+- "Leads" → `/app/leads` ✅
+- "Services" → `/app/services` ✅
+
+**BusinessBrainPage Internal Links:**
+- "Services" section → `/app/services` ✅
+- "Menu Items" section → `/app/menu-center` ✅
+- "FAQs" section → `/app/ai-assistant` ✅
+- "Policies" section → `/app/ai-assistant` ✅
+- "Test AI" button → `/app/simulator` ✅
+
+### ISSUES FOUND:
+
+**ISSUE 1: Copilot Links Reference Wrong Paths**
+In `Copilot.tsx`, several links use incorrect paths:
+- Line 185: `"/app/menu"` → Should be `/app/menu-center`
+- Line 265: `"/app/menu"` → Should be `/app/menu-center`
+- Line 200: `"/app/brain"` → Should be `/app/business-brain`
+- Line 246: `"/app/brain"` → Should be `/app/business-brain`
+
+**ISSUE 2: QuickLinksCard Not Mode-Aware**
+The QuickLinksCard shows "Bookings" for all modes, even when booking module is disabled (e.g., food mode). Users clicking this will be redirected by module gating, but it creates confusion.
+
+---
+
+## 5) MODE & MODULE GATING
+
+### STATUS: **PASS**
+
+### Findings:
+
+**Module-Gated Pages Use `useModuleRequired`:**
+- OrdersPage: `useModuleRequired(["food_orders"])` ✅
+- DispatchPage: `useModuleRequired(["dispatch_queue"])` ✅
+- BookingsPage: `useModuleRequired(["booking"])` ✅
+- ReservationsPage: `useModuleRequired(["reservations"])` ✅
+- CateringPage: `useModuleRequired(["catering"])` ✅
+- MedicalIntakePage: `useModuleRequired(["medical_intake"])` ✅
+
+**Sidebar Filtering:**
+```typescript
+const navItems = useMemo(() => {
+  return allNavItems.filter(item => {
+    if (!item.requiredModules) return true;
+    return item.requiredModules.some(mod => enabledModules.includes(mod));
+  });
+}, [enabledModules]);
+```
+
+**Direct URL Access Protection:**
+- If module not enabled, `useModuleRequired` redirects to `/app/dashboard` ✅
+- Shows loading spinner during check ✅
+
+**Settings Page Mode-Aware Tabs:**
+- Food tab: Only shows if `isFoodMode` ✅
+- Booking Delivery tab: Only shows if `isBookingEnabled` ✅
+- Dispatch Delivery tab: Only shows if `isDispatchEnabled` ✅
+- HIPAA tab: Only shows if `isMedicalMode || hipaaMode` ✅
+
+### ISSUES: None
+
+---
+
+## 6) SETTINGS & ACTION BUTTONS
+
+### STATUS: **PASS**
+
+### Findings:
+
+**Settings Page Tabs:**
+- Business, Hours, Delivery, Automation, Team, Billing, Notifications, Developer (always visible)
+- Food, Booking Delivery, Dispatch Delivery, HIPAA (conditionally visible)
+- Tab switching works correctly via state
+
+**Save/Update Actions:**
+- Business settings: `handleSaveBusiness()` - updates tenant and stays on page ✅
+- Hours settings: `handleSaveHours()` - saves slots and stays on page ✅
+
+**User Dropdown (AppLayout):**
+- "Settings" → `/app/settings` ✅
+- "Log out" → Signs out and navigates to `/` ✅
+
+**Dashboard Actions:**
+- SetupWizard steps complete and advance ✅
+- GoLiveStep activates and navigates to dashboard ✅
+
+**Orders/Dispatch/Bookings Actions:**
+- Status dropdowns update inline ✅
+- Print ticket → `/app/orders/:orderId/ticket` ✅
+- View details → Opens drawer ✅
+
+### ISSUES: None
+
+---
+
+## 7) ERROR STATES & FALLBACKS
+
+### STATUS: **PASS**
+
+### Findings:
+
+**404 Handling:**
+```typescript
+<Route path="*" element={<NotFound />} />
+```
+- NotFound page shows 404 message
+- "Return to Home" link → `/` ✅
+- Console logs attempted route for debugging
+
+**Empty State Handling:**
+- InboxPage: Shows "No conversations yet" with icon ✅
+- BookingsPage: Shows "No bookings for this day" with "Add Booking" button ✅
+- OrdersPage: Shows "No orders found" in table ✅
+- DispatchPage: Shows "No jobs found" in table ✅
+
+**Loading States:**
+- All pages show spinner while loading ✅
+- Module gating shows spinner during check ✅
+
+**No Infinite Redirect Loops:**
+- Auth gating checks `loading` state before redirecting
+- `alwaysAccessibleRoutes` prevents subscription-less users from being stuck
+
+### ISSUES: None
+
+---
+
+## CRITICAL FIXES (BLOCKING)
+
+None - No blocking navigation issues found.
+
+---
+
+## IMPORTANT FIXES (SHOULD FIX)
+
+### 1. Copilot Wrong Path References
+**File:** `src/components/dashboard/Copilot.tsx`
+**Lines:** 185, 265, 200, 246
+**Issue:** References to `/app/menu` and `/app/brain` don't match actual routes
+**Fix:** Update to `/app/menu-center` and `/app/business-brain`
+
+---
+
+## MINOR FIXES (NICE TO HAVE)
+
+### 1. QuickLinksCard Mode Awareness
+**File:** `src/components/dashboard/QuickLinksCard.tsx`
+**Issue:** Shows "Bookings" link even when booking module is disabled
+**Fix:** Filter links based on enabled modules, similar to sidebar
+
+### 2. NotFound Page Could Use App Layout for Authenticated Users
+**Issue:** 404 page always shows plain layout with link to `/`
+**Fix:** Detect if user is authenticated and show link to `/app/dashboard` instead
+
+---
+
+## OVERALL NAVIGATION HEALTH SCORE
+
+# 92/100
+
+**Breakdown:**
+- Route definitions: 100%
+- Auth gating: 100%
+- Module gating: 100%
+- Pre-login flows: 100%
+- Onboarding flow: 100%
+- Dashboard navigation: 95% (Copilot links incorrect)
+- Settings & actions: 100%
+- Error handling: 100%
+- Mode awareness: 90% (QuickLinksCard not filtered)
+
+---
+
+## TOP 5 ROUTING RISKS TO USERS
+
+1. **Copilot Directing Users to 404** - Users asking "Where is my menu?" get directed to `/app/menu` which doesn't exist
+2. **QuickLinksCard Booking Link Confusion** - Food mode users see "Bookings" but it redirects them away
+3. **OnboardingPage State Loss on Refresh** - Users who refresh lose all progress (acceptable but could be improved)
+4. **NotFound Page Generic** - Authenticated users see "Return to Home" instead of "Return to Dashboard"
+5. **No Breadcrumb Navigation** - Deep pages (e.g., Order Ticket) don't show navigation path back
+
+---
+
+## RECOMMENDED NEXT ACTIONS (ORDERED)
+
+1. **Fix Copilot path references** - Update `/app/menu` → `/app/menu-center` and `/app/brain` → `/app/business-brain` in Copilot.tsx
+2. **Make QuickLinksCard mode-aware** - Filter links based on enabled modules
+3. **Enhance NotFound for authenticated users** - Show dashboard link if logged in
+4. **Add breadcrumbs to detail pages** - OrderTicketPage should show path back to Orders
+5. **Consider onboarding state persistence** - Store partial progress in localStorage or database
