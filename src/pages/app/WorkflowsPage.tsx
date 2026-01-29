@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, GitBranch, Play, Pause, Settings, History, Trash2, Calendar, UtensilsCrossed, Truck, PhoneCall, Lock, ArrowRight, Loader2 } from "lucide-react";
+import { Plus, GitBranch, Play, Pause, Settings, History, Trash2, Calendar, UtensilsCrossed, Truck, PhoneCall, Lock, ArrowRight, Loader2, ToggleLeft, Sliders } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,7 @@ import { TRIGGER_METADATA, NODE_TYPE_METADATA, type WorkflowTrigger, type Workfl
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig, type BusinessMode } from "@/hooks/useTenantConfig";
 import { supabase } from "@/integrations/supabase/client";
+import { SimpleAutomationPanel } from "@/components/workflows/SimpleAutomationPanel";
 
 // Pre-configured node for workflow templates
 interface TemplateNode {
@@ -337,6 +339,7 @@ export default function WorkflowsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newTrigger, setNewTrigger] = useState<WorkflowTrigger | "">("");
+  const [viewMode, setViewMode] = useState<"simple" | "advanced">("simple");
 
   // Check if user has access to workflows
   const hasWorkflowAccess = useMemo(() => {
@@ -600,133 +603,178 @@ export default function WorkflowsPage() {
 
   return (
     <div className="container py-6 space-y-6">
-      {/* Header */}
+      {/* Header with View Mode Toggle */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Workflows</h1>
+          <h1 className="text-2xl font-bold">Automations</h1>
           <p className="text-muted-foreground">
             Automate what happens after calls, bookings, orders, and dispatches.
           </p>
         </div>
         
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Workflow
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create Workflow</DialogTitle>
-              <DialogDescription>
-                Choose a trigger event and give your workflow a name
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Workflow Name</Label>
-                <Input
-                  placeholder="e.g., New Order Notification"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Trigger Event</Label>
-                <Select value={newTrigger} onValueChange={(v) => setNewTrigger(v as WorkflowTrigger)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select when this workflow runs" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableTriggers.map((key) => {
-                      const meta = TRIGGER_METADATA[key];
-                      return (
-                        <SelectItem key={key} value={key}>
-                          <span className="mr-2">{meta.icon}</span>
-                          {meta.label}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Only triggers relevant to {businessMode} mode are shown
-                </p>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setCreateOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleCreate} disabled={!newName || !newTrigger}>
-                Create
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <div className="flex items-center gap-3">
+          {/* Simple/Advanced Toggle */}
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "simple" | "advanced")}>
+            <TabsList className="h-9">
+              <TabsTrigger value="simple" className="text-xs gap-1.5">
+                <ToggleLeft className="h-3.5 w-3.5" />
+                Simple
+              </TabsTrigger>
+              <TabsTrigger value="advanced" className="text-xs gap-1.5">
+                <Sliders className="h-3.5 w-3.5" />
+                Advanced
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          {viewMode === "advanced" && (
+            <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Workflow
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create Workflow</DialogTitle>
+                  <DialogDescription>
+                    Choose a trigger event and give your workflow a name
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>Workflow Name</Label>
+                    <Input
+                      placeholder="e.g., New Order Notification"
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Trigger Event</Label>
+                    <Select value={newTrigger} onValueChange={(v) => setNewTrigger(v as WorkflowTrigger)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select when this workflow runs" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableTriggers.map((key) => {
+                          const meta = TRIGGER_METADATA[key];
+                          return (
+                            <SelectItem key={key} value={key}>
+                              <span className="mr-2">{meta.icon}</span>
+                              {meta.label}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Only triggers relevant to {businessMode} mode are shown
+                    </p>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setCreateOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleCreate} disabled={!newName || !newTrigger}>
+                    Create
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
       </div>
 
-      {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold">{stats.total}</div>
-              <div className="text-sm text-muted-foreground">Runs Today</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.success}</div>
-              <div className="text-sm text-muted-foreground">Successful</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-destructive">{stats.failed}</div>
-              <div className="text-sm text-muted-foreground">Failed</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-primary">{stats.running}</div>
-              <div className="text-sm text-muted-foreground">Running</div>
-            </CardContent>
-          </Card>
-        </div>
+      {/* Simple Mode: Toggle-based automation panel */}
+      {viewMode === "simple" && (
+        <SimpleAutomationPanel onAdvancedClick={() => setViewMode("advanced")} />
       )}
 
-      {/* Active Workflows */}
-      {activeWorkflows.length > 0 && (
-        <WorkflowSection
-          title="Active"
-          description="These workflows are running"
-          workflows={activeWorkflows}
-          onPause={(id) => pauseWorkflow.mutateAsync(id)}
-          onDelete={handleDelete}
-        />
-      )}
+      {/* Advanced Mode: Full workflow list */}
+      {viewMode === "advanced" && (
+        <>
+          {stats && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold">{stats.total}</div>
+                  <div className="text-sm text-muted-foreground">Runs Today</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-primary">{stats.success}</div>
+                  <div className="text-sm text-muted-foreground">Successful</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-destructive">{stats.failed}</div>
+                  <div className="text-sm text-muted-foreground">Failed</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-muted-foreground">{stats.running}</div>
+                  <div className="text-sm text-muted-foreground">Running</div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
-      {/* Draft Workflows */}
-      {draftWorkflows.length > 0 && (
-        <WorkflowSection
-          title="Drafts"
-          description="Work in progress"
-          workflows={draftWorkflows}
-          onActivate={(id) => activateWorkflow.mutateAsync(id)}
-          onDelete={handleDelete}
-        />
-      )}
+          {/* Empty state for advanced mode */}
+          {workflows?.length === 0 && (
+            <div className="text-center py-12">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 mb-4">
+                <GitBranch className="h-8 w-8 text-primary" />
+              </div>
+              <h2 className="text-xl font-semibold mb-2">No Custom Workflows Yet</h2>
+              <p className="text-muted-foreground max-w-md mx-auto mb-6">
+                Create custom workflows with conditional logic, delays, and multi-step automations.
+              </p>
+              <Button onClick={() => setCreateOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Your First Workflow
+              </Button>
+            </div>
+          )}
 
-      {/* Paused Workflows */}
-      {pausedWorkflows.length > 0 && (
-        <WorkflowSection
-          title="Paused"
-          description="Temporarily stopped"
-          workflows={pausedWorkflows}
-          onActivate={(id) => activateWorkflow.mutateAsync(id)}
-          onDelete={handleDelete}
-        />
+          {/* Active Workflows */}
+          {activeWorkflows.length > 0 && (
+            <WorkflowSection
+              title="Active"
+              description="These workflows are running"
+              workflows={activeWorkflows}
+              onPause={(id) => pauseWorkflow.mutateAsync(id)}
+              onDelete={handleDelete}
+            />
+          )}
+
+          {/* Draft Workflows */}
+          {draftWorkflows.length > 0 && (
+            <WorkflowSection
+              title="Drafts"
+              description="Work in progress"
+              workflows={draftWorkflows}
+              onActivate={(id) => activateWorkflow.mutateAsync(id)}
+              onDelete={handleDelete}
+            />
+          )}
+
+          {/* Paused Workflows */}
+          {pausedWorkflows.length > 0 && (
+            <WorkflowSection
+              title="Paused"
+              description="Temporarily stopped"
+              workflows={pausedWorkflows}
+              onActivate={(id) => activateWorkflow.mutateAsync(id)}
+              onDelete={handleDelete}
+            />
+          )}
+        </>
       )}
     </div>
   );

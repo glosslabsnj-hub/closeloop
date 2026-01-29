@@ -12,6 +12,7 @@ import {
   Users, Sparkles, Edit2, Brain
 } from "lucide-react";
 import { industryConfigs } from "@/data/industryTemplates";
+import { createDefaultWorkflowsForMode } from "@/lib/createDefaultWorkflows";
 import { getIndustryBySlug, industryCatalog } from "@/data/industryCatalog";
 import { resolveIndustryTemplate } from "@/lib/templateResolver";
 import { hasVoiceFeature } from "@/config/pricing";
@@ -443,6 +444,27 @@ export default function OnboardingPage() {
         }
       } else {
         console.log("TwilioProvision: skipped", { reason: "no-voice-feature", planCode });
+      }
+
+      // Auto-create default workflows based on business mode (from industry config)
+      try {
+        const industryEntry = getIndustryBySlug(businessIdentity.industry);
+        const businessMode = industryEntry?.businessMode || "service";
+        console.log("WorkflowsAutoCreate: start", { tenantId, businessMode });
+        
+        const { success, workflowIds, error: workflowError } = await createDefaultWorkflowsForMode(
+          tenantId, 
+          businessMode as any
+        );
+        
+        if (success) {
+          console.log("WorkflowsAutoCreate: success", { workflowCount: workflowIds.length });
+        } else {
+          console.error("WorkflowsAutoCreate: failed", { error: workflowError });
+        }
+      } catch (wfErr: any) {
+        console.error("WorkflowsAutoCreate: exception", { message: wfErr?.message });
+        // Don't fail onboarding if workflow creation fails
       }
 
       // Mark onboarding as complete
