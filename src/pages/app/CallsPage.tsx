@@ -16,7 +16,7 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Phone, Search, Pencil, Loader2, ExternalLink } from "lucide-react";
+import { Phone, Search, Pencil, Loader2, ExternalLink, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { CallEditDialog } from "@/components/calls/CallEditDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -27,6 +27,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Link } from "react-router-dom";
 import type { Json } from "@/integrations/supabase/types";
 
 interface CallSession {
@@ -338,9 +339,26 @@ export default function CallsPage() {
                           <span className="line-clamp-2 text-sm">
                             {call.summary}
                           </span>
+                        ) : call.ended_at ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Link 
+                                  to={`/debug/ai-context?session=${call.id}`}
+                                  className="inline-flex items-center gap-1 text-warning hover:underline text-sm"
+                                >
+                                  <AlertTriangle className="h-3 w-3" />
+                                  <span>Webhook missing</span>
+                                </Link>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Post-call webhook may have failed. Click to view event logs.</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         ) : (
                           <span className="text-muted-foreground italic text-sm">
-                            {call.ended_at ? "No summary available" : "Awaiting AI summary..."}
+                            Awaiting AI summary...
                           </span>
                         )}
                       </TableCell>

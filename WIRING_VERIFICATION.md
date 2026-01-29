@@ -152,11 +152,67 @@ All handoff functions correctly trigger workflows:
 - Verify services exist with `is_active = true`
 
 ### Call data not persisting
-- Check `ai_event_logs` for `summary_save_error` stage
-- Verify `elevenlabs_conversation_id` is being captured
-- Check ElevenLabs webhook is configured correctly
+- Check `ai_event_logs` for these stages in order:
+  1. `webhook_received` - webhook was hit
+  2. `call_end` - call ended processing started
+  3. `summary_saved` - summary was persisted
+  4. `extraction_saved` - extracted_payload was saved
+  5. `customer_resolved` - customer linked to call
+- If `webhook_session_not_found` appears, the session wasn't created by `twilio-inbound`
+- Verify `elevenlabs_conversation_id` is being captured in `twilio-inbound`
+- Check ElevenLabs webhook URL is configured: `https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-webhook`
 
 ### Workflow not triggering
 - Verify workflow `status = 'active'` and `is_default = true`
 - Verify trigger matches exactly (e.g., `booking.created`)
 - Check `workflow_runs` for failed runs with error details
+
+---
+
+## Post-Call Processing Flow (elevenlabs-webhook)
+
+```
+1. [webhook_received] - Log all incoming webhooks with payload size
+2. [call_end] - Find session by elevenlabs_conversation_id
+3. [summary_saved] - Extract & persist summary, outcome, transcript
+4. [extraction_saved] - Build mode-specific extracted_payload (food/service/dispatch)
+5. [customer_resolved] - Find-or-create customer by E.164 phone
+6. Trigger call.ended workflow
+7. (Food mode) Process food order if applicable
+```
+
+### Extraction Source
+The `extracted_payload._extraction_source` field indicates:
+- `"elevenlabs"` - Structured data came from ElevenLabs analysis
+- `"server_side"` - Fallback extraction from transcript (when ElevenLabs didn't provide data)
+
+---
+
+## Acceptance Test: Post-Call Processing
+
+### Test Steps
+1. [ ] Make a test call to a provisioned number
+2. [ ] During the call:
+   - Say your name: "My name is Alex"
+   - Ask about hours: "What time do you close?"
+   - Request service/order: "I'd like to book an appointment" or "I'd like to place an order"
+3. [ ] End the call
+4. [ ] Wait 10-15 seconds for webhook processing
+5. [ ] Check `/app/calls`:
+   - [ ] Customer name shows "Alex" (not "Unknown caller")
+   - [ ] Summary column has text (not "Webhook missing" badge)
+   - [ ] Service requested column populated
+6. [ ] Check `ai_event_logs` (via debug page or DB):
+   - [ ] `webhook_received` exists with conversation_id
+   - [ ] `summary_saved` exists with outcome
+   - [ ] `extraction_saved` exists with business_mode
+   - [ ] `customer_resolved` exists with customer_id
+
+### If "Webhook missing" Badge Appears
+1. Click the badge to go to debug page
+2. Check `ai_event_logs` for that session_id
+3. Look for error stages: `webhook_session_not_found`, `summary_save_error`
+4. Common causes:
+   - Session not created (twilio-inbound issue)
+   - conversation_id mismatch
+   - Database write error

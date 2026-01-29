@@ -76,8 +76,15 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
   try {
     const payload: ElevenLabsWebhookPayload = await req.json();
+    
+    const payloadSize = JSON.stringify(payload).length;
+    const tenantIdFromPayload = payload.dynamic_variables?.tenant_id || "unknown";
     
     console.log("ElevenLabs webhook received:", JSON.stringify({
       type: payload.type,
@@ -86,7 +93,27 @@ serve(async (req) => {
       has_transcript: !!payload.transcript?.length,
       has_analysis: !!payload.analysis,
       dynamic_variables: payload.dynamic_variables,
+      payload_size: payloadSize,
     }));
+
+    // Log every webhook hit immediately
+    await logEventStage(
+      supabase,
+      tenantIdFromPayload,
+      null,
+      null,
+      payload.conversation_id,
+      "webhook_received",
+      {
+        type: payload.type,
+        payload_size: payloadSize,
+        has_transcript: !!payload.transcript?.length,
+        has_analysis: !!payload.analysis,
+        transcript_length: payload.transcript?.length || 0,
+        analysis_keys: payload.analysis ? Object.keys(payload.analysis) : [],
+        data_collection_keys: payload.analysis?.data_collection ? Object.keys(payload.analysis.data_collection) : [],
+      }
+    );
 
     if (payload.type !== "conversation.ended" && payload.type !== "conversation_ended") {
       console.log("Ignoring non-ended event type:", payload.type);
@@ -95,10 +122,6 @@ serve(async (req) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Find the call session by conversation_id
     const { data: session, error: sessionError } = await supabase
@@ -126,15 +149,32 @@ serve(async (req) => {
           console.log("Found fallback session by phone:", fallbackSession.id);
           await processCallData(supabase, supabaseUrl, supabaseKey, fallbackSession, payload);
           return new Response(
-            JSON.stringify({ status: "success", session_id: fallbackSession.id }),
+            JSON.stringify({ status: "success", session_id: fallbackSession.id, fallback: true }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
       }
       
+      // Log session not found
+      await logEventStage(
+        supabase,
+        tenantIdFromPayload,
+        null,
+        null,
+        payload.conversation_id,
+        "webhook_session_not_found",
+        {
+          conversation_id: payload.conversation_id,
+          caller_phone: payload.dynamic_variables?.caller_phone || null,
+          tenant_id_from_payload: tenantIdFromPayload,
+        },
+        "No matching ai_call_sessions record found"
+      );
+      
+      // Return 200 even on not found to prevent ElevenLabs retries
       return new Response(
-        JSON.stringify({ status: "error", reason: "session not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ status: "warning", reason: "session not found", conversation_id: payload.conversation_id }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -147,9 +187,27 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("Webhook error:", error);
+    
+    // Try to log the error
+    try {
+      await logEventStage(
+        supabase,
+        "unknown",
+        null,
+        null,
+        "unknown",
+        "webhook_error",
+        {},
+        error instanceof Error ? error.message : "Unknown error"
+      );
+    } catch {
+      // Ignore logging failures
+    }
+    
+    // Return 200 even on error to prevent ElevenLabs retries
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ status: "error", error: error instanceof Error ? error.message : "Unknown error" }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
@@ -372,7 +430,18 @@ async function processCallData(
     customer_id: customerId,
     customer_name: customerName,
     extracted_fields: Object.keys(extractedPayload),
+    extraction_source: extractedPayload._extraction_source || "unknown",
   });
+
+  // Log customer resolution
+  if (customerId) {
+    await logEventStage(supabase, tenantId, sessionId, session.twilio_call_sid, payload.conversation_id, "customer_resolved", {
+      customer_id: customerId,
+      customer_name: customerName,
+      phone_e164: callerPhoneE164,
+      was_existing: session.customer_id === customerId,
+    });
+  }
 
   console.log("Updated session:", sessionId, { 
     outcome, 
@@ -524,6 +593,7 @@ async function processCallData(
 }
 
 // Build extracted payload based on business mode
+// Includes server-side extraction fallback when ElevenLabs doesn't provide structured data
 function buildExtractedPayload(
   businessMode: string,
   dataCollection: Record<string, string>,
@@ -540,6 +610,18 @@ function buildExtractedPayload(
   }
   if (dataCollection.notes || dataCollection.special_instructions) {
     payload.notes = dataCollection.notes || dataCollection.special_instructions;
+  }
+  
+  // SERVER-SIDE EXTRACTION FALLBACK
+  // If ElevenLabs didn't provide structured data, extract from transcript
+  const hasStructuredData = Object.keys(dataCollection).length > 0;
+  
+  if (!hasStructuredData && transcript?.length) {
+    const extracted = extractStructuredDataFromTranscript(transcript, businessMode);
+    Object.assign(payload, extracted);
+    payload._extraction_source = "server_side";
+  } else {
+    payload._extraction_source = "elevenlabs";
   }
   
   switch (businessMode) {
@@ -634,6 +716,158 @@ function buildExtractedPayload(
   }
   
   return payload;
+}
+
+// Server-side extraction from transcript when ElevenLabs doesn't provide structured data
+function extractStructuredDataFromTranscript(
+  transcript: NonNullable<ElevenLabsWebhookPayload["transcript"]>,
+  businessMode: string
+): Record<string, unknown> {
+  const extracted: Record<string, unknown> = {};
+  
+  const customerMessages = transcript
+    .filter(t => t.role === "user")
+    .map(t => t.message.toLowerCase())
+    .join(" ");
+  
+  const allMessages = transcript
+    .map(t => t.message.toLowerCase())
+    .join(" ");
+  
+  // Extract customer name
+  const nameMatch = customerMessages.match(/(?:my name is|this is|i'm|i am|call me)\s+([a-z]+(?:\s+[a-z]+)?)/i);
+  if (nameMatch) {
+    extracted.customer_name = nameMatch[1].split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  }
+  
+  // Extract callback number if mentioned
+  const phoneMatch = customerMessages.match(/(?:call me (?:back )?at|my number is|reach me at)\s*([\d\-\(\)\s]+)/);
+  if (phoneMatch) {
+    extracted.callback_number = phoneMatch[1].replace(/\D/g, "");
+  }
+  
+  // Business mode specific extraction
+  switch (businessMode) {
+    case "food":
+      // Check for order confirmation
+      if (allMessages.includes("order") && (allMessages.includes("confirm") || allMessages.includes("placed") || allMessages.includes("ready"))) {
+        extracted.order_confirmed = "true";
+      }
+      
+      // Check order type
+      if (customerMessages.includes("delivery") || customerMessages.includes("deliver")) {
+        extracted.order_type = "delivery";
+      } else if (customerMessages.includes("pickup") || customerMessages.includes("pick up")) {
+        extracted.order_type = "pickup";
+      }
+      
+      // Extract address for delivery
+      const addressMatch = customerMessages.match(/(?:deliver to|address is|at)\s+(\d+\s+[a-z\s]+(?:street|st|avenue|ave|road|rd|drive|dr|lane|ln|way|boulevard|blvd))/i);
+      if (addressMatch) {
+        extracted.delivery_address = addressMatch[1];
+      }
+      
+      // Extract any mentioned food items (basic extraction)
+      const foodItems: string[] = [];
+      const foodPatterns = [
+        /(?:i(?:'d| would) like|order|want|get me|have)\s+(?:a|an|the|some)?\s*(\d*\s*[a-z\s]+)/gi
+      ];
+      for (const pattern of foodPatterns) {
+        const matches = customerMessages.matchAll(pattern);
+        for (const match of matches) {
+          if (match[1] && match[1].length > 2 && match[1].length < 50) {
+            foodItems.push(match[1].trim());
+          }
+        }
+      }
+      if (foodItems.length > 0) {
+        extracted.items_raw = foodItems.join(", ");
+      }
+      break;
+      
+    case "service":
+      // Extract service type
+      const servicePatterns = [
+        /(?:need|want|looking for|schedule|book)\s+(?:a|an)?\s*([a-z\s]+(?:service|appointment|cleaning|repair|maintenance|consultation))/i,
+      ];
+      for (const pattern of servicePatterns) {
+        const match = customerMessages.match(pattern);
+        if (match) {
+          extracted.service_requested = match[1].trim();
+          break;
+        }
+      }
+      
+      // Extract preferred date/time
+      const dateMatch = customerMessages.match(/(?:on|for|this)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|today)/i);
+      if (dateMatch) {
+        extracted.preferred_date = dateMatch[1];
+      }
+      
+      const timeMatch = customerMessages.match(/(?:at|around|about)\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i);
+      if (timeMatch) {
+        extracted.preferred_time = timeMatch[1];
+      }
+      break;
+      
+    case "dispatch":
+      // Extract pickup address
+      const pickupMatch = customerMessages.match(/(?:pick(?:ing)? (?:me )?up|from|at)\s+(\d+\s+[a-z\s]+(?:street|st|avenue|ave|road|rd))/i);
+      if (pickupMatch) {
+        extracted.pickup_address = pickupMatch[1];
+      }
+      
+      // Extract dropoff/destination
+      const dropoffMatch = customerMessages.match(/(?:to|drop(?:ping)? (?:me )?(?:off|at)|going to|destination)\s+(\d+\s+[a-z\s]+(?:street|st|avenue|ave|road|rd))/i);
+      if (dropoffMatch) {
+        extracted.dropoff_address = dropoffMatch[1];
+      }
+      
+      // Extract vehicle info
+      const vehicleMatch = customerMessages.match(/(car|truck|suv|van|sedan|motorcycle|vehicle)/i);
+      if (vehicleMatch) {
+        extracted.vehicle = vehicleMatch[1];
+      }
+      
+      // Check urgency
+      if (customerMessages.includes("urgent") || customerMessages.includes("emergency") || customerMessages.includes("asap") || customerMessages.includes("right away")) {
+        extracted.urgency = "high";
+      }
+      
+      // Check job type
+      if (customerMessages.includes("tow") || customerMessages.includes("broke down")) {
+        extracted.job_type = "tow";
+      } else if (customerMessages.includes("jump") || customerMessages.includes("battery")) {
+        extracted.job_type = "jump_start";
+      } else if (customerMessages.includes("flat") || customerMessages.includes("tire")) {
+        extracted.job_type = "tire_change";
+      } else if (customerMessages.includes("lock") || customerMessages.includes("keys")) {
+        extracted.job_type = "lockout";
+      }
+      break;
+      
+    case "medical":
+      // Check if new patient
+      if (customerMessages.includes("new patient") || customerMessages.includes("first time") || customerMessages.includes("never been")) {
+        extracted.is_new_patient = "true";
+      }
+      
+      // Extract appointment type
+      const apptMatch = customerMessages.match(/(?:need|want|schedule|book)\s+(?:a|an)?\s*([a-z\s]+(?:appointment|checkup|consultation|exam|visit))/i);
+      if (apptMatch) {
+        extracted.appointment_type = apptMatch[1].trim();
+      }
+      break;
+      
+    default:
+      // General extraction
+      const reasonMatch = customerMessages.match(/(?:calling about|reason for calling|need help with|question about)\s+(.+?)(?:\.|$)/i);
+      if (reasonMatch) {
+        extracted.service_requested = reasonMatch[1].trim();
+      }
+  }
+  
+  return extracted;
 }
 
 // deno-lint-ignore no-explicit-any
