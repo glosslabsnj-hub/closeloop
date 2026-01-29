@@ -2785,7 +2785,7 @@ export type Database = {
           hipaa_mode: boolean
           hours_json: Json | null
           id: string
-          industry: Database["public"]["Enums"]["industry_type"]
+          industry: string
           max_advance_days: number | null
           min_lead_hours: number | null
           name: string
@@ -2820,7 +2820,7 @@ export type Database = {
           hipaa_mode?: boolean
           hours_json?: Json | null
           id?: string
-          industry?: Database["public"]["Enums"]["industry_type"]
+          industry?: string
           max_advance_days?: number | null
           min_lead_hours?: number | null
           name: string
@@ -2855,7 +2855,7 @@ export type Database = {
           hipaa_mode?: boolean
           hours_json?: Json | null
           id?: string
-          industry?: Database["public"]["Enums"]["industry_type"]
+          industry?: string
           max_advance_days?: number | null
           min_lead_hours?: number | null
           name?: string
