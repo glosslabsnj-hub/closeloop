@@ -62,7 +62,7 @@ export default function BusinessIdentityForm({ data, onChange }: BusinessIdentit
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Industry *</Label>
-        <Select 
+          <Select 
             value={data.industry} 
             onValueChange={(value) => {
               const newIndustry = value as ExtendedIndustryType;
