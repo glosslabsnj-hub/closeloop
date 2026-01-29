@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Building2, Clock, Users, CreditCard, Bell, Lock, Loader2, Bug, UtensilsCrossed, Calendar, Truck, Stethoscope, Webhook, Zap } from "lucide-react";
+import { Building2, Clock, Users, CreditCard, Bell, Lock, Loader2, Bug, UtensilsCrossed, Calendar, Truck, Stethoscope, Webhook, Zap, Brain } from "lucide-react";
 import { CallContextDebugger } from "@/components/ai/CallContextDebugger";
 import { FoodOrderSettings } from "@/components/settings/FoodOrderSettings";
 import { BookingDeliverySettings } from "@/components/settings/BookingDeliverySettings";
@@ -27,6 +27,8 @@ import { PlanUpgradeCard } from "@/components/settings/PlanUpgradeCard";
 import { MultiLocationManager } from "@/components/settings/MultiLocationManager";
 import { DeliveryIntegrationsSettings } from "@/components/settings/DeliveryIntegrationsSettings";
 import { AutomationRulesSettings } from "@/components/settings/AutomationRulesSettings";
+import { IntelligenceSettingsForm } from "@/components/settings/IntelligenceSettingsForm";
+import { IntentRulesManager } from "@/components/settings/IntentRulesManager";
 
 const timezones = [
   { value: "America/New_York", label: "Eastern Time" },
@@ -149,6 +151,7 @@ export default function SettingsPage() {
   const tabConfig = [
     { value: "business", label: "Business", icon: Building2, visible: true },
     { value: "hours", label: "Hours", icon: Clock, visible: true },
+    { value: "intelligence", label: "AI Intelligence", icon: Brain, visible: true },
     { value: "delivery", label: "Delivery", icon: Webhook, visible: true },
     { value: "automation", label: "Automation", icon: Zap, visible: true },
     { value: "team", label: "Team", icon: Users, visible: true },
@@ -184,6 +187,10 @@ export default function SettingsPage() {
           <TabsTrigger value="hours" className="gap-2">
             <Clock className="h-4 w-4" />
             Hours
+          </TabsTrigger>
+          <TabsTrigger value="intelligence" className="gap-2">
+            <Brain className="h-4 w-4" />
+            AI Intelligence
           </TabsTrigger>
           <TabsTrigger value="delivery" className="gap-2">
             <Webhook className="h-4 w-4" />
@@ -346,6 +353,12 @@ export default function SettingsPage() {
         {/* Delivery & Integrations Tab */}
         <TabsContent value="delivery" className="space-y-6">
           <DeliveryIntegrationsSettings />
+        </TabsContent>
+
+        {/* AI Intelligence Tab */}
+        <TabsContent value="intelligence" className="space-y-6">
+          <IntelligenceSettingsForm />
+          <IntentRulesManager />
         </TabsContent>
 
         {/* Automation Rules Tab */}
