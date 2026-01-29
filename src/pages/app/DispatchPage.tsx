@@ -115,11 +115,11 @@ export default function DispatchPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Dispatch Queue</h1>
-          <p className="text-muted-foreground">Manage and dispatch jobs to crews</p>
+    <div className="p-4 md:p-6 lg:p-8 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="page-header mb-0">
+          <h1 className="page-title">Dispatch Queue</h1>
+          <p className="page-subtitle">Manage and dispatch jobs to crews</p>
         </div>
         <Button>
           <Plus className="h-4 w-4 mr-2" />

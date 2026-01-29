@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -30,12 +31,12 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 
 const statusColors: Record<string, string> = {
-  new: "bg-blue-100 text-blue-800",
-  contacted: "bg-yellow-100 text-yellow-800",
-  qualified: "bg-purple-100 text-purple-800",
-  booked: "bg-green-100 text-green-800",
-  won: "bg-emerald-100 text-emerald-800",
-  lost: "bg-gray-100 text-gray-800",
+  new: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
+  contacted: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
+  qualified: "bg-purple-500/10 text-purple-700 dark:text-purple-400",
+  booked: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+  won: "bg-success/10 text-success",
+  lost: "bg-muted text-muted-foreground",
 };
 
 const sourceLabels: Record<string, string> = {
@@ -68,12 +69,12 @@ export default function LeadsPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Leads</h1>
-          <p className="text-muted-foreground">Manage and track all your leads</p>
+        <div className="page-header mb-0">
+          <h1 className="page-title">Leads</h1>
+          <p className="page-subtitle">Manage and track all your leads</p>
         </div>
         <Button className="gap-2">
           <Plus className="h-4 w-4" />
@@ -208,17 +209,16 @@ export default function LeadsPage() {
               </TableBody>
             </Table>
           ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Users className="h-12 w-12 text-muted-foreground/50 mb-4" />
-              <h3 className="font-semibold text-lg mb-1">No leads yet</h3>
-              <p className="text-muted-foreground mb-4 max-w-sm">
-                Leads will appear here when you receive calls, texts, or add them manually.
-              </p>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Your First Lead
-              </Button>
-            </div>
+            <EmptyState
+              icon={Users}
+              title="No leads yet"
+              description="Leads will appear here when you receive calls, texts, or add them manually."
+              action={{
+                label: "Add Your First Lead",
+                onClick: () => {},
+              }}
+              compact
+            />
           )}
         </CardContent>
       </Card>

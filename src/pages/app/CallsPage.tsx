@@ -6,6 +6,7 @@ import { useModuleRequired } from "@/hooks/useModuleRequired";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { 
   Table, 
   TableBody, 
@@ -120,19 +121,19 @@ export default function CallsPage() {
     switch (status) {
       case "booked":
         return (
-          <Badge className="bg-emerald-500/90 hover:bg-emerald-600/90 text-white border-0">
+          <Badge variant="success">
             Booked
           </Badge>
         );
       case "thinking":
         return (
-          <Badge className="bg-amber-500/90 hover:bg-amber-600/90 text-white border-0">
+          <Badge variant="warning">
             Thinking
           </Badge>
         );
       case "no_book":
         return (
-          <Badge className="bg-destructive hover:bg-destructive/90 text-destructive-foreground border-0">
+          <Badge variant="destructive">
             No Book
           </Badge>
         );
@@ -159,16 +160,16 @@ export default function CallsPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Calls</h1>
-          <p className="text-muted-foreground">
+        <div className="page-header mb-0">
+          <h1 className="page-title">Calls</h1>
+          <p className="page-subtitle">
             All AI-handled calls with extracted information
           </p>
         </div>
-        <Badge variant="outline" className="text-lg px-3 py-1 w-fit">
+        <Badge variant="muted" className="text-base px-3 py-1 w-fit">
           {deduplicatedCalls.length} Contacts
         </Badge>
       </div>
@@ -267,14 +268,13 @@ export default function CallsPage() {
         </Card>
       ) : (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="p-4 rounded-full bg-muted mb-4">
-              <Phone className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h3 className="font-semibold text-lg">No Calls Yet</h3>
-            <p className="text-muted-foreground max-w-sm mt-1">
-              When your AI assistant handles calls, they'll appear here with all the extracted information.
-            </p>
+          <CardContent className="p-0">
+            <EmptyState
+              icon={Phone}
+              title="No calls yet"
+              description="When your AI assistant handles calls, they'll appear here with all extracted information."
+              compact
+            />
           </CardContent>
         </Card>
       )}

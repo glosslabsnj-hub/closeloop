@@ -5,17 +5,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Calendar as CalendarIcon, Plus, Clock, User, DollarSign, CheckCircle2, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format, isSameDay } from "date-fns";
 
 const statusColors: Record<string, string> = {
-  pending_deposit: "bg-yellow-100 text-yellow-800",
-  confirmed: "bg-green-100 text-green-800",
-  completed: "bg-blue-100 text-blue-800",
-  canceled: "bg-gray-100 text-gray-800",
-  no_show: "bg-red-100 text-red-800",
+  pending_deposit: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
+  confirmed: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+  completed: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
+  canceled: "bg-muted text-muted-foreground",
+  no_show: "bg-destructive/10 text-destructive",
 };
 
 const statusLabels: Record<string, string> = {
@@ -101,12 +102,12 @@ export default function BookingsPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Bookings</h1>
-          <p className="text-muted-foreground">Manage your appointments and schedule</p>
+        <div className="page-header mb-0">
+          <h1 className="page-title">Bookings</h1>
+          <p className="page-subtitle">Manage your appointments and schedule</p>
         </div>
         <Button className="gap-2">
           <Plus className="h-4 w-4" />
@@ -201,14 +202,16 @@ export default function BookingsPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <CalendarIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>No bookings for this day</p>
-                    <Button variant="outline" className="mt-4">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Booking
-                    </Button>
-                  </div>
+                  <EmptyState
+                    icon={CalendarIcon}
+                    title="No bookings for this day"
+                    description="Select a different date or add a new booking."
+                    action={{
+                      label: "Add Booking",
+                      onClick: () => {},
+                    }}
+                    compact
+                  />
                 )}
               </TabsContent>
 
@@ -252,13 +255,12 @@ export default function BookingsPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <CalendarIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>No upcoming bookings</p>
-                    <p className="text-sm mt-1">
-                      Book appointments or let the AI schedule for you
-                    </p>
-                  </div>
+                  <EmptyState
+                    icon={CalendarIcon}
+                    title="No upcoming bookings"
+                    description="Book appointments or let the AI schedule for you."
+                    compact
+                  />
                 )}
               </TabsContent>
             </Tabs>
