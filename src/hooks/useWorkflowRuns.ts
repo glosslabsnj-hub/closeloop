@@ -1,0 +1,196 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import type { 
+  WorkflowRun, 
+  WorkflowRunStep, 
+  WorkflowRunWithSteps,
+  WorkflowRunStatus
+} from "@/types/workflow";
+import { useToast } from "@/hooks/use-toast";
+
+// Fetch runs for a specific workflow
+export function useWorkflowRuns(workflowId: string | null, options?: { limit?: number }) {
+  return useQuery({
+    queryKey: ["workflow-runs", workflowId, options?.limit],
+    queryFn: async () => {
+      if (!workflowId) return [];
+      
+      let query = supabase
+        .from("workflow_runs")
+        .select("*")
+        .eq("workflow_id", workflowId)
+        .order("started_at", { ascending: false });
+      
+      if (options?.limit) {
+        query = query.limit(options.limit);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data as WorkflowRun[];
+    },
+    enabled: !!workflowId,
+  });
+}
+
+// Fetch runs for a tenant (all workflows)
+export function useTenantWorkflowRuns(tenantId: string | null, options?: { limit?: number; status?: WorkflowRunStatus }) {
+  return useQuery({
+    queryKey: ["tenant-workflow-runs", tenantId, options],
+    queryFn: async () => {
+      if (!tenantId) return [];
+      
+      let query = supabase
+        .from("workflow_runs")
+        .select("*, workflow:workflows(name, trigger)")
+        .eq("tenant_id", tenantId)
+        .order("started_at", { ascending: false });
+      
+      if (options?.status) {
+        query = query.eq("status", options.status);
+      }
+      
+      if (options?.limit) {
+        query = query.limit(options.limit);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data as (WorkflowRun & { workflow: { name: string; trigger: string } | null })[];
+    },
+    enabled: !!tenantId,
+  });
+}
+
+// Fetch a single run with all its steps
+export function useWorkflowRunDetails(runId: string | null) {
+  return useQuery({
+    queryKey: ["workflow-run", runId],
+    queryFn: async () => {
+      if (!runId) return null;
+      
+      const [runRes, stepsRes] = await Promise.all([
+        supabase
+          .from("workflow_runs")
+          .select("*, workflow:workflows(*)")
+          .eq("id", runId)
+          .single(),
+        supabase
+          .from("workflow_run_steps")
+          .select("*")
+          .eq("run_id", runId)
+          .order("started_at"),
+      ]);
+      
+      if (runRes.error) throw runRes.error;
+      if (stepsRes.error) throw stepsRes.error;
+      
+      return {
+        ...runRes.data,
+        steps: stepsRes.data,
+      } as WorkflowRunWithSteps;
+    },
+    enabled: !!runId,
+  });
+}
+
+// Retry a failed workflow run
+export function useRetryWorkflowRun() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (runId: string) => {
+      // Fetch the original run
+      const { data: run, error: runError } = await supabase
+        .from("workflow_runs")
+        .select("*")
+        .eq("id", runId)
+        .single();
+      
+      if (runError) throw runError;
+      
+      // Trigger the workflow again
+      const { data, error } = await supabase.functions.invoke("trigger-workflow", {
+        body: {
+          tenant_id: run.tenant_id,
+          trigger: run.trigger,
+          entity_type: run.entity_type,
+          entity_id: run.entity_id,
+        },
+      });
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, runId) => {
+      queryClient.invalidateQueries({ queryKey: ["workflow-run", runId] });
+      queryClient.invalidateQueries({ queryKey: ["workflow-runs"] });
+      queryClient.invalidateQueries({ queryKey: ["tenant-workflow-runs"] });
+      toast({ title: "Workflow retry triggered" });
+    },
+    onError: (error) => {
+      toast({ title: "Failed to retry workflow", description: String(error), variant: "destructive" });
+    },
+  });
+}
+
+// Cancel a running workflow
+export function useCancelWorkflowRun() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (runId: string) => {
+      const { error } = await supabase
+        .from("workflow_runs")
+        .update({ 
+          status: "cancelled" as WorkflowRunStatus, 
+          finished_at: new Date().toISOString() 
+        })
+        .eq("id", runId);
+      
+      if (error) throw error;
+    },
+    onSuccess: (_, runId) => {
+      queryClient.invalidateQueries({ queryKey: ["workflow-run", runId] });
+      queryClient.invalidateQueries({ queryKey: ["workflow-runs"] });
+      queryClient.invalidateQueries({ queryKey: ["tenant-workflow-runs"] });
+      toast({ title: "Workflow cancelled" });
+    },
+    onError: (error) => {
+      toast({ title: "Failed to cancel workflow", description: String(error), variant: "destructive" });
+    },
+  });
+}
+
+// Get workflow run statistics
+export function useWorkflowStats(tenantId: string | null) {
+  return useQuery({
+    queryKey: ["workflow-stats", tenantId],
+    queryFn: async () => {
+      if (!tenantId) return null;
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const { data, error } = await supabase
+        .from("workflow_runs")
+        .select("status")
+        .eq("tenant_id", tenantId)
+        .gte("started_at", today.toISOString());
+      
+      if (error) throw error;
+      
+      const stats = {
+        total: data.length,
+        success: data.filter(r => r.status === "success").length,
+        failed: data.filter(r => r.status === "failed").length,
+        running: data.filter(r => r.status === "running").length,
+      };
+      
+      return stats;
+    },
+    enabled: !!tenantId,
+  });
+}
