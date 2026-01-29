@@ -3,13 +3,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageSquare, Printer, Webhook, Phone, Truck, UtensilsCrossed, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { MessageSquare, Printer, Webhook, Phone, Truck, UtensilsCrossed, Calendar, HelpCircle } from "lucide-react";
 import { useTenantConfig, type BusinessMode } from "@/hooks/useTenantConfig";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkflows, useWorkflowMutations } from "@/hooks/useWorkflows";
 import { useToast } from "@/hooks/use-toast";
 import { QuickMessageEditor } from "./QuickMessageEditor";
 import { WebhookSetup } from "./WebhookSetup";
+import { InlineHelpTooltip, AUTOMATION_HELP } from "./InlineHelpTooltip";
 import { getAutomationTogglesForMode, type AutomationToggle } from "@/lib/createDefaultWorkflows";
 import { TEMPLATE_VARIABLES, type WorkflowTrigger, type Workflow } from "@/types/workflow";
 import { supabase } from "@/integrations/supabase/client";
@@ -202,8 +204,36 @@ export function SimpleAutomationPanel({ onAdvancedClick }: SimpleAutomationPanel
     );
   }
 
+  // Get help content for a toggle
+  const getHelpForToggle = (toggle: AutomationToggle) => {
+    if (toggle.trigger === "order.confirmed") return AUTOMATION_HELP.orderConfirmed;
+    if (toggle.trigger === "order.ready") return AUTOMATION_HELP.orderReady;
+    if (toggle.trigger === "booking.confirmed") return AUTOMATION_HELP.bookingConfirmed;
+    if (toggle.trigger === "missed_call") return AUTOMATION_HELP.missedCall;
+    if (toggle.trigger === "dispatch.created") return AUTOMATION_HELP.dispatchCreated;
+    if (toggle.trigger === "dispatch.completed") return AUTOMATION_HELP.dispatchCompleted;
+    if (toggle.primaryNodeType === "print_ticket") return AUTOMATION_HELP.printTicket;
+    if (toggle.primaryNodeType === "webhook_push") return AUTOMATION_HELP.webhookCrm;
+    return null;
+  };
+
   return (
     <div className="space-y-6">
+      {/* Help Banner */}
+      <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border">
+        <div className="flex items-center gap-2">
+          <HelpCircle className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">
+            Need help setting up automations?
+          </span>
+        </div>
+        <Button variant="ghost" size="sm" asChild>
+          <a href="/app/help" className="text-xs">
+            View full guide →
+          </a>
+        </Button>
+      </div>
+
       {/* Customer Notifications */}
       {groupedToggles.notifications.length > 0 && (
         <Card>
@@ -211,6 +241,10 @@ export function SimpleAutomationPanel({ onAdvancedClick }: SimpleAutomationPanel
             <div className="flex items-center gap-2">
               <MessageSquare className="h-5 w-5 text-primary" />
               <CardTitle className="text-lg">Customer Notifications</CardTitle>
+              <InlineHelpTooltip
+                title="Customer Notifications"
+                description="Send automatic text messages to customers when events happen in your business."
+              />
             </div>
             <CardDescription>
               Automatic text messages to keep customers informed
@@ -218,6 +252,7 @@ export function SimpleAutomationPanel({ onAdvancedClick }: SimpleAutomationPanel
           </CardHeader>
           <CardContent className="space-y-4">
             {groupedToggles.notifications.map(toggle => {
+              const helpContent = getHelpForToggle(toggle);
               const state = toggleStates[toggle.id];
               const Icon = getToggleIcon(toggle);
               return (
@@ -232,6 +267,13 @@ export function SimpleAutomationPanel({ onAdvancedClick }: SimpleAutomationPanel
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="font-medium text-sm">{toggle.label}</p>
+                        {helpContent && (
+                          <InlineHelpTooltip
+                            title={helpContent.title}
+                            description={helpContent.description}
+                            steps={helpContent.steps}
+                          />
+                        )}
                         {state?.enabled && (
                           <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">
                             Active
@@ -269,6 +311,10 @@ export function SimpleAutomationPanel({ onAdvancedClick }: SimpleAutomationPanel
             <div className="flex items-center gap-2">
               <Printer className="h-5 w-5 text-primary" />
               <CardTitle className="text-lg">Kitchen / Team Alerts</CardTitle>
+              <InlineHelpTooltip
+                title="Kitchen & Team Alerts"
+                description="Automatically print tickets or alert your team when orders come in."
+              />
             </div>
             <CardDescription>
               Instant notifications for your team
@@ -318,6 +364,16 @@ export function SimpleAutomationPanel({ onAdvancedClick }: SimpleAutomationPanel
             <div className="flex items-center gap-2">
               <Webhook className="h-5 w-5 text-primary" />
               <CardTitle className="text-lg">External Integrations</CardTitle>
+              <InlineHelpTooltip
+                title="External Integrations"
+                description="Send data to your CRM, Zapier, or other external services when events happen."
+                steps={[
+                  "Toggle ON to enable the integration",
+                  "Click 'Set up webhook' to configure",
+                  "Enter your webhook URL or use Zapier",
+                  "Test the connection",
+                ]}
+              />
             </div>
             <CardDescription>
               Connect with your CRM, Zapier, and other tools
