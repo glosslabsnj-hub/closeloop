@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, Play, Pause, Trash2, Settings, Zap, ChevronRight, Loader2 } from "lucide-react";
+import { Plus, Play, Pause, Trash2, Settings, Zap, ChevronRight, Loader2, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,8 +21,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   useAutomationRules,
   useAutomationRuleMutations,
@@ -32,6 +41,7 @@ import {
   type AutomationRule,
 } from "@/hooks/useIntegrations";
 import { useTenantConfig, type BusinessMode } from "@/hooks/useTenantConfig";
+import { formatDistanceToNow } from "date-fns";
 
 interface AutomationRulesSectionProps {
   tenantId: string;
@@ -46,7 +56,8 @@ const EVENTS: Record<string, { label: string; description: string; modes: Busine
   "booking.confirmed": { label: "Booking Confirmed", description: "When a booking is confirmed", modes: ["service", "medical"] },
   "dispatch_job.created": { label: "Dispatch Job Created", description: "When a new dispatch job is created", modes: ["dispatch"] },
   "dispatch.confirmed": { label: "Dispatch Confirmed", description: "When a job is confirmed/assigned", modes: ["dispatch"] },
-  "call.ended": { label: "Call Ended", description: "When an AI call ends", modes: ["service", "food", "dispatch", "medical", "general"] },
+  "call.completed": { label: "Call Completed", description: "When an AI call ends", modes: ["service", "food", "dispatch", "medical", "general"] },
+  "call.ended": { label: "Call Ended (legacy)", description: "Legacy event - use call.completed", modes: ["service", "food", "dispatch", "medical", "general"] },
   "missed_call": { label: "Missed Call", description: "When a call is missed", modes: ["service", "food", "dispatch", "medical", "general"] },
   "lead.captured": { label: "Lead Captured", description: "When a new lead is captured", modes: ["service", "food", "dispatch", "medical", "general"] },
   "sms.received": { label: "SMS Received", description: "When an SMS is received", modes: ["service", "food", "dispatch", "medical", "general"] },
@@ -126,11 +137,52 @@ export function AutomationRulesSection({ tenantId }: AutomationRulesSectionProps
     }
   };
 
-  const handleTest = async (rule: AutomationRule) => {
+  const handleTest = async (rule: AutomationRule, dryRun: boolean) => {
     await testAutomation.mutateAsync({
       rule_id: rule.id,
-      dry_run: true,
+      dry_run: dryRun,
     });
+  };
+
+  // Helper to render run status badge
+  const renderRunStatus = (rule: AutomationRule) => {
+    const latestRun = rule.latest_run;
+    if (!latestRun) {
+      return (
+        <Badge variant="outline" className="text-xs gap-1">
+          <Clock className="h-3 w-3" />
+          Never run
+        </Badge>
+      );
+    }
+
+    const statusConfig: Record<string, { icon: React.ReactNode; variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
+      success: { icon: <CheckCircle className="h-3 w-3" />, variant: "default", label: "Success" },
+      failed: { icon: <XCircle className="h-3 w-3" />, variant: "destructive", label: "Failed" },
+      running: { icon: <Loader2 className="h-3 w-3 animate-spin" />, variant: "secondary", label: "Running" },
+      pending: { icon: <Clock className="h-3 w-3" />, variant: "outline", label: "Pending" },
+      skipped: { icon: <AlertCircle className="h-3 w-3" />, variant: "outline", label: "Skipped" },
+    };
+
+    const config = statusConfig[latestRun.status] || statusConfig.pending;
+    const timeAgo = formatDistanceToNow(new Date(latestRun.started_at), { addSuffix: true });
+
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge variant={config.variant} className="text-xs gap-1 cursor-help">
+            {config.icon}
+            {config.label}
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{timeAgo}</p>
+          {latestRun.error_message && (
+            <p className="text-destructive text-xs mt-1">{latestRun.error_message}</p>
+          )}
+        </TooltipContent>
+      </Tooltip>
+    );
   };
 
   if (isLoading) {
@@ -180,6 +232,7 @@ export function AutomationRulesSection({ tenantId }: AutomationRulesSectionProps
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium">{rule.name}</span>
                           {!rule.enabled && <Badge variant="secondary">Paused</Badge>}
+                          {renderRunStatus(rule)}
                         </div>
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
                           <span>{event?.label || rule.trigger_event}</span>
@@ -193,19 +246,39 @@ export function AutomationRulesSection({ tenantId }: AutomationRulesSectionProps
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleTest(rule)}
-                        disabled={testAutomation.isPending}
-                        title="Test"
-                      >
-                        {testAutomation.isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Play className="h-4 w-4" />
-                        )}
-                      </Button>
+                      {/* Test Trigger Dropdown */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={testAutomation.isPending}
+                            title="Test Trigger"
+                          >
+                            {testAutomation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Play className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Test Automation</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleTest(rule, true)}>
+                            <span className="font-medium">Dry Run</span>
+                            <span className="text-xs text-muted-foreground ml-2">
+                              (simulate)
+                            </span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleTest(rule, false)}>
+                            <span className="font-medium">Execute</span>
+                            <span className="text-xs text-muted-foreground ml-2">
+                              (real run)
+                            </span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       <Button
                         variant="ghost"
                         size="sm"
