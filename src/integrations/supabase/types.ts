@@ -299,6 +299,60 @@ export type Database = {
           },
         ]
       }
+      audit_events: {
+        Row: {
+          actor_id: string | null
+          actor_type: string
+          entity_id: string | null
+          entity_type: string | null
+          event_type: Database["public"]["Enums"]["audit_event_type"]
+          id: string
+          location_id: string | null
+          occurred_at: string
+          payload: Json
+          tenant_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_type?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type: Database["public"]["Enums"]["audit_event_type"]
+          id?: string
+          location_id?: string | null
+          occurred_at?: string
+          payload?: Json
+          tenant_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          actor_type?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type?: Database["public"]["Enums"]["audit_event_type"]
+          id?: string
+          location_id?: string | null
+          occurred_at?: string
+          payload?: Json
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_events_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -790,6 +844,47 @@ export type Database = {
           },
           {
             foreignKeyName: "catering_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      confirmation_receipts: {
+        Row: {
+          confirmation_hash: string
+          confirmation_summary: string
+          confirmed_by: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          tenant_id: string
+        }
+        Insert: {
+          confirmation_hash: string
+          confirmation_summary: string
+          confirmed_by: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          tenant_id: string
+        }
+        Update: {
+          confirmation_hash?: string
+          confirmation_summary?: string
+          confirmed_by?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "confirmation_receipts_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2228,6 +2323,50 @@ export type Database = {
           },
         ]
       }
+      retention_policies: {
+        Row: {
+          audit_days: number
+          created_at: string
+          hipaa_mode: boolean
+          recording_days: number
+          store_recordings: boolean
+          store_transcripts: boolean
+          tenant_id: string
+          transcript_days: number
+          updated_at: string
+        }
+        Insert: {
+          audit_days?: number
+          created_at?: string
+          hipaa_mode?: boolean
+          recording_days?: number
+          store_recordings?: boolean
+          store_transcripts?: boolean
+          tenant_id: string
+          transcript_days?: number
+          updated_at?: string
+        }
+        Update: {
+          audit_days?: number
+          created_at?: string
+          hipaa_mode?: boolean
+          recording_days?: number
+          store_recordings?: boolean
+          store_transcripts?: boolean
+          tenant_id?: string
+          transcript_days?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "retention_policies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       services: {
         Row: {
           created_at: string
@@ -3249,6 +3388,21 @@ export type Database = {
       ai_call_outcome: "booked" | "followup" | "lost" | "escalated"
       ai_knowledge_type: "faq" | "objection" | "policy" | "upsell"
       ai_tone: "friendly" | "professional" | "luxury" | "direct"
+      audit_event_type:
+        | "call.started"
+        | "call.ended"
+        | "sms.received"
+        | "sms.sent"
+        | "order.created"
+        | "order.confirmed"
+        | "booking.created"
+        | "booking.confirmed"
+        | "dispatch.created"
+        | "dispatch.confirmed"
+        | "handoff.sent"
+        | "handoff.failed"
+        | "ai.summary.created"
+        | "ai.policy.violation"
       automation_trigger:
         | "missed_call"
         | "new_lead"
@@ -3543,6 +3697,22 @@ export const Constants = {
       ai_call_outcome: ["booked", "followup", "lost", "escalated"],
       ai_knowledge_type: ["faq", "objection", "policy", "upsell"],
       ai_tone: ["friendly", "professional", "luxury", "direct"],
+      audit_event_type: [
+        "call.started",
+        "call.ended",
+        "sms.received",
+        "sms.sent",
+        "order.created",
+        "order.confirmed",
+        "booking.created",
+        "booking.confirmed",
+        "dispatch.created",
+        "dispatch.confirmed",
+        "handoff.sent",
+        "handoff.failed",
+        "ai.summary.created",
+        "ai.policy.violation",
+      ],
       automation_trigger: [
         "missed_call",
         "new_lead",
