@@ -28,13 +28,16 @@ interface ServiceUploaderProps {
   onUploadComplete?: (sourceId: string) => void;
   onConflictsFound?: (count: number) => void;
   compact?: boolean;
+  /** If true, uploads are disabled until tenantId is available */
+  onboardingMode?: boolean;
 }
 
 export function ServiceUploader({ 
   tenantId, 
   onUploadComplete, 
   onConflictsFound,
-  compact = false 
+  compact = false,
+  onboardingMode = false
 }: ServiceUploaderProps) {
   const { tenant } = useAuth();
   const effectiveTenantId = tenantId || tenant?.id;
@@ -77,7 +80,11 @@ export function ServiceUploader({
 
   const handleFileUpload = async (file: File) => {
     if (!effectiveTenantId) {
-      toast.error("Please complete Step 1 first");
+      if (onboardingMode) {
+        toast.info("Uploads will be processed after you complete setup. For now, enter your services manually below.");
+      } else {
+        toast.error("Please complete Step 1 first");
+      }
       return;
     }
 

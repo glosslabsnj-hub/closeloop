@@ -11,7 +11,7 @@ import {
   FileText, CheckCircle2, Loader2, ArrowRight, ArrowLeft, 
   Users, Sparkles, Edit2, Brain
 } from "lucide-react";
-import { ExtendedIndustryType } from "@/data/industryTemplates";
+import { ExtendedIndustryType, industryConfigs } from "@/data/industryTemplates";
 import { resolveIndustryTemplate } from "@/lib/templateResolver";
 import BusinessIdentityForm, { BusinessIdentity } from "@/components/onboarding/BusinessIdentityForm";
 import ServiceEditorAdvanced, { AdvancedService } from "@/components/onboarding/ServiceEditorAdvanced";
@@ -105,6 +105,23 @@ export default function OnboardingPage() {
 
   const totalSteps = 8;
   const progress = (step / totalSteps) * 100;
+
+  // Load industry from sessionStorage (set from demo player or signup flow)
+  useEffect(() => {
+    const storedIndustry = sessionStorage.getItem("selectedIndustry");
+    if (storedIndustry && storedIndustry !== businessIdentity.industry) {
+      // Validate it's a real industry key
+      if (storedIndustry in industryConfigs) {
+        console.log(`[Onboarding] Loading stored industry from sessionStorage: ${storedIndustry}`);
+        setBusinessIdentity(prev => ({
+          ...prev,
+          industry: storedIndustry as ExtendedIndustryType
+        }));
+      }
+      // Clear after use
+      sessionStorage.removeItem("selectedIndustry");
+    }
+  }, []); // Only on mount
 
   // Redirect if user already has a tenant (onboarding completed)
   useEffect(() => {
@@ -544,6 +561,7 @@ export default function OnboardingPage() {
                 <div className="border-t pt-4 mt-4">
                   <ServiceUploader 
                     compact
+                    onboardingMode
                     onConflictsFound={(count) => setUploadConflictCount(prev => prev + count)}
                   />
                 </div>
