@@ -83,6 +83,52 @@ All handoff functions correctly trigger workflows:
 
 ---
 
+## Food Mode Verification (Bella Italia Test)
+
+### Pre-requisites
+- Tenant: `Bella Italia Ristorante` (id: `b0000000-0000-0000-0000-000000000002`)
+- Business mode: `food`
+- Has 6 menu items with prices and modifiers
+- Has hours configured (Mon closed, Tue-Sun open)
+
+### Test 1: Hours Question
+1. [ ] Call/test with the food tenant
+2. [ ] Ask: "What time do you close?"
+3. [ ] **Expected**: AI answers with actual hours (e.g., "We're open until 10 PM today" or "We close at 22:00")
+4. [ ] AI does NOT say "I don't have access to hours"
+
+### Test 2: Menu Knowledge
+1. [ ] Ask: "What's on the menu?"
+2. [ ] **Expected**: AI lists menu items with prices (Bruschetta $9.99, Margherita Pizza $15.99, etc.)
+3. [ ] Ask about modifiers: "Can I get extra cheese on the pizza?"
+4. [ ] **Expected**: AI confirms modifiers are available
+
+### Test 3: Take an Order
+1. [ ] Say: "I'd like to place an order for pickup"
+2. [ ] **Expected**: AI asks for order items
+3. [ ] Order: "I'll have the Margherita Pizza and a Tiramisu"
+4. [ ] **Expected**: AI confirms items and prices, asks for name/phone
+5. [ ] Provide name: "My name is John"
+6. [ ] **Expected**: AI confirms order total and gives time estimate
+
+### Test 4: Order Created in Database
+1. [ ] After call ends, check `/app/orders`
+2. [ ] **Expected**: Order appears with items: Margherita Pizza, Tiramisu
+3. [ ] Order status is "confirmed" or "needs_followup"
+4. [ ] Customer name shows "John"
+
+### Test 5: Debug Context Verification
+1. [ ] Go to `/debug/ai-context`
+2. [ ] Find the browser_test snapshot for Bella Italia
+3. [ ] **Expected**:
+   - `context_has_hours: true`
+   - `context_has_menu: true`  
+   - `hours_today: 11:00 - 22:00` (or similar)
+   - `menu_summary` shows all 6 items with prices
+   - Golden Path tests pass for "Hours answerable" and "Menu items"
+
+---
+
 ## Database Tables Used
 
 | Table | Purpose |
@@ -91,10 +137,10 @@ All handoff functions correctly trigger workflows:
 | `ai_context_snapshots` | Diagnostic snapshots of AI context per call |
 | `ai_event_logs` | Lifecycle events (call_start, context_built, call_end, summary_saved) |
 | `customers` | Customer records resolved by phone_e164 |
+| `food_orders` | Orders created from AI calls in food mode |
+| `menu_items` | Menu items for food mode tenants |
 | `workflow_runs` | Workflow execution records |
-| `workflow_run_steps` | Individual step execution within workflows |
 | `automation_rules` | Legacy automation rules (simple trigger→action) |
-| `automation_runs` | Legacy automation run history |
 
 ---
 
