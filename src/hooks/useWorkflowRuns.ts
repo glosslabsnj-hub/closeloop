@@ -194,7 +194,7 @@ export function useTestTriggerWorkflow() {
           tenant_id: tenantId,
           trigger,
           entity_type: trigger.split(".")[0], // order, booking, dispatch, etc.
-          entity_id: `test_${Date.now()}`,
+          entity_id: "00000000-0000-0000-0000-000000000000", // Reserved test UUID
           details: {
             test_trigger: true,
             workflow_id: workflowId,
