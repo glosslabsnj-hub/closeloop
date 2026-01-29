@@ -220,11 +220,11 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Orders</h1>
-          <p className="text-muted-foreground">Manage incoming food orders</p>
+    <div className="p-4 md:p-6 lg:p-8 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="page-header mb-0">
+          <h1 className="page-title">Orders</h1>
+          <p className="page-subtitle">Manage incoming food orders</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={toggleSound} title={soundEnabled ? "Mute alerts" : "Enable alerts"}>
@@ -361,7 +361,7 @@ export default function OrdersPage() {
                       </TableCell>
                       <TableCell>
                         {order.special_instructions ? (
-                          <Badge variant="secondary" className="bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                          <Badge variant="warning">
                             ⚠️ Yes
                           </Badge>
                         ) : (

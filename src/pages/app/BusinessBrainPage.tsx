@@ -206,14 +206,14 @@ export default function BusinessBrainPage() {
   const updatesActionNeeded = conflictsCount > 0 || suggestionsCount > 0;
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+        <div className="page-header mb-0">
+          <h1 className="page-title flex items-center gap-2">
             <Brain className="h-6 w-6" />
             Business Brain
           </h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="page-subtitle">
             Everything your AI knows about your business
           </p>
         </div>

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Dialog,
   DialogContent,
@@ -131,12 +132,12 @@ export default function ServicesPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Services</h1>
-          <p className="text-muted-foreground">Manage your service menu and pricing</p>
+        <div className="page-header mb-0">
+          <h1 className="page-title">Services</h1>
+          <p className="page-subtitle">Manage your service menu and pricing</p>
         </div>
         <Button className="gap-2" onClick={openCreateDialog}>
           <Plus className="h-4 w-4" />
@@ -208,16 +209,16 @@ export default function ServicesPage() {
         </div>
       ) : (
         <Card>
-          <CardContent className="py-12 text-center">
-            <DollarSign className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="font-semibold text-lg mb-2">No services yet</h3>
-            <p className="text-muted-foreground mb-4">
-              Add your first service to start booking appointments.
-            </p>
-            <Button onClick={openCreateDialog}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Service
-            </Button>
+          <CardContent className="p-0">
+            <EmptyState
+              icon={DollarSign}
+              title="No services yet"
+              description="Add your first service to start booking appointments."
+              action={{
+                label: "Add Service",
+                onClick: openCreateDialog,
+              }}
+            />
           </CardContent>
         </Card>
       )}

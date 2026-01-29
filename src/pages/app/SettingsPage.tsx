@@ -167,10 +167,10 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">Manage your business settings</p>
+    <div className="p-4 md:p-6 lg:p-8 space-y-6">
+      <div className="page-header mb-0">
+        <h1 className="page-title">Settings</h1>
+        <p className="page-subtitle">Manage your business settings</p>
       </div>
 
       {/* Mobile Tab Selector */}
