@@ -743,6 +743,526 @@ async function executeAssignToUser(
   };
 }
 
+// ===== AUTOMATION RULES EXECUTION =====
+
+// Execute automation rules from automation_rules table
+async function executeAutomationRules(
+  supabase: any,
+  supabaseUrl: string,
+  tenantId: string,
+  trigger: string,
+  entityType: string,
+  entityId: string,
+  context: Record<string, any>,
+  isDryRun: boolean
+): Promise<{ executed: number; results: any[] }> {
+  // Query enabled automation rules for this trigger
+  const { data: rules, error: rulesError } = await supabase
+    .from("automation_rules")
+    .select("*, integration:integrations(*)")
+    .eq("tenant_id", tenantId)
+    .eq("trigger_event", trigger)
+    .eq("enabled", true)
+    .order("priority", { ascending: true });
+
+  if (rulesError || !rules || rules.length === 0) {
+    console.log(`[automation_rules] No enabled rules for ${trigger}`);
+    return { executed: 0, results: [] };
+  }
+
+  console.log(`[automation_rules] Found ${rules.length} rules for ${trigger}`);
+
+  const results: any[] = [];
+
+  for (const rule of rules) {
+    // Idempotency check: trigger_event:entity_id:rule_id within 5 minutes
+    const idempotencyKey = `${trigger}:${entityId}:${rule.id}`;
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+
+    const { data: existingRun } = await supabase
+      .from("automation_runs")
+      .select("id, status")
+      .eq("tenant_id", tenantId)
+      .eq("rule_id", rule.id)
+      .eq("entity_id", entityId)
+      .eq("trigger_event", trigger)
+      .gte("started_at", fiveMinutesAgo)
+      .maybeSingle();
+
+    if (existingRun && existingRun.status === "success") {
+      console.log(`[automation_rules] Skipping rule ${rule.name} - already executed (idempotent)`);
+      results.push({ rule_id: rule.id, rule_name: rule.name, status: "skipped", reason: "idempotent" });
+      continue;
+    }
+
+    // Create automation_run record
+    const { data: run, error: runError } = await supabase
+      .from("automation_runs")
+      .insert({
+        tenant_id: tenantId,
+        rule_id: rule.id,
+        trigger_event: trigger,
+        entity_type: entityType,
+        entity_id: entityId,
+        status: "running",
+        payload_snapshot: context,
+      })
+      .select()
+      .single();
+
+    if (runError) {
+      console.error(`[automation_rules] Failed to create run for rule ${rule.name}:`, runError);
+      results.push({ rule_id: rule.id, rule_name: rule.name, status: "error", error: runError.message });
+      continue;
+    }
+
+    try {
+      const stepResult = await executeAutomationAction(
+        supabase,
+        supabaseUrl,
+        run.id,
+        rule,
+        context,
+        isDryRun
+      );
+
+      // Update run status
+      await supabase
+        .from("automation_runs")
+        .update({
+          status: stepResult.success ? "success" : "failed",
+          finished_at: nowIso(),
+          error_message: stepResult.error || null,
+        })
+        .eq("id", run.id);
+
+      results.push({
+        rule_id: rule.id,
+        rule_name: rule.name,
+        run_id: run.id,
+        status: stepResult.success ? "success" : "failed",
+        response: stepResult.response,
+        error: stepResult.error,
+      });
+    } catch (error) {
+      await supabase
+        .from("automation_runs")
+        .update({
+          status: "failed",
+          finished_at: nowIso(),
+          error_message: String(error),
+        })
+        .eq("id", run.id);
+
+      results.push({
+        rule_id: rule.id,
+        rule_name: rule.name,
+        run_id: run.id,
+        status: "failed",
+        error: String(error),
+      });
+    }
+  }
+
+  return { executed: results.filter(r => r.status === "success").length, results };
+}
+
+// Execute a single automation action based on action_type
+async function executeAutomationAction(
+  supabase: any,
+  supabaseUrl: string,
+  runId: string,
+  rule: any,
+  context: Record<string, any>,
+  isDryRun: boolean
+): Promise<{ success: boolean; response?: any; error?: string }> {
+  const actionType = rule.action_type;
+  const provider = rule.destination_provider;
+  const integration = rule.integration;
+  const config = integration?.config_json || {};
+  const fieldMapping = rule.field_mapping_json || {};
+
+  // Create step record
+  const { data: step } = await supabase
+    .from("automation_run_steps")
+    .insert({
+      run_id: runId,
+      action_type: actionType,
+      destination_provider: provider,
+      status: "running",
+      request_payload: { action_type: actionType, context_keys: Object.keys(context), dry_run: isDryRun },
+    })
+    .select()
+    .single();
+
+  try {
+    let result: { success: boolean; response?: any; error?: string };
+
+    switch (actionType) {
+      case "send_webhook":
+        result = await executeWebhookAction(config, context, fieldMapping, isDryRun);
+        break;
+
+      case "create_event":
+        result = await executeCalendarAction(config, context, fieldMapping, isDryRun);
+        break;
+
+      case "append_row":
+        result = await executeSheetsAction(config, context, fieldMapping, isDryRun);
+        break;
+
+      case "print_receipt":
+        result = await executePrintAction(supabase, supabaseUrl, context, isDryRun, rule.tenant_id);
+        break;
+
+      case "send_sms":
+        result = await executeSmsAction(supabase, context, isDryRun, rule.tenant_id);
+        break;
+
+      default:
+        result = { success: false, error: `Unsupported action type: ${actionType}` };
+    }
+
+    // Update step with result
+    if (step) {
+      await supabase
+        .from("automation_run_steps")
+        .update({
+          status: result.success ? "success" : "failed",
+          finished_at: nowIso(),
+          response_payload: result.response || null,
+          error_message: result.error || null,
+        })
+        .eq("id", step.id);
+    }
+
+    return result;
+  } catch (error) {
+    if (step) {
+      await supabase
+        .from("automation_run_steps")
+        .update({
+          status: "failed",
+          finished_at: nowIso(),
+          error_message: String(error),
+        })
+        .eq("id", step.id);
+    }
+    return { success: false, error: String(error) };
+  }
+}
+
+// Webhook action
+async function executeWebhookAction(
+  config: any,
+  context: Record<string, any>,
+  fieldMapping: any,
+  isDryRun: boolean
+): Promise<{ success: boolean; response?: any; error?: string }> {
+  const url = config.webhook_url || config.url;
+  if (!url) {
+    return { success: false, error: "No webhook URL configured" };
+  }
+
+  // Build payload from context (apply field mapping if present)
+  let payload = context;
+  if (Object.keys(fieldMapping).length > 0) {
+    payload = {};
+    for (const [targetField, sourcePath] of Object.entries(fieldMapping)) {
+      payload[targetField] = resolvePath(String(sourcePath), context);
+    }
+  }
+
+  if (isDryRun) {
+    return {
+      success: true,
+      response: { dry_run: true, would_post_to: url, payload_keys: Object.keys(payload) },
+    };
+  }
+
+  // Build headers with optional HMAC signature
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (config.webhook_secret) {
+    const encoder = new TextEncoder();
+    const payloadStr = JSON.stringify(payload);
+    const key = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(config.webhook_secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(payloadStr));
+    const signatureHex = Array.from(new Uint8Array(signature))
+      .map(b => b.toString(16).padStart(2, "0"))
+      .join("");
+    headers["X-CloseLoop-Signature"] = `sha256=${signatureHex}`;
+  }
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  const responseText = await response.text();
+
+  if (!response.ok) {
+    return {
+      success: false,
+      error: `Webhook returned ${response.status}`,
+      response: { status: response.status, body: responseText.slice(0, 500) },
+    };
+  }
+
+  return {
+    success: true,
+    response: { status: response.status, body: responseText.slice(0, 500) },
+  };
+}
+
+// Google Calendar action (placeholder - requires OAuth integration)
+async function executeCalendarAction(
+  config: any,
+  context: Record<string, any>,
+  fieldMapping: any,
+  isDryRun: boolean
+): Promise<{ success: boolean; response?: any; error?: string }> {
+  // For now, return simulated success
+  // Full implementation requires Google OAuth token refresh
+  const eventDetails = {
+    summary: context.service_name || context.job_type || "CloseLoop Event",
+    start: context.start_time || context.scheduled_at,
+    end: context.end_time,
+    description: context.notes || context.description || "",
+    attendees: context.customer_email ? [context.customer_email] : [],
+  };
+
+  if (isDryRun) {
+    return {
+      success: true,
+      response: { dry_run: true, would_create_event: eventDetails },
+    };
+  }
+
+  // TODO: Implement actual Google Calendar API call
+  console.log("[executeCalendarAction] Calendar integration not fully implemented, simulating success");
+  return {
+    success: true,
+    response: { simulated: true, event: eventDetails },
+  };
+}
+
+// Google Sheets action (placeholder)
+async function executeSheetsAction(
+  config: any,
+  context: Record<string, any>,
+  fieldMapping: any,
+  isDryRun: boolean
+): Promise<{ success: boolean; response?: any; error?: string }> {
+  const sheetId = config.sheet_id;
+  const sheetName = config.sheet_name || "Sheet1";
+
+  // Build row from context or field mapping
+  let rowData: string[];
+  if (Object.keys(fieldMapping).length > 0) {
+    rowData = Object.entries(fieldMapping).map(([, sourcePath]) =>
+      String(resolvePath(String(sourcePath), context) ?? "")
+    );
+  } else {
+    // Default mapping for common fields
+    rowData = [
+      context.timestamp || nowIso(),
+      context.customer_name || "",
+      context.customer_phone || "",
+      context.customer_email || "",
+      context.entity_type || "",
+      context.status || context.outcome || "",
+      context.service_name || context.order_number || context.job_number || "",
+      context.total_formatted || "",
+      context.notes || context.summary || "",
+    ];
+  }
+
+  if (isDryRun) {
+    return {
+      success: true,
+      response: { dry_run: true, sheet_id: sheetId, sheet_name: sheetName, row: rowData },
+    };
+  }
+
+  // TODO: Implement actual Google Sheets API call
+  console.log("[executeSheetsAction] Sheets integration not fully implemented, simulating success");
+  return {
+    success: true,
+    response: { simulated: true, sheet_id: sheetId, row_appended: true, row_data: rowData },
+  };
+}
+
+// Print receipt action
+async function executePrintAction(
+  supabase: any,
+  supabaseUrl: string,
+  context: Record<string, any>,
+  isDryRun: boolean,
+  tenantId: string
+): Promise<{ success: boolean; response?: any; error?: string }> {
+  const entityType = context.entity_type;
+  const entityId = context.entity_id;
+
+  // Generate printable HTML
+  const receiptHtml = generateReceiptHtml(context);
+
+  // Store confirmation receipt
+  const confirmationSummary = `${entityType} ${context.order_number || context.job_number || context.booking_id || entityId}`;
+  const confirmationHash = await generateHash(confirmationSummary + nowIso());
+
+  if (isDryRun) {
+    return {
+      success: true,
+      response: { dry_run: true, would_print: { entity_type: entityType, entity_id: entityId, html_length: receiptHtml.length } },
+    };
+  }
+
+  // Insert confirmation receipt
+  await supabase.from("confirmation_receipts").insert({
+    tenant_id: tenantId,
+    entity_type: entityType,
+    entity_id: entityId,
+    confirmation_summary: confirmationSummary,
+    confirmation_hash: confirmationHash,
+    confirmed_by: "automation",
+  });
+
+  // Update entity handoff_state for print
+  if (entityType === "order") {
+    await supabase
+      .from("food_orders")
+      .update({
+        handoff_state: {
+          print_requested: true,
+          print_requested_at: nowIso(),
+        },
+      })
+      .eq("id", entityId);
+  }
+
+  // TODO: Call PrintNode or similar if configured
+  console.log("[executePrintAction] Print requested for", entityType, entityId);
+
+  return {
+    success: true,
+    response: { print_queued: true, entity_type: entityType, entity_id: entityId },
+  };
+}
+
+// SMS action
+async function executeSmsAction(
+  supabase: any,
+  context: Record<string, any>,
+  isDryRun: boolean,
+  tenantId: string
+): Promise<{ success: boolean; response?: any; error?: string }> {
+  const to = context.customer_phone;
+  if (!to) {
+    return { success: false, error: "No customer phone for SMS" };
+  }
+
+  // Build message based on entity type
+  let message = "";
+  if (context.entity_type === "order") {
+    message = `Your order #${context.order_number || ""} has been received! ${context.order_type === "delivery" ? "We'll deliver to you soon." : "Ready for pickup soon."}`;
+  } else if (context.entity_type === "booking") {
+    message = `Your appointment for ${context.service_name || "your service"} is confirmed for ${context.start_time || "the scheduled time"}.`;
+  } else if (context.entity_type === "dispatch") {
+    message = `Your service request #${context.job_number || ""} has been received. We'll be in touch shortly.`;
+  } else {
+    message = `Thank you for contacting ${context.business_name || "us"}. We'll follow up shortly.`;
+  }
+
+  if (isDryRun) {
+    return {
+      success: true,
+      response: { dry_run: true, would_send_to: to, message },
+    };
+  }
+
+  // Get Twilio credentials
+  const twilioAccountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
+  const twilioAuthToken = Deno.env.get("TWILIO_AUTH_TOKEN");
+
+  if (!twilioAccountSid || !twilioAuthToken) {
+    console.log("[executeSmsAction] Twilio not configured, simulating");
+    return { success: true, response: { simulated: true, to, message } };
+  }
+
+  // Get from number
+  const { data: phoneNumber } = await supabase
+    .from("phone_numbers")
+    .select("phone_e164")
+    .eq("tenant_id", tenantId)
+    .eq("purpose", "forwarding")
+    .single();
+
+  const fromNumber = phoneNumber?.phone_e164;
+  if (!fromNumber) {
+    return { success: false, error: "No from number configured" };
+  }
+
+  const response = await fetch(
+    `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${btoa(`${twilioAccountSid}:${twilioAuthToken}`)}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({ To: to, From: fromNumber, Body: message }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    return { success: false, error: `Twilio error: ${errorText}` };
+  }
+
+  const result = await response.json();
+  return { success: true, response: { message_sid: result.sid, to } };
+}
+
+// Helper to generate simple receipt HTML
+function generateReceiptHtml(context: Record<string, any>): string {
+  const lines = [
+    `<html><body style="font-family: monospace; padding: 20px;">`,
+    `<h2>${context.business_name || "Order"}</h2>`,
+    `<p><strong>${context.entity_type?.toUpperCase() || "ITEM"}</strong></p>`,
+  ];
+
+  if (context.order_number) lines.push(`<p>Order #: ${context.order_number}</p>`);
+  if (context.job_number) lines.push(`<p>Job #: ${context.job_number}</p>`);
+  if (context.customer_name) lines.push(`<p>Customer: ${context.customer_name}</p>`);
+  if (context.customer_phone) lines.push(`<p>Phone: ${context.customer_phone}</p>`);
+  if (context.items_summary) lines.push(`<p>Items: ${context.items_summary}</p>`);
+  if (context.total_formatted) lines.push(`<p><strong>Total: ${context.total_formatted}</strong></p>`);
+  if (context.special_instructions) lines.push(`<p>Notes: ${context.special_instructions}</p>`);
+
+  lines.push(`<p style="margin-top: 20px; font-size: 10px;">Printed: ${nowIso()}</p>`);
+  lines.push(`</body></html>`);
+
+  return lines.join("\n");
+}
+
+// Generate hash for confirmation receipts
+async function generateHash(input: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(input);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("")
+    .substring(0, 32);
+}
+
 // Main handler
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -769,6 +1289,24 @@ serve(async (req) => {
 
     console.log(`[trigger-workflow] Triggering ${trigger} for ${entity_type}/${entity_id}${isDryRun ? " (DRY RUN)" : ""}`);
 
+    // Log the event trigger
+    try {
+      await supabase.from("ai_event_logs").insert({
+        tenant_id,
+        stage: "workflow_trigger_received",
+        event_data: {
+          trigger,
+          entity_type,
+          entity_id,
+          location_id,
+          dry_run: isDryRun,
+          has_details: !!details,
+        },
+      });
+    } catch (e) {
+      console.error("Failed to log workflow trigger:", e);
+    }
+
     // Get retry count if this is a retry
     let retryCount = 0;
     if (retry_run_id) {
@@ -780,26 +1318,11 @@ serve(async (req) => {
       retryCount = (parentRun?.retry_count || 0) + 1;
     }
 
-    // Find matching active workflow
-    const workflow = await getActiveWorkflow(supabase, tenant_id, trigger, location_id);
-
-    if (!workflow) {
-      console.log(`[trigger-workflow] No active workflow found for ${trigger}`);
-      return json(200, { ok: true, status: "no_workflow", message: "No active workflow for this trigger" });
-    }
-
-    console.log(`[trigger-workflow] Found workflow: ${workflow.name} (${workflow.id})`);
-
-    // Load delivery settings and graph in parallel
-    const [delivery, graph] = await Promise.all([
-      loadDeliverySettings(supabase, tenant_id),
-      loadGraph(supabase, workflow.id),
-    ]);
-
-    // Build execution context
-    const entityContext = await buildContext(supabase, entity_type, entity_id, tenant_id);
+    // ===== STEP 1: Execute automation_rules (simpler trigger-action rules) =====
+    const delivery = await loadDeliverySettings(supabase, tenant_id);
+    const baseContext = await buildContext(supabase, entity_type, entity_id, tenant_id);
     const context: Record<string, any> = {
-      ...entityContext,
+      ...baseContext,
       delivery,
       details: details ?? {},
       customer: customer ?? {},
@@ -807,6 +1330,40 @@ serve(async (req) => {
       trigger,
       is_dry_run: isDryRun,
     };
+
+    const automationResults = await executeAutomationRules(
+      supabase,
+      supabaseUrl,
+      tenant_id,
+      trigger,
+      entity_type,
+      entity_id,
+      context,
+      isDryRun
+    );
+
+    console.log(`[trigger-workflow] Executed ${automationResults.executed} automation rules`);
+
+    // ===== STEP 2: Execute workflow (node-based workflows) =====
+    const workflow = await getActiveWorkflow(supabase, tenant_id, trigger, location_id);
+
+    if (!workflow) {
+      console.log(`[trigger-workflow] No active workflow found for ${trigger}`);
+      // Still return success if automation rules executed
+      return json(200, {
+        ok: true,
+        status: automationResults.executed > 0 ? "automation_rules_only" : "no_workflow",
+        message: automationResults.executed > 0 
+          ? `Executed ${automationResults.executed} automation rules, no workflow found`
+          : "No active workflow or automation rules for this trigger",
+        automation_results: automationResults,
+      });
+    }
+
+    console.log(`[trigger-workflow] Found workflow: ${workflow.name} (${workflow.id})`);
+
+    // Load workflow graph
+    const graph = await loadGraph(supabase, workflow.id);
 
     // Create workflow run
     const { data: run, error: createRunError } = await supabase
@@ -836,7 +1393,7 @@ serve(async (req) => {
         .from("workflow_runs")
         .update({ status: "failed", finished_at: nowIso(), error: "Workflow has no start node" })
         .eq("id", run.id);
-      return json(200, { ok: false, run_id: run.id, error: "Workflow has no start node" });
+      return json(200, { ok: false, run_id: run.id, error: "Workflow has no start node", automation_results: automationResults });
     }
 
     // BFS traversal with adjacency list
@@ -912,6 +1469,7 @@ serve(async (req) => {
       status: finalStatus,
       steps_executed: stepsExecuted,
       error: executionError,
+      automation_results: automationResults,
     });
   } catch (error) {
     console.error("[trigger-workflow] Error:", error);

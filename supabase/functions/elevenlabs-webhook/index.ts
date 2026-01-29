@@ -578,25 +578,76 @@ async function processCallData(
     console.error("Failed to record call.ended audit event:", e);
   }
 
-  // ===== TRIGGER CALL.ENDED WORKFLOW =====
-  try {
-    await fetch(`${supabaseUrl}/functions/v1/trigger-workflow`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${supabaseKey}`,
-      },
-      body: JSON.stringify({
-        tenant_id: tenantId,
-        trigger: "call.ended",
-        entity_type: "call",
-        entity_id: sessionId,
-        location_id: locationId,
-      }),
-    });
-    console.log("Triggered call.ended workflow for session:", sessionId);
-  } catch (e) {
-    console.error("Failed to trigger call.ended workflow:", e);
+  // ===== TRIGGER CALL.ENDED AND CALL.COMPLETED EVENTS =====
+  // call.ended - legacy event name
+  // call.completed - preferred event name for automations
+  const eventsToTrigger = ["call.ended", "call.completed"];
+  
+  for (const eventName of eventsToTrigger) {
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/trigger-workflow`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          trigger: eventName,
+          entity_type: "call",
+          entity_id: sessionId,
+          location_id: locationId,
+          customer: customerId ? {
+            id: customerId,
+            name: customerName,
+            phone: callerPhoneE164,
+          } : undefined,
+          summary: analysis.summary,
+          details: {
+            outcome,
+            duration_secs: payload.metadata?.call_duration_secs,
+            service_requested: serviceRequested,
+            extracted_payload: extractedPayload,
+          },
+        }),
+      });
+      console.log(`Triggered ${eventName} workflow for session:`, sessionId);
+    } catch (e) {
+      console.error(`Failed to trigger ${eventName} workflow:`, e);
+    }
+  }
+
+  // Also emit lead.captured if applicable
+  if ((outcome === "lead_captured" || outcome === "booked" || outcome === "followup") && customerId) {
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/trigger-workflow`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          trigger: "lead.captured",
+          entity_type: "lead",
+          entity_id: customerId,
+          location_id: locationId,
+          customer: {
+            id: customerId,
+            name: customerName,
+            phone: callerPhoneE164,
+          },
+          details: {
+            source: "ai_call",
+            outcome,
+            service_requested: serviceRequested,
+          },
+        }),
+      });
+      console.log("Triggered lead.captured workflow for customer:", customerId);
+    } catch (e) {
+      console.error("Failed to trigger lead.captured workflow:", e);
+    }
   }
 
   // ===== RECORD POST-CALL OBSERVATIONS (CONFIDENCE GATED) =====

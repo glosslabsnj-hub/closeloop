@@ -32,6 +32,13 @@ export interface AutomationRule {
   priority: number;
   created_at: string;
   updated_at: string;
+  // Attached at query time
+  latest_run?: {
+    status: string;
+    started_at: string;
+    finished_at: string | null;
+    error_message: string | null;
+  } | null;
 }
 
 export interface AutomationRun {
@@ -159,7 +166,7 @@ export function useIntegrations(tenantId: string | null) {
   });
 }
 
-// Fetch automation rules for tenant
+// Fetch automation rules for tenant with latest run status
 export function useAutomationRules(tenantId: string | null) {
   return useQuery({
     queryKey: ["automation_rules", tenantId],
@@ -171,7 +178,34 @@ export function useAutomationRules(tenantId: string | null) {
         .eq("tenant_id", tenantId)
         .order("priority", { ascending: true });
       if (error) throw error;
-      return data as AutomationRule[];
+      
+      // Fetch latest run for each rule
+      const rules = data as AutomationRule[];
+      const ruleIds = rules.map(r => r.id);
+      
+      if (ruleIds.length > 0) {
+        const { data: runs } = await supabase
+          .from("automation_runs")
+          .select("rule_id, status, started_at, finished_at, error_message")
+          .in("rule_id", ruleIds)
+          .order("started_at", { ascending: false });
+        
+        // Group runs by rule_id and take the most recent
+        const latestRunByRule: Record<string, AutomationRun> = {};
+        for (const run of (runs || [])) {
+          if (!latestRunByRule[run.rule_id!]) {
+            latestRunByRule[run.rule_id!] = run as AutomationRun;
+          }
+        }
+        
+        // Attach latest run to each rule
+        return rules.map(rule => ({
+          ...rule,
+          latest_run: latestRunByRule[rule.id] || null,
+        }));
+      }
+      
+      return rules.map(rule => ({ ...rule, latest_run: null }));
     },
     enabled: !!tenantId,
   });
