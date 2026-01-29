@@ -5,11 +5,11 @@
 /* CloseLoop Design System - Premium Modern SaaS */
 @layer base {
   :root {
-    /* Slightly warmer, brighter background for depth */
-    --background: 0 0% 99%;
+    /* Soft gray background (Notion/Linear style) for contrast */
+    --background: 220 14% 96%;
     --foreground: 222 47% 11%;
 
-    /* Cards with subtle warmth */
+    /* White cards pop against gray background */
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
 
