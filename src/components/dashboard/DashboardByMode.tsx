@@ -22,6 +22,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { format, startOfDay, endOfDay, isToday } from "date-fns";
+import { AutomationStatusCard } from "./AutomationStatusCard";
 
 interface TodayStats {
   callsToday: number;
@@ -171,7 +172,7 @@ function ServiceTodayView({ stats }: { stats?: TodayStats }) {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Today's Overview</h3>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <StatCard
           title="Calls Today"
           value={stats?.callsToday || 0}
@@ -192,6 +193,7 @@ function ServiceTodayView({ stats }: { stats?: TodayStats }) {
           variant="success"
           href="/app/bookings"
         />
+        <AutomationStatusCard />
         <QuickActionCard
           title="Schedule Booking"
           description="Create a new appointment"
@@ -207,7 +209,7 @@ function DispatchTodayView({ stats }: { stats?: TodayStats }) {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Active Dispatch Queue</h3>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <StatCard
           title="Calls Today"
           value={stats?.callsToday || 0}
@@ -228,6 +230,7 @@ function DispatchTodayView({ stats }: { stats?: TodayStats }) {
           variant={stats?.pendingItems ? "warning" : "default"}
           href="/app/dispatch"
         />
+        <AutomationStatusCard />
         <QuickActionCard
           title="New Job"
           description="Create dispatch request"
@@ -243,7 +246,7 @@ function FoodTodayView({ stats }: { stats?: TodayStats }) {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Kitchen Queue</h3>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <StatCard
           title="Calls Today"
           value={stats?.callsToday || 0}
@@ -264,6 +267,7 @@ function FoodTodayView({ stats }: { stats?: TodayStats }) {
           variant="success"
           href="/app/orders"
         />
+        <AutomationStatusCard />
         <QuickActionCard
           title="New Order"
           description="Take a phone order"
