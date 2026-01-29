@@ -424,6 +424,7 @@ export function useAutomationRuleMutations(tenantId: string | null) {
 // Test trigger automation (for dry-run testing)
 export function useTestAutomation() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (data: {
@@ -431,19 +432,49 @@ export function useTestAutomation() {
       sample_payload?: Record<string, unknown>;
       dry_run?: boolean;
     }) => {
+      // Fetch the automation rule to get trigger_event and tenant_id
+      const { data: rule, error: ruleError } = await supabase
+        .from("automation_rules")
+        .select("tenant_id, trigger_event, action_type, destination_provider")
+        .eq("id", data.rule_id)
+        .single();
+      
+      if (ruleError || !rule) {
+        throw new Error("Automation rule not found");
+      }
+
+      // Parse entity type from trigger event (e.g., "order.created" → "order")
+      const entityType = rule.trigger_event.split(".")[0];
+      // Use a valid UUID for test entity - this is a reserved test UUID
+      const testEntityId = "00000000-0000-0000-0000-000000000000";
+
+      // Call trigger-workflow with proper parameters
       const { data: result, error } = await supabase.functions.invoke("trigger-workflow", {
         body: {
-          rule_id: data.rule_id,
+          tenant_id: rule.tenant_id,
+          trigger: rule.trigger_event,
+          entity_type: entityType,
+          entity_id: testEntityId,
           dry_run: data.dry_run ?? true,
-          test_mode: true,
-          details: data.sample_payload || {},
+          details: {
+            test_mode: true,
+            rule_id: data.rule_id,
+            ...data.sample_payload,
+          },
         },
       });
       if (error) throw error;
       return result;
     },
-    onSuccess: () => {
-      toast({ title: "Test completed successfully" });
+    onSuccess: (result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["automation_runs"] });
+      const isDryRun = variables.dry_run ?? true;
+      toast({ 
+        title: isDryRun ? "Test Complete (Dry Run)" : "Test Complete",
+        description: result.status === "no_workflow" 
+          ? "No matching workflow found for this trigger"
+          : `${isDryRun ? "Simulated" : "Executed"} ${result.steps_executed || 0} steps. Status: ${result.status}`,
+      });
     },
     onError: (error) => {
       toast({ title: "Test failed", description: String(error), variant: "destructive" });
