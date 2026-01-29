@@ -231,8 +231,17 @@ export default function OnboardingPage() {
     setLoading(true);
 
     try {
+      // IMPORTANT (RLS): we cannot immediately `select()` the newly inserted tenant row
+      // because the user isn't linked in `tenant_users` yet, so the tenants SELECT policy
+      // would block the read. Generate the tenant id client-side and insert without RETURNING.
+      const tenantId = globalThis.crypto?.randomUUID?.();
+      if (!tenantId) {
+        throw new Error("Unable to generate business id. Please refresh and try again.");
+      }
+
       // Create tenant with all the collected data
       const tenantData = {
+        id: tenantId,
         name: businessIdentity.businessName,
         tagline: businessIdentity.tagline || null,
         industry: businessIdentity.industry as any,
@@ -255,26 +264,20 @@ export default function OnboardingPage() {
         ai_enabled: false,
       };
 
-      const { data: tenant, error: tenantError } = await supabase
+      const { error: tenantError } = await supabase
         .from("tenants")
-        .insert(tenantData as any)
-        .select()
-        .single();
+        .insert(tenantData as any);
 
       if (tenantError) {
         console.error("Tenant creation error:", tenantError);
         throw new Error(tenantError.message || "Failed to create business profile");
       }
 
-      if (!tenant) {
-        throw new Error("Failed to create business profile - no data returned");
-      }
-
       // Create tenant user
       const { error: tuError } = await supabase
         .from("tenant_users")
         .insert({
-          tenant_id: tenant.id,
+          tenant_id: tenantId,
           user_id: user.id,
           role: "owner",
         });
@@ -288,7 +291,7 @@ export default function OnboardingPage() {
       const servicesToInsert = services
         .filter(s => s.name.trim().length > 0)
         .map(service => ({
-          tenant_id: tenant.id,
+          tenant_id: tenantId,
           name: service.name,
           description: service.description || null,
           duration_minutes: service.duration,
@@ -314,7 +317,7 @@ export default function OnboardingPage() {
       const faqsToInsert = faqs
         .filter(f => f.question.trim().length > 0 && f.answer.trim().length > 0)
         .map((faq, index) => ({
-          tenant_id: tenant.id,
+          tenant_id: tenantId,
           question: faq.question,
           answer: faq.answer,
           priority_weight: index,
@@ -334,7 +337,7 @@ export default function OnboardingPage() {
       const objectionsToInsert = objections
         .filter(o => o.objection.trim().length > 0 && o.response.trim().length > 0)
         .map((obj, index) => ({
-          tenant_id: tenant.id,
+          tenant_id: tenantId,
           objection: obj.objection,
           response: obj.response,
           priority_weight: index,
@@ -353,7 +356,7 @@ export default function OnboardingPage() {
       // Create default automations
       const automationsToInsert = [
         {
-          tenant_id: tenant.id,
+          tenant_id: tenantId,
           name: "Missed Call Follow-up",
           trigger: "missed_call" as const,
           is_enabled: true,
@@ -362,7 +365,7 @@ export default function OnboardingPage() {
           ],
         },
         {
-          tenant_id: tenant.id,
+          tenant_id: tenantId,
           name: "Booking Confirmation",
           trigger: "booking_created" as const,
           is_enabled: true,
@@ -388,7 +391,7 @@ export default function OnboardingPage() {
       const { error: subError } = await supabase
         .from("subscriptions")
         .insert({
-          tenant_id: tenant.id,
+          tenant_id: tenantId,
           plan_code: planCode,
           status: "trialing",
           current_period_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 day trial
@@ -401,7 +404,7 @@ export default function OnboardingPage() {
 
       // Initialize assistant settings based on plan
       const { error: settingsError } = await supabase.rpc("initialize_assistant_settings", {
-        _tenant_id: tenant.id,
+        _tenant_id: tenantId,
         _plan_code: planCode,
       });
 
@@ -416,7 +419,7 @@ export default function OnboardingPage() {
           const { data: provisionData, error: provisionError } = await supabase.functions.invoke(
             "provision-twilio-number",
             {
-              body: { tenant_id: tenant.id, number_type: "local" },
+              body: { tenant_id: tenantId, number_type: "local" },
             }
           );
 
@@ -437,7 +440,7 @@ export default function OnboardingPage() {
       await supabase
         .from("tenants")
         .update({ onboarding_completed_at: new Date().toISOString() })
-        .eq("id", tenant.id);
+        .eq("id", tenantId);
 
       // Clear the stored plan
       sessionStorage.removeItem("selectedPlan");
