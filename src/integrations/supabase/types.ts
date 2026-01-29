@@ -2702,6 +2702,7 @@ export type Database = {
           address: string | null
           ai_enabled: boolean
           ai_never_promise: string[] | null
+          ai_policies_json: Json | null
           ai_readiness_score: number | null
           appointment_buffer_minutes: number | null
           business_mode: Database["public"]["Enums"]["business_mode"]
@@ -2736,6 +2737,7 @@ export type Database = {
           address?: string | null
           ai_enabled?: boolean
           ai_never_promise?: string[] | null
+          ai_policies_json?: Json | null
           ai_readiness_score?: number | null
           appointment_buffer_minutes?: number | null
           business_mode?: Database["public"]["Enums"]["business_mode"]
@@ -2770,6 +2772,7 @@ export type Database = {
           address?: string | null
           ai_enabled?: boolean
           ai_never_promise?: string[] | null
+          ai_policies_json?: Json | null
           ai_readiness_score?: number | null
           appointment_buffer_minutes?: number | null
           business_mode?: Database["public"]["Enums"]["business_mode"]
