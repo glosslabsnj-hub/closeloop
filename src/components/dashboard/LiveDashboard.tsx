@@ -10,6 +10,7 @@ import { UsageThresholdBanner } from "./UsageThresholdBanner";
 import { Copilot, CopilotTrigger } from "./Copilot";
 import { BusinessBrainStatusCard } from "./BusinessBrainStatusCard";
 import { KnowledgeConflictBanner } from "./KnowledgeConflictBanner";
+import { NextStepsPanel } from "./NextStepsPanel";
 import { hasVoiceFeature } from "@/config/pricing";
 
 export function LiveDashboard() {
@@ -38,8 +39,11 @@ export function LiveDashboard() {
         <QuickLinksCard />
       </div>
 
-      {/* Full Width: Recent Activity */}
-      <RecentActivityCard />
+      {/* Full Width: Recent Activity + What's Happening */}
+      <div className="grid md:grid-cols-2 gap-6">
+        <RecentActivityCard />
+        <NextStepsPanel />
+      </div>
 
       {/* Two Column: Brain Status + Setup/Checklist */}
       <div className="grid md:grid-cols-2 gap-6">

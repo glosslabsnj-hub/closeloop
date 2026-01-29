@@ -2900,6 +2900,60 @@ export type Database = {
           },
         ]
       }
+      routing_rules: {
+        Row: {
+          config_json: Json | null
+          created_at: string
+          destination: string
+          enabled: boolean
+          id: string
+          integration_id: string | null
+          label: string
+          tenant_id: string
+          trigger_event: string
+          updated_at: string
+        }
+        Insert: {
+          config_json?: Json | null
+          created_at?: string
+          destination: string
+          enabled?: boolean
+          id?: string
+          integration_id?: string | null
+          label: string
+          tenant_id: string
+          trigger_event: string
+          updated_at?: string
+        }
+        Update: {
+          config_json?: Json | null
+          created_at?: string
+          destination?: string
+          enabled?: boolean
+          id?: string
+          integration_id?: string | null
+          label?: string
+          tenant_id?: string
+          trigger_event?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routing_rules_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routing_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       services: {
         Row: {
           created_at: string
@@ -2949,6 +3003,71 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "services_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      setup_requests: {
+        Row: {
+          admin_notes: string | null
+          assigned_to: string | null
+          completed_at: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          credentials_notes: string | null
+          credentials_provided: boolean | null
+          id: string
+          notes: string | null
+          status: string
+          sync_type: string[]
+          target_system: string
+          target_system_other: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          assigned_to?: string | null
+          completed_at?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          credentials_notes?: string | null
+          credentials_provided?: boolean | null
+          id?: string
+          notes?: string | null
+          status?: string
+          sync_type?: string[]
+          target_system: string
+          target_system_other?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          assigned_to?: string | null
+          completed_at?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          credentials_notes?: string | null
+          credentials_provided?: boolean | null
+          id?: string
+          notes?: string | null
+          status?: string
+          sync_type?: string[]
+          target_system?: string
+          target_system_other?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "setup_requests_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
