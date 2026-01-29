@@ -36,7 +36,6 @@ import {
   Stethoscope,
   HelpCircle,
   AlertTriangle,
-  GitBranch,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useMemo } from "react";
@@ -64,7 +63,6 @@ const allNavItems: NavItem[] = [
   { href: "/app/medical-intake", label: "Medical Intake", icon: Stethoscope, requiredModules: ["medical_intake"] },
   { href: "/app/services", label: "Services", icon: Briefcase },
   { href: "/app/business-brain", label: "Business Brain", icon: Bot },
-  { href: "/app/workflows", label: "Workflows", icon: GitBranch, requiredModules: ["booking", "food_orders", "dispatch_queue", "ai_voice", "instant_text_back"] },
   { href: "/app/automations", label: "Automations", icon: Zap },
   { href: "/app/simulator", label: "Simulator", icon: FlaskConical },
   { href: "/app/help", label: "Help Center", icon: HelpCircle },
