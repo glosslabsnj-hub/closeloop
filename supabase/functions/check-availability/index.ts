@@ -10,6 +10,22 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+// Timezone offset map for common US timezones (simplified)
+const TIMEZONE_OFFSETS: Record<string, string> = {
+  "America/New_York": "-05:00",
+  "America/Chicago": "-06:00",
+  "America/Denver": "-07:00",
+  "America/Los_Angeles": "-08:00",
+  "America/Phoenix": "-07:00",
+  "America/Anchorage": "-09:00",
+  "America/Honolulu": "-10:00",
+  "UTC": "+00:00",
+};
+
+function getTimezoneOffset(tz: string): string {
+  return TIMEZONE_OFFSETS[tz] || "-05:00"; // Default to EST
+}
+
 /**
  * check-availability: Real-time slot availability check for AI voice agent
  * 
@@ -69,12 +85,17 @@ serve(async (req: Request) => {
     const bufferMinutes = tenant.appointment_buffer_minutes || 15;
     const minLeadHours = tenant.min_lead_hours || 2;
 
-    // Parse the requested date/time
-    const requestedStart = new Date(`${requested_date}T${requested_time}:00`);
-    const requestedEnd = new Date(requestedStart.getTime() + duration_minutes * 60 * 1000);
+    // Parse the requested date/time in the tenant's timezone
+    // The requested_time is in tenant local time, so we build an ISO string with offset
+    const tzOffset = getTimezoneOffset(timezone);
+    const localDateTimeStr = `${requested_date}T${requested_time}:00${tzOffset}`;
+    
+    const requestedStart = new Date(localDateTimeStr);
+    // Total blocked time includes duration + buffer for following appointments
+    const requestedEnd = new Date(requestedStart.getTime() + (duration_minutes + bufferMinutes) * 60 * 1000);
 
     console.log("=== CHECK AVAILABILITY ===");
-    console.log("Tenant:", tenant_id);
+    console.log("Tenant:", tenant_id, "Timezone:", timezone);
     console.log("Requested:", requestedStart.toISOString(), "to", requestedEnd.toISOString());
 
     // Check minimum lead time

@@ -339,6 +339,47 @@ serve(async (req) => {
     }
 
     // ===== CALL ELEVENLABS REGISTER-CALL API =====
+    // Build availability context for strict slot enforcement
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split("T")[0];
+    
+    // Precompute tomorrow's available slots for the agent
+    let precomputedSlots: string[] = [];
+    try {
+      // Get tenant hours_json directly from database for slot computation
+      const { data: tenantHours } = await supabase
+        .from("tenants")
+        .select("hours_json")
+        .eq("id", tenantId)
+        .single();
+      
+      const { data: slots } = await supabase.rpc("fn_compute_available_slots", {
+        _tenant_id: tenantId,
+        _start_date: tomorrowStr,
+        _end_date: tomorrowStr,
+        _duration_minutes: 60, // Default duration
+        _buffer_minutes: 15,
+        _business_hours: tenantHours?.hours_json || null,
+      });
+      if (slots && Array.isArray(slots)) {
+        precomputedSlots = slots.slice(0, 6).map((s: { slot_time_local: string }) => s.slot_time_local);
+      }
+    } catch (e) {
+      console.error("Failed to precompute slots:", e);
+    }
+
+    // Build strict scheduling instructions
+    const schedulingInstructions = `
+STRICT SCHEDULING RULES (MANDATORY):
+- You MUST verify availability before confirming ANY appointment time.
+- NEVER invent or guess available times. Only offer times you know are available.
+- Tomorrow's available slots: ${precomputedSlots.length > 0 ? precomputedSlots.join(", ") : "Check with backend"}
+- If a customer asks for "earlier" times and none exist, explain: "That's our earliest opening for [service duration]."
+- Always confirm the service type first to ensure correct duration (some services need 2+ hours).
+- When a customer requests a specific time, verify it's in the available slots before confirming.
+`;
+
     const registerCallPayload = {
       agent_id: ELEVENLABS_AGENT_ID,
       from_number: fromNumber,
@@ -346,9 +387,16 @@ serve(async (req) => {
       conversation_initiation_client_data: {
         dynamic_variables: dynamicVariables,
       },
+      conversation_config_override: {
+        agent: {
+          prompt: {
+            prompt: systemPrompt + "\n\n" + schedulingInstructions,
+          },
+        },
+      },
     };
     
-    console.log("Sending to ElevenLabs:", JSON.stringify(registerCallPayload, null, 2));
+    console.log("Sending to ElevenLabs with prompt override, slots:", precomputedSlots.length);
     
     const registerCallResponse = await fetch(
       `https://api.elevenlabs.io/v1/convai/twilio/register-call`,
