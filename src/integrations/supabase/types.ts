@@ -334,6 +334,11 @@ export type Database = {
           pending_booking_notify_sms: boolean | null
           phone_connected: boolean
           phone_method: string | null
+          readiness_last_computed_at: string | null
+          readiness_p0_flags: Json | null
+          readiness_p1_flags: Json | null
+          readiness_recommendations: Json | null
+          readiness_score: number | null
           setup_completed_at: string | null
           setup_step_calendar: boolean | null
           setup_step_phone: boolean | null
@@ -366,6 +371,11 @@ export type Database = {
           pending_booking_notify_sms?: boolean | null
           phone_connected?: boolean
           phone_method?: string | null
+          readiness_last_computed_at?: string | null
+          readiness_p0_flags?: Json | null
+          readiness_p1_flags?: Json | null
+          readiness_recommendations?: Json | null
+          readiness_score?: number | null
           setup_completed_at?: string | null
           setup_step_calendar?: boolean | null
           setup_step_phone?: boolean | null
@@ -398,6 +408,11 @@ export type Database = {
           pending_booking_notify_sms?: boolean | null
           phone_connected?: boolean
           phone_method?: string | null
+          readiness_last_computed_at?: string | null
+          readiness_p0_flags?: Json | null
+          readiness_p1_flags?: Json | null
+          readiness_recommendations?: Json | null
+          readiness_score?: number | null
           setup_completed_at?: string | null
           setup_step_calendar?: boolean | null
           setup_step_phone?: boolean | null
@@ -4410,6 +4425,7 @@ export type Database = {
         Args: { _connection_id: string; _events: Json; _tenant_id: string }
         Returns: number
       }
+      get_ai_readiness: { Args: { tenant_uuid: string }; Returns: Json }
       get_user_tenant_id: { Args: { _user_id: string }; Returns: string }
       has_active_subscription: {
         Args: { _tenant_id: string }
