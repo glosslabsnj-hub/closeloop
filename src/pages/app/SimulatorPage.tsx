@@ -5,7 +5,8 @@ import AIBrainDebugger from "@/components/simulator/AIBrainDebugger";
 import CustomerMergeQueue from "@/components/customers/CustomerMergeQueue";
 import { AIReadinessChecklist } from "@/components/knowledge/AIReadinessChecklist";
 import QuickSetupWizard from "@/components/setup/QuickSetupWizard";
-import { Phone, MessageSquare, Users, Brain, Zap } from "lucide-react";
+import { DebugPagesNav } from "@/components/admin/DebugPagesNav";
+import { Phone, MessageSquare, Users, Brain, Zap, Bug } from "lucide-react";
 
 export default function SimulatorPage() {
   return (
@@ -42,6 +43,10 @@ export default function SimulatorPage() {
             <Users className="h-4 w-4" />
             Customer Conflicts
           </TabsTrigger>
+          <TabsTrigger value="debug" className="gap-2">
+            <Bug className="h-4 w-4" />
+            Debug Pages
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="setup" className="mt-4">
@@ -62,6 +67,10 @@ export default function SimulatorPage() {
 
         <TabsContent value="conflicts" className="mt-4">
           <CustomerMergeQueue />
+        </TabsContent>
+
+        <TabsContent value="debug" className="mt-4">
+          <DebugPagesNav />
         </TabsContent>
       </Tabs>
     </div>
