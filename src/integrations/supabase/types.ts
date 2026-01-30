@@ -2088,6 +2088,56 @@ export type Database = {
           },
         ]
       }
+      golden_path_runs: {
+        Row: {
+          created_at: string
+          fail_count: number | null
+          finished_at: string | null
+          id: string
+          mode: string | null
+          overall_status: string
+          pass_count: number | null
+          results_json: Json
+          run_by: string | null
+          started_at: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          fail_count?: number | null
+          finished_at?: string | null
+          id?: string
+          mode?: string | null
+          overall_status?: string
+          pass_count?: number | null
+          results_json?: Json
+          run_by?: string | null
+          started_at?: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          fail_count?: number | null
+          finished_at?: string | null
+          id?: string
+          mode?: string | null
+          overall_status?: string
+          pass_count?: number | null
+          results_json?: Json
+          run_by?: string | null
+          started_at?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "golden_path_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       handoff_attempts: {
         Row: {
           created_at: string | null
