@@ -1,145 +1,128 @@
 
-# Settings Page UX Overhaul
+# Availability Setup UX Overhaul
 
 ## Problem Analysis
-The current Settings page has usability issues that make it overwhelming for business owners:
 
-1. **Too many tabs (10-14)** - The horizontal tab bar is crowded and wraps on smaller screens
-2. **Technical naming** - Terms like "Data Controls", "Delivery", "Automation" are confusing for non-technical users
-3. **Poor organization** - Related settings are scattered across different tabs (e.g., multiple "delivery" tabs)
-4. **Flat hierarchy** - All settings appear equally important, making it hard to find common tasks
-5. **Developer tab visible** - Exposes technical debugging tools to business owners who don't need them
-6. **Lack of guidance** - No descriptions explaining what each section controls
+You're absolutely right. Currently the system has all the pieces for real-time availability:
+- Weekly business hours
+- Calendar sync (Google/Microsoft/ICS)
+- Busy blocks from synced calendars
+- The `fn_compute_available_slots` function that merges everything
 
-## Solution Overview
+But the **setup flow is broken and confusing**. A business owner has no clear path to:
+1. Understand what the AI actually knows about their schedule
+2. Connect their real calendar (not just set static hours)
+3. Block specific times for today/tomorrow
+4. See their actual availability in real-time
 
-Reorganize settings into **4 clear categories** with user-friendly names and helpful descriptions:
+## Solution: Unified "My Availability" Hub
 
-```text
-Settings (Sidebar Layout)
-├── Your Business
-│   ├── Profile & Identity
-│   ├── Business Hours
-│   └── Team Members
-│
-├── AI & Privacy
-│   ├── AI Learning
-│   ├── Data & Privacy
-│   └── HIPAA (if applicable)
-│
-├── Notifications & Delivery
-│   ├── How You Get Notified
-│   ├── Where Bookings/Orders Go
-│   └── Automation Rules
-│
-└── Plan & Billing
-    ├── Your Plan
-    └── Usage & Upgrades
-```
+Create a dedicated, prominent availability management experience that consolidates everything into one clear section.
 
----
-
-## Implementation Details
-
-### Phase 1: New Sidebar Navigation Layout
-
-Replace the horizontal tab bar with a clean left sidebar navigation that groups related settings:
+### New Availability Section Structure
 
 ```text
-┌──────────────────┬───────────────────────────────────────────────┐
-│  SETTINGS        │                                               │
-│                  │  [Active Section Content]                     │
-│  Your Business   │                                               │
-│    Profile       │  Business Profile                             │
-│    Hours         │  ────────────────────────                     │
-│    Team          │  Update your business name, phone, and        │
-│                  │  timezone. This information helps your AI     │
-│  AI & Privacy    │  answer questions accurately.                 │
-│    AI Learning   │                                               │
-│    Data Storage  │  [Form fields...]                             │
-│    HIPAA ⓘ       │                                               │
-│                  │                                               │
-│  Notifications   │                                               │
-│    Alerts        │                                               │
-│    Integrations  │                                               │
-│    Automation    │                                               │
-│                  │                                               │
-│  Plan & Billing  │                                               │
-│    Current Plan  │                                               │
-│                  │                                               │
-│  ─────────────── │                                               │
-│  Advanced        │                                               │
-│    Developer ⚙️   │                                               │
-└──────────────────┴───────────────────────────────────────────────┘
+YOUR AVAILABILITY
+├── Status Card (What AI Knows Now)
+│   └── Real-time: "Open today 9am-5pm, 3 slots booked, 2 available"
+│
+├── Calendar Source
+│   ├── "Your calendar isn't connected yet" [Connect Now]
+│   └── OR: "Synced with Google Calendar ✓" [Manage]
+│
+├── Weekly Schedule (Base Hours)
+│   └── Mon-Fri editor with toggle switches
+│
+├── This Week's Availability (Visual Timeline)
+│   ├── Today: ████░░██ (busy blocks shown visually)
+│   ├── Tomorrow: ██████░░ 
+│   └── [Block Time] [View Full Calendar]
+│
+└── Quick Block
+    └── "Block time for today/tomorrow" inline form
 ```
 
-**Mobile**: Collapsible accordion-style navigation at the top
+### Phase 1: Create "Availability Hub" Component
 
-### Phase 2: Section Descriptions with Helper Text
+Replace the current fragmented setup with a unified `AvailabilityHub.tsx` component that:
 
-Add clear descriptions to each section so owners understand what they control:
-
-| Section | User-Friendly Name | Description |
-|---------|-------------------|-------------|
-| Business | Profile | "Your business name, phone number, and timezone" |
-| Hours | Business Hours | "When you're open for calls and appointments" |
-| Intelligence | AI Learning | "How your AI learns and improves over time" |
-| Data Controls | Data & Privacy | "What call data is saved and for how long" |
-| Delivery | Where Things Go | "Push bookings and orders to your existing tools" |
-| Automation | Automation Rules | "Auto-confirm or review before sending" |
-| Notifications | How You Get Notified | "Email and SMS alerts for new activity" |
-| Billing | Your Plan | "Usage, limits, and plan upgrades" |
-| Developer | Developer Tools | "Debug and inspect AI behavior (advanced)" |
-
-### Phase 3: Consolidate Delivery Settings
-
-Merge the three delivery tabs (Delivery, Booking Delivery, Dispatch Delivery, Food) into one unified "Integrations" section with sub-tabs based on enabled modules:
-
+**Top Section - Connection Status (Most Important)**
 ```text
-Integrations
-├── Where Things Go (current DeliveryIntegrationsSettings)
-│   - Webhook, Email, SMS notification destinations
-│
-├── Bookings (if booking enabled)
-│   - Auto-confirm toggle
-│   - Specific webhook for bookings
-│
-├── Orders (if food mode)
-│   - Print settings
-│   - Order-specific webhooks
-│
-└── Dispatch (if dispatch enabled)
-    - Dispatch-specific delivery
+┌─────────────────────────────────────────────────────────────────────┐
+│  📅 YOUR SCHEDULE                                                   │
+│                                                                     │
+│  ⚠️ Calendar not connected                                          │
+│  Your AI only knows your basic hours. Connect your calendar         │
+│  so it can see meetings, appointments, and busy times.              │
+│                                                                     │
+│  [Connect Google Calendar] [Connect Outlook] [I'll manage manually] │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Phase 4: Hide Developer Tools by Default
+OR when connected:
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│  📅 YOUR SCHEDULE                            Last synced: 5 min ago │
+│                                                                     │
+│  ✅ Connected to Google Calendar                                    │
+│  AI sees your meetings and blocks those times automatically.        │
+│                                                                     │
+│  [Sync Now] [Manage Connection]                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
-Move Developer tab to the bottom of the sidebar under "Advanced" section that's collapsed by default:
+**Middle Section - Today & Tomorrow At-a-Glance**
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│  TODAY'S AVAILABILITY                                 Thursday, Jan 30│
+│                                                                     │
+│  9 AM  ████████ Meeting (from calendar)                             │
+│  10 AM ████████ John's Appointment (booking)                        │
+│  11 AM ░░░░░░░░ Available                                           │
+│  12 PM ░░░░░░░░ Available                                           │
+│  1 PM  ████████ Lunch (blocked manually)                            │
+│  2 PM  ░░░░░░░░ Available                                           │
+│  3 PM  ░░░░░░░░ Available                                           │
+│  4 PM  ████████ Client call (from calendar)                         │
+│                                                                     │
+│  [+ Block Time]                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
-- Only show if user has accessed it before OR explicitly expands "Advanced"
-- Add a subtle link at bottom: "Show advanced settings"
-- Prevents confusion for non-technical users
+**Bottom Section - Weekly Base Hours**
+The existing business hours editor, but reframed as "Your default weekly schedule"
 
-### Phase 5: Add Section Icons and Visual Hierarchy
+### Phase 2: Add Quick Block Functionality
 
-Use consistent iconography and visual grouping:
+Add an inline "Block Time" dialog that lets owners quickly:
+- Select today or tomorrow
+- Pick start/end times
+- Add an optional reason
+- Save immediately
 
-| Category | Icon | Color Accent |
-|----------|------|--------------|
-| Your Business | Building2 | Primary |
-| AI & Privacy | Brain | Violet |
-| Notifications | Bell | Amber |
-| Plan & Billing | CreditCard | Emerald |
-| Advanced | Settings | Muted |
+This creates a `busy_block` with type `manual_busy`.
 
-### Phase 6: Helpful Inline Tips
+### Phase 3: Visual Timeline Component
 
-Add contextual help throughout:
+Create a `DayAvailabilityTimeline.tsx` component that:
+- Shows hourly blocks from business open to close
+- Colors blocks by type (calendar sync, booking, manual block, available)
+- Clickable to block/unblock times
 
-1. **Info tooltips** on technical terms (e.g., "HMAC signature")
-2. **"What's this?"** links to Help Center articles
-3. **Status indicators** showing if something is configured vs. needs attention
-4. **Smart defaults** with explanations (e.g., "Recommended for most businesses")
+### Phase 4: Prominent Calendar Connection CTA
+
+If no calendar is connected, show a **persistent banner** at the top of the availability section (and on the dashboard) explaining:
+- Why connecting helps
+- What happens when you connect
+- Clear CTA buttons for each provider
+
+### Phase 5: Settings Page Integration
+
+Replace the current fragmented "Hours" section with the new Availability Hub, which contains:
+1. Connection status + wizard trigger
+2. Visual timeline for this week
+3. Quick block functionality  
+4. Base weekly hours editor
 
 ---
 
@@ -147,40 +130,40 @@ Add contextual help throughout:
 
 ### New Components
 
-1. **`SettingsSidebar.tsx`** - Left sidebar navigation with grouped sections
-2. **`SettingsSection.tsx`** - Wrapper component with title, description, and content area
-3. **`SettingsNavItem.tsx`** - Individual nav item with icon, label, and status indicator
+1. **`AvailabilityHub.tsx`** - Main container with all availability management
+2. **`CalendarConnectionStatus.tsx`** - Shows sync status, last sync time, CTA to connect
+3. **`DayAvailabilityTimeline.tsx`** - Visual hourly timeline showing availability
+4. **`QuickBlockDialog.tsx`** - Simple form to block time slots
 
 ### Modified Components
 
-1. **`SettingsPage.tsx`** - Complete restructure to sidebar layout
-2. **`MobileSettingsTabs.tsx`** - Convert to accordion-style mobile nav
+1. **`SettingsPage.tsx`** - Replace hours section with AvailabilityHub
+2. **`LiveSchedulePreview.tsx`** - Enhance to be more actionable (add "Block Time" button)
 
-### Tab-to-Section Mapping
+### Data Flow
 
-| Old Tab | New Section | New Name |
-|---------|-------------|----------|
-| Business | Your Business > Profile | Profile |
-| Hours | Your Business > Hours | Business Hours |
-| Team | Your Business > Team | Team Members |
-| AI Intelligence | AI & Privacy > AI Learning | AI Learning |
-| Data Controls | AI & Privacy > Data Storage | Data & Privacy |
-| HIPAA | AI & Privacy > HIPAA | HIPAA Compliance |
-| Delivery | Notifications > Integrations | Where Things Go |
-| Booking Delivery | Notifications > Integrations | (merged) |
-| Dispatch Delivery | Notifications > Integrations | (merged) |
-| Food | Notifications > Integrations | (merged into Orders) |
-| Automation | Notifications > Automation | Automation Rules |
-| Notifications | Notifications > Alerts | How You Get Notified |
-| Billing | Plan & Billing | Your Plan |
-| Developer | Advanced > Developer | Developer Tools |
+```text
+Calendar Connections → sync-availability Edge Function → busy_blocks table
+                                                              ↓
+Business Hours (hours_json or availability_slots) ────→ fn_compute_available_slots
+                                                              ↓
+                                                     Available Slots returned
+                                                              ↓
+                                                        AI uses for booking
+```
 
-### Mobile Considerations
+The key insight: The AI already has access to real-time availability via the `busy_blocks` table. The problem is business owners don't have an easy way to:
+1. See that availability visually
+2. Connect their calendar (the wizard exists but is hidden)
+3. Manually block times for today/tomorrow
 
-- Sidebar becomes a top accordion on screens < 768px
-- Each category expands to show sub-items
-- Current section highlighted with primary color
-- Smooth transitions between sections
+---
+
+## Mobile Considerations
+
+- Timeline shows as a vertical scrollable list
+- Quick block uses a bottom sheet
+- Calendar connection uses full-screen wizard
 
 ---
 
@@ -188,8 +171,8 @@ Add contextual help throughout:
 
 After implementation, business owners will:
 
-1. **Find settings faster** - Logical grouping reduces search time
-2. **Understand what each setting does** - Clear descriptions explain purpose
-3. **Not be overwhelmed** - 4 categories vs. 14 tabs
-4. **Focus on what matters** - Technical options hidden by default
-5. **Know what needs attention** - Status indicators show incomplete setup
+1. **Immediately see their AI's schedule understanding** - Visual timeline shows what's booked/available
+2. **Connect their calendar in seconds** - Prominent CTAs with clear benefits explained
+3. **Block times with one tap** - No need to navigate to a separate calendar app
+4. **Understand the system** - Clear visual feedback on how calendar sync → AI availability
+5. **Trust the AI more** - Can verify the AI knows about their real schedule
