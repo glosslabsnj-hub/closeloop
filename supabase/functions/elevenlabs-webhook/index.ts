@@ -343,15 +343,35 @@ serve(async (req) => {
     const conversationId = parseConversationId(parsedPayload);
     const eventType = parseEventType(parsedPayload);
     
-    // Build typed payload with parsed values
+    // Handle ElevenLabs new payload format where data is nested inside 'data' object
+    // New format: { type: "post_call_transcription", data: { conversation_id, transcript, analysis, metadata }, event_timestamp }
+    const nestedData = (parsedPayload.data && typeof parsedPayload.data === "object") 
+      ? parsedPayload.data as Record<string, unknown> 
+      : null;
+    
+    // Extract conversation_initiation_client_data for dynamic_variables (can be at top level or in data)
+    const clientData = 
+      (nestedData?.conversation_initiation_client_data as Record<string, unknown>) ??
+      (parsedPayload.conversation_initiation_client_data as Record<string, unknown>) ??
+      null;
+    
+    // Build typed payload with parsed values, checking nested data first
     const payload: ElevenLabsWebhookPayload = {
       type: eventType,
       conversation_id: conversationId,
-      agent_id: typeof parsedPayload.agent_id === "string" ? parsedPayload.agent_id : "",
-      transcript: Array.isArray(parsedPayload.transcript) ? parsedPayload.transcript as ElevenLabsWebhookPayload["transcript"] : undefined,
-      analysis: parsedPayload.analysis as ElevenLabsWebhookPayload["analysis"],
-      metadata: parsedPayload.metadata as ElevenLabsWebhookPayload["metadata"],
-      dynamic_variables: parsedPayload.dynamic_variables as ElevenLabsWebhookPayload["dynamic_variables"],
+      agent_id: (nestedData?.agent_id ?? parsedPayload.agent_id) as string || "",
+      // Transcript: check data.transcript first, then top-level
+      transcript: Array.isArray(nestedData?.transcript) 
+        ? nestedData.transcript as ElevenLabsWebhookPayload["transcript"]
+        : Array.isArray(parsedPayload.transcript) 
+          ? parsedPayload.transcript as ElevenLabsWebhookPayload["transcript"] 
+          : undefined,
+      // Analysis: check data.analysis first, then top-level
+      analysis: (nestedData?.analysis ?? parsedPayload.analysis) as ElevenLabsWebhookPayload["analysis"],
+      // Metadata: check data.metadata first, then top-level
+      metadata: (nestedData?.metadata ?? parsedPayload.metadata) as ElevenLabsWebhookPayload["metadata"],
+      // Dynamic variables: check client_data.dynamic_variables, then top-level
+      dynamic_variables: (clientData?.dynamic_variables ?? parsedPayload.dynamic_variables) as ElevenLabsWebhookPayload["dynamic_variables"],
     };
     
     const payloadSize = rawBody.length;
@@ -365,6 +385,7 @@ serve(async (req) => {
       has_analysis: !!payload.analysis,
       dynamic_variables: payload.dynamic_variables,
       payload_size: payloadSize,
+      used_nested_data: !!nestedData,
     }));
 
     // Log every webhook hit immediately with full metadata
@@ -386,11 +407,13 @@ serve(async (req) => {
         data_collection_keys: payload.analysis?.data_collection ? Object.keys(payload.analysis.data_collection) : [],
         dynamic_variables_keys: payload.dynamic_variables ? Object.keys(payload.dynamic_variables) : [],
         tenant_id_from_variables: tenantIdFromPayload,
+        used_nested_data: !!nestedData,
       }
     );
 
-    // Check for conversation ended events (various formats)
+    // Check for conversation ended events (various formats) - INCLUDING post_call_transcription
     const isConversationEnded = 
+      eventType === "post_call_transcription" ||  // ElevenLabs primary webhook event type
       eventType === "conversation.ended" || 
       eventType === "conversation_ended" ||
       eventType === "call.ended" ||
@@ -403,6 +426,8 @@ serve(async (req) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    
+    console.log("Processing call end event:", eventType, "for conversation:", conversationId);
 
     // Find the call session by conversation_id
     const { data: session, error: sessionError } = await supabase
