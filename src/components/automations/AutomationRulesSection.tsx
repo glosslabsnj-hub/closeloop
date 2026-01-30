@@ -199,17 +199,11 @@ export function AutomationRulesSection({ tenantId }: AutomationRulesSectionProps
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">Automations</h2>
-          <p className="text-sm text-muted-foreground">
-            Define what happens when events occur
-          </p>
-        </div>
-        <Button onClick={() => setCreateDialogOpen(true)}>
+    <div className="space-y-4">
+      <div className="flex items-center justify-end">
+        <Button onClick={() => setCreateDialogOpen(true)} size="sm">
           <Plus className="h-4 w-4 mr-2" />
-          Create Automation
+          Create Rule
         </Button>
       </div>
 
