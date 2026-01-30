@@ -10,6 +10,7 @@ import { GoLiveChecklist } from "./GoLiveChecklist";
 import { UsageThresholdBanner } from "./UsageThresholdBanner";
 import { Copilot, CopilotTrigger } from "./Copilot";
 import { KnowledgeConflictBanner } from "./KnowledgeConflictBanner";
+import { AIReadinessBanner } from "./AIReadinessBanner";
 import { SoundManager } from "@/components/notifications/SoundManager";
 import { hasVoiceFeature } from "@/config/pricing";
 
@@ -26,6 +27,7 @@ export function LiveDashboard() {
       <SoundManager />
 
       {/* Critical Banners */}
+      <AIReadinessBanner />
       <KnowledgeConflictBanner />
       <UsageThresholdBanner threshold={80} />
 

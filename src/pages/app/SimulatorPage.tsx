@@ -3,7 +3,7 @@ import CallSimulator from "@/components/simulator/CallSimulator";
 import SMSSimulator from "@/components/simulator/SMSSimulator";
 import AIBrainDebugger from "@/components/simulator/AIBrainDebugger";
 import CustomerMergeQueue from "@/components/customers/CustomerMergeQueue";
-import AIReadinessScore from "@/components/knowledge/AIReadinessScore";
+import { AIReadinessChecklist } from "@/components/knowledge/AIReadinessChecklist";
 import QuickSetupWizard from "@/components/setup/QuickSetupWizard";
 import { Phone, MessageSquare, Users, Brain, Zap } from "lucide-react";
 
@@ -18,7 +18,7 @@ export default function SimulatorPage() {
       </div>
 
       {/* AI Readiness Banner */}
-      <AIReadinessScore compact />
+      <AIReadinessChecklist compact />
 
       <Tabs defaultValue="setup" className="w-full">
         <TabsList className="w-full justify-start flex-wrap">

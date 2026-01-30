@@ -176,6 +176,7 @@ export type OpportunityStatus = 'new' | 'contacted' | 'qualified' | 'quoted' | '
 
 // Knowledge gap types
 export type KnowledgeGapType = 'missing_policy' | 'missing_pricing' | 'missing_service_area' | 'unanswered_question' | 'missing_hours' | 'missing_faq' | 'other';
+export type KnowledgeGapUrgency = 'low' | 'normal' | 'high';
 
 // Sync event types
 export type SyncEventType = 'customer_created' | 'customer_updated' | 'opportunity_created' | 'opportunity_updated' | 'booking_created' | 'booking_updated' | 'call_completed';
