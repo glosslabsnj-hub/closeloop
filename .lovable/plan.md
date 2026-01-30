@@ -1,273 +1,102 @@
 
-# Server-Side Order Total Calculation & Full Business Intelligence
+
+# Provision New 931 (Tullahoma, TN) Number for blueboxer@test.com
 
 ## Summary
 
-Implement server-side order total calculation by matching parsed order items against the tenant's actual menu items and prices. This ensures every order gets an accurate total regardless of what the AI says during the call.
+Replace the existing toll-free number for blueboxer tenant with a new local number from the 931 (Tullahoma, TN) area code.
 
 ---
 
-## The Problem Today
+## Current State
 
-Current flow:
-```text
-Customer orders "lasagna, large margarita, 2-liter Pepsi"
-            ↓
-AI (hopefully) says "Your total is $42.50"
-            ↓
-Webhook parses transcript for "$42.50" via regex
-            ↓
-If found → stored as total_cents
-If NOT found → order has no total
+| Field | Value |
+|-------|-------|
+| Tenant ID | `aa96d3c3-25f8-48d1-9cfa-a906a6122c44` |
+| Current Number | `+18553297357` (toll-free) |
+| Twilio SID | `PNa0af00def24562ad1a1b809b6530c20b` |
+| Status | `provisioned` |
+
+---
+
+## Implementation Steps
+
+### Step 1: Deactivate Existing Number Assignment
+
+Update the `phone_numbers` table to mark the current toll-free number as inactive for this tenant:
+
+```sql
+UPDATE phone_numbers 
+SET status = 'replaced', 
+    updated_at = now()
+WHERE tenant_id = 'aa96d3c3-25f8-48d1-9cfa-a906a6122c44'
+  AND phone_e164 = '+18553297357';
 ```
 
-**Issues:**
-1. Total depends on AI speaking it correctly
-2. If regex fails to match, no total
-3. Menu prices exist in database but aren't used programmatically
-4. Each parsed item (e.g., "Large Margherita Pizza") isn't linked to actual menu item IDs
+Also clear the assistant_settings so provisioning can proceed:
 
----
-
-## The Solution
-
-New flow:
-```text
-Customer orders "lasagna, large margarita, 2-liter Pepsi"
-            ↓
-Webhook parses items: [{name: "Large Margherita Pizza", qty: 1}, ...]
-            ↓
-Server looks up each item in menu_items table by name fuzzy match
-            ↓
-Calculates total: SUM(item.price_cents * qty)
-            ↓
-Stores: items_json with price_cents per item + calculated total_cents
+```sql
+UPDATE assistant_settings
+SET closeloop_number = NULL,
+    twilio_phone_sid = NULL,
+    twilio_provisioned_at = NULL,
+    connect_status = 'not_connected',
+    updated_at = now()
+WHERE tenant_id = 'aa96d3c3-25f8-48d1-9cfa-a906a6122c44';
 ```
 
----
+### Step 2: Call Provision Function
 
-## Implementation Details
+Call the `provision-twilio-number` edge function with:
 
-### Phase 1: Menu Item Price Lookup
-
-Create a function to match parsed order items against menu_items:
-
-```typescript
-async function matchAndPriceItems(
-  supabase: SupabaseClient,
-  tenantId: string,
-  parsedItems: Array<{ name: string; qty: number; modifiers?: string[] }>
-): Promise<{
-  items: Array<{ 
-    name: string; 
-    qty: number; 
-    price_cents: number | null;
-    menu_item_id: string | null;
-    matched: boolean;
-    modifiers?: string[];
-  }>;
-  totalCents: number;
-  unmatchedCount: number;
-}> {
-  // Fetch all menu items for tenant
-  const { data: menuItems } = await supabase
-    .from("menu_items")
-    .select("id, name, category, price_cents")
-    .eq("tenant_id", tenantId)
-    .eq("is_available", true);
-  
-  let totalCents = 0;
-  let unmatchedCount = 0;
-  
-  const pricedItems = parsedItems.map(item => {
-    // Fuzzy match: normalize both names, find best match
-    const match = findBestMenuMatch(item.name, menuItems);
-    
-    if (match && match.price_cents) {
-      const lineTotal = match.price_cents * item.qty;
-      totalCents += lineTotal;
-      return {
-        ...item,
-        price_cents: match.price_cents,
-        menu_item_id: match.id,
-        matched: true,
-      };
-    }
-    
-    unmatchedCount++;
-    return {
-      ...item,
-      price_cents: null,
-      menu_item_id: null,
-      matched: false,
-    };
-  });
-  
-  return { items: pricedItems, totalCents, unmatchedCount };
+```json
+{
+  "tenant_id": "aa96d3c3-25f8-48d1-9cfa-a906a6122c44",
+  "area_code": "931",
+  "number_type": "local"
 }
 ```
 
-### Phase 2: Fuzzy Menu Matching Algorithm
+This will:
+1. Search Twilio for available 931 numbers with voice + SMS enabled
+2. Purchase the first available number
+3. Configure webhook to point to `twilio-inbound`
+4. Insert new row in `phone_numbers`
+5. Update `assistant_settings` with new number
 
-Match customer speech to menu items:
+### Step 3: Verify Assignment
 
-```typescript
-function findBestMenuMatch(
-  spokenName: string,
-  menuItems: Array<{ id: string; name: string; category: string; price_cents: number | null }>
-): { id: string; name: string; price_cents: number | null } | null {
-  const normalized = spokenName.toLowerCase()
-    .replace(/\s+/g, " ")
-    .replace(/pizza$/i, "")
-    .trim();
-  
-  // Direct match first
-  for (const item of menuItems) {
-    const itemNorm = item.name.toLowerCase().replace(/\s+/g, " ");
-    if (itemNorm === normalized || itemNorm.includes(normalized) || normalized.includes(itemNorm)) {
-      return item;
-    }
-  }
-  
-  // Size-aware matching (e.g., "large margherita" → "Margherita Pizza")
-  const sizeMatch = normalized.match(/^(large|medium|small|xl|extra.?large)\s+(.+)/i);
-  if (sizeMatch) {
-    const sizelessName = sizeMatch[2];
-    for (const item of menuItems) {
-      const itemNorm = item.name.toLowerCase();
-      if (itemNorm.includes(sizelessName)) {
-        return item;
-      }
-    }
-  }
-  
-  // Category-based matching (e.g., "Pepsi" → find in Drinks category)
-  const drinkKeywords = ["pepsi", "coke", "sprite", "water", "lemonade", "tea"];
-  for (const keyword of drinkKeywords) {
-    if (normalized.includes(keyword)) {
-      const drinkMatch = menuItems.find(m => 
-        m.name.toLowerCase().includes(keyword) || 
-        m.category.toLowerCase() === "drinks"
-      );
-      if (drinkMatch) return drinkMatch;
-    }
-  }
-  
-  return null;
-}
-```
+Confirm the new number is properly assigned:
 
-### Phase 3: Update Order Creation
-
-Modify `processFoodOrderIfApplicable` in elevenlabs-webhook:
-
-```typescript
-// After parsing items...
-const parsedResult = parseNaturalLanguageItems(orderItemsRaw, payload.transcript);
-
-// NEW: Look up prices from database
-const { items: pricedItems, totalCents: calculatedTotal, unmatchedCount } = 
-  await matchAndPriceItems(supabase, tenantId, parsedResult.items);
-
-// Use calculated total, fall back to parsed total from transcript
-const finalTotal = calculatedTotal > 0 ? calculatedTotal : parsedResult.totalCents;
-
-// Store items with prices
-const { data: newOrder } = await supabase
-  .from("food_orders")
-  .insert({
-    // ... existing fields ...
-    items_json: pricedItems,
-    total_cents: finalTotal,
-    totals_estimate: {
-      subtotal: calculatedTotal,
-      parsed_from_speech: parsedResult.totalCents,
-      unmatched_items: unmatchedCount,
-    },
-  });
-```
-
-### Phase 4: Enhanced Items JSON Schema
-
-Update the items_json structure to include price data:
-
-```typescript
-interface OrderItem {
-  name: string;           // "Large Margherita Pizza"
-  qty: number;            // 1
-  price_cents: number | null;  // 1599 (looked up from menu)
-  menu_item_id: string | null; // UUID linking to menu_items
-  matched: boolean;       // true if matched to menu
-  modifiers?: string[];   // ["extra cheese"]
-  item_notes?: string;    // "no onions"
-}
-```
-
-### Phase 5: UI Display Updates
-
-Update OrderCard and OrderTicket to show line-item prices:
-
-```typescript
-// In OrderCard.tsx
-{order.items_json?.map((item, i) => (
-  <div key={i} className="flex justify-between">
-    <span>{item.qty}x {item.name}</span>
-    {item.price_cents && (
-      <span>${((item.price_cents * item.qty) / 100).toFixed(2)}</span>
-    )}
-  </div>
-))}
-<Separator />
-<div className="flex justify-between font-bold">
-  <span>Total</span>
-  <span>${((order.total_cents || 0) / 100).toFixed(2)}</span>
-</div>
+```sql
+SELECT pn.phone_e164, pn.status, ast.closeloop_number
+FROM phone_numbers pn
+JOIN assistant_settings ast ON pn.tenant_id = ast.tenant_id
+WHERE pn.tenant_id = 'aa96d3c3-25f8-48d1-9cfa-a906a6122c44'
+  AND pn.status = 'provisioned';
 ```
 
 ---
 
-## Files to Modify
+## Optional: Release Old Twilio Number
 
-| File | Changes |
-|------|---------|
-| `supabase/functions/elevenlabs-webhook/index.ts` | Add matchAndPriceItems function, update order creation |
-| `supabase/functions/elevenlabs-webhook/_shared/test-helpers.ts` | Add price matching tests |
-| `src/components/orders/OrderCard.tsx` | Show line-item prices and totals |
-| `src/components/orders/OrderTicket.tsx` | Show line-item prices on print tickets |
-| `src/components/orders/OrderDetailsDrawer.tsx` | Enhanced price display |
-
-## Files to Create
-
-| File | Purpose |
-|------|---------|
-| `supabase/functions/elevenlabs-webhook/price-matching.test.ts` | Tests for fuzzy menu matching |
+If you want to stop paying for the old toll-free number, it can be released from Twilio. This is a separate operation that would be done via Twilio API or dashboard. The old number would no longer work after release.
 
 ---
 
-## Edge Cases Handled
+## Expected Outcome
 
-1. **Item not on menu**: Mark as `matched: false`, don't include in total
-2. **No prices in menu**: Skip calculation, fall back to transcript-parsed total
-3. **Modifiers with price impacts**: Future enhancement - for now, base price only
-4. **Size variations**: Fuzzy match "large margherita" to "Margherita Pizza"
-5. **Drinks/sides**: Match common names like "Pepsi" even if not exact
-
----
-
-## Expected Outcomes
-
-1. **Every order gets a calculated total** (if menu items have prices)
-2. **Line-item pricing visible** on order cards and receipts
-3. **Matched items link to menu_items.id** for inventory tracking
-4. **Unmatched items flagged** for menu gaps detection
-5. **No dependency on AI verbalization** for totals
+| Field | Before | After |
+|-------|--------|-------|
+| Phone Number | `+18553297357` (toll-free) | `+1931XXXXXXX` (local) |
+| Area Code | 855 | 931 |
+| Status | provisioned | provisioned |
 
 ---
 
-## Future Enhancements
+## Technical Notes
 
-1. **Modifier pricing**: Add price_cents to modifiers, include in total
-2. **Size-based pricing**: Support large/medium/small price tiers
-3. **Tax calculation**: Apply local tax rates
-4. **Tip suggestions**: Calculate suggested tip amounts
-5. **Menu gap detection**: Auto-create knowledge gaps for unmatched items
+- The existing toll-free number will remain in Twilio account (billed monthly) until explicitly released
+- The new 931 number will be configured with the same webhook URL for inbound calls
+- No code changes required - this is a data operation + API call
+
