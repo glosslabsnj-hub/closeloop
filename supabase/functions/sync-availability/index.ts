@@ -268,67 +268,82 @@ async function fetchGoogleBusyTimes(
   calendarIds: string[],
   startDate: Date,
   endDate: Date
-): Promise<{ start_at: string; end_at: string; external_event_id: string; summary?: string }[]> {
-  const events: { start_at: string; end_at: string; external_event_id: string; summary?: string }[] = [];
+): Promise<{ start_at: string; end_at: string; external_event_id: string; summary?: string; location?: string; description?: string }[]> {
+  const events: { start_at: string; end_at: string; external_event_id: string; summary?: string; location?: string; description?: string }[] = [];
 
   if (calendarIds.length === 0) {
     calendarIds = ["primary"];
   }
 
-  // Use freeBusy API for efficiency
-  try {
-    console.log("=== GOOGLE FREEBUSY REQUEST ===");
-    console.log("Calendar IDs requested:", JSON.stringify(calendarIds));
-    console.log("Time range:", startDate.toISOString(), "to", endDate.toISOString());
-    
-    const freeBusyResponse = await fetch(
-      "https://www.googleapis.com/calendar/v3/freeBusy",
-      {
-        method: "POST",
+  console.log("=== GOOGLE CALENDAR EVENTS REQUEST ===");
+  console.log("Calendar IDs requested:", JSON.stringify(calendarIds));
+  console.log("Time range:", startDate.toISOString(), "to", endDate.toISOString());
+
+  // Use Events API to get full event details (title, location, description)
+  for (const calendarId of calendarIds) {
+    try {
+      const eventsUrl = new URL(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`);
+      eventsUrl.searchParams.set("timeMin", startDate.toISOString());
+      eventsUrl.searchParams.set("timeMax", endDate.toISOString());
+      eventsUrl.searchParams.set("singleEvents", "true");
+      eventsUrl.searchParams.set("orderBy", "startTime");
+      eventsUrl.searchParams.set("maxResults", "250");
+
+      const eventsResponse = await fetch(eventsUrl.toString(), {
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          timeMin: startDate.toISOString(),
-          timeMax: endDate.toISOString(),
-          items: calendarIds.map((id) => ({ id })),
-        }),
+      });
+
+      if (!eventsResponse.ok) {
+        const errorText = await eventsResponse.text();
+        console.error(`Google Events API error for ${calendarId}:`, errorText);
+        continue;
       }
-    );
 
-    if (!freeBusyResponse.ok) {
-      const errorText = await freeBusyResponse.text();
-      console.error("Google freeBusy error:", errorText);
-      return events;
-    }
+      const eventsData = await eventsResponse.json();
+      console.log(`=== GOOGLE EVENTS for ${calendarId} ===`);
+      console.log(`Found ${eventsData.items?.length || 0} events`);
 
-    const freeBusyData = await freeBusyResponse.json();
-    console.log("=== GOOGLE FREEBUSY RAW RESPONSE ===");
-    console.log(JSON.stringify(freeBusyData, null, 2));
+      for (const event of eventsData.items || []) {
+        // Skip cancelled events
+        if (event.status === "cancelled") continue;
 
-    for (const calendarId of calendarIds) {
-      const calendar = freeBusyData.calendars?.[calendarId];
-      if (calendar?.busy) {
-        for (const busy of calendar.busy) {
-          // Skip zero-duration events (start === end)
-          if (busy.start === busy.end) {
-            console.log(`Skipping zero-duration event: ${busy.start}`);
-            continue;
-          }
-          events.push({
-            start_at: busy.start,
-            end_at: busy.end,
-            external_event_id: `google_${calendarId}_${busy.start}`,
-            summary: "Busy",
-          });
+        // Get start/end times
+        const startAt = event.start?.dateTime || event.start?.date;
+        const endAt = event.end?.dateTime || event.end?.date;
+
+        if (!startAt || !endAt) continue;
+
+        // Skip zero-duration events
+        if (startAt === endAt) {
+          console.log(`Skipping zero-duration event: ${event.summary || "Untitled"}`);
+          continue;
         }
+
+        // Skip all-day events (they have date but not dateTime)
+        if (!event.start?.dateTime) {
+          console.log(`Skipping all-day event: ${event.summary || "Untitled"}`);
+          continue;
+        }
+
+        console.log(`  Event: "${event.summary}" | ${startAt} -> ${endAt}`);
+
+        events.push({
+          start_at: startAt,
+          end_at: endAt,
+          external_event_id: event.id || `google_${calendarId}_${startAt}`,
+          summary: event.summary || "Busy",
+          location: event.location || undefined,
+          description: event.description ? event.description.substring(0, 500) : undefined,
+        });
       }
+    } catch (error) {
+      console.error(`Error fetching events for calendar ${calendarId}:`, error);
     }
-  } catch (error) {
-    console.error("Error fetching Google busy times:", error);
   }
 
+  console.log(`=== TOTAL EVENTS FETCHED: ${events.length} ===`);
   return events;
 }
 

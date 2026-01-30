@@ -833,12 +833,33 @@ Do NOT claim you cannot take orders if menu IS available above.
     prompt += `\\n`;
   }
 
+  // Booking behavior - CRITICAL for availability checking
+  if (ctx.operations.modules.booking_enabled) {
+    prompt += `BOOKING BEHAVIOR (CRITICAL - READ CAREFULLY):
+When a customer requests a specific appointment time, you MUST verify availability before confirming.
+
+NEVER say "I can book you for [time]" or "That works" without checking first.
+
+Instead, use these phrases:
+- "Let me check if [time] is available..."
+- "I'll verify that slot is open..."
+
+If the slot is NOT available, explain why and offer alternatives:
+- "I'm sorry, that time is already booked. Would [alternative time] work instead?"
+- "We have an appointment at that time. I do have [time] or [time] available."
+
+The system automatically checks busy_blocks (synced calendars + existing bookings) to prevent double-booking.
+
+`;
+  }
+
   // Decision hierarchy
   prompt += `DECISION PRIORITY (follow this order):
 1. HARD CONSTRAINTS - Never violate policies, never promise what's in "never promise" list
-2. BUSINESS BRAIN - Use FAQs, services, and objection handling first
-3. INTENT RULES - Apply negotiation/behavior rules from business owner
-4. MEMORY HINTS - Use for personalization and timing suggestions only
+2. AVAILABILITY CHECK - Always verify slot availability before confirming bookings
+3. BUSINESS BRAIN - Use FAQs, services, and objection handling first
+4. INTENT RULES - Apply negotiation/behavior rules from business owner
+5. MEMORY HINTS - Use for personalization and timing suggestions only
 
 `;
 
