@@ -40,48 +40,48 @@ interface OrderCardProps {
   isUpdating?: boolean;
 }
 
-const statusConfig: Record<string, { label: string; color: string; nextStatus?: string; nextLabel?: string }> = {
+const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "muted"; nextStatus?: string; nextLabel?: string }> = {
   pending: { 
     label: "Pending", 
-    color: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
+    variant: "warning",
     nextStatus: "confirmed",
     nextLabel: "Confirm"
   },
   confirmed: { 
     label: "Confirmed", 
-    color: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+    variant: "secondary",
     nextStatus: "preparing",
     nextLabel: "Start Prep"
   },
   preparing: { 
     label: "Preparing", 
-    color: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+    variant: "default",
     nextStatus: "ready",
     nextLabel: "Mark Ready"
   },
   ready: { 
     label: "Ready", 
-    color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+    variant: "success",
     nextStatus: "completed",
     nextLabel: "Complete"
   },
   out_for_delivery: { 
     label: "Out for Delivery", 
-    color: "bg-purple-500/15 text-purple-400 border-purple-500/30",
+    variant: "secondary",
     nextStatus: "completed",
     nextLabel: "Complete"
   },
   completed: { 
     label: "Completed", 
-    color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+    variant: "success"
   },
   cancelled: { 
     label: "Cancelled", 
-    color: "bg-destructive/15 text-destructive border-destructive/30"
+    variant: "destructive"
   },
   needs_followup: { 
     label: "Needs Follow-up", 
-    color: "bg-amber-500/15 text-amber-400 border-amber-500/30"
+    variant: "warning"
   },
 };
 
@@ -110,18 +110,18 @@ export function OrderCard({ order, onView, onPrint, onStatusChange, isUpdating }
   return (
     <Card 
       className={`group cursor-pointer transition-all hover:shadow-md hover:border-primary/30 ${
-        isUrgent ? "border-l-4 border-l-amber-500" : ""
+        isUrgent ? "border-l-4 border-l-warning" : ""
       }`}
       onClick={onView}
     >
       <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           {/* Left: Order Info */}
           <div className="flex-1 min-w-0 space-y-2">
             {/* Header Row */}
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="font-mono font-bold text-lg">{order.order_number}</span>
-              <Badge variant="outline" className={config.color}>
+              <Badge variant={config.variant}>
                 {config.label}
               </Badge>
               <Badge variant="outline" className="gap-1">
@@ -148,9 +148,9 @@ export function OrderCard({ order, onView, onPrint, onStatusChange, isUpdating }
 
             {/* Special Instructions Warning */}
             {order.special_instructions && (
-              <div className="flex items-center gap-1.5 text-amber-400 text-sm">
+              <div className="flex items-center gap-1.5 text-warning text-sm bg-warning/10 px-2 py-1 rounded-md w-fit">
                 <AlertTriangle className="h-3.5 w-3.5" />
-                <span className="font-medium">Special instructions</span>
+                <span className="font-medium truncate max-w-[200px]">{order.special_instructions}</span>
               </div>
             )}
 

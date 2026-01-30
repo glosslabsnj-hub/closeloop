@@ -328,6 +328,7 @@ export type Database = {
           go_live_enabled: boolean
           instant_text_enabled: boolean
           missed_call_behavior: Database["public"]["Enums"]["missed_call_behavior"]
+          notification_sounds_enabled: boolean
           overflow_rings: number
           pending_booking_notify_email: boolean | null
           pending_booking_notify_sms: boolean | null
@@ -359,6 +360,7 @@ export type Database = {
           go_live_enabled?: boolean
           instant_text_enabled?: boolean
           missed_call_behavior?: Database["public"]["Enums"]["missed_call_behavior"]
+          notification_sounds_enabled?: boolean
           overflow_rings?: number
           pending_booking_notify_email?: boolean | null
           pending_booking_notify_sms?: boolean | null
@@ -390,6 +392,7 @@ export type Database = {
           go_live_enabled?: boolean
           instant_text_enabled?: boolean
           missed_call_behavior?: Database["public"]["Enums"]["missed_call_behavior"]
+          notification_sounds_enabled?: boolean
           overflow_rings?: number
           pending_booking_notify_email?: boolean | null
           pending_booking_notify_sms?: boolean | null
@@ -2873,6 +2876,7 @@ export type Database = {
           message: string
           related_source_id: string | null
           severity: Database["public"]["Enums"]["notification_severity"]
+          sound_type: string | null
           tenant_id: string
           title: string
           type: Database["public"]["Enums"]["notification_type"]
@@ -2885,6 +2889,7 @@ export type Database = {
           message: string
           related_source_id?: string | null
           severity?: Database["public"]["Enums"]["notification_severity"]
+          sound_type?: string | null
           tenant_id: string
           title: string
           type: Database["public"]["Enums"]["notification_type"]
@@ -2897,6 +2902,7 @@ export type Database = {
           message?: string
           related_source_id?: string | null
           severity?: Database["public"]["Enums"]["notification_severity"]
+          sound_type?: string | null
           tenant_id?: string
           title?: string
           type?: Database["public"]["Enums"]["notification_type"]

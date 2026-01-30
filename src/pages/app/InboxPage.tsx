@@ -79,7 +79,7 @@ function ConversationList({
               )}
             >
               <div className="flex items-start gap-3">
-                <Avatar className="h-10 w-10">
+                <Avatar className="h-10 w-10 shrink-0">
                   <AvatarFallback className="bg-primary/10 text-primary">
                     {conversation.lead?.full_name
                       ?.split(" ")
@@ -88,11 +88,11 @@ function ConversationList({
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <span className="font-medium truncate">
                       {conversation.lead?.full_name || "Unknown"}
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-muted-foreground shrink-0">
                       {conversation.lastMessage?.sent_at
                         ? formatDistanceToNow(new Date(conversation.lastMessage.sent_at), {
                             addSuffix: true,
@@ -103,14 +103,45 @@ function ConversationList({
                   <p className="text-sm text-muted-foreground truncate mt-0.5">
                     {conversation.lastMessage?.body || "No messages yet"}
                   </p>
-                  {conversation.lead?.status && (
-                    <Badge
-                      variant="secondary"
-                      className={cn("text-xs mt-1", statusColors[conversation.lead.status])}
-                    >
-                      {conversation.lead.status}
-                    </Badge>
-                  )}
+                  <div className="flex items-center gap-2 mt-2">
+                    {conversation.lead?.status && (
+                      <Badge
+                        variant="secondary"
+                        className={cn("text-xs", statusColors[conversation.lead.status])}
+                      >
+                        {conversation.lead.status}
+                      </Badge>
+                    )}
+                    {/* Quick action buttons */}
+                    <div className="flex items-center gap-1 ml-auto">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelect(conversation.id);
+                        }}
+                        title="Reply"
+                      >
+                        <Send className="h-3.5 w-3.5" />
+                      </Button>
+                      {conversation.lead?.phone && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(`tel:${conversation.lead?.phone}`, '_self');
+                          }}
+                          title="Call"
+                        >
+                          <Phone className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </button>
