@@ -16,6 +16,8 @@ import { format } from "date-fns";
 interface OrderItem {
   name: string;
   qty: number;
+  price_cents?: number | null;
+  matched?: boolean;
   modifiers?: string[];
 }
 

@@ -41,6 +41,9 @@ interface OrderItem {
   name: string;
   qty: number;
   base_price?: number;
+  price_cents?: number | null;
+  menu_item_id?: string | null;
+  matched?: boolean;
   modifiers?: string[];
   item_notes?: string;
 }
@@ -279,33 +282,46 @@ export function OrderDetailsDrawer({ order, open, onOpenChange }: OrderDetailsDr
                 <p className="text-muted-foreground text-sm italic">No items recorded</p>
               ) : (
                 <div className="space-y-3">
-                  {items.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-start py-2 border-b last:border-0">
-                      <div className="flex-1">
-                        <div className="font-medium">
-                          <span className="text-primary font-bold mr-2">{item.qty}×</span>
-                          {item.name}
-                        </div>
-                        {item.modifiers && item.modifiers.length > 0 && (
-                          <div className="mt-1 text-sm text-muted-foreground">
-                            {item.modifiers.map((mod, i) => (
-                              <span key={i} className="block">+ {mod}</span>
-                            ))}
+                  {items.map((item, idx) => {
+                    // Support both price_cents (new) and base_price (legacy)
+                    const priceCents = item.price_cents ?? (item.base_price ? item.base_price : null);
+                    const lineTotal = priceCents ? priceCents * item.qty : null;
+                    
+                    return (
+                      <div key={idx} className="flex justify-between items-start py-2 border-b last:border-0">
+                        <div className="flex-1">
+                          <div className="font-medium flex items-center gap-2">
+                            <span className="text-primary font-bold">{item.qty}×</span>
+                            <span>{item.name}</span>
+                            {item.matched === false && (
+                              <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-500 border-amber-500/30">
+                                Unpriced
+                              </Badge>
+                            )}
                           </div>
-                        )}
-                        {item.item_notes && (
-                          <p className="mt-1 text-sm italic text-muted-foreground">
-                            "{item.item_notes}"
-                          </p>
+                          {item.modifiers && item.modifiers.length > 0 && (
+                            <div className="mt-1 text-sm text-muted-foreground">
+                              {item.modifiers.map((mod, i) => (
+                                <span key={i} className="block">+ {mod}</span>
+                              ))}
+                            </div>
+                          )}
+                          {item.item_notes && (
+                            <p className="mt-1 text-sm italic text-muted-foreground">
+                              "{item.item_notes}"
+                            </p>
+                          )}
+                        </div>
+                        {lineTotal !== null ? (
+                          <span className="font-medium shrink-0 ml-4">
+                            {formatCurrency(lineTotal)}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground shrink-0 ml-4">—</span>
                         )}
                       </div>
-                      {item.base_price && (
-                        <span className="font-medium shrink-0 ml-4">
-                          {formatCurrency(item.base_price * item.qty)}
-                        </span>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
