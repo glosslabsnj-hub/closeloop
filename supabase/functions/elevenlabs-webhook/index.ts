@@ -1411,6 +1411,22 @@ async function processFoodOrderIfApplicable(
     if (!extractedTotalCents) extractedTotalCents = parsed.totalCents;
   }
 
+  // ===== MATCH ITEMS TO MENU AND CALCULATE PRICES =====
+  const { items: pricedItems, totalCents: calculatedTotal, unmatchedCount } = 
+    await matchAndPriceItems(supabase, tenantId, parsedItems);
+  
+  // Use calculated total if available, otherwise fall back to transcript-parsed total
+  const finalTotalCents = calculatedTotal > 0 ? calculatedTotal : extractedTotalCents;
+  
+  console.log("Price matching result:", {
+    parsedItemCount: parsedItems.length,
+    pricedItemCount: pricedItems.length,
+    calculatedTotal,
+    extractedTotalCents,
+    finalTotalCents,
+    unmatchedCount,
+  });
+
   // Generate sequential order number (ORD-101, ORD-102, etc.)
   const { data: lastOrder } = await supabase
     .from("food_orders")
@@ -1454,9 +1470,15 @@ async function processFoodOrderIfApplicable(
       customer_id: customerId,
       customer_name: orderCustomerName,
       customer_phone: payload.dynamic_variables?.caller_phone || null,
-      items_json: parsedItems.length > 0 ? parsedItems : [{ name: "Order details in special instructions", qty: 1 }],
-      total_cents: extractedTotalCents,
-      totals_estimate: extractedTotalCents ? { total: extractedTotalCents } : null,
+      items_json: pricedItems.length > 0 ? pricedItems : [{ name: "Order details in special instructions", qty: 1, matched: false }],
+      total_cents: finalTotalCents,
+      subtotal_cents: calculatedTotal > 0 ? calculatedTotal : null,
+      totals_estimate: {
+        subtotal: calculatedTotal > 0 ? calculatedTotal : null,
+        parsed_from_speech: extractedTotalCents,
+        calculated_from_menu: calculatedTotal > 0,
+        unmatched_items: unmatchedCount,
+      },
       special_instructions: (extractedPayload.special_instructions as string) || extractDataCollectionValue(dataCollection.special_instructions) || 
         (orderItemsRaw && parsedItems.length === 0 ? `Customer order: ${orderItemsRaw}` : null),
       requested_time: extractDataCollectionValue(dataCollection.requested_time) ? new Date(extractDataCollectionValue(dataCollection.requested_time) as string).toISOString() : null,
@@ -1519,6 +1541,185 @@ async function processFoodOrderIfApplicable(
   } catch (e) {
     console.error("Failed to trigger order handoff:", e);
   }
+}
+
+// ===== MENU ITEM PRICE MATCHING =====
+// Matches parsed order items against menu_items table and calculates totals
+
+interface PricedOrderItem {
+  name: string;
+  qty: number;
+  price_cents: number | null;
+  menu_item_id: string | null;
+  matched: boolean;
+  modifiers?: string[];
+  item_notes?: string;
+}
+
+interface MenuMatchResult {
+  items: PricedOrderItem[];
+  totalCents: number;
+  unmatchedCount: number;
+}
+
+// deno-lint-ignore no-explicit-any
+async function matchAndPriceItems(
+  supabase: any,
+  tenantId: string,
+  parsedItems: Array<{ name: string; qty: number; modifiers?: string[]; item_notes?: string }>
+): Promise<MenuMatchResult> {
+  if (parsedItems.length === 0) {
+    return { items: [], totalCents: 0, unmatchedCount: 0 };
+  }
+
+  // Fetch all menu items for tenant
+  const { data: menuItems, error } = await supabase
+    .from("menu_items")
+    .select("id, name, category, price_cents")
+    .eq("tenant_id", tenantId)
+    .eq("is_available", true);
+
+  if (error || !menuItems) {
+    console.error("Failed to fetch menu items:", error);
+    // Return items without pricing
+    return {
+      items: parsedItems.map(item => ({
+        ...item,
+        price_cents: null,
+        menu_item_id: null,
+        matched: false,
+      })),
+      totalCents: 0,
+      unmatchedCount: parsedItems.length,
+    };
+  }
+
+  console.log(`Found ${menuItems.length} menu items for tenant ${tenantId}`);
+
+  let totalCents = 0;
+  let unmatchedCount = 0;
+
+  const pricedItems: PricedOrderItem[] = parsedItems.map(item => {
+    const match = findBestMenuMatch(item.name, menuItems);
+
+    if (match && match.price_cents) {
+      const lineTotal = match.price_cents * item.qty;
+      totalCents += lineTotal;
+      console.log(`Matched "${item.name}" -> "${match.name}" @ $${(match.price_cents / 100).toFixed(2)} x ${item.qty}`);
+      return {
+        ...item,
+        price_cents: match.price_cents,
+        menu_item_id: match.id,
+        matched: true,
+      };
+    }
+
+    unmatchedCount++;
+    console.log(`No match found for "${item.name}"`);
+    return {
+      ...item,
+      price_cents: null,
+      menu_item_id: null,
+      matched: false,
+    };
+  });
+
+  return { items: pricedItems, totalCents, unmatchedCount };
+}
+
+interface MenuItem {
+  id: string;
+  name: string;
+  category: string;
+  price_cents: number | null;
+}
+
+function findBestMenuMatch(
+  spokenName: string,
+  menuItems: MenuItem[]
+): MenuItem | null {
+  if (!menuItems.length) return null;
+
+  // Normalize the spoken name
+  const normalized = spokenName.toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/pizza$/i, "")
+    .replace(/\s*wings?$/i, "")
+    .trim();
+
+  // Direct/substring match first (highest confidence)
+  for (const item of menuItems) {
+    const itemNorm = item.name.toLowerCase().replace(/\s+/g, " ");
+    if (itemNorm === normalized || 
+        itemNorm.includes(normalized) || 
+        normalized.includes(itemNorm)) {
+      return item;
+    }
+  }
+
+  // Size-aware matching (e.g., "large margherita" → "Margherita Pizza")
+  const sizeMatch = normalized.match(/^(large|medium|small|xl|extra[ -]?large|personal)\s+(.+)/i);
+  if (sizeMatch) {
+    const sizelessName = sizeMatch[2].trim();
+    for (const item of menuItems) {
+      const itemNorm = item.name.toLowerCase();
+      if (itemNorm.includes(sizelessName)) {
+        return item;
+      }
+    }
+  }
+
+  // Category-based matching for drinks
+  const drinkKeywords = ["pepsi", "coke", "coca-cola", "sprite", "dr pepper", "fanta", "7-up", "root beer", 
+                         "ginger ale", "water", "lemonade", "iced tea", "sweet tea", "coffee", "espresso"];
+  for (const keyword of drinkKeywords) {
+    if (normalized.includes(keyword)) {
+      const drinkMatch = menuItems.find(m => 
+        m.name.toLowerCase().includes(keyword) || 
+        (m.category && m.category.toLowerCase() === "drinks")
+      );
+      if (drinkMatch) return drinkMatch;
+    }
+  }
+
+  // Wings matching (handle "42 wings" -> "Wings" menu item)
+  if (normalized.includes("wing") || spokenName.toLowerCase().includes("wing")) {
+    const wingsMatch = menuItems.find(m => 
+      m.name.toLowerCase().includes("wing") ||
+      (m.category && m.category.toLowerCase() === "wings")
+    );
+    if (wingsMatch) return wingsMatch;
+  }
+
+  // Calzone/stromboli matching
+  const italianSpecialties = ["calzone", "stromboli", "stuffed shell", "eggplant parm", "chicken parm", "veal parm"];
+  for (const specialty of italianSpecialties) {
+    if (normalized.includes(specialty)) {
+      const match = menuItems.find(m => m.name.toLowerCase().includes(specialty));
+      if (match) return match;
+    }
+  }
+
+  // Pasta matching
+  const pastaTypes = ["spaghetti", "fettuccine", "penne", "lasagna", "ravioli", "linguine", "rigatoni", "gnocchi", "tortellini", "manicotti"];
+  for (const pasta of pastaTypes) {
+    if (normalized.includes(pasta)) {
+      const match = menuItems.find(m => m.name.toLowerCase().includes(pasta));
+      if (match) return match;
+    }
+  }
+
+  // Appetizer/side matching
+  const sides = ["bruschetta", "garlic bread", "garlic knots", "breadsticks", "calamari", "mozzarella sticks", 
+                 "onion rings", "fries", "french fries", "caesar salad", "garden salad", "house salad"];
+  for (const side of sides) {
+    if (normalized.includes(side)) {
+      const match = menuItems.find(m => m.name.toLowerCase().includes(side));
+      if (match) return match;
+    }
+  }
+
+  return null;
 }
 
 // Parse natural language order items from transcript

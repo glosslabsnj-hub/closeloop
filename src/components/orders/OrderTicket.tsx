@@ -5,6 +5,9 @@ interface OrderItem {
   name: string;
   qty: number;
   base_price?: number;
+  price_cents?: number | null;
+  menu_item_id?: string | null;
+  matched?: boolean;
   modifiers?: string[];
   item_notes?: string;
 }
@@ -132,28 +135,35 @@ export const OrderTicket = forwardRef<HTMLDivElement, OrderTicketProps>(
           {items.length === 0 ? (
             <div style={{ fontStyle: "italic" }}>No items</div>
           ) : (
-            items.map((item, idx) => (
-              <div key={idx} style={{ marginBottom: "8px" }}>
-                <div style={{ fontWeight: "bold" }}>
-                  {item.qty}x {item.name}
-                  {item.base_price && (
-                    <span style={{ float: "right" }}>{formatCurrency(item.base_price * item.qty)}</span>
+            items.map((item, idx) => {
+              // Support both price_cents (new) and base_price (legacy)
+              const priceCents = item.price_cents ?? (item.base_price ? item.base_price : null);
+              const lineTotal = priceCents ? priceCents * item.qty : null;
+              
+              return (
+                <div key={idx} style={{ marginBottom: "8px" }}>
+                  <div style={{ fontWeight: "bold" }}>
+                    {item.qty}x {item.name}
+                    {item.matched === false && " *"}
+                    {lineTotal !== null && (
+                      <span style={{ float: "right" }}>{formatCurrency(lineTotal)}</span>
+                    )}
+                  </div>
+                  {item.modifiers && item.modifiers.length > 0 && (
+                    <div style={{ paddingLeft: isThermal ? "12px" : "16px", color: "#666" }}>
+                      {item.modifiers.map((mod, i) => (
+                        <div key={i}>+ {mod}</div>
+                      ))}
+                    </div>
+                  )}
+                  {item.item_notes && (
+                    <div style={{ paddingLeft: isThermal ? "12px" : "16px", fontStyle: "italic", color: "#666" }}>
+                      ({item.item_notes})
+                    </div>
                   )}
                 </div>
-                {item.modifiers && item.modifiers.length > 0 && (
-                  <div style={{ paddingLeft: isThermal ? "12px" : "16px", color: "#666" }}>
-                    {item.modifiers.map((mod, i) => (
-                      <div key={i}>+ {mod}</div>
-                    ))}
-                  </div>
-                )}
-                {item.item_notes && (
-                  <div style={{ paddingLeft: isThermal ? "12px" : "16px", fontStyle: "italic", color: "#666" }}>
-                    ({item.item_notes})
-                  </div>
-                )}
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
