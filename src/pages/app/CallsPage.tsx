@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Phone, Search, Pencil, Loader2, ExternalLink, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { CallEditDialog } from "@/components/calls/CallEditDialog";
+import { CallCard } from "@/components/calls/CallCard";
 import { useToast } from "@/hooks/use-toast";
 import { ModuleUnavailablePage } from "@/components/shared/ModuleUnavailablePage";
 import {
@@ -53,6 +55,7 @@ type CallStatus = "booked" | "thinking" | "no_book" | "order" | "dispatch";
 export default function CallsPage() {
   // P0-3: Route protection - redirect if ai_voice module not enabled
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["ai_voice"]);
+  const isMobile = useIsMobile();
   
   const { tenant } = useAuth();
   const { toast } = useToast();
@@ -274,7 +277,7 @@ export default function CallsPage() {
         />
       </div>
 
-      {/* Table */}
+      {/* Calls List */}
       {isLoading ? (
         <Card>
           <CardContent className="p-6">
@@ -286,127 +289,145 @@ export default function CallsPage() {
           </CardContent>
         </Card>
       ) : filteredCalls && filteredCalls.length > 0 ? (
-        <Card>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[180px]">Customer Name</TableHead>
-                  <TableHead className="w-[120px]">Date</TableHead>
-                  <TableHead className="w-[140px]">Phone</TableHead>
-                  <TableHead className="w-[200px]">Service Requested</TableHead>
-                  <TableHead className="min-w-[250px]">AI Summary</TableHead>
-                  <TableHead className="w-[100px] text-center">Status</TableHead>
-                  <TableHead className="w-[60px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCalls.map((call) => {
-                  const status = getCallStatus(call.outcome);
-                  const customerName = getCustomerName(call);
-                  const serviceRequested = getServiceRequested(call);
-                  const extractedDetails = getExtractedDetails(call);
-                  
-                  return (
-                    <TableRow key={call.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-1">
-                          {customerName}
-                          {call.customer_id && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <ExternalLink className="h-3 w-3 text-muted-foreground" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Linked to customer record</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {format(new Date(call.started_at), "MMM d, yyyy")}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {formatPhone(call.caller_phone)}
-                      </TableCell>
-                      <TableCell>
-                        {serviceRequested ? (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="cursor-help">{serviceRequested}</span>
-                              </TooltipTrigger>
-                              {extractedDetails && (
-                                <TooltipContent className="max-w-xs">
-                                  <pre className="text-xs whitespace-pre-wrap">
-                                    {extractedDetails}
-                                  </pre>
-                                </TooltipContent>
-                              )}
-                            </Tooltip>
-                          </TooltipProvider>
-                        ) : (
-                          <span className="text-muted-foreground italic">
-                            Not specified
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="max-w-[300px]">
-                        {call.summary ? (
-                          <span className="line-clamp-2 text-sm">
-                            {call.summary}
-                          </span>
-                        ) : call.ended_at && isWebhookMissing(call.ended_at) ? (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Link 
-                                  to={`/debug/ai-context?session=${call.id}`}
-                                  className="inline-flex items-center gap-1 text-warning hover:underline text-sm"
-                                >
-                                  <AlertTriangle className="h-3 w-3" />
-                                  <span>Webhook missing</span>
-                                </Link>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Post-call webhook may have failed. Call ended over 2 minutes ago without summary.</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        ) : call.ended_at ? (
-                          <span className="text-muted-foreground italic text-sm flex items-center gap-1">
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                            Processing...
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground italic text-sm">
-                            Awaiting AI summary...
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {getStatusBadge(status, call.outcome)}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setEditingCall(call)}
-                          className="h-8 w-8"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+        <>
+          {/* Mobile Card View */}
+          {isMobile ? (
+            <div className="space-y-3">
+              {filteredCalls.map((call) => (
+                <CallCard
+                  key={call.id}
+                  call={call}
+                  onEdit={() => setEditingCall(call)}
+                  customerName={getCustomerName(call)}
+                  serviceRequested={getServiceRequested(call)}
+                />
+              ))}
+            </div>
+          ) : (
+            /* Desktop Table View */
+            <Card>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[180px]">Customer Name</TableHead>
+                      <TableHead className="w-[120px]">Date</TableHead>
+                      <TableHead className="w-[140px]">Phone</TableHead>
+                      <TableHead className="w-[200px]">Service Requested</TableHead>
+                      <TableHead className="min-w-[250px]">AI Summary</TableHead>
+                      <TableHead className="w-[100px] text-center">Status</TableHead>
+                      <TableHead className="w-[60px]"></TableHead>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredCalls.map((call) => {
+                      const status = getCallStatus(call.outcome);
+                      const customerName = getCustomerName(call);
+                      const serviceRequested = getServiceRequested(call);
+                      const extractedDetails = getExtractedDetails(call);
+                      
+                      return (
+                        <TableRow key={call.id}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-1">
+                              {customerName}
+                              {call.customer_id && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Linked to customer record</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {format(new Date(call.started_at), "MMM d, yyyy")}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {formatPhone(call.caller_phone)}
+                          </TableCell>
+                          <TableCell>
+                            {serviceRequested ? (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="cursor-help">{serviceRequested}</span>
+                                  </TooltipTrigger>
+                                  {extractedDetails && (
+                                    <TooltipContent className="max-w-xs">
+                                      <pre className="text-xs whitespace-pre-wrap">
+                                        {extractedDetails}
+                                      </pre>
+                                    </TooltipContent>
+                                  )}
+                                </Tooltip>
+                              </TooltipProvider>
+                            ) : (
+                              <span className="text-muted-foreground italic">
+                                Not specified
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="max-w-[300px]">
+                            {call.summary ? (
+                              <span className="line-clamp-2 text-sm">
+                                {call.summary}
+                              </span>
+                            ) : call.ended_at && isWebhookMissing(call.ended_at) ? (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Link 
+                                      to={`/debug/ai-context?session=${call.id}`}
+                                      className="inline-flex items-center gap-1 text-warning hover:underline text-sm"
+                                    >
+                                      <AlertTriangle className="h-3 w-3" />
+                                      <span>Processing delayed</span>
+                                    </Link>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Call processing is taking longer than expected.</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ) : call.ended_at ? (
+                              <span className="text-muted-foreground italic text-sm flex items-center gap-1">
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                                Processing...
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground italic text-sm">
+                                Awaiting AI summary...
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {getStatusBadge(status, call.outcome)}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setEditingCall(call)}
+                              className="h-8 w-8"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
+          )}
+        </>
       ) : (
         <Card>
           <CardContent className="p-0">

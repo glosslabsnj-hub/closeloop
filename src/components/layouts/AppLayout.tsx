@@ -90,6 +90,36 @@ export function AppLayout() {
     });
   }, [enabledModules]);
 
+  // Get priority mobile nav items based on business mode
+  const mobileNavItems = useMemo(() => {
+    const prioritized: NavItem[] = [
+      { href: "/app/dashboard", label: "Home", icon: LayoutDashboard },
+    ];
+
+    // Add mode-specific priority items
+    const businessMode = (tenant as any)?.business_mode || "service";
+    
+    if (businessMode === "food" && enabledModules.includes("food_orders")) {
+      prioritized.push({ href: "/app/orders", label: "Orders", icon: UtensilsCrossed });
+    } else if (businessMode === "dispatch" && enabledModules.includes("dispatch_queue")) {
+      prioritized.push({ href: "/app/dispatch", label: "Dispatch", icon: Truck });
+    } else if (enabledModules.includes("booking")) {
+      prioritized.push({ href: "/app/bookings", label: "Bookings", icon: Calendar });
+    }
+
+    // Always include Inbox and Calls if voice enabled
+    prioritized.push({ href: "/app/inbox", label: "Inbox", icon: MessageSquare });
+    
+    if (enabledModules.includes("ai_voice")) {
+      prioritized.push({ href: "/app/calls", label: "Calls", icon: PhoneCall });
+    }
+
+    // Add settings as last item
+    prioritized.push({ href: "/app/settings", label: "Settings", icon: Settings });
+
+    return prioritized.slice(0, 5); // Max 5 items for mobile nav
+  }, [enabledModules, tenant]);
+
   useEffect(() => {
     if (!loading && !user) {
       navigate("/login");
@@ -235,18 +265,19 @@ export function AppLayout() {
         {/* Mobile Bottom Nav */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 safe-area-pb">
           <div className="grid grid-cols-5 h-16">
-            {navItems.slice(0, 5).map((item) => {
+            {mobileNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.href;
               const isLocked = !hasActiveSubscription && 
                 !alwaysAccessibleRoutes.some(route => item.href.startsWith(route));
+              const showBadge = item.href === "/app/dashboard" && conflictsCount > 0;
               
               return (
                 <Link
                   key={item.href}
                   to={isLocked ? "/app/go-live" : item.href}
                   className={cn(
-                    "flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors relative",
+                    "flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors relative min-h-[44px]",
                     isActive 
                       ? "text-primary" 
                       : isLocked 
@@ -257,7 +288,12 @@ export function AppLayout() {
                   {isActive && (
                     <span className="absolute top-1 w-1 h-1 rounded-full bg-primary" />
                   )}
-                  <Icon className="h-5 w-5" />
+                  <div className="relative">
+                    <Icon className="h-5 w-5" />
+                    {showBadge && (
+                      <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-destructive" />
+                    )}
+                  </div>
                   <span className="truncate text-[10px]">{item.label}</span>
                 </Link>
               );
