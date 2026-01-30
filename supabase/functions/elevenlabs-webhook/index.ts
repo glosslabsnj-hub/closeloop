@@ -150,6 +150,30 @@ function normalizeToE164(phone: string): string {
   return digits.length > 0 ? `+${digits}` : "";
 }
 
+// Extract value from ElevenLabs data collection objects
+// ElevenLabs may return objects like { data_collection_id, value, rationale, json_schema }
+// This helper extracts just the actual value, handling both simple strings and wrapped objects
+function extractDataCollectionValue(val: unknown): string | null {
+  if (val === null || val === undefined) return null;
+  if (typeof val === "string") return val || null;
+  if (typeof val === "boolean") return val ? "true" : "false";
+  if (typeof val === "number") return String(val);
+  if (typeof val === "object") {
+    const obj = val as Record<string, unknown>;
+    // Check for wrapped value object: { value: "actual value", rationale: "...", ... }
+    if ("value" in obj) {
+      return extractDataCollectionValue(obj.value);
+    }
+    // Check for nested data_collection_id pattern
+    if ("data_collection_id" in obj && "value" in obj) {
+      return extractDataCollectionValue(obj.value);
+    }
+    // Don't stringify objects - return null for complex types
+    return null;
+  }
+  return null;
+}
+
 // Log event to ai_event_logs table
 // deno-lint-ignore no-explicit-any
 async function logEventStage(
@@ -612,50 +636,58 @@ async function processCallData(
     // Try to build a summary from transcript if none provided
     (payload.transcript?.length ? buildSummaryFromTranscript(payload.transcript, tenantBusinessMode) : null);
   
-  // ===== EXTRACT CUSTOMER INFO =====
+  // ===== EXTRACT CUSTOMER INFO (unwrap ElevenLabs data collection objects) =====
   const customerName = 
-    dataCollection.customer_name ||
-    dataCollection.name ||
-    dataCollection.caller_name ||
+    extractDataCollectionValue(dataCollection.customer_name) ||
+    extractDataCollectionValue(dataCollection.name) ||
+    extractDataCollectionValue(dataCollection.caller_name) ||
     extractFromTranscript(payload.transcript, "name") ||
     null;
 
   const serviceRequested =
-    dataCollection.service_requested ||
-    dataCollection.service ||
-    dataCollection.reason ||
-    dataCollection.inquiry_type ||
+    extractDataCollectionValue(dataCollection.service_requested) ||
+    extractDataCollectionValue(dataCollection.service) ||
+    extractDataCollectionValue(dataCollection.reason) ||
+    extractDataCollectionValue(dataCollection.inquiry_type) ||
     extractFromTranscript(payload.transcript, "service") ||
     null;
 
   // ===== DETERMINE OUTCOME BASED ON BUSINESS MODE =====
   let outcome: string = "lost";
   
+  // Extract values for outcome detection (handle wrapped objects)
+  const orderConfirmedVal = extractDataCollectionValue(dataCollection.order_confirmed);
+  const jobCreatedVal = extractDataCollectionValue(dataCollection.job_created);
+  const dispatchConfirmedVal = extractDataCollectionValue(dataCollection.dispatch_confirmed);
+  const bookingConfirmedVal = extractDataCollectionValue(dataCollection.booking_confirmed);
+  const callbackRequestedVal = extractDataCollectionValue(dataCollection.callback_requested);
+  const messageTakenVal = extractDataCollectionValue(dataCollection.message_taken);
+  const orderItemsVal = extractDataCollectionValue(dataCollection.order_items) || extractDataCollectionValue(dataCollection.items);
+  const pickupAddressVal = extractDataCollectionValue(dataCollection.pickup_address);
+  
   // Check for mode-specific outcomes first
   if (tenantBusinessMode === "food") {
     // Check multiple ways order confirmation can be expressed
     const orderConfirmed = 
-      dataCollection.order_confirmed === "true" || 
-      dataCollection.order_confirmed === "yes" ||
-      (dataCollection as Record<string, unknown>).order_confirmed === true ||
-      dataCollection.order_items ||
-      dataCollection.items;
+      orderConfirmedVal === "true" || 
+      orderConfirmedVal === "yes" ||
+      !!orderItemsVal;
     if (orderConfirmed) {
       outcome = "order";
     }
   } else if (tenantBusinessMode === "dispatch") {
-    if (dataCollection.job_created === "true" || dataCollection.dispatch_confirmed === "true" || dataCollection.pickup_address) {
+    if (jobCreatedVal === "true" || dispatchConfirmedVal === "true" || pickupAddressVal) {
       outcome = "dispatch";
     }
   }
   
   // Generic outcomes
   if (outcome === "lost") {
-    if (analysis.call_successful === true || dataCollection.booking_confirmed === "true" || dataCollection.booking_confirmed === "yes") {
+    if (analysis.call_successful === true || bookingConfirmedVal === "true" || bookingConfirmedVal === "yes") {
       outcome = "booked";
-    } else if (dataCollection.callback_requested === "true" || dataCollection.callback_requested === "yes") {
+    } else if (callbackRequestedVal === "true" || callbackRequestedVal === "yes") {
       outcome = "followup";
-    } else if (dataCollection.message_taken === "true") {
+    } else if (messageTakenVal === "true") {
       outcome = "message";
     } else if (analysis.call_successful === false) {
       outcome = "lost";
@@ -664,7 +696,7 @@ async function processCallData(
     }
   }
   
-  console.log("Determined outcome:", outcome, "for business mode:", tenantBusinessMode, "order_confirmed:", dataCollection.order_confirmed);
+  console.log("Determined outcome:", outcome, "for business mode:", tenantBusinessMode, "order_confirmed:", orderConfirmedVal);
 
   // ===== BUILD EXTRACTED PAYLOAD (MODE-SPECIFIC) =====
   const extractedPayload = buildExtractedPayload(tenantBusinessMode, dataCollection, payload.transcript);
@@ -978,6 +1010,7 @@ async function processCallData(
 
 // Build extracted payload based on business mode
 // Includes server-side extraction fallback when ElevenLabs doesn't provide structured data
+// IMPORTANT: Uses extractDataCollectionValue to unwrap ElevenLabs nested objects
 function buildExtractedPayload(
   businessMode: string,
   dataCollection: Record<string, string>,
@@ -985,15 +1018,23 @@ function buildExtractedPayload(
 ): Record<string, unknown> {
   const payload: Record<string, unknown> = {};
   
-  // Always include common fields
-  if (dataCollection.customer_name || dataCollection.name) {
-    payload.customer_name = dataCollection.customer_name || dataCollection.name;
+  // Helper to get clean value from data collection
+  const getVal = (key: string): string | null => {
+    return extractDataCollectionValue(dataCollection[key]);
+  };
+  
+  // Always include common fields (unwrapped)
+  const customerNameVal = getVal("customer_name") || getVal("name");
+  if (customerNameVal) {
+    payload.customer_name = customerNameVal;
   }
-  if (dataCollection.callback_number) {
-    payload.callback_number = dataCollection.callback_number;
+  const callbackNumberVal = getVal("callback_number");
+  if (callbackNumberVal) {
+    payload.callback_number = callbackNumberVal;
   }
-  if (dataCollection.notes || dataCollection.special_instructions) {
-    payload.notes = dataCollection.notes || dataCollection.special_instructions;
+  const notesVal = getVal("notes") || getVal("special_instructions");
+  if (notesVal) {
+    payload.notes = notesVal;
   }
   
   // SERVER-SIDE EXTRACTION FALLBACK
@@ -1009,94 +1050,134 @@ function buildExtractedPayload(
   }
   
   switch (businessMode) {
-    case "food":
+    case "food": {
       // Food mode: order items, modifiers, totals, pickup/delivery, address
-      if (dataCollection.order_items || dataCollection.items) {
+      const orderItemsRaw = getVal("order_items") || getVal("items");
+      if (orderItemsRaw) {
         try {
-          const items = dataCollection.order_items || dataCollection.items;
-          payload.items = typeof items === "string" ? JSON.parse(items) : items;
+          payload.items = JSON.parse(orderItemsRaw);
         } catch {
-          payload.items_raw = dataCollection.order_items || dataCollection.items;
+          payload.items_raw = orderItemsRaw;
         }
       }
-      if (dataCollection.order_type) payload.order_type = dataCollection.order_type;
-      if (dataCollection.delivery_address) payload.delivery_address = dataCollection.delivery_address;
-      if (dataCollection.pickup_time || dataCollection.requested_time) {
-        payload.requested_time = dataCollection.pickup_time || dataCollection.requested_time;
-      }
-      if (dataCollection.total_estimate) payload.total_estimate = dataCollection.total_estimate;
-      if (dataCollection.special_instructions) payload.special_instructions = dataCollection.special_instructions;
-      if (dataCollection.modifiers) {
+      const orderTypeVal = getVal("order_type");
+      if (orderTypeVal) payload.order_type = orderTypeVal;
+      
+      const deliveryAddressVal = getVal("delivery_address");
+      if (deliveryAddressVal) payload.delivery_address = deliveryAddressVal;
+      
+      const requestedTimeVal = getVal("pickup_time") || getVal("requested_time");
+      if (requestedTimeVal) payload.requested_time = requestedTimeVal;
+      
+      const totalEstimateVal = getVal("total_estimate");
+      if (totalEstimateVal) payload.total_estimate = totalEstimateVal;
+      
+      const specialInstructionsVal = getVal("special_instructions");
+      if (specialInstructionsVal) payload.special_instructions = specialInstructionsVal;
+      
+      const modifiersRaw = getVal("modifiers");
+      if (modifiersRaw) {
         try {
-          payload.modifiers = typeof dataCollection.modifiers === "string" ? JSON.parse(dataCollection.modifiers) : dataCollection.modifiers;
+          payload.modifiers = JSON.parse(modifiersRaw);
         } catch {
-          payload.modifiers_raw = dataCollection.modifiers;
+          payload.modifiers_raw = modifiersRaw;
         }
       }
       break;
+    }
       
-    case "service":
+    case "service": {
       // Service mode: service requested, schedule preference, intake fields
-      if (dataCollection.service_requested || dataCollection.service) {
-        payload.service_requested = dataCollection.service_requested || dataCollection.service;
-      }
-      if (dataCollection.preferred_date || dataCollection.schedule_date) {
-        payload.preferred_date = dataCollection.preferred_date || dataCollection.schedule_date;
-      }
-      if (dataCollection.preferred_time || dataCollection.schedule_time) {
-        payload.preferred_time = dataCollection.preferred_time || dataCollection.schedule_time;
-      }
-      if (dataCollection.address || dataCollection.service_address) {
-        payload.address = dataCollection.address || dataCollection.service_address;
-      }
-      if (dataCollection.vehicle) payload.vehicle = dataCollection.vehicle;
-      if (dataCollection.vehicle_year) payload.vehicle_year = dataCollection.vehicle_year;
-      if (dataCollection.vehicle_make) payload.vehicle_make = dataCollection.vehicle_make;
-      if (dataCollection.vehicle_model) payload.vehicle_model = dataCollection.vehicle_model;
-      // Capture any additional intake fields
+      const serviceVal = getVal("service_requested") || getVal("service");
+      if (serviceVal) payload.service_requested = serviceVal;
+      
+      const preferredDateVal = getVal("preferred_date") || getVal("schedule_date");
+      if (preferredDateVal) payload.preferred_date = preferredDateVal;
+      
+      const preferredTimeVal = getVal("preferred_time") || getVal("schedule_time");
+      if (preferredTimeVal) payload.preferred_time = preferredTimeVal;
+      
+      const addressVal = getVal("address") || getVal("service_address");
+      if (addressVal) payload.address = addressVal;
+      
+      const vehicleVal = getVal("vehicle");
+      if (vehicleVal) payload.vehicle = vehicleVal;
+      
+      const vehicleYearVal = getVal("vehicle_year");
+      if (vehicleYearVal) payload.vehicle_year = vehicleYearVal;
+      
+      const vehicleMakeVal = getVal("vehicle_make");
+      if (vehicleMakeVal) payload.vehicle_make = vehicleMakeVal;
+      
+      const vehicleModelVal = getVal("vehicle_model");
+      if (vehicleModelVal) payload.vehicle_model = vehicleModelVal;
+      
+      // Capture any additional intake fields (also unwrap)
       for (const key of Object.keys(dataCollection)) {
         if (key.startsWith("intake_") || key.startsWith("custom_")) {
-          payload[key] = dataCollection[key];
+          const val = getVal(key);
+          if (val) payload[key] = val;
         }
       }
       break;
+    }
       
-    case "dispatch":
+    case "dispatch": {
       // Dispatch mode: pickup/dropoff, vehicle, urgency
-      if (dataCollection.pickup_address) payload.pickup_address = dataCollection.pickup_address;
-      if (dataCollection.dropoff_address) payload.dropoff_address = dataCollection.dropoff_address;
-      if (dataCollection.vehicle_type || dataCollection.vehicle) {
-        payload.vehicle = dataCollection.vehicle_type || dataCollection.vehicle;
-      }
-      if (dataCollection.is_drivable !== undefined) {
-        payload.is_drivable = dataCollection.is_drivable === "true" || dataCollection.is_drivable === "yes";
-      }
-      if (dataCollection.urgency || dataCollection.priority) {
-        payload.urgency = dataCollection.urgency || dataCollection.priority;
-      }
-      if (dataCollection.job_type) payload.job_type = dataCollection.job_type;
-      if (dataCollection.eta_requested) payload.eta_requested = dataCollection.eta_requested;
-      break;
+      const pickupVal = getVal("pickup_address");
+      if (pickupVal) payload.pickup_address = pickupVal;
       
-    case "medical":
-      // Medical mode: minimal intake, no PHI stored
-      if (dataCollection.appointment_type) payload.appointment_type = dataCollection.appointment_type;
-      if (dataCollection.is_new_patient !== undefined) {
-        payload.is_new_patient = dataCollection.is_new_patient === "true" || dataCollection.is_new_patient === "yes";
+      const dropoffVal = getVal("dropoff_address");
+      if (dropoffVal) payload.dropoff_address = dropoffVal;
+      
+      const vehicleVal = getVal("vehicle_type") || getVal("vehicle");
+      if (vehicleVal) payload.vehicle = vehicleVal;
+      
+      const isDrivableVal = getVal("is_drivable");
+      if (isDrivableVal !== null) {
+        payload.is_drivable = isDrivableVal === "true" || isDrivableVal === "yes";
       }
-      if (dataCollection.preferred_date) payload.preferred_date = dataCollection.preferred_date;
-      if (dataCollection.callback_requested !== undefined) {
-        payload.callback_requested = dataCollection.callback_requested === "true";
+      
+      const urgencyVal = getVal("urgency") || getVal("priority");
+      if (urgencyVal) payload.urgency = urgencyVal;
+      
+      const jobTypeVal = getVal("job_type");
+      if (jobTypeVal) payload.job_type = jobTypeVal;
+      
+      const etaVal = getVal("eta_requested");
+      if (etaVal) payload.eta_requested = etaVal;
+      break;
+    }
+      
+    case "medical": {
+      // Medical mode: minimal intake, no PHI stored
+      const apptTypeVal = getVal("appointment_type");
+      if (apptTypeVal) payload.appointment_type = apptTypeVal;
+      
+      const isNewPatientVal = getVal("is_new_patient");
+      if (isNewPatientVal !== null) {
+        payload.is_new_patient = isNewPatientVal === "true" || isNewPatientVal === "yes";
+      }
+      
+      const preferredDateVal = getVal("preferred_date");
+      if (preferredDateVal) payload.preferred_date = preferredDateVal;
+      
+      const callbackVal = getVal("callback_requested");
+      if (callbackVal !== null) {
+        payload.callback_requested = callbackVal === "true";
       }
       // Do NOT store symptoms or other PHI
       break;
+    }
       
-    default:
+    default: {
       // General mode: service/reason
-      if (dataCollection.service_requested || dataCollection.reason) {
-        payload.service_requested = dataCollection.service_requested || dataCollection.reason;
-      }
-      if (dataCollection.message) payload.message = dataCollection.message;
+      const serviceVal = getVal("service_requested") || getVal("reason");
+      if (serviceVal) payload.service_requested = serviceVal;
+      
+      const messageVal = getVal("message");
+      if (messageVal) payload.message = messageVal;
+    }
   }
   
   return payload;
@@ -1280,16 +1361,21 @@ async function processFoodOrderIfApplicable(
 
   if (!isFoodMode) return;
 
-  // Check if order was confirmed - handle boolean and string values
+  // Check if order was confirmed - unwrap ElevenLabs data collection objects
+  const orderConfirmedVal = extractDataCollectionValue(dataCollection.order_confirmed);
   const orderConfirmed = 
-    dataCollection.order_confirmed === "true" || 
-    dataCollection.order_confirmed === "yes" ||
+    orderConfirmedVal === "true" || 
+    orderConfirmedVal === "yes" ||
     extractedPayload.order_confirmed === true ||
     extractedPayload.order_confirmed === "true";
-  const orderItems = dataCollection.order_items || dataCollection.items || extractedPayload.items_raw;
+  
+  // Unwrap order items as well
+  const orderItemsRaw = extractDataCollectionValue(dataCollection.order_items) || 
+    extractDataCollectionValue(dataCollection.items) || 
+    extractedPayload.items_raw;
   
   // Also check if we have items extracted from transcript
-  const hasOrderData = orderConfirmed || orderItems || extractedPayload.items;
+  const hasOrderData = orderConfirmed || orderItemsRaw || extractedPayload.items;
   
   if (!hasOrderData) return;
 
@@ -1297,12 +1383,12 @@ async function processFoodOrderIfApplicable(
 
   let parsedItems: Array<{ name: string; qty: number; modifiers?: string[]; item_notes?: string }> = [];
   try {
-    if (typeof orderItems === "string") {
+    if (typeof orderItemsRaw === "string") {
       try {
-        parsedItems = JSON.parse(orderItems);
+        parsedItems = JSON.parse(orderItemsRaw);
       } catch {
         // Parse natural language items from transcript or raw string
-        parsedItems = parseNaturalLanguageItems(orderItems, payload.transcript);
+        parsedItems = parseNaturalLanguageItems(orderItemsRaw, payload.transcript);
       }
     }
   } catch (e) {
@@ -1320,28 +1406,37 @@ async function processFoodOrderIfApplicable(
   }
 
   const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}`;
-  const hasUncertainty = dataCollection.needs_clarification === "true" || 
-    dataCollection.uncertain === "true" ||
-    (parsedItems.length === 0 && orderItems);
+  
+  // Also unwrap uncertainty flags
+  const needsClarificationVal = extractDataCollectionValue(dataCollection.needs_clarification);
+  const uncertainVal = extractDataCollectionValue(dataCollection.uncertain);
+  const hasUncertainty = needsClarificationVal === "true" || 
+    uncertainVal === "true" ||
+    (parsedItems.length === 0 && orderItemsRaw);
   
   const status = hasUncertainty ? "needs_followup" : "confirmed";
+  
+  // Unwrap customer name for order
+  const orderCustomerName = customerName || 
+    extractDataCollectionValue(dataCollection.customer_name) || 
+    "Phone Customer";
 
   const { data: newOrder, error: orderError } = await supabase
     .from("food_orders")
     .insert({
       tenant_id: tenantId,
       order_number: orderNumber,
-      order_type: (extractedPayload.order_type as string) || dataCollection.order_type || "pickup",
+      order_type: (extractedPayload.order_type as string) || extractDataCollectionValue(dataCollection.order_type) || "pickup",
       status,
       customer_id: customerId,
-      customer_name: customerName || dataCollection.customer_name || "Phone Customer",
+      customer_name: orderCustomerName,
       customer_phone: payload.dynamic_variables?.caller_phone || null,
       items_json: parsedItems.length > 0 ? parsedItems : [{ name: "Order details in special instructions", qty: 1 }],
-      special_instructions: (extractedPayload.special_instructions as string) || dataCollection.special_instructions || 
-        (orderItems && parsedItems.length === 0 ? `Customer order: ${orderItems}` : null),
-      requested_time: dataCollection.requested_time ? new Date(dataCollection.requested_time).toISOString() : null,
-      delivery_address: (extractedPayload.delivery_address as string) || dataCollection.delivery_address || null,
-      address_json: (extractedPayload.delivery_address || dataCollection.delivery_address) ? { street: extractedPayload.delivery_address || dataCollection.delivery_address } : null,
+      special_instructions: (extractedPayload.special_instructions as string) || extractDataCollectionValue(dataCollection.special_instructions) || 
+        (orderItemsRaw && parsedItems.length === 0 ? `Customer order: ${orderItemsRaw}` : null),
+      requested_time: extractDataCollectionValue(dataCollection.requested_time) ? new Date(extractDataCollectionValue(dataCollection.requested_time) as string).toISOString() : null,
+      delivery_address: (extractedPayload.delivery_address as string) || extractDataCollectionValue(dataCollection.delivery_address) || null,
+      address_json: (extractedPayload.delivery_address || extractDataCollectionValue(dataCollection.delivery_address)) ? { street: extractedPayload.delivery_address || extractDataCollectionValue(dataCollection.delivery_address) } : null,
     })
     .select()
     .single();
