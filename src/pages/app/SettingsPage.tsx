@@ -31,7 +31,7 @@ import { DataControlsPanel } from "@/components/settings/DataControlsPanel";
 import { SettingsSidebar, SettingsNavConfig } from "@/components/settings/SettingsSidebar";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { MobileSettingsNav } from "@/components/settings/MobileSettingsNav";
-import { LiveSchedulePreview } from "@/components/settings/LiveSchedulePreview";
+import { AvailabilityHub } from "@/components/availability/AvailabilityHub";
 
 const timezones = [
   { value: "America/New_York", label: "Eastern Time" },
@@ -256,71 +256,7 @@ export default function SettingsPage() {
         );
 
       case "hours":
-        return (
-          <>
-            {/* Live Preview - What AI Knows */}
-            <LiveSchedulePreview />
-
-            {/* Editable Weekly Schedule */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Weekly Schedule</CardTitle>
-                <CardDescription>Set your regular business hours. Changes update your AI immediately.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {daysOfWeek.map((day) => (
-                    <div key={day.value} className="flex items-center justify-between py-2 border-b last:border-0">
-                      <div className="flex items-center gap-3">
-                        <Switch
-                          checked={hours[day.value]?.enabled ?? false}
-                          onCheckedChange={(checked) =>
-                            setHours((prev) => ({
-                              ...prev,
-                              [day.value]: { ...prev[day.value], enabled: checked },
-                            }))
-                          }
-                        />
-                        <span className="font-medium">{day.label}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="time"
-                          value={hours[day.value]?.start ?? "09:00"}
-                          onChange={(e) =>
-                            setHours((prev) => ({
-                              ...prev,
-                              [day.value]: { ...prev[day.value], start: e.target.value },
-                            }))
-                          }
-                          className="w-28"
-                          disabled={!hours[day.value]?.enabled}
-                        />
-                        <span className="text-muted-foreground">to</span>
-                        <Input
-                          type="time"
-                          value={hours[day.value]?.end ?? "17:00"}
-                          onChange={(e) =>
-                            setHours((prev) => ({
-                              ...prev,
-                              [day.value]: { ...prev[day.value], end: e.target.value },
-                            }))
-                          }
-                          className="w-28"
-                          disabled={!hours[day.value]?.enabled}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <Button onClick={handleSaveHours} disabled={isSaving} className="mt-4">
-                  {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  Save Hours
-                </Button>
-              </CardContent>
-            </Card>
-          </>
-        );
+        return <AvailabilityHub />;
 
       case "team":
         return (
