@@ -9,11 +9,9 @@ import {
   Shield,
   Stethoscope,
   Webhook,
-  Zap,
   Bug,
   ChevronDown,
   ChevronRight,
-  Settings,
 } from "lucide-react";
 import { SettingsNavItem } from "./SettingsNavItem";
 import { cn } from "@/lib/utils";
@@ -81,7 +79,6 @@ export function SettingsSidebar({ activeSection, onSectionChange, config }: Sett
       items: [
         { id: "alerts", label: "How You Get Notified", icon: Bell },
         { id: "integrations", label: "Where Things Go", icon: Webhook },
-        { id: "automation", label: "Automation Rules", icon: Zap },
       ],
     },
     {
