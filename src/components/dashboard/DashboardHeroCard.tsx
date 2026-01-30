@@ -261,7 +261,7 @@ export function DashboardHeroCard() {
           </div>
 
           {/* Quick Actions */}
-          <div className="flex gap-3 mt-4">
+          <div className="flex flex-wrap gap-2 mt-4">
             <Button 
               variant="outline" 
               size="sm"
@@ -275,10 +275,19 @@ export function DashboardHeroCard() {
               variant="outline" 
               size="sm"
               className="gap-2"
-              onClick={() => navigate("/app/ai-assistant")}
+              onClick={() => navigate("/app/business-brain")}
             >
-              <Settings2 className="h-4 w-4" />
-              Configure
+              <Brain className="h-4 w-4" />
+              Add Knowledge
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="gap-2"
+              onClick={() => navigate("/app/calls")}
+            >
+              <Phone className="h-4 w-4" />
+              View Calls
             </Button>
           </div>
         </div>

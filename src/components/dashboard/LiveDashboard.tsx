@@ -2,15 +2,14 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { DashboardHeroCard } from "./DashboardHeroCard";
 import { PhoneNumberCard } from "./PhoneNumberCard";
-import { TodayQueueCard } from "./TodayQueueCard";
-import { RecentActivityCard } from "./RecentActivityCard";
+import { KnowledgeStatusBar } from "./KnowledgeStatusBar";
+import { TeachAISection } from "./TeachAISection";
+import { ActivityFeed } from "./ActivityFeed";
 import { QuickLinksCard } from "./QuickLinksCard";
 import { GoLiveChecklist } from "./GoLiveChecklist";
 import { UsageThresholdBanner } from "./UsageThresholdBanner";
 import { Copilot, CopilotTrigger } from "./Copilot";
-import { BusinessBrainStatusCard } from "./BusinessBrainStatusCard";
 import { KnowledgeConflictBanner } from "./KnowledgeConflictBanner";
-import { NextStepsPanel } from "./NextStepsPanel";
 import { hasVoiceFeature } from "@/config/pricing";
 
 export function LiveDashboard() {
@@ -18,7 +17,6 @@ export function LiveDashboard() {
   const [copilotOpen, setCopilotOpen] = useState(false);
   
   const isLive = assistantSettings?.go_live_enabled;
-  // Use centralized helper for voice feature detection
   const hasVoice = hasVoiceFeature(subscription?.plan_code);
 
   return (
@@ -33,23 +31,20 @@ export function LiveDashboard() {
       {/* Phone Number Card - Prominent for Voice plans */}
       {hasVoice && <PhoneNumberCard />}
 
-      {/* Two Column: Queue + Quick Actions */}
+      {/* Knowledge Status Bar - Always visible AI readiness */}
+      <KnowledgeStatusBar />
+
+      {/* Teach AI Section - Upload + Quick Add */}
+      <TeachAISection />
+
+      {/* Two Column: Activity Feed + Quick Actions */}
       <div className="grid md:grid-cols-2 gap-6">
-        <TodayQueueCard />
+        <ActivityFeed />
         <QuickLinksCard />
       </div>
 
-      {/* Full Width: Recent Activity + What's Happening */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <RecentActivityCard />
-        <NextStepsPanel />
-      </div>
-
-      {/* Two Column: Brain Status + Setup/Checklist */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <BusinessBrainStatusCard />
-        {!isLive && <GoLiveChecklist />}
-      </div>
+      {/* Go-Live Checklist - Only show when not live */}
+      {!isLive && <GoLiveChecklist />}
 
       {/* Copilot FAB */}
       {copilotOpen ? (
