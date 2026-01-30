@@ -1,62 +1,34 @@
 
-# Plan: Add ElevenLabs Webhook HMAC Secret
 
-## What This Does
-Adds the `ELEVENLABS_CONVAI_WEBHOOK_SECRET` to your backend so the edge functions can verify that incoming webhook requests are actually from ElevenLabs (not spoofed).
+# Plan: Update ElevenLabs Webhook Secret
 
----
-
-## Step 1: Add the Secret
-
-I will use the `add_secret` tool to prompt you to enter your ElevenLabs webhook HMAC secret. This secret will be stored securely in your backend and will **never** appear in frontend code.
-
-**Secret Name:** `ELEVENLABS_CONVAI_WEBHOOK_SECRET`  
-**Where it comes from:** ElevenLabs dashboard (when you created the webhook, it should have shown an HMAC secret)
+## What's Happening
+The HMAC signature verification is failing because the secret stored in the backend doesn't match the one configured in ElevenLabs. You've provided the correct secret value.
 
 ---
 
-## Step 2: Update Edge Functions to Verify Signatures
+## Step 1: Update the Secret
 
-Add HMAC signature verification to both webhook functions:
+I will use the `add_secret` tool to update `ELEVENLABS_CONVAI_WEBHOOK_SECRET` with the value you provided:
 
-### elevenlabs-webhook (Post-Call Webhook)
-- Read the `x-elevenlabs-signature` header from incoming requests
-- Compute HMAC-SHA256 of the raw request body using your secret
-- Compare signatures; reject if they don't match
-- If secret is not configured, allow requests through (for backwards compatibility)
-
-### elevenlabs-init (Client Data Webhook)
-- Already has placeholder for `ELEVENLABS_INIT_SECRET` validation
-- Will update to also check `ELEVENLABS_CONVAI_WEBHOOK_SECRET` for consistency
-
----
-
-## Technical Details
-
-**HMAC Verification Logic (Deno):**
-```text
-1. Get raw body text
-2. Get signature from header: x-elevenlabs-signature
-3. Compute: HMAC-SHA256(rawBody, secret)
-4. Compare computed signature to provided signature
-5. If mismatch and secret is configured: reject with 401
-6. If secret not configured: allow (logs warning)
+```
+wsec_74cd0f698489b0c03c11d9f904d41a7fbdb90a45a392d1089387e41844cd46b7
 ```
 
-**Files to Modify:**
-- `supabase/functions/elevenlabs-webhook/index.ts` - Add signature verification
-- `supabase/functions/elevenlabs-init/index.ts` - Align signature verification
+This will overwrite the existing secret with the correct one.
 
 ---
 
-## Security Benefits
-- Prevents malicious actors from sending fake call data
-- Ensures only ElevenLabs can trigger your webhooks
-- Industry standard HMAC verification pattern
+## Step 2: Verify
+
+After updating:
+1. Run another simulator test call
+2. Check the logs - should now show "HMAC signature verified successfully" and return 200
 
 ---
 
-## What You'll Need to Do
-1. Approve this plan
-2. Paste your HMAC secret when prompted (I'll request it securely)
-3. Test a call to verify everything still works
+## Expected Outcome
+- `elevenlabs-webhook` will return **200 OK** instead of 401
+- Call transcripts and metadata will be processed correctly
+- Logs will confirm successful signature verification
+
