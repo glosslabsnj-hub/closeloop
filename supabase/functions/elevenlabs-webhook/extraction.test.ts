@@ -812,6 +812,145 @@ Deno.test("Modifier: 'extra spicy'", () => {
 });
 
 // ============================================================================
+// ITALIAN: CALZONES, STROMBOLI, SUBS
+// ============================================================================
+
+Deno.test("Calzone: '3 calzones'", () => {
+  const result = parseNaturalLanguageItems("", [
+    userSays("I'd like 3 calzones please")
+  ]);
+  
+  assertEquals(result.items.length, 1);
+  assertEquals(result.items[0].name.toLowerCase().includes("calzone"), true);
+  assertEquals(result.items[0].qty, 3);
+});
+
+Deno.test("Calzone: 'calzone' standalone", () => {
+  const result = parseNaturalLanguageItems("", [
+    userSays("Can I get a calzone?")
+  ]);
+  
+  assertEquals(result.items.length, 1);
+  assertEquals(result.items[0].name.toLowerCase().includes("calzone"), true);
+});
+
+Deno.test("Stromboli: 'two strombolis'", () => {
+  const result = parseNaturalLanguageItems("", [
+    userSays("two strombolis")
+  ]);
+  
+  assertEquals(result.items.length, 1);
+  assertEquals(result.items[0].name.toLowerCase().includes("stromboli"), true);
+  assertEquals(result.items[0].qty, 2);
+});
+
+Deno.test("Italian: 'chicken parm'", () => {
+  const result = parseNaturalLanguageItems("", [
+    userSays("I'll have the chicken parm")
+  ]);
+  
+  assertEquals(result.items.length, 1);
+  assertEquals(result.items[0].name.toLowerCase().includes("chicken"), true);
+});
+
+Deno.test("Italian: 'stuffed shells'", () => {
+  const result = parseNaturalLanguageItems("", [
+    userSays("stuffed shells please")
+  ]);
+  
+  assertEquals(result.items.length, 1);
+  assertEquals(result.items[0].name.toLowerCase().includes("stuffed"), true);
+});
+
+Deno.test("Subs: 'meatball sub'", () => {
+  const result = parseNaturalLanguageItems("", [
+    userSays("I want a meatball sub")
+  ]);
+  
+  assertEquals(result.items.length, 1);
+  assertEquals(result.items[0].name.toLowerCase().includes("meatball"), true);
+});
+
+Deno.test("Subs: 'italian hero'", () => {
+  const result = parseNaturalLanguageItems("", [
+    userSays("One italian hero")
+  ]);
+  
+  assertEquals(result.items.length, 1);
+  assertEquals(result.items[0].name.toLowerCase().includes("italian"), true);
+});
+
+// ============================================================================
+// AMERICAN: WINGS (expanded)
+// ============================================================================
+
+Deno.test("Wings: '42 wings'", () => {
+  const result = parseNaturalLanguageItems("", [
+    userSays("I'd like 42 wings please")
+  ]);
+  
+  assertEquals(result.items.length, 1);
+  assertEquals(result.items[0].qty, 42);
+  assertEquals(result.items[0].name.toLowerCase().includes("wing"), true);
+});
+
+Deno.test("Wings: '10 buffalo wings'", () => {
+  const result = parseNaturalLanguageItems("", [
+    userSays("10 buffalo wings")
+  ]);
+  
+  assertEquals(result.items.length, 1);
+  assertEquals(result.items[0].qty, 10);
+  assertEquals(result.items[0].name.toLowerCase().includes("wing"), true);
+});
+
+Deno.test("Wings: '20 piece wings'", () => {
+  const result = parseNaturalLanguageItems("", [
+    userSays("20 piece wings bbq")
+  ]);
+  
+  assertEquals(result.items.length, 1);
+  assertEquals(result.items[0].qty, 20);
+});
+
+Deno.test("Wings: 'garlic parmesan wings'", () => {
+  const result = parseNaturalLanguageItems("", [
+    userSays("12 garlic parmesan wings")
+  ]);
+  
+  assertEquals(result.items.length, 1);
+  assertEquals(result.items[0].qty, 12);
+});
+
+// ============================================================================
+// COMBINED ORDERS
+// ============================================================================
+
+Deno.test("Combined: '42 wings and 3 calzones'", () => {
+  const result = parseNaturalLanguageItems("", [
+    userSays("I'd like 42 wings and 3 calzones")
+  ]);
+  
+  assertEquals(result.items.length, 2);
+  
+  const wingsItem = result.items.find(i => i.name.toLowerCase().includes("wing"));
+  const calzoneItem = result.items.find(i => i.name.toLowerCase().includes("calzone"));
+  
+  assertExists(wingsItem);
+  assertExists(calzoneItem);
+  assertEquals(wingsItem?.qty, 42);
+  assertEquals(calzoneItem?.qty, 3);
+});
+
+Deno.test("Combined: 'pizza, calzone, and pepsi'", () => {
+  const result = parseNaturalLanguageItems("", [
+    userSays("I'll have a large pepperoni pizza, a calzone, and a pepsi")
+  ]);
+  
+  assertEquals(result.items.length >= 3, true);
+});
+
+// ============================================================================
 // EDGE CASES
 // ============================================================================
 
