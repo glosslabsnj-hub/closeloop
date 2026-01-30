@@ -54,16 +54,37 @@ export function QuickAddPolicyDialog({ open, onOpenChange }: QuickAddPolicyDialo
 
     try {
       const policyLabel = POLICY_TYPES.find(p => p.value === policyType)?.label || "Policy";
+      
+      // Map policy type to the correct tenant column
+      // Core policies go directly to tenants table for AI context builder
+      const policyColumnMap: Record<string, string> = {
+        cancellation: "cancellation_policy",
+        refund: "refund_policy",
+        deposit: "deposit_policy",
+      };
+      
+      const tenantColumn = policyColumnMap[policyType];
+      
+      if (tenantColumn) {
+        // Update the tenant's policy column directly (this is what AI reads)
+        const { error } = await supabase
+          .from("tenants")
+          .update({ [tenantColumn]: content.trim() })
+          .eq("id", tenant.id);
 
-      const { error } = await supabase.from("ai_knowledge_base").insert({
-        tenant_id: tenant.id,
-        type: "policy",
-        title: policyLabel,
-        content: content.trim(),
-        priority_weight: 10,
-      });
+        if (error) throw error;
+      } else {
+        // For other policy types, store in ai_knowledge_base as supplementary knowledge
+        const { error } = await supabase.from("ai_knowledge_base").insert({
+          tenant_id: tenant.id,
+          type: "policy",
+          title: policyLabel,
+          content: content.trim(),
+          priority_weight: 10,
+        });
 
-      if (error) throw error;
+        if (error) throw error;
+      }
 
       toast({
         title: "Policy added!",
@@ -78,6 +99,7 @@ export function QuickAddPolicyDialog({ open, onOpenChange }: QuickAddPolicyDialo
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ["business-context"] });
       queryClient.invalidateQueries({ queryKey: ["knowledge-base"] });
+      queryClient.invalidateQueries({ queryKey: ["tenant"] });
     } catch (error: any) {
       toast({
         variant: "destructive",
