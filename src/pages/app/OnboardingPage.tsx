@@ -55,7 +55,11 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   
   // Track if industry template has been initialized to prevent re-loading on every render
+  // Start as null so first explicit selection will trigger template load
   const initializedIndustryRef = useRef<string | null>(null);
+  
+  // Track if user has explicitly selected an industry (vs just the default)
+  const [hasExplicitIndustry, setHasExplicitIndustry] = useState(false);
   
   // Track upload conflicts for Step 2
   const [uploadConflictCount, setUploadConflictCount] = useState(0);
@@ -64,7 +68,7 @@ export default function OnboardingPage() {
   const [businessIdentity, setBusinessIdentity] = useState<BusinessIdentity>({
     businessName: "",
     tagline: "",
-    industry: "other", // Start with "other" so we don't load wrong template
+    industry: "", // Start empty to force selection
     customIndustry: "",
     phoneNumber: "",
     websiteUrl: "",
@@ -138,10 +142,18 @@ export default function OnboardingPage() {
   useEffect(() => {
     const currentIndustry = businessIdentity.industry;
     
+    // Skip if no industry selected yet (empty string)
+    if (!currentIndustry) {
+      return;
+    }
+    
     // Skip if we've already initialized this industry (prevents re-loading on every change)
     if (initializedIndustryRef.current === currentIndustry) {
       return;
     }
+    
+    // Mark that user has made explicit selection
+    setHasExplicitIndustry(true);
     
     // Use the template resolver to get the correct config
     const config = resolveIndustryTemplate(currentIndustry);
@@ -187,9 +199,10 @@ export default function OnboardingPage() {
     setUploadConflictCount(0);
   }, [businessIdentity.industry]);
 
-  // Validation
+  // Validation - now requires explicit industry selection
   const canProceedStep1 = businessIdentity.businessName.trim().length > 0 && 
     businessIdentity.phoneNumber.trim().length > 0 &&
+    businessIdentity.industry.length > 0 &&
     (businessIdentity.industry !== "other" || businessIdentity.customIndustry.trim().length > 0);
   
   const canProceedStep2 = services.length > 0 && 
@@ -643,10 +656,12 @@ export default function OnboardingPage() {
             {step === 2 && (
               <>
                 {/* Industry template indicator */}
-                <div className="text-sm text-muted-foreground mb-2">
-                  Template: <span className="font-medium text-foreground">{resolveIndustryTemplate(businessIdentity.industry).label}</span>
-                  <span className="ml-2 text-xs">(all fields are editable)</span>
-                </div>
+                {businessIdentity.industry && (
+                  <div className="text-sm text-muted-foreground mb-2">
+                    Template: <span className="font-medium text-foreground">{resolveIndustryTemplate(businessIdentity.industry).label}</span>
+                    <span className="ml-2 text-xs">(all fields are editable)</span>
+                  </div>
+                )}
                 
                 {/* Conflict banner if upload found differences */}
                 <ServiceConflictBanner 
