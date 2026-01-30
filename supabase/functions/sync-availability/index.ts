@@ -266,6 +266,11 @@ async function fetchGoogleBusyTimes(
       const calendar = freeBusyData.calendars?.[calendarId];
       if (calendar?.busy) {
         for (const busy of calendar.busy) {
+          // Skip zero-duration events (start === end)
+          if (busy.start === busy.end) {
+            console.log(`Skipping zero-duration event: ${busy.start}`);
+            continue;
+          }
           events.push({
             start_at: busy.start,
             end_at: busy.end,
@@ -341,9 +346,13 @@ async function fetchMicrosoftBusyTimes(
         const viewData = await viewResponse.json();
         for (const event of viewData.value || []) {
           if (event.showAs === "busy" || event.showAs === "tentative" || event.showAs === "oof") {
+            const startAt = event.start?.dateTime + "Z";
+            const endAt = event.end?.dateTime + "Z";
+            // Skip zero-duration events
+            if (startAt === endAt) continue;
             events.push({
-              start_at: event.start?.dateTime + "Z",
-              end_at: event.end?.dateTime + "Z",
+              start_at: startAt,
+              end_at: endAt,
               external_event_id: event.id,
               summary: "Busy",
             });
@@ -357,9 +366,13 @@ async function fetchMicrosoftBusyTimes(
     for (const schedule of scheduleData.value || []) {
       for (const item of schedule.scheduleItems || []) {
         if (item.status !== "free") {
+          const startAt = item.start?.dateTime + "Z";
+          const endAt = item.end?.dateTime + "Z";
+          // Skip zero-duration events
+          if (startAt === endAt) continue;
           events.push({
-            start_at: item.start?.dateTime + "Z",
-            end_at: item.end?.dateTime + "Z",
+            start_at: startAt,
+            end_at: endAt,
             external_event_id: `ms_${schedule.scheduleId}_${item.start?.dateTime}`,
             summary: "Busy",
           });
