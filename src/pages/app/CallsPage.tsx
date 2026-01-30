@@ -445,20 +445,39 @@ function getCustomerName(call: CallSession): string {
   
   const contextJson = call.context_json;
   if (contextJson) {
-    const name = contextJson.customer_name || contextJson.name || contextJson.caller_name;
-    if (name && typeof name === "string" && name !== "Unknown" && !isGibberish(name)) {
-      return formatDisplayName(name);
+    const nameVal = extractCleanValue(contextJson.customer_name) || 
+      extractCleanValue(contextJson.name) || 
+      extractCleanValue(contextJson.caller_name);
+    if (nameVal && nameVal !== "Unknown" && !isGibberish(nameVal)) {
+      return formatDisplayName(nameVal);
     }
   }
   
   const extractedPayload = call.extracted_payload;
-  if (extractedPayload?.customer_name && typeof extractedPayload.customer_name === "string") {
-    if (!isGibberish(extractedPayload.customer_name)) {
-      return formatDisplayName(extractedPayload.customer_name);
+  if (extractedPayload) {
+    const nameVal = extractCleanValue(extractedPayload.customer_name);
+    if (nameVal && !isGibberish(nameVal)) {
+      return formatDisplayName(nameVal);
     }
   }
   
   return "Unknown caller";
+}
+
+// Helper to extract clean string values from potentially nested objects
+// ElevenLabs may return { value: "actual", rationale: "...", ... } format
+function extractCleanValue(val: unknown): string | null {
+  if (!val) return null;
+  if (typeof val === "string") return val || null;
+  if (typeof val === "number") return String(val);
+  if (typeof val === "boolean") return val ? "true" : "false";
+  if (typeof val === "object") {
+    const obj = val as Record<string, unknown>;
+    if ("value" in obj) {
+      return extractCleanValue(obj.value);
+    }
+  }
+  return null;
 }
 
 // Clean up display name - capitalize properly, remove gibberish
@@ -495,39 +514,66 @@ function getServiceRequested(call: CallSession): string {
     }
     
     // Check items_raw but clean it up
-    if (extractedPayload.items_raw && typeof extractedPayload.items_raw === "string") {
-      const raw = extractedPayload.items_raw;
+    const itemsRaw = extractCleanValue(extractedPayload.items_raw);
+    if (itemsRaw) {
       // Skip if it's gibberish like "to place an order for pickup"
-      if (!raw.toLowerCase().includes("to place an order")) {
-        return raw.length > 60 ? raw.substring(0, 60) + "..." : raw;
+      if (!itemsRaw.toLowerCase().includes("to place an order")) {
+        return itemsRaw.length > 60 ? itemsRaw.substring(0, 60) + "..." : itemsRaw;
       }
     }
     
-    const service = extractedPayload.service_requested || 
-      extractedPayload.job_type ||
-      extractedPayload.appointment_type;
-    if (service && typeof service === "string") {
-      return service;
+    // Get service/job type using clean value extraction
+    const serviceVal = extractCleanValue(extractedPayload.service_requested) || 
+      extractCleanValue(extractedPayload.job_type) ||
+      extractCleanValue(extractedPayload.appointment_type);
+    if (serviceVal) {
+      return serviceVal;
     }
     
-    // For food mode, show order type
-    if (extractedPayload.order_type) {
-      return `${extractedPayload.order_type} order`;
+    // For food mode, show order type with proper formatting
+    const orderTypeVal = extractCleanValue(extractedPayload.order_type);
+    if (orderTypeVal) {
+      return formatOrderType(orderTypeVal);
     }
   }
   
   const contextJson = call.context_json;
   if (contextJson) {
-    const service = contextJson.service_requested || 
-      contextJson.service || 
-      contextJson.reason || 
-      contextJson.inquiry_type;
-    if (service && typeof service === "string") {
-      return service;
+    const serviceVal = extractCleanValue(contextJson.service_requested) || 
+      extractCleanValue(contextJson.service) || 
+      extractCleanValue(contextJson.reason) || 
+      extractCleanValue(contextJson.inquiry_type);
+    if (serviceVal) {
+      return serviceVal;
     }
   }
   
   return "";
+}
+
+// Format order type to user-friendly label
+function formatOrderType(orderType: string): string {
+  const type = orderType.toLowerCase().trim();
+  switch (type) {
+    case "pickup":
+    case "pick up":
+    case "pick-up":
+      return "Pickup Order";
+    case "delivery":
+    case "deliver":
+      return "Delivery Order";
+    case "dine-in":
+    case "dine in":
+    case "dinein":
+      return "Dine-in Order";
+    case "catering":
+      return "Catering Request";
+    case "reservation":
+      return "Reservation";
+    default:
+      // Capitalize first letter
+      return orderType.charAt(0).toUpperCase() + orderType.slice(1) + " Order";
+  }
 }
 
 function getExtractedDetails(call: CallSession): string | null {
