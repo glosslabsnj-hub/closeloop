@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
+import { encode as encodeHex } from "https://deno.land/std@0.168.0/encoding/hex.ts";
 import { buildBusinessContext, storeContextSnapshot, buildDynamicVariables, type BusinessContext } from "../_shared/buildBusinessContext.ts";
 
 /**
@@ -16,6 +18,36 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-elevenlabs-signature, x-eleven-labs-signature",
 };
+
+// Verify HMAC signature from ElevenLabs
+async function verifyHmacSignature(rawBody: string, signature: string | null, secret: string): Promise<boolean> {
+  if (!signature) return false;
+  
+  try {
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(secret);
+    const messageData = encoder.encode(rawBody);
+    
+    const key = await crypto.subtle.importKey(
+      "raw",
+      keyData,
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    
+    const signatureBuffer = await crypto.subtle.sign("HMAC", key, messageData);
+    const hexBytes = encodeHex(new Uint8Array(signatureBuffer));
+    // Convert Uint8Array of hex chars to string
+    const computedSignature = new TextDecoder().decode(hexBytes);
+    
+    // Compare signatures (constant-time comparison for security)
+    return computedSignature.toLowerCase() === signature.toLowerCase();
+  } catch (error) {
+    console.error("HMAC verification error:", error);
+    return false;
+  }
+}
 
 // Normalize phone number to E.164 format
 function normalizeToE164(phone: string | null | undefined): string {
@@ -129,7 +161,7 @@ serve(async (req) => {
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const INIT_SECRET = Deno.env.get("ELEVENLABS_INIT_SECRET");
+  const webhookSecret = Deno.env.get("ELEVENLABS_CONVAI_WEBHOOK_SECRET");
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     console.error("Missing Supabase configuration");
@@ -152,23 +184,52 @@ serve(async (req) => {
   let conversationId = "";
   let sessionId = "";
 
+  let rawBody = "";
+  
   try {
     // Parse request body - ElevenLabs may send various formats
     const contentType = req.headers.get("content-type") || "";
     
     if (contentType.includes("application/json")) {
-      requestBody = await req.json();
+      rawBody = await req.text();
+      
+      // Verify HMAC signature if secret is configured
+      if (webhookSecret) {
+        const signature = 
+          req.headers.get("x-elevenlabs-signature") || 
+          req.headers.get("x-eleven-labs-signature");
+        
+        const isValid = await verifyHmacSignature(rawBody, signature, webhookSecret);
+        
+        if (!isValid) {
+          console.warn("[elevenlabs-init] Invalid HMAC signature - rejecting request");
+          const emptyVars = getEmptyDynamicVariables();
+          return new Response(
+            JSON.stringify({ 
+              error: "Invalid signature",
+              dynamic_variables: emptyVars,
+              client_data: emptyVars,
+            }),
+            { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        console.log("[elevenlabs-init] HMAC signature verified successfully");
+      } else {
+        console.warn("[elevenlabs-init] No webhook secret configured - skipping signature verification");
+      }
+      
+      requestBody = JSON.parse(rawBody);
     } else if (contentType.includes("application/x-www-form-urlencoded")) {
-      const text = await req.text();
-      const params = new URLSearchParams(text);
+      rawBody = await req.text();
+      const params = new URLSearchParams(rawBody);
       requestBody = Object.fromEntries(params.entries());
     } else {
       // Try JSON first, fallback to form data
-      const text = await req.text();
+      rawBody = await req.text();
       try {
-        requestBody = JSON.parse(text);
+        requestBody = JSON.parse(rawBody);
       } catch {
-        const params = new URLSearchParams(text);
+        const params = new URLSearchParams(rawBody);
         requestBody = Object.fromEntries(params.entries());
       }
     }
@@ -242,20 +303,6 @@ serve(async (req) => {
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  }
-
-  // Validate secret if configured (optional but recommended)
-  if (INIT_SECRET) {
-    const providedSecret = 
-      req.headers.get("x-elevenlabs-signature") ||
-      req.headers.get("x-eleven-labs-signature") ||
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      String(requestBody.secret || "");
-    
-    if (providedSecret !== INIT_SECRET) {
-      console.warn("[elevenlabs-init] Invalid or missing secret");
-      // Still return safe response - don't expose auth failures
-    }
   }
 
   const callerPhoneE164 = normalizeToE164(fromNumber);
