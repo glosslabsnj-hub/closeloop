@@ -196,7 +196,7 @@ export default function ExtractionDebugPage() {
 
   // Get raw data collection keys from _meta
   const rawDataCollectionKeys = (extractedPayload?._meta as Record<string, unknown>)?.raw_data_collection_keys as string[] || [];
-  const extractionSource = (extractedPayload?._meta as Record<string, unknown>)?.extraction_source || "unknown";
+  const extractionSource = String((extractedPayload?._meta as Record<string, unknown>)?.extraction_source || "unknown");
   const normalizedAt = (extractedPayload?._meta as Record<string, unknown>)?.normalized_at;
   const tenantTimezone = (extractedPayload?._meta as Record<string, unknown>)?.tenant_timezone;
 
