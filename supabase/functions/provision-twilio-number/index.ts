@@ -13,17 +13,48 @@ interface ProvisionRequest {
   number_type?: "local" | "toll_free";
 }
 
+interface ProvisionLog {
+  tenant_id: string;
+  action: string;
+  phone_e164?: string;
+  twilio_sid?: string;
+  error?: string;
+  details?: Record<string, unknown>;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID");
-    const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID");
+  const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
+  // Initialize Supabase client with service role
+  const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+
+  // Helper to log provisioning events for debugging
+  async function logProvision(log: ProvisionLog) {
+    console.log("[provision-twilio-number]", JSON.stringify(log));
+    try {
+      await supabase.from("audit_logs").insert({
+        tenant_id: log.tenant_id,
+        action: `twilio_provision.${log.action}`,
+        meta_json: {
+          phone_e164: log.phone_e164,
+          twilio_sid: log.twilio_sid,
+          error: log.error,
+          ...log.details,
+        },
+      });
+    } catch (e) {
+      console.error("Failed to write provision audit log:", e);
+    }
+  }
+
+  try {
     if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
       console.error("Twilio credentials not configured");
       return new Response(
@@ -49,23 +80,30 @@ serve(async (req) => {
       );
     }
 
-    // Initialize Supabase client with service role
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    await logProvision({ tenant_id, action: "started", details: { area_code, number_type } });
 
-    // Check if tenant already has a number in phone_numbers table (idempotency)
+    // ========== IDEMPOTENCY CHECK: Does THIS tenant already have a number? ==========
+    // Check phone_numbers table FIRST (source of truth)
     const { data: existingPhoneNumber, error: phoneNumberError } = await supabase
       .from("phone_numbers")
-      .select("phone_e164, twilio_sid")
+      .select("id, phone_e164, twilio_sid, status")
       .eq("tenant_id", tenant_id)
       .eq("purpose", "forwarding")
       .maybeSingle();
 
     if (phoneNumberError) {
       console.error("Error checking phone_numbers:", phoneNumberError);
+      await logProvision({ tenant_id, action: "db_error", error: phoneNumberError.message });
     }
 
     if (existingPhoneNumber?.twilio_sid) {
-      console.log(`Tenant ${tenant_id} already has a Twilio number: ${existingPhoneNumber.phone_e164}`);
+      console.log(`[provision] Tenant ${tenant_id} already has a number: ${existingPhoneNumber.phone_e164}`);
+      await logProvision({ 
+        tenant_id, 
+        action: "already_provisioned", 
+        phone_e164: existingPhoneNumber.phone_e164,
+        twilio_sid: existingPhoneNumber.twilio_sid,
+      });
       return new Response(
         JSON.stringify({
           success: true,
@@ -78,7 +116,7 @@ serve(async (req) => {
       );
     }
 
-    // Also check assistant_settings for legacy data
+    // Also check assistant_settings for legacy data (but ONLY for this tenant)
     const { data: existingSettings, error: settingsError } = await supabase
       .from("assistant_settings")
       .select("closeloop_number, twilio_phone_sid")
@@ -90,7 +128,13 @@ serve(async (req) => {
     }
 
     if (existingSettings?.twilio_phone_sid) {
-      console.log(`Tenant ${tenant_id} already has a Twilio number (legacy): ${existingSettings.closeloop_number}`);
+      console.log(`[provision] Tenant ${tenant_id} has legacy number: ${existingSettings.closeloop_number}`);
+      await logProvision({ 
+        tenant_id, 
+        action: "already_provisioned_legacy",
+        phone_e164: existingSettings.closeloop_number ?? undefined,
+        twilio_sid: existingSettings.twilio_phone_sid,
+      });
       return new Response(
         JSON.stringify({
           success: true,
@@ -103,23 +147,25 @@ serve(async (req) => {
       );
     }
 
-    // Verify tenant has an active subscription
+    // ========== SUBSCRIPTION CHECK ==========
     const { data: hasSubscription } = await supabase
       .rpc("has_active_subscription", { _tenant_id: tenant_id });
 
     if (!hasSubscription) {
+      await logProvision({ tenant_id, action: "no_subscription" });
       return new Response(
         JSON.stringify({ error: "Active subscription required to provision a phone number" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    // ========== CRITICAL: Check if the phone number is ALREADY assigned to another tenant ==========
+    // This prevents reassigning an existing Twilio number to a new tenant
     const twilioAuth = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
 
-    // FIRST: Check if there's an existing number in the Twilio account we can reuse
-    // This is critical for trial accounts that only allow one number
-    const existingNumbersUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/IncomingPhoneNumbers.json?Limit=1`;
-    console.log("Checking for existing Twilio numbers in account...");
+    // Check if we already have this Twilio number assigned to ANY tenant
+    const existingNumbersUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/IncomingPhoneNumbers.json?Limit=10`;
+    console.log("[provision] Checking existing Twilio numbers in account...");
     
     const existingResponse = await fetch(existingNumbersUrl, {
       headers: { Authorization: `Basic ${twilioAuth}` },
@@ -127,76 +173,37 @@ serve(async (req) => {
     
     if (existingResponse.ok) {
       const existingData = await existingResponse.json();
-      if (existingData.incoming_phone_numbers?.length > 0) {
-        const existingNumber = existingData.incoming_phone_numbers[0];
-        console.log(`Found existing Twilio number: ${existingNumber.phone_number}, assigning to tenant ${tenant_id}`);
+      const existingNumbers = existingData.incoming_phone_numbers || [];
+      
+      console.log(`[provision] Found ${existingNumbers.length} Twilio numbers in account`);
+      
+      for (const number of existingNumbers) {
+        // Check if this Twilio number is already assigned to a DIFFERENT tenant
+        const { data: assignedNumber } = await supabase
+          .from("phone_numbers")
+          .select("id, tenant_id")
+          .eq("twilio_sid", number.sid)
+          .maybeSingle();
         
-        // Update the webhook URL on the existing number
-        const updateUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/IncomingPhoneNumbers/${existingNumber.sid}.json`;
-        const updateResponse = await fetch(updateUrl, {
-          method: "POST",
-          headers: {
-            Authorization: `Basic ${twilioAuth}`,
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: new URLSearchParams({
-            VoiceUrl: `${SUPABASE_URL}/functions/v1/twilio-inbound`,
-            VoiceMethod: "POST",
-            FriendlyName: `CloseLoop - ${tenant_id.substring(0, 8)}`,
-          }).toString(),
-        });
-        
-        if (updateResponse.ok) {
-          console.log("Updated webhook URL on existing number");
-        } else {
-          console.error("Failed to update webhook URL:", await updateResponse.text());
+        if (assignedNumber && assignedNumber.tenant_id !== tenant_id) {
+          console.log(`[provision] Twilio number ${number.phone_number} (${number.sid}) is already assigned to tenant ${assignedNumber.tenant_id}`);
+          // Skip this number - it belongs to another tenant
+          continue;
         }
         
-        const friendlyNumber = formatPhoneNumber(existingNumber.phone_number);
-        
-        // Insert into phone_numbers table (upsert on phone_e164 if it exists)
-        const { error: insertError } = await supabase.from("phone_numbers").upsert({
-          tenant_id: tenant_id,
-          phone_e164: existingNumber.phone_number,
-          twilio_sid: existingNumber.sid,
-          purpose: "forwarding",
-          status: "provisioned",
-        }, { onConflict: "phone_e164" });
-        
-        if (insertError) {
-          console.error("Error inserting into phone_numbers:", insertError);
+        // If this number has no assignment OR is assigned to this tenant, we can use it
+        if (!assignedNumber) {
+          // This is an unassigned Twilio number in the account - could be from a pool or previous deletion
+          // In production with multiple numbers, we'd want a pool management system
+          // For now, skip unassigned numbers to force new purchase per tenant
+          console.log(`[provision] Twilio number ${number.phone_number} is unassigned - skipping to purchase new`);
+          // In a pool scenario, you could assign it here
         }
-        
-        // Update assistant_settings with awaiting_first_call status
-        const { error: settingsUpdateError } = await supabase.from("assistant_settings").upsert({
-          tenant_id: tenant_id,
-          closeloop_number: existingNumber.phone_number,
-          twilio_phone_sid: existingNumber.sid,
-          twilio_provisioned_at: new Date().toISOString(),
-          forwarding_phone_e164: existingNumber.phone_number,
-          phone_connected: true,
-          connect_status: "awaiting_first_call",
-          updated_at: new Date().toISOString(),
-        }, { onConflict: "tenant_id" });
-        
-        if (settingsUpdateError) {
-          console.error("Error updating assistant_settings:", settingsUpdateError);
-        }
-        
-        return new Response(
-          JSON.stringify({
-            success: true,
-            phone_number: existingNumber.phone_number,
-            phone_sid: existingNumber.sid,
-            friendly_name: friendlyNumber,
-            reused_existing: true,
-          }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
       }
     }
     
-    console.log("No existing numbers found in account, searching for available numbers...");
+    // ========== PURCHASE A NEW NUMBER ==========
+    console.log(`[provision] Searching for available numbers for tenant ${tenant_id}...`);
 
     // Search for available phone numbers
     let searchUrl: string;
@@ -207,17 +214,16 @@ serve(async (req) => {
       searchUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/AvailablePhoneNumbers/US/Local.json?Limit=1&VoiceEnabled=true&SmsEnabled=true${areaCodeParam}`;
     }
 
-    console.log(`Searching for available numbers: ${searchUrl}`);
+    console.log(`[provision] Searching: ${searchUrl}`);
 
     const searchResponse = await fetch(searchUrl, {
-      headers: {
-        Authorization: `Basic ${twilioAuth}`,
-      },
+      headers: { Authorization: `Basic ${twilioAuth}` },
     });
 
     if (!searchResponse.ok) {
       const errorText = await searchResponse.text();
-      console.error("Twilio search error:", searchResponse.status, errorText);
+      console.error("[provision] Twilio search error:", searchResponse.status, errorText);
+      await logProvision({ tenant_id, action: "search_failed", error: errorText });
       return new Response(
         JSON.stringify({ error: "Failed to search for available numbers", details: errorText }),
         { status: searchResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -227,7 +233,8 @@ serve(async (req) => {
     const searchData = await searchResponse.json();
 
     if (!searchData.available_phone_numbers || searchData.available_phone_numbers.length === 0) {
-      console.log("No numbers available with specified criteria");
+      console.log("[provision] No numbers available with specified criteria");
+      await logProvision({ tenant_id, action: "no_numbers_available" });
       return new Response(
         JSON.stringify({ error: "No phone numbers available in the requested area" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -235,7 +242,7 @@ serve(async (req) => {
     }
 
     const selectedNumber = searchData.available_phone_numbers[0];
-    console.log(`Selected number: ${selectedNumber.phone_number}`);
+    console.log(`[provision] Selected number: ${selectedNumber.phone_number} for tenant ${tenant_id}`);
 
     // Purchase the number
     const purchaseUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/IncomingPhoneNumbers.json`;
@@ -250,7 +257,7 @@ serve(async (req) => {
       FriendlyName: `CloseLoop - ${tenant_id.substring(0, 8)}`,
     });
 
-    console.log(`Purchasing number: ${selectedNumber.phone_number}`);
+    console.log(`[provision] Purchasing number: ${selectedNumber.phone_number} for tenant ${tenant_id}`);
 
     const purchaseResponse = await fetch(purchaseUrl, {
       method: "POST",
@@ -263,7 +270,8 @@ serve(async (req) => {
 
     if (!purchaseResponse.ok) {
       const errorText = await purchaseResponse.text();
-      console.error("Twilio purchase error:", purchaseResponse.status, errorText);
+      console.error("[provision] Twilio purchase error:", purchaseResponse.status, errorText);
+      await logProvision({ tenant_id, action: "purchase_failed", error: errorText });
       return new Response(
         JSON.stringify({ error: "Failed to purchase phone number", details: errorText }),
         { status: purchaseResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -271,16 +279,18 @@ serve(async (req) => {
     }
 
     const purchaseData = await purchaseResponse.json();
-    console.log(`Successfully purchased: ${purchaseData.phone_number} (SID: ${purchaseData.sid})`);
+    console.log(`[provision] SUCCESS: Purchased ${purchaseData.phone_number} (SID: ${purchaseData.sid}) for tenant ${tenant_id}`);
 
     // Format friendly name
     const friendlyNumber = formatPhoneNumber(purchaseData.phone_number);
 
-    // Insert into phone_numbers table
+    // ========== WRITE TO DATABASE (TENANT-SCOPED) ==========
+    
+    // 1. Insert into phone_numbers table - use INSERT (not upsert on phone_e164 which could overwrite another tenant!)
     const { error: insertError } = await supabase
       .from("phone_numbers")
       .insert({
-        tenant_id: tenant_id,
+        tenant_id: tenant_id,  // CRITICAL: Always include tenant_id
         phone_e164: purchaseData.phone_number,
         twilio_sid: purchaseData.sid,
         purpose: "forwarding",
@@ -288,39 +298,86 @@ serve(async (req) => {
       });
 
     if (insertError) {
-      console.error("Error inserting into phone_numbers:", insertError);
-      // Continue - we still want to update assistant_settings
-    }
-
-    // Update assistant_settings with the new number and awaiting_first_call status
-    const { error: updateError } = await supabase
-      .from("assistant_settings")
-      .upsert({
-        tenant_id: tenant_id,
-        closeloop_number: purchaseData.phone_number,
-        twilio_phone_sid: purchaseData.sid,
-        twilio_provisioned_at: new Date().toISOString(),
-        forwarding_phone_e164: purchaseData.phone_number,
-        phone_connected: true,
-        connect_status: "awaiting_first_call",
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: "tenant_id",
+      console.error("[provision] Error inserting into phone_numbers:", insertError);
+      await logProvision({ 
+        tenant_id, 
+        action: "db_insert_failed", 
+        phone_e164: purchaseData.phone_number,
+        twilio_sid: purchaseData.sid,
+        error: insertError.message,
       });
-
-    if (updateError) {
-      console.error("Error updating assistant settings:", updateError);
-      return new Response(
-        JSON.stringify({ 
-          error: "Number purchased but failed to save to database", 
-          phone_number: purchaseData.phone_number,
-          phone_sid: purchaseData.sid,
-        }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      // Continue - we still want to update assistant_settings
+    } else {
+      console.log(`[provision] Inserted phone_numbers record for tenant ${tenant_id}`);
     }
 
-    console.log(`Successfully provisioned ${purchaseData.phone_number} for tenant ${tenant_id}`);
+    // 2. Update assistant_settings - use UPDATE with WHERE tenant_id (not upsert that could create issues)
+    // First check if row exists
+    const { data: existingRow } = await supabase
+      .from("assistant_settings")
+      .select("tenant_id")
+      .eq("tenant_id", tenant_id)
+      .maybeSingle();
+
+    if (existingRow) {
+      // UPDATE existing row
+      const { error: updateError } = await supabase
+        .from("assistant_settings")
+        .update({
+          closeloop_number: purchaseData.phone_number,
+          twilio_phone_sid: purchaseData.sid,
+          twilio_provisioned_at: new Date().toISOString(),
+          phone_connected: true,
+          connect_status: "awaiting_first_call",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("tenant_id", tenant_id);  // CRITICAL: Always scope by tenant_id
+
+      if (updateError) {
+        console.error("[provision] Error updating assistant_settings:", updateError);
+        await logProvision({ 
+          tenant_id, 
+          action: "settings_update_failed", 
+          phone_e164: purchaseData.phone_number,
+          error: updateError.message,
+        });
+      } else {
+        console.log(`[provision] Updated assistant_settings for tenant ${tenant_id}`);
+      }
+    } else {
+      // INSERT new row (should not normally happen as onboarding creates this)
+      const { error: insertSettingsError } = await supabase
+        .from("assistant_settings")
+        .insert({
+          tenant_id: tenant_id,
+          closeloop_number: purchaseData.phone_number,
+          twilio_phone_sid: purchaseData.sid,
+          twilio_provisioned_at: new Date().toISOString(),
+          phone_connected: true,
+          connect_status: "awaiting_first_call",
+        });
+
+      if (insertSettingsError) {
+        console.error("[provision] Error inserting assistant_settings:", insertSettingsError);
+        await logProvision({ 
+          tenant_id, 
+          action: "settings_insert_failed", 
+          phone_e164: purchaseData.phone_number,
+          error: insertSettingsError.message,
+        });
+      } else {
+        console.log(`[provision] Inserted assistant_settings for tenant ${tenant_id}`);
+      }
+    }
+
+    await logProvision({ 
+      tenant_id, 
+      action: "completed",
+      phone_e164: purchaseData.phone_number,
+      twilio_sid: purchaseData.sid,
+    });
+
+    console.log(`[provision] COMPLETE: Provisioned ${purchaseData.phone_number} for tenant ${tenant_id}`);
 
     return new Response(
       JSON.stringify({
@@ -332,7 +389,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error in provision-twilio-number:", error);
+    console.error("[provision] Error:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
