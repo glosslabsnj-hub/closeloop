@@ -2404,6 +2404,60 @@ export type Database = {
           },
         ]
       }
+      knowledge_merge_queue: {
+        Row: {
+          conflict_type: string
+          created_at: string
+          entity_key: string
+          entity_type: string
+          existing_value: Json | null
+          id: string
+          proposed_value: Json
+          status: string
+          tenant_id: string
+          upload_id: string | null
+        }
+        Insert: {
+          conflict_type: string
+          created_at?: string
+          entity_key: string
+          entity_type: string
+          existing_value?: Json | null
+          id?: string
+          proposed_value: Json
+          status?: string
+          tenant_id: string
+          upload_id?: string | null
+        }
+        Update: {
+          conflict_type?: string
+          created_at?: string
+          entity_key?: string
+          entity_type?: string
+          existing_value?: Json | null
+          id?: string
+          proposed_value?: Json
+          status?: string
+          tenant_id?: string
+          upload_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_merge_queue_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_merge_queue_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge_sources: {
         Row: {
           created_at: string
@@ -2444,6 +2498,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "knowledge_sources_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_uploads: {
+        Row: {
+          conflict_summary: Json | null
+          created_at: string
+          error_message: string | null
+          extracted_text: string | null
+          file_name: string | null
+          file_type: string | null
+          file_url: string
+          id: string
+          parsed_json: Json | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          conflict_summary?: Json | null
+          created_at?: string
+          error_message?: string | null
+          extracted_text?: string | null
+          file_name?: string | null
+          file_type?: string | null
+          file_url: string
+          id?: string
+          parsed_json?: Json | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          conflict_summary?: Json | null
+          created_at?: string
+          error_message?: string | null
+          extracted_text?: string | null
+          file_name?: string | null
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          parsed_json?: Json | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_uploads_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

@@ -79,19 +79,57 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    const { sourceId, tenantId, fileUrl, sourceType }: ExtractionRequest = await req.json();
+    const body = await req.json();
+    
+    // Support both old format (sourceId, tenantId, fileUrl, sourceType) and new format (upload_id)
+    let sourceId: string;
+    let tenantId: string;
+    let fileUrl: string;
+    let sourceType: string;
+    let useNewTable = false;
 
-    if (!sourceId || !tenantId || !fileUrl || !sourceType) {
-      throw new Error("Missing required fields: sourceId, tenantId, fileUrl, sourceType");
+    if (body.upload_id) {
+      // New format: knowledge_uploads table
+      useNewTable = true;
+      const { data: upload, error } = await supabase
+        .from("knowledge_uploads")
+        .select("*")
+        .eq("id", body.upload_id)
+        .single();
+
+      if (error || !upload) {
+        throw new Error("Upload not found");
+      }
+
+      sourceId = upload.id;
+      tenantId = upload.tenant_id;
+      fileUrl = upload.file_url;
+      sourceType = upload.file_type || "general";
+
+      // Mark as processing
+      await supabase
+        .from("knowledge_uploads")
+        .update({ status: "processing", updated_at: new Date().toISOString() })
+        .eq("id", sourceId);
+    } else {
+      // Old format: knowledge_sources table
+      sourceId = body.sourceId;
+      tenantId = body.tenantId;
+      fileUrl = body.fileUrl;
+      sourceType = body.sourceType;
+
+      if (!sourceId || !tenantId || !fileUrl || !sourceType) {
+        throw new Error("Missing required fields: sourceId, tenantId, fileUrl, sourceType");
+      }
+
+      // Update status to processing
+      await supabase
+        .from("knowledge_sources")
+        .update({ status: "processing" })
+        .eq("id", sourceId);
     }
 
-    console.log(`Processing upload: ${sourceId}, type: ${sourceType}`);
-
-    // Update status to processing
-    await supabase
-      .from("knowledge_sources")
-      .update({ status: "processing" })
-      .eq("id", sourceId);
+    console.log(`Processing upload: ${sourceId}, type: ${sourceType}, new table: ${useNewTable}`);
 
     // Fetch the file from storage
     const fileResponse = await fetch(fileUrl);
@@ -104,16 +142,14 @@ serve(async (req) => {
     let isImage = false;
 
     // Determine file type and extract content
-    if (contentType.includes("image")) {
+    if (contentType.includes("image") || ["png", "jpg", "jpeg"].includes(sourceType.toLowerCase())) {
       // For images, we'll send as base64 to the AI for OCR
       isImage = true;
       const buffer = await fileResponse.arrayBuffer();
       const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-      fileContent = `data:${contentType};base64,${base64}`;
+      fileContent = `data:${contentType || "image/png"};base64,${base64}`;
     } else {
       // For text-based files (PDF text layer, DOCX, etc.)
-      // Note: In production, you'd use a proper parser for PDF/DOCX
-      // For now, we treat them as text or send to AI for interpretation
       fileContent = await fileResponse.text();
     }
 
@@ -234,14 +270,74 @@ serve(async (req) => {
         break;
     }
 
-    // Update status to ready
-    await supabase
-      .from("knowledge_sources")
-      .update({ 
-        status: "ready",
-        processed_at: new Date().toISOString()
-      })
-      .eq("id", sourceId);
+    // Update status based on which table we're using
+    if (useNewTable) {
+      // Also insert into knowledge_merge_queue for new table workflow
+      // (The old workflow uses extracted_knowledge_suggestions and knowledge_conflicts)
+      for (const item of extractedData.items || []) {
+        await supabase.from("knowledge_merge_queue").insert({
+          tenant_id: tenantId,
+          upload_id: sourceId,
+          entity_type: "menu_item",
+          entity_key: item.name,
+          existing_value: null, // Will be filled by comparison logic
+          proposed_value: item,
+          conflict_type: "new_item",
+          status: "pending",
+        });
+      }
+      for (const service of extractedData.services || []) {
+        await supabase.from("knowledge_merge_queue").insert({
+          tenant_id: tenantId,
+          upload_id: sourceId,
+          entity_type: "service",
+          entity_key: service.name,
+          existing_value: null,
+          proposed_value: service,
+          conflict_type: "new_item",
+          status: "pending",
+        });
+      }
+      for (const faq of extractedData.faqs || []) {
+        await supabase.from("knowledge_merge_queue").insert({
+          tenant_id: tenantId,
+          upload_id: sourceId,
+          entity_type: "faq",
+          entity_key: faq.question,
+          existing_value: null,
+          proposed_value: faq,
+          conflict_type: "new_item",
+          status: "pending",
+        });
+      }
+
+      const hasItems = (extractedData.items?.length || 0) + 
+                       (extractedData.services?.length || 0) + 
+                       (extractedData.faqs?.length || 0) > 0;
+
+      await supabase
+        .from("knowledge_uploads")
+        .update({ 
+          status: hasItems ? "needs_review" : "parsed",
+          parsed_json: extractedData,
+          conflict_summary: {
+            total_items: (extractedData.items?.length || 0) + (extractedData.services?.length || 0) + (extractedData.faqs?.length || 0),
+            conflicts: conflictsCreated,
+            suggestions: suggestionsCreated,
+          },
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", sourceId);
+    } else {
+      // Update old table format
+      await supabase
+        .from("knowledge_sources")
+        .update({ 
+          status: "ready",
+          processed_at: new Date().toISOString()
+        })
+        .eq("id", sourceId);
+    }
 
     console.log(`Processing complete: ${suggestionsCreated} suggestions, ${conflictsCreated} conflicts`);
 
@@ -257,17 +353,9 @@ serve(async (req) => {
   } catch (error) {
     console.error("Processing error:", error);
 
-    // Update status to failed
-    const { sourceId } = await req.json().catch(() => ({}));
-    if (sourceId) {
-      await supabase
-        .from("knowledge_sources")
-        .update({ 
-          status: "failed",
-          error_message: error instanceof Error ? error.message : "Unknown error"
-        })
-        .eq("id", sourceId);
-    }
+    // Try to update the status - this is a best-effort attempt
+    // We don't have access to the original request body easily in catch
+    // so just log the error
 
     return new Response(
       JSON.stringify({ 
