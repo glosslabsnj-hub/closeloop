@@ -116,6 +116,16 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
     }
   }, [connections]);
 
+  // Track which providers have OAuth configured
+  const [providerStatus, setProviderStatus] = useState<Record<string, "available" | "not_configured" | "unknown">>({
+    google: "unknown",
+    microsoft: "unknown",
+    ics: "available",
+    manual: "available",
+  });
+  const [showSetupHelp, setShowSetupHelp] = useState(false);
+  const [setupHelpProvider, setSetupHelpProvider] = useState<string | null>(null);
+
   const startOAuth = async (provider: "google" | "microsoft") => {
     setIsConnecting(true);
     setSelectedProvider(provider);
@@ -136,10 +146,26 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
         throw new Error(response.error.message);
       }
 
+      // Check if the response indicates OAuth is not configured
+      if (response.data?.error) {
+        const errorMsg = response.data.error as string;
+        if (errorMsg.includes("not configured")) {
+          setProviderStatus(prev => ({ ...prev, [provider]: "not_configured" }));
+          setSetupHelpProvider(provider);
+          setShowSetupHelp(true);
+          setIsConnecting(false);
+          return;
+        }
+        throw new Error(errorMsg);
+      }
+
       const { auth_url } = response.data;
       if (!auth_url) {
         throw new Error("No auth URL returned");
       }
+
+      // Mark as available since we got a valid URL
+      setProviderStatus(prev => ({ ...prev, [provider]: "available" }));
 
       // Open popup for OAuth
       const popup = window.open(
@@ -159,6 +185,16 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
     } catch (error: unknown) {
       console.error("OAuth start error:", error);
       const message = error instanceof Error ? error.message : "Failed to start connection";
+      
+      // Check if this is a "not configured" error
+      if (message.includes("not configured") || message.includes("500")) {
+        setProviderStatus(prev => ({ ...prev, [provider]: "not_configured" }));
+        setSetupHelpProvider(provider);
+        setShowSetupHelp(true);
+        setIsConnecting(false);
+        return;
+      }
+      
       toast({
         title: "Connection failed",
         description: message,
@@ -346,13 +382,106 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
 
         {/* Step 1: Choose Provider */}
         {step === 1 && (
-          <div className="py-4">
+          <div className="py-4 space-y-4">
+            {/* Prioritize ICS - works without OAuth setup */}
+            <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+              <p className="text-sm font-medium text-green-700 dark:text-green-400 flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4" />
+                Recommended: Use a Calendar Link
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Works with any calendar (Google, Outlook, Apple) without extra setup
+              </p>
+            </div>
+
             <RadioGroup
               value={selectedProvider || ""}
               onValueChange={(v) => setSelectedProvider(v as CalendarConnection["provider"])}
               className="space-y-2"
             >
-              {CALENDAR_PROVIDERS.filter(p => ["google", "microsoft", "ics", "manual"].includes(p.id)).map((provider) => (
+              {/* Show ICS first as recommended option */}
+              {CALENDAR_PROVIDERS.filter(p => p.id === "ics").map((provider) => (
+                <label
+                  key={provider.id}
+                  className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                    selectedProvider === provider.id
+                      ? "border-primary bg-primary/5"
+                      : "border-green-500/30 hover:bg-muted/50"
+                  }`}
+                >
+                  <RadioGroupItem value={provider.id} className="sr-only" />
+                  <span className="text-2xl">{provider.icon}</span>
+                  <div className="flex-1">
+                    <p className="font-medium flex items-center gap-2">
+                      {provider.name}
+                      <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-700 dark:text-green-400">
+                        No setup needed
+                      </Badge>
+                    </p>
+                    <p className="text-sm text-muted-foreground">{provider.description}</p>
+                  </div>
+                  {selectedProvider === provider.id && (
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                  )}
+                </label>
+              ))}
+              
+              <Separator className="my-2" />
+              <p className="text-xs text-muted-foreground px-1">Or use direct sync (requires admin setup):</p>
+              
+              {/* Google and Microsoft with status indicators */}
+              {CALENDAR_PROVIDERS.filter(p => ["google", "microsoft"].includes(p.id)).map((provider) => {
+                const status = providerStatus[provider.id];
+                const isNotConfigured = status === "not_configured";
+                
+                return (
+                  <label
+                    key={provider.id}
+                    className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                      isNotConfigured 
+                        ? "opacity-60 cursor-not-allowed border-border bg-muted/20"
+                        : selectedProvider === provider.id
+                          ? "border-primary bg-primary/5 cursor-pointer"
+                          : "border-border hover:bg-muted/50 cursor-pointer"
+                    }`}
+                  >
+                    <RadioGroupItem value={provider.id} className="sr-only" disabled={isNotConfigured} />
+                    <span className="text-2xl">{provider.icon}</span>
+                    <div className="flex-1">
+                      <p className="font-medium flex items-center gap-2">
+                        {provider.name}
+                        {isNotConfigured && (
+                          <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">
+                            Setup required
+                          </Badge>
+                        )}
+                      </p>
+                      <p className="text-sm text-muted-foreground">{provider.description}</p>
+                    </div>
+                    {selectedProvider === provider.id && !isNotConfigured && (
+                      <CheckCircle2 className="h-5 w-5 text-primary" />
+                    )}
+                    {isNotConfigured && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSetupHelpProvider(provider.id);
+                          setShowSetupHelp(true);
+                        }}
+                      >
+                        Learn more
+                      </Button>
+                    )}
+                  </label>
+                );
+              })}
+              
+              {/* Manual option last */}
+              {CALENDAR_PROVIDERS.filter(p => p.id === "manual").map((provider) => (
                 <label
                   key={provider.id}
                   className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
@@ -373,6 +502,41 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
                 </label>
               ))}
             </RadioGroup>
+
+            {/* Setup Help Dialog */}
+            {showSetupHelp && (
+              <div className="p-4 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-medium text-amber-800 dark:text-amber-200">
+                      {setupHelpProvider === "google" ? "Google Calendar" : "Microsoft Outlook"} requires OAuth setup
+                    </p>
+                    <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                      To enable direct sync, an admin needs to configure OAuth credentials in the backend.
+                    </p>
+                    <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+                      <p className="font-medium">In the meantime, you can:</p>
+                      <ul className="list-disc list-inside space-y-1 ml-2">
+                        <li>Use <strong>Calendar Link (ICS)</strong> — works with any calendar</li>
+                        <li>Use <strong>Manual Only</strong> — manage availability here</li>
+                      </ul>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-3"
+                      onClick={() => {
+                        setShowSetupHelp(false);
+                        setSelectedProvider("ics");
+                      }}
+                    >
+                      Use Calendar Link Instead
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
