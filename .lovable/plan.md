@@ -1,83 +1,127 @@
 
 
-# Enable One-Click Google Calendar Connection
+# Fix Calendar OAuth Flow UX
 
-## Current State
-The OAuth flow is fully implemented:
-- `calendar-oauth-start` generates the Google OAuth URL
-- `calendar-oauth-callback` exchanges the code for tokens and stores them
-- The UI already has "Connect Google Calendar" buttons
+## Problems to Fix
 
-**What's missing:** 3 backend secrets that tell Google who your app is.
+1. **Raw JSON data shown in popup** — After OAuth, the popup displays raw calendar data like `[{"id":"abc@group.v.calendar.google.com","name":"Holidays..."...}]`. This is unprofessional.
 
-## What You Need to Do (One-Time Setup)
+2. **Button stays spinning** — The `postMessage` isn't reliably received by the main window, so the "Connect" button never stops spinning.
 
-### Step 1: Create Google OAuth Credentials
+3. **No calendar selection step** — User should explicitly choose which calendar(s) the AI can access, not just see a success message.
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project (or select existing)
-3. Navigate to **APIs & Services > Library**
-4. Search for and enable **Google Calendar API**
-5. Go to **APIs & Services > Credentials**
-6. Click **Create Credentials > OAuth client ID**
-7. Select **Web application**
-8. Add authorized redirect URI:
-   ```
-   https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/calendar-oauth-callback
-   ```
-9. Click **Create** and copy your **Client ID** and **Client Secret**
+## Solution
 
-### Step 2: Add Secrets to Your Project
+### 1. Clean Up OAuth Callback Popup
+**File:** `supabase/functions/calendar-oauth-callback/index.ts`
 
-I'll add these 3 secrets to your backend:
+Update the success HTML to show a clean, professional message without any raw data:
 
-| Secret Name | Value |
-|-------------|-------|
-| `GOOGLE_CALENDAR_CLIENT_ID` | Your Client ID from step 9 |
-| `GOOGLE_CALENDAR_CLIENT_SECRET` | Your Client Secret from step 9 |
-| `GOOGLE_CALENDAR_REDIRECT_URI` | `https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/calendar-oauth-callback` |
+```html
+<!-- Current (broken) -->
+<p>Found 5 calendar(s). This window will close automatically.</p>
+<script>
+  const calendars = ${JSON.stringify(calendars || [])};
+  // This JSON gets shown as visible text sometimes
+</script>
 
-### Step 3: Configure OAuth Consent Screen
+<!-- Fixed (clean) -->
+<p>Connected successfully!</p>
+<p>This window will close automatically.</p>
+<script>
+  // Data passed via postMessage only, never visible
+</script>
+```
 
-Before users can connect, you need to configure the consent screen:
+### 2. Add Robust Connection Detection
+**File:** `src/components/settings/CalendarConnectionWizard.tsx`
 
-1. Go to **APIs & Services > OAuth consent screen**
-2. Choose **External** (unless you have Google Workspace)
-3. Fill in:
-   - App name: "CloseLoop"
-   - User support email: your email
-   - Developer contact: your email
-4. Add scopes:
-   - `../auth/calendar.readonly`
-   - `../auth/calendar.events`
-   - `../auth/calendar.freebusy`
-5. Add test users (your email) while in testing mode
+Add multiple layers of detection to ensure the UI updates:
 
-## What I'll Implement
+**A) Focus-based detection:**
+```tsx
+useEffect(() => {
+  if (!isConnecting || !selectedProvider) return;
+  
+  const handleFocus = async () => {
+    await refetch();
+    const newConn = connections.find(
+      c => c.provider === selectedProvider && c.status === "connected"
+    );
+    if (newConn) {
+      setIsConnecting(false);
+      const cals = (newConn.config_json as any)?.available_calendars || [];
+      setAvailableCalendars(cals);
+      // Pre-select primary
+      const primaryIds = cals.filter(c => c.primary).map(c => c.id);
+      setSelectedCalendarIds(primaryIds.length ? primaryIds : cals.slice(0,1).map(c => c.id));
+      setStep(2); // Go to calendar selection
+    }
+  };
+  
+  window.addEventListener('focus', handleFocus);
+  return () => window.removeEventListener('focus', handleFocus);
+}, [isConnecting, selectedProvider, connections, refetch]);
+```
 
-Once you provide the Client ID and Secret, I'll:
+**B) Polling fallback:**
+```tsx
+useEffect(() => {
+  if (!isConnecting || !selectedProvider) return;
+  
+  const pollInterval = setInterval(async () => {
+    const { data } = await supabase
+      .from("calendar_connections")
+      .select("*")
+      .eq("provider", selectedProvider)
+      .eq("status", "connected")
+      .maybeSingle();
+    
+    if (data) {
+      clearInterval(pollInterval);
+      setIsConnecting(false);
+      const cals = (data.config_json as any)?.available_calendars || [];
+      setAvailableCalendars(cals);
+      const primaryIds = cals.filter(c => c.primary).map(c => c.id);
+      setSelectedCalendarIds(primaryIds.length ? primaryIds : cals.slice(0,1).map(c => c.id));
+      await refetch();
+      setStep(2);
+    }
+  }, 2000);
+  
+  // Timeout after 2 minutes
+  const timeout = setTimeout(() => {
+    clearInterval(pollInterval);
+    if (isConnecting) {
+      setIsConnecting(false);
+      toast({ title: "Connection timed out", variant: "destructive" });
+    }
+  }, 120000);
+  
+  return () => {
+    clearInterval(pollInterval);
+    clearTimeout(timeout);
+  };
+}, [isConnecting, selectedProvider, toast, refetch]);
+```
 
-1. Add the 3 secrets to your backend
-2. Redeploy the edge functions (they'll pick up the new secrets)
-3. The "Connect Google Calendar" button will work immediately
+### 3. Keep Existing PostMessage Listener
+The existing `handleMessage` listener already handles the success case — it just needs the polling/focus fallback as backup.
+
+## Files to Change
+
+| File | Change |
+|------|--------|
+| `supabase/functions/calendar-oauth-callback/index.ts` | Clean up success HTML to hide raw JSON |
+| `src/components/settings/CalendarConnectionWizard.tsx` | Add focus detection + polling fallback effects |
 
 ## End Result
 
-After setup, your users (and you) will:
-1. Click "Connect Google Calendar"
-2. See Google sign-in popup
-3. Select Google account
-4. Grant calendar permission
-5. Popup closes automatically
-6. Calendar appears as "Connected" with a green checkmark
-
-The AI will then see all your real calendar events and block those times automatically.
-
-## Optional: Microsoft Outlook
-
-Same process for Outlook (requires Azure Portal instead of Google Cloud Console). Let me know if you want both.
-
-## Next Steps
-
-When you're ready, I'll prompt you to enter your Google OAuth Client ID and Secret. Would you like to proceed?
+After OAuth completes:
+1. Popup shows clean "Connected successfully!" message (no raw data)
+2. Popup closes automatically
+3. Main window detects connection via polling (within 2 seconds) or focus event
+4. Wizard advances to Step 2: "Select which calendars the AI can access"
+5. User picks their calendar(s)
+6. Proceeds to business hours and booking rules
 
