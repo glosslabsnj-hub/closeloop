@@ -31,7 +31,9 @@ import { AIReadinessChecklist } from "@/components/knowledge/AIReadinessChecklis
 import KnowledgeGapQueue from "@/components/knowledge/KnowledgeGapQueue";
 import { KnowledgeUpdatesTab } from "@/components/knowledge/KnowledgeUpdatesTab";
 import { KnowledgeUploadHub } from "@/components/knowledge/KnowledgeUploadHub";
+import { KnowledgeMergeReview } from "@/components/knowledge/KnowledgeMergeReview";
 import { KnowledgeConflictBanner } from "@/components/dashboard/KnowledgeConflictBanner";
+import { KnowledgeUploadBanner } from "@/components/dashboard/KnowledgeUploadBanner";
 import { BusinessMemoryTab } from "@/components/knowledge/BusinessMemoryTab";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -231,6 +233,9 @@ export default function BusinessBrainPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="uploads" className="relative">
+            Uploads
+          </TabsTrigger>
           <TabsTrigger value="memory" className="relative">
             Memory
             {intelligenceSettings?.memory_enabled && (
@@ -459,6 +464,17 @@ export default function BusinessBrainPage() {
               </CollapsibleContent>
             </Card>
           </Collapsible>
+        </TabsContent>
+
+        <TabsContent value="uploads" className="mt-6 space-y-6">
+          {/* Merge Queue Banner */}
+          <KnowledgeUploadBanner />
+          
+          {/* Upload Hub */}
+          <KnowledgeUploadHub />
+          
+          {/* Merge Review */}
+          <KnowledgeMergeReview />
         </TabsContent>
 
         <TabsContent value="memory" className="mt-6">

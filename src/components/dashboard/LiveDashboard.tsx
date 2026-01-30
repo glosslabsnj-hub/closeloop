@@ -10,6 +10,7 @@ import { GoLiveChecklist } from "./GoLiveChecklist";
 import { UsageThresholdBanner } from "./UsageThresholdBanner";
 import { Copilot, CopilotTrigger } from "./Copilot";
 import { KnowledgeConflictBanner } from "./KnowledgeConflictBanner";
+import { KnowledgeUploadBanner } from "./KnowledgeUploadBanner";
 import { AIReadinessPanel } from "./AIReadinessPanel";
 import { ScheduleConnectionCard } from "@/components/schedule/ScheduleConnectionCard";
 import { SoundManager } from "@/components/notifications/SoundManager";
@@ -30,6 +31,7 @@ export function LiveDashboard() {
       {/* Critical Banners */}
       <AIReadinessPanel compact />
       <KnowledgeConflictBanner />
+      <KnowledgeUploadBanner />
       <UsageThresholdBanner threshold={80} />
 
       {/* HERO: Agent Status + Toggle */}
