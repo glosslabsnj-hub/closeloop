@@ -1,16 +1,18 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useAIReadiness } from "@/hooks/useAIReadiness";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { 
   MessageSquare, Phone, Sparkles, Check, ArrowRight, Loader2, 
-  Zap, Clock, Bot, Shield, ChevronRight, ChevronLeft
+  Zap, Clock, Bot, Shield, ChevronRight, ChevronLeft, Brain, AlertTriangle
 } from "lucide-react";
 import {
   TIERS,
@@ -36,12 +38,15 @@ const getIcon = (iconName: TierInfo["icon"]) => {
 export default function GoLivePage() {
   const { tenant, refreshTenant } = useAuth();
   const { createSubscription, loading: subLoading } = useSubscription(tenant?.id || null);
+  const { score, items, isReady } = useAIReadiness();
   const [step, setStep] = useState<"tier" | "usage">("tier");
   const [selectedTier, setSelectedTier] = useState<PlanTier | null>(null);
   const [selectedSku, setSelectedSku] = useState<PlanSku | null>(null);
   const [processing, setProcessing] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  const incompleteItems = items.filter(i => !i.complete).sort((a, b) => b.weight - a.weight);
 
   const handleTierSelect = (tier: PlanTier) => {
     setSelectedTier(tier);
@@ -105,6 +110,59 @@ export default function GoLivePage() {
               : `Choose how much usage you need for ${tierInfo?.displayName}.`}
           </p>
         </div>
+
+        {/* AI Readiness Score Banner */}
+        {!isReady && (
+          <Card className="mb-8 border-amber-500/30 bg-amber-500/5">
+            <CardContent className="p-4">
+              <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-amber-500/15">
+                    <Brain className="h-6 w-6 text-amber-400" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">AI Readiness</span>
+                      <Badge variant="outline" className="text-amber-400 border-amber-500/30">
+                        {score}%
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Progress value={score} className="w-24 h-1.5" />
+                      <span className="text-xs text-muted-foreground">
+                        Need 85% for best results
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex-1">
+                  <div className="flex flex-wrap gap-2">
+                    {incompleteItems.slice(0, 3).map(item => (
+                      <div 
+                        key={item.id}
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-muted"
+                      >
+                        <AlertTriangle className="h-3 w-3 text-amber-400" />
+                        <span>{item.label}</span>
+                        <Badge variant="outline" className="h-4 px-1 text-[10px]">
+                          +{item.weight}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <Button size="sm" variant="outline" className="shrink-0" asChild>
+                  <Link to="/app/business-brain">
+                    Improve Score
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Trust badges */}
         <div className="flex justify-center gap-6 mb-10 text-sm text-muted-foreground">

@@ -27,7 +27,7 @@ import {
   Truck,
   CheckCircle2
 } from "lucide-react";
-import AIReadinessScore from "@/components/knowledge/AIReadinessScore";
+import { AIReadinessChecklist } from "@/components/knowledge/AIReadinessChecklist";
 import KnowledgeGapQueue from "@/components/knowledge/KnowledgeGapQueue";
 import { KnowledgeUpdatesTab } from "@/components/knowledge/KnowledgeUpdatesTab";
 import { KnowledgeUploadHub } from "@/components/knowledge/KnowledgeUploadHub";
@@ -271,8 +271,8 @@ export default function BusinessBrainPage() {
             </div>
           )}
           
-          {/* AI Readiness Score */}
-          <AIReadinessScore />
+          {/* AI Readiness Checklist */}
+          <AIReadinessChecklist />
           
           {/* Upload Hub */}
           <KnowledgeUploadHub />

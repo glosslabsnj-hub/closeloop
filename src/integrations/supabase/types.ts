@@ -2332,13 +2332,16 @@ export type Database = {
           description: string
           gap_type: string
           id: string
+          last_seen_at: string | null
           occurrence_count: number
           priority: number
           resolution_notes: string | null
           resolved: boolean
           resolved_at: string | null
           resolved_by: string | null
+          suggested_section: string | null
           tenant_id: string
+          urgency: string | null
         }
         Insert: {
           ai_session_id?: string | null
@@ -2347,13 +2350,16 @@ export type Database = {
           description: string
           gap_type: string
           id?: string
+          last_seen_at?: string | null
           occurrence_count?: number
           priority?: number
           resolution_notes?: string | null
           resolved?: boolean
           resolved_at?: string | null
           resolved_by?: string | null
+          suggested_section?: string | null
           tenant_id: string
+          urgency?: string | null
         }
         Update: {
           ai_session_id?: string | null
@@ -2362,13 +2368,16 @@ export type Database = {
           description?: string
           gap_type?: string
           id?: string
+          last_seen_at?: string | null
           occurrence_count?: number
           priority?: number
           resolution_notes?: string | null
           resolved?: boolean
           resolved_at?: string | null
           resolved_by?: string | null
+          suggested_section?: string | null
           tenant_id?: string
+          urgency?: string | null
         }
         Relationships: [
           {
