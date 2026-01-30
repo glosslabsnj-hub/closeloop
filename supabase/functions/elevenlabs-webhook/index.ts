@@ -9,14 +9,81 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-elevenlabs-signature, x-eleven-labs-signature",
 };
 
-// Verify HMAC signature from ElevenLabs
-async function verifyHmacSignature(rawBody: string, signature: string | null, secret: string): Promise<boolean> {
-  if (!signature) return false;
+// Parse ElevenLabs signature header format: "t=timestamp,v0=hash"
+interface ParsedSignature {
+  timestamp: number;
+  v0: string;
+}
+
+function parseSignatureHeader(header: string): ParsedSignature | null {
+  try {
+    const parts = header.split(",");
+    let timestamp = 0;
+    let v0 = "";
+    
+    for (const part of parts) {
+      const trimmed = part.trim();
+      if (trimmed.startsWith("t=")) {
+        timestamp = parseInt(trimmed.substring(2), 10);
+      } else if (trimmed.startsWith("v0=")) {
+        v0 = trimmed.substring(3).trim();
+      }
+    }
+    
+    if (timestamp > 0 && v0) {
+      return { timestamp, v0 };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// Constant-time string comparison to prevent timing attacks
+function constantTimeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+// Verify HMAC signature from ElevenLabs using their documented format
+// Signed payload = timestamp.rawBody, compared as HMAC-SHA256 hex
+async function verifyElevenLabsSignature(
+  rawBody: string,
+  signatureHeader: string | null,
+  secret: string
+): Promise<{ valid: boolean; timestamp?: number; receivedHash?: string; expectedHash?: string; reason?: string }> {
+  if (!signatureHeader) {
+    return { valid: false, reason: "missing_signature_header" };
+  }
+  
+  const parsed = parseSignatureHeader(signatureHeader);
+  if (!parsed) {
+    return { valid: false, reason: "invalid_header_format", receivedHash: signatureHeader.substring(0, 20) };
+  }
+  
+  // Check timestamp freshness (5 minute window)
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const timestampDiff = Math.abs(nowSeconds - parsed.timestamp);
+  if (timestampDiff > 300) {
+    return { 
+      valid: false, 
+      reason: "timestamp_stale", 
+      timestamp: parsed.timestamp,
+      receivedHash: parsed.v0.substring(0, 12)
+    };
+  }
   
   try {
+    // Build signed payload: timestamp.rawBody
+    const signedPayload = `${parsed.timestamp}.${rawBody}`;
+    
     const encoder = new TextEncoder();
     const keyData = encoder.encode(secret);
-    const messageData = encoder.encode(rawBody);
+    const messageData = encoder.encode(signedPayload);
     
     const key = await crypto.subtle.importKey(
       "raw",
@@ -28,14 +95,21 @@ async function verifyHmacSignature(rawBody: string, signature: string | null, se
     
     const signatureBuffer = await crypto.subtle.sign("HMAC", key, messageData);
     const hexBytes = encodeHex(new Uint8Array(signatureBuffer));
-    // Convert Uint8Array of hex chars to string
-    const computedSignature = new TextDecoder().decode(hexBytes);
+    const expectedHash = new TextDecoder().decode(hexBytes).toLowerCase();
+    const receivedHash = parsed.v0.toLowerCase();
     
-    // Compare signatures (constant-time comparison for security)
-    return computedSignature.toLowerCase() === signature.toLowerCase();
+    const isValid = constantTimeCompare(expectedHash, receivedHash);
+    
+    return {
+      valid: isValid,
+      timestamp: parsed.timestamp,
+      receivedHash: receivedHash.substring(0, 12),
+      expectedHash: expectedHash.substring(0, 12),
+      reason: isValid ? undefined : "hash_mismatch"
+    };
   } catch (error) {
     console.error("HMAC verification error:", error);
-    return false;
+    return { valid: false, reason: "crypto_error" };
   }
 }
 
@@ -159,46 +233,92 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const webhookSecret = Deno.env.get("ELEVENLABS_CONVAI_WEBHOOK_SECRET");
+  const webhookSecret = (Deno.env.get("ELEVENLABS_CONVAI_WEBHOOK_SECRET") ?? "").trim();
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  // Capture raw body for robust parsing and HMAC verification
+  // Step 1: Read RAW body BEFORE any parsing
   let rawBody = "";
-  let parsedPayload: Record<string, unknown> = {};
-  
   try {
     rawBody = await req.text();
-    
-    // Verify HMAC signature if secret is configured
-    if (webhookSecret) {
-      const signature = 
-        req.headers.get("x-elevenlabs-signature") || 
-        req.headers.get("x-eleven-labs-signature");
-      
-      const isValid = await verifyHmacSignature(rawBody, signature, webhookSecret);
-      
-      if (!isValid) {
-        console.warn("[elevenlabs-webhook] Invalid HMAC signature - rejecting request");
-        await logEventStage(
-          supabase,
-          "unknown",
-          null,
-          null,
-          "unknown",
-          "webhook_signature_invalid",
-          { has_signature: !!signature },
-          "HMAC signature verification failed"
-        );
-        return new Response(
-          JSON.stringify({ error: "Invalid signature" }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      console.log("[elevenlabs-webhook] HMAC signature verified successfully");
-    } else {
-      console.warn("[elevenlabs-webhook] No webhook secret configured - skipping signature verification");
-    }
-    
+  } catch (readError) {
+    console.error("[elevenlabs-webhook] Failed to read request body:", readError);
+    return new Response(
+      JSON.stringify({ error: "Failed to read body" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  // Step 2: Verify HMAC signature BEFORE parsing JSON
+  if (!webhookSecret) {
+    console.error("[elevenlabs-webhook] ELEVENLABS_CONVAI_WEBHOOK_SECRET not configured");
+    return new Response(
+      JSON.stringify({ error: "Webhook secret not configured" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  // Read signature header case-insensitively
+  const signatureHeader = 
+    req.headers.get("ElevenLabs-Signature") ?? 
+    req.headers.get("elevenlabs-signature") ??
+    req.headers.get("x-elevenlabs-signature") ??
+    req.headers.get("x-eleven-labs-signature");
+
+  if (!signatureHeader) {
+    console.warn("[elevenlabs-webhook] Missing signature header");
+    await logEventStage(
+      supabase,
+      "unknown",
+      null,
+      null,
+      "unknown",
+      "webhook_signature_missing",
+      { raw_body_length: rawBody.length },
+      "No signature header present"
+    );
+    return new Response(
+      JSON.stringify({ error: "Missing signature header" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const verifyResult = await verifyElevenLabsSignature(rawBody, signatureHeader, webhookSecret);
+
+  if (!verifyResult.valid) {
+    console.warn("[elevenlabs-webhook] Signature verification failed:", {
+      reason: verifyResult.reason,
+      timestamp: verifyResult.timestamp,
+      receivedHash: verifyResult.receivedHash,
+      expectedHash: verifyResult.expectedHash,
+      rawBodyLength: rawBody.length
+    });
+    await logEventStage(
+      supabase,
+      "unknown",
+      null,
+      null,
+      "unknown",
+      "webhook_signature_invalid",
+      { 
+        reason: verifyResult.reason,
+        timestamp: verifyResult.timestamp,
+        received_hash_prefix: verifyResult.receivedHash,
+        expected_hash_prefix: verifyResult.expectedHash,
+        raw_body_length: rawBody.length
+      },
+      `HMAC verification failed: ${verifyResult.reason}`
+    );
+    return new Response(
+      JSON.stringify({ error: "Invalid signature", reason: verifyResult.reason }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  console.log("[elevenlabs-webhook] HMAC signature verified successfully, timestamp:", verifyResult.timestamp);
+
+  // Step 3: NOW parse JSON from rawBody
+  let parsedPayload: Record<string, unknown> = {};
+  try {
     parsedPayload = JSON.parse(rawBody);
   } catch (parseError) {
     console.error("Failed to parse webhook body:", parseError);
@@ -212,7 +332,6 @@ serve(async (req) => {
       { raw_body_length: rawBody.length, raw_body_preview: rawBody.substring(0, 200) },
       parseError instanceof Error ? parseError.message : "JSON parse failed"
     );
-    // Return 200 to prevent retries
     return new Response(
       JSON.stringify({ status: "error", reason: "parse_failed" }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
