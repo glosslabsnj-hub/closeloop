@@ -3,8 +3,24 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-export type ConflictType = "price_mismatch" | "description_mismatch" | "name_mismatch" | "duration_mismatch" | "other";
+export type ConflictType = "price_mismatch" | "description_mismatch" | "name_mismatch" | "duration_mismatch" | "field_mismatch" | "other";
 export type ConflictStatus = "unresolved" | "keep_existing" | "accept_upload" | "custom_merged";
+
+export const conflictTypeLabels: Record<ConflictType | string, string> = {
+  price_mismatch: "Price Difference",
+  description_mismatch: "Description Difference",
+  name_mismatch: "Name Difference",
+  duration_mismatch: "Duration Difference",
+  field_mismatch: "Field Difference",
+  other: "Other Difference",
+};
+
+export const entityTypeLabels: Record<string, string> = {
+  service: "Service",
+  menu_item: "Menu Item",
+  faq: "FAQ",
+  policy: "Policy",
+};
 
 export interface KnowledgeConflict {
   id: string;

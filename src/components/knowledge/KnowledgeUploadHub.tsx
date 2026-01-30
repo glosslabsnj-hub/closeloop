@@ -69,9 +69,9 @@ const documentTypes: DocumentTypeOption[] = [
   },
   {
     value: "general",
-    label: "General",
-    description: "Any other business information for your AI",
-    icon: FileCheck
+    label: "Photos / Images",
+    description: "Menu boards, storefront signs, or any business photos with text",
+    icon: Image
   }
 ];
 
