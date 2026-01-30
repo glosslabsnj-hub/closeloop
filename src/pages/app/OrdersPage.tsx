@@ -6,35 +6,26 @@ import { useModuleRequired } from "@/hooks/useModuleRequired";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   UtensilsCrossed, 
   Clock, 
   Truck,
   CheckCircle2,
   Plus,
-  Printer,
-  Eye,
   Volume2,
   VolumeX,
   Loader2,
+  ShoppingBag,
+  AlertCircle,
+  Printer,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { OrderDetailsDrawer } from "@/components/orders/OrderDetailsDrawer";
+import { OrderCard } from "@/components/orders/OrderCard";
 import { useNavigate } from "react-router-dom";
-
-const statusColors: Record<string, string> = {
-  pending: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400",
-  confirmed: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
-  preparing: "bg-orange-500/10 text-orange-700 dark:text-orange-400",
-  ready: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-  out_for_delivery: "bg-purple-500/10 text-purple-700 dark:text-purple-400",
-  completed: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-  cancelled: "bg-destructive/10 text-destructive",
-  needs_followup: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-};
 
 interface FoodOrder {
   id: string;
@@ -58,15 +49,16 @@ interface FoodOrder {
   created_at: string;
 }
 
+type OrderTab = "active" | "ready" | "completed" | "all";
+
 export default function OrdersPage() {
-  // P0-3: Route protection - redirect if food_orders module not enabled
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["food_orders"]);
   
   const { tenant } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<OrderTab>("active");
   const [selectedOrder, setSelectedOrder] = useState<FoodOrder | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(() => {
@@ -74,7 +66,6 @@ export default function OrdersPage() {
   });
   const [lastOrderCount, setLastOrderCount] = useState<number | null>(null);
 
-  // Check for auto-print setting
   const { data: deliverySettings } = useQuery({
     queryKey: ["order-delivery-settings", tenant?.id],
     queryFn: async () => {
@@ -103,7 +94,7 @@ export default function OrdersPage() {
       return (data || []) as FoodOrder[];
     },
     enabled: !!tenant?.id,
-    refetchInterval: 10000, // Refetch every 10 seconds for new orders
+    refetchInterval: 10000,
   });
 
   // New order detection with sound/alert
@@ -114,17 +105,15 @@ export default function OrdersPage() {
     }
 
     const newOrders = orders.filter(o => 
-      o.status === "confirmed" && 
-      new Date(o.created_at).getTime() > Date.now() - 60000 // Within last minute
+      (o.status === "pending" || o.status === "confirmed") && 
+      new Date(o.created_at).getTime() > Date.now() - 60000
     );
 
     if (orders.length > lastOrderCount && newOrders.length > 0) {
       const newOrder = newOrders[0];
       
-      // Play sound if enabled
       if (soundEnabled) {
         try {
-          // Create a simple beep sound
           const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
           const oscillator = audioContext.createOscillator();
           const gainNode = audioContext.createGain();
@@ -140,7 +129,6 @@ export default function OrdersPage() {
         }
       }
 
-      // Show toast with print option if auto_print is enabled
       if (deliverySettings?.auto_print) {
         toast({
           title: "🍽️ New Order Received!",
@@ -198,11 +186,33 @@ export default function OrdersPage() {
     navigate(`/app/orders/${orderId}/ticket`);
   };
 
-  const filteredOrders = orders?.filter(order => 
-    statusFilter === "all" || order.status === statusFilter
-  ) || [];
+  // Filter orders by tab
+  const getFilteredOrders = () => {
+    if (!orders) return [];
+    switch (activeTab) {
+      case "active":
+        return orders.filter(o => ["pending", "confirmed", "preparing"].includes(o.status));
+      case "ready":
+        return orders.filter(o => ["ready", "out_for_delivery"].includes(o.status));
+      case "completed":
+        return orders.filter(o => ["completed", "cancelled"].includes(o.status));
+      case "all":
+      default:
+        return orders;
+    }
+  };
 
-  // Show loading while checking module access
+  const filteredOrders = getFilteredOrders();
+
+  // Stats
+  const activeCount = orders?.filter(o => ["pending", "confirmed", "preparing"].includes(o.status)).length || 0;
+  const readyCount = orders?.filter(o => ["ready", "out_for_delivery"].includes(o.status)).length || 0;
+  const todayCompleted = orders?.filter(o => 
+    o.status === "completed" && 
+    new Date(o.created_at).toDateString() === new Date().toDateString()
+  ).length || 0;
+  const needsAttention = orders?.filter(o => o.status === "pending" || o.status === "needs_followup").length || 0;
+
   if (moduleLoading || !isAllowed) {
     return (
       <div className="p-6 flex items-center justify-center">
@@ -221,13 +231,19 @@ export default function OrdersPage() {
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="page-header mb-0">
           <h1 className="page-title">Orders</h1>
           <p className="page-subtitle">Manage incoming food orders</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={toggleSound} title={soundEnabled ? "Mute alerts" : "Enable alerts"}>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={toggleSound} 
+            title={soundEnabled ? "Mute alerts" : "Enable alerts"}
+          >
             {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
           </Button>
           <Button>
@@ -237,192 +253,144 @@ export default function OrdersPage() {
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Needs Attention Banner */}
+      {needsAttention > 0 && (
+        <div className="flex items-center gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30">
+          <AlertCircle className="h-5 w-5 text-amber-400" />
+          <span className="text-sm font-medium text-amber-400">
+            {needsAttention} order{needsAttention !== 1 ? "s" : ""} need{needsAttention === 1 ? "s" : ""} attention
+          </span>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="ml-auto"
+            onClick={() => setActiveTab("active")}
+          >
+            View
+          </Button>
+        </div>
+      )}
+
+      {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-4">
+        <Card className="cursor-pointer hover:border-primary/30 transition-colors" onClick={() => setActiveTab("active")}>
+          <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Pending</span>
+              <div className="h-8 w-8 rounded-lg bg-orange-500/15 flex items-center justify-center">
+                <UtensilsCrossed className="h-4 w-4 text-orange-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{activeCount}</p>
+                <p className="text-xs text-muted-foreground">In Progress</p>
+              </div>
             </div>
-            <p className="text-2xl font-bold mt-1">
-              {orders?.filter(o => o.status === "pending" || o.status === "confirmed").length || 0}
-            </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-4">
+        
+        <Card className="cursor-pointer hover:border-primary/30 transition-colors" onClick={() => setActiveTab("ready")}>
+          <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2">
-              <UtensilsCrossed className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Preparing</span>
+              <div className="h-8 w-8 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+                <ShoppingBag className="h-4 w-4 text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{readyCount}</p>
+                <p className="text-xs text-muted-foreground">Ready</p>
+              </div>
             </div>
-            <p className="text-2xl font-bold mt-1">
-              {orders?.filter(o => o.status === "preparing").length || 0}
-            </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-4">
+        
+        <Card className="cursor-pointer hover:border-primary/30 transition-colors" onClick={() => setActiveTab("completed")}>
+          <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2">
-              <Truck className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Out for Delivery</span>
+              <div className="h-8 w-8 rounded-lg bg-blue-500/15 flex items-center justify-center">
+                <CheckCircle2 className="h-4 w-4 text-blue-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{todayCompleted}</p>
+                <p className="text-xs text-muted-foreground">Today Done</p>
+              </div>
             </div>
-            <p className="text-2xl font-bold mt-1">
-              {orders?.filter(o => o.status === "out_for_delivery").length || 0}
-            </p>
           </CardContent>
         </Card>
+        
         <Card>
-          <CardContent className="pt-4">
+          <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Today Completed</span>
+              <div className="h-8 w-8 rounded-lg bg-purple-500/15 flex items-center justify-center">
+                <Truck className="h-4 w-4 text-purple-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">
+                  {orders?.filter(o => o.order_type === "delivery" && !["completed", "cancelled"].includes(o.status)).length || 0}
+                </p>
+                <p className="text-xs text-muted-foreground">Deliveries</p>
+              </div>
             </div>
-            <p className="text-2xl font-bold mt-1">
-              {orders?.filter(o => 
-                o.status === "completed" && 
-                new Date(o.created_at).toDateString() === new Date().toDateString()
-              ).length || 0}
-            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filter */}
-      <div className="flex items-center gap-4">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Orders</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="confirmed">Confirmed</SelectItem>
-            <SelectItem value="preparing">Preparing</SelectItem>
-            <SelectItem value="ready">Ready</SelectItem>
-            <SelectItem value="out_for_delivery">Out for Delivery</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="cancelled">Cancelled</SelectItem>
-            <SelectItem value="needs_followup">Needs Follow-up</SelectItem>
-          </SelectContent>
-        </Select>
-        <span className="text-sm text-muted-foreground">
-          {filteredOrders.length} order{filteredOrders.length !== 1 ? "s" : ""}
-        </span>
-      </div>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as OrderTab)}>
+        <TabsList className="grid w-full grid-cols-4 max-w-md">
+          <TabsTrigger value="active" className="gap-1.5">
+            Active
+            {activeCount > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                {activeCount}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="ready" className="gap-1.5">
+            Ready
+            {readyCount > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                {readyCount}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="completed">Completed</TabsTrigger>
+          <TabsTrigger value="all">All</TabsTrigger>
+        </TabsList>
 
-      {/* Orders Table */}
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Order #</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Items</TableHead>
-                <TableHead>Special</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredOrders.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                    No orders found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredOrders.map((order) => {
-                  const items = Array.isArray(order.items_json) ? order.items_json : [];
-                  return (
-                    <TableRow 
-                      key={order.id} 
-                      className={order.status === "confirmed" ? "bg-primary/5" : ""}
-                    >
-                      <TableCell className="font-mono font-medium">
-                        {order.order_number}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{order.customer_name || "Unknown"}</p>
-                          <p className="text-sm text-muted-foreground">{order.customer_phone}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="capitalize">
-                          {order.order_type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {items.length} item{items.length !== 1 ? "s" : ""}
-                      </TableCell>
-                      <TableCell>
-                        {order.special_instructions ? (
-                          <Badge variant="warning">
-                            ⚠️ Yes
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        ${((order.total_cents || 0) / 100).toFixed(2)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={statusColors[order.status] || ""}>
-                          {order.status.replace(/_/g, " ")}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => handleViewOrder(order)}
-                            title="View details"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => handlePrint(order.id)}
-                            title="Print ticket"
-                          >
-                            <Printer className="h-4 w-4" />
-                          </Button>
-                          <Select
-                            value={order.status}
-                            onValueChange={(status) => 
-                              updateStatusMutation.mutate({ orderId: order.id, status })
-                            }
-                          >
-                            <SelectTrigger className="w-[120px] h-8">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="confirmed">Confirmed</SelectItem>
-                              <SelectItem value="preparing">Preparing</SelectItem>
-                              <SelectItem value="ready">Ready</SelectItem>
-                              <SelectItem value="out_for_delivery">Out for Delivery</SelectItem>
-                              <SelectItem value="completed">Completed</SelectItem>
-                              <SelectItem value="cancelled">Cancelled</SelectItem>
-                              <SelectItem value="needs_followup">Needs Follow-up</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+        <TabsContent value={activeTab} className="mt-4">
+          {filteredOrders.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <div className="h-12 w-12 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
+                  <UtensilsCrossed className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <h3 className="font-medium mb-1">No orders</h3>
+                <p className="text-sm text-muted-foreground">
+                  {activeTab === "active" 
+                    ? "No active orders right now"
+                    : activeTab === "ready"
+                    ? "No orders ready for pickup/delivery"
+                    : activeTab === "completed"
+                    ? "No completed orders today"
+                    : "No orders found"
+                  }
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {filteredOrders.map((order) => (
+                <OrderCard
+                  key={order.id}
+                  order={order}
+                  onView={() => handleViewOrder(order)}
+                  onPrint={() => handlePrint(order.id)}
+                  onStatusChange={(status) => updateStatusMutation.mutate({ orderId: order.id, status })}
+                  isUpdating={updateStatusMutation.isPending}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* Order Details Drawer */}
       <OrderDetailsDrawer
