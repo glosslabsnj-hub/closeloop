@@ -1,178 +1,95 @@
 
-# Availability Setup UX Overhaul
 
-## Problem Analysis
+# Fix Calendar Connection - Missing OAuth Credentials
 
-You're absolutely right. Currently the system has all the pieces for real-time availability:
-- Weekly business hours
-- Calendar sync (Google/Microsoft/ICS)
-- Busy blocks from synced calendars
-- The `fn_compute_available_slots` function that merges everything
+## The Problem
 
-But the **setup flow is broken and confusing**. A business owner has no clear path to:
-1. Understand what the AI actually knows about their schedule
-2. Connect their real calendar (not just set static hours)
-3. Block specific times for today/tomorrow
-4. See their actual availability in real-time
+When you click "Connect Google Calendar" or "Connect Outlook", the edge function returns a 500 error because **OAuth credentials are not configured**.
 
-## Solution: Unified "My Availability" Hub
+The error message from the backend:
+> "Google Calendar not configured. Please add GOOGLE_CALENDAR_CLIENT_ID and GOOGLE_CALENDAR_REDIRECT_URI secrets."
 
-Create a dedicated, prominent availability management experience that consolidates everything into one clear section.
+## Why This Happens
 
-### New Availability Section Structure
+Calendar sync requires OAuth apps registered with Google and Microsoft. Your AI needs permission to read your calendar, and that permission flow requires:
 
-```text
-YOUR AVAILABILITY
-├── Status Card (What AI Knows Now)
-│   └── Real-time: "Open today 9am-5pm, 3 slots booked, 2 available"
-│
-├── Calendar Source
-│   ├── "Your calendar isn't connected yet" [Connect Now]
-│   └── OR: "Synced with Google Calendar ✓" [Manage]
-│
-├── Weekly Schedule (Base Hours)
-│   └── Mon-Fri editor with toggle switches
-│
-├── This Week's Availability (Visual Timeline)
-│   ├── Today: ████░░██ (busy blocks shown visually)
-│   ├── Tomorrow: ██████░░ 
-│   └── [Block Time] [View Full Calendar]
-│
-└── Quick Block
-    └── "Block time for today/tomorrow" inline form
-```
+1. **OAuth Client ID** - Identifies your app to Google/Microsoft
+2. **OAuth Client Secret** - Authenticates your app
+3. **Redirect URI** - Where users return after granting permission
 
-### Phase 1: Create "Availability Hub" Component
+These credentials don't exist in your project yet.
 
-Replace the current fragmented setup with a unified `AvailabilityHub.tsx` component that:
+## Two Options to Fix This
 
-**Top Section - Connection Status (Most Important)**
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│  📅 YOUR SCHEDULE                                                   │
-│                                                                     │
-│  ⚠️ Calendar not connected                                          │
-│  Your AI only knows your basic hours. Connect your calendar         │
-│  so it can see meetings, appointments, and busy times.              │
-│                                                                     │
-│  [Connect Google Calendar] [Connect Outlook] [I'll manage manually] │
-└─────────────────────────────────────────────────────────────────────┘
-```
+### Option A: Set Up Your Own OAuth Credentials (Full Control)
 
-OR when connected:
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│  📅 YOUR SCHEDULE                            Last synced: 5 min ago │
-│                                                                     │
-│  ✅ Connected to Google Calendar                                    │
-│  AI sees your meetings and blocks those times automatically.        │
-│                                                                     │
-│  [Sync Now] [Manage Connection]                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
+You would need to:
 
-**Middle Section - Today & Tomorrow At-a-Glance**
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│  TODAY'S AVAILABILITY                                 Thursday, Jan 30│
-│                                                                     │
-│  9 AM  ████████ Meeting (from calendar)                             │
-│  10 AM ████████ John's Appointment (booking)                        │
-│  11 AM ░░░░░░░░ Available                                           │
-│  12 PM ░░░░░░░░ Available                                           │
-│  1 PM  ████████ Lunch (blocked manually)                            │
-│  2 PM  ░░░░░░░░ Available                                           │
-│  3 PM  ░░░░░░░░ Available                                           │
-│  4 PM  ████████ Client call (from calendar)                         │
-│                                                                     │
-│  [+ Block Time]                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
+1. **For Google Calendar:**
+   - Go to Google Cloud Console
+   - Create a new project or use existing
+   - Enable the Google Calendar API
+   - Create OAuth 2.0 credentials
+   - Add these secrets to your project:
+     - `GOOGLE_CALENDAR_CLIENT_ID`
+     - `GOOGLE_CALENDAR_CLIENT_SECRET`
+     - `GOOGLE_CALENDAR_REDIRECT_URI` = `https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/calendar-oauth-callback`
 
-**Bottom Section - Weekly Base Hours**
-The existing business hours editor, but reframed as "Your default weekly schedule"
+2. **For Microsoft/Outlook:**
+   - Go to Azure Portal → App Registrations
+   - Create new registration
+   - Add Calendar permissions
+   - Add these secrets:
+     - `MS_CALENDAR_CLIENT_ID`
+     - `MS_CALENDAR_CLIENT_SECRET`
+     - `MS_CALENDAR_REDIRECT_URI` = `https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/calendar-oauth-callback`
 
-### Phase 2: Add Quick Block Functionality
+### Option B: Better UX - Show Clear Setup Instructions (Recommended)
 
-Add an inline "Block Time" dialog that lets owners quickly:
-- Select today or tomorrow
-- Pick start/end times
-- Add an optional reason
-- Save immediately
+Instead of silently failing, update the UI to:
 
-This creates a `busy_block` with type `manual_busy`.
+1. **Show a clear message** when OAuth isn't configured
+2. **Provide setup instructions** for admins to add credentials
+3. **Fallback to ICS** for users who can't set up OAuth
+4. **Hide unconfigured options** gracefully
 
-### Phase 3: Visual Timeline Component
+## Proposed Implementation (Option B)
 
-Create a `DayAvailabilityTimeline.tsx` component that:
-- Shows hourly blocks from business open to close
-- Colors blocks by type (calendar sync, booking, manual block, available)
-- Clickable to block/unblock times
+### Phase 1: Improve Error Handling in UI
 
-### Phase 4: Prominent Calendar Connection CTA
+Update `CalendarConnectionWizard.tsx` to:
+- Catch the specific "not configured" error
+- Show a helpful message instead of generic "Connection failed"
+- Suggest ICS as an alternative
 
-If no calendar is connected, show a **persistent banner** at the top of the availability section (and on the dashboard) explaining:
-- Why connecting helps
-- What happens when you connect
-- Clear CTA buttons for each provider
+### Phase 2: Add OAuth Status Check
 
-### Phase 5: Settings Page Integration
+Create a simple endpoint or use the existing error to detect which providers are configured, then:
+- Gray out unavailable options with "Coming soon" or "Setup required"
+- Show only configured providers as clickable
+- Provide admin instructions for setup
 
-Replace the current fragmented "Hours" section with the new Availability Hub, which contains:
-1. Connection status + wizard trigger
-2. Visual timeline for this week
-3. Quick block functionality  
-4. Base weekly hours editor
+### Phase 3: Emphasize ICS Option
+
+Since ICS doesn't require OAuth setup:
+- Move it higher in the list
+- Add better instructions for getting ICS URL from Google/Outlook
+- Mark it as "Works with any calendar"
+
+### Phase 4: Add Secrets (If You Want OAuth)
+
+If you want to enable direct Google/Outlook OAuth, I can guide you through:
+1. Creating Google OAuth credentials
+2. Creating Microsoft OAuth credentials
+3. Adding the 6 required secrets to your project
 
 ---
 
-## Technical Implementation
+## Recommended Next Steps
 
-### New Components
+1. **Quick fix**: Update the UI to show a helpful error message instead of generic failure, and highlight ICS as the working alternative
 
-1. **`AvailabilityHub.tsx`** - Main container with all availability management
-2. **`CalendarConnectionStatus.tsx`** - Shows sync status, last sync time, CTA to connect
-3. **`DayAvailabilityTimeline.tsx`** - Visual hourly timeline showing availability
-4. **`QuickBlockDialog.tsx`** - Simple form to block time slots
+2. **If you want OAuth**: Let me know and I'll walk you through setting up Google Cloud Console and Azure AD credentials
 
-### Modified Components
+Which approach would you prefer?
 
-1. **`SettingsPage.tsx`** - Replace hours section with AvailabilityHub
-2. **`LiveSchedulePreview.tsx`** - Enhance to be more actionable (add "Block Time" button)
-
-### Data Flow
-
-```text
-Calendar Connections → sync-availability Edge Function → busy_blocks table
-                                                              ↓
-Business Hours (hours_json or availability_slots) ────→ fn_compute_available_slots
-                                                              ↓
-                                                     Available Slots returned
-                                                              ↓
-                                                        AI uses for booking
-```
-
-The key insight: The AI already has access to real-time availability via the `busy_blocks` table. The problem is business owners don't have an easy way to:
-1. See that availability visually
-2. Connect their calendar (the wizard exists but is hidden)
-3. Manually block times for today/tomorrow
-
----
-
-## Mobile Considerations
-
-- Timeline shows as a vertical scrollable list
-- Quick block uses a bottom sheet
-- Calendar connection uses full-screen wizard
-
----
-
-## Expected Outcomes
-
-After implementation, business owners will:
-
-1. **Immediately see their AI's schedule understanding** - Visual timeline shows what's booked/available
-2. **Connect their calendar in seconds** - Prominent CTAs with clear benefits explained
-3. **Block times with one tap** - No need to navigate to a separate calendar app
-4. **Understand the system** - Clear visual feedback on how calendar sync → AI availability
-5. **Trust the AI more** - Can verify the AI knows about their real schedule
