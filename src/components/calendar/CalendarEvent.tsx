@@ -1,4 +1,11 @@
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { MapPin } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { ScheduleEvent } from "@/hooks/useScheduleData";
 
 interface CalendarEventProps {
@@ -12,15 +19,15 @@ export function CalendarEvent({ event, style, onClick }: CalendarEventProps) {
     switch (event.type) {
       case "booking":
         if (event.status === "pending_deposit") {
-          return "bg-amber-500/20 border-amber-500/50 text-amber-700 dark:text-amber-300";
+          return "bg-warning/20 border-warning/50 text-warning";
         }
         if (event.status === "confirmed") {
           return "bg-primary/20 border-primary/50 text-primary-foreground dark:text-primary";
         }
-        return "bg-blue-500/20 border-blue-500/50 text-blue-700 dark:text-blue-300";
+        return "bg-primary/20 border-primary/50 text-primary-foreground dark:text-primary";
       
       case "hold":
-        return "bg-sky-500/20 border-sky-500/50 border-dashed text-sky-700 dark:text-sky-300";
+        return "bg-accent/20 border-accent/50 border-dashed text-accent-foreground";
       
       case "busy_block":
       default:
@@ -29,8 +36,9 @@ export function CalendarEvent({ event, style, onClick }: CalendarEventProps) {
   };
 
   const isClickable = event.type === "booking";
+  const hasDetails = event.location || event.description;
 
-  return (
+  const eventContent = (
     <div
       className={cn(
         "absolute left-1 right-1 rounded-md border px-2 py-1 overflow-hidden text-xs",
@@ -45,6 +53,44 @@ export function CalendarEvent({ event, style, onClick }: CalendarEventProps) {
       {event.customerName && event.type === "booking" && (
         <div className="truncate opacity-80">{event.customerName}</div>
       )}
+      {event.location && event.type === "busy_block" && (
+        <div className="truncate opacity-70 flex items-center gap-1">
+          <MapPin className="h-2.5 w-2.5 flex-shrink-0" />
+          <span className="truncate">{event.location}</span>
+        </div>
+      )}
     </div>
   );
+
+  // Show tooltip with full details for external events
+  if (hasDetails && event.type === "busy_block") {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {eventContent}
+        </TooltipTrigger>
+        <TooltipContent side="right" className="max-w-xs">
+          <div className="space-y-1">
+            <p className="font-medium">{event.title}</p>
+            <p className="text-xs text-muted-foreground">
+              {format(event.start, "h:mm a")} - {format(event.end, "h:mm a")}
+            </p>
+            {event.location && (
+              <p className="text-xs flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                {event.location}
+              </p>
+            )}
+            {event.description && (
+              <p className="text-xs text-muted-foreground line-clamp-3">
+                {event.description}
+              </p>
+            )}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return eventContent;
 }

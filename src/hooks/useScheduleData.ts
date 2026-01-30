@@ -12,6 +12,8 @@ export interface ScheduleEvent {
   customerName?: string;
   serviceName?: string;
   isExternal?: boolean;
+  location?: string;
+  description?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -83,6 +85,7 @@ export function useScheduleData(weekStart: Date) {
     for (const block of busyBlocks) {
       const isHold = block.block_type === "hold";
       const metadata = block.metadata_json as Record<string, unknown> | null;
+      const isExternalBusy = block.block_type === "external_busy";
       
       events.push({
         id: block.id,
@@ -90,7 +93,9 @@ export function useScheduleData(weekStart: Date) {
         start: new Date(block.start_at),
         end: new Date(block.end_at),
         type: isHold ? "hold" : "busy_block",
-        isExternal: block.block_type === "external_calendar",
+        isExternal: isExternalBusy,
+        location: metadata?.location as string | undefined,
+        description: metadata?.description as string | undefined,
         metadata: metadata || undefined,
       });
     }
