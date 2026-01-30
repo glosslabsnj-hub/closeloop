@@ -10,6 +10,7 @@ import { GoLiveChecklist } from "./GoLiveChecklist";
 import { UsageThresholdBanner } from "./UsageThresholdBanner";
 import { Copilot, CopilotTrigger } from "./Copilot";
 import { KnowledgeConflictBanner } from "./KnowledgeConflictBanner";
+import { AutomationStatusCard } from "./AutomationStatusCard";
 import { hasVoiceFeature } from "@/config/pricing";
 
 export function LiveDashboard() {
@@ -40,7 +41,10 @@ export function LiveDashboard() {
       {/* Two Column: Activity Feed + Quick Actions */}
       <div className="grid md:grid-cols-2 gap-6">
         <ActivityFeed />
-        <QuickLinksCard />
+        <div className="space-y-6">
+          <AutomationStatusCard />
+          <QuickLinksCard />
+        </div>
       </div>
 
       {/* Go-Live Checklist - Only show when not live */}
