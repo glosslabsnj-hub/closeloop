@@ -1,11 +1,43 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
+import { encode as encodeHex } from "https://deno.land/std@0.168.0/encoding/hex.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-elevenlabs-signature",
+    "authorization, x-client-info, apikey, content-type, x-elevenlabs-signature, x-eleven-labs-signature",
 };
+
+// Verify HMAC signature from ElevenLabs
+async function verifyHmacSignature(rawBody: string, signature: string | null, secret: string): Promise<boolean> {
+  if (!signature) return false;
+  
+  try {
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(secret);
+    const messageData = encoder.encode(rawBody);
+    
+    const key = await crypto.subtle.importKey(
+      "raw",
+      keyData,
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    
+    const signatureBuffer = await crypto.subtle.sign("HMAC", key, messageData);
+    const hexBytes = encodeHex(new Uint8Array(signatureBuffer));
+    // Convert Uint8Array of hex chars to string
+    const computedSignature = new TextDecoder().decode(hexBytes);
+    
+    // Compare signatures (constant-time comparison for security)
+    return computedSignature.toLowerCase() === signature.toLowerCase();
+  } catch (error) {
+    console.error("HMAC verification error:", error);
+    return false;
+  }
+}
 
 interface ElevenLabsWebhookPayload {
   type: string;
@@ -127,14 +159,46 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const webhookSecret = Deno.env.get("ELEVENLABS_CONVAI_WEBHOOK_SECRET");
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  // Capture raw body for robust parsing
+  // Capture raw body for robust parsing and HMAC verification
   let rawBody = "";
   let parsedPayload: Record<string, unknown> = {};
   
   try {
     rawBody = await req.text();
+    
+    // Verify HMAC signature if secret is configured
+    if (webhookSecret) {
+      const signature = 
+        req.headers.get("x-elevenlabs-signature") || 
+        req.headers.get("x-eleven-labs-signature");
+      
+      const isValid = await verifyHmacSignature(rawBody, signature, webhookSecret);
+      
+      if (!isValid) {
+        console.warn("[elevenlabs-webhook] Invalid HMAC signature - rejecting request");
+        await logEventStage(
+          supabase,
+          "unknown",
+          null,
+          null,
+          "unknown",
+          "webhook_signature_invalid",
+          { has_signature: !!signature },
+          "HMAC signature verification failed"
+        );
+        return new Response(
+          JSON.stringify({ error: "Invalid signature" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      console.log("[elevenlabs-webhook] HMAC signature verified successfully");
+    } else {
+      console.warn("[elevenlabs-webhook] No webhook secret configured - skipping signature verification");
+    }
+    
     parsedPayload = JSON.parse(rawBody);
   } catch (parseError) {
     console.error("Failed to parse webhook body:", parseError);
