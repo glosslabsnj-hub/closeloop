@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,6 +59,26 @@ export default function CallsPage() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [editingCall, setEditingCall] = useState<CallSession | null>(null);
+
+  // Realtime subscription for instant updates when webhook processes calls
+  useEffect(() => {
+    if (!tenant?.id) return;
+    
+    const channel = supabase
+      .channel('calls-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'ai_call_sessions', filter: `tenant_id=eq.${tenant.id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['ai_call_sessions', tenant.id] });
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [tenant?.id, queryClient]);
 
   const { data: calls, isLoading } = useQuery({
     queryKey: ["ai_call_sessions", tenant?.id],
