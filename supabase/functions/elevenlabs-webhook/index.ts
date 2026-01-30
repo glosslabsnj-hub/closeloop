@@ -1382,13 +1382,17 @@ async function processFoodOrderIfApplicable(
   console.log("Processing food order for tenant:", tenantId);
 
   let parsedItems: Array<{ name: string; qty: number; modifiers?: string[]; item_notes?: string }> = [];
+  let extractedTotalCents: number | null = null;
+  
   try {
     if (typeof orderItemsRaw === "string") {
       try {
         parsedItems = JSON.parse(orderItemsRaw);
       } catch {
         // Parse natural language items from transcript or raw string
-        parsedItems = parseNaturalLanguageItems(orderItemsRaw, payload.transcript);
+        const parsed = parseNaturalLanguageItems(orderItemsRaw, payload.transcript);
+        parsedItems = parsed.items;
+        extractedTotalCents = parsed.totalCents;
       }
     }
   } catch (e) {
@@ -1402,7 +1406,9 @@ async function processFoodOrderIfApplicable(
   
   // If still empty but we have items_raw, try parsing that
   if (parsedItems.length === 0 && typeof extractedPayload.items_raw === "string") {
-    parsedItems = parseNaturalLanguageItems(extractedPayload.items_raw, payload.transcript);
+    const parsed = parseNaturalLanguageItems(extractedPayload.items_raw, payload.transcript);
+    parsedItems = parsed.items;
+    if (!extractedTotalCents) extractedTotalCents = parsed.totalCents;
   }
 
   const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}`;
@@ -1432,6 +1438,8 @@ async function processFoodOrderIfApplicable(
       customer_name: orderCustomerName,
       customer_phone: payload.dynamic_variables?.caller_phone || null,
       items_json: parsedItems.length > 0 ? parsedItems : [{ name: "Order details in special instructions", qty: 1 }],
+      total_cents: extractedTotalCents,
+      totals_estimate: extractedTotalCents ? { total: extractedTotalCents } : null,
       special_instructions: (extractedPayload.special_instructions as string) || extractDataCollectionValue(dataCollection.special_instructions) || 
         (orderItemsRaw && parsedItems.length === 0 ? `Customer order: ${orderItemsRaw}` : null),
       requested_time: extractDataCollectionValue(dataCollection.requested_time) ? new Date(extractDataCollectionValue(dataCollection.requested_time) as string).toISOString() : null,
@@ -1496,11 +1504,18 @@ async function processFoodOrderIfApplicable(
   }
 }
 
-// Parse natural language order items from transcript or raw string
+// Parse natural language order items from transcript
+// IMPORTANT: This function extracts food items, drinks, and totals from customer speech
+// Test cases are in elevenlabs-webhook/extraction.test.ts
+interface ParsedOrderResult {
+  items: Array<{ name: string; qty: number; modifiers?: string[]; item_notes?: string }>;
+  totalCents: number | null;
+}
+
 function parseNaturalLanguageItems(
   rawText: string,
   transcript?: ElevenLabsWebhookPayload["transcript"]
-): Array<{ name: string; qty: number; modifiers?: string[]; item_notes?: string }> {
+): ParsedOrderResult {
   const items: Array<{ name: string; qty: number; modifiers?: string[]; item_notes?: string }> = [];
   
   // Get customer messages from transcript if available
@@ -1508,36 +1523,79 @@ function parseNaturalLanguageItems(
     ? transcript.filter(t => t.role === "user").map(t => t.message).join(" ")
     : rawText;
   
+  // Get all messages (including AI) for total extraction
+  const allText = transcript
+    ? transcript.map(t => t.message).join(" ")
+    : rawText;
+  
   // Common food items to look for
-  const foodPatterns = [
-    // Pizza patterns
-    { pattern: /(\d*)\s*(?:large|medium|small)?\s*(margherita|pepperoni|cheese|hawaiian|veggie|meat lovers?|supreme|quattro formaggi)\s*pizza/gi, baseItem: "Pizza" },
+  // PIZZA: make "pizza" suffix OPTIONAL to catch "large margarita" without "pizza"
+  const pizzaTypes = "margherita|margarita|pepperoni|cheese|hawaiian|veggie|vegetarian|meat ?lovers?|supreme|quattro ?formaggi|buffalo|bbq|mushroom|sausage|white|plain|sicilian|neapolitan";
+  const pizzaSizes = "(?:extra[ -]?large|x-?large|xl|large|medium|small|personal)?";
+  
+  const foodPatterns: Array<{ pattern: RegExp; formatFn: ((match: string, qty: string, size: string, type: string) => string) | null }> = [
+    // Pizza patterns - "pizza" suffix is now OPTIONAL
+    { 
+      pattern: new RegExp(`(\\d*)\\s*${pizzaSizes}\\s*(${pizzaTypes})(?:\\s*pizza)?`, "gi"), 
+      formatFn: (match: string) => {
+        // Ensure "Pizza" is appended if not present
+        const cleaned = match.replace(/^\d+\s*/, "").trim();
+        const hasWord = cleaned.toLowerCase().includes("pizza");
+        const capitalized = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+        return hasWord ? capitalized : capitalized + " Pizza";
+      }
+    },
     // Pasta patterns  
-    { pattern: /(\d*)\s*(spaghetti|fettuccine|penne|lasagna|ravioli)\s*(?:carbonara|alfredo|bolognese|marinara|arrabbiata)?/gi, baseItem: "Pasta" },
-    // Drinks
-    { pattern: /(\d*)\s*(?:two[ -]?liter|bottle|can)?\s*(pepsi|coke|coca[ -]?cola|sprite|water|lemonade|tea)/gi, baseItem: "Drink" },
+    { 
+      pattern: /(\d*)\s*(spaghetti|fettuccine|penne|lasagna|ravioli|linguine|rigatoni|gnocchi|tortellini|manicotti)\s*(?:alla\s*)?(carbonara|alfredo|bolognese|marinara|arrabbiata|puttanesca|primavera)?/gi, 
+      formatFn: null 
+    },
+    // Appetizers/sides
+    {
+      pattern: /(\d*)\s*(bruschetta|garlic bread|breadsticks?|calamari|mozzarella sticks?|wings?|caesar salad|garden salad|soup|tiramisu|cannoli|cheesecake|gelato)/gi,
+      formatFn: null
+    },
+    // Drinks - improved size detection for "two-liter" and "2-liter" variations
+    { 
+      pattern: /(?:(\d+)\s+)?(?:(two[ -]?liter|2[ -]?liter|liter|bottle|can|large|medium|small)\s+)?(pepsi|coke|coca[ -]?cola|sprite|dr\.?\s*pepper|fanta|7[ -]?up|root ?beer|ginger ?ale|water|lemonade|iced?\s*tea|sweet\s*tea|coffee|espresso)/gi, 
+      formatFn: (match: string) => {
+        const cleaned = match.replace(/^\d+\s*/, "").trim();
+        return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+      }
+    },
     // General items with quantities
-    { pattern: /(\d+)\s*(piece|order|serving)s?\s+(?:of\s+)?(\w+)/gi, baseItem: "" },
+    { pattern: /(\d+)\s*(piece|order|serving)s?\s+(?:of\s+)?(\w+)/gi, formatFn: null },
   ];
   
-  for (const { pattern } of foodPatterns) {
+  const seenItems = new Set<string>(); // Prevent duplicates
+  
+  for (const { pattern, formatFn } of foodPatterns) {
     const matches = customerText.matchAll(pattern);
     for (const match of matches) {
       const qty = parseInt(match[1]) || 1;
-      const itemName = match[0].replace(/^\d+\s*/, "").trim();
-      if (itemName.length > 2) {
-        items.push({
-          name: itemName.charAt(0).toUpperCase() + itemName.slice(1),
-          qty,
-        });
+      let itemName: string;
+      
+      if (formatFn) {
+        itemName = formatFn(match[0], match[1], match[2], match[3]);
+      } else {
+        itemName = match[0].replace(/^\d+\s*/, "").trim();
+        itemName = itemName.charAt(0).toUpperCase() + itemName.slice(1);
+      }
+      
+      // Skip very short matches or duplicates
+      const normalizedName = itemName.toLowerCase().replace(/\s+/g, " ");
+      if (itemName.length > 2 && !seenItems.has(normalizedName)) {
+        seenItems.add(normalizedName);
+        items.push({ name: itemName, qty });
       }
     }
   }
   
   // Look for modifiers
   const modifierPatterns = [
-    /with\s+(extra|fresh|no|light|heavy)?\s*(garlic|cheese|onions?|peppers?|mushrooms?|olives?)/gi,
+    /(?:with|add|extra|no|light|heavy)\s+(?:extra\s+)?(garlic|cheese|onions?|peppers?|mushrooms?|olives?|bacon|anchovies|jalape[ñn]os?|pineapple|tomatoes?)/gi,
     /cooked?\s+(well done|medium|rare)/gi,
+    /(?:gluten[ -]?free|dairy[ -]?free|vegetarian|vegan)/gi,
   ];
   
   if (items.length > 0) {
@@ -1561,7 +1619,26 @@ function parseNaturalLanguageItems(
     });
   }
   
-  return items;
+  // EXTRACT ORDER TOTAL from AI confirmation (e.g., "Your total is $42.50")
+  // Look for dollar amounts mentioned as totals in the FULL conversation
+  const totalPatterns = [
+    /(?:total|total is|comes to|that(?:'ll| will) be|that's|your order is)\s*\$?(\d+(?:\.\d{2})?)/i,
+    /\$(\d+(?:\.\d{2})?)\s*(?:total|altogether|in total)/i,
+  ];
+  
+  let totalCents: number | null = null;
+  for (const pattern of totalPatterns) {
+    const totalMatch = allText.match(pattern);
+    if (totalMatch) {
+      const amount = parseFloat(totalMatch[1]);
+      if (amount > 0 && amount < 10000) { // Sanity check: $0 < total < $10,000
+        totalCents = Math.round(amount * 100);
+        break;
+      }
+    }
+  }
+  
+  return { items, totalCents };
 }
 
 // Build a summary from transcript when ElevenLabs doesn't provide one
