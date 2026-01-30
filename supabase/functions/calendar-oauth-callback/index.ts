@@ -310,15 +310,21 @@ function renderHTML(
 <body>
   <div class="card">
     <div class="icon">✅</div>
-    <h1>Calendar Connected!</h1>
-    <p>Found ${calendars?.length || 0} calendar(s). This window will close automatically.</p>
+    <h1>Connected successfully!</h1>
+    <p>This window will close automatically.</p>
   </div>
   <script>
-    const calendars = ${JSON.stringify(calendars || [])};
-    setTimeout(() => {
-      window.opener?.postMessage({ type: 'calendar-oauth-success', calendars }, '*');
-      window.close();
-    }, 1500);
+    (function() {
+      var cals = ${JSON.stringify(calendars || [])};
+      try {
+        if (window.opener) {
+          window.opener.postMessage({ type: 'calendar-oauth-success', calendars: cals }, '*');
+        }
+      } catch (e) {
+        console.error('postMessage failed:', e);
+      }
+      setTimeout(function() { window.close(); }, 1500);
+    })();
   </script>
 </body>
 </html>`;
