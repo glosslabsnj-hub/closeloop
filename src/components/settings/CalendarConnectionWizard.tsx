@@ -78,13 +78,22 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "success" | "error">("idle");
   const [syncedEventsCount, setSyncedEventsCount] = useState(0);
 
-  // Listen for OAuth callback messages
+  // Helper to process a newly detected connection
+  const processNewConnection = (data: { config_json?: unknown }) => {
+    const cals = (data.config_json as { available_calendars?: AvailableCalendar[] })?.available_calendars || [];
+    setAvailableCalendars(cals);
+    const primaryIds = cals.filter((c) => c.primary).map((c) => c.id);
+    setSelectedCalendarIds(primaryIds.length > 0 ? primaryIds : cals.slice(0, 1).map((c) => c.id));
+    setIsConnecting(false);
+    setStep(2);
+  };
+
+  // Listen for OAuth callback messages (primary detection)
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === "calendar-oauth-success") {
         setIsConnecting(false);
         setAvailableCalendars(event.data.calendars || []);
-        // Pre-select primary calendars
         const primaryIds = (event.data.calendars || [])
           .filter((c: AvailableCalendar) => c.primary)
           .map((c: AvailableCalendar) => c.id);
@@ -104,6 +113,59 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
   }, [refetch, toast]);
+
+  // Focus-based fallback: detect connection when user returns to window
+  useEffect(() => {
+    if (!isConnecting || !selectedProvider) return;
+
+    const handleFocus = async () => {
+      const { data } = await refetch();
+      const newConn = data?.find(
+        (c) => c.provider === selectedProvider && c.status === "connected"
+      );
+      if (newConn) {
+        processNewConnection(newConn);
+        refetch();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [isConnecting, selectedProvider, refetch]);
+
+  // Polling fallback: check every 2s while connecting
+  useEffect(() => {
+    if (!isConnecting || !selectedProvider) return;
+
+    const pollInterval = setInterval(async () => {
+      const { data } = await supabase
+        .from("calendar_connections")
+        .select("*")
+        .eq("provider", selectedProvider)
+        .eq("status", "connected")
+        .maybeSingle();
+
+      if (data) {
+        clearInterval(pollInterval);
+        processNewConnection(data);
+        refetch();
+      }
+    }, 2000);
+
+    // Timeout after 2 minutes
+    const timeout = setTimeout(() => {
+      clearInterval(pollInterval);
+      if (isConnecting) {
+        setIsConnecting(false);
+        toast({ title: "Connection timed out", variant: "destructive" });
+      }
+    }, 120000);
+
+    return () => {
+      clearInterval(pollInterval);
+      clearTimeout(timeout);
+    };
+  }, [isConnecting, selectedProvider, toast, refetch]);
 
   // Get current connected calendar
   useEffect(() => {
