@@ -1,6 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfWeek, endOfWeek, format } from "date-fns";
+import { useEffect } from "react";
 
 export interface ScheduleEvent {
   id: string;
@@ -18,6 +19,7 @@ export interface ScheduleEvent {
 }
 
 export function useScheduleData(weekStart: Date) {
+  const queryClient = useQueryClient();
   const startDate = startOfWeek(weekStart, { weekStartsOn: 0 });
   const endDate = endOfWeek(weekStart, { weekStartsOn: 0 });
 
@@ -61,6 +63,33 @@ export function useScheduleData(weekStart: Date) {
       return data || [];
     },
   });
+
+  // Realtime subscription for instant calendar updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('schedule-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'bookings' },
+        () => {
+          // Refetch bookings when any change occurs
+          refetchBookings();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'busy_blocks' },
+        () => {
+          // Refetch busy blocks when any change occurs
+          refetchBusyBlocks();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refetchBookings, refetchBusyBlocks]);
 
   const events: ScheduleEvent[] = [];
 

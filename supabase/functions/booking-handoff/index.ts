@@ -411,6 +411,37 @@ serve(async (req) => {
       console.error("Failed to trigger workflow:", e);
     }
 
+    // Push confirmed bookings to Google Calendar
+    if (booking.status === "confirmed" && !booking.external_event_id) {
+      try {
+        const calendarResponse = await fetch(`${supabaseUrl}/functions/v1/create-calendar-event`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify({
+            booking_id,
+            tenant_id,
+          }),
+        });
+        
+        const calendarResult = await calendarResponse.json();
+        if (calendarResult.success) {
+          console.log(`Created Google Calendar event for booking ${booking_id}:`, calendarResult.event_id);
+          results.google_calendar = { success: true };
+        } else if (calendarResult.skipped) {
+          console.log(`Skipped Google Calendar for booking ${booking_id}:`, calendarResult.message);
+        } else {
+          console.error(`Failed to create calendar event:`, calendarResult.error);
+          results.google_calendar = { success: false, error: calendarResult.error };
+        }
+      } catch (e) {
+        console.error("Failed to create Google Calendar event:", e);
+        results.google_calendar = { success: false, error: String(e) };
+      }
+    }
+
     return new Response(JSON.stringify({ success: true, results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

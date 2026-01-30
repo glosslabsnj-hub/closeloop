@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Booking = Database["public"]["Tables"]["bookings"]["Row"];
@@ -40,6 +41,32 @@ export function useBookings() {
     },
     enabled: !!tenant?.id,
   });
+
+  // Realtime subscription for instant booking updates
+  useEffect(() => {
+    if (!tenant?.id) return;
+
+    const channel = supabase
+      .channel('bookings-realtime')
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'bookings',
+          filter: `tenant_id=eq.${tenant.id}`
+        },
+        () => {
+          // Refetch bookings when any change occurs for this tenant
+          queryClient.invalidateQueries({ queryKey: ["bookings", tenant.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [tenant?.id, queryClient]);
 
   const createBooking = useMutation({
     mutationFn: async (booking: Omit<BookingInsert, "tenant_id">) => {

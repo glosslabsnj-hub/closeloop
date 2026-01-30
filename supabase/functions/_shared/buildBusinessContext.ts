@@ -456,27 +456,34 @@ function getMenuMetadata(items: NormalizedMenuItem[]): { hasMore: boolean; topCa
   };
 }
 
-function buildFaqsSummary(faqs: Array<{ question: string; answer: string }>): string {
+// Optimized summaries for voice channel - shorter to reduce latency
+function buildFaqsSummary(faqs: Array<{ question: string; answer: string }>, forVoice = false): string {
   if (faqs.length === 0) return "";
-  return faqs.slice(0, 5).map(f => `Q: ${truncate(f.question, 80)} A: ${truncate(f.answer, 120)}`).join(" | ");
+  const limit = forVoice ? 3 : 5;
+  const qLen = forVoice ? 50 : 80;
+  const aLen = forVoice ? 80 : 120;
+  return faqs.slice(0, limit).map(f => `Q: ${truncate(f.question, qLen)} A: ${truncate(f.answer, aLen)}`).join(" | ");
 }
 
-function buildIntentRulesSummary(rules: IntentRule[]): string {
+function buildIntentRulesSummary(rules: IntentRule[], forVoice = false): string {
   if (rules.length === 0) return "";
-  return rules.slice(0, 5).map(r => {
+  const limit = forVoice ? 3 : 5;
+  return rules.slice(0, limit).map(r => {
     const action = r.action || {};
-    if (action.guidance) return `${r.name}: ${truncate(String(action.guidance), 80)}`;
+    if (action.guidance) return `${r.name}: ${truncate(String(action.guidance), forVoice ? 50 : 80)}`;
     if (action.max_discount_percent !== undefined) return `${r.name}: Max ${action.max_discount_percent}% discount`;
     return r.name;
   }).join("; ");
 }
 
-function buildMemoryHintsSummary(hints: MemoryHint[]): string {
+function buildMemoryHintsSummary(hints: MemoryHint[], forVoice = false): string {
   if (hints.length === 0) return "";
-  return hints.slice(0, 3).map(h => {
-    if (h.usage === "personalize") return `Personalize: ${truncate(h.summary, 60)}`;
-    if (h.usage === "timing_preference") return `Timing: ${truncate(h.summary, 60)}`;
-    return truncate(h.summary, 60);
+  const limit = forVoice ? 2 : 3;
+  const len = forVoice ? 40 : 60;
+  return hints.slice(0, limit).map(h => {
+    if (h.usage === "personalize") return `Personalize: ${truncate(h.summary, len)}`;
+    if (h.usage === "timing_preference") return `Timing: ${truncate(h.summary, len)}`;
+    return truncate(h.summary, len);
   }).join("; ");
 }
 
