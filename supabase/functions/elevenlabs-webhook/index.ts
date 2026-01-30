@@ -839,6 +839,13 @@ function extractRawDataFromSources(
 }
 
 // ===== BUILD CANONICAL PAYLOAD =====
+// Universal data collection field keys that ONE agent can use across all modes:
+// Core: customer_name, customer_phone, intent
+// Booking: service_requested, booking_date, booking_time, booking_confirmed
+// Food: order_items, order_modifiers, order_special_instructions, order_type, delivery_address, 
+//       reservation_date, reservation_time, party_size
+// Dispatch: dispatch_pickup_address, dispatch_dropoff_address, vehicle_type, drivable, urgency
+// Callback: callback_requested
 function buildCanonicalPayload(
   businessMode: string,
   dataCollection: Record<string, string>,
@@ -846,13 +853,19 @@ function buildCanonicalPayload(
   rawExtracted: Record<string, unknown>,
   timezone: string
 ): CanonicalPayload {
+  // Helper to get value from universal keys or legacy fallbacks
   const getVal = (key: string): string | null => extractDataCollectionValue(dataCollection[key]) || rawExtracted[key] as string || null;
+  
+  // Explicit intent from ElevenLabs data collection (universal field)
+  const explicitIntent = getVal("intent")?.toLowerCase();
   
   const payload: CanonicalPayload = {
     intent: "other",
     customer: {
+      // Universal key: customer_name (with legacy fallbacks)
       name: getVal("customer_name") || getVal("name") || getVal("caller_name") || extractFromTranscript(transcript, "name"),
-      phone_e164: null,
+      // Universal key: customer_phone
+      phone_e164: getVal("customer_phone") || getVal("phone") || null,
       email: getVal("email") || getVal("customer_email"),
     },
     order: {
@@ -902,7 +915,75 @@ function buildCanonicalPayload(
     },
   };
 
-  // Fill mode-specific sections
+  // ===== UNIVERSAL EXTRACTION (works for all modes) =====
+  // These universal keys are checked FIRST, before mode-specific fallbacks
+  
+  // Booking universal keys
+  payload.booking.service_requested = getVal("service_requested") || getVal("service") || getVal("reason");
+  payload.booking.preferred_date = getVal("booking_date") || getVal("preferred_date") || getVal("schedule_date");
+  payload.booking.preferred_time = getVal("booking_time") || getVal("preferred_time") || getVal("schedule_time");
+  const bookingConfirmed = getVal("booking_confirmed");
+  payload.booking.confirmed = bookingConfirmed === "true" || bookingConfirmed === "yes" || bookingConfirmed === "1";
+  
+  // Reservation universal keys
+  payload.reservation.date = getVal("reservation_date") || getVal("date");
+  payload.reservation.time = getVal("reservation_time") || getVal("time");
+  const partySize = getVal("party_size") || getVal("guests") || getVal("number_of_guests");
+  payload.reservation.party_size = partySize ? parseInt(partySize, 10) || null : null;
+  
+  // Order universal keys  
+  const orderType = getVal("order_type");
+  payload.order.type = orderType === "delivery" ? "delivery" : orderType === "pickup" ? "pickup" : null;
+  payload.order.delivery_address = getVal("delivery_address");
+  payload.order.special_instructions = getVal("order_special_instructions") || getVal("special_instructions");
+  
+  // Parse order items from universal keys
+  const orderItemsRaw = getVal("order_items") || getVal("items") || rawExtracted.items_raw as string;
+  const orderModifiers = getVal("order_modifiers") || getVal("modifiers");
+  if (orderItemsRaw) {
+    const parsed = parseNaturalLanguageItems(orderItemsRaw, transcript);
+    payload.order.items = parsed.items.map(item => ({
+      name: item.name,
+      quantity: item.qty,
+      size: null,
+      modifiers: item.modifiers || (orderModifiers ? [orderModifiers] : []),
+      special_instructions: item.item_notes || null,
+      price_cents: null,
+      menu_item_id: null,
+      matched: false,
+    }));
+    if (parsed.totalCents) {
+      payload.order.total_cents = parsed.totalCents;
+    }
+  }
+  
+  // Dispatch universal keys
+  payload.dispatch.pickup_address = getVal("dispatch_pickup_address") || getVal("pickup_address");
+  payload.dispatch.dropoff_address = getVal("dispatch_dropoff_address") || getVal("dropoff_address");
+  payload.dispatch.vehicle_type = getVal("vehicle_type") || getVal("vehicle");
+  const drivable = getVal("drivable") || getVal("is_drivable");
+  if (drivable === "yes" || drivable === "true") {
+    payload.dispatch.drivable = true;
+  } else if (drivable === "no" || drivable === "false") {
+    payload.dispatch.drivable = false;
+  }
+  const urgency = getVal("urgency") || getVal("priority");
+  if (urgency === "emergency" || urgency === "urgent") {
+    payload.dispatch.urgency = "urgent";
+  } else if (urgency === "high" || urgency === "asap" || urgency === "same_day") {
+    payload.dispatch.urgency = "high";
+  }
+  
+  // Callback universal key
+  const callbackVal = getVal("callback_requested");
+  if (callbackVal === "true" || callbackVal === "yes" || callbackVal === "1") {
+    payload.callback.requested = true;
+    payload.callback.best_time = getVal("callback_time") || getVal("best_time");
+    payload.callback.message = getVal("message") || getVal("callback_message");
+  }
+
+  // ===== MODE-SPECIFIC ADDITIONAL EXTRACTION =====
+  // Fill any remaining mode-specific fields that weren't covered by universal keys
   switch (businessMode) {
     case "food":
       fillFoodSection(payload, dataCollection, rawExtracted, transcript);
@@ -920,16 +1001,13 @@ function buildCanonicalPayload(
       fillGeneralSection(payload, dataCollection, rawExtracted);
   }
 
-  // Callback section
-  const callbackVal = getVal("callback_requested");
-  if (callbackVal === "true" || callbackVal === "yes") {
-    payload.callback.requested = true;
-    payload.callback.best_time = getVal("callback_time") || getVal("best_time");
-    payload.callback.message = getVal("message") || getVal("callback_message");
+  // ===== DETERMINE INTENT =====
+  // Use explicit intent if provided, otherwise infer from payload
+  if (explicitIntent && ["booking", "order", "reservation", "dispatch", "callback", "faq"].includes(explicitIntent)) {
+    payload.intent = explicitIntent as CanonicalPayload["intent"];
+  } else {
+    payload.intent = determineIntentFromPayload(businessMode, payload, dataCollection, rawExtracted);
   }
-
-  // Determine intent
-  payload.intent = determineIntentFromPayload(businessMode, payload, dataCollection, rawExtracted);
 
   return payload;
 }

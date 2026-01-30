@@ -14,6 +14,7 @@ import LiveFAQList from "@/components/ai/LiveFAQList";
 import VoiceAgentTest from "@/components/ai/VoiceAgentTest";
 import BookingBehaviorSettings from "@/components/ai/BookingBehaviorSettings";
 import CalendarSyncSettings from "@/components/ai/CalendarSyncSettings";
+import ElevenLabsSetupGuide from "@/components/ai/ElevenLabsSetupGuide";
 import {
   Bot,
   Play,
@@ -22,6 +23,7 @@ import {
   HelpCircle,
   AlertTriangle,
   CalendarCheck,
+  Settings2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -196,6 +198,10 @@ export default function AIAssistantPage() {
             <AlertTriangle className="h-4 w-4" />
             Knowledge Gaps
           </TabsTrigger>
+          <TabsTrigger value="setup" className="gap-2">
+            <Settings2 className="h-4 w-4" />
+            ElevenLabs Setup
+          </TabsTrigger>
           <TabsTrigger value="test" className="gap-2">
             <Play className="h-4 w-4" />
             Test Agent
@@ -258,6 +264,11 @@ export default function AIAssistantPage() {
         {/* Knowledge Gaps Tab */}
         <TabsContent value="gaps" className="space-y-6">
           <KnowledgeGapQueue />
+        </TabsContent>
+
+        {/* ElevenLabs Setup Tab */}
+        <TabsContent value="setup" className="space-y-6">
+          <ElevenLabsSetupGuide />
         </TabsContent>
 
         {/* Test Agent Tab */}
