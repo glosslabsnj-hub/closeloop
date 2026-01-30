@@ -1,234 +1,195 @@
 
-# Unified Command Center UX Overhaul
+# Settings Page UX Overhaul
 
-## Problem Summary
-Business owners currently face confusion because:
-1. **AI readiness is unclear** - They can't easily tell what the AI knows, what's missing, or if it's ready
-2. **Information is scattered** - Knowledge is in Business Brain, AI Assistant, Settings, and various other pages
-3. **Next actions aren't obvious** - After setup, owners don't know what to do to improve their AI
-4. **Document uploads feel disconnected** - Uploading exists but owners don't understand how it connects to AI intelligence
+## Problem Analysis
+The current Settings page has usability issues that make it overwhelming for business owners:
+
+1. **Too many tabs (10-14)** - The horizontal tab bar is crowded and wraps on smaller screens
+2. **Technical naming** - Terms like "Data Controls", "Delivery", "Automation" are confusing for non-technical users
+3. **Poor organization** - Related settings are scattered across different tabs (e.g., multiple "delivery" tabs)
+4. **Flat hierarchy** - All settings appear equally important, making it hard to find common tasks
+5. **Developer tab visible** - Exposes technical debugging tools to business owners who don't need them
+6. **Lack of guidance** - No descriptions explaining what each section controls
 
 ## Solution Overview
-Create a **unified Command Center dashboard** that puts everything business owners need in one place with:
-- Clear AI readiness visualization with actionable next steps
-- Prominent knowledge input section (upload docs + quick add)
-- Activity feed showing AI outcomes (calls, bookings, orders)
-- Single-click access to the most important actions
+
+Reorganize settings into **4 clear categories** with user-friendly names and helpful descriptions:
+
+```text
+Settings (Sidebar Layout)
+├── Your Business
+│   ├── Profile & Identity
+│   ├── Business Hours
+│   └── Team Members
+│
+├── AI & Privacy
+│   ├── AI Learning
+│   ├── Data & Privacy
+│   └── HIPAA (if applicable)
+│
+├── Notifications & Delivery
+│   ├── How You Get Notified
+│   ├── Where Bookings/Orders Go
+│   └── Automation Rules
+│
+└── Plan & Billing
+    ├── Your Plan
+    └── Usage & Upgrades
+```
 
 ---
 
-## Implementation Plan
+## Implementation Details
 
-### Phase 1: Enhanced Dashboard Hero Section
+### Phase 1: New Sidebar Navigation Layout
 
-**Replace current fragmented cards with a single "AI Command Center" hero:**
-
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│  AI AGENT STATUS                              [Switch: ON/OFF]     │
-│  ┌──────┐  Answering calls for "Bella Italia"                      │
-│  │ 🟢   │  Voice + SMS Active • +1 (555) 123-4567                  │
-│  └──────┘                                                           │
-│                                                                     │
-│  ┌─────────────┬─────────────┬─────────────┬─────────────┐         │
-│  │ 12 Calls    │ 8 Bookings  │ $1,240      │ 78% Ready   │         │
-│  │ Today       │ This Week   │ Recovered   │ AI Brain    │         │
-│  └─────────────┴─────────────┴─────────────┴─────────────┘         │
-│                                                                     │
-│  [Test AI] [Add Knowledge] [View Calls]                            │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-**File changes:**
-- `src/components/dashboard/DashboardHeroCard.tsx` - Enhance with inline CTA buttons
-
-### Phase 2: New "Teach Your AI" Section
-
-**Create a prominent, always-visible section for adding AI knowledge:**
+Replace the horizontal tab bar with a clean left sidebar navigation that groups related settings:
 
 ```text
-┌─────────────────────────────────────────────────────────────────────┐
-│  🧠 TEACH YOUR AI                                                   │
-│                                                                     │
-│  ┌───────────────────────────────────────────────────────────┐     │
-│  │  📄 Drop files here to upload                             │     │
-│  │  PDF, Images, Word, Excel - we'll extract the knowledge   │     │
-│  └───────────────────────────────────────────────────────────┘     │
-│                                                                     │
-│  — OR QUICK ADD —                                                   │
-│                                                                     │
-│  ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌───────────┐          │
-│  │ + Service │ │ + FAQ     │ │ + Hours   │ │ + Policy  │          │
-│  └───────────┘ └───────────┘ └───────────┘ └───────────┘          │
-│                                                                     │
-│  📊 What AI Knows:                                                  │
-│  ✅ 12 Services  ✅ 8 FAQs  ⚠️ Missing: Cancellation Policy       │
-│                                              [Fix Now →]           │
-└─────────────────────────────────────────────────────────────────────┘
+┌──────────────────┬───────────────────────────────────────────────┐
+│  SETTINGS        │                                               │
+│                  │  [Active Section Content]                     │
+│  Your Business   │                                               │
+│    Profile       │  Business Profile                             │
+│    Hours         │  ────────────────────────                     │
+│    Team          │  Update your business name, phone, and        │
+│                  │  timezone. This information helps your AI     │
+│  AI & Privacy    │  answer questions accurately.                 │
+│    AI Learning   │                                               │
+│    Data Storage  │  [Form fields...]                             │
+│    HIPAA ⓘ       │                                               │
+│                  │                                               │
+│  Notifications   │                                               │
+│    Alerts        │                                               │
+│    Integrations  │                                               │
+│    Automation    │                                               │
+│                  │                                               │
+│  Plan & Billing  │                                               │
+│    Current Plan  │                                               │
+│                  │                                               │
+│  ─────────────── │                                               │
+│  Advanced        │                                               │
+│    Developer ⚙️   │                                               │
+└──────────────────┴───────────────────────────────────────────────┘
 ```
 
-**New files:**
-- `src/components/dashboard/TeachAISection.tsx` - New unified knowledge input component
+**Mobile**: Collapsible accordion-style navigation at the top
 
-**This component will:**
-- Include inline drag-and-drop upload zone
-- Show quick-add buttons for common knowledge types
-- Display a compact "what AI knows" summary
-- Highlight missing items with one-click fix actions
+### Phase 2: Section Descriptions with Helper Text
 
-### Phase 3: Knowledge Status Bar
+Add clear descriptions to each section so owners understand what they control:
 
-**Add an always-visible knowledge status indicator below the hero:**
+| Section | User-Friendly Name | Description |
+|---------|-------------------|-------------|
+| Business | Profile | "Your business name, phone number, and timezone" |
+| Hours | Business Hours | "When you're open for calls and appointments" |
+| Intelligence | AI Learning | "How your AI learns and improves over time" |
+| Data Controls | Data & Privacy | "What call data is saved and for how long" |
+| Delivery | Where Things Go | "Push bookings and orders to your existing tools" |
+| Automation | Automation Rules | "Auto-confirm or review before sending" |
+| Notifications | How You Get Notified | "Email and SMS alerts for new activity" |
+| Billing | Your Plan | "Usage, limits, and plan upgrades" |
+| Developer | Developer Tools | "Debug and inspect AI behavior (advanced)" |
+
+### Phase 3: Consolidate Delivery Settings
+
+Merge the three delivery tabs (Delivery, Booking Delivery, Dispatch Delivery, Food) into one unified "Integrations" section with sub-tabs based on enabled modules:
 
 ```text
-┌─────────────────────────────────────────────────────────────────────┐
-│  AI KNOWLEDGE: 78% Complete                                        │
-│  ████████████████████░░░░░                                         │
-│                                                                     │
-│  ✅ Identity  ✅ Hours  ✅ 12 Services  ⚠️ FAQs (2/5)  ❌ Policies  │
-│                                                                     │
-│  [Review AI Brain →]                                                │
-└─────────────────────────────────────────────────────────────────────┘
+Integrations
+├── Where Things Go (current DeliveryIntegrationsSettings)
+│   - Webhook, Email, SMS notification destinations
+│
+├── Bookings (if booking enabled)
+│   - Auto-confirm toggle
+│   - Specific webhook for bookings
+│
+├── Orders (if food mode)
+│   - Print settings
+│   - Order-specific webhooks
+│
+└── Dispatch (if dispatch enabled)
+    - Dispatch-specific delivery
 ```
 
-**New files:**
-- `src/components/dashboard/KnowledgeStatusBar.tsx` - Horizontal knowledge completeness indicator
+### Phase 4: Hide Developer Tools by Default
 
-### Phase 4: Unified Activity Feed
+Move Developer tab to the bottom of the sidebar under "Advanced" section that's collapsed by default:
 
-**Combine NextStepsPanel and RecentActivityCard into one "What's Happening" feed:**
+- Only show if user has accessed it before OR explicitly expands "Advanced"
+- Add a subtle link at bottom: "Show advanced settings"
+- Prevents confusion for non-technical users
 
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│  📊 ACTIVITY                                          [View All]   │
-│                                                                     │
-│  🟢 Just Now    Call answered - Maria asked about hours           │
-│                 AI responded with closing time 10pm ✓              │
-│                                                                     │
-│  📅 2m ago      Booking created - John D. for Haircut             │
-│                 Tomorrow 2:00 PM • $45 deposit collected           │
-│                                                                     │
-│  ⚠️ 15m ago     Knowledge gap detected                             │
-│                 Customer asked: "Do you have vegan options?"       │
-│                 [Answer this question →]                            │
-│                                                                     │
-│  📞 1h ago      Missed call recovered                              │
-│                 SMS sent to +1 (555) 987-6543, booking link opened │
-└─────────────────────────────────────────────────────────────────────┘
-```
+### Phase 5: Add Section Icons and Visual Hierarchy
 
-**File changes:**
-- `src/components/dashboard/ActivityFeed.tsx` - New unified activity component
-- Consolidate data from: calls, bookings, orders, knowledge gaps, automations
+Use consistent iconography and visual grouping:
 
-### Phase 5: Simplified Quick Actions
+| Category | Icon | Color Accent |
+|----------|------|--------------|
+| Your Business | Building2 | Primary |
+| AI & Privacy | Brain | Violet |
+| Notifications | Bell | Amber |
+| Plan & Billing | CreditCard | Emerald |
+| Advanced | Settings | Muted |
 
-**Replace current QuickLinksCard with context-aware actions:**
+### Phase 6: Helpful Inline Tips
 
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│  QUICK ACTIONS                                                      │
-│                                                                     │
-│  Primary (based on what needs attention):                          │
-│  ┌─────────────────────────────────────────────────────────┐       │
-│  │ ⚠️ 3 Knowledge Gaps Need Answers          [Review →]    │       │
-│  └─────────────────────────────────────────────────────────┘       │
-│                                                                     │
-│  ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌───────────┐          │
-│  │ Inbox     │ │ Bookings  │ │ Test AI   │ │ Settings  │          │
-│  │ (5)       │ │ (12)      │ │           │ │           │          │
-│  └───────────┘ └───────────┘ └───────────┘ └───────────┘          │
-└─────────────────────────────────────────────────────────────────────┘
-```
+Add contextual help throughout:
 
-**File changes:**
-- `src/components/dashboard/QuickLinksCard.tsx` - Add priority action banner at top
-
-### Phase 6: Reorganized Dashboard Layout
-
-**New LiveDashboard structure:**
-
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│ [Conflict/Usage Banners - only when needed]                        │
-├─────────────────────────────────────────────────────────────────────┤
-│ [AI AGENT STATUS HERO - Full Width]                                │
-├─────────────────────────────────────────────────────────────────────┤
-│ [KNOWLEDGE STATUS BAR - Full Width]                                │
-├─────────────────────────────────────────────────────────────────────┤
-│ [TEACH YOUR AI SECTION - Full Width]                               │
-├──────────────────────────────┬──────────────────────────────────────┤
-│ [ACTIVITY FEED]              │ [QUICK ACTIONS]                     │
-│ - Recent calls/bookings      │ - Priority action banner            │
-│ - Knowledge gaps             │ - Mode-specific shortcuts           │
-│ - Automation runs            │                                     │
-└──────────────────────────────┴──────────────────────────────────────┘
-```
-
-**File changes:**
-- `src/components/dashboard/LiveDashboard.tsx` - Reorganize component order
-
-### Phase 7: Inline Quick-Add Modals
-
-**Create lightweight modals for adding knowledge without leaving dashboard:**
-
-- Quick Add FAQ Modal
-- Quick Add Service Modal  
-- Quick Add Policy Modal
-- Quick Business Hours Editor
-
-**New files:**
-- `src/components/dashboard/QuickAddFAQDialog.tsx`
-- `src/components/dashboard/QuickAddServiceDialog.tsx`
-- `src/components/dashboard/QuickAddPolicyDialog.tsx`
-
-### Phase 8: Contextual Help Tooltips
-
-**Add inline help throughout the dashboard:**
-
-- Hover tooltips explaining what each section does
-- "What's this?" links to relevant help articles
-- First-time user hints that appear once then dismiss
-
-**File changes:**
-- Add tooltips to key sections in all dashboard components
+1. **Info tooltips** on technical terms (e.g., "HMAC signature")
+2. **"What's this?"** links to Help Center articles
+3. **Status indicators** showing if something is configured vs. needs attention
+4. **Smart defaults** with explanations (e.g., "Recommended for most businesses")
 
 ---
 
-## Technical Details
+## Technical Implementation
 
-### New Components to Create
-1. `TeachAISection.tsx` - Knowledge input hub with upload + quick-add
-2. `KnowledgeStatusBar.tsx` - Horizontal progress indicator
-3. `ActivityFeed.tsx` - Unified activity stream
-4. `QuickAddFAQDialog.tsx` - Inline FAQ creation
-5. `QuickAddServiceDialog.tsx` - Inline service creation
-6. `QuickAddPolicyDialog.tsx` - Inline policy creation
+### New Components
 
-### Components to Modify
-1. `LiveDashboard.tsx` - New layout structure
-2. `DashboardHeroCard.tsx` - Add inline action buttons
-3. `QuickLinksCard.tsx` - Add priority action banner
+1. **`SettingsSidebar.tsx`** - Left sidebar navigation with grouped sections
+2. **`SettingsSection.tsx`** - Wrapper component with title, description, and content area
+3. **`SettingsNavItem.tsx`** - Individual nav item with icon, label, and status indicator
 
-### Data Hooks to Leverage
-- `useBusinessContext` - AI readiness calculation
-- `useKnowledgeUploads` - Document processing status
-- `useKnowledgeSuggestions` - Pending suggestions
-- `useKnowledgeConflicts` - Conflicts needing resolution
-- `useLeads` / `useBookings` - Activity data
+### Modified Components
+
+1. **`SettingsPage.tsx`** - Complete restructure to sidebar layout
+2. **`MobileSettingsTabs.tsx`** - Convert to accordion-style mobile nav
+
+### Tab-to-Section Mapping
+
+| Old Tab | New Section | New Name |
+|---------|-------------|----------|
+| Business | Your Business > Profile | Profile |
+| Hours | Your Business > Hours | Business Hours |
+| Team | Your Business > Team | Team Members |
+| AI Intelligence | AI & Privacy > AI Learning | AI Learning |
+| Data Controls | AI & Privacy > Data Storage | Data & Privacy |
+| HIPAA | AI & Privacy > HIPAA | HIPAA Compliance |
+| Delivery | Notifications > Integrations | Where Things Go |
+| Booking Delivery | Notifications > Integrations | (merged) |
+| Dispatch Delivery | Notifications > Integrations | (merged) |
+| Food | Notifications > Integrations | (merged into Orders) |
+| Automation | Notifications > Automation | Automation Rules |
+| Notifications | Notifications > Alerts | How You Get Notified |
+| Billing | Plan & Billing | Your Plan |
+| Developer | Advanced > Developer | Developer Tools |
 
 ### Mobile Considerations
-- All new sections will be fully responsive
-- Upload zone works with touch/camera on mobile
-- Quick-add modals are drawer-style on mobile
+
+- Sidebar becomes a top accordion on screens < 768px
+- Each category expands to show sub-items
+- Current section highlighted with primary color
+- Smooth transitions between sections
 
 ---
 
 ## Expected Outcomes
 
 After implementation, business owners will:
-1. **See AI readiness at a glance** - Clear percentage + what's missing
-2. **Know exactly how to teach the AI** - Prominent upload + quick-add in one place
-3. **Understand what the AI is doing** - Unified activity feed with outcomes
-4. **Get immediate next actions** - Priority actions always visible
-5. **Never feel lost** - All key actions accessible from dashboard
+
+1. **Find settings faster** - Logical grouping reduces search time
+2. **Understand what each setting does** - Clear descriptions explain purpose
+3. **Not be overwhelmed** - 4 categories vs. 14 tabs
+4. **Focus on what matters** - Technical options hidden by default
+5. **Know what needs attention** - Status indicators show incomplete setup
