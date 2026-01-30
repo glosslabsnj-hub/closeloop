@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
 import { AIReadinessPanel } from "@/components/dashboard/AIReadinessPanel";
+import { ScheduleConnectionCard } from "@/components/schedule/ScheduleConnectionCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -125,6 +126,11 @@ export default function GoLivePage() {
         {/* AI Readiness Panel - Full version with P0/P1 checklists */}
         <div className="mb-8">
           <AIReadinessPanel alwaysShow={true} />
+        </div>
+
+        {/* Schedule Connection Card */}
+        <div className="mb-8">
+          <ScheduleConnectionCard />
         </div>
         
         {/* Blocking Message */}
