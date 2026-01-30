@@ -125,11 +125,34 @@ serve(async (req: Request) => {
     let events: { start_at: string; end_at: string; external_event_id: string; summary?: string }[] = [];
     const selectedCalendarIds = (connection.config_json as any)?.selected_calendar_ids || [];
 
+    console.log("=== SYNC-AVAILABILITY DEBUG ===");
+    console.log("Tenant ID:", tenantUser.tenant_id);
+    console.log("Connection ID:", connection_id);
+    console.log("Provider:", connection.provider);
+    console.log("Selected Calendar IDs:", JSON.stringify(selectedCalendarIds));
+    console.log("Date Range:", startDate.toISOString(), "to", endDate.toISOString());
+
     if (connection.provider === "google") {
       events = await fetchGoogleBusyTimes(accessToken, selectedCalendarIds, startDate, endDate);
     } else if (connection.provider === "microsoft") {
       events = await fetchMicrosoftBusyTimes(accessToken, selectedCalendarIds, startDate, endDate);
     }
+
+    console.log("=== EVENTS FETCHED FROM API ===");
+    console.log("Total events found:", events.length);
+    for (const evt of events) {
+      console.log(`  Event: ${evt.start_at} -> ${evt.end_at} (ID: ${evt.external_event_id})`);
+    }
+
+    // Update last_sync_at on the connection
+    await supabase
+      .from("calendar_connections")
+      .update({ 
+        last_sync_at: new Date().toISOString(),
+        sync_error: null,
+        status: "connected"
+      })
+      .eq("id", connection_id);
 
     // Sync to busy_blocks
     const { data: syncResult, error: syncError } = await supabase.rpc("fn_sync_busy_blocks", {
@@ -140,17 +163,32 @@ serve(async (req: Request) => {
 
     if (syncError) {
       console.error("Sync error:", syncError);
+      
+      // Update connection with error
+      await supabase
+        .from("calendar_connections")
+        .update({ sync_error: syncError.message })
+        .eq("id", connection_id);
+        
       return new Response(JSON.stringify({ error: syncError.message }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    console.log("=== SYNC COMPLETE ===");
+    console.log("Events synced to busy_blocks:", syncResult);
+
     return new Response(
       JSON.stringify({
         success: true,
         synced_count: syncResult,
         events_found: events.length,
+        date_range: {
+          start: startDate.toISOString(),
+          end: endDate.toISOString(),
+        },
+        calendar_ids: selectedCalendarIds,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
@@ -239,6 +277,10 @@ async function fetchGoogleBusyTimes(
 
   // Use freeBusy API for efficiency
   try {
+    console.log("=== GOOGLE FREEBUSY REQUEST ===");
+    console.log("Calendar IDs requested:", JSON.stringify(calendarIds));
+    console.log("Time range:", startDate.toISOString(), "to", endDate.toISOString());
+    
     const freeBusyResponse = await fetch(
       "https://www.googleapis.com/calendar/v3/freeBusy",
       {
@@ -256,11 +298,14 @@ async function fetchGoogleBusyTimes(
     );
 
     if (!freeBusyResponse.ok) {
-      console.error("Google freeBusy error:", await freeBusyResponse.text());
+      const errorText = await freeBusyResponse.text();
+      console.error("Google freeBusy error:", errorText);
       return events;
     }
 
     const freeBusyData = await freeBusyResponse.json();
+    console.log("=== GOOGLE FREEBUSY RAW RESPONSE ===");
+    console.log(JSON.stringify(freeBusyData, null, 2));
 
     for (const calendarId of calendarIds) {
       const calendar = freeBusyData.calendars?.[calendarId];

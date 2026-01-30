@@ -213,4 +213,15 @@
   .status-dot-paused {
     @apply bg-muted-foreground;
   }
+
+  /* Striped pattern for external busy blocks */
+  .bg-stripes {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 4px,
+      hsl(var(--muted-foreground) / 0.1) 4px,
+      hsl(var(--muted-foreground) / 0.1) 8px
+    );
+  }
 }

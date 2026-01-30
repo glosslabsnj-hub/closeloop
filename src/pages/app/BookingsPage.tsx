@@ -1,20 +1,21 @@
 import { useState } from "react";
-import { useBookings, BookingWithDetails } from "@/hooks/useBookings";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { EmptyState } from "@/components/ui/empty-state";
-import { Calendar as CalendarIcon, Plus, Clock, User, DollarSign, CheckCircle2, Loader2 } from "lucide-react";
-import { Calendar } from "@/components/ui/calendar";
+import { Calendar as CalendarIcon, Plus, Clock, DollarSign, CheckCircle2, Loader2, List } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format, isSameDay } from "date-fns";
+import { format } from "date-fns";
+import { ScheduleCalendar } from "@/components/calendar/ScheduleCalendar";
+import { CreateBookingDialog } from "@/components/calendar/CreateBookingDialog";
+import { useBookings, BookingWithDetails } from "@/hooks/useBookings";
+import type { ScheduleEvent } from "@/hooks/useScheduleData";
 
 const statusColors: Record<string, string> = {
-  pending_deposit: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-  confirmed: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-  completed: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
+  pending_deposit: "bg-warning/10 text-warning",
+  confirmed: "bg-success/10 text-success",
+  completed: "bg-primary/10 text-primary",
   canceled: "bg-muted text-muted-foreground",
   no_show: "bg-destructive/10 text-destructive",
 };
@@ -27,7 +28,7 @@ const statusLabels: Record<string, string> = {
   no_show: "No Show",
 };
 
-function BookingCard({ booking }: { booking: BookingWithDetails }) {
+function BookingListItem({ booking }: { booking: BookingWithDetails }) {
   const startDate = new Date(booking.start_at);
   const endDate = new Date(booking.end_at);
   const durationMinutes = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60));
@@ -44,7 +45,7 @@ function BookingCard({ booking }: { booking: BookingWithDetails }) {
         <div>
           <p className="font-medium">{booking.lead?.full_name || "Unknown Customer"}</p>
           <p className="text-sm text-muted-foreground">
-            {booking.service?.name || "Service"} • {format(startDate, "h:mm a")}
+            {booking.service?.name || "Service"} • {format(startDate, "MMM d")} at {format(startDate, "h:mm a")}
           </p>
           <div className="flex items-center gap-2 mt-1">
             <Badge className={cn(statusColors[booking.status])}>
@@ -70,17 +71,23 @@ function BookingCard({ booking }: { booking: BookingWithDetails }) {
 }
 
 export default function BookingsPage() {
-  // P0-3: Route protection - redirect if booking module not enabled
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["booking"]);
-  
   const { bookings, isLoading, stats } = useBookings();
-  const [date, setDate] = useState<Date | undefined>(new Date());
+  
+  const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState<{ date: Date; hour: number } | null>(null);
 
-  const selectedDayBookings = bookings.filter((b) =>
-    date ? isSameDay(new Date(b.start_at), date) : false
-  );
+  const handleSlotClick = (date: Date, hour: number) => {
+    setSelectedSlot({ date, hour });
+    setCreateDialogOpen(true);
+  };
 
-  // Show loading while checking module access
+  const handleEventClick = (event: ScheduleEvent) => {
+    // TODO: Open edit dialog for bookings
+    console.log("Event clicked:", event);
+  };
+
   if (moduleLoading || !isAllowed) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -106,13 +113,33 @@ export default function BookingsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="page-header mb-0">
-          <h1 className="page-title">Bookings</h1>
-          <p className="page-subtitle">Manage your appointments and schedule</p>
+          <h1 className="page-title">Schedule</h1>
+          <p className="page-subtitle">View and manage your calendar</p>
         </div>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          New Booking
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+            <Button
+              variant={viewMode === "calendar" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("calendar")}
+            >
+              <CalendarIcon className="h-4 w-4 mr-1" />
+              Calendar
+            </Button>
+            <Button
+              variant={viewMode === "list" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("list")}
+            >
+              <List className="h-4 w-4 mr-1" />
+              List
+            </Button>
+          </div>
+          <Button className="gap-2" onClick={() => setCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4" />
+            New Booking
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -164,109 +191,48 @@ export default function BookingsPage() {
       </div>
 
       {/* Main Content */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Calendar */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="text-lg">Calendar</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={setDate}
-              className="rounded-md border"
+      {viewMode === "calendar" ? (
+        <Card>
+          <CardContent className="p-4">
+            <ScheduleCalendar
+              onEventClick={handleEventClick}
+              onSlotClick={handleSlotClick}
             />
           </CardContent>
         </Card>
-
-        {/* Bookings List */}
-        <Card className="lg:col-span-2">
+      ) : (
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg">
-              {date ? format(date, "EEEE, MMMM d") : "Upcoming Bookings"}
-            </CardTitle>
+            <CardTitle className="text-lg">Upcoming Bookings</CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="selected" className="w-full">
-              <TabsList className="mb-4">
-                <TabsTrigger value="selected">Selected Day</TabsTrigger>
-                <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="selected">
-                {selectedDayBookings.length > 0 ? (
-                  <div className="space-y-4">
-                    {selectedDayBookings.map((booking) => (
-                      <BookingCard key={booking.id} booking={booking} />
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState
-                    icon={CalendarIcon}
-                    title="No bookings for this day"
-                    description="Select a different date or add a new booking."
-                    action={{
-                      label: "Add Booking",
-                      onClick: () => {},
-                    }}
-                    compact
-                  />
-                )}
-              </TabsContent>
-
-              <TabsContent value="upcoming">
-                {upcomingBookings.length > 0 ? (
-                  <div className="space-y-4">
-                    {upcomingBookings.map((booking) => (
-                      <div
-                        key={booking.id}
-                        className="flex items-center justify-between p-4 rounded-lg border"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                            <User className="h-6 w-6 text-primary" />
-                          </div>
-                          <div>
-                            <p className="font-medium">{booking.lead?.full_name || "Unknown"}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {booking.service?.name || "Service"} •{" "}
-                              {format(new Date(booking.start_at), "MMM d")} at{" "}
-                              {format(new Date(booking.start_at), "h:mm a")}
-                            </p>
-                            <Badge className={cn("mt-1", statusColors[booking.status])}>
-                              {statusLabels[booking.status]}
-                            </Badge>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold">
-                            {booking.service?.price_amount
-                              ? `$${booking.service.price_amount}`
-                              : "—"}
-                          </p>
-                          {!booking.deposit_paid && booking.deposit_required && (
-                            <Button size="sm" variant="outline" className="mt-2">
-                              Request Deposit
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState
-                    icon={CalendarIcon}
-                    title="No upcoming bookings"
-                    description="Book appointments or let the AI schedule for you."
-                    compact
-                  />
-                )}
-              </TabsContent>
-            </Tabs>
+            {upcomingBookings.length > 0 ? (
+              <div className="space-y-4">
+                {upcomingBookings.map((booking) => (
+                  <BookingListItem key={booking.id} booking={booking} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <CalendarIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="font-medium">No upcoming bookings</p>
+                <p className="text-sm">Click "New Booking" to schedule an appointment</p>
+              </div>
+            )}
           </CardContent>
         </Card>
-      </div>
+      )}
+
+      {/* Create Booking Dialog */}
+      <CreateBookingDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        initialDate={selectedSlot?.date}
+        initialHour={selectedSlot?.hour}
+        onSuccess={() => {
+          setSelectedSlot(null);
+        }}
+      />
     </div>
   );
 }
