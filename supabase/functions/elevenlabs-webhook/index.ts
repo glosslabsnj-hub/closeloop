@@ -1002,10 +1002,23 @@ async function processCallData(
     extracted_payload: extractedPayload,
   });
 
-  // ===== PROCESS FOOD ORDER IF APPLICABLE =====
-  if (tenantId && (tenantBusinessMode === "food" || outcome === "order")) {
-    await processFoodOrderIfApplicable(supabase, supabaseUrl, supabaseKey, tenantId, dataCollection, customerName, customerId, payload, extractedPayload);
-  }
+  // ===== UNIVERSAL DERIVED ENTITY PERSISTENCE =====
+  // Based on intent and business_mode, persist to the appropriate domain table
+  await persistDerivedEntity(
+    supabase,
+    supabaseUrl,
+    supabaseKey,
+    tenantId,
+    sessionId,
+    tenantBusinessMode,
+    outcome,
+    extractedPayload,
+    dataCollection,
+    customerName,
+    customerId,
+    callerPhoneE164,
+    payload
+  );
 }
 
 // Build extracted payload based on business mode
@@ -1341,6 +1354,7 @@ async function processFoodOrderIfApplicable(
   supabaseUrl: string,
   supabaseKey: string,
   tenantId: string,
+  sessionId: string | null,
   dataCollection: Record<string, string>,
   customerName: string | null,
   customerId: string | null,
@@ -1464,6 +1478,7 @@ async function processFoodOrderIfApplicable(
     .from("food_orders")
     .insert({
       tenant_id: tenantId,
+      session_id: sessionId,
       order_number: orderNumber,
       order_type: (extractedPayload.order_type as string) || extractDataCollectionValue(dataCollection.order_type) || "pickup",
       status,
@@ -1541,6 +1556,648 @@ async function processFoodOrderIfApplicable(
   } catch (e) {
     console.error("Failed to trigger order handoff:", e);
   }
+}
+
+// ===== UNIVERSAL DERIVED ENTITY PERSISTENCE ROUTER =====
+// Routes extracted call data to the appropriate domain table based on intent and business_mode
+// deno-lint-ignore no-explicit-any
+async function persistDerivedEntity(
+  supabase: any,
+  supabaseUrl: string,
+  supabaseKey: string,
+  tenantId: string,
+  sessionId: string,
+  businessMode: string,
+  outcome: string,
+  extractedPayload: Record<string, unknown>,
+  dataCollection: Record<string, string>,
+  customerName: string | null,
+  customerId: string | null,
+  callerPhoneE164: string,
+  payload: ElevenLabsWebhookPayload
+): Promise<void> {
+  // Determine intent from outcome + extracted payload
+  const intent = determineIntent(outcome, businessMode, extractedPayload, dataCollection);
+  
+  console.log(`[persistDerivedEntity] Intent: ${intent}, BusinessMode: ${businessMode}, Outcome: ${outcome}`);
+  
+  // Log the intent determination
+  await logEventStage(supabase, tenantId, sessionId, null, payload.conversation_id, "intent_determined", {
+    intent,
+    business_mode: businessMode,
+    outcome,
+  });
+  
+  let entityType: string | null = null;
+  let entityId: string | null = null;
+  let success = false;
+  let errorMsg: string | null = null;
+  
+  try {
+    switch (intent) {
+      case "order":
+        // Delegate to existing food order handler
+        await processFoodOrderIfApplicable(
+          supabase, supabaseUrl, supabaseKey, tenantId, sessionId, dataCollection,
+          customerName, customerId, payload, extractedPayload
+        );
+        // Food order logs its own entity creation
+        entityType = "order";
+        success = true;
+        break;
+        
+      case "reservation":
+        const reservation = await persistReservation(
+          supabase, supabaseUrl, supabaseKey, tenantId, sessionId,
+          extractedPayload, dataCollection, customerName, customerId, callerPhoneE164
+        );
+        if (reservation) {
+          entityType = "reservation";
+          entityId = reservation.id;
+          success = true;
+        }
+        break;
+        
+      case "booking":
+        const booking = await persistBooking(
+          supabase, supabaseUrl, supabaseKey, tenantId, sessionId,
+          extractedPayload, dataCollection, customerName, customerId, callerPhoneE164
+        );
+        if (booking) {
+          entityType = "booking";
+          entityId = booking.id;
+          success = true;
+        }
+        break;
+        
+      case "dispatch":
+        const dispatchJob = await persistDispatchJob(
+          supabase, supabaseUrl, supabaseKey, tenantId, sessionId,
+          extractedPayload, dataCollection, customerName, customerId, callerPhoneE164
+        );
+        if (dispatchJob) {
+          entityType = "dispatch_job";
+          entityId = dispatchJob.id;
+          success = true;
+        }
+        break;
+        
+      default:
+        // No derived entity to create (callback, faq, message_only, etc.)
+        console.log(`[persistDerivedEntity] No derived entity for intent: ${intent}`);
+        break;
+    }
+  } catch (e) {
+    errorMsg = e instanceof Error ? e.message : String(e);
+    console.error(`[persistDerivedEntity] Failed to persist ${intent}:`, e);
+  }
+  
+  // Log derived entity creation result
+  if (entityType) {
+    await logEventStage(
+      supabase, tenantId, sessionId, null, payload.conversation_id,
+      success ? "derived_entity_created" : "derived_entity_failed",
+      { entity_type: entityType, entity_id: entityId, intent },
+      errorMsg
+    );
+  }
+}
+
+// Determine intent from outcome and extracted data
+function determineIntent(
+  outcome: string,
+  businessMode: string,
+  extractedPayload: Record<string, unknown>,
+  dataCollection: Record<string, string>
+): string {
+  // Direct outcome mappings
+  if (outcome === "order") return "order";
+  if (outcome === "dispatch") return "dispatch";
+  if (outcome === "booked") return "booking";
+  
+  // Check extracted payload for explicit intent
+  const explicitIntent = extractedPayload.intent as string;
+  if (explicitIntent && ["order", "reservation", "booking", "dispatch", "callback", "faq"].includes(explicitIntent)) {
+    return explicitIntent;
+  }
+  
+  // Check data collection fields
+  const orderConfirmed = extractDataCollectionValue(dataCollection.order_confirmed);
+  if (orderConfirmed === "true" || orderConfirmed === "yes") return "order";
+  
+  const reservationConfirmed = extractDataCollectionValue(dataCollection.reservation_confirmed);
+  if (reservationConfirmed === "true" || reservationConfirmed === "yes") return "reservation";
+  
+  const bookingConfirmed = extractDataCollectionValue(dataCollection.booking_confirmed);
+  if (bookingConfirmed === "true" || bookingConfirmed === "yes") return "booking";
+  
+  const dispatchConfirmed = extractDataCollectionValue(dataCollection.dispatch_confirmed) || 
+    extractDataCollectionValue(dataCollection.job_created);
+  if (dispatchConfirmed === "true" || dispatchConfirmed === "yes") return "dispatch";
+  
+  // Infer from business mode + extracted data presence
+  if (businessMode === "food") {
+    // Check for reservation data (party size, date, time)
+    const hasReservationData = extractedPayload.party_size || 
+      extractDataCollectionValue(dataCollection.party_size) ||
+      extractDataCollectionValue(dataCollection.reservation_date);
+    if (hasReservationData) return "reservation";
+    
+    // Check for order data (items)
+    const hasOrderData = extractedPayload.items || 
+      extractedPayload.items_raw ||
+      extractDataCollectionValue(dataCollection.order_items);
+    if (hasOrderData) return "order";
+  }
+  
+  if (businessMode === "dispatch") {
+    const hasDispatchData = extractedPayload.pickup_address ||
+      extractDataCollectionValue(dataCollection.pickup_address);
+    if (hasDispatchData) return "dispatch";
+  }
+  
+  if (businessMode === "service" || businessMode === "medical") {
+    const hasBookingData = extractedPayload.service_requested ||
+      extractedPayload.preferred_date ||
+      extractDataCollectionValue(dataCollection.service_requested);
+    if (hasBookingData) return "booking";
+  }
+  
+  // Fallback: check for callback request
+  const callbackRequested = extractDataCollectionValue(dataCollection.callback_requested);
+  if (callbackRequested === "true" || callbackRequested === "yes") return "callback";
+  
+  return "other";
+}
+
+// ===== PERSIST RESERVATION =====
+// deno-lint-ignore no-explicit-any
+async function persistReservation(
+  supabase: any,
+  supabaseUrl: string,
+  supabaseKey: string,
+  tenantId: string,
+  sessionId: string,
+  extractedPayload: Record<string, unknown>,
+  dataCollection: Record<string, string>,
+  customerName: string | null,
+  customerId: string | null,
+  callerPhoneE164: string
+): Promise<{ id: string } | null> {
+  // Extract reservation data
+  const partySize = parseInt(
+    extractDataCollectionValue(dataCollection.party_size) ||
+    String(extractedPayload.party_size) ||
+    extractDataCollectionValue(dataCollection.guests) ||
+    "2"
+  ) || 2;
+  
+  let reservationDate = extractDataCollectionValue(dataCollection.reservation_date) ||
+    extractDataCollectionValue(dataCollection.date) ||
+    extractedPayload.reservation_date as string ||
+    extractedPayload.date as string;
+    
+  let reservationTime = extractDataCollectionValue(dataCollection.reservation_time) ||
+    extractDataCollectionValue(dataCollection.time) ||
+    extractedPayload.reservation_time as string ||
+    extractedPayload.time as string;
+  
+  // Parse natural language dates (e.g., "next Friday")
+  if (reservationDate && !reservationDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    reservationDate = parseNaturalDate(reservationDate);
+  }
+  
+  // Default to today if no date
+  if (!reservationDate) {
+    reservationDate = new Date().toISOString().split("T")[0];
+  }
+  
+  // Parse time (e.g., "7 PM" -> "19:00")
+  if (reservationTime && !reservationTime.match(/^\d{2}:\d{2}/)) {
+    reservationTime = parseNaturalTime(reservationTime);
+  }
+  
+  // Default to 7 PM if no time
+  if (!reservationTime) {
+    reservationTime = "19:00";
+  }
+  
+  const specialRequests = extractDataCollectionValue(dataCollection.special_requests) ||
+    extractDataCollectionValue(dataCollection.notes) ||
+    extractedPayload.notes as string ||
+    null;
+  
+  const tablePreference = extractDataCollectionValue(dataCollection.table_preference) ||
+    extractedPayload.table_preference as string ||
+    null;
+  
+  console.log(`[persistReservation] Creating: ${partySize} guests on ${reservationDate} at ${reservationTime}`);
+  
+  const { data: reservation, error } = await supabase
+    .from("reservations")
+    .insert({
+      tenant_id: tenantId,
+      session_id: sessionId,
+      customer_id: customerId,
+      customer_name: customerName || "Phone Customer",
+      customer_phone: callerPhoneE164 || null,
+      party_size: partySize,
+      reservation_date: reservationDate,
+      reservation_time: reservationTime,
+      special_requests: specialRequests,
+      table_preference: tablePreference,
+      status: "confirmed",
+    })
+    .select("id")
+    .single();
+  
+  if (error) {
+    console.error("[persistReservation] Failed:", error);
+    return null;
+  }
+  
+  console.log(`[persistReservation] Created reservation: ${reservation.id}`);
+  
+  // Trigger workflow
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/trigger-workflow`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({
+        tenant_id: tenantId,
+        trigger: "reservation.created",
+        entity_type: "reservation",
+        entity_id: reservation.id,
+        customer: customerId ? { id: customerId, name: customerName, phone: callerPhoneE164 } : undefined,
+        details: { party_size: partySize, date: reservationDate, time: reservationTime },
+      }),
+    });
+  } catch (e) {
+    console.error("[persistReservation] Failed to trigger workflow:", e);
+  }
+  
+  return reservation;
+}
+
+// ===== PERSIST BOOKING =====
+// deno-lint-ignore no-explicit-any
+async function persistBooking(
+  supabase: any,
+  supabaseUrl: string,
+  supabaseKey: string,
+  tenantId: string,
+  sessionId: string,
+  extractedPayload: Record<string, unknown>,
+  dataCollection: Record<string, string>,
+  customerName: string | null,
+  customerId: string | null,
+  callerPhoneE164: string
+): Promise<{ id: string } | null> {
+  // Get or create lead for booking
+  let leadId: string | null = null;
+  
+  // Try to find existing lead by customer
+  if (customerId) {
+    const { data: existingLead } = await supabase
+      .from("leads")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("phone", callerPhoneE164)
+      .maybeSingle();
+    
+    if (existingLead) {
+      leadId = existingLead.id;
+    }
+  }
+  
+  // Create lead if not found
+  if (!leadId) {
+    const { data: newLead, error: leadError } = await supabase
+      .from("leads")
+      .insert({
+        tenant_id: tenantId,
+        full_name: customerName || "Phone Customer",
+        phone: callerPhoneE164,
+        source: "ai_call",
+        status: "new",
+      })
+      .select("id")
+      .single();
+    
+    if (leadError) {
+      console.error("[persistBooking] Failed to create lead:", leadError);
+      return null;
+    }
+    leadId = newLead.id;
+  }
+  
+  // Extract booking data
+  const serviceRequested = extractDataCollectionValue(dataCollection.service_requested) ||
+    extractedPayload.service_requested as string;
+  
+  // Try to match service
+  let serviceId: string | null = null;
+  if (serviceRequested) {
+    const { data: service } = await supabase
+      .from("services")
+      .select("id, duration_minutes")
+      .eq("tenant_id", tenantId)
+      .ilike("name", `%${serviceRequested}%`)
+      .limit(1)
+      .maybeSingle();
+    
+    if (service) {
+      serviceId = service.id;
+    }
+  }
+  
+  // Parse date/time
+  let preferredDate = extractDataCollectionValue(dataCollection.preferred_date) ||
+    extractedPayload.preferred_date as string;
+  let preferredTime = extractDataCollectionValue(dataCollection.preferred_time) ||
+    extractedPayload.preferred_time as string;
+  
+  if (preferredDate && !preferredDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    preferredDate = parseNaturalDate(preferredDate);
+  }
+  
+  // Default to tomorrow
+  if (!preferredDate) {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    preferredDate = tomorrow.toISOString().split("T")[0];
+  }
+  
+  if (preferredTime && !preferredTime.match(/^\d{2}:\d{2}/)) {
+    preferredTime = parseNaturalTime(preferredTime);
+  }
+  
+  if (!preferredTime) {
+    preferredTime = "10:00";
+  }
+  
+  // Build start_at and end_at
+  const startAt = new Date(`${preferredDate}T${preferredTime}:00`);
+  const durationMinutes = 60; // Default 1 hour
+  const endAt = new Date(startAt.getTime() + durationMinutes * 60 * 1000);
+  
+  const notes = extractDataCollectionValue(dataCollection.notes) ||
+    extractedPayload.notes as string ||
+    (serviceRequested ? `Service requested: ${serviceRequested}` : null);
+  
+  console.log(`[persistBooking] Creating: ${serviceRequested || "Service"} on ${preferredDate} at ${preferredTime}`);
+  
+  const { data: booking, error } = await supabase
+    .from("bookings")
+    .insert({
+      tenant_id: tenantId,
+      session_id: sessionId,
+      lead_id: leadId,
+      service_id: serviceId,
+      start_at: startAt.toISOString(),
+      end_at: endAt.toISOString(),
+      status: "pending_deposit", // Pending until confirmed in UI
+      deposit_required: false,
+      deposit_paid: false,
+      notes,
+    })
+    .select("id")
+    .single();
+  
+  if (error) {
+    console.error("[persistBooking] Failed:", error);
+    return null;
+  }
+  
+  console.log(`[persistBooking] Created booking: ${booking.id}`);
+  
+  // Trigger workflow
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/trigger-workflow`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({
+        tenant_id: tenantId,
+        trigger: "booking.created",
+        entity_type: "booking",
+        entity_id: booking.id,
+        customer: customerId ? { id: customerId, name: customerName, phone: callerPhoneE164 } : undefined,
+        details: { service: serviceRequested, date: preferredDate, time: preferredTime },
+      }),
+    });
+  } catch (e) {
+    console.error("[persistBooking] Failed to trigger workflow:", e);
+  }
+  
+  return booking;
+}
+
+// ===== PERSIST DISPATCH JOB =====
+// deno-lint-ignore no-explicit-any
+async function persistDispatchJob(
+  supabase: any,
+  supabaseUrl: string,
+  supabaseKey: string,
+  tenantId: string,
+  sessionId: string,
+  extractedPayload: Record<string, unknown>,
+  dataCollection: Record<string, string>,
+  customerName: string | null,
+  customerId: string | null,
+  callerPhoneE164: string
+): Promise<{ id: string } | null> {
+  // Extract dispatch data
+  const pickupAddress = extractDataCollectionValue(dataCollection.pickup_address) ||
+    extractedPayload.pickup_address as string ||
+    null;
+  
+  const dropoffAddress = extractDataCollectionValue(dataCollection.dropoff_address) ||
+    extractedPayload.dropoff_address as string ||
+    null;
+  
+  const vehicleType = extractDataCollectionValue(dataCollection.vehicle_type) ||
+    extractDataCollectionValue(dataCollection.vehicle) ||
+    extractedPayload.vehicle as string ||
+    null;
+  
+  const urgency = extractDataCollectionValue(dataCollection.urgency) ||
+    extractedPayload.urgency as string ||
+    "normal";
+  
+  const jobType = extractDataCollectionValue(dataCollection.job_type) ||
+    extractedPayload.job_type as string ||
+    "tow";
+  
+  const description = extractDataCollectionValue(dataCollection.description) ||
+    extractDataCollectionValue(dataCollection.notes) ||
+    extractedPayload.notes as string ||
+    null;
+  
+  // Generate job number
+  const { data: lastJob } = await supabase
+    .from("dispatch_jobs")
+    .select("job_number")
+    .eq("tenant_id", tenantId)
+    .like("job_number", "JOB-%")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+  
+  let nextJobNum = 1001;
+  if (lastJob?.job_number) {
+    const match = lastJob.job_number.match(/JOB-(\d+)/);
+    if (match) {
+      nextJobNum = parseInt(match[1], 10) + 1;
+    }
+  }
+  const jobNumber = `JOB-${nextJobNum}`;
+  
+  // Map urgency to priority
+  const priorityMap: Record<string, string> = {
+    urgent: "urgent",
+    emergency: "urgent",
+    asap: "high",
+    high: "high",
+    normal: "normal",
+    low: "low",
+  };
+  const priority = priorityMap[urgency.toLowerCase()] || "normal";
+  
+  console.log(`[persistDispatchJob] Creating: ${jobNumber} - ${jobType} at ${pickupAddress}`);
+  
+  const { data: job, error } = await supabase
+    .from("dispatch_jobs")
+    .insert({
+      tenant_id: tenantId,
+      session_id: sessionId,
+      job_number: jobNumber,
+      customer_id: customerId,
+      customer_name: customerName || "Phone Customer",
+      customer_phone: callerPhoneE164 || null,
+      pickup_address: pickupAddress,
+      dropoff_address: dropoffAddress,
+      job_type: jobType,
+      description,
+      priority,
+      status: "pending",
+    })
+    .select("id")
+    .single();
+  
+  if (error) {
+    console.error("[persistDispatchJob] Failed:", error);
+    return null;
+  }
+  
+  console.log(`[persistDispatchJob] Created dispatch job: ${job.id}`);
+  
+  // Trigger workflow
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/trigger-workflow`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({
+        tenant_id: tenantId,
+        trigger: "dispatch.created",
+        entity_type: "dispatch_job",
+        entity_id: job.id,
+        customer: customerId ? { id: customerId, name: customerName, phone: callerPhoneE164 } : undefined,
+        details: { job_type: jobType, pickup: pickupAddress, priority },
+      }),
+    });
+  } catch (e) {
+    console.error("[persistDispatchJob] Failed to trigger workflow:", e);
+  }
+  
+  return job;
+}
+
+// Helper: Parse natural language dates
+function parseNaturalDate(input: string): string {
+  const lower = input.toLowerCase().trim();
+  const today = new Date();
+  
+  if (lower === "today") {
+    return today.toISOString().split("T")[0];
+  }
+  
+  if (lower === "tomorrow") {
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split("T")[0];
+  }
+  
+  // Handle "next [day]"
+  const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  const nextMatch = lower.match(/(?:next|this)\s*(sunday|monday|tuesday|wednesday|thursday|friday|saturday)/);
+  if (nextMatch) {
+    const targetDay = dayNames.indexOf(nextMatch[1]);
+    const currentDay = today.getDay();
+    let daysUntil = targetDay - currentDay;
+    if (daysUntil <= 0) daysUntil += 7;
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + daysUntil);
+    return targetDate.toISOString().split("T")[0];
+  }
+  
+  // Handle just day names
+  const dayMatch = lower.match(/^(sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/);
+  if (dayMatch) {
+    const targetDay = dayNames.indexOf(dayMatch[1]);
+    const currentDay = today.getDay();
+    let daysUntil = targetDay - currentDay;
+    if (daysUntil <= 0) daysUntil += 7;
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + daysUntil);
+    return targetDate.toISOString().split("T")[0];
+  }
+  
+  // Try to parse as actual date
+  const parsed = new Date(input);
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toISOString().split("T")[0];
+  }
+  
+  // Default to today
+  return today.toISOString().split("T")[0];
+}
+
+// Helper: Parse natural language times
+function parseNaturalTime(input: string): string {
+  const lower = input.toLowerCase().trim();
+  
+  // Handle "X AM/PM" format
+  const timeMatch = lower.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/);
+  if (timeMatch) {
+    let hour = parseInt(timeMatch[1]);
+    const minute = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+    const period = timeMatch[3];
+    
+    if (period === "pm" && hour < 12) hour += 12;
+    if (period === "am" && hour === 12) hour = 0;
+    
+    // If no period specified, assume PM for evening hours
+    if (!period && hour >= 1 && hour <= 6) hour += 12;
+    
+    return `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
+  }
+  
+  // Common time words
+  if (lower.includes("noon")) return "12:00";
+  if (lower.includes("evening")) return "18:00";
+  if (lower.includes("morning")) return "09:00";
+  if (lower.includes("afternoon")) return "14:00";
+  
+  return "12:00"; // Default
 }
 
 // ===== MENU ITEM PRICE MATCHING =====
