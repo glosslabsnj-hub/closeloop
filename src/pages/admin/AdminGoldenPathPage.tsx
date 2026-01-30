@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,8 +24,10 @@ import {
   Loader2,
   Play,
   ClipboardCheck,
+  Bug,
 } from "lucide-react";
 import type { BusinessMode } from "@/types/database";
+import { GoldenPathAutoChecks } from "@/components/admin/GoldenPathAutoChecks";
 
 interface TestScenario {
   id: string;
@@ -414,10 +417,18 @@ export default function AdminGoldenPathPage() {
             End-to-end validation across all business modes
           </p>
         </div>
-        <Button onClick={loadTestData} variant="outline" size="sm">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh All
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/debug/telephony" target="_blank">
+              <Bug className="h-4 w-4 mr-2" />
+              Debug Pages
+            </Link>
+          </Button>
+          <Button onClick={loadTestData} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh All
+          </Button>
+        </div>
       </div>
 
       {/* Overview Cards */}
@@ -469,6 +480,9 @@ export default function AdminGoldenPathPage() {
           );
         })}
       </div>
+
+      {/* Automated Checks for currently selected tenant */}
+      <GoldenPathAutoChecks tenantId={testData[activeTab]?.tenant_id || null} />
 
       {/* Detailed Test View */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
