@@ -6,24 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, Check, ArrowRight, Edit2, Undo } from "lucide-react";
-import { useKnowledgeConflicts, type KnowledgeConflict } from "@/hooks/useKnowledgeConflicts";
+import { useKnowledgeConflicts, type KnowledgeConflict, conflictTypeLabels, entityTypeLabels } from "@/hooks/useKnowledgeConflicts";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-const conflictTypeLabels: Record<string, string> = {
-  price_mismatch: "Price Difference",
-  description_mismatch: "Description Difference",
-  name_mismatch: "Name Difference",
-  duration_mismatch: "Duration Difference",
-  other: "Other Difference",
-};
-
-const entityTypeLabels: Record<string, string> = {
-  service: "Service",
-  menu_item: "Menu Item",
-  faq: "FAQ",
-  policy: "Policy",
-};
+// Using imported labels from hook
 
 function ConflictCard({
   conflict,
