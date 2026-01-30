@@ -592,15 +592,23 @@ async function processCallData(
     : null;
 
   const analysis = payload.analysis || {};
-  const dataCollection = analysis.data_collection || {};
+  // ElevenLabs may use data_collection or data_collection_results
+  const dataCollection = 
+    (analysis.data_collection as Record<string, string>) || 
+    (analysis as Record<string, unknown>).data_collection_results as Record<string, string> || 
+    {};
   
   // ===== EXTRACT SUMMARY (check multiple locations) =====
   // ElevenLabs may provide summary in different places depending on configuration
+  // Common field names: summary, transcript_summary, call_summary, call_summary_title
   const summaryText = 
     analysis.summary ||
+    (analysis as Record<string, unknown>).transcript_summary ||
     (analysis as Record<string, unknown>).call_summary ||
+    (analysis as Record<string, unknown>).call_summary_title ||
     dataCollection.call_summary ||
     dataCollection.summary ||
+    dataCollection.transcript_summary ||
     // Try to build a summary from transcript if none provided
     (payload.transcript?.length ? buildSummaryFromTranscript(payload.transcript, tenantBusinessMode) : null);
   
@@ -625,7 +633,14 @@ async function processCallData(
   
   // Check for mode-specific outcomes first
   if (tenantBusinessMode === "food") {
-    if (dataCollection.order_confirmed === "true" || dataCollection.order_confirmed === "yes" || dataCollection.order_items) {
+    // Check multiple ways order confirmation can be expressed
+    const orderConfirmed = 
+      dataCollection.order_confirmed === "true" || 
+      dataCollection.order_confirmed === "yes" ||
+      (dataCollection as Record<string, unknown>).order_confirmed === true ||
+      dataCollection.order_items ||
+      dataCollection.items;
+    if (orderConfirmed) {
       outcome = "order";
     }
   } else if (tenantBusinessMode === "dispatch") {
@@ -648,6 +663,8 @@ async function processCallData(
       outcome = "lead_captured";
     }
   }
+  
+  console.log("Determined outcome:", outcome, "for business mode:", tenantBusinessMode, "order_confirmed:", dataCollection.order_confirmed);
 
   // ===== BUILD EXTRACTED PAYLOAD (MODE-SPECIFIC) =====
   const extractedPayload = buildExtractedPayload(tenantBusinessMode, dataCollection, payload.transcript);
