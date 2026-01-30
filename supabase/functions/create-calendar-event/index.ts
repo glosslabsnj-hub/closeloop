@@ -157,6 +157,15 @@ serve(async (req) => {
         .eq("id", tokenData.id);
     }
 
+    // Get tenant timezone
+    const { data: tenantData } = await supabase
+      .from("tenants")
+      .select("timezone")
+      .eq("id", tenant_id)
+      .single();
+    
+    const tenantTimezone = tenantData?.timezone || "America/New_York";
+
     // Get the calendar ID to create events in
     const config = connection.config_json as { calendar_ids?: string[]; primary_calendar_id?: string } | null;
     const calendarId = config?.primary_calendar_id || config?.calendar_ids?.[0] || "primary";
@@ -177,11 +186,11 @@ serve(async (req) => {
       ].filter(Boolean).join("\n"),
       start: {
         dateTime: booking.start_at,
-        timeZone: "America/New_York", // TODO: Use tenant timezone
+        timeZone: tenantTimezone,
       },
       end: {
         dateTime: booking.end_at,
-        timeZone: "America/New_York",
+        timeZone: tenantTimezone,
       },
       reminders: {
         useDefault: false,

@@ -4311,8 +4311,10 @@ export type Database = {
           _tenant_id: string
         }
         Returns: {
+          slot_date: string
           slot_end: string
           slot_start: string
+          slot_time_local: string
         }[]
       }
       fn_confirm_booking: {
@@ -4324,16 +4326,31 @@ export type Database = {
         }
         Returns: string
       }
-      fn_place_hold: {
-        Args: {
-          _end_at: string
-          _hold_minutes?: number
-          _session_id?: string
-          _start_at: string
-          _tenant_id: string
-        }
-        Returns: string
-      }
+      fn_place_hold:
+        | {
+            Args: {
+              _end_at: string
+              _hold_minutes?: number
+              _session_id?: string
+              _start_at: string
+              _tenant_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              _end_at: string
+              _session_id: string
+              _start_at: string
+              _tenant_id: string
+              _ttl_minutes?: number
+            }
+            Returns: {
+              conflict_reason: string
+              hold_id: string
+              success: boolean
+            }[]
+          }
       fn_sync_busy_blocks: {
         Args: { _connection_id: string; _events: Json; _tenant_id: string }
         Returns: number

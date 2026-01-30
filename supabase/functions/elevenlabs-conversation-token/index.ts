@@ -80,6 +80,9 @@ serve(async (req) => {
     };
 
     // If tenantId provided, build FULL business context using canonical builder
+    let systemPrompt = "";
+    let precomputedSlots: string[] = [];
+    
     if (tenantId && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
       try {
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -88,7 +91,7 @@ serve(async (req) => {
         console.log(`Building full business context for browser test: tenant=${tenantId}, location=${locationId}`);
 
         // Use the SAME canonical builder that twilio-inbound uses
-        const { context } = await buildBusinessContext(supabase, {
+        const { context, systemPrompt: prompt } = await buildBusinessContext(supabase, {
           tenantId,
           locationId,
           customerId: null,
@@ -98,11 +101,37 @@ serve(async (req) => {
           includeIntelligence: true,
         });
 
+        systemPrompt = prompt;
+
         // Store snapshot for debugging (viewable at /debug/ai-context)
         await storeContextSnapshot(supabase, context);
 
         // Build flattened dynamic variables using shared helper
         dynamicVariables = buildDynamicVariables(context, "browser_test", null);
+        
+        // Precompute tomorrow's slots for strict enforcement
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowStr = tomorrow.toISOString().split("T")[0];
+        
+        const { data: tenantHours } = await supabase
+          .from("tenants")
+          .select("hours_json")
+          .eq("id", tenantId)
+          .single();
+        
+        const { data: slots } = await supabase.rpc("fn_compute_available_slots", {
+          _tenant_id: tenantId,
+          _start_date: tomorrowStr,
+          _end_date: tomorrowStr,
+          _duration_minutes: 60,
+          _buffer_minutes: 15,
+          _business_hours: tenantHours?.hours_json || null,
+        });
+        
+        if (slots && Array.isArray(slots)) {
+          precomputedSlots = slots.slice(0, 6).map((s: { slot_time_local: string }) => s.slot_time_local);
+        }
         
         // Log comprehensive context summary for debugging
         console.log("Browser test context built successfully:", {
@@ -111,14 +140,7 @@ serve(async (req) => {
           business_mode: context.tenant.business_mode,
           hours_today: context.tenant.hours_today,
           services_count: context.offerings.services.length,
-          has_services_pricing: !!context.offerings.services_for_prompt && context.offerings.services_for_prompt !== "No services configured yet.",
-          menu_count: context.offerings.menu.length,
-          has_menu_summary: !!context.offerings.menu_summary,
-          faqs_count: context.knowledge.faqs.length,
-          objections_count: context.knowledge.objections.length,
-          has_policies: !!context.policies.cancellation || !!context.policies.deposit,
-          intent_rules_count: context.intelligence.intent_rules.length,
-          memory_hints_count: context.intelligence.memory_hints.length,
+          precomputed_slots: precomputedSlots.length,
           missing_sections: context._meta.missing_sections,
         });
       } catch (dbError) {
@@ -128,6 +150,17 @@ serve(async (req) => {
     } else {
       console.log("No tenantId provided for browser test - using minimal defaults");
     }
+
+    // Build strict scheduling instructions
+    const schedulingInstructions = `
+STRICT SCHEDULING RULES (MANDATORY):
+- You MUST verify availability before confirming ANY appointment time.
+- NEVER invent or guess available times. Only offer times you know are available.
+- Tomorrow's available slots: ${precomputedSlots.length > 0 ? precomputedSlots.join(", ") : "Check availability before suggesting times"}
+- If a customer asks for "earlier" times and none exist, explain: "That's our earliest opening for [service duration]."
+- Always confirm the service type first to ensure correct duration (some services need 2+ hours).
+- When a customer requests a specific time, verify it's in the available slots before confirming.
+`;
 
     // Get a conversation token for WebRTC connection (lower latency than WebSocket signed URL)
     const response = await fetch(
@@ -151,12 +184,13 @@ serve(async (req) => {
 
     const data = await response.json();
 
-    // Return the signed URL along with dynamic variables for the client to inject
-    // Note: The client will use WebRTC connection mode for lower latency
+    // Return the signed URL along with dynamic variables and prompt override for the client
     return new Response(
       JSON.stringify({ 
         signedUrl: data.signed_url,
-        dynamicVariables: dynamicVariables
+        dynamicVariables: dynamicVariables,
+        promptOverride: systemPrompt ? systemPrompt + "\n\n" + schedulingInstructions : schedulingInstructions,
+        precomputedSlots: precomputedSlots,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
