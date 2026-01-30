@@ -87,6 +87,18 @@ export interface BusinessContext {
     payment_methods: string[];
     ai_never_promise: string[];
   };
+  food_settings: {
+    estimated_prep_minutes: number;
+    accepts_pickup: boolean;
+    accepts_delivery: boolean;
+    accepts_dine_in: boolean;
+    delivery_radius_miles: number | null;
+    delivery_minimum_cents: number | null;
+    accepts_catering: boolean;
+    catering_min_guests: number | null;
+    catering_lead_days: number | null;
+    order_confirmation_mode: string;
+  } | null;
   knowledge: {
     faqs: Array<{ question: string; answer: string }>;
     faqs_summary: string;
@@ -545,6 +557,7 @@ export async function buildBusinessContext(
     assistantSettingsResult,
     intelligenceSettingsResult,
     retentionSettingsResult,
+    foodSettingsResult,
   ] = await Promise.all([
     supabase.from("tenants").select("*").eq("id", tenantId).single(),
     supabase.from("services").select("*").eq("tenant_id", tenantId).eq("is_active", true).limit(20),
@@ -556,6 +569,7 @@ export async function buildBusinessContext(
     supabase.from("assistant_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
     supabase.from("tenant_intelligence_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
     supabase.from("data_retention_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
+    supabase.from("tenant_food_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
   ]);
   
   if (tenantResult.error || !tenantResult.data) {
@@ -572,6 +586,7 @@ export async function buildBusinessContext(
   const assistantSettings = assistantSettingsResult.data;
   const intelligenceSettings = intelligenceSettingsResult.data;
   const retentionSettings = retentionSettingsResult.data;
+  const foodSettings = foodSettingsResult.data;
   
   // Track missing sections
   if (services.length === 0 && tenant.business_mode !== "food") missingSections.push("services");
@@ -682,6 +697,18 @@ export async function buildBusinessContext(
       payment_methods: tenant.payment_methods || [],
       ai_never_promise: tenant.ai_never_promise || [],
     },
+    food_settings: foodSettings ? {
+      estimated_prep_minutes: foodSettings.estimated_prep_minutes || 15,
+      accepts_pickup: foodSettings.accepts_pickup !== false,
+      accepts_delivery: foodSettings.accepts_delivery === true,
+      accepts_dine_in: foodSettings.accepts_dine_in !== false,
+      delivery_radius_miles: foodSettings.delivery_radius_miles || null,
+      delivery_minimum_cents: foodSettings.delivery_minimum_cents || null,
+      accepts_catering: foodSettings.accepts_catering === true,
+      catering_min_guests: foodSettings.catering_min_guests || null,
+      catering_lead_days: foodSettings.catering_lead_days || null,
+      order_confirmation_mode: foodSettings.order_confirmation_mode || "auto_confirm",
+    } : null,
     knowledge: {
       faqs: faqs.map(f => ({ question: f.question, answer: f.answer })),
       faqs_summary: buildFaqsSummary(faqs),
@@ -767,17 +794,33 @@ function buildSystemPrompt(ctx: BusinessContext): string {
   if (ctx.offerings.menu.length > 0) {
     prompt += `MENU ITEMS (YOU CAN TAKE ORDERS):\n${ctx.offerings.menu_summary}\n\n`;
     
+    // Add food settings information
+    const prepTime = ctx.food_settings?.estimated_prep_minutes || 15;
+    const orderTypes: string[] = [];
+    if (ctx.food_settings?.accepts_pickup !== false) orderTypes.push("pickup");
+    if (ctx.food_settings?.accepts_delivery) orderTypes.push("delivery");
+    if (ctx.food_settings?.accepts_dine_in !== false) orderTypes.push("dine-in");
+    
+    prompt += `FOOD ORDERING SETTINGS:
+- Estimated prep time: ${prepTime} minutes
+- Order types accepted: ${orderTypes.join(", ") || "pickup"}
+${ctx.food_settings?.accepts_delivery ? `- Delivery radius: ${ctx.food_settings.delivery_radius_miles || 5} miles` : ""}
+${ctx.food_settings?.delivery_minimum_cents ? `- Delivery minimum: $${(ctx.food_settings.delivery_minimum_cents / 100).toFixed(2)}` : ""}
+${ctx.food_settings?.accepts_catering ? `- Catering available (min ${ctx.food_settings.catering_min_guests || 10} guests, ${ctx.food_settings.catering_lead_days || 3} days notice)` : ""}
+
+`;
+    
     // Add food-specific ordering instructions
     prompt += `FOOD ORDERING FLOW:
 You are ENABLED to take food orders. When a customer wants to order:
 
-1. GREET & ASK ORDER TYPE: "Would you like pickup or delivery today?"
+1. GREET & ASK ORDER TYPE: "Would you like ${orderTypes.slice(0, 2).join(" or ")} today?"
 2. TAKE THE ORDER: Listen for items. Confirm each item and any modifications.
 3. ASK FOR MODIFICATIONS: "Would you like to add anything to that?" or "Any special instructions?"
 4. CONFIRM THE ORDER: Repeat the full order back: "So that's [items]. Did I get that right?"
 5. GET CUSTOMER INFO: Ask for name and phone number for the order.
 6. IF DELIVERY: Ask for the delivery address.
-7. GIVE TIME ESTIMATE: "Your order will be ready in about [15-20] minutes."
+7. GIVE TIME ESTIMATE: "Your order will be ready in about ${prepTime} minutes." (for pickup) or "Your order will arrive in about ${prepTime + 15}-${prepTime + 25} minutes." (for delivery)
 8. CLOSE: "Thank you! We'll have that ready for you."
 
 IMPORTANT ORDER RULES:
@@ -786,6 +829,7 @@ IMPORTANT ORDER RULES:
 - If an item isn't on the menu, politely say "I don't see that on our menu, but let me suggest..."
 - For unclear items, ask clarifying questions
 - Always collect: items, name, phone, and address (if delivery)
+- ALWAYS give the time estimate (${prepTime} minutes prep time) when confirming orders
 
 `;
   } else if (ctx.tenant.business_mode === "food") {
@@ -1014,6 +1058,17 @@ export function buildDynamicVariables(
     menu_has_more: menuMetadata.hasMore ? "true" : "false",
     menu_top_categories: menuMetadata.topCategories.join(", ") || "",
     menu_summary_length: String(ctx.offerings.menu_summary?.length || 0),
+    
+    // Food settings (for food mode businesses)
+    estimated_prep_minutes: ctx.food_settings?.estimated_prep_minutes || 15,
+    accepts_pickup: ctx.food_settings?.accepts_pickup !== false ? "true" : "false",
+    accepts_delivery: ctx.food_settings?.accepts_delivery === true ? "true" : "false",
+    accepts_dine_in: ctx.food_settings?.accepts_dine_in !== false ? "true" : "false",
+    delivery_radius_miles: String(ctx.food_settings?.delivery_radius_miles || ""),
+    delivery_minimum_dollars: ctx.food_settings?.delivery_minimum_cents 
+      ? String((ctx.food_settings.delivery_minimum_cents / 100).toFixed(2)) 
+      : "",
+    accepts_catering: ctx.food_settings?.accepts_catering === true ? "true" : "false",
     
     // AI assistant settings (NEVER null)
     greeting_script: ctx.ai_settings.greeting_script || "",
