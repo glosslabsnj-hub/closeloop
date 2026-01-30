@@ -440,36 +440,79 @@ export default function CallsPage() {
 function getCustomerName(call: CallSession): string {
   // Priority: linked customer record > context_json > extracted_payload > Unknown
   if (call.customer?.full_name && call.customer.full_name !== "Unknown") {
-    return call.customer.full_name;
+    return formatDisplayName(call.customer.full_name);
   }
   
   const contextJson = call.context_json;
   if (contextJson) {
     const name = contextJson.customer_name || contextJson.name || contextJson.caller_name;
-    if (name && typeof name === "string" && name !== "Unknown") {
-      return name;
+    if (name && typeof name === "string" && name !== "Unknown" && !isGibberish(name)) {
+      return formatDisplayName(name);
     }
   }
   
   const extractedPayload = call.extracted_payload;
   if (extractedPayload?.customer_name && typeof extractedPayload.customer_name === "string") {
-    return extractedPayload.customer_name;
+    if (!isGibberish(extractedPayload.customer_name)) {
+      return formatDisplayName(extractedPayload.customer_name);
+    }
   }
   
   return "Unknown caller";
 }
 
+// Clean up display name - capitalize properly, remove gibberish
+function formatDisplayName(name: string): string {
+  if (!name || name.length < 2) return "Unknown caller";
+  // Remove common gibberish patterns
+  const cleaned = name.replace(/^(a\s+)?completion.*$/i, "").trim();
+  if (!cleaned) return "Unknown caller";
+  // Capitalize each word
+  return cleaned
+    .split(/\s+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
+
+// Check if text looks like gibberish/transcription error
+function isGibberish(text: string): boolean {
+  if (!text) return true;
+  const lower = text.toLowerCase();
+  // Common transcription errors
+  if (lower.includes("completion") || lower.includes("a completion")) return true;
+  if (lower === "unknown" || lower === "null" || lower === "undefined") return true;
+  if (text.length < 2) return true;
+  return false;
+}
+
 function getServiceRequested(call: CallSession): string {
-  // Priority: extracted_payload > context_json
   const extractedPayload = call.extracted_payload;
   if (extractedPayload) {
+    // For food orders, format items nicely
+    if (Array.isArray(extractedPayload.items) && extractedPayload.items.length > 0) {
+      const items = extractedPayload.items as Array<{name: string; qty?: number}>;
+      return items.map(i => i.qty && i.qty > 1 ? `${i.qty}x ${i.name}` : i.name).join(", ");
+    }
+    
+    // Check items_raw but clean it up
+    if (extractedPayload.items_raw && typeof extractedPayload.items_raw === "string") {
+      const raw = extractedPayload.items_raw;
+      // Skip if it's gibberish like "to place an order for pickup"
+      if (!raw.toLowerCase().includes("to place an order")) {
+        return raw.length > 60 ? raw.substring(0, 60) + "..." : raw;
+      }
+    }
+    
     const service = extractedPayload.service_requested || 
-      extractedPayload.items_raw || 
-      (Array.isArray(extractedPayload.items) ? (extractedPayload.items as Array<{name: string}>).map(i => i.name).join(", ") : null) ||
       extractedPayload.job_type ||
       extractedPayload.appointment_type;
     if (service && typeof service === "string") {
       return service;
+    }
+    
+    // For food mode, show order type
+    if (extractedPayload.order_type) {
+      return `${extractedPayload.order_type} order`;
     }
   }
   

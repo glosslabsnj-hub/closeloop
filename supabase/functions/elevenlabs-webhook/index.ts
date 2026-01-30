@@ -594,6 +594,16 @@ async function processCallData(
   const analysis = payload.analysis || {};
   const dataCollection = analysis.data_collection || {};
   
+  // ===== EXTRACT SUMMARY (check multiple locations) =====
+  // ElevenLabs may provide summary in different places depending on configuration
+  const summaryText = 
+    analysis.summary ||
+    (analysis as Record<string, unknown>).call_summary ||
+    dataCollection.call_summary ||
+    dataCollection.summary ||
+    // Try to build a summary from transcript if none provided
+    (payload.transcript?.length ? buildSummaryFromTranscript(payload.transcript, tenantBusinessMode) : null);
+  
   // ===== EXTRACT CUSTOMER INFO =====
   const customerName = 
     dataCollection.customer_name ||
@@ -712,7 +722,7 @@ async function processCallData(
     .from("ai_call_sessions")
     .update({
       transcript: transcriptText,
-      summary: analysis.summary || null,
+      summary: summaryText || null,
       outcome: outcome as "booked" | "followup" | "lost" | "escalated",
       ended_at: payload.metadata?.end_time || new Date().toISOString(),
       context_json: updatedContext,
@@ -732,7 +742,7 @@ async function processCallData(
   await logEventStage(supabase, tenantId, sessionId, session.twilio_call_sid, payload.conversation_id, "summary_saved", {
     outcome,
     has_transcript: !!transcriptText,
-    has_summary: !!analysis.summary,
+    has_summary: !!summaryText,
     customer_id: customerId,
     customer_name: customerName,
     extracted_fields: Object.keys(extractedPayload),
@@ -752,7 +762,7 @@ async function processCallData(
   console.log("Updated session:", sessionId, { 
     outcome, 
     hasTranscript: !!transcriptText, 
-    hasSummary: !!analysis.summary, 
+    hasSummary: !!summaryText, 
     customerId,
     customerName,
     extractedPayloadKeys: Object.keys(extractedPayload),
@@ -1253,10 +1263,18 @@ async function processFoodOrderIfApplicable(
 
   if (!isFoodMode) return;
 
-  const orderConfirmed = dataCollection.order_confirmed === "true" || dataCollection.order_confirmed === "yes";
-  const orderItems = dataCollection.order_items || dataCollection.items;
+  // Check if order was confirmed - handle boolean and string values
+  const orderConfirmed = 
+    dataCollection.order_confirmed === "true" || 
+    dataCollection.order_confirmed === "yes" ||
+    extractedPayload.order_confirmed === true ||
+    extractedPayload.order_confirmed === "true";
+  const orderItems = dataCollection.order_items || dataCollection.items || extractedPayload.items_raw;
   
-  if (!orderConfirmed && !orderItems) return;
+  // Also check if we have items extracted from transcript
+  const hasOrderData = orderConfirmed || orderItems || extractedPayload.items;
+  
+  if (!hasOrderData) return;
 
   console.log("Processing food order for tenant:", tenantId);
 
@@ -1266,19 +1284,22 @@ async function processFoodOrderIfApplicable(
       try {
         parsedItems = JSON.parse(orderItems);
       } catch {
-        parsedItems = orderItems.split(/[,\n]/).filter(Boolean).map(item => ({
-          name: item.trim(),
-          qty: 1,
-        }));
+        // Parse natural language items from transcript or raw string
+        parsedItems = parseNaturalLanguageItems(orderItems, payload.transcript);
       }
     }
   } catch (e) {
     console.error("Failed to parse order items:", e);
   }
   
-  // Use items from extracted payload if available
-  if (Array.isArray(extractedPayload.items)) {
+  // Use items from extracted payload if available and parsedItems is empty
+  if (parsedItems.length === 0 && Array.isArray(extractedPayload.items)) {
     parsedItems = extractedPayload.items as typeof parsedItems;
+  }
+  
+  // If still empty but we have items_raw, try parsing that
+  if (parsedItems.length === 0 && typeof extractedPayload.items_raw === "string") {
+    parsedItems = parseNaturalLanguageItems(extractedPayload.items_raw, payload.transcript);
   }
 
   const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}`;
@@ -1361,6 +1382,154 @@ async function processFoodOrderIfApplicable(
   } catch (e) {
     console.error("Failed to trigger order handoff:", e);
   }
+}
+
+// Parse natural language order items from transcript or raw string
+function parseNaturalLanguageItems(
+  rawText: string,
+  transcript?: ElevenLabsWebhookPayload["transcript"]
+): Array<{ name: string; qty: number; modifiers?: string[]; item_notes?: string }> {
+  const items: Array<{ name: string; qty: number; modifiers?: string[]; item_notes?: string }> = [];
+  
+  // Get customer messages from transcript if available
+  const customerText = transcript
+    ? transcript.filter(t => t.role === "user").map(t => t.message).join(" ")
+    : rawText;
+  
+  // Common food items to look for
+  const foodPatterns = [
+    // Pizza patterns
+    { pattern: /(\d*)\s*(?:large|medium|small)?\s*(margherita|pepperoni|cheese|hawaiian|veggie|meat lovers?|supreme|quattro formaggi)\s*pizza/gi, baseItem: "Pizza" },
+    // Pasta patterns  
+    { pattern: /(\d*)\s*(spaghetti|fettuccine|penne|lasagna|ravioli)\s*(?:carbonara|alfredo|bolognese|marinara|arrabbiata)?/gi, baseItem: "Pasta" },
+    // Drinks
+    { pattern: /(\d*)\s*(?:two[ -]?liter|bottle|can)?\s*(pepsi|coke|coca[ -]?cola|sprite|water|lemonade|tea)/gi, baseItem: "Drink" },
+    // General items with quantities
+    { pattern: /(\d+)\s*(piece|order|serving)s?\s+(?:of\s+)?(\w+)/gi, baseItem: "" },
+  ];
+  
+  for (const { pattern } of foodPatterns) {
+    const matches = customerText.matchAll(pattern);
+    for (const match of matches) {
+      const qty = parseInt(match[1]) || 1;
+      const itemName = match[0].replace(/^\d+\s*/, "").trim();
+      if (itemName.length > 2) {
+        items.push({
+          name: itemName.charAt(0).toUpperCase() + itemName.slice(1),
+          qty,
+        });
+      }
+    }
+  }
+  
+  // Look for modifiers
+  const modifierPatterns = [
+    /with\s+(extra|fresh|no|light|heavy)?\s*(garlic|cheese|onions?|peppers?|mushrooms?|olives?)/gi,
+    /cooked?\s+(well done|medium|rare)/gi,
+  ];
+  
+  if (items.length > 0) {
+    const modifiers: string[] = [];
+    for (const pattern of modifierPatterns) {
+      const matches = customerText.matchAll(pattern);
+      for (const match of matches) {
+        modifiers.push(match[0].trim());
+      }
+    }
+    if (modifiers.length > 0) {
+      items[0].modifiers = modifiers;
+    }
+  }
+  
+  // If no structured items found, just return the raw text as a single item
+  if (items.length === 0 && rawText && !rawText.includes("to place an order")) {
+    items.push({
+      name: rawText.substring(0, 100),
+      qty: 1,
+    });
+  }
+  
+  return items;
+}
+
+// Build a summary from transcript when ElevenLabs doesn't provide one
+function buildSummaryFromTranscript(
+  transcript: NonNullable<ElevenLabsWebhookPayload["transcript"]>,
+  businessMode: string
+): string | null {
+  if (!transcript.length) return null;
+  
+  const customerMessages = transcript
+    .filter(t => t.role === "user")
+    .map(t => t.message)
+    .join(" ");
+  
+  const aiMessages = transcript
+    .filter(t => t.role === "agent")
+    .map(t => t.message)
+    .join(" ");
+  
+  // Build a summary based on business mode
+  const parts: string[] = [];
+  
+  // Extract customer name
+  const nameMatch = customerMessages.match(/(?:my name is|this is|i'm|call me|name is)\s+([a-z]+)/i);
+  if (nameMatch) {
+    parts.push(`Customer: ${nameMatch[1].charAt(0).toUpperCase() + nameMatch[1].slice(1)}`);
+  }
+  
+  switch (businessMode) {
+    case "food":
+      // Check for order type and items
+      if (customerMessages.match(/pickup|pick up/i)) {
+        parts.push("Order type: Pickup");
+      } else if (customerMessages.match(/delivery|deliver/i)) {
+        parts.push("Order type: Delivery");
+      }
+      
+      // Check for specific items mentioned
+      const foodKeywords = ["pizza", "pasta", "burger", "sandwich", "salad", "soup", "wings", "fries", "drink", "pepsi", "coke", "soda"];
+      const mentionedItems = foodKeywords.filter(item => customerMessages.toLowerCase().includes(item));
+      if (mentionedItems.length > 0) {
+        parts.push(`Items: ${mentionedItems.join(", ")}`);
+      }
+      
+      // Check if order was confirmed
+      if (aiMessages.match(/order.*(?:ready|placed|confirmed|got it)/i)) {
+        parts.push("Status: Order confirmed");
+      }
+      break;
+      
+    case "service":
+      // Extract service type
+      const serviceMatch = customerMessages.match(/(?:need|want|book|schedule).*?(?:detail|wash|clean|repair|service|appointment)/i);
+      if (serviceMatch) {
+        parts.push(`Service: ${serviceMatch[0]}`);
+      }
+      break;
+      
+    case "dispatch":
+      // Extract job type
+      if (customerMessages.match(/tow|broke down/i)) {
+        parts.push("Job: Towing");
+      } else if (customerMessages.match(/jump|battery/i)) {
+        parts.push("Job: Jump start");
+      } else if (customerMessages.match(/flat|tire/i)) {
+        parts.push("Job: Tire change");
+      } else if (customerMessages.match(/lock|keys/i)) {
+        parts.push("Job: Lockout");
+      }
+      break;
+      
+    default:
+      // General summary
+      const reasonMatch = customerMessages.match(/(?:calling about|need|want|looking for)\s+(.{10,50}?)(?:\.|,|$)/i);
+      if (reasonMatch) {
+        parts.push(`Reason: ${reasonMatch[1].trim()}`);
+      }
+  }
+  
+  return parts.length > 0 ? parts.join(". ") + "." : null;
 }
 
 function extractFromTranscript(
