@@ -1,209 +1,197 @@
 
-# Booking Calendar Sync + Voice Agent Delay Fix
+## What’s going on (root cause, based on the code + live behavior)
 
-## Summary
-This plan addresses two critical issues:
-1. **Booking Calendar Sync**: Appointments booked via AI don't appear in the web calendar or push to Google Calendar
-2. **Voice Agent Delay**: Multi-second pauses between user speech and AI response make conversations feel unnatural
+You’re seeing “2pm is available” + “nothing earlier” even though the dashboard schedule shows earlier open time because **the AI is not using a reliable, deterministic availability source** when it decides what times to offer, and the availability engine itself currently has **timezone + duration pitfalls** that can make “earliest slots” wrong.
 
----
+There are three overlapping issues:
 
-## Part 1: Booking Calendar Sync
+1) **Timezone bug in the availability engine (major)**
+- `fn_compute_available_slots()` builds slots like `current_day + open_time` but **does not apply the tenant’s timezone**.
+- For a tenant like “Elite Auto Detailing” in `America/Los_Angeles`, this produces slot timestamps that are effectively interpreted in the database/server timezone (typically UTC).
+- Net effect: “tomorrow” and “earliest” can become misaligned versus what the calendar UI shows (which uses the browser’s local timezone when rendering `new Date(start_at)`).
 
-### Current State Analysis
+2) **Service duration mismatch (very likely contributor)**
+- Your “interior detail” service is 120 minutes in the database.
+- If the AI is picking times assuming 60 minutes (or guessing), it may think an earlier slot works or doesn’t work incorrectly.
+- Also, the user-facing schedule visually may look “open” earlier, but **not open for a full 2-hour block** once you account for the appointment duration + buffers.
 
-**Web Application Calendar:**
-- The `useScheduleData` hook fetches bookings correctly from the `bookings` table
-- However, there's no realtime subscription - the calendar only updates on manual refresh or page navigation
-- After an AI books an appointment, the user won't see it until they refresh the page
+3) **The voice agent isn’t guaranteed to actually “compute, filter, then answer”**
+- ElevenLabs conversational agents don’t automatically call your backend unless you explicitly wire a tool/override flow.
+- Right now, even with “Strict: only free slots” as a policy, the agent can still “reason” its way to a time and say it confidently unless we force it to:
+  - query availability deterministically, and
+  - only speak from the returned list.
 
-**Google Calendar Push:**
-- **Critical Finding**: There is NO existing logic to push bookings to Google Calendar
-- The system only READS from Google (via `sync-availability`) but never WRITES
-- The workflow system has a `create_calendar_event` node type defined in migrations but NOT implemented in `trigger-workflow/index.ts`
+## Goals (what “working” means)
 
-### Solution
+1) When a caller asks “any availability tomorrow?” the agent responds with the true earliest options that fit:
+- tenant business hours (in tenant timezone)
+- busy blocks (Google + manual + holds + confirmed bookings)
+- correct duration for the requested service (or explicitly asks which service first)
 
-**1. Add Realtime Subscription for Bookings**
+2) When a caller says “anything earlier?” the agent:
+- re-queries and offers the true earliest earlier slots that fit the duration
+- if none exist, explains why (e.g., “we don’t have a full 2-hour opening earlier”)
 
-Enable realtime on the `bookings` table so the calendar updates instantly when AI creates appointments.
+3) When a caller requests a specific time:
+- the agent must call a real-time checker and only confirm if available
+- otherwise it offers the nearest alternatives returned by backend
 
-```text
-Database: ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
-Frontend: Subscribe to changes in useScheduleData hook
-```
+## Implementation approach
 
-**2. Implement Google Calendar Event Creation**
+### A) Fix the underlying availability engine (timezone + duration + no side effects)
 
-Create a new edge function `create-calendar-event` that:
-- Uses the stored OAuth tokens from `calendar_connections`
-- Creates events via Google Calendar Events API
-- Returns the event ID for reference
+**A1. Replace “cleanup inside read” behavior**
+- `fn_compute_available_slots` currently calls `cleanup_expired_holds()` which does an UPDATE.
+- This is a side effect and makes the function unsuitable for “read-only” contexts and can create subtle inconsistencies.
+- Instead, treat expired holds as inactive purely in queries:
+  - Consider a hold conflicting only if `expires_at IS NULL OR expires_at > now()`.
 
-**3. Auto-trigger Calendar Sync on Booking**
+**A2. Make slot generation timezone-aware**
+- Update the database function to build slot boundaries in the tenant’s timezone, then return UTC timestamps.
+- Pattern:
+  - Build a “local timestamp” for each slot: `(current_day::timestamp + open_time)`
+  - Convert to timestamptz using `AT TIME ZONE tenant_timezone`
+  - Iterate in 30-minute increments in local time (or convert carefully to UTC after)
+- Ensure the “date” inputs are interpreted as **local dates in tenant timezone**.
 
-Update the booking workflow to automatically:
-- Create a Google Calendar event when a booking is confirmed
-- Store the external event ID for future updates/cancellations
+**A3. Incorporate buffers consistently**
+- If tenant has `appointment_buffer_minutes`, treat the total blocked time as:
+  - `duration_minutes + buffer_minutes`
+- Ensure:
+  - `fn_compute_available_slots` uses the correct buffer (defaulting to tenant config if not provided).
+  - `check-availability` uses the same buffer logic when validating a requested slot (conflict checks must include the buffer).
 
----
+**A4. (Optional but recommended) Add a deterministic “earliest slot” helper**
+- Add a small DB function or backend function that returns:
+  - earliest N slots for a given date range + duration
+  - and can filter “before_time” / “after_time”
+- This makes “anything earlier?” deterministic instead of LLM-guessing.
 
-## Part 2: Voice Agent Response Delay
+### B) Make the AI’s availability answers deterministic (strict mode enforcement)
 
-### Current State Analysis
+We need to ensure the voice agent cannot “invent” availability.
 
-The voice agent uses ElevenLabs Conversational AI with:
-- WebRTC connection via signed URL (browser tests)
-- Twilio register-call for phone calls
+**B1. Add/standardize backend endpoints to support the agent**
+Create a minimal set of backend functions the agent can call:
 
-**Potential Causes of Delay:**
+1. `availability-suggest` (new)
+   - Input: tenant_id, date (local), service_id OR duration_minutes, preference (earliest / earlier_than / later_than), reference_time (optional)
+   - Output: ordered list of times (local display + UTC timestamps), plus an explanation if none
 
-1. **Large Dynamic Variables Payload**: The `buildBusinessContext` function builds an extensive context with services, FAQs, policies, hours, intent rules, and memory hints. This large payload is sent to ElevenLabs at connection time.
+2. `check-availability` (already exists, but will be upgraded)
+   - Must be timezone-correct and buffer-correct
+   - Output should include: `available`, `conflict_reason`, `alternative_slots[]`
 
-2. **WebSocket vs WebRTC**: Browser tests use `get-signed-url` (WebSocket), while phone calls use `register-call`. WebSocket has higher latency than WebRTC.
+3. `book-appointment` (new, optional for now)
+   - Input: tenant_id, customer details, service_id, start_time, etc.
+   - Internals:
+     - place hold (`fn_place_hold`)
+     - confirm booking (`fn_confirm_booking`)
+     - triggers existing booking handoff + Google event creation
+   - Output: booking_id + confirmed times
 
-3. **Model/Voice Selection**: The ElevenLabs agent configuration (managed externally) determines response latency. Turbo models are faster.
+**B2. Ensure the ElevenLabs agent is actually “seeing” strict rules**
+Right now the canonical `systemPrompt` produced by `buildBusinessContext()` is not clearly being injected into the ElevenLabs session in a way that guarantees behavior.
 
-4. **No Streaming Configuration**: The current implementation may not be optimized for low-latency conversational mode.
+We’ll update the conversation initiation payloads to include:
+- `conversation_config_override.agent.prompt.prompt` = the canonical `systemPrompt` that includes strict rules
+- Keep dynamic variables as well
 
-### Solution
+This will be implemented in:
+- `supabase/functions/twilio-inbound/index.ts` (register-call payload)
+- `supabase/functions/elevenlabs-conversation-token/index.ts` (browser test payload)
 
-**1. Optimize Dynamic Variables Payload**
+**B3. Wire a real “tool call” path (so the agent can query availability)**
+ElevenLabs supports tools + conversation overrides. We’ll implement one of these:
 
-Reduce the size of dynamic variables by:
-- Truncating summaries to essential info (first 500 chars)
-- Removing redundant fields
-- Only including high-priority knowledge
+- Preferred: configure an ElevenLabs HTTP tool that calls our backend endpoints (availability-suggest, check-availability, book-appointment).
+- Then ensure the agent is configured to use that tool for scheduling.
 
-**2. Use WebRTC for Lower Latency**
+If the tool route is not feasible in your current ElevenLabs agent security settings, fallback:
+- Inject a short, precomputed `tomorrow_slots` list (for multiple durations) into dynamic variables at conversation start.
+- This is weaker (not truly real-time) but still prevents the worst hallucinations and immediately fixes “earlier than 2pm” in many cases.
+- We’ll still pursue tools as the real fix.
 
-For browser tests, switch from `get-signed-url` (WebSocket) to `conversation-token` (WebRTC) endpoint which has lower latency.
+### C) Fix Google Calendar write timezone (prevents “ghost conflicts”)
 
-**3. Add Latency Logging**
+In `create-calendar-event`, timeZone is currently hardcoded to `"America/New_York"`.
+- This can create calendar events at the wrong local time, which later sync back as busy blocks that “don’t match” what the business expects.
 
-Add timing measurements to identify bottlenecks:
-- Time to build context
-- Time to get signed URL
-- Time to first audio
+We will:
+- Pull `tenant.timezone` and use it when writing `eventPayload.start.timeZone` and `eventPayload.end.timeZone`.
 
----
+### D) Add “truth layer” debugging so you can see exactly why it picked a time
 
-## Technical Implementation
+Add a small “Availability Debugger” panel accessible from the dashboard (Bookings page and/or AI debug tools) that shows:
+- selected service + duration
+- computed available slots for tomorrow
+- busy blocks that are blocking earlier times
+- the exact reason earlier times fail (e.g., “not enough contiguous time for 120 minutes”, “outside hours”, “buffer pushes it into conflict”)
 
-### Files to Create
+This lets us diagnose issues in minutes instead of guessing.
 
-| File | Purpose |
-|------|---------|
-| `supabase/functions/create-calendar-event/index.ts` | Push bookings to Google Calendar |
+## File-level change list (what will be edited/added)
 
-### Files to Edit
+Backend (Lovable Cloud functions):
+- Edit: `supabase/functions/check-availability/index.ts` (timezone + buffer correctness; optionally call DB helper)
+- Edit: `supabase/functions/compute-available-slots/index.ts` (ensure it uses tenant buffer defaults + returns local display)
+- Edit: `supabase/functions/twilio-inbound/index.ts` (pass `conversation_config_override` prompt)
+- Edit: `supabase/functions/elevenlabs-conversation-token/index.ts` (pass `conversation_config_override` prompt)
+- Edit: `supabase/functions/create-calendar-event/index.ts` (use tenant timezone)
+- Add: `supabase/functions/availability-suggest/index.ts` (deterministic slot selection + earlier/later constraints)
+- Add (optional): `supabase/functions/book-appointment/index.ts` (hold + confirm booking atomically)
 
-| File | Change |
-|------|--------|
-| `src/hooks/useScheduleData.ts` | Add realtime subscription for instant updates |
-| `src/hooks/useBookings.ts` | Add realtime subscription |
-| `supabase/functions/booking-handoff/index.ts` | Trigger calendar event creation |
-| `supabase/functions/elevenlabs-conversation-token/index.ts` | Switch to WebRTC token, optimize payload |
-| `supabase/functions/_shared/buildBusinessContext.ts` | Add truncation for voice channel |
+Database (migration):
+- Edit/replace: `public.fn_compute_available_slots` to be timezone-aware and side-effect-free
+- Edit: `public.fn_place_hold` conflict check to ignore expired holds without needing cleanup
+- (Optional) Add: `public.fn_suggest_slots` / `public.fn_check_availability` for single-source-of-truth in SQL
 
-### Database Migration
+Frontend:
+- Add/Edit: a lightweight “Availability Debugger” component placed on `/app/bookings` (or inside existing debug pages) to call the backend and display:
+  - available slots list (local)
+  - blocking events list
+  - selected service duration
+  - a “why not earlier” explanation
 
-Enable realtime on bookings table:
-```sql
-ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
-```
+## Test plan (how we’ll prove it’s fixed)
 
----
+1) **Reproduce your exact complaint**
+- Choose “Full Interior Detail” (120 min)
+- Ask: “Any availability tomorrow?”
+- Confirm the first suggested time matches the earliest true slot in the calendar UI.
+- Ask: “Anything earlier?”
+  - The agent must either:
+    - offer earlier valid slots, or
+    - explicitly say “No earlier openings for a full 2-hour interior detail” and show the nearest earlier time for shorter services if you want that behavior.
 
-## Implementation Details
+2) **Specific-time strict check**
+- Ask: “Can I book tomorrow at 3 PM?”
+- If the calendar is booked at 3 PM, agent must say it’s unavailable and offer alternatives.
 
-### 1. Realtime Calendar Updates
+3) **Timezone verification**
+- Compare:
+  - slots returned by backend (displayed in debugger)
+  - slots visually open in the calendar UI
+  They must line up in local time.
 
-The `useScheduleData` hook will subscribe to booking changes:
+4) **End-to-end booking**
+- Complete a booking via the AI.
+- Verify it appears immediately in:
+  - web schedule (realtime)
+  - Google Calendar (correct local time)
+  - and that it syncs back as a busy block if needed.
 
-```typescript
-useEffect(() => {
-  const channel = supabase
-    .channel('schedule-changes')
-    .on('postgres_changes', 
-      { event: '*', schema: 'public', table: 'bookings' },
-      () => refetch()
-    )
-    .subscribe();
-  
-  return () => { supabase.removeChannel(channel); };
-}, []);
-```
+## One thing I need from you (in the next request)
+When you say “earlier is available” — is that **for the same service (interior detail, 120 min)**, or do you mean “any 1-hour slot is available earlier”?
+This determines whether we:
+- show “earliest for the requested service duration”, or
+- show multiple duration tiers (“earliest 1h”, “earliest 2h”, etc.).
 
-### 2. Google Calendar Event Creation
+(If you want, tell me the exact service name you used in the call and what you saw available earlier on the calendar.)
 
-New edge function flow:
-1. Receive booking ID and tenant ID
-2. Fetch booking details (time, service, customer)
-3. Get calendar connection with OAuth tokens
-4. Refresh access token if expired
-5. POST to Google Calendar Events API
-6. Store event ID back on booking record
+## Rollout strategy
+- Implement the timezone-safe DB changes + upgraded `check-availability` first (fixes the correctness layer).
+- Add the deterministic `availability-suggest` function + inject prompt override next (fixes “why did it say 2pm”).
+- Finally, wire tool-based calls for the voice agent (fixes strict enforcement in real conversations).
 
-API endpoint used:
-```text
-POST https://www.googleapis.com/calendar/v3/calendars/{calendarId}/events
-```
-
-### 3. Voice Latency Optimization
-
-**Payload Size Reduction:**
-- `services_pricing`: Truncate to 500 chars
-- `menu_summary`: Truncate to 400 chars
-- `faqs_summary`: Keep only first 5 FAQs
-- Remove `objections` from voice channel (text-only)
-
-**Connection Type:**
-- Browser tests will use `conversationToken` (WebRTC) instead of `signedUrl` (WebSocket)
-- WebRTC typically has 50-100ms lower round-trip latency
-
----
-
-## Architecture Diagram
-
-```text
-BOOKING SYNC FLOW:
-┌─────────────┐    ┌──────────────┐    ┌─────────────────┐
-│ AI Books    │───>│ bookings     │───>│ Realtime Event  │
-│ Appointment │    │ table INSERT │    │ to Frontend     │
-└─────────────┘    └──────────────┘    └─────────────────┘
-                          │
-                          ▼
-               ┌────────────────────┐
-               │ booking-handoff    │
-               └────────────────────┘
-                          │
-                          ▼
-               ┌────────────────────┐    ┌─────────────────┐
-               │ create-calendar-   │───>│ Google Calendar │
-               │ event              │    │ Events API      │
-               └────────────────────┘    └─────────────────┘
-```
-
----
-
-## Expected Outcomes
-
-1. **Calendar Updates Instantly**: When AI books an appointment, the web calendar shows it within 1-2 seconds (no page refresh needed)
-
-2. **Google Calendar Sync**: Confirmed bookings automatically appear in the owner's connected Google Calendar
-
-3. **Faster Voice Responses**: Reduced payload size and WebRTC connection should decrease response latency by 100-300ms
-
-4. **Better Debugging**: Latency logs will help identify if further optimization is needed on the ElevenLabs agent configuration side
-
----
-
-## Notes on Voice Delay
-
-The voice response delay could also be caused by:
-- **ElevenLabs Agent Configuration**: Model selection (turbo vs standard), voice settings, and LLM backend are configured in the ElevenLabs dashboard
-- **Network Conditions**: Variable latency between user's device and ElevenLabs servers
-- **Prompt Complexity**: Very long system prompts increase processing time
-
-If delay persists after these optimizations, you may need to review the ElevenLabs agent settings in their dashboard (voice model, LLM selection, etc.).
+If you want me to proceed, send a new request confirming whether “earlier availability” should be evaluated for the same service duration (and which service), and I’ll start implementing the above.
