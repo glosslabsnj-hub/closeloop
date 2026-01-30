@@ -54,6 +54,7 @@ import AdminSupportPage from "@/pages/admin/AdminSupportPage";
 import AdminDemoLibraryPage from "@/pages/admin/AdminDemoLibraryPage";
 import AdminGoldenPathPage from "@/pages/admin/AdminGoldenPathPage";
 import AdminSetupRequestsPage from "@/pages/admin/AdminSetupRequestsPage";
+import AdminAuditReportPage from "@/pages/admin/AdminAuditReportPage";
 
 // Debug Pages
 import TelephonyDebugPage from "@/pages/debug/TelephonyDebugPage";
@@ -123,6 +124,7 @@ const App = () => (
               <Route path="/admin/demo-library" element={<AdminDemoLibraryPage />} />
               <Route path="/admin/golden-path" element={<AdminGoldenPathPage />} />
               <Route path="/admin/setup-requests" element={<AdminSetupRequestsPage />} />
+              <Route path="/admin/audit-report" element={<AdminAuditReportPage />} />
             </Route>
 
             {/* Debug Routes (dev/admin only) */}
