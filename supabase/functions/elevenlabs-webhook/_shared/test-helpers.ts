@@ -135,9 +135,27 @@ export function parseNaturalLanguageItems(
       formatFn: null,
       category: "italian"
     },
+    // Italian - Calzones, stromboli, and stuffed items
+    {
+      pattern: /(\d*)\s*(calzone|stromboli|stuffed shells?|eggplant (?:parm|parmesan|parmigiana)|chicken (?:parm|parmesan|parmigiana)|veal (?:parm|parmesan|parmigiana))s?/gi,
+      formatFn: (match: string) => {
+        const cleaned = match.replace(/^\d+\s*/, "").trim();
+        return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+      },
+      category: "italian"
+    },
+    // Italian - Subs, sandwiches, heroes
+    {
+      pattern: /(\d*)\s*((?:italian|meatball|chicken|philly|cheesesteak|turkey|ham|club|blt|veggie|vegetarian)\s*(?:sub|hoagie|hero|sandwich|grinder)?|(?:sub|hoagie|hero|sandwich|grinder))/gi,
+      formatFn: (match: string) => {
+        const cleaned = match.replace(/^\d+\s*/, "").trim();
+        return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+      },
+      category: "italian"
+    },
     // Italian - Appetizers/Desserts
     {
-      pattern: /(\d*)\s*(bruschetta|garlic bread|breadsticks?|calamari|mozzarella sticks?|caesar salad|garden salad|soup|tiramisu|cannoli|cheesecake|gelato|antipasto)/gi,
+      pattern: /(\d*)\s*(bruschetta|garlic (?:bread|knots)|breadsticks?|calamari|fried calamari|mozzarella sticks?|onion rings?|fries|french fries|caesar salad|garden salad|house salad|soup|tiramisu|cannoli|cheesecake|gelato|zeppole|rice balls?|arancini)/gi,
       formatFn: null,
       category: "italian"
     },
@@ -222,10 +240,14 @@ export function parseNaturalLanguageItems(
       formatFn: null,
       category: "american"
     },
-    // American - Wings standalone
+    // American - Wings with count and flavor
     {
-      pattern: /(\d+)\s*(?:piece|pc)?\s*(?:buffalo|hot|mild|bbq|garlic parmesan)?\s*wings?/gi,
-      formatFn: null,
+      pattern: /(\d+)\s*(?:piece\s+)?(?:chicken\s+)?wings?(?:\s+(buffalo|bbq|garlic parmesan|honey mustard|lemon pepper|plain|naked|hot|mild|medium))?/gi,
+      formatFn: (match: string) => {
+        const cleaned = match.replace(/^\d+\s*/, "").trim();
+        const formatted = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+        return formatted.includes("wing") || formatted.includes("Wing") ? formatted : `${formatted} Wings`;
+      },
       category: "american"
     },
     // American - Sides

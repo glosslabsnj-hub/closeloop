@@ -1411,7 +1411,24 @@ async function processFoodOrderIfApplicable(
     if (!extractedTotalCents) extractedTotalCents = parsed.totalCents;
   }
 
-  const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}`;
+  // Generate sequential order number (ORD-101, ORD-102, etc.)
+  const { data: lastOrder } = await supabase
+    .from("food_orders")
+    .select("order_number")
+    .eq("tenant_id", tenantId)
+    .like("order_number", "ORD-%")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+  
+  let nextOrderNum = 100;
+  if (lastOrder?.order_number) {
+    const match = lastOrder.order_number.match(/ORD-(\d+)/);
+    if (match) {
+      nextOrderNum = parseInt(match[1], 10) + 1;
+    }
+  }
+  const orderNumber = `ORD-${nextOrderNum}`;
   
   // Also unwrap uncertainty flags
   const needsClarificationVal = extractDataCollectionValue(dataCollection.needs_clarification);
@@ -1550,9 +1567,35 @@ function parseNaturalLanguageItems(
       pattern: /(\d*)\s*(spaghetti|fettuccine|penne|lasagna|ravioli|linguine|rigatoni|gnocchi|tortellini|manicotti)\s*(?:alla\s*)?(carbonara|alfredo|bolognese|marinara|arrabbiata|puttanesca|primavera)?/gi, 
       formatFn: null 
     },
+    // Calzones, stromboli, and stuffed items
+    {
+      pattern: /(\d*)\s*(calzone|stromboli|stuffed shells?|eggplant (?:parm|parmesan|parmigiana)|chicken (?:parm|parmesan|parmigiana)|veal (?:parm|parmesan|parmigiana))s?/gi,
+      formatFn: (match: string) => {
+        const cleaned = match.replace(/^\d+\s*/, "").trim();
+        return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+      }
+    },
+    // Subs, sandwiches, heroes
+    {
+      pattern: /(\d*)\s*((?:italian|meatball|chicken|philly|cheesesteak|turkey|ham|club|blt|veggie|vegetarian)\s*(?:sub|hoagie|hero|sandwich|grinder)?|(?:sub|hoagie|hero|sandwich|grinder))/gi,
+      formatFn: (match: string) => {
+        const cleaned = match.replace(/^\d+\s*/, "").trim();
+        return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+      }
+    },
+    // Wings with count and flavor
+    {
+      pattern: /(\d+)\s*(?:piece\s+)?(?:chicken\s+)?wings?(?:\s+(buffalo|bbq|garlic parmesan|honey mustard|lemon pepper|plain|naked|hot|mild|medium))?/gi,
+      formatFn: (match: string, qty: string) => {
+        const cleaned = match.replace(/^\d+\s*/, "").trim();
+        const formatted = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+        // Ensure "Wings" is properly labeled
+        return formatted.includes("wing") || formatted.includes("Wing") ? formatted : `${formatted} Wings`;
+      }
+    },
     // Appetizers/sides
     {
-      pattern: /(\d*)\s*(bruschetta|garlic bread|breadsticks?|calamari|mozzarella sticks?|wings?|caesar salad|garden salad|soup|tiramisu|cannoli|cheesecake|gelato)/gi,
+      pattern: /(\d*)\s*(bruschetta|garlic (?:bread|knots)|breadsticks?|calamari|fried calamari|mozzarella sticks?|onion rings?|fries|french fries|curly fries|caesar salad|garden salad|house salad|soup|tiramisu|cannoli|cheesecake|gelato|zeppole|rice balls?|arancini)/gi,
       formatFn: null
     },
     // Drinks - improved size detection for "two-liter" and "2-liter" variations
