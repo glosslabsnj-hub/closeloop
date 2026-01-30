@@ -1,95 +1,83 @@
 
 
-# Fix Calendar Connection - Missing OAuth Credentials
+# Enable One-Click Google Calendar Connection
 
-## The Problem
+## Current State
+The OAuth flow is fully implemented:
+- `calendar-oauth-start` generates the Google OAuth URL
+- `calendar-oauth-callback` exchanges the code for tokens and stores them
+- The UI already has "Connect Google Calendar" buttons
 
-When you click "Connect Google Calendar" or "Connect Outlook", the edge function returns a 500 error because **OAuth credentials are not configured**.
+**What's missing:** 3 backend secrets that tell Google who your app is.
 
-The error message from the backend:
-> "Google Calendar not configured. Please add GOOGLE_CALENDAR_CLIENT_ID and GOOGLE_CALENDAR_REDIRECT_URI secrets."
+## What You Need to Do (One-Time Setup)
 
-## Why This Happens
+### Step 1: Create Google OAuth Credentials
 
-Calendar sync requires OAuth apps registered with Google and Microsoft. Your AI needs permission to read your calendar, and that permission flow requires:
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project (or select existing)
+3. Navigate to **APIs & Services > Library**
+4. Search for and enable **Google Calendar API**
+5. Go to **APIs & Services > Credentials**
+6. Click **Create Credentials > OAuth client ID**
+7. Select **Web application**
+8. Add authorized redirect URI:
+   ```
+   https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/calendar-oauth-callback
+   ```
+9. Click **Create** and copy your **Client ID** and **Client Secret**
 
-1. **OAuth Client ID** - Identifies your app to Google/Microsoft
-2. **OAuth Client Secret** - Authenticates your app
-3. **Redirect URI** - Where users return after granting permission
+### Step 2: Add Secrets to Your Project
 
-These credentials don't exist in your project yet.
+I'll add these 3 secrets to your backend:
 
-## Two Options to Fix This
+| Secret Name | Value |
+|-------------|-------|
+| `GOOGLE_CALENDAR_CLIENT_ID` | Your Client ID from step 9 |
+| `GOOGLE_CALENDAR_CLIENT_SECRET` | Your Client Secret from step 9 |
+| `GOOGLE_CALENDAR_REDIRECT_URI` | `https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/calendar-oauth-callback` |
 
-### Option A: Set Up Your Own OAuth Credentials (Full Control)
+### Step 3: Configure OAuth Consent Screen
 
-You would need to:
+Before users can connect, you need to configure the consent screen:
 
-1. **For Google Calendar:**
-   - Go to Google Cloud Console
-   - Create a new project or use existing
-   - Enable the Google Calendar API
-   - Create OAuth 2.0 credentials
-   - Add these secrets to your project:
-     - `GOOGLE_CALENDAR_CLIENT_ID`
-     - `GOOGLE_CALENDAR_CLIENT_SECRET`
-     - `GOOGLE_CALENDAR_REDIRECT_URI` = `https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/calendar-oauth-callback`
+1. Go to **APIs & Services > OAuth consent screen**
+2. Choose **External** (unless you have Google Workspace)
+3. Fill in:
+   - App name: "CloseLoop"
+   - User support email: your email
+   - Developer contact: your email
+4. Add scopes:
+   - `../auth/calendar.readonly`
+   - `../auth/calendar.events`
+   - `../auth/calendar.freebusy`
+5. Add test users (your email) while in testing mode
 
-2. **For Microsoft/Outlook:**
-   - Go to Azure Portal → App Registrations
-   - Create new registration
-   - Add Calendar permissions
-   - Add these secrets:
-     - `MS_CALENDAR_CLIENT_ID`
-     - `MS_CALENDAR_CLIENT_SECRET`
-     - `MS_CALENDAR_REDIRECT_URI` = `https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/calendar-oauth-callback`
+## What I'll Implement
 
-### Option B: Better UX - Show Clear Setup Instructions (Recommended)
+Once you provide the Client ID and Secret, I'll:
 
-Instead of silently failing, update the UI to:
+1. Add the 3 secrets to your backend
+2. Redeploy the edge functions (they'll pick up the new secrets)
+3. The "Connect Google Calendar" button will work immediately
 
-1. **Show a clear message** when OAuth isn't configured
-2. **Provide setup instructions** for admins to add credentials
-3. **Fallback to ICS** for users who can't set up OAuth
-4. **Hide unconfigured options** gracefully
+## End Result
 
-## Proposed Implementation (Option B)
+After setup, your users (and you) will:
+1. Click "Connect Google Calendar"
+2. See Google sign-in popup
+3. Select Google account
+4. Grant calendar permission
+5. Popup closes automatically
+6. Calendar appears as "Connected" with a green checkmark
 
-### Phase 1: Improve Error Handling in UI
+The AI will then see all your real calendar events and block those times automatically.
 
-Update `CalendarConnectionWizard.tsx` to:
-- Catch the specific "not configured" error
-- Show a helpful message instead of generic "Connection failed"
-- Suggest ICS as an alternative
+## Optional: Microsoft Outlook
 
-### Phase 2: Add OAuth Status Check
+Same process for Outlook (requires Azure Portal instead of Google Cloud Console). Let me know if you want both.
 
-Create a simple endpoint or use the existing error to detect which providers are configured, then:
-- Gray out unavailable options with "Coming soon" or "Setup required"
-- Show only configured providers as clickable
-- Provide admin instructions for setup
+## Next Steps
 
-### Phase 3: Emphasize ICS Option
-
-Since ICS doesn't require OAuth setup:
-- Move it higher in the list
-- Add better instructions for getting ICS URL from Google/Outlook
-- Mark it as "Works with any calendar"
-
-### Phase 4: Add Secrets (If You Want OAuth)
-
-If you want to enable direct Google/Outlook OAuth, I can guide you through:
-1. Creating Google OAuth credentials
-2. Creating Microsoft OAuth credentials
-3. Adding the 6 required secrets to your project
-
----
-
-## Recommended Next Steps
-
-1. **Quick fix**: Update the UI to show a helpful error message instead of generic failure, and highlight ICS as the working alternative
-
-2. **If you want OAuth**: Let me know and I'll walk you through setting up Google Cloud Console and Azure AD credentials
-
-Which approach would you prefer?
+When you're ready, I'll prompt you to enter your Google OAuth Client ID and Secret. Would you like to proceed?
 
