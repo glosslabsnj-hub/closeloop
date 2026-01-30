@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Phone, Check, Loader2, Smartphone, ArrowRight, CheckCircle2, Clock, PhoneCall } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { CarrierInstructions } from "./CarrierInstructions";
+import { ElevenLabsInitWebhookCard } from "./ElevenLabsInitWebhookCard";
 
 interface PhoneConnectionStepProps {
   onComplete: () => void;
@@ -228,6 +229,9 @@ export function PhoneConnectionStep({ onComplete, isComplete }: PhoneConnectionS
               )}
             </div>
           </div>
+          
+          {/* ElevenLabs Init Webhook Card */}
+          <ElevenLabsInitWebhookCard />
         </CardContent>
       </Card>
     );

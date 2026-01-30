@@ -11,3 +11,9 @@ verify_jwt = true
 
 [functions.calendar-oauth-callback]
 verify_jwt = false
+
+[functions.elevenlabs-init]
+verify_jwt = false
+
+[functions.elevenlabs-webhook]
+verify_jwt = false
