@@ -41,6 +41,7 @@ import DispatchPage from "@/pages/app/DispatchPage";
 import MedicalIntakePage from "@/pages/app/MedicalIntakePage";
 import OrderTicketPage from "@/pages/app/OrderTicketPage";
 import HelpCenterPage from "@/pages/app/HelpCenterPage";
+import ScheduleConnectionPage from "@/pages/app/ScheduleConnectionPage";
 // Workflows pages kept for backward compatibility - accessible via automations
 import WorkflowEditPage from "@/pages/app/WorkflowEditPage";
 import WorkflowRunsPage from "@/pages/app/WorkflowRunsPage";
@@ -93,6 +94,7 @@ const App = () => (
               <Route path="/app/bookings" element={<BookingsPage />} />
               <Route path="/app/services" element={<ServicesPage />} />
               <Route path="/app/integrations" element={<IntegrationsPage />} />
+              <Route path="/app/integrations/schedule" element={<ScheduleConnectionPage />} />
               <Route path="/app/ai-assistant" element={<AIAssistantPage />} />
               {/* Legacy routes - redirect to integrations */}
               <Route path="/app/automations" element={<IntegrationsPage />} />

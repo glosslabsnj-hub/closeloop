@@ -11,6 +11,7 @@ import { UsageThresholdBanner } from "./UsageThresholdBanner";
 import { Copilot, CopilotTrigger } from "./Copilot";
 import { KnowledgeConflictBanner } from "./KnowledgeConflictBanner";
 import { AIReadinessPanel } from "./AIReadinessPanel";
+import { ScheduleConnectionCard } from "@/components/schedule/ScheduleConnectionCard";
 import { SoundManager } from "@/components/notifications/SoundManager";
 import { hasVoiceFeature } from "@/config/pricing";
 
@@ -36,6 +37,9 @@ export function LiveDashboard() {
 
       {/* Phone Number Card - Prominent for Voice plans */}
       {hasVoice && <PhoneNumberCard />}
+
+      {/* Schedule Connection Card - Show if not connected */}
+      <ScheduleConnectionCard variant="compact" showIfConnected={false} />
 
       {/* Today's Snapshot - Mode-adaptive metrics */}
       <TodaySnapshot />
