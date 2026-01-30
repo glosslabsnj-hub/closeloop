@@ -321,11 +321,43 @@ export default function ExtractionDebugPage() {
                 <CardContent>
                   {selectedSessionData.extracted_payload && 
                    Object.keys(selectedSessionData.extracted_payload).length > 0 ? (
-                    <ScrollArea className="h-[200px]">
-                      <pre className="text-xs bg-muted p-3 rounded overflow-auto">
-                        {JSON.stringify(selectedSessionData.extracted_payload, null, 2)}
-                      </pre>
-                    </ScrollArea>
+                    <div className="space-y-3">
+                      {/* Quick summary of intent detection */}
+                      <div className="flex flex-wrap gap-2">
+                        {(selectedSessionData.extracted_payload as Record<string, unknown>).intent && (
+                          <Badge variant="outline" className="bg-primary/10">
+                            Intent: {String((selectedSessionData.extracted_payload as Record<string, unknown>).intent)}
+                          </Badge>
+                        )}
+                        {(selectedSessionData.extracted_payload as Record<string, unknown>)._reservation_detected && (
+                          <Badge variant="outline" className="bg-blue-500/10 text-blue-700">
+                            Reservation Detected
+                          </Badge>
+                        )}
+                        {(selectedSessionData.extracted_payload as Record<string, unknown>).party_size && (
+                          <Badge variant="outline" className="bg-green-500/10 text-green-700">
+                            Party: {String((selectedSessionData.extracted_payload as Record<string, unknown>).party_size)} guests
+                          </Badge>
+                        )}
+                        {(selectedSessionData.extracted_payload as Record<string, unknown>).items && (
+                          <Badge variant="outline" className="bg-orange-500/10 text-orange-700">
+                            {Array.isArray((selectedSessionData.extracted_payload as Record<string, unknown>).items) 
+                              ? ((selectedSessionData.extracted_payload as Record<string, unknown>).items as unknown[]).length 
+                              : 0} items
+                          </Badge>
+                        )}
+                        {(selectedSessionData.extracted_payload as Record<string, unknown>).special_instructions && (
+                          <Badge variant="outline" className="bg-purple-500/10 text-purple-700">
+                            Has Special Instructions
+                          </Badge>
+                        )}
+                      </div>
+                      <ScrollArea className="h-[200px]">
+                        <pre className="text-xs bg-muted p-3 rounded overflow-auto">
+                          {JSON.stringify(selectedSessionData.extracted_payload, null, 2)}
+                        </pre>
+                      </ScrollArea>
+                    </div>
                   ) : (
                     <div className="flex items-center gap-2 text-muted-foreground py-4">
                       <AlertTriangle className="h-4 w-4" />

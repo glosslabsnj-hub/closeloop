@@ -1227,6 +1227,68 @@ function extractStructuredDataFromTranscript(
   // Business mode specific extraction
   switch (businessMode) {
     case "food":
+      // ===== RESERVATION DETECTION (check BEFORE order detection) =====
+      // Look for reservation-specific keywords: "table for X", "reservation for X", "party of X"
+      const reservationPatterns = [
+        /(?:table|reservation|party)\s+(?:for|of)\s+(\d+)/i,
+        /(\d+)\s+(?:people|guests|persons?)\s+(?:for|on|this)/i,
+        /book(?:ing)?\s+(?:a\s+)?table/i,
+        /make\s+(?:a\s+)?reservation/i,
+        /reserve\s+(?:a\s+)?table/i,
+      ];
+      
+      let isReservation = false;
+      let partySizeFromTranscript: number | null = null;
+      
+      for (const pattern of reservationPatterns) {
+        const match = customerMessages.match(pattern);
+        if (match) {
+          isReservation = true;
+          if (match[1]) {
+            partySizeFromTranscript = parseInt(match[1]);
+          }
+          break;
+        }
+      }
+      
+      // Also check for large party sizes mentioned (25, 30, 40+ people suggests reservation)
+      const largeParyMatch = customerMessages.match(/(\d+)\s*(?:people|guests|of us)/i);
+      if (largeParyMatch) {
+        const size = parseInt(largeParyMatch[1]);
+        if (size >= 4) { // 4+ people likely a reservation, not individual order
+          isReservation = true;
+          partySizeFromTranscript = size;
+        }
+      }
+      
+      // Extract date/time for reservation
+      if (isReservation) {
+        extracted._reservation_detected = true;
+        if (partySizeFromTranscript) {
+          extracted.party_size = String(partySizeFromTranscript);
+        }
+        
+        // Extract date
+        const resDateMatch = customerMessages.match(/(?:on|for|this|next)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|today)/i);
+        if (resDateMatch) {
+          extracted.reservation_date = resDateMatch[1];
+        }
+        
+        // Extract time
+        const resTimeMatch = customerMessages.match(/(?:at|around|about)\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i);
+        if (resTimeMatch) {
+          extracted.reservation_time = resTimeMatch[1];
+        }
+        
+        // Check if AI confirmed reservation
+        if (allMessages.includes("reservation") && (allMessages.includes("confirm") || allMessages.includes("booked") || allMessages.includes("see you"))) {
+          extracted.reservation_confirmed = "true";
+        }
+        
+        break; // Don't continue to order extraction
+      }
+      
+      // ===== ORDER DETECTION =====
       // Check for order confirmation
       if (allMessages.includes("order") && (allMessages.includes("confirm") || allMessages.includes("placed") || allMessages.includes("ready"))) {
         extracted.order_confirmed = "true";
@@ -1474,6 +1536,41 @@ async function processFoodOrderIfApplicable(
     extractDataCollectionValue(dataCollection.customer_name) || 
     "Phone Customer";
 
+  // ===== COLLECT ALL SPECIAL INSTRUCTIONS AND MODIFIERS =====
+  // Combine item-level notes, modifiers, and order-level special instructions
+  const allInstructions: string[] = [];
+  
+  // Add item-level modifiers and notes
+  for (const item of pricedItems) {
+    if (item.modifiers && item.modifiers.length > 0) {
+      allInstructions.push(`${item.name}: ${item.modifiers.join(", ")}`);
+    }
+    if (item.item_notes) {
+      allInstructions.push(`${item.name}: ${item.item_notes}`);
+    }
+  }
+  
+  // Add order-level special instructions
+  const orderLevelInstructions = 
+    (extractedPayload.special_instructions as string) || 
+    extractDataCollectionValue(dataCollection.special_instructions) ||
+    null;
+  if (orderLevelInstructions) {
+    allInstructions.push(orderLevelInstructions);
+  }
+  
+  // Fallback: if no items parsed but we have raw order data
+  const fallbackInstructions = (orderItemsRaw && parsedItems.length === 0) 
+    ? `Customer order: ${orderItemsRaw}` 
+    : null;
+  if (fallbackInstructions) {
+    allInstructions.push(fallbackInstructions);
+  }
+  
+  const combinedSpecialInstructions = allInstructions.length > 0 
+    ? allInstructions.join("; ") 
+    : null;
+
   const { data: newOrder, error: orderError } = await supabase
     .from("food_orders")
     .insert({
@@ -1494,8 +1591,7 @@ async function processFoodOrderIfApplicable(
         calculated_from_menu: calculatedTotal > 0,
         unmatched_items: unmatchedCount,
       },
-      special_instructions: (extractedPayload.special_instructions as string) || extractDataCollectionValue(dataCollection.special_instructions) || 
-        (orderItemsRaw && parsedItems.length === 0 ? `Customer order: ${orderItemsRaw}` : null),
+      special_instructions: combinedSpecialInstructions,
       requested_time: extractDataCollectionValue(dataCollection.requested_time) ? new Date(extractDataCollectionValue(dataCollection.requested_time) as string).toISOString() : null,
       delivery_address: (extractedPayload.delivery_address as string) || extractDataCollectionValue(dataCollection.delivery_address) || null,
       address_json: (extractedPayload.delivery_address || extractDataCollectionValue(dataCollection.delivery_address)) ? { street: extractedPayload.delivery_address || extractDataCollectionValue(dataCollection.delivery_address) } : null,
@@ -1697,11 +1793,29 @@ function determineIntent(
   
   // Infer from business mode + extracted data presence
   if (businessMode === "food") {
-    // Check for reservation data (party size, date, time)
-    const hasReservationData = extractedPayload.party_size || 
+    // Check for reservation data - IMPROVED detection
+    const hasPartySize = extractedPayload.party_size || 
       extractDataCollectionValue(dataCollection.party_size) ||
-      extractDataCollectionValue(dataCollection.reservation_date);
-    if (hasReservationData) return "reservation";
+      extractDataCollectionValue(dataCollection.guests) ||
+      extractDataCollectionValue(dataCollection.number_of_guests);
+    
+    const hasReservationDate = extractDataCollectionValue(dataCollection.reservation_date) ||
+      extractDataCollectionValue(dataCollection.date) ||
+      extractedPayload.reservation_date ||
+      extractedPayload.date;
+    
+    const hasReservationTime = extractDataCollectionValue(dataCollection.reservation_time) ||
+      extractDataCollectionValue(dataCollection.time) ||
+      extractedPayload.reservation_time ||
+      extractedPayload.time;
+    
+    // If we have party size OR (date + time combination), it's a reservation
+    const hasReservationData = hasPartySize || (hasReservationDate && hasReservationTime);
+    
+    // Also check for extracted reservation intent from transcript
+    if (hasReservationData || extractedPayload._reservation_detected) {
+      return "reservation";
+    }
     
     // Check for order data (items)
     const hasOrderData = extractedPayload.items || 
@@ -2492,23 +2606,67 @@ function parseNaturalLanguageItems(
     }
   }
   
-  // Look for modifiers
+  // ===== EXTRACT SPECIAL INSTRUCTIONS AND MODIFIERS =====
+  // Look for modifiers that can apply to all items or specific items
+  const allModifiers: string[] = [];
+  const allSpecialInstructions: string[] = [];
+  
+  // Modifier patterns: "extra cheese", "no onions", "add bacon"
   const modifierPatterns = [
-    /(?:with|add|extra|no|light|heavy)\s+(?:extra\s+)?(garlic|cheese|onions?|peppers?|mushrooms?|olives?|bacon|anchovies|jalape[ñn]os?|pineapple|tomatoes?)/gi,
-    /cooked?\s+(well done|medium|rare)/gi,
+    /(?:with|add|extra|no|light|heavy|double|triple)\s+(?:extra\s+)?(garlic|cheese|onions?|peppers?|bell peppers?|mushrooms?|olives?|bacon|anchovies|jalape[ñn]os?|pineapple|tomatoes?|pepperoni|sausage|ham|spinach|basil|oregano|parmesan|mozzarella|feta|ricotta|provolone)/gi,
     /(?:gluten[ -]?free|dairy[ -]?free|vegetarian|vegan)/gi,
   ];
   
-  if (items.length > 0) {
-    const modifiers: string[] = [];
-    for (const pattern of modifierPatterns) {
-      const matches = customerText.matchAll(pattern);
-      for (const match of matches) {
-        modifiers.push(match[0].trim());
+  // Special instruction patterns: cooking preferences, preparation requests
+  const specialInstructionPatterns = [
+    /(?:cooked?\s+)?(well[ -]?done|medium[ -]?well|medium[ -]?rare|medium|rare|crispy|light|extra crispy)/gi,
+    /(?:on the side|cut into squares?|cut into slices?|uncut|well done|extra[ -]?sauce|light sauce|no sauce)/gi,
+    /(?:fresh|extra)\s+(garlic|basil|oregano|herbs?|parsley|red pepper(?:\s+flakes)?|crushed red pepper|hot pepper|chili flakes)/gi,
+    /(?:make it|cooked?)\s+(hot|spicy|mild|extra spicy|very hot)/gi,
+  ];
+  
+  for (const pattern of modifierPatterns) {
+    const matches = customerText.matchAll(pattern);
+    for (const match of matches) {
+      const mod = match[0].trim();
+      if (mod && !allModifiers.includes(mod.toLowerCase())) {
+        allModifiers.push(mod);
       }
     }
-    if (modifiers.length > 0) {
-      items[0].modifiers = modifiers;
+  }
+  
+  for (const pattern of specialInstructionPatterns) {
+    const matches = customerText.matchAll(pattern);
+    for (const match of matches) {
+      const instruction = match[0].trim();
+      if (instruction && !allSpecialInstructions.includes(instruction.toLowerCase())) {
+        allSpecialInstructions.push(instruction);
+      }
+    }
+  }
+  
+  // Apply modifiers and special instructions to items
+  // If only one item, apply all modifiers and instructions to it
+  // Otherwise, store as order-level special instructions
+  if (items.length > 0) {
+    if (items.length === 1) {
+      // Single item - attach all modifiers and instructions directly
+      if (allModifiers.length > 0) {
+        items[0].modifiers = allModifiers;
+      }
+      if (allSpecialInstructions.length > 0) {
+        items[0].item_notes = allSpecialInstructions.join(", ");
+      }
+    } else {
+      // Multiple items - attach modifiers to first item (most likely target)
+      // and store special instructions for order-level
+      if (allModifiers.length > 0) {
+        items[0].modifiers = allModifiers;
+      }
+      // For multiple items, add item_notes to all items that might match
+      if (allSpecialInstructions.length > 0) {
+        items[0].item_notes = allSpecialInstructions.join(", ");
+      }
     }
   }
   
