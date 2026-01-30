@@ -873,6 +873,7 @@ export type Database = {
           lead_id: string
           notes: string | null
           service_id: string | null
+          session_id: string | null
           start_at: string
           status: Database["public"]["Enums"]["booking_status"]
           stripe_payment_intent_id: string | null
@@ -888,6 +889,7 @@ export type Database = {
           lead_id: string
           notes?: string | null
           service_id?: string | null
+          session_id?: string | null
           start_at: string
           status?: Database["public"]["Enums"]["booking_status"]
           stripe_payment_intent_id?: string | null
@@ -903,6 +905,7 @@ export type Database = {
           lead_id?: string
           notes?: string | null
           service_id?: string | null
+          session_id?: string | null
           start_at?: string
           status?: Database["public"]["Enums"]["booking_status"]
           stripe_payment_intent_id?: string | null
@@ -921,6 +924,13 @@ export type Database = {
             columns: ["service_id"]
             isOneToOne: false
             referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_call_sessions"
             referencedColumns: ["id"]
           },
           {
@@ -1765,6 +1775,7 @@ export type Database = {
           priority: Database["public"]["Enums"]["dispatch_priority"]
           requested_at: string | null
           scheduled_at: string | null
+          session_id: string | null
           status: Database["public"]["Enums"]["dispatch_status"]
           tenant_id: string
           updated_at: string
@@ -1795,6 +1806,7 @@ export type Database = {
           priority?: Database["public"]["Enums"]["dispatch_priority"]
           requested_at?: string | null
           scheduled_at?: string | null
+          session_id?: string | null
           status?: Database["public"]["Enums"]["dispatch_status"]
           tenant_id: string
           updated_at?: string
@@ -1825,6 +1837,7 @@ export type Database = {
           priority?: Database["public"]["Enums"]["dispatch_priority"]
           requested_at?: string | null
           scheduled_at?: string | null
+          session_id?: string | null
           status?: Database["public"]["Enums"]["dispatch_status"]
           tenant_id?: string
           updated_at?: string
@@ -1835,6 +1848,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispatch_jobs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_call_sessions"
             referencedColumns: ["id"]
           },
           {
@@ -1971,6 +1991,7 @@ export type Database = {
           order_type: string
           requested_time: string | null
           scheduled_at: string | null
+          session_id: string | null
           special_instructions: string | null
           status: Database["public"]["Enums"]["order_status"]
           subtotal_cents: number | null
@@ -1994,6 +2015,7 @@ export type Database = {
           order_type?: string
           requested_time?: string | null
           scheduled_at?: string | null
+          session_id?: string | null
           special_instructions?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal_cents?: number | null
@@ -2017,6 +2039,7 @@ export type Database = {
           order_type?: string
           requested_time?: string | null
           scheduled_at?: string | null
+          session_id?: string | null
           special_instructions?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal_cents?: number | null
@@ -2032,6 +2055,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "food_orders_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_call_sessions"
             referencedColumns: ["id"]
           },
           {
@@ -2983,6 +3013,7 @@ export type Database = {
           party_size: number
           reservation_date: string
           reservation_time: string
+          session_id: string | null
           special_requests: string | null
           status: Database["public"]["Enums"]["reservation_status"]
           table_preference: string | null
@@ -2999,6 +3030,7 @@ export type Database = {
           party_size?: number
           reservation_date: string
           reservation_time: string
+          session_id?: string | null
           special_requests?: string | null
           status?: Database["public"]["Enums"]["reservation_status"]
           table_preference?: string | null
@@ -3015,6 +3047,7 @@ export type Database = {
           party_size?: number
           reservation_date?: string
           reservation_time?: string
+          session_id?: string | null
           special_requests?: string | null
           status?: Database["public"]["Enums"]["reservation_status"]
           table_preference?: string | null
@@ -3027,6 +3060,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_call_sessions"
             referencedColumns: ["id"]
           },
           {

@@ -60,6 +60,7 @@ import AdminAuditReportPage from "@/pages/admin/AdminAuditReportPage";
 import TelephonyDebugPage from "@/pages/debug/TelephonyDebugPage";
 import AIContextInspectorPage from "@/pages/debug/AIContextInspectorPage";
 import AvailabilityDebugPage from "@/pages/debug/AvailabilityDebugPage";
+import ExtractionDebugPage from "@/pages/debug/ExtractionDebugPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -131,6 +132,7 @@ const App = () => (
             <Route path="/debug/telephony" element={<TelephonyDebugPage />} />
             <Route path="/debug/ai-context" element={<AIContextInspectorPage />} />
             <Route path="/debug/availability" element={<AvailabilityDebugPage />} />
+            <Route path="/debug/extraction" element={<ExtractionDebugPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
