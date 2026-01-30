@@ -129,7 +129,7 @@ serve(async (req) => {
       console.log("No tenantId provided for browser test - using minimal defaults");
     }
 
-    // Get a signed URL for WebRTC connection from ElevenLabs
+    // Get a conversation token for WebRTC connection (lower latency than WebSocket signed URL)
     const response = await fetch(
       `https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=${ELEVENLABS_AGENT_ID}`,
       {
@@ -152,6 +152,7 @@ serve(async (req) => {
     const data = await response.json();
 
     // Return the signed URL along with dynamic variables for the client to inject
+    // Note: The client will use WebRTC connection mode for lower latency
     return new Response(
       JSON.stringify({ 
         signedUrl: data.signed_url,
