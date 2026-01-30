@@ -72,6 +72,7 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
   
   // OAuth states
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isRefreshingCalendars, setIsRefreshingCalendars] = useState(false);
   const [availableCalendars, setAvailableCalendars] = useState<AvailableCalendar[]>([]);
   const [selectedCalendarIds, setSelectedCalendarIds] = useState<string[]>([]);
   const [currentConnectionId, setCurrentConnectionId] = useState<string | null>(null);
@@ -315,6 +316,55 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
       setSyncStatus("error");
       const message = error instanceof Error ? error.message : "Sync failed";
       toast({ title: "Sync failed", description: message, variant: "destructive" });
+    }
+  };
+
+  const handleRefreshCalendars = async () => {
+    const connection = connections.find(c => 
+      (c.provider === "google" || c.provider === "microsoft") && c.status === "connected"
+    );
+    if (!connection) {
+      toast({ title: "No calendar connected", variant: "destructive" });
+      return;
+    }
+
+    setIsRefreshingCalendars(true);
+    try {
+      const response = await supabase.functions.invoke("refresh-calendar-list", {
+        body: { connection_id: connection.id },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      if (response.data?.error) {
+        throw new Error(response.data.error);
+      }
+
+      const freshCalendars = response.data?.calendars || [];
+      setAvailableCalendars(freshCalendars);
+      
+      // Keep existing selections that still exist
+      const validSelections = selectedCalendarIds.filter(id => 
+        freshCalendars.some((c: AvailableCalendar) => c.id === id)
+      );
+      // If no selections remain, select the primary
+      if (validSelections.length === 0) {
+        const primaryIds = freshCalendars.filter((c: AvailableCalendar) => c.primary).map((c: AvailableCalendar) => c.id);
+        setSelectedCalendarIds(primaryIds.length > 0 ? primaryIds : freshCalendars.slice(0, 1).map((c: AvailableCalendar) => c.id));
+      } else {
+        setSelectedCalendarIds(validSelections);
+      }
+
+      await refetch();
+      toast({ title: "Calendars refreshed", description: `Found ${freshCalendars.length} calendar(s)` });
+    } catch (error: unknown) {
+      console.error("Refresh calendars error:", error);
+      const message = error instanceof Error ? error.message : "Failed to refresh";
+      toast({ title: "Refresh failed", description: message, variant: "destructive" });
+    } finally {
+      setIsRefreshingCalendars(false);
     }
   };
 
@@ -632,9 +682,25 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
               </>
             ) : (
               <>
-                <p className="text-sm text-muted-foreground">
-                  Select which calendars should block your availability:
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    Select which calendars should block your availability:
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRefreshCalendars}
+                    disabled={isRefreshingCalendars}
+                    className="text-xs"
+                  >
+                    {isRefreshingCalendars ? (
+                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                    ) : (
+                      <RefreshCw className="h-3 w-3 mr-1" />
+                    )}
+                    Refresh list
+                  </Button>
+                </div>
                 
                 {availableCalendars.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
