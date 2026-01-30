@@ -23,7 +23,6 @@ import InboxPage from "@/pages/app/InboxPage";
 import LeadsPage from "@/pages/app/LeadsPage";
 import BookingsPage from "@/pages/app/BookingsPage";
 import ServicesPage from "@/pages/app/ServicesPage";
-import AutomationsPage from "@/pages/app/AutomationsPage";
 import IntegrationsPage from "@/pages/app/IntegrationsPage";
 import AIAssistantPage from "@/pages/app/AIAssistantPage";
 import SettingsPage from "@/pages/app/SettingsPage";
@@ -93,9 +92,10 @@ const App = () => (
               <Route path="/app/leads" element={<LeadsPage />} />
               <Route path="/app/bookings" element={<BookingsPage />} />
               <Route path="/app/services" element={<ServicesPage />} />
-              <Route path="/app/automations" element={<AutomationsPage />} />
               <Route path="/app/integrations" element={<IntegrationsPage />} />
               <Route path="/app/ai-assistant" element={<AIAssistantPage />} />
+              {/* Legacy routes - redirect to integrations */}
+              <Route path="/app/automations" element={<IntegrationsPage />} />
               <Route path="/app/simulator" element={<SimulatorPage />} />
               <Route path="/app/business-brain" element={<BusinessBrainPage />} />
               <Route path="/app/usage" element={<UsagePage />} />
@@ -109,8 +109,8 @@ const App = () => (
               <Route path="/app/medical-intake" element={<MedicalIntakePage />} />
               <Route path="/app/orders/:orderId/ticket" element={<OrderTicketPage />} />
               <Route path="/app/help" element={<HelpCenterPage />} />
-              {/* Legacy workflow routes redirect to automations or keep for editing */}
-              <Route path="/app/workflows" element={<AutomationsPage />} />
+              {/* Legacy workflow routes - deprecated but accessible via direct URL */}
+              <Route path="/app/workflows" element={<IntegrationsPage />} />
               <Route path="/app/workflows/new" element={<WorkflowEditPage />} />
               <Route path="/app/workflows/:id" element={<WorkflowEditPage />} />
               <Route path="/app/workflows/:id/runs" element={<WorkflowRunsPage />} />
