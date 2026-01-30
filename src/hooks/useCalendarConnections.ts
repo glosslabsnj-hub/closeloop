@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 export interface CalendarConnection {
   id: string;
   tenant_id: string;
-  provider: "google" | "microsoft" | "calendly" | "square" | "ics" | "manual";
+  provider: "google" | "microsoft" | "calendly" | "square" | "jobber" | "ics" | "manual";
   status: "pending" | "connected" | "error" | "disconnected";
   display_name: string | null;
   auth_type: "oauth" | "api_key" | "ics_url" | "manual";
@@ -17,6 +17,8 @@ export interface CalendarConnection {
   created_at: string;
   updated_at: string;
 }
+
+export type BookingBehavior = "auto_book" | "pending_approval";
 
 export interface BusyBlock {
   id: string;
@@ -45,6 +47,8 @@ export const CALENDAR_PROVIDERS = [
     icon: "📅",
     authType: "oauth" as const,
     description: "Sync with your Google Calendar",
+    category: "calendar" as const,
+    status: "available" as const,
   },
   {
     id: "microsoft" as const,
@@ -52,13 +56,8 @@ export const CALENDAR_PROVIDERS = [
     icon: "📧",
     authType: "oauth" as const,
     description: "Sync with Outlook/Office 365",
-  },
-  {
-    id: "calendly" as const,
-    name: "Calendly",
-    icon: "🗓️",
-    authType: "oauth" as const,
-    description: "Sync with your Calendly schedule",
+    category: "calendar" as const,
+    status: "available" as const,
   },
   {
     id: "square" as const,
@@ -66,6 +65,26 @@ export const CALENDAR_PROVIDERS = [
     icon: "⬜",
     authType: "oauth" as const,
     description: "Sync with Square Appointments",
+    category: "booking" as const,
+    status: "coming_soon" as const,
+  },
+  {
+    id: "calendly" as const,
+    name: "Calendly",
+    icon: "🗓️",
+    authType: "oauth" as const,
+    description: "Sync with your Calendly schedule",
+    category: "booking" as const,
+    status: "coming_soon" as const,
+  },
+  {
+    id: "jobber" as const,
+    name: "Jobber",
+    icon: "🔧",
+    authType: "oauth" as const,
+    description: "Sync with Jobber scheduling",
+    category: "booking" as const,
+    status: "coming_soon" as const,
   },
   {
     id: "ics" as const,
@@ -73,6 +92,8 @@ export const CALENDAR_PROVIDERS = [
     icon: "🔗",
     authType: "ics_url" as const,
     description: "Import from any ICS/iCal URL",
+    category: "calendar" as const,
+    status: "available" as const,
   },
   {
     id: "manual" as const,
@@ -80,6 +101,8 @@ export const CALENDAR_PROVIDERS = [
     icon: "✋",
     authType: "manual" as const,
     description: "Manage availability in-app only",
+    category: "manual" as const,
+    status: "available" as const,
   },
 ];
 

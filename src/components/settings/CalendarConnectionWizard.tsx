@@ -17,9 +17,11 @@ import { Separator } from "@/components/ui/separator";
 import {
   useCalendarConnections,
   CALENDAR_PROVIDERS,
+  useAvailableSlots,
   type CalendarConnection,
+  type BookingBehavior,
 } from "@/hooks/useCalendarConnections";
-import { useTenantSettings } from "@/hooks/useSettings";
+import { useTenantSettings, useAssistantSettings } from "@/hooks/useSettings";
 import { supabase } from "@/integrations/supabase/client";
 import BusinessHoursEditor, { type BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
 import { 
@@ -31,8 +33,13 @@ import {
   ExternalLink,
   RefreshCw,
   AlertCircle,
+  Clock,
+  CalendarCheck,
+  Send,
+  Sparkles,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { format, addDays } from "date-fns";
 
 interface CalendarConnectionWizardProps {
   open: boolean;
@@ -55,9 +62,20 @@ interface AvailableCalendar {
   primary?: boolean;
 }
 
+// Step definitions for wizard
+const WIZARD_STEPS = [
+  { id: 1, label: "Provider" },
+  { id: 2, label: "Connect" },
+  { id: 3, label: "Hours" },
+  { id: 4, label: "Rules" },
+  { id: 5, label: "Behavior" },
+  { id: 6, label: "Test" },
+];
+
 export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnectionWizardProps) {
   const { createConnection, connections, refetch } = useCalendarConnections();
   const { tenant, updateTenant, isUpdating } = useTenantSettings();
+  const { settings: assistantSettings, updateSettings: updateAssistantSettings } = useAssistantSettings();
   const { toast } = useToast();
   
   const [step, setStep] = useState(1);
@@ -70,6 +88,11 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
   const [maxAdvanceDays, setMaxAdvanceDays] = useState(tenant?.max_advance_days || 30);
   const [bufferMinutes, setBufferMinutes] = useState(tenant?.appointment_buffer_minutes || 15);
   
+  // Booking behavior state
+  const [bookingBehavior, setBookingBehavior] = useState<BookingBehavior>(
+    (assistantSettings as any)?.ai_booking_mode === "auto_book" ? "auto_book" : "pending_approval"
+  );
+  
   // OAuth states
   const [isConnecting, setIsConnecting] = useState(false);
   const [isRefreshingCalendars, setIsRefreshingCalendars] = useState(false);
@@ -78,6 +101,13 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
   const [currentConnectionId, setCurrentConnectionId] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "success" | "error">("idle");
   const [syncedEventsCount, setSyncedEventsCount] = useState(0);
+
+  // Test booking state
+  const [testSlots, setTestSlots] = useState<{ slot_start: string; slot_end: string }[]>([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const [testBookingSlot, setTestBookingSlot] = useState<string | null>(null);
+  const [isTestingBooking, setIsTestingBooking] = useState(false);
+  const [testBookingResult, setTestBookingResult] = useState<"success" | "error" | null>(null);
 
   // Helper to process a newly detected connection
   const processNewConnection = (data: { config_json?: unknown }) => {
@@ -180,9 +210,12 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
   }, [connections]);
 
   // Track which providers have OAuth configured
-  const [providerStatus, setProviderStatus] = useState<Record<string, "available" | "not_configured" | "unknown">>({
+  const [providerStatus, setProviderStatus] = useState<Record<string, "available" | "not_configured" | "coming_soon" | "unknown">>({
     google: "unknown",
     microsoft: "unknown",
+    square: "coming_soon",
+    calendly: "coming_soon",
+    jobber: "coming_soon",
     ics: "available",
     manual: "available",
   });
@@ -311,11 +344,80 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
 
       setSyncedEventsCount(response.data?.synced_count || 0);
       setSyncStatus("success");
+      
+      // After sync, load available slots
+      await loadTestSlots();
     } catch (error: unknown) {
       console.error("Sync error:", error);
       setSyncStatus("error");
       const message = error instanceof Error ? error.message : "Sync failed";
       toast({ title: "Sync failed", description: message, variant: "destructive" });
+    }
+  };
+
+  const loadTestSlots = async () => {
+    setIsLoadingSlots(true);
+    try {
+      const startDate = new Date();
+      const endDate = addDays(startDate, 7);
+      
+      const { data, error } = await supabase.rpc("fn_compute_available_slots", {
+        _tenant_id: tenant?.id,
+        _start_date: format(startDate, "yyyy-MM-dd"),
+        _end_date: format(endDate, "yyyy-MM-dd"),
+        _duration_minutes: 60,
+        _buffer_minutes: bufferMinutes || 0,
+        _business_hours: (businessHours as unknown as Record<string, never>) || null,
+      });
+
+      if (error) throw error;
+      
+      // Take first 5 slots
+      setTestSlots((data || []).slice(0, 5));
+    } catch (error) {
+      console.error("Failed to load slots:", error);
+    } finally {
+      setIsLoadingSlots(false);
+    }
+  };
+
+  const handleTestBooking = async (slotStart: string) => {
+    setTestBookingSlot(slotStart);
+    setIsTestingBooking(true);
+    setTestBookingResult(null);
+    
+    try {
+      // Just verify the slot is still available
+      const startDate = new Date(slotStart);
+      const endDate = addDays(startDate, 1);
+      
+      const { data, error } = await supabase.rpc("fn_compute_available_slots", {
+        _tenant_id: tenant?.id,
+        _start_date: format(startDate, "yyyy-MM-dd"),
+        _end_date: format(endDate, "yyyy-MM-dd"),
+        _duration_minutes: 60,
+        _buffer_minutes: bufferMinutes || 0,
+        _business_hours: (businessHours as unknown as Record<string, never>) || null,
+      });
+
+      if (error) throw error;
+      
+      const isAvailable = (data || []).some(
+        (s: { slot_start: string }) => s.slot_start === slotStart
+      );
+
+      if (isAvailable) {
+        setTestBookingResult("success");
+        toast({ title: "Slot is available!", description: "AI would book this time successfully." });
+      } else {
+        setTestBookingResult("error");
+        toast({ title: "Slot conflict detected", description: "This time is no longer available.", variant: "destructive" });
+      }
+    } catch (error) {
+      console.error("Test booking error:", error);
+      setTestBookingResult("error");
+    } finally {
+      setIsTestingBooking(false);
     }
   };
 
@@ -400,16 +502,22 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
     } else if (step === 3) {
       setStep(4); // Go to booking rules
     } else if (step === 4) {
-      // Final step - save tenant settings
+      // Save tenant settings then go to behavior
       await updateTenant.mutateAsync({
         hours_json: businessHours as Record<string, never>,
         min_lead_hours: minLeadHours,
         max_advance_days: maxAdvanceDays,
         appointment_buffer_minutes: bufferMinutes,
       });
-      setStep(5); // Go to test sync
+      setStep(5); // Go to booking behavior
     } else if (step === 5) {
-      setStep(6); // Success
+      // Save booking behavior
+      await updateAssistantSettings.mutateAsync({
+        ai_booking_mode: bookingBehavior,
+      });
+      setStep(6); // Go to test
+    } else if (step === 6) {
+      setStep(7); // Success
     }
   };
 
@@ -426,6 +534,8 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
       setStep(3);
     } else if (step === 5) {
       setStep(4);
+    } else if (step === 6) {
+      setStep(5);
     }
   };
 
@@ -436,6 +546,8 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
     setSyncStatus("idle");
     setAvailableCalendars([]);
     setSelectedCalendarIds([]);
+    setTestSlots([]);
+    setTestBookingResult(null);
     onOpenChange(false);
   };
 
@@ -447,7 +559,8 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
     }
     if (step === 3) return true;
     if (step === 4) return true;
-    if (step === 5) return syncStatus === "success";
+    if (step === 5) return true;
+    if (step === 6) return syncStatus === "success";
     return true;
   };
 
@@ -457,10 +570,22 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
     );
   };
 
+  const getStepTitle = () => {
+    switch (step) {
+      case 1: return "Choose where your schedule lives";
+      case 2: return selectedProvider === "ics" ? "Enter your calendar feed URL" : "Select which calendars to sync";
+      case 3: return "Set your business hours";
+      case 4: return "Configure booking rules";
+      case 5: return "Choose booking behavior";
+      case 6: return "Test your setup";
+      default: return "";
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[550px] max-h-[85vh] overflow-y-auto">
-        {step < 6 && (
+      <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
+        {step <= 6 && (
           <DialogHeader>
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-full bg-primary/10">
@@ -468,25 +593,23 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
               </div>
               <div>
                 <DialogTitle>Connect Your Schedule</DialogTitle>
-                <DialogDescription>
-                  {step === 1 && "Choose where your schedule lives"}
-                  {step === 2 && (selectedProvider === "ics" ? "Enter your calendar feed URL" : "Select which calendars to sync")}
-                  {step === 3 && "Set your business hours"}
-                  {step === 4 && "Configure booking rules"}
-                  {step === 5 && "Test the sync"}
-                </DialogDescription>
+                <DialogDescription>{getStepTitle()}</DialogDescription>
               </div>
             </div>
             
             {/* Progress indicator */}
             <div className="flex gap-1 mt-4">
-              {[1, 2, 3, 4, 5].map((s) => (
-                <div
-                  key={s}
-                  className={`h-1 flex-1 rounded-full transition-colors ${
-                    s <= step ? "bg-primary" : "bg-muted"
-                  }`}
-                />
+              {WIZARD_STEPS.map((s) => (
+                <div key={s.id} className="flex-1 space-y-1">
+                  <div
+                    className={`h-1 rounded-full transition-colors ${
+                      s.id <= step ? "bg-primary" : "bg-muted"
+                    }`}
+                  />
+                  <p className={`text-[10px] text-center ${s.id === step ? "text-primary font-medium" : "text-muted-foreground"}`}>
+                    {s.label}
+                  </p>
+                </div>
               ))}
             </div>
           </DialogHeader>
@@ -539,7 +662,7 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
               ))}
               
               <Separator className="my-2" />
-              <p className="text-xs text-muted-foreground px-1">Or use direct sync (requires admin setup):</p>
+              <p className="text-xs text-muted-foreground px-1">Direct calendar sync:</p>
               
               {/* Google and Microsoft with status indicators */}
               {CALENDAR_PROVIDERS.filter(p => ["google", "microsoft"].includes(p.id)).map((provider) => {
@@ -591,6 +714,29 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
                   </label>
                 );
               })}
+
+              <Separator className="my-2" />
+              <p className="text-xs text-muted-foreground px-1">Booking platforms:</p>
+              
+              {/* Square, Calendly, Jobber - coming soon */}
+              {CALENDAR_PROVIDERS.filter(p => ["square", "calendly", "jobber"].includes(p.id)).map((provider) => (
+                <label
+                  key={provider.id}
+                  className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20 cursor-not-allowed opacity-60"
+                >
+                  <RadioGroupItem value={provider.id} className="sr-only" disabled />
+                  <span className="text-2xl">{provider.icon}</span>
+                  <div className="flex-1">
+                    <p className="font-medium flex items-center gap-2">
+                      {provider.name}
+                      <Badge variant="outline" className="text-xs">Coming Soon</Badge>
+                    </p>
+                    <p className="text-sm text-muted-foreground">{provider.description}</p>
+                  </div>
+                </label>
+              ))}
+              
+              <Separator className="my-2" />
               
               {/* Manual option last */}
               {CALENDAR_PROVIDERS.filter(p => p.id === "manual").map((provider) => (
@@ -804,8 +950,84 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
           </div>
         )}
 
-        {/* Step 5: Test Sync */}
+        {/* Step 5: Booking Behavior */}
         {step === 5 && (
+          <div className="py-4 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Choose how AI handles booking confirmations
+            </p>
+            
+            <RadioGroup
+              value={bookingBehavior}
+              onValueChange={(v) => setBookingBehavior(v as BookingBehavior)}
+              className="space-y-3"
+            >
+              <label
+                className={`flex items-start gap-4 p-4 rounded-lg border cursor-pointer transition-colors ${
+                  bookingBehavior === "auto_book"
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:bg-muted/50"
+                }`}
+              >
+                <RadioGroupItem value="auto_book" className="mt-1" />
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <span className="font-medium">Auto-Book</span>
+                    <Badge variant="secondary" className="text-xs">Recommended</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    AI confirms appointments instantly and syncs to your calendar. 
+                    Best for established businesses with predictable schedules.
+                  </p>
+                  <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <CalendarCheck className="h-3 w-3" /> Adds to calendar
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Send className="h-3 w-3" /> Sends confirmation
+                    </span>
+                  </div>
+                </div>
+              </label>
+
+              <label
+                className={`flex items-start gap-4 p-4 rounded-lg border cursor-pointer transition-colors ${
+                  bookingBehavior === "pending_approval"
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:bg-muted/50"
+                }`}
+              >
+                <RadioGroupItem value="pending_approval" className="mt-1" />
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-amber-500" />
+                    <span className="font-medium">Pending Approval</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    AI collects booking details but waits for your approval before confirming. 
+                    Good for complex services or when you need manual review.
+                  </p>
+                  <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" /> Creates request
+                    </span>
+                    <span className="flex items-center gap-1">
+                      You approve manually
+                    </span>
+                  </div>
+                </div>
+              </label>
+            </RadioGroup>
+
+            <div className="p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
+              <p>💡 You can change this anytime in Settings → Booking Delivery</p>
+            </div>
+          </div>
+        )}
+
+        {/* Step 6: Test Sync */}
+        {step === 6 && (
           <div className="py-4 space-y-4">
             <div className="text-center">
               {syncStatus === "idle" && (
@@ -828,7 +1050,7 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
               )}
 
               {syncStatus === "success" && (
-                <div className="py-4">
+                <div className="py-4 space-y-4">
                   <div className="mx-auto w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center mb-4">
                     <CheckCircle2 className="h-6 w-6 text-green-500" />
                   </div>
@@ -836,6 +1058,85 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
                   <p className="text-sm text-muted-foreground">
                     Found {syncedEventsCount} busy time{syncedEventsCount !== 1 ? "s" : ""} in the next 30 days
                   </p>
+
+                  {/* Available Slots Test */}
+                  <Separator className="my-4" />
+                  
+                  <div className="text-left">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="font-medium text-sm">Next 5 Available Slots</p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={loadTestSlots}
+                        disabled={isLoadingSlots}
+                      >
+                        {isLoadingSlots ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-3 w-3" />
+                        )}
+                      </Button>
+                    </div>
+                    
+                    {isLoadingSlots ? (
+                      <div className="text-center py-4">
+                        <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+                      </div>
+                    ) : testSlots.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        No available slots found in the next 7 days
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {testSlots.map((slot, i) => {
+                          const startDate = new Date(slot.slot_start);
+                          const isSelected = testBookingSlot === slot.slot_start;
+                          const showSuccess = isSelected && testBookingResult === "success";
+                          
+                          return (
+                            <div
+                              key={i}
+                              className={`flex items-center justify-between p-3 rounded-lg border ${
+                                showSuccess 
+                                  ? "border-green-500 bg-green-50 dark:bg-green-950/20" 
+                                  : "border-border"
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <Calendar className="h-4 w-4 text-muted-foreground" />
+                                <div>
+                                  <p className="text-sm font-medium">
+                                    {format(startDate, "EEEE, MMM d")}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {format(startDate, "h:mm a")}
+                                  </p>
+                                </div>
+                              </div>
+                              <Button
+                                variant={showSuccess ? "secondary" : "outline"}
+                                size="sm"
+                                onClick={() => handleTestBooking(slot.slot_start)}
+                                disabled={isTestingBooking}
+                              >
+                                {isTestingBooking && isSelected ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : showSuccess ? (
+                                  <>
+                                    <CheckCircle2 className="h-3 w-3 mr-1 text-green-600" />
+                                    Available
+                                  </>
+                                ) : (
+                                  "Test Book"
+                                )}
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -857,8 +1158,8 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
           </div>
         )}
 
-        {/* Step 6: Success */}
-        {step === 6 && (
+        {/* Step 7: Success */}
+        {step === 7 && (
           <div className="py-8 text-center">
             <div className="mx-auto w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center mb-4">
               <CheckCircle2 className="h-6 w-6 text-green-500" />
@@ -867,11 +1168,31 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
             <DialogDescription>
               AI can now see your availability and book appointments without conflicts.
             </DialogDescription>
+            
+            <div className="mt-6 p-4 rounded-lg bg-muted/50 text-left space-y-2">
+              <p className="text-sm font-medium">Your setup:</p>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3 w-3 text-green-500" />
+                  {selectedProvider === "ics" ? "Calendar link connected" : 
+                   selectedProvider === "manual" ? "Manual availability mode" : 
+                   `${selectedProvider} calendar synced`}
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3 w-3 text-green-500" />
+                  Business hours configured
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3 w-3 text-green-500" />
+                  Booking mode: {bookingBehavior === "auto_book" ? "Auto-Book" : "Pending Approval"}
+                </li>
+              </ul>
+            </div>
           </div>
         )}
 
         <DialogFooter>
-          {step < 6 ? (
+          {step <= 6 ? (
             <>
               {step > 1 && (
                 <Button variant="outline" onClick={handleBack} disabled={isConnecting}>
@@ -888,10 +1209,10 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
                 ) : null}
                 {step === 1 && (selectedProvider === "google" || selectedProvider === "microsoft")
                   ? "Connect"
-                  : step === 5
+                  : step === 6
                     ? "Complete Setup"
                     : "Next"}
-                {step !== 5 && !isConnecting && <ArrowRight className="h-4 w-4 ml-2" />}
+                {step !== 6 && !isConnecting && <ArrowRight className="h-4 w-4 ml-2" />}
               </Button>
             </>
           ) : (
