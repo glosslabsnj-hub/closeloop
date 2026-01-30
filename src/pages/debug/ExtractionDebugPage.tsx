@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Phone, 
   CheckCircle2, 
@@ -17,6 +18,10 @@ import {
   Calendar,
   Truck,
   Users,
+  ArrowRight,
+  Database,
+  Wand2,
+  FileCheck,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
@@ -68,6 +73,16 @@ const entityIcons: Record<string, React.ReactNode> = {
   dispatch: <Truck className="h-4 w-4" />,
 };
 
+const intentColors: Record<string, string> = {
+  order: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
+  reservation: "bg-purple-500/10 text-purple-700 dark:text-purple-300",
+  booking: "bg-green-500/10 text-green-700 dark:text-green-300",
+  dispatch: "bg-orange-500/10 text-orange-700 dark:text-orange-300",
+  callback: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300",
+  faq: "bg-gray-500/10 text-gray-700 dark:text-gray-300",
+  other: "bg-muted text-muted-foreground",
+};
+
 export default function ExtractionDebugPage() {
   const { tenant } = useAuth();
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
@@ -115,7 +130,6 @@ export default function ExtractionDebugPage() {
       if (!selectedSession) return [];
       const entities: DerivedEntity[] = [];
 
-      // Check food_orders
       const { data: orders } = await supabase
         .from("food_orders")
         .select("id, order_number, status, created_at")
@@ -130,7 +144,6 @@ export default function ExtractionDebugPage() {
         })));
       }
 
-      // Check reservations
       const { data: reservations } = await supabase
         .from("reservations")
         .select("id, party_size, reservation_date, status, created_at")
@@ -145,7 +158,6 @@ export default function ExtractionDebugPage() {
         })));
       }
 
-      // Check bookings
       const { data: bookings } = await supabase
         .from("bookings")
         .select("id, start_at, status, created_at")
@@ -160,7 +172,6 @@ export default function ExtractionDebugPage() {
         })));
       }
 
-      // Check dispatch_jobs
       const { data: jobs } = await supabase
         .from("dispatch_jobs")
         .select("id, job_number, status, created_at")
@@ -181,6 +192,20 @@ export default function ExtractionDebugPage() {
   });
 
   const selectedSessionData = sessions?.find(s => s.id === selectedSession);
+  const extractedPayload = selectedSessionData?.extracted_payload as Record<string, unknown> | null;
+
+  // Get raw data collection keys from _meta
+  const rawDataCollectionKeys = (extractedPayload?._meta as Record<string, unknown>)?.raw_data_collection_keys as string[] || [];
+  const extractionSource = (extractedPayload?._meta as Record<string, unknown>)?.extraction_source || "unknown";
+  const normalizedAt = (extractedPayload?._meta as Record<string, unknown>)?.normalized_at;
+  const tenantTimezone = (extractedPayload?._meta as Record<string, unknown>)?.tenant_timezone;
+
+  // Get specific logs for pipeline stages
+  const getLogForStage = (stage: string) => eventLogs?.find(l => l.stage === stage);
+  const canonicalizedLog = getLogForStage("extraction_canonicalized");
+  const normalizedLog = getLogForStage("normalization_applied");
+  const entityCreatedLog = getLogForStage("derived_entity_created");
+  const entitySkippedLog = getLogForStage("derived_entity_skipped");
 
   if (sessionsLoading) {
     return (
@@ -194,7 +219,7 @@ export default function ExtractionDebugPage() {
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
       <div className="page-header">
         <h1 className="page-title">Extraction Debug</h1>
-        <p className="page-subtitle">View call extraction data, event logs, and derived entities</p>
+        <p className="page-subtitle">View call extraction pipeline: Raw → Canonical → Normalized → Entity</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -213,8 +238,8 @@ export default function ExtractionDebugPage() {
                   <TableRow>
                     <TableHead>Time</TableHead>
                     <TableHead>Caller</TableHead>
-                    <TableHead>Outcome</TableHead>
-                    <TableHead>Extracted</TableHead>
+                    <TableHead>Intent</TableHead>
+                    <TableHead>Entity</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -226,8 +251,9 @@ export default function ExtractionDebugPage() {
                     </TableRow>
                   ) : (
                     sessions?.map((session) => {
-                      const hasExtraction = !!session.extracted_payload && 
-                        Object.keys(session.extracted_payload).length > 0;
+                      const payload = session.extracted_payload as Record<string, unknown> | null;
+                      const intent = payload?.intent as string || "unknown";
+                      const hasExtraction = !!payload && Object.keys(payload).length > 0;
                       
                       return (
                         <TableRow 
@@ -245,11 +271,9 @@ export default function ExtractionDebugPage() {
                             {session.caller_phone || "Unknown"}
                           </TableCell>
                           <TableCell>
-                            {session.outcome && (
-                              <Badge className={outcomeColors[session.outcome] || "bg-muted"}>
-                                {session.outcome}
-                              </Badge>
-                            )}
+                            <Badge className={intentColors[intent] || "bg-muted"}>
+                              {intent}
+                            </Badge>
                           </TableCell>
                           <TableCell>
                             {hasExtraction ? (
@@ -268,19 +292,19 @@ export default function ExtractionDebugPage() {
           </CardContent>
         </Card>
 
-        {/* Selected Session Details */}
+        {/* Selected Session Details - 4-Panel View */}
         <div className="space-y-4">
           {selectedSession && selectedSessionData ? (
             <>
-              {/* Summary Card */}
+              {/* Quick Summary */}
               <Card>
-                <CardHeader>
+                <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <FileJson className="h-5 w-5" />
                     Call Details
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <p className="text-muted-foreground">Session ID</p>
@@ -291,123 +315,233 @@ export default function ExtractionDebugPage() {
                       <p>{selectedSessionData.caller_phone || "Unknown"}</p>
                     </div>
                     <div>
+                      <p className="text-muted-foreground">Intent</p>
+                      <Badge className={intentColors[(extractedPayload?.intent as string) || "other"] || "bg-muted"}>
+                        {(extractedPayload?.intent as string) || "Unknown"}
+                      </Badge>
+                    </div>
+                    <div>
                       <p className="text-muted-foreground">Outcome</p>
                       <Badge className={outcomeColors[selectedSessionData.outcome || ""] || "bg-muted"}>
                         {selectedSessionData.outcome || "Unknown"}
                       </Badge>
                     </div>
-                    <div>
-                      <p className="text-muted-foreground">Customer ID</p>
-                      <p className="font-mono text-xs">
-                        {selectedSessionData.customer_id?.slice(0, 8) || "None"}
-                      </p>
-                    </div>
                   </div>
-
-                  {selectedSessionData.summary && (
-                    <div>
-                      <p className="text-muted-foreground text-sm mb-1">Summary</p>
-                      <p className="text-sm bg-muted p-2 rounded">{selectedSessionData.summary}</p>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
 
-              {/* Extracted Payload */}
+              {/* 4-Panel Extraction Pipeline */}
               <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Extracted Payload</CardTitle>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">Extraction Pipeline</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {selectedSessionData.extracted_payload && 
-                   Object.keys(selectedSessionData.extracted_payload).length > 0 ? (
-                    <div className="space-y-3">
-                      {/* Quick summary of intent detection */}
-                      <div className="flex flex-wrap gap-2">
-                        {(selectedSessionData.extracted_payload as Record<string, unknown>).intent && (
-                          <Badge variant="outline" className="bg-primary/10">
-                            Intent: {String((selectedSessionData.extracted_payload as Record<string, unknown>).intent)}
+                  <Tabs defaultValue="canonical" className="w-full">
+                    <TabsList className="grid w-full grid-cols-4">
+                      <TabsTrigger value="raw" className="text-xs">
+                        <Database className="h-3 w-3 mr-1" />
+                        Raw
+                      </TabsTrigger>
+                      <TabsTrigger value="canonical" className="text-xs">
+                        <FileJson className="h-3 w-3 mr-1" />
+                        Canonical
+                      </TabsTrigger>
+                      <TabsTrigger value="normalized" className="text-xs">
+                        <Wand2 className="h-3 w-3 mr-1" />
+                        Normalized
+                      </TabsTrigger>
+                      <TabsTrigger value="entity" className="text-xs">
+                        <FileCheck className="h-3 w-3 mr-1" />
+                        Entity
+                      </TabsTrigger>
+                    </TabsList>
+
+                    {/* Raw Data Collection */}
+                    <TabsContent value="raw" className="mt-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            Source: {extractionSource}
                           </Badge>
-                        )}
-                        {(selectedSessionData.extracted_payload as Record<string, unknown>)._reservation_detected && (
-                          <Badge variant="outline" className="bg-blue-500/10 text-blue-700">
-                            Reservation Detected
+                          <Badge variant="outline" className="text-xs">
+                            {rawDataCollectionKeys.length} keys
                           </Badge>
-                        )}
-                        {(selectedSessionData.extracted_payload as Record<string, unknown>).party_size && (
-                          <Badge variant="outline" className="bg-green-500/10 text-green-700">
-                            Party: {String((selectedSessionData.extracted_payload as Record<string, unknown>).party_size)} guests
-                          </Badge>
-                        )}
-                        {(selectedSessionData.extracted_payload as Record<string, unknown>).items && (
-                          <Badge variant="outline" className="bg-orange-500/10 text-orange-700">
-                            {Array.isArray((selectedSessionData.extracted_payload as Record<string, unknown>).items) 
-                              ? ((selectedSessionData.extracted_payload as Record<string, unknown>).items as unknown[]).length 
-                              : 0} items
-                          </Badge>
-                        )}
-                        {(selectedSessionData.extracted_payload as Record<string, unknown>).special_instructions && (
-                          <Badge variant="outline" className="bg-purple-500/10 text-purple-700">
-                            Has Special Instructions
-                          </Badge>
+                        </div>
+                        {rawDataCollectionKeys.length > 0 ? (
+                          <ScrollArea className="h-[200px]">
+                            <div className="space-y-2">
+                              {rawDataCollectionKeys.map((key) => (
+                                <div key={key} className="flex items-center gap-2 p-2 bg-muted rounded text-sm">
+                                  <span className="font-mono text-xs text-muted-foreground">{key}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </ScrollArea>
+                        ) : (
+                          <div className="flex items-center gap-2 text-muted-foreground py-4">
+                            <AlertTriangle className="h-4 w-4" />
+                            <span>No raw data collection keys (server-side extraction used)</span>
+                          </div>
                         )}
                       </div>
-                      <ScrollArea className="h-[200px]">
-                        <pre className="text-xs bg-muted p-3 rounded overflow-auto">
-                          {JSON.stringify(selectedSessionData.extracted_payload, null, 2)}
-                        </pre>
-                      </ScrollArea>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 text-muted-foreground py-4">
-                      <AlertTriangle className="h-4 w-4" />
-                      <span>No extracted payload</span>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                    </TabsContent>
 
-              {/* Derived Entities */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Derived Entities</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {derivedEntities && derivedEntities.length > 0 ? (
-                    <div className="space-y-2">
-                      {derivedEntities.map((entity) => (
-                        <div 
-                          key={entity.id}
-                          className="flex items-center justify-between p-3 bg-muted rounded-lg"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                              {entityIcons[entity.type]}
-                            </div>
-                            <div>
-                              <p className="font-medium capitalize">{entity.type}</p>
-                              <p className="text-sm text-muted-foreground">{entity.display}</p>
+                    {/* Canonical Payload */}
+                    <TabsContent value="canonical" className="mt-4">
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap gap-2">
+                          {extractedPayload?.intent && (
+                            <Badge variant="outline" className="bg-primary/10">
+                              Intent: {String(extractedPayload.intent)}
+                            </Badge>
+                          )}
+                          {(extractedPayload?.customer as Record<string, unknown>)?.name && (
+                            <Badge variant="outline" className="bg-green-500/10 text-green-700">
+                              Customer: {String((extractedPayload.customer as Record<string, unknown>).name)}
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        {/* Show relevant section based on intent */}
+                        <ScrollArea className="h-[200px]">
+                          <pre className="text-xs bg-muted p-3 rounded overflow-auto">
+                            {JSON.stringify(extractedPayload, null, 2)}
+                          </pre>
+                        </ScrollArea>
+                      </div>
+                    </TabsContent>
+
+                    {/* Normalized Values */}
+                    <TabsContent value="normalized" className="mt-4">
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap gap-2">
+                          {tenantTimezone && (
+                            <Badge variant="outline" className="text-xs">
+                              Timezone: {String(tenantTimezone)}
+                            </Badge>
+                          )}
+                          {normalizedAt && (
+                            <Badge variant="outline" className="text-xs">
+                              Normalized: {format(new Date(String(normalizedAt)), "HH:mm:ss")}
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* Reservation normalization details */}
+                        {(extractedPayload?.reservation as Record<string, unknown>) && (
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium">Reservation Normalization</p>
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                              <div className="p-2 bg-muted rounded">
+                                <p className="text-xs text-muted-foreground">Original Date</p>
+                                <p className="font-mono">
+                                  {String((extractedPayload.reservation as Record<string, unknown>).original_date_phrase || "(already ISO)")}
+                                </p>
+                                <ArrowRight className="h-3 w-3 my-1 text-muted-foreground" />
+                                <p className="font-mono text-primary">
+                                  {String((extractedPayload.reservation as Record<string, unknown>).date || "null")}
+                                </p>
+                              </div>
+                              <div className="p-2 bg-muted rounded">
+                                <p className="text-xs text-muted-foreground">Original Time</p>
+                                <p className="font-mono">
+                                  {String((extractedPayload.reservation as Record<string, unknown>).original_time_phrase || "(already 24h)")}
+                                </p>
+                                <ArrowRight className="h-3 w-3 my-1 text-muted-foreground" />
+                                <p className="font-mono text-primary">
+                                  {String((extractedPayload.reservation as Record<string, unknown>).time || "null")}
+                                </p>
+                              </div>
+                              <div className="p-2 bg-muted rounded col-span-2">
+                                <p className="text-xs text-muted-foreground">Party Size</p>
+                                <p className="font-mono text-primary">
+                                  {String((extractedPayload.reservation as Record<string, unknown>).party_size ?? "null")} 
+                                  <span className="text-muted-foreground ml-2">
+                                    (type: {typeof (extractedPayload.reservation as Record<string, unknown>).party_size})
+                                  </span>
+                                </p>
+                              </div>
                             </div>
                           </div>
-                          <Badge variant="outline">{entity.status}</Badge>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 text-muted-foreground py-4">
-                      <XCircle className="h-4 w-4" />
-                      <span>No derived entities created</span>
-                    </div>
-                  )}
+                        )}
+
+                        {/* Show normalization event log data if available */}
+                        {normalizedLog?.event_data && (
+                          <div className="mt-4">
+                            <p className="text-sm font-medium mb-2">Event Log Data</p>
+                            <pre className="text-xs bg-muted p-2 rounded overflow-auto">
+                              {JSON.stringify(normalizedLog.event_data, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    </TabsContent>
+
+                    {/* Derived Entity */}
+                    <TabsContent value="entity" className="mt-4">
+                      <div className="space-y-3">
+                        {derivedEntities && derivedEntities.length > 0 ? (
+                          <div className="space-y-2">
+                            {derivedEntities.map((entity) => (
+                              <div 
+                                key={entity.id}
+                                className="flex items-center justify-between p-3 bg-green-500/10 rounded-lg border border-green-500/20"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="h-8 w-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+                                    {entityIcons[entity.type]}
+                                  </div>
+                                  <div>
+                                    <p className="font-medium capitalize flex items-center gap-2">
+                                      {entity.type}
+                                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">{entity.display}</p>
+                                    <p className="text-xs font-mono text-muted-foreground">{entity.id.slice(0, 8)}...</p>
+                                  </div>
+                                </div>
+                                <Badge variant="outline">{entity.status}</Badge>
+                              </div>
+                            ))}
+                          </div>
+                        ) : entitySkippedLog ? (
+                          <div className="flex items-center gap-2 p-4 bg-muted rounded-lg">
+                            <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                            <div>
+                              <p className="font-medium">Entity Skipped</p>
+                              <p className="text-sm text-muted-foreground">
+                                {String((entitySkippedLog.event_data as Record<string, unknown>)?.reason || "No entity created for this intent")}
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-muted-foreground py-4">
+                            <XCircle className="h-4 w-4" />
+                            <span>No derived entities created</span>
+                          </div>
+                        )}
+
+                        {/* Entity creation log details */}
+                        {entityCreatedLog?.event_data && (
+                          <div className="mt-4 p-3 bg-muted rounded">
+                            <p className="text-sm font-medium mb-2">Entity Creation Log</p>
+                            <pre className="text-xs overflow-auto">
+                              {JSON.stringify(entityCreatedLog.event_data, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                 </CardContent>
               </Card>
 
-              {/* Event Logs */}
+              {/* Event Logs Timeline */}
               <Card>
-                <CardHeader>
+                <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Clock className="h-5 w-5" />
-                    Event Log
+                    Event Log Timeline
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -432,7 +566,15 @@ export default function ExtractionDebugPage() {
                                 {format(new Date(log.created_at), "HH:mm:ss")}
                               </TableCell>
                               <TableCell className="text-sm">
-                                {log.stage.replace(/_/g, " ")}
+                                <Badge variant="outline" className={
+                                  log.stage.includes("canonical") ? "bg-blue-500/10" :
+                                  log.stage.includes("normal") ? "bg-purple-500/10" :
+                                  log.stage.includes("entity_created") ? "bg-green-500/10" :
+                                  log.stage.includes("error") || log.stage.includes("failed") ? "bg-destructive/10" :
+                                  ""
+                                }>
+                                  {log.stage.replace(/_/g, " ")}
+                                </Badge>
                               </TableCell>
                               <TableCell>
                                 {log.error_message ? (
@@ -461,7 +603,7 @@ export default function ExtractionDebugPage() {
             <Card>
               <CardContent className="py-12 text-center text-muted-foreground">
                 <FileJson className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Select a call to view extraction details</p>
+                <p>Select a call to view extraction pipeline details</p>
               </CardContent>
             </Card>
           )}
