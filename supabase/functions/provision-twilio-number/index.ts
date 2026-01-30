@@ -84,11 +84,13 @@ serve(async (req) => {
 
     // ========== IDEMPOTENCY CHECK: Does THIS tenant already have a number? ==========
     // Check phone_numbers table FIRST (source of truth)
+    // Only consider "provisioned" status as active - "replaced" numbers should be ignored
     const { data: existingPhoneNumber, error: phoneNumberError } = await supabase
       .from("phone_numbers")
       .select("id, phone_e164, twilio_sid, status")
       .eq("tenant_id", tenant_id)
       .eq("purpose", "forwarding")
+      .eq("status", "provisioned")
       .maybeSingle();
 
     if (phoneNumberError) {
