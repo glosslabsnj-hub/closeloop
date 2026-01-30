@@ -91,6 +91,7 @@ export interface BusinessContext {
     faqs: Array<{ question: string; answer: string }>;
     faqs_summary: string;
     objections: Array<{ objection: string; response: string }>;
+    supplementary: Array<{ type: string; title: string; content: string }>;
   };
   operations: {
     modules: {
@@ -532,6 +533,7 @@ export async function buildBusinessContext(
     menuItemsResult,
     faqsResult,
     objectionsResult,
+    knowledgeBaseResult,
     assistantResult,
     assistantSettingsResult,
     intelligenceSettingsResult,
@@ -542,6 +544,7 @@ export async function buildBusinessContext(
     supabase.from("menu_items").select("id, name, description, category, price_cents, modifiers, dietary_tags, is_available").eq("tenant_id", tenantId).eq("is_available", true).limit(50),
     supabase.from("business_faqs").select("question, answer").eq("tenant_id", tenantId).order("priority_weight", { ascending: false }).limit(15),
     supabase.from("objection_responses").select("objection, response").eq("tenant_id", tenantId).order("priority_weight", { ascending: false }).limit(10),
+    supabase.from("ai_knowledge_base").select("type, title, content").eq("tenant_id", tenantId).order("priority_weight", { ascending: false }).limit(20),
     supabase.from("ai_assistants").select("tone, greeting_script, fallback_script").eq("tenant_id", tenantId).maybeSingle(),
     supabase.from("assistant_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
     supabase.from("tenant_intelligence_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
@@ -557,6 +560,7 @@ export async function buildBusinessContext(
   const menuItems = menuItemsResult.data || [];
   const faqs = faqsResult.data || [];
   const objections = objectionsResult.data || [];
+  const knowledgeBase = knowledgeBaseResult.data || [];
   const assistant = assistantResult.data;
   const assistantSettings = assistantSettingsResult.data;
   const intelligenceSettings = intelligenceSettingsResult.data;
@@ -675,6 +679,8 @@ export async function buildBusinessContext(
       faqs: faqs.map(f => ({ question: f.question, answer: f.answer })),
       faqs_summary: buildFaqsSummary(faqs),
       objections: objections.map(o => ({ objection: o.objection, response: o.response })),
+      // Additional knowledge from ai_knowledge_base table (policies, upsells, custom info)
+      supplementary: knowledgeBase.map(k => ({ type: k.type, title: k.title, content: k.content })),
     },
     operations: {
       modules: {
@@ -821,6 +827,14 @@ Do NOT claim you cannot take orders if menu IS available above.
     prompt += `OBJECTION HANDLING:\\n`;
     for (const obj of ctx.knowledge.objections.slice(0, 5)) {
       prompt += `If customer says: "${obj.objection}"\\nRespond with: "${obj.response}"\\n\\n`;
+    }
+  }
+
+  // Supplementary knowledge (from ai_knowledge_base - policies, upsells, custom info)
+  if (ctx.knowledge.supplementary.length > 0) {
+    prompt += `ADDITIONAL BUSINESS KNOWLEDGE:\\n`;
+    for (const item of ctx.knowledge.supplementary.slice(0, 10)) {
+      prompt += `[${item.type.toUpperCase()}] ${item.title}: ${item.content}\\n\\n`;
     }
   }
 
