@@ -804,8 +804,13 @@ async function processCallData(
     intent: normalizedPayload.intent,
   });
 
+  // Get enabled_modules from tenant for routing decisions
+  const enabledModules: string[] = Array.isArray(tenant?.enabled_modules) 
+    ? tenant.enabled_modules 
+    : [];
+
   // ===== PERSIST DERIVED ENTITY =====
-  await persistDerivedEntity(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, tenantBusinessMode, normalizedPayload, normalizedPayload.customer.name, customerId, callerPhoneE164, payload);
+  await persistDerivedEntity(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, tenantBusinessMode, enabledModules, normalizedPayload, normalizedPayload.customer.name, customerId, callerPhoneE164, payload);
 }
 
 // ===== EXTRACT RAW DATA FROM SOURCES =====
@@ -1257,6 +1262,7 @@ function determineOutcomeFromIntent(intent: string, _businessMode: string): stri
 }
 
 // ===== PERSIST DERIVED ENTITY (ROUTER) =====
+// Deterministic routing based on intent + enabled_modules
 // deno-lint-ignore no-explicit-any
 async function persistDerivedEntity(
   supabase: any,
@@ -1265,6 +1271,7 @@ async function persistDerivedEntity(
   tenantId: string,
   sessionId: string,
   businessMode: string,
+  enabledModules: string[],
   payload: CanonicalPayload,
   customerName: string | null,
   customerId: string | null,
@@ -1273,32 +1280,43 @@ async function persistDerivedEntity(
 ): Promise<void> {
   const intent = payload.intent;
   
-  console.log(`[persistDerivedEntity] Intent: ${intent}, BusinessMode: ${businessMode}`);
+  // Build routing decision
+  const routingDecision = determineRoutingTarget(intent, businessMode, enabledModules, payload);
   
-  await logEventStage(supabase, tenantId, sessionId, null, webhookPayload.conversation_id, "intent_determined", {
+  console.log(`[persistDerivedEntity] Intent: ${intent}, BusinessMode: ${businessMode}, Target: ${routingDecision.target}, Reason: ${routingDecision.reason}`);
+  
+  await logEventStage(supabase, tenantId, sessionId, null, webhookPayload.conversation_id, "extraction_normalized", {
     intent,
     business_mode: businessMode,
+    enabled_modules: enabledModules,
+    routing_target: routingDecision.target,
+    routing_reason: routingDecision.reason,
+    has_order_items: payload.order.items.length > 0,
+    has_reservation_data: !!payload.reservation.party_size || !!payload.reservation.date,
+    has_booking_data: !!payload.booking.service_requested,
+    has_dispatch_data: !!payload.dispatch.pickup_address,
+    customer_name: customerName,
   });
   
   let entityType: string | null = null;
   let entityId: string | null = null;
+  let entityNumber: string | null = null;
   let success = false;
   let errorMsg: string | null = null;
   
   try {
-    switch (intent) {
-      case "order":
-        if (businessMode === "food" && payload.order.items.length > 0) {
-          const order = await persistFoodOrder(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, payload, customerName, customerId, callerPhoneE164);
-          if (order) {
-            entityType = "order";
-            entityId = order.id;
-            success = true;
-          }
+    switch (routingDecision.target) {
+      case "food_orders":
+        const order = await persistFoodOrder(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, payload, customerName, customerId, callerPhoneE164);
+        if (order) {
+          entityType = "order";
+          entityId = order.id;
+          entityNumber = order.order_number || null;
+          success = true;
         }
         break;
         
-      case "reservation":
+      case "reservations":
         const reservation = await persistReservation(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, payload, customerName, customerId, callerPhoneE164);
         if (reservation) {
           entityType = "reservation";
@@ -1307,7 +1325,7 @@ async function persistDerivedEntity(
         }
         break;
         
-      case "booking":
+      case "bookings":
         const booking = await persistBooking(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, payload, customerName, customerId, callerPhoneE164);
         if (booking) {
           entityType = "booking";
@@ -1316,35 +1334,109 @@ async function persistDerivedEntity(
         }
         break;
         
-      case "dispatch":
+      case "dispatch_jobs":
         const dispatchJob = await persistDispatchJob(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, payload, customerName, customerId, callerPhoneE164);
         if (dispatchJob) {
           entityType = "dispatch_job";
           entityId = dispatchJob.id;
+          entityNumber = dispatchJob.job_number || null;
           success = true;
         }
         break;
         
+      case "none":
       default:
-        console.log(`[persistDerivedEntity] No derived entity for intent: ${intent}`);
+        console.log(`[persistDerivedEntity] No derived entity: ${routingDecision.reason}`);
         await logEventStage(supabase, tenantId, sessionId, null, webhookPayload.conversation_id, "derived_entity_skipped", {
           intent,
-          reason: `No entity creation for intent: ${intent}`,
+          target: routingDecision.target,
+          reason: routingDecision.reason,
         });
         break;
     }
   } catch (e) {
     errorMsg = e instanceof Error ? e.message : String(e);
-    console.error(`[persistDerivedEntity] Failed to persist ${intent}:`, e);
+    console.error(`[persistDerivedEntity] Failed to persist ${routingDecision.target}:`, e);
   }
   
-  if (entityType) {
-    await logEventStage(
-      supabase, tenantId, sessionId, null, webhookPayload.conversation_id,
-      success ? "derived_entity_created" : "derived_entity_failed",
-      { entity_type: entityType, entity_id: entityId, intent },
-      errorMsg
-    );
+  // Always log routing result
+  const logStage = success ? "entity_routed_" + routingDecision.target.replace("_", "") : 
+                   errorMsg ? "entity_insert_failed" : "derived_entity_skipped";
+  
+  await logEventStage(
+    supabase, tenantId, sessionId, null, webhookPayload.conversation_id,
+    success ? "derived_entity_created" : (errorMsg ? "entity_insert_failed" : logStage),
+    { 
+      entity_type: entityType, 
+      entity_id: entityId, 
+      entity_number: entityNumber,
+      intent,
+      routing_target: routingDecision.target,
+      routing_reason: routingDecision.reason,
+    },
+    errorMsg
+  );
+}
+
+// ===== ROUTING DECISION LOGIC =====
+interface RoutingDecision {
+  target: "food_orders" | "reservations" | "bookings" | "dispatch_jobs" | "none";
+  reason: string;
+}
+
+function determineRoutingTarget(
+  intent: string,
+  businessMode: string,
+  enabledModules: string[],
+  payload: CanonicalPayload
+): RoutingDecision {
+  // Helper to check if module is enabled
+  const hasModule = (mod: string) => enabledModules.includes(mod);
+  
+  switch (intent) {
+    case "order":
+      // Only route to food_orders if food_orders module is enabled
+      if (hasModule("food_orders")) {
+        if (payload.order.items.length > 0) {
+          return { target: "food_orders", reason: "intent=order, food_orders enabled, items present" };
+        }
+        return { target: "none", reason: "intent=order but no items extracted" };
+      }
+      return { target: "none", reason: "intent=order but food_orders module not enabled" };
+      
+    case "reservation":
+      // Route to reservations if reservations module is enabled
+      if (hasModule("reservations")) {
+        return { target: "reservations", reason: "intent=reservation, reservations enabled" };
+      }
+      // Fall back to booking if booking is enabled but not reservations
+      if (hasModule("booking")) {
+        return { target: "bookings", reason: "intent=reservation, reservations not enabled, falling back to booking" };
+      }
+      return { target: "none", reason: "intent=reservation but reservations module not enabled" };
+      
+    case "booking":
+      if (hasModule("booking")) {
+        return { target: "bookings", reason: "intent=booking, booking enabled" };
+      }
+      return { target: "none", reason: "intent=booking but booking module not enabled" };
+      
+    case "dispatch":
+      if (hasModule("dispatch_queue")) {
+        if (payload.dispatch.pickup_address) {
+          return { target: "dispatch_jobs", reason: "intent=dispatch, dispatch_queue enabled, pickup address present" };
+        }
+        // Still create with incomplete data for manual follow-up
+        return { target: "dispatch_jobs", reason: "intent=dispatch, dispatch_queue enabled (incomplete address)" };
+      }
+      return { target: "none", reason: "intent=dispatch but dispatch_queue module not enabled" };
+      
+    case "callback":
+    case "faq":
+    case "other":
+    default:
+      // No entity for these intents - they create leads/opportunities only
+      return { target: "none", reason: `intent=${intent}, no entity creation for this intent` };
   }
 }
 
@@ -1360,7 +1452,7 @@ async function persistFoodOrder(
   customerName: string | null,
   customerId: string | null,
   callerPhoneE164: string
-): Promise<{ id: string } | null> {
+): Promise<{ id: string; order_number?: string } | null> {
   // Match items to menu and calculate prices
   const { items: pricedItems, totalCents: calculatedTotal, unmatchedCount } = 
     await matchAndPriceItems(supabase, tenantId, payload.order.items);
@@ -1421,7 +1513,7 @@ async function persistFoodOrder(
       special_instructions: combinedInstructions,
       delivery_address: payload.order.delivery_address,
     })
-    .select("id")
+    .select("id, order_number")
     .single();
   
   if (error) {
@@ -1430,6 +1522,8 @@ async function persistFoodOrder(
   }
   
   console.log(`[persistFoodOrder] Created order: ${newOrder.id}`);
+  
+  // Trigger workflows
   
   // Trigger workflows
   try {
@@ -1669,7 +1763,7 @@ async function persistDispatchJob(
   customerName: string | null,
   customerId: string | null,
   callerPhoneE164: string
-): Promise<{ id: string } | null> {
+): Promise<{ id: string; job_number?: string } | null> {
   // Generate job number
   const { data: lastJob } = await supabase
     .from("dispatch_jobs")
@@ -1708,7 +1802,7 @@ async function persistDispatchJob(
       priority,
       status: "pending",
     })
-    .select("id")
+    .select("id, job_number")
     .single();
   
   if (error) {

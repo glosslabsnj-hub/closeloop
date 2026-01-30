@@ -204,8 +204,16 @@ export default function ExtractionDebugPage() {
   const getLogForStage = (stage: string) => eventLogs?.find(l => l.stage === stage);
   const canonicalizedLog = getLogForStage("extraction_canonicalized");
   const normalizedLog = getLogForStage("normalization_applied");
+  const extractionNormalizedLog = getLogForStage("extraction_normalized");
   const entityCreatedLog = getLogForStage("derived_entity_created");
   const entitySkippedLog = getLogForStage("derived_entity_skipped");
+  const entityFailedLog = getLogForStage("entity_insert_failed");
+
+  // Get routing decision from extraction_normalized log
+  const routingData = extractionNormalizedLog?.event_data as Record<string, unknown> | undefined;
+  const routingTarget = routingData?.routing_target as string | undefined;
+  const routingReason = routingData?.routing_reason as string | undefined;
+  const enabledModules = routingData?.enabled_modules as string[] | undefined;
 
   if (sessionsLoading) {
     return (
@@ -480,6 +488,49 @@ export default function ExtractionDebugPage() {
                     {/* Derived Entity */}
                     <TabsContent value="entity" className="mt-4">
                       <div className="space-y-3">
+                        {/* Routing Decision */}
+                        {routingData && (
+                          <div className="p-3 bg-muted rounded-lg space-y-2">
+                            <p className="text-sm font-medium">Routing Decision</p>
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                              <div>
+                                <p className="text-xs text-muted-foreground">Target Table</p>
+                                <Badge className={
+                                  routingTarget === "food_orders" ? "bg-blue-500/10 text-blue-700" :
+                                  routingTarget === "reservations" ? "bg-purple-500/10 text-purple-700" :
+                                  routingTarget === "bookings" ? "bg-green-500/10 text-green-700" :
+                                  routingTarget === "dispatch_jobs" ? "bg-orange-500/10 text-orange-700" :
+                                  "bg-muted"
+                                }>
+                                  {routingTarget || "none"}
+                                </Badge>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground">Intent</p>
+                                <Badge className={intentColors[(extractedPayload?.intent as string) || "other"]}>
+                                  {(extractedPayload?.intent as string) || "unknown"}
+                                </Badge>
+                              </div>
+                            </div>
+                            {routingReason && (
+                              <div className="text-xs text-muted-foreground">
+                                <p className="font-medium">Reason:</p>
+                                <p>{routingReason}</p>
+                              </div>
+                            )}
+                            {enabledModules && enabledModules.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                <span className="text-xs text-muted-foreground">Enabled modules:</span>
+                                {enabledModules.map(mod => (
+                                  <Badge key={mod} variant="outline" className="text-xs">
+                                    {mod}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         {derivedEntities && derivedEntities.length > 0 ? (
                           <div className="space-y-2">
                             {derivedEntities.map((entity) => (
@@ -510,8 +561,21 @@ export default function ExtractionDebugPage() {
                             <div>
                               <p className="font-medium">Entity Skipped</p>
                               <p className="text-sm text-muted-foreground">
-                                {String((entitySkippedLog.event_data as Record<string, unknown>)?.reason || "No entity created for this intent")}
+                                {String((entitySkippedLog.event_data as Record<string, unknown>)?.reason || routingReason || "No entity created for this intent")}
                               </p>
+                            </div>
+                          </div>
+                        ) : entityFailedLog ? (
+                          <div className="flex items-center gap-2 p-4 bg-destructive/10 rounded-lg">
+                            <XCircle className="h-5 w-5 text-destructive" />
+                            <div>
+                              <p className="font-medium">Entity Insert Failed</p>
+                              <p className="text-sm text-muted-foreground">
+                                {entityFailedLog.error_message || "Unknown error during entity creation"}
+                              </p>
+                              <pre className="text-xs mt-2 overflow-auto">
+                                {JSON.stringify(entityFailedLog.event_data, null, 2)}
+                              </pre>
                             </div>
                           </div>
                         ) : (
