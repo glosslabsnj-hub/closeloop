@@ -254,44 +254,51 @@ export default function OnboardingPage() {
         throw new Error("Unable to generate business id. Please refresh and try again.");
       }
 
-      // Determine business mode and enabled modules from industry
-      const industryEntry = getIndustryBySlug(businessIdentity.industry);
-      const businessMode = industryEntry?.businessMode || "service";
-      const enabledModules = industryEntry?.enabledModules || ["ai_voice", "instant_text_back", "booking"];
+      // Use business mode and enabled modules from state (selected in Steps 1-3)
       const isFoodMode = businessMode === "food" || enabledModules.includes("food_orders");
-      
-      console.log("Onboarding: business mode determined", { 
-        industry: businessIdentity.industry, 
-        businessMode, 
+      const industryEntry = getIndustryBySlug(industrySlug);
+
+      console.log("Onboarding: business mode determined", {
+        industry: industrySlug,
+        businessMode,
         enabledModules,
-        isFoodMode 
+        isFoodMode
       });
 
-      // Create tenant with all the collected data
+      // Map new state structure to tenant database row
       const tenantData = {
         id: tenantId,
-        name: businessIdentity.businessName,
-        tagline: businessIdentity.tagline || null,
-        industry: businessIdentity.industry as any,
-        custom_industry: businessIdentity.industry === "other" ? businessIdentity.customIndustry : null,
-        phone_public: businessIdentity.phoneNumber,
-        website_url: businessIdentity.websiteUrl || null,
-        address: businessIdentity.address || null,
-        years_in_business: businessIdentity.yearsInBusiness,
-        timezone: businessIdentity.timezone,
-        hours_json: bookingPolicies.businessHours as any,
-        context_fields_json: intakeQuestions as any,
-        min_lead_hours: bookingPolicies.minLeadHours,
-        max_advance_days: bookingPolicies.maxAdvanceDays,
-        appointment_buffer_minutes: bookingPolicies.appointmentBufferMinutes,
+        // From Step 4: Business Basics
+        name: businessBasics.businessName,
+        tagline: businessBasics.tagline || null,
+        phone_public: businessBasics.phoneNumber,
+        address: businessBasics.address || null,
+        timezone: businessBasics.timezone,
+        hours_json: businessBasics.hoursJson as any,
+
+        // From Steps 1-2: Business Mode & Industry
+        business_mode: businessMode,
+        industry: industrySlug as any,
+        enabled_modules: enabledModules,
+
+        // From Step 6: Policies
         cancellation_policy: policies.cancellationPolicy || null,
         deposit_policy: policies.depositPolicy || null,
         refund_policy: policies.refundPolicy || null,
         payment_methods: policies.paymentMethods,
         ai_never_promise: policies.aiNeverPromise,
+
+        // Defaults for fields not collected in new flow
+        custom_industry: null,
+        website_url: null,
+        years_in_business: null,
+        context_fields_json: [] as any,
+        min_lead_hours: 24,
+        max_advance_days: 30,
+        appointment_buffer_minutes: 15,
+
+        // System fields
         ai_enabled: false,
-        business_mode: businessMode,
-        enabled_modules: enabledModules,
         hipaa_mode: industryEntry?.hipaaMode || false,
       };
 
