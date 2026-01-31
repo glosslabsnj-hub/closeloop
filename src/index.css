@@ -1,0 +1,227 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CloseLoop Design System - Premium Modern SaaS */
+@layer base {
+  :root {
+    /* Dark Mode Background System */
+    --background: 240 10% 6%;
+    --foreground: 0 0% 95%;
+
+    /* Cards - slightly elevated from background */
+    --card: 240 10% 9%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 240 10% 9%;
+    --popover-foreground: 0 0% 95%;
+
+    /* Primary - Brighter Indigo for dark backgrounds */
+    --primary: 245 80% 67%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary - Subtle dark panel */
+    --secondary: 240 10% 14%;
+    --secondary-foreground: 0 0% 90%;
+
+    /* Muted - For subtle backgrounds and text */
+    --muted: 240 10% 12%;
+    --muted-foreground: 240 5% 55%;
+
+    /* Accent - Indigo tinted for highlights */
+    --accent: 245 50% 18%;
+    --accent-foreground: 245 80% 75%;
+
+    /* Status Colors - Optimized for dark */
+    --destructive: 0 70% 58%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 70% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 40 90% 55%;
+    --warning-foreground: 0 0% 10%;
+
+    /* Borders & Inputs */
+    --border: 240 10% 18%;
+    --input: 240 10% 15%;
+    --ring: 245 80% 67%;
+
+    /* Radius */
+    --radius: 0.875rem;
+
+    /* Sidebar - Deepest dark for visual hierarchy */
+    --sidebar-background: 240 10% 4%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 245 80% 70%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 10% 10%;
+    --sidebar-accent-foreground: 0 0% 90%;
+    --sidebar-border: 240 10% 14%;
+    --sidebar-ring: 245 80% 70%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Improved typography scale */
+  h1 {
+    @apply text-3xl md:text-4xl font-bold tracking-tight;
+  }
+
+  h2 {
+    @apply text-2xl md:text-3xl font-bold tracking-tight;
+  }
+
+  h3 {
+    @apply text-xl font-semibold tracking-tight;
+  }
+
+  h4 {
+    @apply text-lg font-semibold;
+  }
+
+  /* Improved focus states for accessibility */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+}
+
+@layer utilities {
+  /* Page layout patterns */
+  .page-header {
+    @apply mb-8;
+  }
+  
+  .page-title {
+    @apply text-2xl md:text-3xl font-bold tracking-tight;
+  }
+  
+  .page-subtitle {
+    @apply text-muted-foreground mt-1 text-sm md:text-base;
+  }
+
+  /* Premium gradients */
+  .gradient-primary {
+    @apply bg-gradient-to-r from-primary to-primary/80;
+  }
+
+  .gradient-hero {
+    background: linear-gradient(135deg, hsl(245 80% 35%) 0%, hsl(245 80% 25%) 100%);
+  }
+
+  .gradient-subtle {
+    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(240 10% 10%) 100%);
+  }
+
+  /* Glass effect */
+  .glass {
+    @apply bg-white/5 backdrop-blur-lg border border-white/10;
+  }
+
+  /* Card elevation */
+  .card-elevated {
+    @apply shadow-sm hover:shadow-md transition-shadow duration-200;
+  }
+
+  .card-interactive {
+    @apply shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200;
+  }
+
+  /* Section spacing */
+  .section-gap {
+    @apply space-y-6 md:space-y-8;
+  }
+
+  /* Safe area for mobile sticky bars */
+  .safe-area-pb {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+
+  /* Premium animations */
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes slide-up-fade {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes scale-fade-in {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.5s ease-out;
+  }
+
+  .animate-slide-up-fade {
+    animation: slide-up-fade 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .animate-scale-fade-in {
+    animation: scale-fade-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s infinite;
+  }
+
+  .animate-pulse-soft {
+    animation: pulse-soft 2s ease-in-out infinite;
+  }
+
+  /* Hover effects */
+  .hover-lift {
+    @apply transition-transform duration-200 hover:-translate-y-0.5;
+  }
+
+  .hover-scale {
+    @apply transition-transform duration-200 hover:scale-[1.02];
+  }
+
+  /* Status indicator dot */
+  .status-dot {
+    @apply w-2 h-2 rounded-full;
+  }
+
+  .status-dot-live {
+    @apply bg-success animate-pulse-soft;
+  }
+
+  .status-dot-paused {
+    @apply bg-muted-foreground;
+  }
+
+  /* Striped pattern for external busy blocks */
+  .bg-stripes {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 4px,
+      hsl(var(--muted-foreground) / 0.1) 4px,
+      hsl(var(--muted-foreground) / 0.1) 8px
+    );
+  }
+}
