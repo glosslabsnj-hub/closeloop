@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CallSimulator from "@/components/simulator/CallSimulator";
 import SMSSimulator from "@/components/simulator/SMSSimulator";
@@ -6,9 +8,27 @@ import CustomerMergeQueue from "@/components/customers/CustomerMergeQueue";
 import { AIReadinessChecklist } from "@/components/knowledge/AIReadinessChecklist";
 import QuickSetupWizard from "@/components/setup/QuickSetupWizard";
 import { DebugPagesNav } from "@/components/admin/DebugPagesNav";
+import { SuggestedTestsBanner } from "@/components/simulator/SuggestedTestsBanner";
 import { Phone, MessageSquare, Users, Brain, Zap, Bug } from "lucide-react";
 
 export default function SimulatorPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const showSuggested = searchParams.get("suggested") === "true";
+  const [showBanner, setShowBanner] = useState(showSuggested);
+
+  // Clear the query param after showing the banner
+  useEffect(() => {
+    if (showSuggested) {
+      const timer = setTimeout(() => {
+        setSearchParams({}, { replace: true });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuggested, setSearchParams]);
+
+  // Determine default tab - show "call" tab when coming from onboarding
+  const defaultTab = showSuggested ? "call" : "setup";
+
   return (
     <div className="p-4 md:p-6 space-y-6">
       <div>
@@ -21,7 +41,12 @@ export default function SimulatorPage() {
       {/* AI Readiness Banner */}
       <AIReadinessChecklist compact />
 
-      <Tabs defaultValue="setup" className="w-full">
+      {/* Suggested Tests Banner (shown after onboarding) */}
+      {showBanner && (
+        <SuggestedTestsBanner onDismiss={() => setShowBanner(false)} />
+      )}
+
+      <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className="w-full justify-start flex-wrap">
           <TabsTrigger value="setup" className="gap-2">
             <Zap className="h-4 w-4" />
