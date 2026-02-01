@@ -62,6 +62,7 @@ serve(async (req) => {
     // Initialize dynamic variables with safe defaults
     let dynamicVariables: Record<string, string | number | boolean> = {
       business_name: "our business",
+      businessname: "our business", // Alias for ElevenLabs compatibility
       business_mode: "general",
       enabled_modules: "",
       hipaa_mode: false,

@@ -1452,6 +1452,7 @@ export function buildDynamicVariables(
     tenant_id: ctx.tenant.tenant_id || "",
     location_id: ctx._meta.location_id || "",
     business_name: ctx.tenant.business_name || "Our Business",
+    businessname: ctx.tenant.business_name || "Our Business", // Alias for ElevenLabs compatibility
     business_mode: ctx.tenant.business_mode || "general",
     enabled_modules: enabledModulesArray.join(",") || "",
     hipaa_mode: ctx.safety.hipaa_mode,
