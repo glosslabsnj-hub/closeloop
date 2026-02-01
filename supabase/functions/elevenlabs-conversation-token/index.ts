@@ -1,9 +1,10 @@
+// FORCE REDEPLOY - Last updated: 2026-02-01 17:30 - Direct signed URL fix
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { 
-  buildBusinessContext, 
-  storeContextSnapshot, 
-  buildDynamicVariables 
+import {
+  buildBusinessContext,
+  storeContextSnapshot,
+  buildDynamicVariables
 } from "../_shared/buildBusinessContext.ts";
 
 const corsHeaders = {
