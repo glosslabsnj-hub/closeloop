@@ -1,5 +1,6 @@
-// FORCE REDEPLOY - Cache bust: 2026-02-01 18:00 - Deno runtime refresh
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+// DEPLOYMENT TIMESTAMP: 2026-02-01T20:15:00Z - WEBRTC-ENABLED
+// If you see this comment, the new version is deployed
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   buildBusinessContext,
@@ -15,7 +16,7 @@ const corsHeaders = {
 
 serve(async (req) => {
   // VERSION STAMP - This proves new code is deployed
-  console.log("🚀 [ElevenLabs Token] Function starting - Version: 2026-02-01-19:00-WEBRTC-READY");
+  console.log("🚀 [ElevenLabs Token] WEBRTC-ENABLED - Deployment: 2026-02-01T20:15:00Z");
 
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -157,10 +158,10 @@ serve(async (req) => {
       console.log("No tenantId provided for browser test - using minimal defaults");
     }
 
-    const DEPLOYED_VERSION = "2026-02-01-19:00-WEBRTC-READY";
+    const DEPLOYED_VERSION = "2026-02-01T20:15:00Z";
 
     // Log deployment version for verification
-    console.log(`ELEV_TOKEN_VERSION=${DEPLOYED_VERSION}`);
+    console.log(`✅ ELEV_TOKEN_VERSION=${DEPLOYED_VERSION} | MODE=${connectionType}`);
 
     // DUAL PATH: WebRTC (default) or WebSocket
     if (connectionType === "webrtc") {
@@ -212,7 +213,7 @@ serve(async (req) => {
             flow: "webrtc-conversation",
             agentId: ELEVENLABS_AGENT_ID,
             conversationId: conversationId,
-            denoStdVersion: "0.177.0",
+            denoStdVersion: "0.190.0",
           },
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -257,7 +258,7 @@ serve(async (req) => {
             deployedVersion: DEPLOYED_VERSION,
             flow: "websocket-signed-url",
             agentId: ELEVENLABS_AGENT_ID,
-            denoStdVersion: "0.177.0",
+            denoStdVersion: "0.190.0",
           },
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
