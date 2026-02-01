@@ -15,12 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Lock, Loader2 } from "lucide-react";
+import { Lock, Loader2, Brain } from "lucide-react";
 import { CallContextDebugger } from "@/components/ai/CallContextDebugger";
-import { FoodOrderSettings } from "@/components/settings/FoodOrderSettings";
-import { BookingDeliverySettings } from "@/components/settings/BookingDeliverySettings";
-import { DispatchDeliverySettings } from "@/components/settings/DispatchDeliverySettings";
-import { MedicalHIPAASettings } from "@/components/settings/MedicalHIPAASettings";
 import { PlanUpgradeCard } from "@/components/settings/PlanUpgradeCard";
 import { MultiLocationManager } from "@/components/settings/MultiLocationManager";
 import { DeliveryIntegrationsSettings } from "@/components/settings/DeliveryIntegrationsSettings";
@@ -29,8 +25,7 @@ import { IntelligenceSettingsForm } from "@/components/settings/IntelligenceSett
 import { AIBusinessPolicies } from "@/components/settings/AIBusinessPolicies";
 import { DataControlsPanel } from "@/components/settings/DataControlsPanel";
 import { RequiredQuestionsEditor } from "@/components/settings/RequiredQuestionsEditor";
-import { PricingRulesEditor } from "@/components/settings/PricingRulesEditor";
-import { BusynessRulesEditor } from "@/components/settings/BusynessRulesEditor";
+import { Link } from "react-router-dom";
 import { SettingsSidebar, SettingsNavConfig } from "@/components/settings/SettingsSidebar";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { MobileSettingsNav } from "@/components/settings/MobileSettingsNav";
@@ -267,7 +262,51 @@ export default function SettingsPage() {
         );
 
       case "hours":
-        return <AvailabilityHub />;
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Business Hours & Availability</span>
+                <Button asChild>
+                  <Link to="/app/business-brain">
+                    <Brain className="mr-2 h-4 w-4" />
+                    Edit in Business Brain
+                  </Link>
+                </Button>
+              </CardTitle>
+              <CardDescription>
+                Manage your business hours and availability in the Business Brain
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                <div className="flex items-start gap-3">
+                  <Brain className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium mb-2">Hours and availability management has moved to Business Brain</p>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Manage your operating hours, availability slots, and busy blocks in one centralized location.
+                    </p>
+                    <div className="space-y-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                        <span>Set weekly business hours</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                        <span>View and manage busy blocks</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                        <span>Connect calendar for automatic scheduling</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
 
       case "team":
         return (
@@ -301,29 +340,146 @@ export default function SettingsPage() {
         );
 
       case "ai-learning":
-        return (
-          <>
-            <IntelligenceSettingsForm />
-            <AIBusinessPolicies />
-          </>
-        );
+        return <IntelligenceSettingsForm />;
 
       case "ai-rules":
-        return <RequiredQuestionsEditor />;
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Required Questions & AI Rules</span>
+                <Button asChild>
+                  <Link to="/app/business-brain">
+                    <Brain className="mr-2 h-4 w-4" />
+                    Edit in Business Brain
+                  </Link>
+                </Button>
+              </CardTitle>
+              <CardDescription>
+                Configure required questions and AI business policies in the Business Brain
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                <div className="flex items-start gap-3">
+                  <Brain className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium mb-2">All AI rules and policies have moved to Business Brain</p>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Required questions and AI business policies are now managed centrally to ensure your AI collects the right information consistently.
+                    </p>
+                    <div className="space-y-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                        <span>Set required questions per intent (booking, dispatch, etc.)</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                        <span>Configure AI policies for upselling, pricing, capacity</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                        <span>Manage escalation and recognition rules</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
 
       case "pricing-estimates":
         return (
-          <div className="space-y-6">
-            <PricingRulesEditor />
-            <BusynessRulesEditor />
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Pricing & Estimates</span>
+                <Button asChild>
+                  <Link to="/app/business-brain">
+                    <Brain className="mr-2 h-4 w-4" />
+                    Edit in Business Brain
+                  </Link>
+                </Button>
+              </CardTitle>
+              <CardDescription>
+                Configure pricing rules and busyness-based ETAs in the Business Brain
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                <div className="flex items-start gap-3">
+                  <Brain className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium mb-2">All pricing configuration has moved to Business Brain</p>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Pricing rules and busyness settings are now managed in a centralized location to ensure consistency across your AI.
+                    </p>
+                    <div className="space-y-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                        <span>Configure distance-based, flat, per-unit, and tiered pricing</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                        <span>Set base prep times and busy-day buffers for accurate ETAs</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                        <span>Adjust real-time busyness to control customer expectations</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         );
 
       case "data-privacy":
         return <DataControlsPanel />;
 
       case "hipaa":
-        return <MedicalHIPAASettings />;
+        return (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>HIPAA Settings</span>
+                <Button asChild>
+                  <Link to="/app/business-brain">
+                    <Brain className="mr-2 h-4 w-4" />
+                    Edit in Business Brain
+                  </Link>
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Brain className="h-5 w-5 text-primary" />
+                  <p className="font-medium">HIPAA Management Has Moved</p>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  All HIPAA and medical compliance settings are now managed in Business Brain for centralized control
+                </p>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                    <span>Configure data storage settings</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                    <span>Set retention policies</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                    <span>Manage consent requirements</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
 
       case "alerts":
         return (
@@ -355,9 +511,45 @@ export default function SettingsPage() {
         return (
           <div className="space-y-6">
             <DeliveryIntegrationsSettings />
-            {isBookingEnabled && <BookingDeliverySettings />}
-            {isDispatchEnabled && <DispatchDeliverySettings />}
-            {isFoodMode && <FoodOrderSettings />}
+
+            <Card className="border-primary/20 bg-primary/5">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Delivery & Handoff Settings</span>
+                  <Button asChild>
+                    <Link to="/app/business-brain">
+                      <Brain className="mr-2 h-4 w-4" />
+                      Edit in Business Brain
+                    </Link>
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Brain className="h-5 w-5 text-primary" />
+                    <p className="font-medium">Delivery Management Has Moved</p>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    All booking, order, and dispatch delivery settings are now managed in Business Brain
+                  </p>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      <span>Configure webhooks and integrations</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      <span>Set up email and SMS notifications</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      <span>Manage handoff methods</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         );
 

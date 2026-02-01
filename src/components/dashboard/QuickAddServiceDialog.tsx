@@ -1,7 +1,4 @@
-import { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import {
   Dialog,
@@ -12,89 +9,30 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { Briefcase, UtensilsCrossed, Loader2 } from "lucide-react";
+import { Brain, Briefcase, UtensilsCrossed } from "lucide-react";
 
 interface QuickAddServiceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+/**
+ * QuickAddServiceDialog - Redirects to Business Brain
+ *
+ * This dialog no longer performs writes. All service/menu management
+ * has been moved to the Business Brain page for centralized control.
+ */
 export function QuickAddServiceDialog({ open, onOpenChange }: QuickAddServiceDialogProps) {
-  const { tenant } = useAuth();
-  const { toast } = useToast();
+  const navigate = useNavigate();
   const { businessMode } = useTenantConfig();
-  const queryClient = useQueryClient();
 
   const isFood = businessMode === 'food';
   const entityName = isFood ? 'Menu Item' : 'Service';
+  const Icon = isFood ? UtensilsCrossed : Briefcase;
 
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
-  const [duration, setDuration] = useState("60");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!tenant?.id || !name.trim()) return;
-
-    setIsSubmitting(true);
-
-    try {
-      if (isFood) {
-        // Add to menu_items table
-        const { error } = await supabase.from("menu_items").insert([{
-          tenant_id: tenant.id,
-          name: name.trim(),
-          description: description.trim() || null,
-          price_cents: price ? Math.round(parseFloat(price) * 100) : null,
-        }]);
-
-        if (error) throw error;
-      } else {
-        // Add to services table
-        const { error } = await supabase.from("services").insert([{
-          tenant_id: tenant.id,
-          name: name.trim(),
-          description: description.trim() || null,
-          price_type: price ? "fixed" as const : "quote_only" as const,
-          price_amount: price ? parseFloat(price) : null,
-          duration_minutes: parseInt(duration) || 60,
-          is_active: true,
-        }]);
-
-        if (error) throw error;
-      }
-
-      toast({
-        title: `${entityName} added!`,
-        description: `Your AI now knows about "${name}".`,
-      });
-
-      // Reset and close
-      setName("");
-      setDescription("");
-      setPrice("");
-      setDuration("60");
-      onOpenChange(false);
-
-      // Invalidate queries
-      queryClient.invalidateQueries({ queryKey: ["business-context"] });
-      queryClient.invalidateQueries({ queryKey: ["services"] });
-      queryClient.invalidateQueries({ queryKey: ["menu-items"] });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: `Failed to add ${entityName.toLowerCase()}`,
-        description: error.message,
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleGoToBrain = () => {
+    onOpenChange(false);
+    navigate("/app/business-brain");
   };
 
   return (
@@ -102,83 +40,52 @@ export function QuickAddServiceDialog({ open, onOpenChange }: QuickAddServiceDia
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            {isFood ? (
-              <UtensilsCrossed className="h-5 w-5 text-primary" />
-            ) : (
-              <Briefcase className="h-5 w-5 text-primary" />
-            )}
-            Add {entityName}
+            <Brain className="h-5 w-5 text-primary" />
+            Add {entityName} in Business Brain
           </DialogTitle>
           <DialogDescription>
-            {isFood
-              ? "Add a menu item with name, description, and price."
-              : "Add a service you offer with pricing and duration."}
+            {entityName} management has moved to a centralized location
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              placeholder={isFood ? 'e.g., "Margherita Pizza"' : 'e.g., "Haircut"'}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Description (optional)</Label>
-            <Textarea
-              id="description"
-              placeholder={isFood ? "Ingredients, notes..." : "What's included in this service..."}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="price">Price ($)</Label>
-              <Input
-                id="price"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0.00"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-              />
-            </div>
-
-            {!isFood && (
-              <div className="space-y-2">
-                <Label htmlFor="duration">Duration (min)</Label>
-                <Input
-                  id="duration"
-                  type="number"
-                  min="5"
-                  step="5"
-                  placeholder="60"
-                  value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
-                />
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+          <div className="flex items-start gap-3">
+            <Icon className="h-8 w-8 text-primary shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium mb-2">
+                All {isFood ? "menu items" : "services"} are now managed in Business Brain
+              </p>
+              <p className="text-xs text-muted-foreground mb-3">
+                This ensures consistency across your AI and gives you a single place
+                to manage all your business knowledge.
+              </p>
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  <span>Add and edit {isFood ? "menu items" : "services"}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  <span>Configure pricing rules</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  <span>Set descriptions and details</span>
+                </div>
               </div>
-            )}
+            </div>
           </div>
+        </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting || !name.trim()}>
-              {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Add {entityName}
-            </Button>
-          </DialogFooter>
-        </form>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleGoToBrain}>
+            <Brain className="h-4 w-4 mr-2" />
+            Go to Business Brain
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

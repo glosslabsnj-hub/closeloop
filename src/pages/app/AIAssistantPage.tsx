@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useBusinessContext } from "@/hooks/useBusinessContext";
@@ -10,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AIReadinessScore from "@/components/knowledge/AIReadinessScore";
 import KnowledgeGapQueue from "@/components/knowledge/KnowledgeGapQueue";
 import VoiceSelector from "@/components/ai/VoiceSelector";
-import LiveFAQList from "@/components/ai/LiveFAQList";
 import VoiceAgentTest from "@/components/ai/VoiceAgentTest";
 import BookingBehaviorSettings from "@/components/ai/BookingBehaviorSettings";
 import CalendarSyncSettings from "@/components/ai/CalendarSyncSettings";
@@ -24,6 +24,7 @@ import {
   AlertTriangle,
   CalendarCheck,
   Settings2,
+  Brain,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -256,9 +257,43 @@ export default function AIAssistantPage() {
           </Card>
         </TabsContent>
 
-        {/* Knowledge Base Tab - Live from DB */}
+        {/* Knowledge Base Tab - Redirects to Business Brain */}
         <TabsContent value="knowledge" className="space-y-6">
-          <LiveFAQList />
+          <Card className="border-primary/20 bg-primary/5">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Brain className="h-5 w-5 text-primary" />
+                Knowledge Management Has Moved
+              </CardTitle>
+              <CardDescription>
+                All FAQ and knowledge management now happens in Business Brain for centralized control
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                    <span>Add and edit FAQs</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                    <span>Manage objection handlers</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                    <span>View your complete knowledge base in one place</span>
+                  </div>
+                </div>
+                <Button asChild className="w-full sm:w-auto">
+                  <Link to="/app/business-brain">
+                    <Brain className="mr-2 h-4 w-4" />
+                    Go to Business Brain
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Knowledge Gaps Tab */}
