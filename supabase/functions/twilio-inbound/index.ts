@@ -192,7 +192,7 @@ serve(async (req) => {
     // Check if voice AI is enabled
     const { data: settings } = await supabase
       .from("assistant_settings")
-      .select("voice_ai_enabled, voice_mode, connect_status")
+      .select("voice_ai_enabled, voice_mode, connect_status, off_behavior, owner_forward_number, owner_forward_verified")
       .eq("tenant_id", tenantId)
       .maybeSingle();
 
@@ -203,20 +203,91 @@ serve(async (req) => {
         .update({ connect_status: "connected", updated_at: new Date().toISOString() })
         .eq("tenant_id", tenantId);
       console.log(`Updated connect_status to connected for tenant ${tenantId}`);
-      
+
       // Also log this milestone event
       await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, tenantId, callSid, toNumber, fromNumber, "first_call_connected", 200, null, null);
     }
 
-    if (settings?.voice_ai_enabled === false) {
-      console.log(`Voice AI disabled for tenant ${tenantId}`);
-      return twimlResponse(hangupTwiml("Thank you for calling. We're currently unavailable. Please try again later or visit our website."));
-    }
+    // ===== AGENT OFF ROUTING LOGIC =====
+    if (settings?.voice_ai_enabled === false || settings?.voice_mode === "off") {
+      console.log(`Voice AI disabled for tenant ${tenantId}, routing via off_behavior`);
+      const offBehavior = settings?.off_behavior || "FORWARD_OWNER";
+      const ownerNumber = settings?.owner_forward_number;
+      const ownerVerified = settings?.owner_forward_verified || false;
 
-    const voiceMode = settings?.voice_mode || "always_on";
-    if (voiceMode === "off") {
-      console.log(`Voice mode is off for tenant ${tenantId}`);
-      return twimlResponse(hangupTwiml("Thank you for calling. We're currently unavailable. Please try again later."));
+      await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, tenantId, callSid, toNumber, fromNumber, "agent_off_routing", 200, null, { off_behavior: offBehavior });
+
+      // FORWARD_OWNER: Forward to owner's phone
+      if (offBehavior === "FORWARD_OWNER") {
+        if (ownerNumber && ownerVerified) {
+          console.log(`Forwarding call to owner: ${ownerNumber}`);
+          const forwardTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial timeout="20" action="">
+    <Number>${escapeXml(ownerNumber)}</Number>
+  </Dial>
+  <Say voice="Polly.Joanna">We're unable to connect you right now. Please leave a message after the tone.</Say>
+  <Record maxLength="120" transcribe="false" />
+  <Hangup/>
+</Response>`;
+          return twimlResponse(forwardTwiml);
+        } else {
+          // Fallback to voicemail if no owner number configured
+          console.log(`No owner forward number configured, falling back to voicemail`);
+          const voicemailTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="Polly.Joanna">Thank you for calling ${escapeXml(context.tenant.name || "us")}. We're currently unavailable. Please leave a message after the tone and we'll get back to you soon.</Say>
+  <Record maxLength="120" transcribe="false" />
+  <Say voice="Polly.Joanna">Thank you. We'll return your call soon. Goodbye.</Say>
+  <Hangup/>
+</Response>`;
+          return twimlResponse(voicemailTwiml);
+        }
+      }
+
+      // VOICEMAIL: Take voicemail
+      if (offBehavior === "VOICEMAIL") {
+        console.log(`Taking voicemail for tenant ${tenantId}`);
+        const voicemailTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="Polly.Joanna">Thank you for calling ${escapeXml(context.tenant.name || "us")}. We're currently unavailable. Please leave a message after the tone and we'll get back to you soon.</Say>
+  <Record maxLength="120" transcribe="false" />
+  <Say voice="Polly.Joanna">Thank you. We'll return your call soon. Goodbye.</Say>
+  <Hangup/>
+</Response>`;
+        return twimlResponse(voicemailTwiml);
+      }
+
+      // CALLBACK_ONLY: Capture callback request
+      if (offBehavior === "CALLBACK_ONLY") {
+        console.log(`Capturing callback request for tenant ${tenantId}`);
+        const callbackTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="Polly.Joanna">Thank you for calling ${escapeXml(context.tenant.name || "us")}. We're currently unavailable, but we've captured your number and will call you back as soon as possible. Thank you for your patience.</Say>
+  <Hangup/>
+</Response>`;
+
+        // Create a callback task/lead
+        try {
+          await supabase.from("leads").insert({
+            tenant_id: tenantId,
+            phone_e164: callerPhoneE164,
+            source: "callback_request",
+            status: "new",
+            notes: `Callback request from ${callerPhoneE164} when agent was OFF`,
+            created_at: new Date().toISOString(),
+          });
+          console.log(`Created callback lead for ${callerPhoneE164}`);
+        } catch (e) {
+          console.error("Failed to create callback lead:", e);
+        }
+
+        return twimlResponse(callbackTwiml);
+      }
+
+      // Fallback (should never reach here)
+      console.error(`Unknown off_behavior: ${offBehavior}`);
+      return twimlResponse(hangupTwiml("We're experiencing technical difficulties. Please try again later."));
     }
 
     // ===== BUILD DYNAMIC VARIABLES FOR ELEVENLABS =====
