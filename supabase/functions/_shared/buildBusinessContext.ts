@@ -515,7 +515,7 @@ function hasModule(modules: string[] | null, name: string): boolean {
 
 function parseIntakeFields(contextFieldsJson: unknown): IntakeField[] {
   if (!contextFieldsJson || !Array.isArray(contextFieldsJson)) return [];
-  
+
   return contextFieldsJson.map((field: Record<string, unknown>) => ({
     field_key: String(field.key || field.field_key || ""),
     label: String(field.label || ""),
@@ -523,6 +523,108 @@ function parseIntakeFields(contextFieldsJson: unknown): IntakeField[] {
     required: field.required === true,
     choices: Array.isArray(field.options) ? field.options.map(String) : undefined,
   })).filter(f => f.field_key && f.label);
+}
+
+// ============= PRICING HELPER FUNCTIONS =============
+
+/**
+ * Format price from a service object
+ * Returns human-readable price string for AI to use
+ */
+export function formatPriceFromService(service: NormalizedService): string {
+  if (service.price_type === "fixed" && service.price_amount) {
+    return `$${service.price_amount}`;
+  } else if (service.price_type === "starting_at" && service.price_amount) {
+    return `starting at $${service.price_amount}`;
+  } else {
+    return "quote required";
+  }
+}
+
+/**
+ * Format price from a menu item object
+ * Returns human-readable price string for AI to use
+ */
+export function formatPriceFromMenuItem(item: NormalizedMenuItem): string {
+  if (item.price_cents && item.price_cents > 0) {
+    return `$${(item.price_cents / 100).toFixed(2)}`;
+  } else {
+    return "market price";
+  }
+}
+
+/**
+ * Find matching service or menu item by query string
+ * Uses fuzzy matching on name and synonyms
+ * Returns the best match with formatted price
+ */
+export function findMatchingServiceOrMenuItem(
+  query: string,
+  services: NormalizedService[],
+  menuItems: NormalizedMenuItem[]
+): { type: "service" | "menu" | null; name: string; price: string } | null {
+  const queryLower = query.toLowerCase().trim();
+
+  if (!queryLower) return null;
+
+  // First try exact service match by name
+  for (const service of services) {
+    if (service.name.toLowerCase() === queryLower) {
+      return {
+        type: "service",
+        name: service.name,
+        price: formatPriceFromService(service),
+      };
+    }
+  }
+
+  // Try service name contains match
+  for (const service of services) {
+    if (service.name.toLowerCase().includes(queryLower) || queryLower.includes(service.name.toLowerCase())) {
+      return {
+        type: "service",
+        name: service.name,
+        price: formatPriceFromService(service),
+      };
+    }
+  }
+
+  // Try service synonyms
+  for (const service of services) {
+    for (const synonym of service.synonyms) {
+      if (synonym.toLowerCase() === queryLower || synonym.toLowerCase().includes(queryLower)) {
+        return {
+          type: "service",
+          name: service.name,
+          price: formatPriceFromService(service),
+        };
+      }
+    }
+  }
+
+  // Try menu item exact match
+  for (const item of menuItems) {
+    if (item.is_available && item.name.toLowerCase() === queryLower) {
+      return {
+        type: "menu",
+        name: item.name,
+        price: formatPriceFromMenuItem(item),
+      };
+    }
+  }
+
+  // Try menu item contains match
+  for (const item of menuItems) {
+    if (item.is_available && (item.name.toLowerCase().includes(queryLower) || queryLower.includes(item.name.toLowerCase()))) {
+      return {
+        type: "menu",
+        name: item.name,
+        price: formatPriceFromMenuItem(item),
+      };
+    }
+  }
+
+  return null;
 }
 
 // ============= MAIN BUILDER =============
@@ -962,13 +1064,44 @@ The system automatically checks busy_blocks (synced calendars + existing booking
   }
 
   // Critical pricing behavior
-  prompt += `PRICING BEHAVIOR (CRITICAL):
-1. If a service has an exact price listed → Quote it directly: "Drain cleaning is $149"
-2. If a service says "Starts at" → Say "starts at $X" and briefly mention what affects final price
-3. If a service says "Quote required" OR no price exists → Ask 1-2 clarifying questions, then offer to schedule an estimate
-4. NEVER say "I don't have access to pricing" when pricing exists in the services list above
-5. Match service requests by synonyms (e.g., "clogged drain" = "drain cleaning")
-6. If a service is not found → Ask what they need help with and offer to connect them with a specialist
+  const hasPricing = ctx.offerings.services.length > 0 || ctx.offerings.menu.length > 0;
+
+  prompt += `PRICING BEHAVIOR (CRITICAL - READ CAREFULLY):
+
+YOU HAVE FULL ACCESS TO PRICING INFORMATION. The services and menu items listed above include prices.
+
+WHEN A CUSTOMER ASKS ABOUT PRICING:
+
+1. IF THE SERVICE/ITEM HAS A FIXED PRICE:
+   ✅ CORRECT: "Drain cleaning is $149"
+   ✅ CORRECT: "The burger is $12.50"
+   ❌ WRONG: "I don't have access to pricing"
+   ❌ WRONG: "Let me have someone call you back with pricing"
+
+2. IF THE SERVICE SAYS "STARTING AT $X":
+   ✅ CORRECT: "That service starts at $X. The final price depends on [brief factor like size/complexity]"
+   ❌ WRONG: "I'm not sure about the exact price"
+
+3. IF THE SERVICE SAYS "QUOTE REQUIRED":
+   ✅ CORRECT: "We'll need to provide a custom quote for that. Can I ask a few quick questions about what you need?"
+   ✅ CORRECT: "For that service, we provide custom estimates. Would you like me to schedule someone to assess the job?"
+   ❌ WRONG: "I don't know the price" (instead, explain WHY it requires a quote)
+
+4. IF THE CUSTOMER ASKS ABOUT A SERVICE NOT ON YOUR LIST:
+   ❌ WRONG: "I don't have pricing for that"
+   ✅ CORRECT: "I don't see that specific service in my system. Let me connect you with someone who can help. What exactly are you looking for?"
+
+5. MATCH CUSTOMER QUERIES INTELLIGENTLY:
+   - Use synonyms: "clogged drain" = "drain cleaning", "burger" = "hamburger"
+   - Be flexible: "how much is X?" = pricing question
+   - Check both services AND menu items for the answer
+
+CRITICAL RULES:
+${hasPricing ? "- YOU HAVE PRICING DATA ABOVE. Use it! Never say you don't have access to pricing when it's listed." : "- This business has not configured pricing yet. Politely explain and offer a callback."}
+- If pricing exists for an item → STATE IT DIRECTLY
+- If pricing doesn't exist for an item → Explain why and offer the next step (quote, callback, etc.)
+- NEVER vocalize "None", "null", or empty placeholders
+- NEVER make up prices that aren't in your data
 
 IMPORTANT GUIDELINES:
 1. Be helpful, friendly, and professional
@@ -978,8 +1111,7 @@ IMPORTANT GUIDELINES:
 5. Never make up information about services, prices, or availability
 6. If a question is outside your knowledge, use the fallback script
 7. Use memory hints ONLY for personalization - never push upsells based on them
-8. NEVER vocalize placeholders like "None" or empty fields - skip them or ask a follow-up
-9. NEVER claim "I don't have access to..." unless the data truly doesn't exist in your context
+8. NEVER claim "I don't have access to..." unless the data truly doesn't exist in your context
 
 `;
 
