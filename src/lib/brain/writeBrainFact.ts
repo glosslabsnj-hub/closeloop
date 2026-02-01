@@ -81,14 +81,21 @@ export async function updateBusinessHours(
 
 /**
  * Update service area configuration
+ *
+ * Full structure:
+ * {
+ *   mode: "radius" | "counties" | "zips" | "hybrid",
+ *   base_address: { line1, city, state, zip, lat, lng },
+ *   radius_miles: number | null,
+ *   include: { counties: [{name, state}], zips: [], states: [] },
+ *   exclude: { counties: [{name, state}], zips: [], states: [] },
+ *   restrictions: { no_cross_state_lines: boolean },
+ *   notes: string
+ * }
  */
 export async function updateServiceArea(
   tenantId: string,
-  serviceArea: {
-    radius_miles?: number;
-    zip_codes?: string[];
-    notes?: string;
-  }
+  serviceArea: Record<string, unknown>
 ) {
   const { data, error } = await supabase
     .from("tenants")
