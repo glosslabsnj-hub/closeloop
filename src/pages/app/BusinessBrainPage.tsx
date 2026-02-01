@@ -330,7 +330,7 @@ export default function BusinessBrainPage() {
                 </p>
                 {(knowledgeStats?.gaps || 0) > 0 && (
                   <Button variant="link" className="p-0 h-auto text-xs mt-1" asChild>
-                    <a href="#gaps">Review gaps →</a>
+                    <Link to="/app/business-brain/gaps">View Analytics →</Link>
                   </Button>
                 )}
               </CardContent>
