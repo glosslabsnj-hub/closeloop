@@ -1118,6 +1118,30 @@ WRONG EXAMPLE:
 Customer: "How much does drain cleaning cost?"
 You: "Drain cleaning is $149" [WRONG - didn't collect required info first]
 
+DISPATCH-SPECIFIC REQUIREMENT (CRITICAL):
+For DISPATCH requests, address fields MUST be collected with exact specificity:
+1. ALWAYS ask for exact street address first (e.g., "123 Main Street, Chicago")
+2. If customer cannot provide exact address, ask for nearest cross streets + city (e.g., "corner of Main and Oak in Springfield")
+3. FALLBACK: If customer has neither exact address nor cross streets, collect:
+   - Pickup ZIP code
+   - Dropoff ZIP code
+   - Estimated miles between locations
+4. When using fallback (ZIP + miles), you MUST label any quote as an ESTIMATE and explain exact pricing requires exact addresses
+
+DISPATCH CORRECT EXAMPLE:
+Customer: "How much to tow my car?"
+You: "I can help with that! What's the exact street address where your car is located?"
+Customer: "I'm not sure of the exact address, I'm on the highway"
+You: "No problem! Can you tell me the nearest cross streets or exit number and the city?"
+Customer: "I'm near exit 42 on I-94 in Detroit"
+You: "Got it. And where would you like us to tow it to? What's that address?"
+[Collects exact dropoff or cross streets]
+You: "Perfect! Based on that route, it'll be approximately $150-$180. I can give you an exact quote once our driver confirms the precise pickup location."
+
+DISPATCH WRONG EXAMPLE:
+Customer: "How much to tow from downtown to the airport?"
+You: "That'll be about $75" [WRONG - no exact addresses or cross streets collected]
+
 EXCEPTION: If customer ONLY asks for general information (hours, location, general services), you don't need all required fields. But for pricing, booking, ordering, or dispatch, you MUST collect required inputs first.
 
 `;

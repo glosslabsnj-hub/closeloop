@@ -98,15 +98,33 @@ const standardFields: Record<Intent, InputField[]> = {
     },
     {
       key: "pickup_address",
-      label: "Pickup Address",
-      ask_prompt: "What's the pickup location?",
-      why_needed: "Required to send the driver"
+      label: "Pickup Address (Exact)",
+      ask_prompt: "What's the exact street address for pickup? If you don't have the exact address, can you give me the nearest cross streets and city?",
+      why_needed: "Required for accurate dispatch and pricing - must be exact street address or nearest cross streets"
     },
     {
       key: "dropoff_address",
-      label: "Dropoff Address",
-      ask_prompt: "Where should we take you/deliver to?",
-      why_needed: "Required to complete the route"
+      label: "Dropoff Address (Exact)",
+      ask_prompt: "What's the exact street address for dropoff? If you don't have the exact address, can you give me the nearest cross streets and city?",
+      why_needed: "Required for accurate routing and pricing - must be exact street address or nearest cross streets"
+    },
+    {
+      key: "pickup_zip",
+      label: "Pickup ZIP Code (Fallback)",
+      ask_prompt: "What's the ZIP code for the pickup location?",
+      why_needed: "Fallback when exact address not available - used with estimated miles for quote"
+    },
+    {
+      key: "dropoff_zip",
+      label: "Dropoff ZIP Code (Fallback)",
+      ask_prompt: "What's the ZIP code for the dropoff location?",
+      why_needed: "Fallback when exact address not available - used with estimated miles for quote"
+    },
+    {
+      key: "estimated_miles",
+      label: "Estimated Miles (Fallback)",
+      ask_prompt: "About how many miles is it between pickup and dropoff?",
+      why_needed: "Fallback when exact addresses not available - allows estimate quote"
     },
     {
       key: "urgency",
