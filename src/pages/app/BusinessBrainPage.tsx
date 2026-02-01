@@ -21,6 +21,7 @@ import { ServiceAreaManager } from "@/components/brain/ServiceAreaManager";
 import { BrainAssetsManager } from "@/components/brain/BrainAssetsManager";
 import { BrainReviewQueue, useBrainReviewCount } from "@/components/brain/BrainReviewQueue";
 import { QuoteReadinessCard } from "@/components/brain/QuoteReadinessCard";
+import { IndustryTemplateCard } from "@/components/brain/IndustryTemplateCard";
 
 /**
  * Business Brain - Centralized hub for ALL business knowledge editing
@@ -181,6 +182,10 @@ export default function BusinessBrainPage() {
               description="Your business identity, contact information, and operating hours"
             >
               <BusinessProfileEditor />
+
+              <div className="mt-6">
+                <IndustryTemplateCard />
+              </div>
             </SettingsSection>
           )}
 
