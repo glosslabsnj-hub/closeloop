@@ -166,53 +166,58 @@ serve(async (req) => {
 
     // DUAL PATH: WebRTC (default) or WebSocket
     if (connectionType === "webrtc") {
-      // WebRTC PATH: Create conversation with dynamic variables, returns conversationId
-      console.log("Creating WebRTC conversation with agent:", {
+      // WebRTC PATH: fetch a short-lived conversation token.
+      // IMPORTANT: Do NOT POST to the WebSocket conversation endpoint.
+      console.log("Getting WebRTC conversation token for agent:", {
         agent_id: ELEVENLABS_AGENT_ID,
         tenantId,
-        flow: "webrtc-conversation",
+        flow: "webrtc-token",
       });
 
-      const conversationResponse = await fetch(
-        `https://api.elevenlabs.io/v1/convai/conversation?agent_id=${ELEVENLABS_AGENT_ID}`,
+      const tokenResponse = await fetch(
+        `https://api.elevenlabs.io/v1/convai/conversation/token?agent_id=${ELEVENLABS_AGENT_ID}`,
         {
-          method: "POST",
+          method: "GET",
           headers: {
             "xi-api-key": ELEVENLABS_API_KEY,
-            "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            dynamic_variables: dynamicVariables,
-          }),
         }
       );
 
-      if (!conversationResponse.ok) {
-        const errorText = await conversationResponse.text();
-        console.error("ElevenLabs conversation creation error:", conversationResponse.status, errorText);
+      if (!tokenResponse.ok) {
+        const errorText = await tokenResponse.text();
+        console.error("ElevenLabs conversation token error:", tokenResponse.status, errorText);
         return new Response(
-          JSON.stringify({ error: "Failed to create conversation", details: errorText }),
-          { status: conversationResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ error: "Failed to get conversation token", details: errorText }),
+          { status: tokenResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      const conversationData = await conversationResponse.json();
-      const conversationId = conversationData.conversation_id;
+      const tokenData = await tokenResponse.json().catch(() => ({} as any));
+      const token = (tokenData as any)?.token as string | undefined;
 
-      console.log("WebRTC conversation created:", { conversationId });
+      if (!token) {
+        console.error("ElevenLabs conversation token missing in response", tokenData);
+        return new Response(
+          JSON.stringify({ error: "Conversation token missing from ElevenLabs response" }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      console.log("WebRTC token received:", { tokenPrefix: token.slice(0, 12) });
 
       return new Response(
         JSON.stringify({
-          conversationId: conversationId,
+          token,
           dynamicVariables: dynamicVariables,
           precomputedSlots: precomputedSlots,
           deployedVersion: DEPLOYED_VERSION,
           connectionType: "webrtc",
           _debug: {
             deployedVersion: DEPLOYED_VERSION,
-            flow: "webrtc-conversation",
+            flow: "webrtc-token",
             agentId: ELEVENLABS_AGENT_ID,
-            conversationId: conversationId,
+            tokenPrefix: token.slice(0, 12),
             denoStdVersion: "0.191.0",
             dynamicVarsCount: Object.keys(dynamicVariables).length,
           },

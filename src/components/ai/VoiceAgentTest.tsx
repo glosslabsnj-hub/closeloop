@@ -115,7 +115,9 @@ export default function VoiceAgentTest() {
       console.log("🎙️ [VoiceTest] ✓ Token response:", {
         connectionType: data?.connectionType,
         hasSignedUrl: !!data?.signedUrl,
+        hasToken: !!data?.token,
         hasConversationId: !!data?.conversationId,
+        tokenPrefix: data?.token ? String(data.token).slice(0, 12) : undefined,
         conversationId: data?.conversationId,
         businessName: data?.dynamicVariables?.business_name,
         deployedVersion: data?.deployedVersion || "OLD_VERSION",
@@ -125,22 +127,31 @@ export default function VoiceAgentTest() {
       addDebugEvent("TOKEN_RECEIVED", {
         connectionType: data?.connectionType,
         hasSignedUrl: !!data?.signedUrl,
+        hasToken: !!data?.token,
         conversationId: data?.conversationId,
         deployedVersion: data?.deployedVersion,
       });
 
-      // Store conversationId if returned (WebRTC mode)
-      if (data?.conversationId) {
-        setConversationId(data.conversationId);
-        console.log("🎙️ [VoiceTest] ConversationID:", data.conversationId);
+      // Store token/id if returned (for debug display)
+      const debugId = (data?.token as string | undefined) || (data?.conversationId as string | undefined) || null;
+      if (debugId) {
+        setConversationId(debugId);
+        console.log("🎙️ [VoiceTest] DebugID:", debugId);
       }
 
       console.log("🎙️ [VoiceTest] Step 3: Starting session...");
       addDebugEvent("STARTING_SESSION", { mode: data?.connectionType || connectionMode });
 
       // Start session based on returned connection type
-      if (data?.conversationId && data?.connectionType === "webrtc") {
-        // WebRTC mode - use conversationToken (which is the conversationId)
+      if (data?.token && data?.connectionType === "webrtc") {
+        // WebRTC mode - use conversation token
+        await conversation.startSession({
+          conversationToken: data.token,
+          connectionType: "webrtc" as const,
+          dynamicVariables: toSafeVars(data.dynamicVariables),
+        });
+      } else if (data?.conversationId && data?.connectionType === "webrtc") {
+        // Backwards compatibility (older backend versions)
         await conversation.startSession({
           conversationToken: data.conversationId,
           connectionType: "webrtc" as const,
@@ -154,7 +165,7 @@ export default function VoiceAgentTest() {
           dynamicVariables: toSafeVars(data.dynamicVariables),
         });
       } else {
-        throw new Error("No conversationId or signedUrl received from server");
+        throw new Error("No token, conversationId, or signedUrl received from server");
       }
 
       console.log("🎙️ [VoiceTest] ✓ Session started");
