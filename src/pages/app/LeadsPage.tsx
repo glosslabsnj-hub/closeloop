@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { useLeads } from "@/hooks/useLeads";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -14,19 +12,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Plus, MoreHorizontal, Phone, Mail, Calendar, MessageSquare, Loader2, Users } from "lucide-react";
+import { SkeletonTable, SkeletonStatCard } from "@/components/ui/skeleton";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { SectionCard } from "@/components/layout/SectionCard";
+import { StatCard } from "@/components/layout/StatCard";
+import { Toolbar, FilterSelect } from "@/components/layout/Toolbar";
+import { Plus, MoreHorizontal, Phone, Mail, Calendar, MessageSquare, Users, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 
@@ -60,168 +57,165 @@ export default function LeadsPage() {
     return matchesSearch && matchesStatus;
   });
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="page-header mb-0">
-          <h1 className="page-title">Leads</h1>
-          <p className="page-subtitle">Manage and track all your leads</p>
-        </div>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Lead
-        </Button>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Leads"
+        description="Manage and track all your leads"
+        action={
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add Lead
+          </Button>
+        }
+      />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Total Leads</p>
-            <p className="text-2xl font-bold">{stats.total}</p>
-            <p className="text-xs text-muted-foreground">All time</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">New</p>
-            <p className="text-2xl font-bold">{stats.new}</p>
-            <p className="text-xs text-muted-foreground">Need attention</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Booked</p>
-            <p className="text-2xl font-bold">{stats.booked}</p>
-            <p className="text-xs text-muted-foreground">Appointments</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Won</p>
-            <p className="text-2xl font-bold">{stats.won}</p>
-            <p className="text-xs text-muted-foreground">Converted</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search leads..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
+      {isLoading ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <SkeletonStatCard />
+          <SkeletonStatCard />
+          <SkeletonStatCard />
+          <SkeletonStatCard />
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard
+            label="Total Leads"
+            value={stats.total}
+            icon={Users}
+            description="All time"
+          />
+          <StatCard
+            label="New"
+            value={stats.new}
+            icon={TrendingUp}
+            description="Need attention"
+            variant="primary"
+          />
+          <StatCard
+            label="Booked"
+            value={stats.booked}
+            icon={Calendar}
+            description="Appointments"
+            variant="success"
+          />
+          <StatCard
+            label="Won"
+            value={stats.won}
+            icon={TrendingUp}
+            description="Converted"
+            variant="success"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-40">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="new">New</SelectItem>
-            <SelectItem value="contacted">Contacted</SelectItem>
-            <SelectItem value="qualified">Qualified</SelectItem>
-            <SelectItem value="booked">Booked</SelectItem>
-            <SelectItem value="won">Won</SelectItem>
-            <SelectItem value="lost">Lost</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      )}
+
+      {/* Toolbar */}
+      <Toolbar
+        searchPlaceholder="Search leads..."
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        filters={
+          <FilterSelect
+            placeholder="Status"
+            value={statusFilter}
+            onValueChange={setStatusFilter}
+            options={[
+              { value: "all", label: "All Status" },
+              { value: "new", label: "New" },
+              { value: "contacted", label: "Contacted" },
+              { value: "qualified", label: "Qualified" },
+              { value: "booked", label: "Booked" },
+              { value: "won", label: "Won" },
+              { value: "lost", label: "Lost" },
+            ]}
+          />
+        }
+      />
 
       {/* Table */}
-      <Card>
-        <CardContent className="p-0">
-          {filteredLeads.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead className="hidden md:table-cell">Source</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="hidden sm:table-cell">Last Contact</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+      <SectionCard noPadding>
+        {isLoading ? (
+          <div className="p-6">
+            <SkeletonTable rows={8} columns={5} />
+          </div>
+        ) : filteredLeads.length > 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead className="hidden md:table-cell">Source</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="hidden sm:table-cell">Last Contact</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredLeads.map((lead) => (
+                <TableRow key={lead.id} zebra>
+                  <TableCell>
+                    <div>
+                      <p className="font-medium">{lead.full_name}</p>
+                      <p className="text-sm text-muted-foreground">{lead.phone || "No phone"}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    <Badge variant="outline">{sourceLabels[lead.source] || lead.source}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={cn(statusColors[lead.status])}>
+                      {lead.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell text-muted-foreground">
+                    {lead.last_message_at
+                      ? formatDistanceToNow(new Date(lead.last_message_at), { addSuffix: true })
+                      : "Never"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem>
+                          <MessageSquare className="mr-2 h-4 w-4" />
+                          Send Message
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Phone className="mr-2 h-4 w-4" />
+                          Call
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Calendar className="mr-2 h-4 w-4" />
+                          Book Appointment
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Mail className="mr-2 h-4 w-4" />
+                          Send Quote
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredLeads.map((lead) => (
-                  <TableRow key={lead.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{lead.full_name}</p>
-                        <p className="text-sm text-muted-foreground">{lead.phone || "No phone"}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <Badge variant="outline">{sourceLabels[lead.source] || lead.source}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={cn(statusColors[lead.status])}>
-                        {lead.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell text-muted-foreground">
-                      {lead.last_message_at
-                        ? formatDistanceToNow(new Date(lead.last_message_at), { addSuffix: true })
-                        : "Never"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
-                            <MessageSquare className="mr-2 h-4 w-4" />
-                            Send Message
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Phone className="mr-2 h-4 w-4" />
-                            Call
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Calendar className="mr-2 h-4 w-4" />
-                            Book Appointment
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Mail className="mr-2 h-4 w-4" />
-                            Send Quote
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
-            <EmptyState
-              icon={Users}
-              title="No leads yet"
-              description="Leads will appear here when you receive calls, texts, or add them manually."
-              action={{
-                label: "Add Your First Lead",
-                onClick: () => {},
-              }}
-              compact
-            />
-          )}
-        </CardContent>
-      </Card>
-    </div>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <EmptyState
+            icon={Users}
+            title="No leads found"
+            description="Leads will appear here when you receive calls, texts, or add them manually."
+            action={{
+              label: "Add Your First Lead",
+              onClick: () => {},
+            }}
+            compact
+          />
+        )}
+      </SectionCard>
+    </PageContainer>
   );
 }

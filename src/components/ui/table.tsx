@@ -40,12 +40,13 @@ const TableFooter = React.forwardRef<HTMLTableSectionElement, React.HTMLAttribut
 );
 TableFooter.displayName = "TableFooter";
 
-const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTMLTableRowElement>>(
-  ({ className, ...props }, ref) => (
+const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTMLTableRowElement> & { zebra?: boolean }>(
+  ({ className, zebra, ...props }, ref) => (
     <tr
       ref={ref}
       className={cn(
         "border-b transition-colors data-[state=selected]:bg-muted hover:bg-muted/50",
+        zebra && "even:bg-muted/20",
         className
       )}
       {...props}
