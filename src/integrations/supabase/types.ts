@@ -329,10 +329,7 @@ export type Database = {
           instant_text_enabled: boolean
           missed_call_behavior: Database["public"]["Enums"]["missed_call_behavior"]
           notification_sounds_enabled: boolean
-          off_behavior: Database["public"]["Enums"]["off_behavior"] | null
           overflow_rings: number
-          owner_forward_number: string | null
-          owner_forward_verified: boolean
           pending_booking_notify_email: boolean | null
           pending_booking_notify_sms: boolean | null
           phone_connected: boolean
@@ -369,10 +366,7 @@ export type Database = {
           instant_text_enabled?: boolean
           missed_call_behavior?: Database["public"]["Enums"]["missed_call_behavior"]
           notification_sounds_enabled?: boolean
-          off_behavior?: Database["public"]["Enums"]["off_behavior"] | null
           overflow_rings?: number
-          owner_forward_number?: string | null
-          owner_forward_verified?: boolean
           pending_booking_notify_email?: boolean | null
           pending_booking_notify_sms?: boolean | null
           phone_connected?: boolean
@@ -409,10 +403,7 @@ export type Database = {
           instant_text_enabled?: boolean
           missed_call_behavior?: Database["public"]["Enums"]["missed_call_behavior"]
           notification_sounds_enabled?: boolean
-          off_behavior?: Database["public"]["Enums"]["off_behavior"] | null
           overflow_rings?: number
-          owner_forward_number?: string | null
-          owner_forward_verified?: boolean
           pending_booking_notify_email?: boolean | null
           pending_booking_notify_sms?: boolean | null
           phone_connected?: boolean
@@ -3770,7 +3761,6 @@ export type Database = {
           ai_readiness_score: number | null
           appointment_buffer_minutes: number | null
           business_mode: Database["public"]["Enums"]["business_mode"]
-          busyness_rules_jsonb: Json | null
           calendar_last_synced_at: string | null
           calendar_sync_enabled: boolean | null
           calendar_sync_provider: string | null
@@ -3792,7 +3782,7 @@ export type Database = {
           onboarding_completed_at: string | null
           payment_methods: string[] | null
           phone_public: string | null
-          pricing_rules_jsonb: Json | null
+          pricing_rules_json: Json | null
           refund_policy: string | null
           service_area_json: Json | null
           tagline: string | null
@@ -3808,7 +3798,6 @@ export type Database = {
           ai_readiness_score?: number | null
           appointment_buffer_minutes?: number | null
           business_mode?: Database["public"]["Enums"]["business_mode"]
-          busyness_rules_jsonb?: Json | null
           calendar_last_synced_at?: string | null
           calendar_sync_enabled?: boolean | null
           calendar_sync_provider?: string | null
@@ -3830,7 +3819,7 @@ export type Database = {
           onboarding_completed_at?: string | null
           payment_methods?: string[] | null
           phone_public?: string | null
-          pricing_rules_jsonb?: Json | null
+          pricing_rules_json?: Json | null
           refund_policy?: string | null
           service_area_json?: Json | null
           tagline?: string | null
@@ -3846,7 +3835,6 @@ export type Database = {
           ai_readiness_score?: number | null
           appointment_buffer_minutes?: number | null
           business_mode?: Database["public"]["Enums"]["business_mode"]
-          busyness_rules_jsonb?: Json | null
           calendar_last_synced_at?: string | null
           calendar_sync_enabled?: boolean | null
           calendar_sync_provider?: string | null
@@ -3868,7 +3856,7 @@ export type Database = {
           onboarding_completed_at?: string | null
           payment_methods?: string[] | null
           phone_public?: string | null
-          pricing_rules_jsonb?: Json | null
+          pricing_rules_json?: Json | null
           refund_policy?: string | null
           service_area_json?: Json | null
           tagline?: string | null
@@ -4772,7 +4760,6 @@ export type Database = {
         | "suggestions_pending"
         | "conflicts_detected"
         | "conflicts_resolved"
-      off_behavior: "FORWARD_OWNER" | "VOICEMAIL" | "CALLBACK_ONLY"
       order_status:
         | "pending"
         | "confirmed"
@@ -5103,7 +5090,6 @@ export const Constants = {
         "conflicts_detected",
         "conflicts_resolved",
       ],
-      off_behavior: ["FORWARD_OWNER", "VOICEMAIL", "CALLBACK_ONLY"],
       order_status: [
         "pending",
         "confirmed",
