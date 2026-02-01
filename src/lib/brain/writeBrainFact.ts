@@ -32,6 +32,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 
 // ============================================================================
 // PROFILE SECTION (#profile)
@@ -99,7 +100,7 @@ export async function updateServiceArea(
 ) {
   const { data, error } = await supabase
     .from("tenants")
-    .update({ service_area_json: serviceArea })
+    .update({ service_area_json: serviceArea as Json })
     .eq("id", tenantId)
     .select()
     .single();

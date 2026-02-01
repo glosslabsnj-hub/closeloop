@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import type { Json } from "@/integrations/supabase/types";
 
 export type CoverageMode = "radius" | "counties" | "zips" | "hybrid";
 
@@ -102,7 +103,7 @@ export function useServiceArea() {
 
       const { error } = await supabase
         .from("tenants")
-        .update({ service_area_json: config as unknown as Record<string, unknown> })
+        .update({ service_area_json: config as unknown as Json })
         .eq("id", tenantId);
 
       if (error) throw error;
