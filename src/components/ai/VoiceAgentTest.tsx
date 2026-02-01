@@ -16,62 +16,68 @@ export default function VoiceAgentTest() {
 
   const conversation = useConversation({
     onConnect: () => {
-      console.log("Connected to ElevenLabs agent");
+      console.log("🎙️ [VoiceTest] ✓ CONNECTED to ElevenLabs agent");
       toast({
         title: "Connected",
         description: "AI voice agent is now listening",
       });
     },
     onDisconnect: () => {
-      console.log("Disconnected from ElevenLabs agent");
+      console.log("🎙️ [VoiceTest] ⚠️ DISCONNECTED from ElevenLabs agent");
     },
     onMessage: (message) => {
-      console.log("Agent message:", message);
+      console.log("🎙️ [VoiceTest] Message:", message);
     },
     onError: (error) => {
-      console.error("Conversation error:", error);
+      console.error("🎙️ [VoiceTest] ✗ ERROR:", error);
       toast({
         variant: "destructive",
         title: "Connection Error",
-        description: "Failed to connect to voice agent. Please try again.",
+        description: error?.message || "Failed to connect to voice agent. Please try again.",
       });
     },
   });
 
   const startConversation = useCallback(async () => {
+    console.log("🎙️ [VoiceTest] Starting conversation flow...", { tenantId: tenant?.id });
     setIsConnecting(true);
     try {
       // Request microphone permission
+      console.log("🎙️ [VoiceTest] Step 1: Requesting microphone...");
       await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log("🎙️ [VoiceTest] ✓ Microphone granted");
 
       // Get signed URL and dynamic variables from edge function
+      console.log("🎙️ [VoiceTest] Step 2: Fetching token...");
       const { data, error } = await supabase.functions.invoke(
         "elevenlabs-conversation-token",
         { body: { tenantId: tenant?.id } }
       );
 
       if (error) {
+        console.error("🎙️ [VoiceTest] ✗ Token error:", error);
         throw new Error(error.message || "Failed to get conversation token");
       }
 
+      console.log("🎙️ [VoiceTest] ✓ Token response:", {
+        hasSignedUrl: !!data?.signedUrl,
+        conversationId: data?.conversationId,
+        businessName: data?.dynamicVariables?.business_name,
+      });
+
       if (!data?.signedUrl) {
+        console.error("🎙️ [VoiceTest] ✗ No signedUrl in:", data);
         throw new Error("No signed URL received from server");
       }
 
-      console.log("Starting conversation with business context:", {
-        conversationId: data.conversationId,
-        servicesCount: data.dynamicVariables?.context_services_count || 0,
-        servicesPricing: (data.dynamicVariables?.services_pricing || "").substring(0, 100),
-        businessName: data.dynamicVariables?.business_name,
-      });
-
-      // Start the conversation using signed URL
-      // The prompt override and dynamic variables are already configured in the conversation
+      console.log("🎙️ [VoiceTest] Step 3: Starting session...");
       await conversation.startSession({
         signedUrl: data.signedUrl,
       });
+
+      console.log("🎙️ [VoiceTest] ✓ Session started");
     } catch (error: any) {
-      console.error("Failed to start conversation:", error);
+      console.error("🎙️ [VoiceTest] ✗ Failed:", error);
       toast({
         variant: "destructive",
         title: "Failed to Start",
