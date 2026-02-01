@@ -266,20 +266,26 @@ export default function VoiceAgentTest() {
 
         {/* Debug Events */}
         {debugEvents.length > 0 && (
-          <details className="mt-6">
+          <details className="mt-6" open>
             <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">
               Debug Events ({debugEvents.length})
               {conversationId && <span className="ml-2 text-xs">ID: {conversationId.slice(0, 8)}...</span>}
             </summary>
-            <div className="mt-2 max-h-60 overflow-y-auto rounded-md border bg-muted/30 p-2 text-xs font-mono space-y-1">
+            <div className="mt-2 max-h-96 overflow-y-auto rounded-md border bg-muted/30 p-3 text-xs font-mono space-y-2">
               {debugEvents.map((event, idx) => {
                 const time = new Date(event.timestamp).toLocaleTimeString();
-                const dataStr = typeof event.data === "object" ? JSON.stringify(event.data) : String(event.data);
+                const dataStr = typeof event.data === "object"
+                  ? JSON.stringify(event.data, null, 2)
+                  : String(event.data);
                 return (
-                  <div key={idx} className="flex gap-2">
-                    <span className="text-muted-foreground">{time}</span>
-                    <span className="font-semibold">{event.type}</span>
-                    <span className="text-muted-foreground truncate">{dataStr}</span>
+                  <div key={idx} className="border-b border-muted pb-2 last:border-b-0">
+                    <div className="flex gap-2 mb-1">
+                      <span className="text-muted-foreground">{time}</span>
+                      <span className="font-semibold text-primary">{event.type}</span>
+                    </div>
+                    <pre className="text-muted-foreground whitespace-pre-wrap break-all text-xs ml-2">
+                      {dataStr}
+                    </pre>
                   </div>
                 );
               })}
