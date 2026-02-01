@@ -47,6 +47,19 @@ export interface IntentRule {
   priority: number;
 }
 
+export interface RequiredQuestionField {
+  key: string;
+  label: string;
+  ask_prompt: string;
+  why_needed: string;
+}
+
+export interface RequiredQuestionsConfig {
+  intent: string;
+  required_inputs: RequiredQuestionField[];
+  optional_inputs: RequiredQuestionField[];
+}
+
 export interface MemoryHint {
   type: string;
   summary: string;
@@ -131,6 +144,8 @@ export interface BusinessContext {
     };
     intent_rules: IntentRule[];
     intent_rules_summary: string;
+    required_questions: RequiredQuestionsConfig[];
+    required_questions_summary: string;
     memory_hints: MemoryHint[];
     memory_hints_summary: string;
   };
@@ -499,6 +514,23 @@ function buildMemoryHintsSummary(hints: MemoryHint[], forVoice = false): string 
   }).join("; ");
 }
 
+function buildRequiredQuestionsSummary(configs: RequiredQuestionsConfig[]): string {
+  if (configs.length === 0) return "No required questions configured";
+
+  const summaries: string[] = [];
+  for (const config of configs) {
+    const requiredCount = config.required_inputs.length;
+    const optionalCount = config.optional_inputs.length;
+
+    if (requiredCount > 0) {
+      const fields = config.required_inputs.slice(0, 3).map(f => f.label).join(", ");
+      summaries.push(`${config.intent}: ${requiredCount} required (${fields}${requiredCount > 3 ? '...' : ''})`);
+    }
+  }
+
+  return summaries.length > 0 ? summaries.join("; ") : "No required questions configured";
+}
+
 function determineUsage(memoryType: string): string {
   switch (memoryType) {
     case "time_pattern": return "timing_preference";
@@ -700,11 +732,12 @@ export async function buildBusinessContext(
   
   // ===== FETCH INTELLIGENCE LAYERS =====
   let intentRules: IntentRule[] = [];
+  let requiredQuestions: RequiredQuestionsConfig[] = [];
   let memoryHints: MemoryHint[] = [];
-  
+
   const hipaaMode = tenant.hipaa_mode === true;
   const memoryEnabled = intelligenceSettings?.memory_enabled === true && !hipaaMode;
-  
+
   if (includeIntelligence) {
     const { data: rules } = await supabase
       .from("business_intent_rules")
@@ -714,15 +747,21 @@ export async function buildBusinessContext(
       .eq("is_suggested", false)
       .order("priority", { ascending: false })
       .limit(10);
-    
+
     if (rules && rules.length > 0) {
-      intentRules = rules.map(r => ({
+      intentRules = rules.filter(r => r.rule_type !== "required_inputs").map(r => ({
         id: r.id,
         name: r.name,
         rule_type: r.rule_type,
         action: r.action_json || {},
         priority: r.priority || 0,
       }));
+
+      // Extract required questions rules
+      requiredQuestions = rules
+        .filter(r => r.rule_type === "required_inputs" && r.action_json)
+        .map(r => r.action_json as unknown as RequiredQuestionsConfig)
+        .filter(config => config.intent && Array.isArray(config.required_inputs));
     }
     
     if (memoryEnabled) {
@@ -844,6 +883,8 @@ export async function buildBusinessContext(
       },
       intent_rules: intentRules,
       intent_rules_summary: buildIntentRulesSummary(intentRules),
+      required_questions: requiredQuestions,
+      required_questions_summary: buildRequiredQuestionsSummary(requiredQuestions),
       memory_hints: memoryHints,
       memory_hints_summary: buildMemoryHintsSummary(memoryHints),
     },
@@ -1030,6 +1071,58 @@ The system automatically checks busy_blocks (synced calendars + existing booking
 
 `;
 
+  // Required questions
+  if (ctx.intelligence.required_questions.length > 0) {
+    prompt += `REQUIRED QUESTIONS (CRITICAL - MUST COLLECT BEFORE PROVIDING PRICES/ETA/BOOKING):
+
+Before you can provide a price quote, ETA, or complete a booking/order/dispatch, you MUST collect all required information first.
+
+`;
+
+    for (const config of ctx.intelligence.required_questions) {
+      const intent = config.intent;
+      const requiredFields = config.required_inputs || [];
+
+      if (requiredFields.length > 0) {
+        prompt += `FOR ${intent.toUpperCase()} REQUESTS, YOU MUST ASK:\\n`;
+
+        for (const field of requiredFields) {
+          prompt += `- ${field.label}: "${field.ask_prompt}"\\n`;
+          if (field.why_needed) {
+            prompt += `  (Why: ${field.why_needed})\\n`;
+          }
+        }
+
+        prompt += `\\n`;
+      }
+    }
+
+    prompt += `WORKFLOW:
+1. Customer expresses intent (e.g., "I need a plumber" or "Can I book an appointment?")
+2. YOU MUST ask each required question BEFORE providing pricing or confirming availability
+3. Once you have ALL required inputs, THEN you can:
+   - Provide exact pricing (if service has fixed price)
+   - Provide estimate (if service is "starting at")
+   - Check availability and confirm booking
+   - Complete the order/dispatch
+
+CORRECT EXAMPLE:
+Customer: "How much does drain cleaning cost?"
+You: "I'd be happy to help with that! May I have your name and phone number first?" [collect required inputs]
+Customer: "Sure, it's John at 555-1234"
+You: "Thanks John! And what's the address where you need the drain cleaning?" [continue collecting]
+Customer: "123 Main St"
+You: "Perfect! Drain cleaning is $149. When would work best for you?"
+
+WRONG EXAMPLE:
+Customer: "How much does drain cleaning cost?"
+You: "Drain cleaning is $149" [WRONG - didn't collect required info first]
+
+EXCEPTION: If customer ONLY asks for general information (hours, location, general services), you don't need all required fields. But for pricing, booking, ordering, or dispatch, you MUST collect required inputs first.
+
+`;
+  }
+
   // Intent rules
   if (ctx.intelligence.intent_rules.length > 0) {
     prompt += `BEHAVIOR RULES (from business owner):\\n`;
@@ -1209,6 +1302,7 @@ export function buildDynamicVariables(
     
     // Intelligence layers
     intent_rules_summary: ctx.intelligence.intent_rules_summary || "",
+    required_questions_summary: ctx.intelligence.required_questions_summary || "No required questions configured",
     memory_hints_summary: ctx.safety.hipaa_mode ? "" : (ctx.intelligence.memory_hints_summary || ""),
     memory_enabled: ctx.intelligence.settings.memory_enabled,
     
