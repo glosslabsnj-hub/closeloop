@@ -151,77 +151,17 @@ serve(async (req) => {
       console.log("No tenantId provided for browser test - using minimal defaults");
     }
 
-    // Build strict scheduling instructions
-    const schedulingInstructions = `
-STRICT SCHEDULING RULES (MANDATORY):
-- You MUST verify availability before confirming ANY appointment time.
-- NEVER invent or guess available times. Only offer times you know are available.
-- Tomorrow's available slots: ${precomputedSlots.length > 0 ? precomputedSlots.join(", ") : "Check availability before suggesting times"}
-- If a customer asks for "earlier" times and none exist, explain: "That's our earliest opening for [service duration]."
-- Always confirm the service type first to ensure correct duration (some services need 2+ hours).
-- When a customer requests a specific time, verify it's in the available slots before confirming.
-`;
-
-    // For browser tests, DON'T override the prompt - use the agent's dashboard config
-    // The prompt with {{placeholders}} causes the agent to crash on connect
-    // For Twilio calls, prompt override is handled in register-call endpoint
-    const conversationPayload = {
-      agent_id: ELEVENLABS_AGENT_ID,
-      // conversation_config_override removed - using agent's configured prompt from dashboard
-    };
-
-    console.log("Creating ElevenLabs conversation (browser test - no prompt override):", {
+    // CORRECT FLOW: Get signed URL directly for the agent (no conversation creation)
+    // WebSocket connections use agent-level signed URLs, not conversation-specific ones
+    // This prevents the ephemeral conversation issue that causes immediate disconnects
+    console.log("Getting WebSocket signed URL directly for agent:", {
       agent_id: ELEVENLABS_AGENT_ID,
       tenantId,
-      note: "Using agent's dashboard-configured prompt, not overriding",
+      flow: "direct-signed-url-for-websocket",
     });
 
-    const response = await fetch(
-      `https://api.elevenlabs.io/v1/convai/conversation`,
-      {
-        method: "POST",
-        headers: {
-          "xi-api-key": ELEVENLABS_API_KEY,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(conversationPayload),
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("ElevenLabs conversation creation error:", response.status, errorText);
-      return new Response(
-        JSON.stringify({ error: "Failed to create conversation", details: errorText }),
-        { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const conversationData = await response.json();
-    const conversationId = conversationData.conversation_id;
-
-    console.log("ElevenLabs conversation response:", {
-      conversationId,
-      fullResponse: conversationData,
-      hasConversationId: !!conversationId,
-    });
-
-    // CRITICAL: If conversationId is missing, the conversation creation failed
-    if (!conversationId) {
-      console.error("❌ CRITICAL: No conversation_id in ElevenLabs response!", conversationData);
-      return new Response(
-        JSON.stringify({
-          error: "ElevenLabs API did not return conversation_id",
-          details: "The conversation was created but no ID was returned. This indicates an API issue or invalid agent configuration.",
-          rawResponse: conversationData,
-        }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Get WebRTC signed URL for this specific conversation
     const signedUrlResponse = await fetch(
-      `https://api.elevenlabs.io/v1/convai/conversation/${conversationId}/get-signed-url`,
+      `https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=${ELEVENLABS_AGENT_ID}`,
       {
         method: "GET",
         headers: {
@@ -241,17 +181,16 @@ STRICT SCHEDULING RULES (MANDATORY):
 
     const signedUrlData = await signedUrlResponse.json();
 
-    // Return the signed URL with conversation ID
+    // Return the signed URL (no conversationId - direct WebSocket connection)
     return new Response(
       JSON.stringify({
         signedUrl: signedUrlData.signed_url,
-        conversationId: conversationId,
         dynamicVariables: dynamicVariables,
         precomputedSlots: precomputedSlots,
-        // Debug info (remove in production)
+        // Debug info
         _debug: {
-          deployedVersion: "2026-02-01-no-prompt-override",
-          hasConversationId: !!conversationId,
+          deployedVersion: "2026-02-01-direct-signed-url-fix",
+          flow: "websocket-direct",
           agentId: ELEVENLABS_AGENT_ID,
         },
       }),

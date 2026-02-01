@@ -236,7 +236,7 @@ serve(async (req) => {
           console.log(`No owner forward number configured, falling back to voicemail`);
           const voicemailTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Joanna">Thank you for calling ${escapeXml(context.tenant.name || "us")}. We're currently unavailable. Please leave a message after the tone and we'll get back to you soon.</Say>
+  <Say voice="Polly.Joanna">Thank you for calling ${escapeXml(context.tenant.business_name || "us")}. We're currently unavailable. Please leave a message after the tone and we'll get back to you soon.</Say>
   <Record maxLength="120" transcribe="false" />
   <Say voice="Polly.Joanna">Thank you. We'll return your call soon. Goodbye.</Say>
   <Hangup/>
@@ -250,7 +250,7 @@ serve(async (req) => {
         console.log(`Taking voicemail for tenant ${tenantId}`);
         const voicemailTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Joanna">Thank you for calling ${escapeXml(context.tenant.name || "us")}. We're currently unavailable. Please leave a message after the tone and we'll get back to you soon.</Say>
+  <Say voice="Polly.Joanna">Thank you for calling ${escapeXml(context.tenant.business_name || "us")}. We're currently unavailable. Please leave a message after the tone and we'll get back to you soon.</Say>
   <Record maxLength="120" transcribe="false" />
   <Say voice="Polly.Joanna">Thank you. We'll return your call soon. Goodbye.</Say>
   <Hangup/>
@@ -263,7 +263,7 @@ serve(async (req) => {
         console.log(`Capturing callback request for tenant ${tenantId}`);
         const callbackTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Joanna">Thank you for calling ${escapeXml(context.tenant.name || "us")}. We're currently unavailable, but we've captured your number and will call you back as soon as possible. Thank you for your patience.</Say>
+  <Say voice="Polly.Joanna">Thank you for calling ${escapeXml(context.tenant.business_name || "us")}. We're currently unavailable, but we've captured your number and will call you back as soon as possible. Thank you for your patience.</Say>
   <Hangup/>
 </Response>`;
 

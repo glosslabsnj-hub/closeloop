@@ -75,6 +75,7 @@ export default function VoiceAgentTest() {
       console.log("🎙️ [VoiceTest] Step 3: Starting session...");
       await conversation.startSession({
         signedUrl: data.signedUrl,
+        connectionType: "websocket" as const, // Explicit WebSocket mode for signed URLs
       });
 
       console.log("🎙️ [VoiceTest] ✓ Session started");
