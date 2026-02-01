@@ -26,12 +26,23 @@ export default function VoiceAgentTest() {
     setDebugEvents(prev => [...prev.slice(-19), { timestamp: Date.now(), type, data }]);
   }, []);
 
-  // Helper to ensure dynamic variables are safe (no nulls)
+  // Helper to ensure dynamic variables are safe (no nulls) and include businessname alias
   const toSafeVars = (vars: Record<string, any> | null | undefined): Record<string, string | number | boolean> => {
-    if (!vars) return {};
-    return Object.fromEntries(
+    if (!vars) return { businessname: "our business" };
+    
+    const safe = Object.fromEntries(
       Object.entries(vars).map(([k, v]) => [k, v == null ? "" : v])
     );
+    
+    // Ensure businessname alias is always present (ElevenLabs expects no underscore)
+    if (!safe.businessname && safe.business_name) {
+      safe.businessname = safe.business_name;
+    }
+    if (!safe.businessname) {
+      safe.businessname = "our business";
+    }
+    
+    return safe;
   };
 
   const conversation = useConversation({
