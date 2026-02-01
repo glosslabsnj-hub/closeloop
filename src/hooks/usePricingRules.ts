@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import type { Json } from "@/integrations/supabase/types";
 
 export interface PricingRule {
   id: string;
@@ -29,16 +30,16 @@ export function usePricingRules() {
 
       const { data, error } = await supabase
         .from("tenants")
-        .select("pricing_rules_json")
+        .select("pricing_rules_jsonb")
         .eq("id", tenantId)
         .single();
 
       if (error) throw error;
 
-      const rulesJson = data?.pricing_rules_json;
+      const rulesJson = data?.pricing_rules_jsonb;
       if (!rulesJson) return [];
 
-      return (Array.isArray(rulesJson) ? rulesJson : []) as PricingRule[];
+      return (Array.isArray(rulesJson) ? rulesJson : []) as unknown as PricingRule[];
     },
     enabled: !!tenantId,
   });
@@ -49,7 +50,7 @@ export function usePricingRules() {
 
       const { error } = await supabase
         .from("tenants")
-        .update({ pricing_rules_json: newRules as unknown as Record<string, unknown>[] })
+        .update({ pricing_rules_jsonb: newRules as unknown as Json })
         .eq("id", tenantId);
 
       if (error) throw error;

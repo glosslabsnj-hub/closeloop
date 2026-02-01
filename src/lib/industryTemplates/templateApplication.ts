@@ -8,6 +8,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import type {
   IndustryTemplate,
   CurrentBrainState,
@@ -458,21 +459,23 @@ async function createTemplateConflicts(
   // For each conflict, we create a knowledge_suggestion that the owner can review
   // This reuses the existing Review Queue infrastructure from Step 3
 
+  type SuggestionType = "faq" | "objection" | "policy" | "service" | "menu_item";
+
   const suggestions: Array<{
     tenant_id: string;
-    source_type: string;
-    entity_type: string;
-    suggested_data: Record<string, unknown>;
-    status: string;
+    source_id: string;
+    suggestion_type: SuggestionType;
+    extracted_data: Json;
+    status: "pending_review";
   }> = [];
 
   // Service conflicts
   for (const conflict of preview.services.conflicts) {
     suggestions.push({
       tenant_id: tenantId,
-      source_type: "template",
-      entity_type: "service",
-      suggested_data: {
+      source_id: `template:${template.industry_key}`,
+      suggestion_type: "service",
+      extracted_data: {
         name: conflict.templateItem.name,
         description: conflict.templateItem.description,
         price_type: conflict.templateItem.base_price_model,
@@ -482,8 +485,8 @@ async function createTemplateConflicts(
         duration_minutes: conflict.templateItem.duration_minutes,
         _conflict_note: `Service "${conflict.existingName}" already exists. Template suggests different values.`,
         _template_source: template.industry_key,
-      },
-      status: "pending",
+      } as unknown as Json,
+      status: "pending_review",
     });
   }
 
@@ -491,15 +494,15 @@ async function createTemplateConflicts(
   for (const conflict of preview.faqs.conflicts) {
     suggestions.push({
       tenant_id: tenantId,
-      source_type: "template",
-      entity_type: "faq",
-      suggested_data: {
+      source_id: `template:${template.industry_key}`,
+      suggestion_type: "faq",
+      extracted_data: {
         question: conflict.templateItem.question,
         answer: conflict.templateItem.answer,
         _conflict_note: `Similar FAQ "${conflict.existingQuestion}" already exists.`,
         _template_source: template.industry_key,
-      },
-      status: "pending",
+      } as unknown as Json,
+      status: "pending_review",
     });
   }
 
@@ -507,15 +510,15 @@ async function createTemplateConflicts(
   for (const conflict of preview.objections.conflicts) {
     suggestions.push({
       tenant_id: tenantId,
-      source_type: "template",
-      entity_type: "objection",
-      suggested_data: {
+      source_id: `template:${template.industry_key}`,
+      suggestion_type: "objection",
+      extracted_data: {
         objection: conflict.templateItem.objection,
         response: conflict.templateItem.response,
         _conflict_note: `Similar objection "${conflict.existingObjection}" already exists.`,
         _template_source: template.industry_key,
-      },
-      status: "pending",
+      } as unknown as Json,
+      status: "pending_review",
     });
   }
 
