@@ -162,20 +162,35 @@ STRICT SCHEDULING RULES (MANDATORY):
 - When a customer requests a specific time, verify it's in the available slots before confirming.
 `;
 
+    // Replace all {{template_variables}} with actual values from dynamicVariables
+    const replaceTemplateVariables = (text: string, variables: Record<string, any>): string => {
+      let result = text;
+      for (const [key, value] of Object.entries(variables)) {
+        const placeholder = `{{${key}}}`;
+        const replacement = String(value || ""); // Convert to string, empty string if null/undefined
+        result = result.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), replacement);
+      }
+      return result;
+    };
+
+    // Replace template variables in the prompt before sending to ElevenLabs
+    const finalPrompt = systemPrompt ? replaceTemplateVariables(systemPrompt, dynamicVariables) : "";
+
     // Create a conversation with full configuration (allows prompt override)
     const conversationPayload = {
       agent_id: ELEVENLABS_AGENT_ID,
-      conversation_config_override: systemPrompt ? {
+      conversation_config_override: finalPrompt ? {
         agent: {
-          prompt: systemPrompt + "\n\n" + schedulingInstructions,
+          prompt: finalPrompt + "\n\n" + schedulingInstructions,
           first_message: "Hello! Thanks for calling. How can I help you today?",
         },
       } : undefined,
     };
 
     console.log("Creating ElevenLabs conversation with prompt override:", {
-      hasPrompt: !!systemPrompt,
-      promptLength: (systemPrompt + schedulingInstructions).length,
+      hasPrompt: !!finalPrompt,
+      promptLength: finalPrompt ? (finalPrompt + schedulingInstructions).length : 0,
+      variablesReplaced: Object.keys(dynamicVariables).length,
     });
 
     const response = await fetch(
