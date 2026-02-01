@@ -58,13 +58,17 @@ export default function VoiceAgentTest() {
         throw new Error("No signed URL received from server");
       }
 
-      console.log("Starting conversation with business context:", data.dynamicVariables);
+      console.log("Starting conversation with business context:", {
+        conversationId: data.conversationId,
+        servicesCount: data.dynamicVariables?.context_services_count || 0,
+        servicesPricing: (data.dynamicVariables?.services_pricing || "").substring(0, 100),
+        businessName: data.dynamicVariables?.business_name,
+      });
 
-      // Start the conversation with WebSocket using signed URL
-      // Pass dynamic variables directly - the agent uses these via {{variable_name}} syntax
+      // Start the conversation using signed URL
+      // The prompt override and dynamic variables are already configured in the conversation
       await conversation.startSession({
         signedUrl: data.signedUrl,
-        dynamicVariables: data.dynamicVariables,
       });
     } catch (error: any) {
       console.error("Failed to start conversation:", error);

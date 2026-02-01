@@ -162,9 +162,53 @@ STRICT SCHEDULING RULES (MANDATORY):
 - When a customer requests a specific time, verify it's in the available slots before confirming.
 `;
 
-    // Get a conversation token for WebRTC connection (lower latency than WebSocket signed URL)
+    // Create a conversation with full configuration (allows prompt override)
+    const conversationPayload = {
+      agent_id: ELEVENLABS_AGENT_ID,
+      conversation_config_override: systemPrompt ? {
+        agent: {
+          prompt: {
+            prompt: systemPrompt + "\n\n" + schedulingInstructions,
+          },
+          first_message: "Hello! Thanks for calling. How can I help you today?",
+        },
+      } : undefined,
+    };
+
+    console.log("Creating ElevenLabs conversation with prompt override:", {
+      hasPrompt: !!systemPrompt,
+      promptLength: (systemPrompt + schedulingInstructions).length,
+    });
+
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=${ELEVENLABS_AGENT_ID}`,
+      `https://api.elevenlabs.io/v1/convai/conversation`,
+      {
+        method: "POST",
+        headers: {
+          "xi-api-key": ELEVENLABS_API_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(conversationPayload),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("ElevenLabs conversation creation error:", response.status, errorText);
+      return new Response(
+        JSON.stringify({ error: "Failed to create conversation", details: errorText }),
+        { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const conversationData = await response.json();
+    const conversationId = conversationData.conversation_id;
+
+    console.log("Conversation created:", conversationId);
+
+    // Get WebRTC signed URL for this specific conversation
+    const signedUrlResponse = await fetch(
+      `https://api.elevenlabs.io/v1/convai/conversation/${conversationId}/get-signed-url`,
       {
         method: "GET",
         headers: {
@@ -173,23 +217,23 @@ STRICT SCHEDULING RULES (MANDATORY):
       }
     );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("ElevenLabs API error:", response.status, errorText);
+    if (!signedUrlResponse.ok) {
+      const errorText = await signedUrlResponse.text();
+      console.error("ElevenLabs signed URL error:", signedUrlResponse.status, errorText);
       return new Response(
-        JSON.stringify({ error: "Failed to get conversation token", details: errorText }),
-        { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Failed to get signed URL", details: errorText }),
+        { status: signedUrlResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const data = await response.json();
+    const signedUrlData = await signedUrlResponse.json();
 
-    // Return the signed URL along with dynamic variables and prompt override for the client
+    // Return the signed URL with conversation ID
     return new Response(
-      JSON.stringify({ 
-        signedUrl: data.signed_url,
+      JSON.stringify({
+        signedUrl: signedUrlData.signed_url,
+        conversationId: conversationId,
         dynamicVariables: dynamicVariables,
-        promptOverride: systemPrompt ? systemPrompt + "\n\n" + schedulingInstructions : schedulingInstructions,
         precomputedSlots: precomputedSlots,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
