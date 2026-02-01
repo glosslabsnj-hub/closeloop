@@ -35,21 +35,21 @@ export default function VoiceAgentTest() {
         description: "AI voice agent is now listening",
       });
     },
-    onDisconnect: () => {
-      console.log("🎙️ [VoiceTest] ⚠️ DISCONNECTED from ElevenLabs agent");
-      addDebugEvent("DISCONNECTED", { status: conversation.status });
+    onDisconnect: (details) => {
+      console.log("🎙️ [VoiceTest] ⚠️ DISCONNECTED from ElevenLabs agent", details);
+      addDebugEvent("DISCONNECTED", { status: conversation.status, details });
     },
     onMessage: (message) => {
       console.log("🎙️ [VoiceTest] Message:", message);
-      addDebugEvent("MESSAGE", { role: message.role, type: message.type });
+      addDebugEvent("MESSAGE", { role: message.role, source: message.source });
     },
-    onError: (error) => {
+    onError: (error: string) => {
       console.error("🎙️ [VoiceTest] ✗ ERROR:", error);
-      addDebugEvent("ERROR", { message: error?.message });
+      addDebugEvent("ERROR", { message: error });
       toast({
         variant: "destructive",
         title: "Connection Error",
-        description: error?.message || "Failed to connect to voice agent. Please try again.",
+        description: error || "Failed to connect to voice agent. Please try again.",
       });
     },
     onDebug: (event) => {
@@ -121,15 +121,16 @@ export default function VoiceAgentTest() {
 
       // Start session based on returned connection type
       if (data?.conversationId && data?.connectionType === "webrtc") {
-        // WebRTC mode - use conversationId
+        // WebRTC mode - use conversationToken (which is the conversationId)
         await conversation.startSession({
-          agentId: data._debug?.agentId || undefined,
-          conversationId: data.conversationId,
+          conversationToken: data.conversationId,
+          connectionType: "webrtc" as const,
         });
       } else if (data?.signedUrl) {
         // WebSocket mode - use signed URL
         await conversation.startSession({
           signedUrl: data.signedUrl,
+          connectionType: "websocket" as const,
         });
       } else {
         throw new Error("No conversationId or signedUrl received from server");
