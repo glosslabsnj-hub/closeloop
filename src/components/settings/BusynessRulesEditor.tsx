@@ -36,14 +36,15 @@ export function BusynessRulesEditor() {
       try {
         const { data, error } = await supabase
           .from("tenants")
-          .select("busyness_rules_jsonb")
+          .select("busyness_rules_jsonb" as any)
           .eq("id", tenant.id)
           .single();
 
         if (error) throw error;
 
-        if (data?.busyness_rules_jsonb) {
-          setConfig(data.busyness_rules_jsonb as BusynessRulesConfig);
+        const dataAny = data as any;
+        if (dataAny?.busyness_rules_jsonb) {
+          setConfig(dataAny.busyness_rules_jsonb as BusynessRulesConfig);
         }
       } catch (error) {
         console.error("Failed to load busyness rules:", error);
@@ -68,7 +69,7 @@ export function BusynessRulesEditor() {
     try {
       const { error } = await supabase
         .from("tenants")
-        .update({ busyness_rules_jsonb: config })
+        .update({ busyness_rules_jsonb: config } as any)
         .eq("id", tenant.id);
 
       if (error) throw error;

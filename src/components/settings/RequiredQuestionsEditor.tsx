@@ -283,11 +283,11 @@ export function RequiredQuestionsEditor() {
     const loadConfigs = async () => {
       setLoading(true);
       try {
-        const { data: rules, error } = await supabase
+        const baseQuery = supabase
           .from("business_intent_rules")
           .select("*")
-          .eq("tenant_id", tenant.id)
-          .eq("rule_type", "required_inputs");
+          .eq("tenant_id", tenant.id);
+        const { data: rules, error } = await (baseQuery as any).eq("rule_type", "required_inputs");
 
         if (error) throw error;
 
@@ -295,10 +295,10 @@ export function RequiredQuestionsEditor() {
 
         // Initialize with defaults for relevant intents
         for (const intent of relevantIntents) {
-          const existingRule = rules?.find((r) => r.action_json?.intent === intent);
+          const existingRule = rules?.find((r) => (r.action_json as any)?.intent === intent);
 
           if (existingRule && existingRule.action_json) {
-            loadedConfigs[intent] = existingRule.action_json as IntentRequiredInputsConfig;
+            loadedConfigs[intent] = existingRule.action_json as unknown as IntentRequiredInputsConfig;
           } else {
             // Default: some standard fields required, others optional
             const standard = standardFields[intent] || [];
@@ -393,20 +393,20 @@ export function RequiredQuestionsEditor() {
     setSaving(true);
     try {
       // Delete existing required_inputs rules
-      await supabase
+      const deleteQuery = supabase
         .from("business_intent_rules")
         .delete()
-        .eq("tenant_id", tenant.id)
-        .eq("rule_type", "required_inputs");
+        .eq("tenant_id", tenant.id);
+      await (deleteQuery as any).eq("rule_type", "required_inputs");
 
       // Insert new rules for each intent
       const rulesToInsert = relevantIntents.map((intent) => ({
         tenant_id: tenant.id,
-        rule_type: "required_inputs" as const,
+        rule_type: "required_inputs",
         name: `Required Questions: ${intentLabels[intent]}`,
         description: `Input requirements for ${intentLabels[intent].toLowerCase()} intent`,
         condition_json: {},
-        action_json: configs[intent],
+        action_json: configs[intent] as any,
         priority: 0,
         is_enabled: true,
         is_suggested: false
@@ -414,7 +414,7 @@ export function RequiredQuestionsEditor() {
 
       const { error } = await supabase
         .from("business_intent_rules")
-        .insert(rulesToInsert);
+        .insert(rulesToInsert as any);
 
       if (error) throw error;
 
