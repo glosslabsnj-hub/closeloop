@@ -167,9 +167,7 @@ STRICT SCHEDULING RULES (MANDATORY):
       agent_id: ELEVENLABS_AGENT_ID,
       conversation_config_override: systemPrompt ? {
         agent: {
-          prompt: {
-            prompt: systemPrompt + "\n\n" + schedulingInstructions,
-          },
+          prompt: systemPrompt + "\n\n" + schedulingInstructions,
           first_message: "Hello! Thanks for calling. How can I help you today?",
         },
       } : undefined,
