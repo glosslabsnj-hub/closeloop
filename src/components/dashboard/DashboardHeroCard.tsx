@@ -25,6 +25,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { startOfDay, endOfDay, startOfWeek, endOfWeek } from "date-fns";
 import { useState, useEffect, useCallback, useRef } from "react";
+import { AgentOffBehaviorModal } from "./AgentOffBehaviorModal";
 
 export function DashboardHeroCard() {
   const { tenant, assistantSettings, refreshTenant, subscription } = useAuth();
@@ -45,6 +46,9 @@ export function DashboardHeroCard() {
   // Busyness level state
   const [busynessLevel, setBusynessLevel] = useState(30);
   const [busynessSaving, setBusynessSaving] = useState(false);
+
+  // OFF behavior modal state
+  const [offBehaviorModalOpen, setOffBehaviorModalOpen] = useState(false);
 
   // Load busyness level from tenant on mount
   useEffect(() => {
@@ -107,6 +111,18 @@ export function DashboardHeroCard() {
   const handleToggle = async (enabled: boolean) => {
     if (!tenant) return;
 
+    // If turning OFF, check if off_behavior is configured
+    if (!enabled && hasVoice) {
+      const offBehavior = (assistantSettings as any)?.off_behavior || "FORWARD_OWNER";
+      const forwardNumber = (assistantSettings as any)?.owner_forward_number;
+
+      // If FORWARD_OWNER but no number configured, show modal
+      if (offBehavior === "FORWARD_OWNER" && !forwardNumber) {
+        setOffBehaviorModalOpen(true);
+        return;
+      }
+    }
+
     try {
       const updates: Record<string, any> = {
         updated_at: new Date().toISOString(),
@@ -117,7 +133,7 @@ export function DashboardHeroCard() {
         updates.go_live_enabled = enabled;
         updates.voice_ai_enabled = enabled;
       }
-      
+
       // Update SMS settings if user has SMS capability
       if (hasSms) {
         updates.instant_text_enabled = enabled;
@@ -131,11 +147,16 @@ export function DashboardHeroCard() {
       if (error) throw error;
 
       await refreshTenant();
+
+      // Get configured off behavior for better messaging
+      const offBehavior = (assistantSettings as any)?.off_behavior || "FORWARD_OWNER";
+      const offBehaviorLabel = getOffBehaviorLabel(offBehavior);
+
       toast({
         title: enabled ? "AI Agent Activated ✅" : "AI Agent Paused",
-        description: enabled 
-          ? "Now handling calls & messages 24/7" 
-          : "Paused - won't handle calls",
+        description: enabled
+          ? "Now handling calls & messages 24/7"
+          : `Paused - ${offBehaviorLabel}`,
       });
     } catch (error: any) {
       toast({
@@ -143,6 +164,19 @@ export function DashboardHeroCard() {
         title: "Update Failed",
         description: error.message,
       });
+    }
+  };
+
+  const getOffBehaviorLabel = (behavior: string): string => {
+    switch (behavior) {
+      case "FORWARD_OWNER":
+        return "calls will forward to you";
+      case "VOICEMAIL":
+        return "calls go to voicemail";
+      case "CALLBACK_ONLY":
+        return "capturing callback requests";
+      default:
+        return "won't handle calls";
     }
   };
 
@@ -410,6 +444,20 @@ export function DashboardHeroCard() {
           </div>
         </div>
       </CardContent>
+
+      {/* OFF Behavior Configuration Modal */}
+      <AgentOffBehaviorModal
+        open={offBehaviorModalOpen}
+        onOpenChange={setOffBehaviorModalOpen}
+        tenantId={tenant?.id || ""}
+        currentBehavior={(assistantSettings as any)?.off_behavior}
+        currentForwardNumber={(assistantSettings as any)?.owner_forward_number}
+        onConfigured={async () => {
+          await refreshTenant();
+          // After configuration, proceed with toggle OFF
+          handleToggle(false);
+        }}
+      />
     </Card>
   );
 }
