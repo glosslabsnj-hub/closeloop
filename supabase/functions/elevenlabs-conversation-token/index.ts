@@ -162,22 +162,18 @@ STRICT SCHEDULING RULES (MANDATORY):
 - When a customer requests a specific time, verify it's in the available slots before confirming.
 `;
 
-    // Create a conversation with full configuration (allows prompt override)
+    // For browser tests, DON'T override the prompt - use the agent's dashboard config
+    // The prompt with {{placeholders}} causes the agent to crash on connect
+    // For Twilio calls, prompt override is handled in register-call endpoint
     const conversationPayload = {
       agent_id: ELEVENLABS_AGENT_ID,
-      conversation_config_override: systemPrompt ? {
-        agent: {
-          prompt: systemPrompt + "\n\n" + schedulingInstructions,
-          first_message: "Hello! Thanks for calling. How can I help you today?",
-        },
-      } : undefined,
+      // conversation_config_override removed - using agent's configured prompt from dashboard
     };
 
-    console.log("Creating ElevenLabs conversation with prompt override:", {
-      hasPrompt: !!systemPrompt,
-      promptLength: systemPrompt ? (systemPrompt + schedulingInstructions).length : 0,
+    console.log("Creating ElevenLabs conversation (browser test - no prompt override):", {
+      agent_id: ELEVENLABS_AGENT_ID,
       tenantId,
-      dynamicVariablesCount: Object.keys(dynamicVariables).length,
+      note: "Using agent's dashboard-configured prompt, not overriding",
     });
 
     const response = await fetch(
@@ -204,7 +200,11 @@ STRICT SCHEDULING RULES (MANDATORY):
     const conversationData = await response.json();
     const conversationId = conversationData.conversation_id;
 
-    console.log("Conversation created:", conversationId);
+    console.log("ElevenLabs conversation response:", {
+      conversationId,
+      fullResponse: conversationData,
+      hasConversationId: !!conversationId,
+    });
 
     // Get WebRTC signed URL for this specific conversation
     const signedUrlResponse = await fetch(
