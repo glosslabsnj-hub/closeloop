@@ -52,8 +52,9 @@ export function DashboardHeroCard() {
 
   // Load busyness level from tenant on mount
   useEffect(() => {
-    if (tenant?.busyness_rules_jsonb) {
-      const rules = tenant.busyness_rules_jsonb as any;
+    const tenantAny = tenant as any;
+    if (tenantAny?.busyness_rules_jsonb) {
+      const rules = tenantAny.busyness_rules_jsonb as any;
       setBusynessLevel(rules.manual_busyness_pct || 30);
     }
   }, [tenant]);
@@ -199,7 +200,8 @@ export function DashboardHeroCard() {
       setBusynessSaving(true);
 
       try {
-        const currentRules = (tenant.busyness_rules_jsonb as any) || {};
+        const tenantAny = tenant as any;
+        const currentRules = tenantAny.busyness_rules_jsonb || {};
         const updatedRules = {
           ...currentRules,
           manual_busyness_pct: level,
@@ -207,7 +209,7 @@ export function DashboardHeroCard() {
 
         const { error } = await supabase
           .from("tenants")
-          .update({ busyness_rules_jsonb: updatedRules })
+          .update({ busyness_rules_jsonb: updatedRules } as any)
           .eq("id", tenant.id);
 
         if (error) throw error;

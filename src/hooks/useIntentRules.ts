@@ -85,7 +85,7 @@ export function useIntentRules() {
         .insert({
           tenant_id: tenantId,
           ...rule,
-        })
+        } as any)
         .select()
         .single();
 
@@ -106,7 +106,7 @@ export function useIntentRules() {
     mutationFn: async ({ ruleId, updates }: { ruleId: string; updates: Partial<IntentRule> }) => {
       const { error } = await supabase
         .from("business_intent_rules")
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update({ ...updates, updated_at: new Date().toISOString() } as any)
         .eq("id", ruleId);
 
       if (error) throw error;

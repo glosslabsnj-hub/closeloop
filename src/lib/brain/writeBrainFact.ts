@@ -230,7 +230,7 @@ export async function updatePricingRules(
 ) {
   const { data, error } = await supabase
     .from("tenants")
-    .update({ pricing_rules_jsonb: pricingRulesConfig })
+    .update({ pricing_rules_jsonb: pricingRulesConfig } as any)
     .eq("id", tenantId)
     .select()
     .single();
@@ -264,7 +264,7 @@ export async function updateBusynessRules(
 ) {
   const { data, error } = await supabase
     .from("tenants")
-    .update({ busyness_rules_jsonb: busynessRulesConfig })
+    .update({ busyness_rules_jsonb: busynessRulesConfig } as any)
     .eq("id", tenantId)
     .select()
     .single();

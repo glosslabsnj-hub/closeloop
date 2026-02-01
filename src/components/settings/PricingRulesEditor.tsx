@@ -115,14 +115,15 @@ export function PricingRulesEditor() {
         // Load existing pricing rules
         const { data: tenantData, error: tenantError } = await supabase
           .from("tenants")
-          .select("pricing_rules_jsonb")
+          .select("pricing_rules_jsonb" as any)
           .eq("id", tenant.id)
           .single();
 
         if (tenantError) throw tenantError;
 
-        if (tenantData?.pricing_rules_jsonb) {
-          setConfig(tenantData.pricing_rules_jsonb as PricingRulesConfig);
+        const tenantDataAny = tenantData as any;
+        if (tenantDataAny?.pricing_rules_jsonb) {
+          setConfig(tenantDataAny.pricing_rules_jsonb as PricingRulesConfig);
         }
 
         // Load services
@@ -185,7 +186,7 @@ export function PricingRulesEditor() {
     try {
       const { error } = await supabase
         .from("tenants")
-        .update({ pricing_rules_jsonb: config })
+        .update({ pricing_rules_jsonb: config } as any)
         .eq("id", tenant.id);
 
       if (error) throw error;

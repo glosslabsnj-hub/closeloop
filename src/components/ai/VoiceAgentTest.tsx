@@ -26,6 +26,14 @@ export default function VoiceAgentTest() {
     setDebugEvents(prev => [...prev.slice(-19), { timestamp: Date.now(), type, data }]);
   }, []);
 
+  // Helper to ensure dynamic variables are safe (no nulls)
+  const toSafeVars = (vars: Record<string, any> | null | undefined): Record<string, string | number | boolean> => {
+    if (!vars) return {};
+    return Object.fromEntries(
+      Object.entries(vars).map(([k, v]) => [k, v == null ? "" : v])
+    );
+  };
+
   const conversation = useConversation({
     onConnect: () => {
       console.log("🎙️ [VoiceTest] ✓ CONNECTED to ElevenLabs agent");
@@ -125,12 +133,14 @@ export default function VoiceAgentTest() {
         await conversation.startSession({
           conversationToken: data.conversationId,
           connectionType: "webrtc" as const,
+          dynamicVariables: toSafeVars(data.dynamicVariables),
         });
       } else if (data?.signedUrl) {
         // WebSocket mode - use signed URL
         await conversation.startSession({
           signedUrl: data.signedUrl,
           connectionType: "websocket" as const,
+          dynamicVariables: toSafeVars(data.dynamicVariables),
         });
       } else {
         throw new Error("No conversationId or signedUrl received from server");
