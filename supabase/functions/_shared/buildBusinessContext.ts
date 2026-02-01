@@ -149,6 +149,14 @@ export interface BusinessContext {
     memory_hints: MemoryHint[];
     memory_hints_summary: string;
   };
+  pricing: {
+    rules_summary: string;
+    busyness_config: {
+      base_prep_minutes: number;
+      busy_buffer_minutes: number;
+      manual_busyness_pct: number;
+    } | null;
+  };
   safety: {
     hipaa_mode: boolean;
     store_transcripts: boolean;
@@ -531,6 +539,40 @@ function buildRequiredQuestionsSummary(configs: RequiredQuestionsConfig[]): stri
   return summaries.length > 0 ? summaries.join("; ") : "No required questions configured";
 }
 
+function buildPricingRulesSummary(pricingRulesJsonb: any): string {
+  if (!pricingRulesJsonb || !pricingRulesJsonb.rules || !Array.isArray(pricingRulesJsonb.rules)) {
+    return "No pricing rules configured";
+  }
+
+  const rules = pricingRulesJsonb.rules;
+  if (rules.length === 0) {
+    return "No pricing rules configured";
+  }
+
+  const summaries: string[] = [];
+  for (const rule of rules.slice(0, 5)) { // Show first 5 rules
+    const serviceLabel = rule.service_name || "All services";
+    const typeLabel = rule.type === "distance-based" ? "distance-based" :
+                      rule.type === "flat" ? "flat rate" :
+                      rule.type === "per-unit" ? "per-unit" :
+                      rule.type === "tiered" ? "tiered" :
+                      rule.type === "range-only" ? "price range" :
+                      "quote only";
+
+    const requiredInputs = rule.required_inputs || [];
+    const inputsStr = requiredInputs.length > 0 ? ` (needs: ${requiredInputs.join(", ")})` : "";
+
+    summaries.push(`${serviceLabel}: ${typeLabel}${inputsStr}`);
+  }
+
+  const remaining = rules.length - 5;
+  if (remaining > 0) {
+    summaries.push(`+${remaining} more`);
+  }
+
+  return summaries.join("; ");
+}
+
 function determineUsage(memoryType: string): string {
   switch (memoryType) {
     case "time_pattern": return "timing_preference";
@@ -888,6 +930,10 @@ export async function buildBusinessContext(
       memory_hints: memoryHints,
       memory_hints_summary: buildMemoryHintsSummary(memoryHints),
     },
+    pricing: {
+      rules_summary: buildPricingRulesSummary(tenant.pricing_rules_jsonb),
+      busyness_config: tenant.busyness_rules_jsonb || null,
+    },
     safety: {
       hipaa_mode: hipaaMode,
       store_transcripts: retentionSettings?.store_transcripts !== false && !hipaaMode,
@@ -1205,6 +1251,77 @@ EXCEPTION: If customer ONLY asks for general information (hours, location, gener
 `;
   }
 
+  // Pricing resolution contract
+  prompt += `PRICING RESOLUTION CONTRACT (CRITICAL - FOLLOW DETERMINISTIC WATERFALL):
+
+When a customer asks for pricing, you MUST follow this exact sequence:
+
+STEP 1: CHECK REQUIRED INPUTS
+- First, ensure ALL required inputs for the intent are collected AND VALID (see REQUIRED QUESTIONS above)
+- If any required inputs are missing or invalid, ask for them FIRST before attempting pricing
+- Do NOT proceed to pricing until validation passes
+
+STEP 2: MATCH PRICING RULES
+- If pricing rules are configured, attempt to match and calculate:
+  ${ctx.pricing?.rules_summary || "No pricing rules configured"}
+- Example: Distance-based rule requires "miles" + "vehicle_type"
+- If rule matches AND inputs are valid → Provide calculated price
+- If rule is range-only → Provide price range
+- If rule is quote-only → Explain that custom quote is needed
+
+STEP 3: FALLBACK TO SERVICE PRICE
+- If no pricing rule matched, check if service has fixed price
+- Fixed price → Provide exact price: "That will be $X"
+- Starting at price → Provide estimate: "That starts at $X"
+- Quote only → Explain custom quote needed
+
+STEP 4: UNKNOWN - COLLECT MORE INFO
+- If neither pricing rules nor service price available → Ask for missing information
+- Examples:
+  * "I need to know the distance to provide an exact price. About how many miles is it?"
+  * "Let me get some information to provide accurate pricing. What's the pickup address?"
+  * "I'll need to provide a custom quote. Let me collect your details and we'll follow up."
+
+PRICING EXAMPLES:
+
+CORRECT - Distance-based dispatch:
+Customer: "How much to tow my car?"
+You: "I can help! What's the exact address where your car is?"
+Customer: "123 Main Street, Chicago"
+You: "And where would you like us to tow it?"
+Customer: "456 Oak Ave, same city - about 5 miles"
+You: [Validates: addresses valid, miles valid]
+You: [Matches: distance-based rule, calculates: $50 base + $8/mile * 5 = $90]
+You: "That will be $90 for a 5-mile tow from Main Street to Oak Avenue."
+
+CORRECT - Missing required inputs:
+Customer: "How much to tow from downtown to airport?"
+You: [Checks: addresses are vague, no exact miles]
+You: "I need more specific addresses to provide accurate pricing. What's the exact street address downtown where your car is?"
+
+CORRECT - Fallback to service price:
+Customer: "How much for drain cleaning?"
+You: [Checks: no pricing rules for drain cleaning]
+You: [Checks: drain cleaning service has fixed price $149]
+You: "Drain cleaning is $149. When would work best for you?"
+
+WRONG - Pricing without validation:
+Customer: "How much to tow?"
+You: "Towing starts at $75" [WRONG - didn't collect addresses or validate]
+
+WRONG - Vague pricing:
+Customer: "What's your towing rate?"
+You: "It depends on distance" [WRONG - be specific: "Our rate is $50 base plus $8 per mile"]
+
+LOGGING REQUIREMENT:
+When pricing fails (missing inputs, no rules, no service price), the system logs:
+- Reason for failure
+- Missing inputs
+- Deep link to fix configuration
+This helps the business owner improve pricing setup.
+
+`;
+
   // Intent rules
   if (ctx.intelligence.intent_rules.length > 0) {
     prompt += `BEHAVIOR RULES (from business owner):\\n`;
@@ -1387,7 +1504,13 @@ export function buildDynamicVariables(
     required_questions_summary: ctx.intelligence.required_questions_summary || "No required questions configured",
     memory_hints_summary: ctx.safety.hipaa_mode ? "" : (ctx.intelligence.memory_hints_summary || ""),
     memory_enabled: ctx.intelligence.settings.memory_enabled,
-    
+
+    // Pricing & ETA
+    pricing_rules_summary: ctx.pricing.rules_summary || "No pricing rules configured",
+    base_prep_minutes: ctx.pricing.busyness_config?.base_prep_minutes || 30,
+    busy_buffer_minutes: ctx.pricing.busyness_config?.busy_buffer_minutes || 15,
+    current_busyness_pct: ctx.pricing.busyness_config?.manual_busyness_pct || 0,
+
     // DEBUG flags - for /debug/ai-context page verification (NEVER null)
     context_has_hours: hasHours ? "true" : "false",
     context_has_menu: hasMenu ? "true" : "false",
