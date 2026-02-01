@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Brain, Building2, Package, MapPin, Calendar, FileText, Shield, Upload, AlertCircle } from "lucide-react";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { PricingRulesEditor } from "@/components/settings/PricingRulesEditor";
@@ -15,10 +15,11 @@ import { BookingDeliverySettings } from "@/components/settings/BookingDeliverySe
 import { FoodOrderSettings } from "@/components/settings/FoodOrderSettings";
 import { DispatchDeliverySettings } from "@/components/settings/DispatchDeliverySettings";
 import { MedicalHIPAASettings } from "@/components/settings/MedicalHIPAASettings";
-import { KnowledgeUploadHub } from "@/components/knowledge/KnowledgeUploadHub";
 import { BusinessProfileEditor } from "@/components/brain/BusinessProfileEditor";
 import { BusinessPoliciesEditor } from "@/components/brain/BusinessPoliciesEditor";
 import { ServiceAreaManager } from "@/components/brain/ServiceAreaManager";
+import { BrainAssetsManager } from "@/components/brain/BrainAssetsManager";
+import { BrainReviewQueue, useBrainReviewCount } from "@/components/brain/BrainReviewQueue";
 
 /**
  * Business Brain - Centralized hub for ALL business knowledge editing
@@ -100,6 +101,7 @@ const navigationItems: BrainNavItem[] = [
 export default function BusinessBrainPage() {
   const { tenant } = useAuth();
   const [activeSection, setActiveSection] = useState("profile");
+  const reviewCount = useBrainReviewCount();
 
   if (!tenant) {
     return (
@@ -122,12 +124,13 @@ export default function BusinessBrainPage() {
             {navigationItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeSection === item.id;
+              const showBadge = item.id === "review-queue" && reviewCount > 0;
               return (
                 <button
                   key={item.id}
                   onClick={() => setActiveSection(item.id)}
                   className={`
-                    w-full flex items-start gap-3 px-3 py-2 rounded-md text-sm transition-colors
+                    w-full flex items-start gap-3 px-3 py-2 rounded-md text-sm transition-colors relative
                     ${isActive
                       ? "bg-primary text-primary-foreground"
                       : "hover:bg-muted text-muted-foreground hover:text-foreground"
@@ -135,8 +138,18 @@ export default function BusinessBrainPage() {
                   `}
                 >
                   <Icon className="h-4 w-4 mt-0.5 shrink-0" />
-                  <div className="text-left">
-                    <div className="font-medium">{item.label}</div>
+                  <div className="text-left flex-1">
+                    <div className="font-medium flex items-center gap-2">
+                      {item.label}
+                      {showBadge && (
+                        <Badge
+                          variant={isActive ? "secondary" : "destructive"}
+                          className="h-5 px-1.5 text-xs"
+                        >
+                          {reviewCount}
+                        </Badge>
+                      )}
+                    </div>
                     <div className={`text-xs ${isActive ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
                       {item.description}
                     </div>
@@ -268,7 +281,7 @@ export default function BusinessBrainPage() {
               title="Knowledge Assets"
               description="Upload and manage documents, PDFs, and other knowledge sources"
             >
-              <KnowledgeUploadHub />
+              <BrainAssetsManager />
             </SettingsSection>
           )}
 
@@ -279,26 +292,7 @@ export default function BusinessBrainPage() {
               title="Review Queue"
               description="Review conflicts, AI suggestions, and approve knowledge merges"
             >
-              <Card>
-                <CardHeader>
-                  <CardTitle>Review Queue</CardTitle>
-                  <CardDescription>
-                    Review and approve AI-detected conflicts and suggested knowledge updates
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8">
-                    <AlertCircle className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
-                    <p className="text-sm font-medium mb-2">Knowledge Review</p>
-                    <p className="text-xs text-muted-foreground mb-4">
-                      Approve AI suggestions, resolve knowledge conflicts, and manage merge requests
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      No pending items. The AI will flag conflicts when it detects inconsistencies in your knowledge base.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              <BrainReviewQueue />
             </SettingsSection>
           )}
         </div>
