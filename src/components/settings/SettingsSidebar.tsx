@@ -13,6 +13,7 @@ import {
   Bug,
   ChevronDown,
   ChevronRight,
+  DollarSign,
 } from "lucide-react";
 import { SettingsNavItem } from "./SettingsNavItem";
 import { cn } from "@/lib/utils";
@@ -58,6 +59,7 @@ export function SettingsSidebar({ activeSection, onSectionChange, config }: Sett
       items: [
         { id: "profile", label: "Profile", icon: Building2 },
         { id: "hours", label: "Business Hours", icon: Clock },
+        { id: "pricing", label: "Pricing & Estimates", icon: DollarSign },
         { id: "team", label: "Team Members", icon: Users },
       ],
     },

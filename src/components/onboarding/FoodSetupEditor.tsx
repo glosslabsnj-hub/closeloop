@@ -14,6 +14,9 @@ export interface FoodSetupData {
   deliveryRadius: number;
   deliveryMinimumCents: number;
   estimatedPrepMinutes: number;
+  busyBufferMinutes: number;
+  deliveryWindowMin: number;
+  deliveryWindowMax: number;
   acceptsCatering: boolean;
   cateringMinGuests: number;
   cateringLeadDays: number;
@@ -97,6 +100,20 @@ export function FoodSetupEditor({ data, onChange }: FoodSetupEditorProps) {
                   Average time to prepare an order
                 </p>
               </div>
+
+              <div className="space-y-2">
+                <Label>Busy Buffer (minutes)</Label>
+                <Input
+                  type="number"
+                  value={data.busyBufferMinutes}
+                  onChange={(e) => update("busyBufferMinutes", parseInt(e.target.value) || 30)}
+                  min={0}
+                  max={120}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Additional time added when you're very busy
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -126,6 +143,37 @@ export function FoodSetupEditor({ data, onChange }: FoodSetupEditorProps) {
                   step={0.01}
                   disabled={!data.acceptsDelivery}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Delivery Window (minutes)</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Input
+                      type="number"
+                      value={data.deliveryWindowMin}
+                      onChange={(e) => update("deliveryWindowMin", parseInt(e.target.value) || 20)}
+                      min={10}
+                      max={120}
+                      disabled={!data.acceptsDelivery}
+                      placeholder="Min"
+                    />
+                  </div>
+                  <div>
+                    <Input
+                      type="number"
+                      value={data.deliveryWindowMax}
+                      onChange={(e) => update("deliveryWindowMax", parseInt(e.target.value) || 40)}
+                      min={10}
+                      max={120}
+                      disabled={!data.acceptsDelivery}
+                      placeholder="Max"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Expected delivery time range (e.g., 20-40 minutes)
+                </p>
               </div>
             </CardContent>
           </Card>

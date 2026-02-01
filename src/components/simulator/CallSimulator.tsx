@@ -9,7 +9,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveCustomer, createOpportunity, createSyncEvent } from "@/hooks/useCustomerResolver";
-import { Phone, PhoneIncoming, PhoneOff, User, MessageCircle, Loader2, Brain, AlertTriangle } from "lucide-react";
+import { Phone, PhoneIncoming, PhoneOff, User, MessageCircle, Loader2, Brain, AlertTriangle, DollarSign } from "lucide-react";
+import { computePriceQuote, detectPricingQuestion, type QuoteResult, type PricingRule } from "@/lib/computeQuote";
+import { useQuery } from "@tanstack/react-query";
 
 interface SimulatedMessage {
   role: 'customer' | 'ai';
@@ -20,6 +22,7 @@ interface SimulatedMessage {
     confidence?: string;
     sources?: Array<{ type: string; id: string }>;
     knowledgeGap?: boolean;
+    priceQuote?: QuoteResult;
   };
 }
 
@@ -40,6 +43,24 @@ export default function CallSimulator() {
   } | null>(null);
   const [opportunityId, setOpportunityId] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+
+  // Fetch pricing rules from tenant
+  const { data: pricingRulesData } = useQuery({
+    queryKey: ['tenant-pricing-rules', tenant?.id],
+    queryFn: async () => {
+      if (!tenant?.id) return null;
+      const { data } = await supabase
+        .from('tenants')
+        .select('pricing_rules_jsonb, business_mode')
+        .eq('id', tenant.id)
+        .single();
+      return data;
+    },
+    enabled: !!tenant?.id,
+  });
+
+  const pricingRules: PricingRule[] = (pricingRulesData?.pricing_rules_jsonb as any) || [];
+  const businessMode = pricingRulesData?.business_mode || 'service';
 
   // Listen for suggested test clicks from SuggestedTestsBanner
   useEffect(() => {
@@ -64,6 +85,19 @@ export default function CallSimulator() {
       };
     }
 
+    // Detect pricing question and compute quote if applicable
+    let priceQuote: QuoteResult | undefined;
+    if (detectPricingQuestion(customerMessage)) {
+      priceQuote = computePriceQuote({
+        rules: pricingRules,
+        businessMode: businessMode,
+        offering: {
+          serviceName: "General Service", // In real scenario, would extract from context
+        },
+        inputs: {}, // In real scenario, would extract from conversation
+      });
+    }
+
     try {
       const { data, error } = await supabase.functions.invoke('ai-plan-response', {
         body: {
@@ -77,7 +111,7 @@ export default function CallSimulator() {
       if (error) throw error;
 
       const plan = data.plan;
-      
+
       return {
         role: 'ai',
         content: plan.draft_reply,
@@ -87,6 +121,7 @@ export default function CallSimulator() {
           confidence: plan.confidence,
           sources: plan.sources_used,
           knowledgeGap: plan.knowledge_gap_detected,
+          priceQuote,
         },
       };
     } catch (error) {
@@ -95,7 +130,7 @@ export default function CallSimulator() {
         role: 'ai',
         content: "I'd be happy to help! Let me have someone call you back with more details.",
         timestamp: new Date(),
-        metadata: { confidence: 'low' },
+        metadata: { confidence: 'low', priceQuote },
       };
     }
   };
@@ -316,8 +351,8 @@ export default function CallSimulator() {
                           </Badge>
                         )}
                         {msg.metadata.confidence && (
-                          <Badge 
-                            variant="outline" 
+                          <Badge
+                            variant="outline"
                             className={`text-[10px] ${
                               msg.metadata.confidence === 'high' ? 'border-green-500 text-green-700' :
                               msg.metadata.confidence === 'medium' ? 'border-yellow-500 text-yellow-700' :
@@ -333,6 +368,31 @@ export default function CallSimulator() {
                             Gap
                           </Badge>
                         )}
+                        {msg.metadata.priceQuote && (
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] gap-0.5 ${
+                              msg.metadata.priceQuote.confidence >= 0.8 ? 'border-green-500 text-green-700' :
+                              msg.metadata.priceQuote.confidence >= 0.5 ? 'border-yellow-500 text-yellow-700' :
+                              'border-orange-500 text-orange-700'
+                            }`}
+                          >
+                            <DollarSign className="h-2.5 w-2.5" />
+                            {msg.metadata.priceQuote.type} ({msg.metadata.priceQuote.confidence.toFixed(1)})
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                    {msg.metadata?.priceQuote?.missingInputs && msg.metadata.priceQuote.missingInputs.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-primary/10">
+                        <p className="text-[10px] text-muted-foreground mb-1">Missing inputs for exact quote:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {msg.metadata.priceQuote.missingInputs.map((input, i) => (
+                            <Badge key={i} variant="secondary" className="text-[9px]">
+                              {input.label}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
                     )}
                     <p className="text-xs opacity-70 mt-1">
