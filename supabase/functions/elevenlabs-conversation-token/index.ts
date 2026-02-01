@@ -15,7 +15,7 @@ const corsHeaders = {
 
 serve(async (req) => {
   // VERSION STAMP - This proves new code is deployed
-  console.log("🚀 [ElevenLabs Token] Function starting - Version: 2026-02-01-18:00-DIRECT-SIGNED-URL");
+  console.log("🚀 [ElevenLabs Token] Function starting - Version: 2026-02-01-19:00-WEBRTC-READY");
 
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -44,14 +44,16 @@ serve(async (req) => {
       );
     }
 
-    // Parse request body to get tenantId and optional locationId
+    // Parse request body to get tenantId, locationId, and connectionType
     let tenantId: string | null = null;
     let locationId: string | null = null;
-    
+    let connectionType: "webrtc" | "websocket" = "webrtc"; // Default to WebRTC
+
     try {
       const body = await req.json();
       tenantId = body.tenantId;
       locationId = body.locationId || null;
+      connectionType = body.connectionType || "webrtc";
     } catch {
       // No body or invalid JSON - continue without tenant context
     }
@@ -155,52 +157,112 @@ serve(async (req) => {
       console.log("No tenantId provided for browser test - using minimal defaults");
     }
 
-    // CORRECT FLOW: Get signed URL directly for the agent (no conversation creation)
-    // WebSocket connections use agent-level signed URLs, not conversation-specific ones
-    // This prevents the ephemeral conversation issue that causes immediate disconnects
-    console.log("Getting WebSocket signed URL directly for agent:", {
-      agent_id: ELEVENLABS_AGENT_ID,
-      tenantId,
-      flow: "direct-signed-url-for-websocket",
-    });
+    const DEPLOYED_VERSION = "2026-02-01-19:00-WEBRTC-READY";
 
-    const signedUrlResponse = await fetch(
-      `https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=${ELEVENLABS_AGENT_ID}`,
-      {
-        method: "GET",
-        headers: {
-          "xi-api-key": ELEVENLABS_API_KEY,
-        },
+    // Log deployment version for verification
+    console.log(`ELEV_TOKEN_VERSION=${DEPLOYED_VERSION}`);
+
+    // DUAL PATH: WebRTC (default) or WebSocket
+    if (connectionType === "webrtc") {
+      // WebRTC PATH: Create conversation with dynamic variables, returns conversationId
+      console.log("Creating WebRTC conversation with agent:", {
+        agent_id: ELEVENLABS_AGENT_ID,
+        tenantId,
+        flow: "webrtc-conversation",
+      });
+
+      const conversationResponse = await fetch(
+        `https://api.elevenlabs.io/v1/convai/conversation?agent_id=${ELEVENLABS_AGENT_ID}`,
+        {
+          method: "POST",
+          headers: {
+            "xi-api-key": ELEVENLABS_API_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            // Pass dynamic variables directly in conversation creation
+            // ElevenLabs will inject these into the agent's context
+          }),
+        }
+      );
+
+      if (!conversationResponse.ok) {
+        const errorText = await conversationResponse.text();
+        console.error("ElevenLabs conversation creation error:", conversationResponse.status, errorText);
+        return new Response(
+          JSON.stringify({ error: "Failed to create conversation", details: errorText }),
+          { status: conversationResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
-    );
 
-    if (!signedUrlResponse.ok) {
-      const errorText = await signedUrlResponse.text();
-      console.error("ElevenLabs signed URL error:", signedUrlResponse.status, errorText);
+      const conversationData = await conversationResponse.json();
+      const conversationId = conversationData.conversation_id;
+
+      console.log("WebRTC conversation created:", { conversationId });
+
       return new Response(
-        JSON.stringify({ error: "Failed to get signed URL", details: errorText }),
-        { status: signedUrlResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          conversationId: conversationId,
+          dynamicVariables: dynamicVariables,
+          precomputedSlots: precomputedSlots,
+          deployedVersion: DEPLOYED_VERSION,
+          connectionType: "webrtc",
+          _debug: {
+            deployedVersion: DEPLOYED_VERSION,
+            flow: "webrtc-conversation",
+            agentId: ELEVENLABS_AGENT_ID,
+            conversationId: conversationId,
+            denoStdVersion: "0.177.0",
+          },
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } else {
+      // WEBSOCKET PATH: Get signed URL directly (original flow)
+      console.log("Getting WebSocket signed URL directly for agent:", {
+        agent_id: ELEVENLABS_AGENT_ID,
+        tenantId,
+        flow: "websocket-signed-url",
+      });
+
+      const signedUrlResponse = await fetch(
+        `https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=${ELEVENLABS_AGENT_ID}`,
+        {
+          method: "GET",
+          headers: {
+            "xi-api-key": ELEVENLABS_API_KEY,
+          },
+        }
+      );
+
+      if (!signedUrlResponse.ok) {
+        const errorText = await signedUrlResponse.text();
+        console.error("ElevenLabs signed URL error:", signedUrlResponse.status, errorText);
+        return new Response(
+          JSON.stringify({ error: "Failed to get signed URL", details: errorText }),
+          { status: signedUrlResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const signedUrlData = await signedUrlResponse.json();
+
+      return new Response(
+        JSON.stringify({
+          signedUrl: signedUrlData.signed_url,
+          dynamicVariables: dynamicVariables,
+          precomputedSlots: precomputedSlots,
+          deployedVersion: DEPLOYED_VERSION,
+          connectionType: "websocket",
+          _debug: {
+            deployedVersion: DEPLOYED_VERSION,
+            flow: "websocket-signed-url",
+            agentId: ELEVENLABS_AGENT_ID,
+            denoStdVersion: "0.177.0",
+          },
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const signedUrlData = await signedUrlResponse.json();
-
-    // Return the signed URL (no conversationId - direct WebSocket connection)
-    return new Response(
-      JSON.stringify({
-        signedUrl: signedUrlData.signed_url,
-        dynamicVariables: dynamicVariables,
-        precomputedSlots: precomputedSlots,
-        // Debug info
-        _debug: {
-          deployedVersion: "2026-02-01-18:00-DIRECT-SIGNED-URL",
-          flow: "websocket-direct",
-          agentId: ELEVENLABS_AGENT_ID,
-          denoStdVersion: "0.177.0",
-        },
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
   } catch (error) {
     console.error("Error in elevenlabs-conversation-token:", error);
     return new Response(
