@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.elevenlabs-webhook]
 verify_jwt = false
+
+[functions.elevenlabs-conversation-token]
+verify_jwt = false
