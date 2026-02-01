@@ -1,5 +1,5 @@
-// FORCE REDEPLOY - Last updated: 2026-02-01 17:30 - Direct signed URL fix
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// FORCE REDEPLOY - Cache bust: 2026-02-01 18:00 - Deno runtime refresh
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   buildBusinessContext,
@@ -14,6 +14,9 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // VERSION STAMP - This proves new code is deployed
+  console.log("🚀 [ElevenLabs Token] Function starting - Version: 2026-02-01-18:00-DIRECT-SIGNED-URL");
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -190,9 +193,10 @@ serve(async (req) => {
         precomputedSlots: precomputedSlots,
         // Debug info
         _debug: {
-          deployedVersion: "2026-02-01-direct-signed-url-fix",
+          deployedVersion: "2026-02-01-18:00-DIRECT-SIGNED-URL",
           flow: "websocket-direct",
           agentId: ELEVENLABS_AGENT_ID,
+          denoStdVersion: "0.177.0",
         },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
