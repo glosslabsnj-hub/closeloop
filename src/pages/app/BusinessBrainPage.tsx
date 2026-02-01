@@ -20,6 +20,7 @@ import { BusinessPoliciesEditor } from "@/components/brain/BusinessPoliciesEdito
 import { ServiceAreaManager } from "@/components/brain/ServiceAreaManager";
 import { BrainAssetsManager } from "@/components/brain/BrainAssetsManager";
 import { BrainReviewQueue, useBrainReviewCount } from "@/components/brain/BrainReviewQueue";
+import { QuoteReadinessCard } from "@/components/brain/QuoteReadinessCard";
 
 /**
  * Business Brain - Centralized hub for ALL business knowledge editing
@@ -190,7 +191,11 @@ export default function BusinessBrainPage() {
               title="Services & Pricing"
               description="Manage your service catalog, menu items, and pricing rules"
             >
-              <PricingRulesEditor />
+              <QuoteReadinessCard />
+
+              <div className="mt-6">
+                <PricingRulesEditor />
+              </div>
 
               <div className="mt-6">
                 <ServiceCatalogEditor />
