@@ -631,6 +631,69 @@ interface FieldEditorProps {
   isCustom: boolean;
 }
 
+// Helper function to get validation hints for a field
+function getValidationHint(fieldKey: string): { type: string; examples: string; invalid: string } | null {
+  const key = fieldKey.toLowerCase();
+
+  if (key.includes('address') && !key.includes('email')) {
+    return {
+      type: "Address",
+      examples: "✓ '123 Main St, Chicago' or '✓ Main & Oak, 62701'",
+      invalid: "✗ 'downtown' or ✗ '123 Main' (no city/ZIP)"
+    };
+  }
+
+  if (key.includes('date')) {
+    return {
+      type: "Date",
+      examples: "✓ 'tomorrow' or ✓ 'December 25th'",
+      invalid: "✗ 'soon' or ✗ 'later'"
+    };
+  }
+
+  if (key.includes('time') && !key.includes('estimated')) {
+    return {
+      type: "Time",
+      examples: "✓ '2pm' or ✓ 'morning'",
+      invalid: "✗ 'later' or ✗ 'whenever'"
+    };
+  }
+
+  if (key.includes('miles') || key === 'estimated_miles') {
+    return {
+      type: "Distance",
+      examples: "✓ '5 miles' or ✓ 'about 10'",
+      invalid: "✗ 'not far' (needs number)"
+    };
+  }
+
+  if (key.includes('email')) {
+    return {
+      type: "Email",
+      examples: "✓ 'john@example.com'",
+      invalid: "✗ Missing @ or domain"
+    };
+  }
+
+  if (key.includes('phone')) {
+    return {
+      type: "Phone",
+      examples: "✓ '555-123-4567'",
+      invalid: "✗ Fewer than 7 digits"
+    };
+  }
+
+  if (key === 'party_size') {
+    return {
+      type: "Party Size",
+      examples: "✓ '2' or ✓ 'party of 4'",
+      invalid: "✗ 'a few' (needs number)"
+    };
+  }
+
+  return null;
+}
+
 function FieldEditor({
   field,
   isRequired,
@@ -639,6 +702,8 @@ function FieldEditor({
   onRemove,
   isCustom
 }: FieldEditorProps) {
+  const validationHint = getValidationHint(field.key);
+
   return (
     <div className="p-4 rounded-lg border bg-muted/30 space-y-4">
       {/* Header with toggle */}
@@ -666,6 +731,21 @@ function FieldEditor({
           </Button>
         )}
       </div>
+
+      {/* Validation Hint */}
+      {validationHint && (
+        <div className="p-2 rounded bg-blue-500/10 border border-blue-500/20">
+          <p className="text-xs font-medium text-blue-400 mb-1">
+            {validationHint.type} Validation
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {validationHint.examples}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {validationHint.invalid}
+          </p>
+        </div>
+      )}
 
       <Separator />
 
