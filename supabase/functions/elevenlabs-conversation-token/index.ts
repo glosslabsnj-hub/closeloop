@@ -206,6 +206,19 @@ STRICT SCHEDULING RULES (MANDATORY):
       hasConversationId: !!conversationId,
     });
 
+    // CRITICAL: If conversationId is missing, the conversation creation failed
+    if (!conversationId) {
+      console.error("❌ CRITICAL: No conversation_id in ElevenLabs response!", conversationData);
+      return new Response(
+        JSON.stringify({
+          error: "ElevenLabs API did not return conversation_id",
+          details: "The conversation was created but no ID was returned. This indicates an API issue or invalid agent configuration.",
+          rawResponse: conversationData,
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Get WebRTC signed URL for this specific conversation
     const signedUrlResponse = await fetch(
       `https://api.elevenlabs.io/v1/convai/conversation/${conversationId}/get-signed-url`,
@@ -235,6 +248,12 @@ STRICT SCHEDULING RULES (MANDATORY):
         conversationId: conversationId,
         dynamicVariables: dynamicVariables,
         precomputedSlots: precomputedSlots,
+        // Debug info (remove in production)
+        _debug: {
+          deployedVersion: "2026-02-01-no-prompt-override",
+          hasConversationId: !!conversationId,
+          agentId: ELEVENLABS_AGENT_ID,
+        },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

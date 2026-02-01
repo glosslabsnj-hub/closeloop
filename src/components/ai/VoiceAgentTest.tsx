@@ -63,6 +63,8 @@ export default function VoiceAgentTest() {
         hasSignedUrl: !!data?.signedUrl,
         conversationId: data?.conversationId,
         businessName: data?.dynamicVariables?.business_name,
+        deployedVersion: data?._debug?.deployedVersion || "OLD_VERSION",
+        fullDebug: data?._debug,
       });
 
       if (!data?.signedUrl) {
