@@ -9,6 +9,7 @@ import {
   Shield,
   Stethoscope,
   Webhook,
+  Zap,
   Bug,
   ChevronDown,
   ChevronRight,
@@ -79,6 +80,7 @@ export function SettingsSidebar({ activeSection, onSectionChange, config }: Sett
       items: [
         { id: "alerts", label: "How You Get Notified", icon: Bell },
         { id: "integrations", label: "Where Things Go", icon: Webhook },
+        { id: "automation", label: "Automation Rules", icon: Zap },
       ],
     },
     {

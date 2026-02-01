@@ -46,6 +46,21 @@ export default function SimulatorPage() {
         <SuggestedTestsBanner onDismiss={() => setShowBanner(false)} />
       )}
 
+      {/* Tab guidance */}
+      <div className="mb-4 p-4 rounded-lg bg-muted/50 border">
+        <p className="text-sm text-muted-foreground">
+          <strong>Choose a testing tool:</strong>
+          {" "}
+          <span className="text-foreground">Call Simulator</span> - Test full phone conversations with your AI
+          {" • "}
+          <span className="text-foreground">SMS Simulator</span> - Test text message responses
+          {" • "}
+          <span className="text-foreground">AI Brain Debugger</span> - See how your AI retrieves knowledge
+          {" • "}
+          <span className="text-foreground">Quick Setup</span> - Configure your testing environment
+        </p>
+      </div>
+
       <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className="w-full justify-start flex-wrap">
           <TabsTrigger value="setup" className="gap-2">

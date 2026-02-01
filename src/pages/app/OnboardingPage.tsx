@@ -6,27 +6,25 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Building2, Clock, Calendar, MessageCircle, ShieldQuestion, 
-  FileText, CheckCircle2, Loader2, ArrowRight, ArrowLeft, 
-  Users, Sparkles, Edit2, Brain
+import {
+  Building2, Clock, MessageCircle, ShieldQuestion,
+  FileText, CheckCircle2, Loader2, ArrowRight, ArrowLeft,
+  Sparkles, Edit2, Brain, Wrench, Sliders
 } from "lucide-react";
-import { industryConfigs } from "@/data/industryTemplates";
 import { createDefaultWorkflowsForMode } from "@/lib/createDefaultWorkflows";
-import { getIndustryBySlug, industryCatalog } from "@/data/industryCatalog";
+import { getIndustryBySlug } from "@/data/industryCatalog";
 import { resolveIndustryTemplate } from "@/lib/templateResolver";
-import { hasVoiceFeature } from "@/config/pricing";
-import BusinessIdentityForm, { BusinessIdentity } from "@/components/onboarding/BusinessIdentityForm";
+import { getModeContract } from "@/lib/businessModeContract";
+import { BusinessModeSelector, type BusinessMode, getDefaultModulesForMode } from "@/components/onboarding/BusinessModeSelector";
+import IndustrySelector from "@/components/onboarding/IndustrySelector";
+import { ModuleSelector } from "@/components/onboarding/ModuleSelector";
+import BusinessBasicsForm, { BusinessBasicsData, validateBusinessBasics } from "@/components/onboarding/BusinessBasicsForm";
 import ServiceEditorAdvanced, { AdvancedService } from "@/components/onboarding/ServiceEditorAdvanced";
-import BookingPoliciesEditor, { BookingPolicies } from "@/components/onboarding/BookingPoliciesEditor";
-import CustomerIntakeEditor, { IntakeQuestion } from "@/components/onboarding/CustomerIntakeEditor";
 import FAQEditor, { FAQ } from "@/components/onboarding/FAQEditor";
 import ObjectionEditor, { ObjectionResponse } from "@/components/onboarding/ObjectionEditor";
 import PoliciesEditor, { BusinessPolicies } from "@/components/onboarding/PoliciesEditor";
 import { BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
 import { AIKnowledgePreview } from "@/components/onboarding/AIKnowledgePreview";
-import { ServiceUploader } from "@/components/onboarding/ServiceUploader";
-import { ServiceConflictBanner } from "@/components/onboarding/ServiceConflictBanner";
 import type { PlanCode } from "@/types/database";
 
 const defaultBusinessHours: BusinessHours = {
@@ -40,64 +38,46 @@ const defaultBusinessHours: BusinessHours = {
 };
 
 const stepInfo = [
-  { icon: Building2, title: "Business Identity", description: "Tell us about your business" },
-  { icon: Clock, title: "Services & Pricing", description: "What services do you offer?" },
-  { icon: Calendar, title: "Availability", description: "When can customers book?" },
-  { icon: Users, title: "Customer Intake", description: "What info do you need?" },
-  { icon: MessageCircle, title: "FAQs", description: "Common questions customers ask" },
-  { icon: ShieldQuestion, title: "Objection Handling", description: "How to overcome hesitation" },
+  { icon: Wrench, title: "Business Mode", description: "What type of business are you?" },
+  { icon: Building2, title: "Industry", description: "Choose your industry for smart defaults" },
+  { icon: Sliders, title: "Features", description: "Select which modules to enable" },
+  { icon: Clock, title: "Business Basics", description: "Name, phone, hours" },
+  { icon: Sparkles, title: "Offerings", description: "Your services or menu" },
   { icon: FileText, title: "Policies", description: "Your business rules" },
-  { icon: CheckCircle2, title: "Review & Launch", description: "You're ready to go!" },
 ];
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  
-  // Track if industry template has been initialized to prevent re-loading on every render
-  // Start as null so first explicit selection will trigger template load
+
+  // Track if industry template has been initialized
   const initializedIndustryRef = useRef<string | null>(null);
-  
-  // Track if user has explicitly selected an industry (vs just the default)
-  const [hasExplicitIndustry, setHasExplicitIndustry] = useState(false);
-  
-  // Track upload conflicts for Step 2
-  const [uploadConflictCount, setUploadConflictCount] = useState(0);
-  
-  // Step 1: Business Identity - NO default industry until user selects
-  const [businessIdentity, setBusinessIdentity] = useState<BusinessIdentity>({
+
+  // Step 1: Business Mode
+  const [businessMode, setBusinessMode] = useState<BusinessMode>("service");
+
+  // Step 2: Industry
+  const [industrySlug, setIndustrySlug] = useState("");
+
+  // Step 3: Enabled Modules (start empty, will be set by industry selection)
+  const [enabledModules, setEnabledModules] = useState<string[]>([]);
+
+  // Step 4: Business Basics
+  const [businessBasics, setBusinessBasics] = useState<BusinessBasicsData>({
     businessName: "",
     tagline: "",
-    industry: "", // Start empty to force selection
-    customIndustry: "",
     phoneNumber: "",
-    websiteUrl: "",
     address: "",
-    yearsInBusiness: null,
     timezone: "America/New_York",
+    hoursJson: defaultBusinessHours,
   });
-  
-  // Step 2: Services - empty until industry is selected
+
+  // Step 5: Services
   const [services, setServices] = useState<AdvancedService[]>([]);
-  
-  // Step 3: Booking Policies
-  const [bookingPolicies, setBookingPolicies] = useState<BookingPolicies>({
-    businessHours: defaultBusinessHours,
-    minLeadHours: 24,
-    maxAdvanceDays: 30,
-    appointmentBufferMinutes: 15,
-  });
-  
-  // Step 4: Customer Intake Questions
-  const [intakeQuestions, setIntakeQuestions] = useState<IntakeQuestion[]>([]);
-  
-  // Step 5: FAQs
   const [faqs, setFaqs] = useState<FAQ[]>([]);
-  
-  // Step 6: Objection Handling
   const [objections, setObjections] = useState<ObjectionResponse[]>([]);
-  
-  // Step 7: Business Policies
+
+  // Step 6: Policies
   const [policies, setPolicies] = useState<BusinessPolicies>({
     cancellationPolicy: "",
     depositPolicy: "",
@@ -110,23 +90,18 @@ export default function OnboardingPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const totalSteps = 8;
+  const totalSteps = 6;
   const progress = (step / totalSteps) * 100;
 
   // Load industry from sessionStorage (set from demo player or signup flow)
   useEffect(() => {
     const storedIndustry = sessionStorage.getItem("selectedIndustry");
-    if (storedIndustry && storedIndustry !== businessIdentity.industry) {
-      // Validate it's a real industry key (check both legacy and new catalog)
-      const isValidIndustry = storedIndustry in industryConfigs || getIndustryBySlug(storedIndustry);
+    if (storedIndustry && storedIndustry !== industrySlug) {
+      const isValidIndustry = getIndustryBySlug(storedIndustry);
       if (isValidIndustry) {
         console.log(`[Onboarding] Loading stored industry from sessionStorage: ${storedIndustry}`);
-        setBusinessIdentity(prev => ({
-          ...prev,
-          industry: storedIndustry
-        }));
+        setIndustrySlug(storedIndustry);
       }
-      // Clear after use
       sessionStorage.removeItem("selectedIndustry");
     }
   }, []); // Only on mount
@@ -140,25 +115,28 @@ export default function OnboardingPage() {
 
   // Initialize data when industry changes - uses template resolver
   useEffect(() => {
-    const currentIndustry = businessIdentity.industry;
-    
-    // Skip if no industry selected yet (empty string)
-    if (!currentIndustry) {
-      return;
+    if (!industrySlug) return;
+    if (initializedIndustryRef.current === industrySlug) return;
+
+    // Get industry entry from catalog
+    const industryEntry = getIndustryBySlug(industrySlug);
+
+    // Auto-update business_mode from industry
+    if (industryEntry?.businessMode) {
+      setBusinessMode(industryEntry.businessMode);
     }
-    
-    // Skip if we've already initialized this industry (prevents re-loading on every change)
-    if (initializedIndustryRef.current === currentIndustry) {
-      return;
+
+    // Auto-update enabled_modules from industry
+    if (industryEntry?.enabledModules) {
+      setEnabledModules(industryEntry.enabledModules);
+    } else {
+      setEnabledModules(getDefaultModulesForMode(businessMode));
     }
-    
-    // Mark that user has made explicit selection
-    setHasExplicitIndustry(true);
-    
+
     // Use the template resolver to get the correct config
-    const config = resolveIndustryTemplate(currentIndustry);
-    console.log(`[Onboarding] Loading template for industry: ${currentIndustry}`, config.label);
-    
+    const config = resolveIndustryTemplate(industrySlug);
+    console.log(`[Onboarding] Loading template for industry: ${industrySlug}`, config.label);
+
     // Update services from the resolved template
     setServices(config.services.map(s => ({
       ...s,
@@ -167,22 +145,13 @@ export default function OnboardingPage() {
       upsellSuggestions: [],
       depositRequired: false,
     })));
-    
-    // Update intake questions
-    setIntakeQuestions(config.contextFields.map(f => ({
-      key: f.key,
-      label: f.label,
-      type: f.type,
-      options: f.options,
-      required: f.required,
-    })));
-    
+
     // Update FAQs
     setFaqs(config.faqs.map(f => ({ ...f })));
-    
+
     // Update objections
     setObjections(config.objections.map(o => ({ ...o })));
-    
+
     // Update policies
     setPolicies({
       cancellationPolicy: config.defaultPolicies.cancellation,
@@ -191,22 +160,18 @@ export default function OnboardingPage() {
       paymentMethods: ["cash", "card"],
       aiNeverPromise: [],
     });
-    
-    // Mark this industry as initialized
-    initializedIndustryRef.current = currentIndustry;
-    
-    // Reset conflict count when industry changes
-    setUploadConflictCount(0);
-  }, [businessIdentity.industry]);
 
-  // Validation - now requires explicit industry selection
-  const canProceedStep1 = businessIdentity.businessName.trim().length > 0 && 
-    businessIdentity.phoneNumber.trim().length > 0 &&
-    businessIdentity.industry.length > 0 &&
-    (businessIdentity.industry !== "other" || businessIdentity.customIndustry.trim().length > 0);
-  
-  const canProceedStep2 = services.length > 0 && 
-    services.every(s => s.name.trim().length > 0);
+    // Mark this industry as initialized
+    initializedIndustryRef.current = industrySlug;
+  }, [industrySlug, businessMode]);
+
+  // Validation
+  const canProceedStep1 = businessMode.length > 0; // Always true
+  const canProceedStep2 = industrySlug.length > 0;
+  const canProceedStep3 = enabledModules.length > 0; // Always true
+  const canProceedStep4 = validateBusinessBasics(businessBasics);
+  const canProceedStep5 = services.length > 0 && services.every(s => s.name.trim().length > 0);
+  const canProceedStep6 = true; // Policies optional
 
   // Show loading while checking auth state
   if (authLoading) {
@@ -293,13 +258,12 @@ export default function OnboardingPage() {
         website_url: null,
         years_in_business: null,
         context_fields_json: [] as any,
-        min_lead_hours: 24,
-        max_advance_days: 30,
-        appointment_buffer_minutes: 15,
+  
 
         // System fields
         ai_enabled: false,
-        hipaa_mode: industryEntry?.hipaaMode || false,
+       hipaa_mode: businessMode === "medical",
+
       };
 
       const { error: tenantError } = await supabase
@@ -351,35 +315,8 @@ export default function OnboardingPage() {
         }
       }
 
-      // Create menu items for food mode (using industry test data as defaults)
+      // Create food order settings for food mode
       if (isFoodMode) {
-        const { INDUSTRY_TEST_DATA } = await import("@/data/industryTestData");
-        const foodTestData = INDUSTRY_TEST_DATA.food;
-        
-        if (foodTestData.menuItems && foodTestData.menuItems.length > 0) {
-          const menuItemsToInsert = foodTestData.menuItems.map(item => ({
-            tenant_id: tenantId,
-            name: item.name,
-            description: item.description || null,
-            category: item.category,
-            price_cents: item.price_cents,
-            dietary_tags: item.dietary_tags || [],
-            modifiers: [], // Will be populated by user later
-            prep_time_minutes: item.prep_time_minutes,
-            is_available: item.is_available,
-          }));
-
-          const { error: menuError } = await supabase
-            .from("menu_items")
-            .insert(menuItemsToInsert);
-
-          if (menuError) {
-            console.error("Menu items creation error:", menuError);
-          } else {
-            console.log(`Created ${menuItemsToInsert.length} menu items for food tenant`);
-          }
-        }
-
         // Create food order settings
         const { error: foodSettingsError } = await supabase
           .from("food_order_settings")
@@ -568,11 +505,11 @@ export default function OnboardingPage() {
 
       toast({
         title: "You're all set! 🎉",
-        description: "Your 7-day free trial has started. Complete the setup checklist to go live.",
+        description: "Your 7-day free trial has started. Try your AI with suggested tests!",
       });
 
-      // Redirect directly to dashboard
-      navigate("/app/dashboard");
+      // Redirect to simulator with suggested tests
+      navigate("/app/simulator?suggested=true");
     } catch (error: any) {
       console.error("Onboarding error:", error);
       toast({
@@ -641,13 +578,10 @@ export default function OnboardingPage() {
             <CardDescription>{stepInfo[step - 1].description}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Step 1: Business Identity */}
+            {/* Step 1: Business Mode */}
             {step === 1 && (
               <>
-                <BusinessIdentityForm 
-                  data={businessIdentity} 
-                  onChange={setBusinessIdentity} 
-                />
+                <BusinessModeSelector value={businessMode} onChange={setBusinessMode} />
                 <Button
                   className="w-full"
                   onClick={() => setStep(2)}
@@ -659,39 +593,13 @@ export default function OnboardingPage() {
               </>
             )}
 
-            {/* Step 2: Services */}
+            {/* Step 2: Industry */}
             {step === 2 && (
               <>
-                {/* Industry template indicator */}
-                {businessIdentity.industry && (
-                  <div className="text-sm text-muted-foreground mb-2">
-                    Template: <span className="font-medium text-foreground">{resolveIndustryTemplate(businessIdentity.industry).label}</span>
-                    <span className="ml-2 text-xs">(all fields are editable)</span>
-                  </div>
-                )}
-                
-                {/* Conflict banner if upload found differences */}
-                <ServiceConflictBanner 
-                  conflictCount={uploadConflictCount}
-                  onReviewClick={() => {
-                    toast({
-                      title: "Review after onboarding",
-                      description: "Complete setup first, then review conflicts in Business Brain.",
-                    });
-                  }}
+                <IndustrySelector
+                  value={industrySlug}
+                  onChange={(slug) => setIndustrySlug(slug)}
                 />
-                
-                <ServiceEditorAdvanced services={services} onChange={setServices} />
-                
-                {/* Upload option */}
-                <div className="border-t pt-4 mt-4">
-                  <ServiceUploader 
-                    compact
-                    onboardingMode
-                    onConflictsFound={(count) => setUploadConflictCount(prev => prev + count)}
-                  />
-                </div>
-                
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setStep(1)}>
                     <ArrowLeft className="mr-2 h-4 w-4" />
@@ -705,16 +613,20 @@ export default function OnboardingPage() {
               </>
             )}
 
-            {/* Step 3: Booking Policies */}
+            {/* Step 3: Modules */}
             {step === 3 && (
               <>
-                <BookingPoliciesEditor data={bookingPolicies} onChange={setBookingPolicies} />
+                <ModuleSelector
+                  businessMode={businessMode}
+                  enabledModules={enabledModules}
+                  onChange={setEnabledModules}
+                />
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setStep(2)}>
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back
                   </Button>
-                  <Button className="flex-1" onClick={() => setStep(4)}>
+                  <Button className="flex-1" onClick={() => setStep(4)} disabled={!canProceedStep3}>
                     Continue
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
@@ -722,16 +634,16 @@ export default function OnboardingPage() {
               </>
             )}
 
-            {/* Step 4: Customer Intake */}
+            {/* Step 4: Business Basics */}
             {step === 4 && (
               <>
-                <CustomerIntakeEditor questions={intakeQuestions} onChange={setIntakeQuestions} />
+                <BusinessBasicsForm data={businessBasics} onChange={setBusinessBasics} />
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setStep(3)}>
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back
                   </Button>
-                  <Button className="flex-1" onClick={() => setStep(5)}>
+                  <Button className="flex-1" onClick={() => setStep(5)} disabled={!canProceedStep4}>
                     Continue
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
@@ -739,16 +651,28 @@ export default function OnboardingPage() {
               </>
             )}
 
-            {/* Step 5: FAQs */}
+            {/* Step 5: Offerings */}
             {step === 5 && (
               <>
-                <FAQEditor faqs={faqs} onChange={setFaqs} />
+                {industrySlug && (
+                  <div className="text-sm text-muted-foreground mb-2">
+                    Template: <span className="font-medium text-foreground">{resolveIndustryTemplate(industrySlug).label}</span>
+                    <span className="ml-2 text-xs">(all fields are editable)</span>
+                  </div>
+                )}
+
+                <ServiceEditorAdvanced
+                  services={services}
+                  onChange={setServices}
+                  modeContract={getModeContract(businessMode)}
+                />
+
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setStep(4)}>
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back
                   </Button>
-                  <Button className="flex-1" onClick={() => setStep(6)}>
+                  <Button className="flex-1" onClick={() => setStep(6)} disabled={!canProceedStep5}>
                     Continue
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
@@ -756,104 +680,42 @@ export default function OnboardingPage() {
               </>
             )}
 
-            {/* Step 6: Objection Handling */}
+            {/* Step 6: Policies + FAQs + Objections + Review */}
             {step === 6 && (
               <>
-                <ObjectionEditor objections={objections} onChange={setObjections} />
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setStep(5)}>
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back
-                  </Button>
-                  <Button className="flex-1" onClick={() => setStep(7)}>
-                    Continue
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </div>
-              </>
-            )}
-
-            {/* Step 7: Policies */}
-            {step === 7 && (
-              <>
-                <PoliciesEditor data={policies} onChange={setPolicies} />
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setStep(6)}>
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back
-                  </Button>
-                  <Button className="flex-1" onClick={() => setStep(8)}>
-                    Continue
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </div>
-              </>
-            )}
-
-            {/* Step 8: Review & Launch */}
-            {step === 8 && (
-              <>
                 <div className="space-y-6">
-                  {/* AI Knowledge Preview */}
-                  <AIKnowledgePreview
-                    businessName={businessIdentity.businessName}
-                    services={services.filter(s => s.name.trim())}
-                    faqs={faqs.filter(f => f.question && f.answer)}
-                    objections={objections.filter(o => o.objection && o.response)}
-                    policies={{
-                      cancellationPolicy: policies.cancellationPolicy,
-                      depositPolicy: policies.depositPolicy,
-                    }}
-                    businessHours={bookingPolicies.businessHours}
-                    intakeQuestions={intakeQuestions}
-                    aiNeverPromise={policies.aiNeverPromise}
-                  />
+                  {/* Policies section */}
+                  <div>
+                    <h3 className="text-sm font-medium mb-3">Business Policies</h3>
+                    <PoliciesEditor data={policies} onChange={setPolicies} />
+                  </div>
 
-                  {/* Summary sections */}
-                  <div className="space-y-3">
-                    <p className="text-sm font-medium text-muted-foreground">Quick Edit:</p>
-                    <ReviewSection
-                      icon={Building2}
-                      title="Business"
-                      value={businessIdentity.businessName}
-                      subtitle={resolveIndustryTemplate(businessIdentity.industry).label}
-                      onEdit={() => goToStep(1)}
-                    />
-                    <ReviewSection
-                      icon={Clock}
-                      title="Services"
-                      value={`${services.filter(s => s.name.trim()).length} services`}
-                      onEdit={() => goToStep(2)}
-                    />
-                    <ReviewSection
-                      icon={Calendar}
-                      title="Availability"
-                      value={`${bookingPolicies.minLeadHours}h notice • ${bookingPolicies.maxAdvanceDays} days advance`}
-                      onEdit={() => goToStep(3)}
-                    />
-                    <ReviewSection
-                      icon={Users}
-                      title="Intake Questions"
-                      value={`${intakeQuestions.length} questions`}
-                      onEdit={() => goToStep(4)}
-                    />
-                    <ReviewSection
-                      icon={MessageCircle}
-                      title="FAQs"
-                      value={`${faqs.filter(f => f.question && f.answer).length} answers ready`}
-                      onEdit={() => goToStep(5)}
-                    />
-                    <ReviewSection
-                      icon={ShieldQuestion}
-                      title="Objection Handlers"
-                      value={`${objections.filter(o => o.objection && o.response).length} responses`}
-                      onEdit={() => goToStep(6)}
-                    />
-                    <ReviewSection
-                      icon={FileText}
-                      title="Policies"
-                      value={`${policies.paymentMethods.length} payment methods`}
-                      onEdit={() => goToStep(7)}
+                  {/* FAQs section */}
+                  <div className="border-t pt-6">
+                    <h3 className="text-sm font-medium mb-3">Common Questions (FAQs)</h3>
+                    <FAQEditor faqs={faqs} onChange={setFaqs} />
+                  </div>
+
+                  {/* Objections section */}
+                  <div className="border-t pt-6">
+                    <h3 className="text-sm font-medium mb-3">Objection Handling</h3>
+                    <ObjectionEditor objections={objections} onChange={setObjections} />
+                  </div>
+
+                  {/* AI Knowledge Preview */}
+                  <div className="border-t pt-6">
+                    <AIKnowledgePreview
+                      businessName={businessBasics.businessName}
+                      services={services.filter(s => s.name.trim())}
+                      faqs={faqs.filter(f => f.question && f.answer)}
+                      objections={objections.filter(o => o.objection && o.response)}
+                      policies={{
+                        cancellationPolicy: policies.cancellationPolicy,
+                        depositPolicy: policies.depositPolicy,
+                      }}
+                      businessHours={businessBasics.hoursJson}
+                      intakeQuestions={[]}
+                      aiNeverPromise={policies.aiNeverPromise}
                     />
                   </div>
 
@@ -864,15 +726,15 @@ export default function OnboardingPage() {
                       <div>
                         <p className="text-sm font-medium">Your AI is trained on all of this!</p>
                         <p className="text-xs text-muted-foreground">
-                          After setup, you can always edit your Business Brain to improve AI responses.
+                          After setup, test your AI in the simulator with suggested prompts.
                         </p>
                       </div>
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setStep(7)}>
+                  <Button variant="outline" onClick={() => setStep(5)}>
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back
                   </Button>
@@ -899,36 +761,3 @@ export default function OnboardingPage() {
   );
 }
 
-function ReviewSection({ 
-  icon: Icon, 
-  title, 
-  value, 
-  subtitle, 
-  onEdit 
-}: { 
-  icon: React.ElementType; 
-  title: string; 
-  value: string; 
-  subtitle?: string;
-  onEdit: () => void;
-}) {
-  return (
-    <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
-      <div className="flex items-center gap-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10">
-          <Icon className="h-4 w-4 text-primary" />
-        </div>
-        <div>
-          <p className="text-sm font-medium">{title}</p>
-          <p className="text-xs text-muted-foreground">
-            {value}
-            {subtitle && ` • ${subtitle}`}
-          </p>
-        </div>
-      </div>
-      <Button variant="ghost" size="sm" onClick={onEdit}>
-        <Edit2 className="h-4 w-4" />
-      </Button>
-    </div>
-  );
-}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,20 @@ export default function CallSimulator() {
   } | null>(null);
   const [opportunityId, setOpportunityId] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+
+  // Listen for suggested test clicks from SuggestedTestsBanner
+  useEffect(() => {
+    const handleSuggestedTest = (event: CustomEvent<{ text: string }>) => {
+      if (isCallActive && event.detail?.text) {
+        setCustomerInput(event.detail.text);
+      }
+    };
+
+    window.addEventListener('suggested-test-clicked', handleSuggestedTest as EventListener);
+    return () => {
+      window.removeEventListener('suggested-test-clicked', handleSuggestedTest as EventListener);
+    };
+  }, [isCallActive]);
 
   const getAIResponse = async (customerMessage: string): Promise<SimulatedMessage> => {
     if (!tenant?.id) {
