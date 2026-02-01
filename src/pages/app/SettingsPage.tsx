@@ -29,6 +29,8 @@ import { IntelligenceSettingsForm } from "@/components/settings/IntelligenceSett
 import { AIBusinessPolicies } from "@/components/settings/AIBusinessPolicies";
 import { DataControlsPanel } from "@/components/settings/DataControlsPanel";
 import { RequiredQuestionsEditor } from "@/components/settings/RequiredQuestionsEditor";
+import { PricingRulesEditor } from "@/components/settings/PricingRulesEditor";
+import { BusynessRulesEditor } from "@/components/settings/BusynessRulesEditor";
 import { SettingsSidebar, SettingsNavConfig } from "@/components/settings/SettingsSidebar";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { MobileSettingsNav } from "@/components/settings/MobileSettingsNav";
@@ -179,6 +181,10 @@ export default function SettingsPage() {
       title: "Required Questions",
       description: "Configure what information your AI must collect for each type of request (booking, order, dispatch, etc.).",
     },
+    "pricing-estimates": {
+      title: "Pricing & Estimates",
+      description: "Configure pricing rules and ETA calculation. Control how your AI quotes prices and arrival times.",
+    },
     "data-privacy": {
       title: "Data & Privacy",
       description: "Control what call data is saved and for how long. Manage recording and transcript storage.",
@@ -304,6 +310,14 @@ export default function SettingsPage() {
 
       case "ai-rules":
         return <RequiredQuestionsEditor />;
+
+      case "pricing-estimates":
+        return (
+          <div className="space-y-6">
+            <PricingRulesEditor />
+            <BusynessRulesEditor />
+          </div>
+        );
 
       case "data-privacy":
         return <DataControlsPanel />;
