@@ -81,11 +81,11 @@ export function AIReadinessBanner() {
             ))}
           </div>
           
-          {/* Action Button */}
+          {/* Action Button - Route to Fix Center */}
           <Button size="sm" className="gap-1 shrink-0" asChild>
-            <Link to="/app/business-brain">
+            <Link to="/app/readiness">
               <Sparkles className="h-3.5 w-3.5" />
-              Improve Score
+              Fix Issues
               <ChevronRight className="h-3.5 w-3.5" />
             </Link>
           </Button>
