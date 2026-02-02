@@ -68,14 +68,15 @@ serve(async (req: Request) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // Check tenant membership
+    // Check tenant membership using tenant_users table
     const { data: membership, error: memberError } = await supabase
-      .from("tenant_memberships")
-      .select("id")
+      .from("tenant_users")
+      .select("tenant_id")
       .eq("tenant_id", tenant_id)
       .maybeSingle();
 
     if (memberError || !membership) {
+      console.error("[mapbox-geocode] Tenant access denied:", memberError?.message || "No membership found");
       return new Response(
         JSON.stringify({ error: "Tenant access denied" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
