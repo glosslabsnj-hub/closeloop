@@ -28,7 +28,7 @@ interface QuickSetupWizardProps {
 }
 
 export default function QuickSetupWizard({ onComplete }: QuickSetupWizardProps) {
-  const { tenant } = useAuth();
+  const { effectiveTenantId } = useAuth();
   const { toast } = useToast();
   
   // Phone connection state
@@ -57,14 +57,14 @@ export default function QuickSetupWizard({ onComplete }: QuickSetupWizardProps) 
   };
 
   const handleConnectPhone = async () => {
-    if (!tenant || !phoneNumber.trim()) return;
+    if (!effectiveTenantId || !phoneNumber.trim()) return;
     
     setConnecting(true);
     try {
       const { error } = await supabase
         .from("assistant_settings")
         .upsert({
-          tenant_id: tenant.id,
+          tenant_id: effectiveTenantId,
           business_phone_number: phoneNumber.trim(),
           phone_connected: true,
           sms_first_delay_seconds: textBackDelay[0],
@@ -107,7 +107,7 @@ export default function QuickSetupWizard({ onComplete }: QuickSetupWizardProps) 
       // Agent ID is now managed server-side
       const { data, error } = await supabase.functions.invoke("test-call-phone", {
         body: { 
-          tenantId: tenant?.id, 
+          tenantId: effectiveTenantId, 
           phoneNumber: testPhoneNumber.trim(),
         },
       });
@@ -151,7 +151,7 @@ export default function QuickSetupWizard({ onComplete }: QuickSetupWizardProps) 
   };
 
   const handleSaveSettings = async () => {
-    if (!tenant) return;
+    if (!effectiveTenantId) return;
     
     setSaving(true);
     try {
@@ -159,7 +159,7 @@ export default function QuickSetupWizard({ onComplete }: QuickSetupWizardProps) 
       const { error: settingsError } = await supabase
         .from("assistant_settings")
         .upsert({
-          tenant_id: tenant.id,
+          tenant_id: effectiveTenantId,
           sms_first_delay_seconds: textBackDelay[0],
           instant_text_enabled: textBackEnabled,
           updated_at: new Date().toISOString(),

@@ -27,7 +27,7 @@ interface SimulatedMessage {
 }
 
 export default function CallSimulator() {
-  const { tenant } = useAuth();
+  const { effectiveTenantId, effectiveTenant } = useAuth();
   const { toast } = useToast();
   
   const [callerPhone, setCallerPhone] = useState('');
@@ -44,23 +44,23 @@ export default function CallSimulator() {
   const [opportunityId, setOpportunityId] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
 
-  // Fetch pricing rules from tenant
+  // Fetch pricing rules from effective tenant (respects admin tenant switching)
   const { data: pricingRulesData } = useQuery({
-    queryKey: ['tenant-pricing-rules', tenant?.id],
+    queryKey: ['tenant-pricing-rules', effectiveTenantId],
     queryFn: async () => {
-      if (!tenant?.id) return null;
+      if (!effectiveTenantId) return null;
       const { data } = await supabase
         .from('tenants')
         .select('pricing_rules_jsonb, business_mode')
-        .eq('id', tenant.id)
+        .eq('id', effectiveTenantId)
         .single();
       return data;
     },
-    enabled: !!tenant?.id,
+    enabled: !!effectiveTenantId,
   });
 
   const pricingRules: PricingRule[] = (pricingRulesData?.pricing_rules_jsonb as any) || [];
-  const businessMode = pricingRulesData?.business_mode || 'service';
+  const businessMode = pricingRulesData?.business_mode || effectiveTenant?.business_mode || 'service';
 
   // Listen for suggested test clicks from SuggestedTestsBanner
   useEffect(() => {
@@ -77,7 +77,7 @@ export default function CallSimulator() {
   }, [isCallActive]);
 
   const getAIResponse = async (customerMessage: string): Promise<SimulatedMessage> => {
-    if (!tenant?.id) {
+    if (!effectiveTenantId) {
       return {
         role: 'ai',
         content: "I'm sorry, I'm having trouble accessing the system. Let me have someone call you back.",
@@ -101,7 +101,7 @@ export default function CallSimulator() {
     try {
       const { data, error } = await supabase.functions.invoke('ai-plan-response', {
         body: {
-          tenantId: tenant.id,
+          tenantId: effectiveTenantId,
           userMessage: customerMessage,
           channel: 'call',
           customerId: resolvedCustomer?.id,
@@ -136,7 +136,7 @@ export default function CallSimulator() {
   };
 
   const startCall = async () => {
-    if (!tenant?.id) {
+    if (!effectiveTenantId) {
       toast({ variant: "destructive", title: "No business configured" });
       return;
     }
@@ -150,7 +150,7 @@ export default function CallSimulator() {
     try {
       // Resolve customer through the unified pipeline
       const result = await resolveCustomer(
-        tenant.id,
+        effectiveTenantId,
         callerPhone,
         callerName || undefined,
         callerEmail || undefined,
@@ -165,7 +165,7 @@ export default function CallSimulator() {
 
       // Create opportunity for this call
       const oppId = await createOpportunity(
-        tenant.id,
+        effectiveTenantId,
         result.customer_id,
         'inbound_call',
         undefined,
@@ -175,7 +175,7 @@ export default function CallSimulator() {
 
       // Fire sync event
       await createSyncEvent(
-        tenant.id,
+        effectiveTenantId,
         result.is_new ? 'customer_created' : 'customer_updated',
         'customer',
         result.customer_id,
@@ -225,9 +225,9 @@ export default function CallSimulator() {
   };
 
   const endCall = async () => {
-    if (tenant?.id && opportunityId) {
+    if (effectiveTenantId && opportunityId) {
       await createSyncEvent(
-        tenant.id,
+        effectiveTenantId,
         'call_completed',
         'opportunity',
         opportunityId,
