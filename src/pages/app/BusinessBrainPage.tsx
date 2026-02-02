@@ -22,6 +22,7 @@ import { BrainAssetsManager } from "@/components/brain/BrainAssetsManager";
 import { BrainReviewQueue, useBrainReviewCount } from "@/components/brain/BrainReviewQueue";
 import { QuoteReadinessCard } from "@/components/brain/QuoteReadinessCard";
 import { IndustryTemplateCard } from "@/components/brain/IndustryTemplateCard";
+import { ServiceAreaPreview } from "@/components/debug/ServiceAreaPreview";
 
 /**
  * Business Brain - Centralized hub for ALL business knowledge editing
@@ -215,6 +216,11 @@ export default function BusinessBrainPage() {
               title="Service Area"
               description="Define dispatch zones and delivery coverage areas"
             >
+              {/* Live Preview of what AI will say */}
+              <div className="mb-6">
+                <ServiceAreaPreview />
+              </div>
+
               <ServiceAreaManager />
             </SettingsSection>
           )}
