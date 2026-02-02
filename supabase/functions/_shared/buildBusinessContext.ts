@@ -1,11 +1,15 @@
 /**
  * CANONICAL BUSINESS CONTEXT BUILDER
  * Single source of truth for all AI context (voice, SMS, browser test)
- * 
+ *
  * This module is imported by: twilio-inbound, ai-text-reply, elevenlabs-conversation-token
  */
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  buildDynamicVariablesFromRegistry,
+  getAllVariableKeys,
+} from "./voiceContextContract.ts";
 
 // ============= TYPE DEFINITIONS =============
 
@@ -98,9 +102,13 @@ export interface BusinessContext {
     website: string;
     address: string;
     years_in_business: number | null;
-    service_area: { type: string; miles?: number; zip_codes?: string[] } | null;
+    service_area: { type?: string; miles?: number; zip_codes?: string[]; mode?: string; radius_miles?: number; include?: { zips?: string[] } } | null;
     hours: Record<string, { open: string; close: string; is_open: boolean }>;
     hours_today: string;
+    // Speech-ready summaries for voice AI
+    location_summary: string;
+    service_area_summary: string;
+    out_of_area_message: string;
   };
   offerings: {
     services: NormalizedService[];
@@ -846,6 +854,94 @@ function parseIntakeFields(contextFieldsJson: unknown): IntakeField[] {
   })).filter(f => f.field_key && f.label);
 }
 
+// ============= LOCATION & SERVICE AREA SUMMARIES =============
+
+/**
+ * Build speech-ready location summary.
+ * Used when callers ask "where are you located?"
+ *
+ * Rules:
+ * - If address exists: "We're based at <address>."
+ * - If no address: returns empty string (never invent)
+ */
+function buildLocationSummary(address: string | null | undefined): string {
+  if (!address || address.trim() === "") return "";
+  return `We're based at ${address.trim()}.`;
+}
+
+/**
+ * Build speech-ready service area summary.
+ * Used when callers ask "what areas do you serve?"
+ *
+ * Supports both formats:
+ * - Legacy: { type: "radius", miles: 25 }
+ * - New: { mode: "radius", radius_miles: 25 }
+ *
+ * Rules:
+ * - If radius mode: "We serve a X-mile radius from our location."
+ * - If zip codes: "We serve zip codes: X, Y, Z."
+ * - If both: mentions radius first, then zips
+ * - If empty: returns empty string (never invent)
+ */
+function buildServiceAreaSummary(
+  serviceArea: { type?: string; miles?: number; zip_codes?: string[]; mode?: string; radius_miles?: number; include?: { zips?: string[] } } | null,
+  businessMode: string
+): string {
+  if (!serviceArea) return "";
+
+  const parts: string[] = [];
+
+  // Check for radius (both formats)
+  const radiusMiles = serviceArea.radius_miles || serviceArea.miles;
+  const isRadiusMode = serviceArea.mode === "radius" || serviceArea.type === "radius";
+
+  if (isRadiusMode && radiusMiles) {
+    if (businessMode === "dispatch") {
+      parts.push(`We dispatch within a ${radiusMiles}-mile radius from our location`);
+    } else {
+      parts.push(`We serve a ${radiusMiles}-mile radius from our location`);
+    }
+  }
+
+  // Check for zip codes (both formats)
+  const zipCodes = serviceArea.include?.zips || serviceArea.zip_codes;
+  if (Array.isArray(zipCodes) && zipCodes.length > 0) {
+    if (zipCodes.length <= 5) {
+      parts.push(`We serve zip codes: ${zipCodes.join(", ")}`);
+    } else {
+      parts.push(`We serve ${zipCodes.length} zip codes in our area`);
+    }
+  }
+
+  if (parts.length === 0) return "";
+
+  return parts.join(". ") + ".";
+}
+
+/**
+ * Build out-of-area message for when customer is outside service area.
+ * Returns a default message if not configured.
+ */
+function buildOutOfAreaMessage(
+  outOfAreaMessage: string | null | undefined,
+  serviceArea: { type?: string; miles?: number; zip_codes?: string[]; mode?: string; radius_miles?: number; include?: { zips?: string[] } } | null
+): string {
+  // Use configured message if exists
+  if (outOfAreaMessage && outOfAreaMessage.trim()) {
+    return outOfAreaMessage.trim();
+  }
+
+  // Generate default based on service area
+  if (!serviceArea) return "";
+
+  const radiusMiles = serviceArea.radius_miles || serviceArea.miles;
+  if (radiusMiles) {
+    return `I'm sorry, that location appears to be outside our ${radiusMiles}-mile service area. Would you like me to take your information and have someone follow up about availability?`;
+  }
+
+  return "I'm sorry, that location may be outside our normal service area. Would you like me to take your information and have someone follow up?";
+}
+
 // ============= PRICING HELPER FUNCTIONS =============
 
 /**
@@ -1097,21 +1193,29 @@ export async function buildBusinessContext(
   const pricingRules = Array.isArray(tenant.pricing_rules_jsonb) ? tenant.pricing_rules_jsonb : [];
   const busynessRules = tenant.busyness_rules_jsonb && typeof tenant.busyness_rules_jsonb === 'object' ? tenant.busyness_rules_jsonb : {};
 
+  // Pre-compute service area for summaries
+  const serviceAreaData = tenant.service_area_json as BusinessContext["tenant"]["service_area"];
+  const businessMode = tenant.business_mode || "general";
+
   const context: BusinessContext = {
     tenant: {
       tenant_id: tenantId,
       business_name: tenant.name || "",
       tagline: tenant.tagline || "",
-      business_mode: tenant.business_mode || "general",
+      business_mode: businessMode,
       industry_slug: tenant.industry || "",
       timezone: tenant.timezone || "America/New_York",
       phone_e164: tenant.phone_public || "",
       website: tenant.website_url || "",
       address: tenant.address || "",
       years_in_business: tenant.years_in_business,
-      service_area: tenant.service_area_json as BusinessContext["tenant"]["service_area"],
+      service_area: serviceAreaData,
       hours: normalizeHours(tenant.hours_json as Record<string, unknown>),
       hours_today: getTodayHours(tenant.hours_json as Record<string, unknown>, tenant.timezone),
+      // Speech-ready summaries
+      location_summary: buildLocationSummary(tenant.address),
+      service_area_summary: buildServiceAreaSummary(serviceAreaData, businessMode),
+      out_of_area_message: buildOutOfAreaMessage(tenant.out_of_area_message, serviceAreaData),
     },
     offerings: {
       services: normalizedServices,
@@ -1685,134 +1789,37 @@ IMPORTANT GUIDELINES:
 /**
  * Flattens BusinessContext into key-value pairs for ElevenLabs dynamic_variables
  * Used by both twilio-inbound (voice calls) and elevenlabs-conversation-token (browser tests)
+ *
+ * This function delegates to the Voice Context Contract Registry which ensures:
+ * - All variables are deterministically generated
+ * - No null/undefined values (strings only for output)
+ * - PHI is redacted in HIPAA mode
+ * - Includes business_brain_json_compact with hash for verification
+ *
+ * @see voiceContextContract.ts for the canonical registry
  */
 export function buildDynamicVariables(
-  ctx: BusinessContext, 
-  callerPhoneE164: string, 
+  ctx: BusinessContext,
+  callerPhoneE164: string,
   customerId: string | null
 ): Record<string, string | number | boolean> {
-  const enabledModulesArray: string[] = [];
-  if (ctx.operations.modules.booking_enabled) enabledModulesArray.push("booking");
-  if (ctx.operations.modules.dispatch_enabled) enabledModulesArray.push("dispatch_queue");
-  if (ctx.operations.modules.orders_enabled) enabledModulesArray.push("food_orders");
-  if (ctx.operations.modules.reservations_enabled) enabledModulesArray.push("reservations");
-  if (ctx.operations.modules.catering_enabled) enabledModulesArray.push("catering");
-  if (ctx.operations.modules.voice_enabled) enabledModulesArray.push("ai_voice");
-  if (ctx.operations.modules.sms_enabled) enabledModulesArray.push("instant_text_back");
-  if (ctx.operations.modules.medical_intake_enabled) enabledModulesArray.push("medical_intake");
+  // Delegate to the registry-driven builder
+  const vars = buildDynamicVariablesFromRegistry(ctx, callerPhoneE164, customerId);
 
-  // Compute debug flags for context completeness
-  const hasHours = Object.keys(ctx.tenant.hours).length > 0 || Boolean(ctx.tenant.hours_today);
-  const hasMenu = ctx.offerings.menu.length > 0;
-  const hasServices = ctx.offerings.services.length > 0;
-  
-  // Get menu metadata for large menus
-  const menuMetadata = getMenuMetadata(ctx.offerings.menu);
-  
-  return {
-    // === CORE IDENTIFIERS (NEVER null - always default to empty string) ===
-    tenant_id: ctx.tenant.tenant_id || "",
-    location_id: ctx._meta.location_id || "",
-    business_name: ctx.tenant.business_name || "Our Business",
-    businessname: ctx.tenant.business_name || "Our Business", // Alias for ElevenLabs compatibility
-    business_mode: ctx.tenant.business_mode || "general",
-    enabled_modules: enabledModulesArray.join(",") || "",
-    hipaa_mode: ctx.safety.hipaa_mode,
-    timezone: ctx.tenant.timezone || "America/New_York",
-    
-    // === BUSINESS IDENTITY (NEW - address, phone, website, etc.) ===
-    address: ctx.tenant.address || "",
-    phone: ctx.tenant.phone_e164 || "",
-    website: ctx.tenant.website || "",
-    tagline: ctx.tenant.tagline || "",
-    years_in_business: String(ctx.tenant.years_in_business || ""),
-    industry: ctx.tenant.industry_slug || "",
-    
-    // === SERVICE AREA (NEW - formatted for voice) ===
-    service_area_description: formatServiceAreaForVoice(ctx.tenant.service_area),
-    service_area_mode: ctx.tenant.service_area?.type || "",
-    service_area_radius_miles: String(ctx.tenant.service_area?.miles || ""),
-    
-    // Caller info (respect PHI settings) - NEVER null
-    caller_phone: ctx.safety.hipaa_mode ? "" : (callerPhoneE164 || ""),
-    customer_id: customerId || "",
-    
-    // === HOURS AND AVAILABILITY ===
-    hours_today: ctx.tenant.hours_today || "",
-    hours_weekly: formatWeeklyHoursForVoice(ctx.tenant.hours),
-    calendar_connected: ctx.operations.availability.calendar_connected,
-    booking_link: ctx.operations.availability.booking_url || "",
-    booking_mode: ctx.operations.availability.booking_mode || "",
-    
-    // === BUSINESS BRAIN CONTENT - CRITICAL: these power the AI's knowledge ===
-    // For food mode, menu_summary is primary; for service mode, services_pricing is primary
-    service_summary: ctx.offerings.services_summary || "",
-    services_pricing: ctx.offerings.services_for_prompt || "",
-    menu_summary: ctx.offerings.menu_summary || "",
-    pricing_rules_summary: ctx.pricing.rules_summary || "",
-    eta_rules_summary: ctx.eta.rules_summary || "",
-    
-    // === POLICIES (complete - cancellation, deposit, refund, payment, restrictions) ===
-    policies_summary: [
-      ctx.policies.cancellation && `Cancellation: ${ctx.policies.cancellation}`,
-      ctx.policies.deposit && `Deposit: ${ctx.policies.deposit}`,
-      ctx.policies.payment_methods.length > 0 && `Payment: ${ctx.policies.payment_methods.join(", ")}`,
-    ].filter(Boolean).join(". ") || "",
-    cancellation_policy: ctx.policies.cancellation || "",
-    deposit_policy: ctx.policies.deposit || "",
-    refund_policy: ctx.policies.refund || "",
-    payment_methods: ctx.policies.payment_methods.join(", ") || "",
-    ai_never_promise: (ctx.policies.ai_never_promise || []).join("; ") || "",
-    
-    // === KNOWLEDGE - FAQs and Objection Responses ===
-    faqs_summary: ctx.knowledge.faqs_summary || "",
-    objections_summary: formatObjectionsForVoice(ctx.knowledge.objections),
-    
-    // Menu metadata for large menus (allows AI to ask about specific categories)
-    menu_has_more: menuMetadata.hasMore ? "true" : "false",
-    menu_top_categories: menuMetadata.topCategories.join(", ") || "",
-    menu_summary_length: String(ctx.offerings.menu_summary?.length || 0),
-    
-    // === FOOD SETTINGS (for food mode businesses) ===
-    estimated_prep_minutes: ctx.food_settings?.estimated_prep_minutes || 15,
-    accepts_pickup: ctx.food_settings?.accepts_pickup !== false ? "true" : "false",
-    accepts_delivery: ctx.food_settings?.accepts_delivery === true ? "true" : "false",
-    accepts_dine_in: ctx.food_settings?.accepts_dine_in !== false ? "true" : "false",
-    delivery_radius_miles: String(ctx.food_settings?.delivery_radius_miles || ""),
-    delivery_minimum_dollars: ctx.food_settings?.delivery_minimum_cents 
-      ? String((ctx.food_settings.delivery_minimum_cents / 100).toFixed(2)) 
-      : "",
-    accepts_catering: ctx.food_settings?.accepts_catering === true ? "true" : "false",
-    catering_min_guests: String(ctx.food_settings?.catering_min_guests || ""),
-    catering_lead_days: String(ctx.food_settings?.catering_lead_days || ""),
-    
-    // === MEDICAL INTAKE (for medical mode) ===
-    intake_fields_summary: formatIntakeFieldsForVoice(ctx.intake.required_fields),
-    
-    // === AI ASSISTANT SETTINGS (NEVER null) ===
-    greeting_script: ctx.ai_settings.greeting_script || "",
-    fallback_script: ctx.ai_settings.fallback_script || "",
-    tone: ctx.ai_settings.tone || "friendly",
-    
-    // === INTELLIGENCE LAYERS ===
-    intent_rules_summary: ctx.intelligence.intent_rules_summary || "",
-    required_questions_summary: ctx.intelligence.required_questions_summary || "No required questions configured",
-    memory_hints_summary: ctx.safety.hipaa_mode ? "" : (ctx.intelligence.memory_hints_summary || ""),
-    memory_enabled: ctx.intelligence.settings.memory_enabled,
+  // Log variable keys for debugging (one-time dev log)
+  if (Deno.env.get("LOG_DYNAMIC_VAR_KEYS") === "true") {
+    console.log("[buildDynamicVariables] Keys:", getAllVariableKeys().join(", "));
+  }
 
-    // === PRICING & ETA (busyness config) ===
-    base_prep_minutes: ctx.pricing.busyness_config?.base_prep_minutes || 30,
-    busy_buffer_minutes: ctx.pricing.busyness_config?.busy_buffer_minutes || 15,
-    current_busyness_pct: ctx.pricing.busyness_config?.manual_busyness_pct || 0,
+  return vars;
+}
 
-    // === DEBUG FLAGS - for /debug/ai-context page verification (NEVER null) ===
-    context_has_hours: hasHours ? "true" : "false",
-    context_has_menu: hasMenu ? "true" : "false",
-    context_has_services: hasServices ? "true" : "false",
-    context_menu_count: String(ctx.offerings.menu.length),
-    context_services_count: String(ctx.offerings.services.length),
-    context_missing_sections: ctx._meta.missing_sections.join(",") || "",
-  };
+/**
+ * Get the list of all dynamic variable keys from the registry.
+ * Useful for documentation and verification.
+ */
+export function getDynamicVariableKeys(): string[] {
+  return getAllVariableKeys();
 }
 
 // ============= SNAPSHOT STORAGE =============
