@@ -30,10 +30,10 @@ export default function SimulatorPage() {
   const defaultTab = showSuggested ? "call" : "setup";
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-6 animate-fade-in">
-      <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Simulator & Setup</h1>
-        <p className="text-muted-foreground mt-1.5 text-sm md:text-base">
+    <div className="p-4 md:p-6 space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Simulator & Setup</h1>
+        <p className="text-muted-foreground">
           Test your AI with real business data and see how it processes questions
         </p>
       </div>
