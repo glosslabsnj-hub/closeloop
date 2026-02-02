@@ -13,6 +13,13 @@ import {
 
 const DEBUG_PAGES = [
   {
+    path: "/debug/context",
+    label: "Context Debugger",
+    description: "AI context, ElevenLabs variables, preview blocks, warnings",
+    icon: Brain,
+    color: "text-primary bg-primary/10",
+  },
+  {
     path: "/debug/telephony",
     label: "Telephony Debug",
     description: "Twilio logs, phone config, webhook URLs",

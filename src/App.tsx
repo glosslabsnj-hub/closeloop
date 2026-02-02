@@ -63,6 +63,7 @@ import TelephonyDebugPage from "@/pages/debug/TelephonyDebugPage";
 import AIContextInspectorPage from "@/pages/debug/AIContextInspectorPage";
 import AvailabilityDebugPage from "@/pages/debug/AvailabilityDebugPage";
 import ExtractionDebugPage from "@/pages/debug/ExtractionDebugPage";
+import ContextDebuggerPage from "@/pages/debug/ContextDebuggerPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -139,6 +140,7 @@ const App = () => (
             <Route path="/debug/ai-context" element={<AIContextInspectorPage />} />
             <Route path="/debug/availability" element={<AvailabilityDebugPage />} />
             <Route path="/debug/extraction" element={<ExtractionDebugPage />} />
+            <Route path="/debug/context" element={<ContextDebuggerPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
