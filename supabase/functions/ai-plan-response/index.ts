@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireAuthedTenant, serviceClient } from "../_shared/tenant.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -181,29 +181,37 @@ serve(async (req) => {
   }
 
   try {
-    const { tenantId, userMessage, channel = 'call', customerId } = await req.json();
+    // Parse body early to extract tenantId for validation
+    const body = await req.json().catch(() => ({}));
+    const { userMessage, channel = 'call', customerId } = body;
+    const requestedTenantId = body.tenant_id ?? body.tenantId ?? null;
 
-    if (!tenantId || !userMessage) {
+    if (!userMessage) {
       return new Response(
-        JSON.stringify({ error: "Tenant ID and user message are required" }),
+        JSON.stringify({ error: "User message is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    // SECURITY: Validate user has access to the requested tenant
+    const { tenantId } = await requireAuthedTenant(req, requestedTenantId);
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = serviceClient();
+
+    // Get the authorization header to pass to sub-functions
+    const authHeader = req.headers.get("authorization") || "";
 
     // Detect intent
     const intent = detectIntent(userMessage);
 
-    // Fetch business brain
+    // Fetch business brain (pass user's auth header for tenant validation)
     const brainResponse = await fetch(`${supabaseUrl}/functions/v1/build-business-brain`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${supabaseKey}`,
+        "Authorization": authHeader,
       },
       body: JSON.stringify({ tenantId }),
     });
@@ -214,12 +222,12 @@ serve(async (req) => {
 
     const { brain } = await brainResponse.json();
 
-    // Retrieve relevant knowledge
+    // Retrieve relevant knowledge (pass user's auth header for tenant validation)
     const knowledgeResponse = await fetch(`${supabaseUrl}/functions/v1/retrieve-knowledge`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${supabaseKey}`,
+        "Authorization": authHeader,
       },
       body: JSON.stringify({ tenantId, queryText: userMessage, intent, topK: 8 }),
     });

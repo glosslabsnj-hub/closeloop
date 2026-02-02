@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireAuthedTenant, serviceClient } from "../_shared/tenant.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -113,18 +113,13 @@ serve(async (req) => {
   }
 
   try {
-    const { tenantId } = await req.json();
+    const body = await req.json();
+    const requestedTenantId = body.tenantId ?? body.tenant_id ?? null;
 
-    if (!tenantId) {
-      return new Response(
-        JSON.stringify({ error: "Tenant ID is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // SECURITY: Validate user has access to the requested tenant
+    const { tenantId } = await requireAuthedTenant(req, requestedTenantId);
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = serviceClient();
 
     // Fetch all data in parallel for maximum efficiency
     const [

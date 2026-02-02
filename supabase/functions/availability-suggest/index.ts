@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireAuthedTenant, serviceClient } from "../_shared/tenant.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,11 +7,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
 interface SuggestRequest {
-  tenant_id: string;
+  tenant_id?: string;
+  tenantId?: string;
   date: string; // YYYY-MM-DD in tenant's local timezone
   duration_minutes?: number;
   service_id?: string;
@@ -29,7 +27,7 @@ interface SlotResult {
 
 /**
  * availability-suggest: Returns deterministic slot suggestions for AI agent
- * 
+ *
  * This is the canonical endpoint the voice agent uses when asking about availability.
  * It enforces timezone-correct, duration-aware slot computation.
  */
@@ -39,11 +37,10 @@ serve(async (req: Request) => {
   }
 
   const startTime = Date.now();
-  
+
   try {
     const body: SuggestRequest = await req.json();
     const {
-      tenant_id,
       date,
       duration_minutes,
       service_id,
@@ -52,20 +49,25 @@ serve(async (req: Request) => {
       max_results = 5,
     } = body;
 
-    if (!tenant_id || !date) {
+    const requestedTenantId = body.tenant_id ?? body.tenantId ?? null;
+
+    if (!date) {
       return new Response(
-        JSON.stringify({ error: "tenant_id and date are required" }),
+        JSON.stringify({ error: "date is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    // SECURITY: Validate user has access to the requested tenant
+    const { tenantId } = await requireAuthedTenant(req, requestedTenantId);
 
-    // Get tenant settings
+    const supabase = serviceClient();
+
+    // Get tenant settings - scoped to validated tenantId
     const { data: tenant, error: tenantError } = await supabase
       .from("tenants")
       .select("timezone, hours_json, appointment_buffer_minutes, min_lead_hours, max_advance_days")
-      .eq("id", tenant_id)
+      .eq("id", tenantId)
       .single();
 
     if (tenantError || !tenant) {
@@ -81,27 +83,29 @@ serve(async (req: Request) => {
     // Determine duration from service if provided
     let finalDuration = duration_minutes || 60;
     let serviceName: string | null = null;
-    
+
     if (service_id) {
+      // SECURITY: Service must belong to the validated tenant
       const { data: service } = await supabase
         .from("services")
         .select("duration_minutes, name")
         .eq("id", service_id)
+        .eq("tenant_id", tenantId)
         .single();
-      
+
       if (service) {
         finalDuration = service.duration_minutes;
         serviceName = service.name;
       }
     }
 
-    console.log(`[availability-suggest] Tenant: ${tenant_id}, Date: ${date}, Duration: ${finalDuration}min, Preference: ${preference}`);
+    console.log(`[availability-suggest] Tenant: ${tenantId}, Date: ${date}, Duration: ${finalDuration}min, Preference: ${preference}`);
 
     // Call the timezone-aware database function
     const { data: slots, error: slotsError } = await supabase.rpc(
       "fn_compute_available_slots",
       {
-        _tenant_id: tenant_id,
+        _tenant_id: tenantId,
         _start_date: date,
         _end_date: date,
         _duration_minutes: finalDuration,
@@ -134,12 +138,12 @@ serve(async (req: Request) => {
         const refParts = reference_time.split(":");
         const refHour = parseInt(refParts[0], 10);
         const refMin = parseInt(refParts[1] || "0", 10);
-        
+
         // Compare in local timezone context
         const slotLocal = new Date(slotTime.toLocaleString("en-US", { timeZone: timezone }));
         const slotHour = slotLocal.getHours();
         const slotMin = slotLocal.getMinutes();
-        
+
         return (slotHour < refHour) || (slotHour === refHour && slotMin < refMin);
       });
     } else if (preference === "later_than" && reference_time) {
@@ -149,11 +153,11 @@ serve(async (req: Request) => {
         const refParts = reference_time.split(":");
         const refHour = parseInt(refParts[0], 10);
         const refMin = parseInt(refParts[1] || "0", 10);
-        
+
         const slotLocal = new Date(slotTime.toLocaleString("en-US", { timeZone: timezone }));
         const slotHour = slotLocal.getHours();
         const slotMin = slotLocal.getMinutes();
-        
+
         return (slotHour > refHour) || (slotHour === refHour && slotMin > refMin);
       });
     }

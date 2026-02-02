@@ -1,14 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireAuthedTenant, requireInternalSecret, serviceClient } from "../_shared/tenant.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-closeloop-secret",
 };
 
 interface BookingHandoffRequest {
   booking_id?: string;
-  tenant_id: string;
+  tenant_id?: string;
+  tenantId?: string;
   test?: boolean;
   method?: string;
   webhook_url?: string;
@@ -21,7 +22,7 @@ async function createHmacSignature(payload: string, secret: string): Promise<str
   const encoder = new TextEncoder();
   const keyData = encoder.encode(secret);
   const messageData = encoder.encode(payload);
-  
+
   const cryptoKey = await crypto.subtle.importKey(
     "raw",
     keyData,
@@ -29,11 +30,39 @@ async function createHmacSignature(payload: string, secret: string): Promise<str
     false,
     ["sign"]
   );
-  
+
   const signature = await crypto.subtle.sign("HMAC", cryptoKey, messageData);
   const hashArray = Array.from(new Uint8Array(signature));
   const hashHex = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
   return `sha256=${hashHex}`;
+}
+
+/**
+ * Validate access - supports both user JWT and internal secret
+ */
+async function validateAccess(
+  req: Request,
+  requestedTenantId: string | null
+): Promise<{ tenantId: string; isInternalCall: boolean }> {
+  const hasAuthHeader = req.headers.get("authorization")?.startsWith("Bearer ");
+  const hasInternalSecret = req.headers.get("x-closeloop-secret");
+
+  // Try user JWT first
+  if (hasAuthHeader) {
+    const { tenantId } = await requireAuthedTenant(req, requestedTenantId);
+    return { tenantId, isInternalCall: false };
+  }
+
+  // Fall back to internal secret for system triggers
+  if (hasInternalSecret) {
+    requireInternalSecret(req);
+    if (!requestedTenantId) {
+      throw new Error("tenant_id required for internal calls");
+    }
+    return { tenantId: requestedTenantId, isInternalCall: true };
+  }
+
+  throw new Error("Missing Authorization header or x-closeloop-secret");
 }
 
 serve(async (req) => {
@@ -42,19 +71,26 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
     const body: BookingHandoffRequest = await req.json();
-    const { booking_id, tenant_id, test, method, webhook_url, webhook_secret, notify_email, notify_phone } = body;
+    const { booking_id, test, method, webhook_url, webhook_secret, notify_email, notify_phone } = body;
+    const requestedTenantId = body.tenant_id ?? body.tenantId ?? null;
 
-    // Handle test requests
+    // SECURITY: Validate access (user JWT or internal secret)
+    const { tenantId, isInternalCall } = await validateAccess(req, requestedTenantId);
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabase = serviceClient();
+
+    // Handle test requests (requires user JWT, not internal)
     if (test) {
+      if (isInternalCall) {
+        throw new Error("Test mode requires user authentication, not internal secret");
+      }
+
       const testPayload = {
         type: "booking",
         event: "test",
-        tenant_id,
+        tenant_id: tenantId,
         booking_id: "test-booking-123",
         customer: {
           name: "Test Customer",
@@ -76,7 +112,7 @@ serve(async (req) => {
         const headers: Record<string, string> = {
           "Content-Type": "application/json",
         };
-        
+
         if (webhook_secret) {
           headers["X-CloseLoop-Signature"] = await createHmacSignature(payloadString, webhook_secret);
         }
@@ -97,7 +133,6 @@ serve(async (req) => {
       }
 
       if (method === "email" && notify_email) {
-        // For now, log the email - in production, integrate with email service
         console.log(`[TEST] Would send email to ${notify_email}:`, testPayload);
         return new Response(JSON.stringify({ success: true, method: "email", message: "Email test logged" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -105,24 +140,23 @@ serve(async (req) => {
       }
 
       if (method === "sms" && notify_phone) {
-        // Use Twilio to send SMS
         const twilioSid = Deno.env.get("TWILIO_ACCOUNT_SID");
         const twilioAuth = Deno.env.get("TWILIO_AUTH_TOKEN");
-        
+
         if (twilioSid && twilioAuth) {
-          // Get tenant's Twilio number
+          // SECURITY: phone_numbers scoped to validated tenantId
           const { data: phoneNumber } = await supabase
             .from("phone_numbers")
             .select("phone_e164")
-            .eq("tenant_id", tenant_id)
+            .eq("tenant_id", tenantId)
             .eq("purpose", "forwarding")
             .single();
 
           const fromNumber = phoneNumber?.phone_e164 || Deno.env.get("DEFAULT_TWILIO_NUMBER");
-          
+
           if (fromNumber) {
             const smsBody = `[TEST] New booking: Test Customer for Test Service. This is a test.`;
-            
+
             const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;
             const smsResponse = await fetch(twilioUrl, {
               method: "POST",
@@ -142,7 +176,7 @@ serve(async (req) => {
             }
           }
         }
-        
+
         return new Response(JSON.stringify({ success: true, method: "sms" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -158,7 +192,7 @@ serve(async (req) => {
       throw new Error("booking_id is required for non-test requests");
     }
 
-    // Fetch booking with related data
+    // SECURITY: Fetch booking AND verify it belongs to the validated tenant
     const { data: booking, error: bookingError } = await supabase
       .from("bookings")
       .select(`
@@ -167,17 +201,18 @@ serve(async (req) => {
         service:services(*)
       `)
       .eq("id", booking_id)
+      .eq("tenant_id", tenantId)
       .single();
 
     if (bookingError || !booking) {
-      throw new Error(`Booking not found: ${bookingError?.message}`);
+      throw new Error(`Booking not found or access denied`);
     }
 
-    // Fetch delivery settings
+    // SECURITY: Fetch delivery settings scoped to tenant
     const { data: settings } = await supabase
       .from("booking_delivery_settings")
       .select("*")
-      .eq("tenant_id", tenant_id)
+      .eq("tenant_id", tenantId)
       .single();
 
     if (!settings?.enabled) {
@@ -190,7 +225,7 @@ serve(async (req) => {
     const { data: tenantData } = await supabase
       .from("tenants")
       .select("name")
-      .eq("id", tenant_id)
+      .eq("id", tenantId)
       .single();
 
     const methods = Array.isArray(settings.handoff_methods) ? settings.handoff_methods : ["internal"];
@@ -200,7 +235,7 @@ serve(async (req) => {
     const payload = {
       type: "booking",
       event: "booking.created",
-      tenant_id,
+      tenant_id: tenantId,
       tenant_name: tenantData?.name,
       booking_id: booking.id,
       customer: {
@@ -222,16 +257,17 @@ serve(async (req) => {
       created_at: booking.created_at,
     };
 
-    // Record audit event for booking created
+    // Record audit event for booking created (internal call, use service key)
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     try {
       await fetch(`${supabaseUrl}/functions/v1/record-audit-event`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${supabaseServiceKey}`,
+          "x-closeloop-secret": Deno.env.get("CLOSELOOP_INTERNAL_SECRET") || supabaseServiceKey,
         },
         body: JSON.stringify({
-          tenant_id,
+          tenant_id: tenantId,
           event_type: booking.status === "confirmed" ? "booking.confirmed" : "booking.created",
           entity_type: "booking",
           entity_id: booking_id,
@@ -241,7 +277,7 @@ serve(async (req) => {
             customer_name: booking.lead?.full_name,
             scheduled_start: booking.start_at,
           },
-          confirmation_summary: booking.status === "confirmed" 
+          confirmation_summary: booking.status === "confirmed"
             ? `Booking confirmed: ${booking.service?.name || "Service"} for ${booking.lead?.full_name || "Customer"} at ${new Date(booking.start_at).toLocaleString()}`
             : undefined,
           confirmed_by: "staff",
@@ -258,10 +294,10 @@ serve(async (req) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${supabaseServiceKey}`,
+            "x-closeloop-secret": Deno.env.get("CLOSELOOP_INTERNAL_SECRET") || supabaseServiceKey,
           },
           body: JSON.stringify({
-            tenantId: tenant_id,
+            tenantId: tenantId,
             observationType: "service_pattern",
             subjectKey: `service_${booking.service.id}`,
             observation: `${booking.service.name} booked at ${new Date(booking.start_at).toLocaleTimeString()}`,
@@ -274,7 +310,7 @@ serve(async (req) => {
 
     // Execute each enabled method
     for (const handoffMethod of methods) {
-      if (handoffMethod === "internal") continue; // Always saved internally
+      if (handoffMethod === "internal") continue;
 
       try {
         if (handoffMethod === "webhook" && settings.webhook_url) {
@@ -282,7 +318,7 @@ serve(async (req) => {
           const headers: Record<string, string> = {
             "Content-Type": "application/json",
           };
-          
+
           if (settings.webhook_secret) {
             headers["X-CloseLoop-Signature"] = await createHmacSignature(payloadString, settings.webhook_secret);
           }
@@ -299,9 +335,8 @@ serve(async (req) => {
 
           results.webhook = { success: true };
 
-          // Log success
           await supabase.from("handoff_attempts").insert({
-            tenant_id,
+            tenant_id: tenantId,
             entity_type: "booking",
             entity_id: booking_id,
             method: "webhook",
@@ -310,12 +345,11 @@ serve(async (req) => {
         }
 
         if (handoffMethod === "email" && settings.notify_email) {
-          // Log email attempt - in production, integrate with email service
           console.log(`Sending booking email to ${settings.notify_email}`);
           results.email = { success: true };
 
           await supabase.from("handoff_attempts").insert({
-            tenant_id,
+            tenant_id: tenantId,
             entity_type: "booking",
             entity_id: booking_id,
             method: "email",
@@ -326,24 +360,25 @@ serve(async (req) => {
         if (handoffMethod === "sms" && settings.notify_phone) {
           const twilioSid = Deno.env.get("TWILIO_ACCOUNT_SID");
           const twilioAuth = Deno.env.get("TWILIO_AUTH_TOKEN");
-          
+
           if (twilioSid && twilioAuth) {
+            // SECURITY: phone_numbers scoped to validated tenantId
             const { data: phoneNumber } = await supabase
               .from("phone_numbers")
               .select("phone_e164")
-              .eq("tenant_id", tenant_id)
+              .eq("tenant_id", tenantId)
               .eq("purpose", "forwarding")
               .single();
 
             const fromNumber = phoneNumber?.phone_e164;
-            
+
             if (fromNumber) {
               const customerName = booking.lead?.full_name || "Customer";
               const serviceName = booking.service?.name || "Service";
               const startTime = new Date(booking.start_at).toLocaleString();
-              
+
               const smsBody = `New booking: ${customerName} for ${serviceName} at ${startTime}`;
-              
+
               const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;
               const smsResponse = await fetch(twilioUrl, {
                 method: "POST",
@@ -365,7 +400,7 @@ serve(async (req) => {
               results.sms = { success: true };
 
               await supabase.from("handoff_attempts").insert({
-                tenant_id,
+                tenant_id: tenantId,
                 entity_type: "booking",
                 entity_id: booking_id,
                 method: "sms",
@@ -378,9 +413,8 @@ serve(async (req) => {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
         results[handoffMethod] = { success: false, error: errorMessage };
 
-        // Log failure
         await supabase.from("handoff_attempts").insert({
-          tenant_id,
+          tenant_id: tenantId,
           entity_type: "booking",
           entity_id: booking_id,
           method: handoffMethod,
@@ -397,10 +431,10 @@ serve(async (req) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${supabaseServiceKey}`,
+          "x-closeloop-secret": Deno.env.get("CLOSELOOP_INTERNAL_SECRET") || supabaseServiceKey,
         },
         body: JSON.stringify({
-          tenant_id,
+          tenant_id: tenantId,
           trigger: eventType,
           entity_type: "booking",
           entity_id: booking_id,
@@ -418,14 +452,14 @@ serve(async (req) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${supabaseServiceKey}`,
+            "x-closeloop-secret": Deno.env.get("CLOSELOOP_INTERNAL_SECRET") || supabaseServiceKey,
           },
           body: JSON.stringify({
             booking_id,
-            tenant_id,
+            tenant_id: tenantId,
           }),
         });
-        
+
         const calendarResult = await calendarResponse.json();
         if (calendarResult.success) {
           console.log(`Created Google Calendar event for booking ${booking_id}:`, calendarResult.event_id);
