@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 import { encode as encodeHex } from "https://deno.land/std@0.168.0/encoding/hex.ts";
+import { computePriceQuote, computeEtaQuote, type QuoteResult } from "../_shared/computeQuote.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -86,6 +87,10 @@ interface CanonicalPayload {
   booking: CanonicalBooking;
   dispatch: CanonicalDispatch;
   callback: CanonicalCallback;
+  quote?: {
+    price?: QuoteResult;
+    eta?: QuoteResult;
+  };
   _meta: CanonicalMeta;
 }
 
@@ -605,6 +610,98 @@ async function processCallData(
     original_time_phrase: normalizedPayload.reservation.original_time_phrase,
     tenant_timezone: effectiveTimezone,
   });
+
+  // ===== COMPUTE QUOTES (if customer asked about price/time) =====
+  const hasPricingQuestion = detectPricingQuestion(transcriptText);
+  const hasEtaQuestion = detectEtaQuestion(transcriptText);
+
+  if (hasPricingQuestion || hasEtaQuestion) {
+    const contextData = existingContext as any;
+    const pricingRules = contextData?.pricing?.rules || [];
+    const busynessRules = contextData?.eta?.busyness_rules || {};
+
+    // Build inputs from normalized payload
+    const inputs: Record<string, any> = {
+      service_requested: normalizedPayload.booking.service_requested,
+      party_size: normalizedPayload.reservation.party_size,
+      order_type: normalizedPayload.order.type,
+      distance_miles: null, // Could extract from dispatch later
+    };
+
+    // Compute price quote if pricing question detected
+    let priceQuote: QuoteResult | undefined;
+    if (hasPricingQuestion && pricingRules.length > 0) {
+      try {
+        priceQuote = computePriceQuote({
+          rules: pricingRules,
+          businessMode: tenantBusinessMode,
+          offering: {
+            name: normalizedPayload.booking.service_requested || "",
+            type: normalizedPayload.order.type || "service",
+          },
+          inputs,
+        });
+      } catch (e) {
+        console.error("Price quote computation failed:", e);
+      }
+    }
+
+    // Compute ETA quote if timing question detected
+    let etaQuote: QuoteResult | undefined;
+    if (hasEtaQuestion && Object.keys(busynessRules).length > 0) {
+      try {
+        etaQuote = computeEtaQuote({
+          busynessRules,
+          mode: tenantBusinessMode,
+          queueMetrics: {
+            current_queue_length: 0, // Could fetch from real queue later
+            avg_service_time_minutes: 30,
+            busyness_level: "medium",
+          },
+          inputs,
+        });
+      } catch (e) {
+        console.error("ETA quote computation failed:", e);
+      }
+    }
+
+    // Add quote results to normalized payload
+    if (priceQuote || etaQuote) {
+      normalizedPayload.quote = {
+        price: priceQuote,
+        eta: etaQuote,
+      };
+
+      // Redact sensitive info if HIPAA mode
+      const logDetails: Record<string, any> = {
+        has_price_quote: !!priceQuote,
+        has_eta_quote: !!etaQuote,
+      };
+
+      if (!hipaaMode) {
+        if (priceQuote) {
+          logDetails.price_type = priceQuote.type;
+          logDetails.price_confidence = priceQuote.confidence;
+          logDetails.price_missing_inputs = priceQuote.missingInputs.length;
+        }
+        if (etaQuote) {
+          logDetails.eta_type = etaQuote.type;
+          logDetails.eta_confidence = etaQuote.confidence;
+          logDetails.eta_missing_inputs = etaQuote.missingInputs.length;
+        }
+      }
+
+      await logEventStage(
+        supabase,
+        tenantId,
+        sessionId,
+        session.twilio_call_sid,
+        payload.conversation_id,
+        "quote_computed",
+        logDetails
+      );
+    }
+  }
 
   // ===== DETERMINE OUTCOME =====
   const outcome = determineOutcomeFromIntent(normalizedPayload.intent, tenantBusinessMode);
@@ -1188,6 +1285,42 @@ function determineIntentFromPayload(
   if (payload.callback.requested) return "callback";
   
   return "other";
+}
+
+// ===== QUOTE DETECTION HELPERS =====
+
+/**
+ * Detect if transcript contains pricing-related questions
+ * Simple keyword heuristic for V1
+ */
+function detectPricingQuestion(transcript: string): boolean {
+  if (!transcript) return false;
+  const lower = transcript.toLowerCase();
+
+  const priceKeywords = [
+    "how much", "what's the price", "what is the price", "cost", "pricing",
+    "what do you charge", "how expensive", "price for", "quote for",
+    "what's it cost", "what does it cost", "how much does", "price of"
+  ];
+
+  return priceKeywords.some(keyword => lower.includes(keyword));
+}
+
+/**
+ * Detect if transcript contains ETA/timing-related questions
+ * Simple keyword heuristic for V1
+ */
+function detectEtaQuestion(transcript: string): boolean {
+  if (!transcript) return false;
+  const lower = transcript.toLowerCase();
+
+  const etaKeywords = [
+    "how long", "when can you", "how soon", "how quickly", "wait time",
+    "how much time", "eta", "estimated time", "arrival time", "ready when",
+    "how fast", "time to", "take to get"
+  ];
+
+  return etaKeywords.some(keyword => lower.includes(keyword));
 }
 
 // ===== NORMALIZE PAYLOAD VALUES =====

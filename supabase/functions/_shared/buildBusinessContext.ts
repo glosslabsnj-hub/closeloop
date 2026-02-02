@@ -90,6 +90,14 @@ export interface BusinessContext {
     menu: NormalizedMenuItem[];
     menu_summary: string;
   };
+  pricing: {
+    rules: any[]; // Array of PricingRule objects from computeQuote.ts
+    rules_summary: string;
+  };
+  eta: {
+    busyness_rules: Record<string, any>; // BusynessRule map from computeQuote.ts
+    rules_summary: string;
+  };
   intake: {
     required_fields: IntakeField[];
   };
@@ -582,6 +590,41 @@ function determineUsage(memoryType: string): string {
   }
 }
 
+function buildPricingRulesSummary(rules: any[]): string {
+  if (!rules || rules.length === 0) return "";
+
+  const summaries = rules.slice(0, 5).map(rule => {
+    const name = rule.name || "Pricing rule";
+    if (rule.discount_percent) {
+      return `${name}: ${rule.discount_percent}% off`;
+    } else if (rule.surge_multiplier) {
+      return `${name}: ${rule.surge_multiplier}x surge`;
+    } else if (rule.fixed_price_cents) {
+      return `${name}: $${(rule.fixed_price_cents / 100).toFixed(2)}`;
+    } else {
+      return name;
+    }
+  });
+
+  return summaries.join("; ");
+}
+
+function buildEtaRulesSummary(busynessRules: Record<string, any>): string {
+  if (!busynessRules || Object.keys(busynessRules).length === 0) return "";
+
+  const summaries: string[] = [];
+  const levels = ["low", "medium", "high"];
+
+  for (const level of levels) {
+    const rule = busynessRules[level];
+    if (rule && rule.eta_multiplier) {
+      summaries.push(`${level}: ${rule.eta_multiplier}x ETA`);
+    }
+  }
+
+  return summaries.join("; ");
+}
+
 function hasModule(modules: string[] | null, name: string): boolean {
   if (!modules) return false;
   return modules.includes(name);
@@ -735,7 +778,7 @@ export async function buildBusinessContext(
     retentionSettingsResult,
     foodSettingsResult,
   ] = await Promise.all([
-    supabase.from("tenants").select("*").eq("id", tenantId).single(),
+    supabase.from("tenants").select("*, pricing_rules_jsonb, busyness_rules_jsonb").eq("id", tenantId).single(),
     supabase.from("services").select("*").eq("tenant_id", tenantId).eq("is_active", true).limit(20),
     supabase.from("menu_items").select("id, name, description, category, price_cents, modifiers, dietary_tags, is_available").eq("tenant_id", tenantId).eq("is_available", true).limit(50),
     supabase.from("business_faqs").select("question, answer").eq("tenant_id", tenantId).order("priority_weight", { ascending: false }).limit(15),
@@ -847,6 +890,9 @@ export async function buildBusinessContext(
   const enabledModules: string[] = Array.isArray(tenant.enabled_modules) ? tenant.enabled_modules as string[] : [];
   
   // ===== BUILD CONTEXT OBJECT =====
+  const pricingRules = Array.isArray(tenant.pricing_rules_jsonb) ? tenant.pricing_rules_jsonb : [];
+  const busynessRules = tenant.busyness_rules_jsonb && typeof tenant.busyness_rules_jsonb === 'object' ? tenant.busyness_rules_jsonb : {};
+
   const context: BusinessContext = {
     tenant: {
       tenant_id: tenantId,
@@ -869,6 +915,14 @@ export async function buildBusinessContext(
       services_for_prompt: buildServicesForPrompt(normalizedServices),
       menu: normalizedMenu,
       menu_summary: buildMenuSummary(normalizedMenu),
+    },
+    pricing: {
+      rules: pricingRules,
+      rules_summary: buildPricingRulesSummary(pricingRules),
+    },
+    eta: {
+      busyness_rules: busynessRules,
+      rules_summary: buildEtaRulesSummary(busynessRules),
     },
     intake: {
       required_fields: parseIntakeFields(tenant.context_fields_json),
@@ -1472,6 +1526,8 @@ export function buildDynamicVariables(
     service_summary: ctx.offerings.services_summary || "",
     services_pricing: ctx.offerings.services_for_prompt || "",
     menu_summary: ctx.offerings.menu_summary || "",
+    pricing_rules_summary: ctx.pricing.rules_summary || "",
+    eta_rules_summary: ctx.eta.rules_summary || "",
     policies_summary: [
       ctx.policies.cancellation && `Cancellation: ${ctx.policies.cancellation}`,
       ctx.policies.deposit && `Deposit: ${ctx.policies.deposit}`,

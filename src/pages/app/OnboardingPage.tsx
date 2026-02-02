@@ -25,6 +25,7 @@ import ObjectionEditor, { ObjectionResponse } from "@/components/onboarding/Obje
 import PoliciesEditor, { BusinessPolicies } from "@/components/onboarding/PoliciesEditor";
 import { BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
 import { AIKnowledgePreview } from "@/components/onboarding/AIKnowledgePreview";
+import { FoodSetupEditor, FoodSetupData } from "@/components/onboarding/FoodSetupEditor";
 import type { PlanCode } from "@/types/database";
 
 const defaultBusinessHours: BusinessHours = {
@@ -76,6 +77,23 @@ export default function OnboardingPage() {
   const [services, setServices] = useState<AdvancedService[]>([]);
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [objections, setObjections] = useState<ObjectionResponse[]>([]);
+
+  // Step 5: Food Setup (for food mode)
+  const [foodSetup, setFoodSetup] = useState<FoodSetupData>({
+    acceptsPickup: true,
+    acceptsDelivery: false,
+    acceptsDineIn: false,
+    deliveryRadius: 5,
+    deliveryMinimumCents: 1500, // $15
+    estimatedPrepMinutes: 15,
+    busyBufferMinutes: 30,
+    deliveryWindowMin: 20,
+    deliveryWindowMax: 40,
+    acceptsCatering: false,
+    cateringMinGuests: 10,
+    cateringLeadDays: 3,
+    menuNotes: "",
+  });
 
   // Step 6: Policies
   const [policies, setPolicies] = useState<BusinessPolicies>({
@@ -322,17 +340,51 @@ export default function OnboardingPage() {
           .from("food_order_settings")
           .insert({
             tenant_id: tenantId,
-            accepts_pickup: true,
-            accepts_delivery: true,
-            accepts_dine_in: true,
-            delivery_radius_miles: 5,
-            delivery_minimum_cents: 1500,
-            estimated_prep_minutes: 20,
+            accepts_pickup: foodSetup.acceptsPickup,
+            accepts_delivery: foodSetup.acceptsDelivery,
+            accepts_dine_in: foodSetup.acceptsDineIn,
+            delivery_radius_miles: foodSetup.deliveryRadius,
+            delivery_minimum_cents: foodSetup.deliveryMinimumCents,
+            estimated_prep_minutes: foodSetup.estimatedPrepMinutes,
+            accepts_catering: foodSetup.acceptsCatering,
+            catering_min_guests: foodSetup.cateringMinGuests,
+            catering_lead_days: foodSetup.cateringLeadDays,
             order_confirmation_mode: "auto_confirm",
           });
 
         if (foodSettingsError) {
           console.error("Food order settings creation error:", foodSettingsError);
+        }
+
+        // Save busyness/ETA rules for food mode
+        const busynessRules = {
+          base_buffer_minutes: foodSetup.estimatedPrepMinutes,
+          busy_buffer_minutes: foodSetup.busyBufferMinutes,
+          delivery_window_min: foodSetup.deliveryWindowMin,
+          delivery_window_max: foodSetup.deliveryWindowMax,
+          manual_busyness_pct: 50, // Default to medium
+          use_queue_metrics: false,
+          low: {
+            busynessLevel: "low",
+            etaMultiplier: 1.0,
+          },
+          medium: {
+            busynessLevel: "medium",
+            etaMultiplier: 1.3,
+          },
+          high: {
+            busynessLevel: "high",
+            etaMultiplier: 1.8,
+          },
+        };
+
+        const { error: busynessError } = await supabase
+          .from("tenants")
+          .update({ busyness_rules_jsonb: busynessRules } as any)
+          .eq("id", tenantId);
+
+        if (busynessError) {
+          console.error("Busyness rules save error:", busynessError);
         }
       }
 
@@ -661,11 +713,17 @@ export default function OnboardingPage() {
                   </div>
                 )}
 
-                <ServiceEditorAdvanced
-                  services={services}
-                  onChange={setServices}
-                  modeContract={getModeContract(businessMode)}
-                />
+                {businessMode === "food" ? (
+                  <div className="space-y-6">
+                    <FoodSetupEditor data={foodSetup} onChange={setFoodSetup} />
+                  </div>
+                ) : (
+                  <ServiceEditorAdvanced
+                    services={services}
+                    onChange={setServices}
+                    modeContract={getModeContract(businessMode)}
+                  />
+                )}
 
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setStep(4)}>

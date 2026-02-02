@@ -30,6 +30,8 @@ import { SettingsSidebar, SettingsNavConfig } from "@/components/settings/Settin
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { MobileSettingsNav } from "@/components/settings/MobileSettingsNav";
 import { AvailabilityHub } from "@/components/availability/AvailabilityHub";
+import { PricingRulesEditor } from "@/components/settings/PricingRulesEditor";
+import { BusynessRulesEditor } from "@/components/settings/BusynessRulesEditor";
 
 const timezones = [
   { value: "America/New_York", label: "Eastern Time" },
@@ -163,6 +165,10 @@ export default function SettingsPage() {
     hours: {
       title: "Business Hours",
       description: "When you're open for calls and appointments. Your AI will use this to schedule bookings.",
+    },
+    pricing: {
+      title: "Pricing & Estimates",
+      description: "Define pricing rules for services and quotes. Your AI uses these to provide accurate pricing to customers.",
     },
     team: {
       title: "Team Members",
@@ -306,6 +312,14 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+        );
+
+      case "pricing":
+        return (
+          <div className="space-y-6">
+            <PricingRulesEditor />
+            <BusynessRulesEditor />
+          </div>
         );
 
       case "team":
