@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* CloseLoop Design System - Premium Modern SaaS */
+/* CloseLoop Design System - Premium Modern B2B SaaS */
 @layer base {
   :root {
     /* Dark Mode Background System */
@@ -48,7 +48,7 @@
     --ring: 245 80% 67%;
 
     /* Radius */
-    --radius: 0.875rem;
+    --radius: 0.75rem;
 
     /* Sidebar - Deepest dark for visual hierarchy */
     --sidebar-background: 240 10% 4%;
@@ -72,21 +72,21 @@
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
-  /* Improved typography scale */
+  /* Typography Scale - Clear Hierarchy */
   h1 {
-    @apply text-3xl md:text-4xl font-bold tracking-tight;
-  }
-
-  h2 {
     @apply text-2xl md:text-3xl font-bold tracking-tight;
   }
 
+  h2 {
+    @apply text-xl md:text-2xl font-semibold tracking-tight;
+  }
+
   h3 {
-    @apply text-xl font-semibold tracking-tight;
+    @apply text-lg font-semibold tracking-tight;
   }
 
   h4 {
-    @apply text-lg font-semibold;
+    @apply text-base font-semibold;
   }
 
   /* Improved focus states for accessibility */
@@ -96,17 +96,46 @@
 }
 
 @layer utilities {
-  /* Page layout patterns */
+  /* ========================================
+     PAGE LAYOUT PATTERNS
+     ======================================== */
   .page-header {
-    @apply mb-8;
+    @apply mb-6 md:mb-8;
   }
   
   .page-title {
-    @apply text-2xl md:text-3xl font-bold tracking-tight;
+    @apply text-2xl md:text-3xl font-bold tracking-tight text-foreground;
   }
   
   .page-subtitle {
-    @apply text-muted-foreground mt-1 text-sm md:text-base;
+    @apply text-muted-foreground mt-1.5 text-sm md:text-base leading-relaxed;
+  }
+
+  .page-section {
+    @apply mb-8 md:mb-10;
+  }
+
+  .page-section-title {
+    @apply text-lg font-semibold text-foreground mb-4;
+  }
+
+  .page-section-subtitle {
+    @apply text-sm text-muted-foreground mb-4;
+  }
+
+  /* ========================================
+     CARD PATTERNS
+     ======================================== */
+  .card-padding {
+    @apply p-5 md:p-6;
+  }
+
+  .card-header-padding {
+    @apply px-5 md:px-6 pt-5 md:pt-6 pb-4;
+  }
+
+  .card-content-padding {
+    @apply px-5 md:px-6 pb-5 md:pb-6;
   }
 
   /* Premium gradients */
@@ -129,16 +158,54 @@
 
   /* Card elevation */
   .card-elevated {
-    @apply shadow-sm hover:shadow-md transition-shadow duration-200;
+    @apply shadow-soft hover:shadow-soft-lg transition-shadow duration-200;
   }
 
   .card-interactive {
-    @apply shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200;
+    @apply shadow-soft hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer;
   }
 
-  /* Section spacing */
+  /* ========================================
+     SECTION SPACING (8px rhythm)
+     ======================================== */
   .section-gap {
     @apply space-y-6 md:space-y-8;
+  }
+
+  .content-stack {
+    @apply space-y-4 md:space-y-6;
+  }
+
+  .form-stack {
+    @apply space-y-4;
+  }
+
+  /* ========================================
+     NAVIGATION PATTERNS
+     ======================================== */
+  .nav-section-header {
+    @apply text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 px-3 pt-6 pb-2 first:pt-0;
+  }
+
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 relative;
+  }
+
+  .nav-item-active {
+    @apply bg-primary text-primary-foreground shadow-sm;
+  }
+
+  .nav-item-inactive {
+    @apply text-muted-foreground hover:bg-muted hover:text-foreground;
+  }
+
+  .nav-item-locked {
+    @apply text-muted-foreground/50 cursor-not-allowed;
+  }
+
+  /* Active indicator bar */
+  .nav-indicator {
+    @apply absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-primary;
   }
 
   /* Safe area for mobile sticky bars */
@@ -146,7 +213,43 @@
     padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
   }
 
-  /* Premium animations */
+  /* ========================================
+     DATA DISPLAY PATTERNS
+     ======================================== */
+  .data-label {
+    @apply text-xs font-medium uppercase tracking-wider text-muted-foreground;
+  }
+
+  .data-value {
+    @apply text-sm font-medium text-foreground;
+  }
+
+  .data-value-lg {
+    @apply text-2xl font-bold text-foreground tracking-tight;
+  }
+
+  .data-muted {
+    @apply text-sm text-muted-foreground;
+  }
+
+  /* ========================================
+     FORM PATTERNS
+     ======================================== */
+  .form-label {
+    @apply text-sm font-medium text-foreground mb-1.5 block;
+  }
+
+  .form-helper {
+    @apply text-xs text-muted-foreground mt-1.5;
+  }
+
+  .form-error {
+    @apply text-xs text-destructive mt-1.5;
+  }
+
+  /* ========================================
+     ANIMATIONS
+     ======================================== */
   @keyframes fade-in {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
@@ -173,7 +276,7 @@
   }
 
   .animate-fade-in {
-    animation: fade-in 0.5s ease-out;
+    animation: fade-in 0.4s ease-out;
   }
 
   .animate-slide-up-fade {
@@ -201,7 +304,9 @@
     @apply transition-transform duration-200 hover:scale-[1.02];
   }
 
-  /* Status indicator dot */
+  /* ========================================
+     STATUS INDICATORS
+     ======================================== */
   .status-dot {
     @apply w-2 h-2 rounded-full;
   }
@@ -214,6 +319,17 @@
     @apply bg-muted-foreground;
   }
 
+  .status-dot-warning {
+    @apply bg-warning;
+  }
+
+  .status-dot-error {
+    @apply bg-destructive;
+  }
+
+  /* ========================================
+     MISC UTILITIES
+     ======================================== */
   /* Striped pattern for external busy blocks */
   .bg-stripes {
     background-image: repeating-linear-gradient(
@@ -223,5 +339,10 @@
       hsl(var(--muted-foreground) / 0.1) 4px,
       hsl(var(--muted-foreground) / 0.1) 8px
     );
+  }
+
+  /* Better link styling */
+  .link {
+    @apply text-primary hover:underline underline-offset-4 transition-colors;
   }
 }
