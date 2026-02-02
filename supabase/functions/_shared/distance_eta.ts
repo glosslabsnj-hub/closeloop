@@ -193,7 +193,7 @@ export async function computeDistanceEta(
     }
 
     // ===== 3. Fall back to legacy tenant_distance_settings =====
-    const { data: settings, error: settingsError } = await supabase
+    let { data: settings, error: settingsError } = await supabase
       .from("tenant_distance_settings")
       .select("*")
       .eq("tenant_id", tenantId)
@@ -208,8 +208,44 @@ export async function computeDistanceEta(
       };
     }
 
-    // If no settings row or disabled, return early
-    if (!settings || !settings.distance_provider_enabled) {
+    // ===== 3a. Upsert default row if none exists =====
+    // Ensures every tenant has a settings row (disabled by default)
+    if (!settings) {
+      console.log(`[distance_eta] No settings row for tenant ${tenantId.substring(0, 8)}..., creating default`);
+      const defaultSettings = {
+        tenant_id: tenantId,
+        distance_provider_enabled: false,
+        provider: "mapbox",
+        base_lat: null,
+        base_lng: null,
+        base_place_name: null,
+        mapbox_route_profile: "mapbox/driving-traffic",
+        eta_base_minutes: 0,
+        eta_per_mile_minutes: null,
+        eta_min_minutes: null,
+        eta_max_minutes: null,
+        eta_rounding_minutes: 5,
+      };
+
+      const { data: upsertedSettings, error: upsertError } = await supabase
+        .from("tenant_distance_settings")
+        .upsert(defaultSettings, { onConflict: "tenant_id" })
+        .select()
+        .single();
+
+      if (upsertError) {
+        // Non-blocking: log but don't fail - just means no row created
+        console.warn(`[distance_eta] Failed to upsert default settings:`, upsertError.message);
+        // Return disabled result since settings don't exist
+        logDistanceEta(tenantId, "none", true, false, "no_settings_upsert_failed");
+        return disabledResult;
+      }
+
+      settings = upsertedSettings;
+    }
+
+    // If disabled, return early
+    if (!settings.distance_provider_enabled) {
       logDistanceEta(tenantId, "none", true, false, "disabled_or_no_config");
       return disabledResult;
     }
