@@ -9,7 +9,7 @@
  *   GET /functions/v1/health-db?table=tenant_distance_settings
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,6 +28,20 @@ interface HealthResponse {
   checks: CheckResult[];
   summary: string;
 }
+
+interface RlsCheckResult {
+  rls_enabled: boolean;
+  force_rls_enabled: boolean;
+}
+
+interface PolicyRow {
+  policyname: string;
+  roles: string[] | string | null;
+}
+
+// Use any for the supabase client since we don't have full DB types in edge functions
+// deno-lint-ignore no-explicit-any
+type AnySupabaseClient = SupabaseClient<any, any, any>;
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -49,7 +63,7 @@ serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const supabase = createClient(supabaseUrl, serviceKey, {
+    const supabase: AnySupabaseClient = createClient(supabaseUrl, serviceKey, {
       auth: { persistSession: false },
     });
 
@@ -85,8 +99,9 @@ serve(async (req: Request) => {
       );
     }
 
-    return new Response(JSON.stringify(data), {
-      status: data?.ok ? 200 : 503,
+    const responseData = data as HealthResponse | null;
+    return new Response(JSON.stringify(responseData), {
+      status: responseData?.ok ? 200 : 503,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
@@ -106,7 +121,7 @@ serve(async (req: Request) => {
  * These queries ONLY access pg_catalog - never tenant data.
  */
 async function runInlineChecks(
-  supabase: ReturnType<typeof createClient>,
+  supabase: AnySupabaseClient,
   tableName: string
 ): Promise<CheckResult[]> {
   const checks: CheckResult[] = [];
@@ -134,10 +149,12 @@ async function runInlineChecks(
 
   // Check 2 & 3: RLS enabled (via raw SQL since pg_class isn't directly queryable)
   // We'll use a simple probe - if we can't query without error, RLS is likely working
-  const { data: rlsCheck, error: rlsError } = await supabase.rpc("fn_check_rls_status", {
+  const { data: rlsCheckData, error: rlsError } = await supabase.rpc("fn_check_rls_status", {
     p_schema: "public",
     p_table: tableName,
   }).maybeSingle();
+
+  const rlsCheck = rlsCheckData as RlsCheckResult | null;
 
   if (rlsError?.code === "42883") {
     // RPC doesn't exist - mark as unknown
@@ -179,11 +196,13 @@ async function runInlineChecks(
   }
 
   // Check 4: Policy exists (via pg_policies view if accessible)
-  const { data: policies } = await supabase
+  const { data: policiesData } = await supabase
     .from("pg_policies")
     .select("policyname, roles")
     .eq("schemaname", "public")
     .eq("tablename", tableName);
+
+  const policies = policiesData as PolicyRow[] | null;
 
   const hasTenantPolicy = policies?.some(
     (p) => p.policyname === "tenant_isolation_all"
@@ -198,11 +217,10 @@ async function runInlineChecks(
   });
 
   // Check 5: No public/anon policies
-  const hasPublicPolicy = policies?.some(
-    (p) =>
-      Array.isArray(p.roles) &&
-      (p.roles.includes("anon") || p.roles.includes("public"))
-  );
+  const hasPublicPolicy = policies?.some((p) => {
+    const roles = Array.isArray(p.roles) ? p.roles : [];
+    return roles.includes("anon") || roles.includes("public");
+  });
 
   checks.push({
     check_name: "no_public_policy",
