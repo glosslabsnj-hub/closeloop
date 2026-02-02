@@ -778,9 +778,13 @@ export function buildDynamicVariablesFromRegistry(
   result.business_brain_json_compact = compactResult.json;
   result.business_brain_json_hash = compactResult.hash;
   result.business_brain_json_truncated = compactResult.truncated ? "true" : "false";
+
+  // Contract version stamp for deployment verification
+  result.context_contract_version = "v1";
+
   result.dynamic_variables_keys = [...DYNAMIC_VAR_REGISTRY.map(s => s.key),
     "business_brain_json_compact", "business_brain_json_hash",
-    "business_brain_json_truncated", "dynamic_variables_keys"].join(",");
+    "business_brain_json_truncated", "context_contract_version", "dynamic_variables_keys"].join(",");
 
   return result;
 }
@@ -794,6 +798,7 @@ export function getAllVariableKeys(): string[] {
     "business_brain_json_compact",
     "business_brain_json_hash",
     "business_brain_json_truncated",
+    "context_contract_version",
     "dynamic_variables_keys",
   ];
 }

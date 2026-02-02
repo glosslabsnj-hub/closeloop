@@ -100,6 +100,12 @@ function getEmptyDynamicVariables(): Record<string, string> {
     debug_tenant_source: "",
     debug_tenant_endpoint: "elevenlabs-init",
     debug_tenant_field: "",
+    // Contract meta fields (for deploy verification)
+    business_brain_json_compact: "",
+    business_brain_json_hash: "",
+    business_brain_json_truncated: "false",
+    context_contract_version: "v1",
+    dynamic_variables_keys: "",
   };
 }
 
