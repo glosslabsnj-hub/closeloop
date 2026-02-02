@@ -435,6 +435,37 @@ serve(async (req) => {
     dynamicVariables.memory_hints_summary = "";
   }
 
+  // Log voice context injection for debugging (keys only, no values for HIPAA safety)
+  try {
+    const keysPresent = Object.keys(dynamicVariables);
+    const keysEmpty = keysPresent.filter(k => !dynamicVariables[k] || dynamicVariables[k] === "false" || dynamicVariables[k] === "0");
+    const keysPopulated = keysPresent.filter(k => dynamicVariables[k] && dynamicVariables[k] !== "false" && dynamicVariables[k] !== "0");
+
+    await supabase.from("ai_event_logs").insert({
+      tenant_id: tenantId,
+      call_sid: callSid || null,
+      conversation_id: conversationId || null,
+      stage: "voice_context_injected",
+      event_data: {
+        keys_total: keysPresent.length,
+        keys_populated: keysPopulated.length,
+        keys_empty: keysEmpty,
+        hipaa_mode: dynamicVariables.hipaa_mode === "true",
+        business_mode: dynamicVariables.business_mode,
+        enabled_modules: dynamicVariables.enabled_modules,
+        context_missing_sections: dynamicVariables.context_missing_sections,
+        // Key Business Brain indicators (populated or not, no values)
+        has_menu_summary: Boolean(dynamicVariables.menu_summary),
+        has_services_pricing: Boolean(dynamicVariables.services_pricing),
+        has_faqs_summary: Boolean(dynamicVariables.faqs_summary),
+        has_hours_today: Boolean(dynamicVariables.hours_today),
+        has_greeting_script: Boolean(dynamicVariables.greeting_script),
+      },
+    });
+  } catch (logError) {
+    console.error("[elevenlabs-init] Failed to log voice_context_injected:", logError);
+  }
+
   console.log(`[elevenlabs-init] Returning context for tenant ${tenantId}:`, {
     business_name: dynamicVariables.business_name?.substring(0, 30),
     business_mode: dynamicVariables.business_mode,
