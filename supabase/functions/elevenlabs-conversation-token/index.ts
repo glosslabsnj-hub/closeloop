@@ -1,4 +1,4 @@
-// DEPLOYMENT TIMESTAMP: 2026-02-01T21:00:00Z - DYNAMIC-VARS-FIX
+// DEPLOYMENT TIMESTAMP: 2026-02-02T12:00:00Z - CONTRACT-WIREUP
 // If you see this comment, the new version is deployed
 import { serve } from "https://deno.land/std@0.191.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -7,6 +7,24 @@ import {
   storeContextSnapshot,
   buildDynamicVariables
 } from "../_shared/buildBusinessContext.ts";
+import { getAllVariableKeys } from "../_shared/voiceContextContract.ts";
+
+// Convert all dynamic variable values to strings (ElevenLabs requires string-only)
+function toStringOnlyVars(vars: Record<string, string | number | boolean>): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [key, value] of Object.entries(vars)) {
+    if (value === null || value === undefined) {
+      result[key] = "";
+    } else if (typeof value === "boolean") {
+      result[key] = value ? "true" : "false";
+    } else if (typeof value === "number") {
+      result[key] = String(value);
+    } else {
+      result[key] = String(value);
+    }
+  }
+  return result;
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -168,18 +186,18 @@ serve(async (req) => {
       }
     }
 
-    // Initialize dynamic variables with safe defaults
+    // Initialize dynamic variables with safe defaults (all strings for ElevenLabs)
     let dynamicVariables: Record<string, string | number | boolean> = {
       business_name: "our business",
       businessname: "our business", // Alias for ElevenLabs compatibility
       business_mode: "general",
       enabled_modules: "",
-      hipaa_mode: false,
+      hipaa_mode: "false",
       timezone: "America/New_York",
       caller_phone: "browser_test",
       customer_id: "",
       hours_today: "Hours not available",
-      calendar_connected: false,
+      calendar_connected: "false",
       booking_link: "",
       service_summary: "",
       services_pricing: "No services configured yet.",
@@ -191,9 +209,14 @@ serve(async (req) => {
       tone: "friendly",
       intent_rules_summary: "",
       memory_hints_summary: "",
-      memory_enabled: false,
+      memory_enabled: "false",
       tenant_id: "",
       location_id: "",
+      // Speech-ready summaries (empty when not available - never invent)
+      location_summary: "",
+      service_area_summary: "",
+      out_of_area_message: "",
+      business_address: "",
       // Debug routing vars (spoken only when caller says "debug routing")
       debug_tenant_id: tenantId || "",
       debug_tenant_source: resolutionSource,
@@ -204,7 +227,7 @@ serve(async (req) => {
       business_brain_json_hash: "",
       business_brain_json_truncated: "false",
       context_contract_version: "v1",
-      dynamic_variables_keys: "",
+      dynamic_variables_keys: getAllVariableKeys().join(","),
     };
 
     // If tenantId provided, build FULL business context using canonical builder
@@ -285,7 +308,7 @@ serve(async (req) => {
       console.log("No tenantId provided for browser test - using minimal defaults");
     }
 
-    const DEPLOYED_VERSION = "2026-02-01T21:00:00Z";
+    const DEPLOYED_VERSION = "2026-02-02T12:00:00Z";
 
     // Log deployment version for verification
     console.log(`✅ ELEV_TOKEN_VERSION=${DEPLOYED_VERSION} | MODE=${connectionType} | VARS=${Object.keys(dynamicVariables).length}`);
@@ -332,10 +355,13 @@ serve(async (req) => {
 
       console.log("WebRTC token received:", { tokenPrefix: token.slice(0, 12) });
 
+      // Convert all values to strings for ElevenLabs compatibility
+      const stringOnlyVars = toStringOnlyVars(dynamicVariables);
+
       return new Response(
         JSON.stringify({
           token,
-          dynamicVariables: dynamicVariables,
+          dynamicVariables: stringOnlyVars,
           precomputedSlots: precomputedSlots,
           deployedVersion: DEPLOYED_VERSION,
           connectionType: "webrtc",
@@ -345,7 +371,8 @@ serve(async (req) => {
             agentId: ELEVENLABS_AGENT_ID,
             tokenPrefix: token.slice(0, 12),
             denoStdVersion: "0.191.0",
-            dynamicVarsCount: Object.keys(dynamicVariables).length,
+            dynamicVarsCount: Object.keys(stringOnlyVars).length,
+            hasContractFields: Boolean(stringOnlyVars.dynamic_variables_keys && stringOnlyVars.business_brain_json_hash),
           },
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -379,10 +406,13 @@ serve(async (req) => {
 
       const signedUrlData = await signedUrlResponse.json();
 
+      // Convert all values to strings for ElevenLabs compatibility
+      const stringOnlyVarsWs = toStringOnlyVars(dynamicVariables);
+
       return new Response(
         JSON.stringify({
           signedUrl: signedUrlData.signed_url,
-          dynamicVariables: dynamicVariables,
+          dynamicVariables: stringOnlyVarsWs,
           precomputedSlots: precomputedSlots,
           deployedVersion: DEPLOYED_VERSION,
           connectionType: "websocket",
@@ -391,7 +421,8 @@ serve(async (req) => {
             flow: "websocket-signed-url",
             agentId: ELEVENLABS_AGENT_ID,
             denoStdVersion: "0.191.0",
-            dynamicVarsCount: Object.keys(dynamicVariables).length,
+            dynamicVarsCount: Object.keys(stringOnlyVarsWs).length,
+            hasContractFields: Boolean(stringOnlyVarsWs.dynamic_variables_keys && stringOnlyVarsWs.business_brain_json_hash),
           },
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
