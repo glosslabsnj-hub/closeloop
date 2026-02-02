@@ -112,10 +112,35 @@ export interface BusinessContext {
   pricing: {
     rules: any[]; // Array of PricingRule objects from computeQuote.ts
     rules_summary: string;
+    busyness_config: {
+      base_prep_minutes: number;
+      busy_buffer_minutes: number;
+      manual_busyness_pct: number;
+    } | null;
   };
   eta: {
     busyness_rules: Record<string, any>; // BusynessRule map from computeQuote.ts
     rules_summary: string;
+    /** Pre-computed ETA for AI to speak ("30 to 45 minutes") */
+    spoken: string;
+    /** Minimum ETA in minutes */
+    min_minutes: number;
+    /** Maximum ETA in minutes */
+    max_minutes: number;
+    /** Source of the range: "job_type" | "mode" | "default" */
+    source: string;
+    /** Policy loaded from tenant */
+    policy: EtaPolicyJson | null;
+    /** Whether distance provider (Mapbox) is enabled and configured */
+    distance_provider_enabled: boolean;
+    /** ETA policy summary for AI context */
+    eta_policy_summary: string;
+    /** ETA estimation rules for AI */
+    eta_estimate_rules: {
+      requires_exact_address: boolean;
+      range_only: boolean;
+      max_service_radius_miles: number | null;
+    };
   };
   intake: {
     required_fields: IntakeField[];
@@ -175,36 +200,6 @@ export interface BusinessContext {
     required_questions_summary: string;
     memory_hints: MemoryHint[];
     memory_hints_summary: string;
-  };
-  pricing: {
-    rules_summary: string;
-    busyness_config: {
-      base_prep_minutes: number;
-      busy_buffer_minutes: number;
-      manual_busyness_pct: number;
-    } | null;
-  };
-  eta: {
-    /** Pre-computed ETA for AI to speak ("30 to 45 minutes") */
-    spoken: string;
-    /** Minimum ETA in minutes */
-    min_minutes: number;
-    /** Maximum ETA in minutes */
-    max_minutes: number;
-    /** Source of the range: "job_type" | "mode" | "default" */
-    source: string;
-    /** Policy loaded from tenant */
-    policy: EtaPolicyJson | null;
-    /** Whether distance provider (Mapbox) is enabled and configured */
-    distance_provider_enabled: boolean;
-    /** ETA policy summary for AI context */
-    eta_policy_summary: string;
-    /** ETA estimation rules for AI */
-    eta_estimate_rules: {
-      requires_exact_address: boolean;
-      range_only: boolean;
-      max_service_radius_miles: number | null;
-    };
   };
   safety: {
     hipaa_mode: boolean;
@@ -329,6 +324,8 @@ function computeEtaForContext(
   }
 
   return {
+    busyness_rules: {}, // Will be populated by caller
+    rules_summary: "", // Will be populated by caller
     spoken,
     min_minutes: range.min,
     max_minutes: range.max,
@@ -718,24 +715,7 @@ function determineUsage(memoryType: string): string {
   }
 }
 
-function buildPricingRulesSummary(rules: any[]): string {
-  if (!rules || rules.length === 0) return "";
-
-  const summaries = rules.slice(0, 5).map(rule => {
-    const name = rule.name || "Pricing rule";
-    if (rule.discount_percent) {
-      return `${name}: ${rule.discount_percent}% off`;
-    } else if (rule.surge_multiplier) {
-      return `${name}: ${rule.surge_multiplier}x surge`;
-    } else if (rule.fixed_price_cents) {
-      return `${name}: $${(rule.fixed_price_cents / 100).toFixed(2)}`;
-    } else {
-      return name;
-    }
-  });
-
-  return summaries.join("; ");
-}
+// Removed duplicate buildPricingRulesSummary function - consolidated above at line 678
 
 function buildEtaRulesSummary(busynessRules: Record<string, any>): string {
   if (!busynessRules || Object.keys(busynessRules).length === 0) return "";
@@ -1045,13 +1025,22 @@ export async function buildBusinessContext(
       menu_summary: buildMenuSummary(normalizedMenu),
     },
     pricing: {
-      rules: pricingRules,
-      rules_summary: buildPricingRulesSummary(pricingRules),
+      rules: tenant.pricing_rules_jsonb?.rules || pricingRules,
+      rules_summary: buildPricingRulesSummary(tenant.pricing_rules_jsonb),
+      busyness_config: tenant.busyness_rules_jsonb || null,
     },
-    eta: {
-      busyness_rules: busynessRules,
-      rules_summary: buildEtaRulesSummary(busynessRules),
-    },
+    eta: (() => {
+      const baseEta = computeEtaForContext(
+        tenant.eta_policy_jsonb as EtaPolicyJson | null,
+        tenant.business_mode || "general",
+        tenant.busyness_rules_jsonb?.manual_busyness_pct || 0
+      );
+      return {
+        ...baseEta,
+        busyness_rules: tenant.busyness_rules_jsonb || busynessRules,
+        rules_summary: buildEtaRulesSummary(tenant.busyness_rules_jsonb || busynessRules),
+      };
+    })(),
     intake: {
       required_fields: parseIntakeFields(tenant.context_fields_json),
     },
@@ -1078,7 +1067,6 @@ export async function buildBusinessContext(
       faqs: faqs.map(f => ({ question: f.question, answer: f.answer })),
       faqs_summary: buildFaqsSummary(faqs),
       objections: objections.map(o => ({ objection: o.objection, response: o.response })),
-      // Additional knowledge from ai_knowledge_base table (policies, upsells, custom info)
       supplementary: knowledgeBase.map(k => ({ type: k.type, title: k.title, content: k.content })),
     },
     operations: {
@@ -1112,15 +1100,6 @@ export async function buildBusinessContext(
       memory_hints: memoryHints,
       memory_hints_summary: buildMemoryHintsSummary(memoryHints),
     },
-    pricing: {
-      rules_summary: buildPricingRulesSummary(tenant.pricing_rules_jsonb),
-      busyness_config: tenant.busyness_rules_jsonb || null,
-    },
-    eta: computeEtaForContext(
-      tenant.eta_policy_jsonb as EtaPolicyJson | null,
-      tenant.business_mode || "general",
-      tenant.busyness_rules_jsonb?.manual_busyness_pct || 0
-    ),
     safety: {
       hipaa_mode: hipaaMode,
       store_transcripts: retentionSettings?.store_transcripts !== false && !hipaaMode,
@@ -1695,8 +1674,7 @@ export function buildDynamicVariables(
     memory_hints_summary: ctx.safety.hipaa_mode ? "" : (ctx.intelligence.memory_hints_summary || ""),
     memory_enabled: ctx.intelligence.settings.memory_enabled,
 
-    // Pricing & ETA
-    pricing_rules_summary: ctx.pricing.rules_summary || "No pricing rules configured",
+    // Pricing & ETA (busyness config)
     base_prep_minutes: ctx.pricing.busyness_config?.base_prep_minutes || 30,
     busy_buffer_minutes: ctx.pricing.busyness_config?.busy_buffer_minutes || 15,
     current_busyness_pct: ctx.pricing.busyness_config?.manual_busyness_pct || 0,
