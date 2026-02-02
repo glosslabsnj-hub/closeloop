@@ -239,26 +239,28 @@ export default function CallsPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-6">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="page-header mb-0">
-          <h1 className="page-title">Calls</h1>
-          <p className="page-subtitle">
-            All AI-handled calls with extracted information
-          </p>
+      <div className="page-header mb-0">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="page-title">Calls</h1>
+            <p className="page-subtitle">
+              All AI-handled calls with extracted information
+            </p>
+          </div>
+          <Badge variant="muted" className="text-base px-3 py-1 w-fit">
+            {deduplicatedCalls.length} Contacts
+          </Badge>
         </div>
-        <Badge variant="muted" className="text-base px-3 py-1 w-fit">
-          {deduplicatedCalls.length} Contacts
-        </Badge>
       </div>
 
       {/* Info banner for calls awaiting data */}
       {deduplicatedCalls.some(c => !c.summary && !c.ended_at) && (
-        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 flex items-start gap-3">
-          <Phone className="h-5 w-5 text-blue-500 mt-0.5 shrink-0" />
+        <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 flex items-start gap-3">
+          <Phone className="h-5 w-5 text-primary mt-0.5 shrink-0" />
           <div className="text-sm">
-            <p className="font-medium text-blue-700 dark:text-blue-300">Some calls are awaiting AI summary</p>
+            <p className="font-medium">Some calls are awaiting AI summary</p>
             <p className="text-muted-foreground">
               Call data (summary, service requested) is populated when calls end. You can also click the edit icon to add details manually.
             </p>
