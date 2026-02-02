@@ -53,12 +53,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     : tenant?.id || null;
 
   // Computed: The effective tenant object
+  // For super admins, this returns the actively selected test tenant
   const effectiveTenant = isSuperAdmin && activeTenant
     ? activeTenant
     : tenant;
 
   // Fetch admin settings (admin_active_tenant_id) for super admins
-  const fetchAdminSettings = useCallback(async (userId: string) => {
+  // If no settings exist, auto-create with current tenant as default
+  const fetchAdminSettings = useCallback(async (userId: string, defaultTenantId: string | null) => {
     try {
       const { data, error } = await supabase
         .from("admin_settings")
@@ -69,6 +71,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) {
         console.warn("Failed to fetch admin settings:", error);
         return;
+      }
+
+      // If no admin_settings row exists and we have a default tenant, auto-create it
+      if (!data && defaultTenantId) {
+        console.log("[AuthContext] Auto-creating admin_settings for super admin");
+        const { error: upsertError } = await supabase
+          .from("admin_settings")
+          .upsert({
+            user_id: userId,
+            admin_active_tenant_id: defaultTenantId,
+            updated_at: new Date().toISOString(),
+          }, {
+            onConflict: "user_id",
+          });
+
+        if (upsertError) {
+          console.warn("Failed to auto-create admin settings:", upsertError);
+        } else {
+          setAdminSettings({ admin_active_tenant_id: defaultTenantId });
+          // The default tenant is already set as `tenant`, so set it as active too
+          return;
+        }
       }
 
       setAdminSettings(data);
@@ -144,16 +168,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (isAdmin) {
         setIsSuperAdmin(true);
         setUserRole("super_admin");
-        // Fetch admin settings for super admins
-        await fetchAdminSettings(userId);
       }
 
-      // Fetch tenant user
-      const { data: tenantUserData } = await supabase
+      // Fetch tenant user(s) - super admins may have multiple
+      // Use .limit(1) for non-admins to avoid ambiguity, but fetch first for admins
+      const { data: tenantUserList } = await supabase
         .from("tenant_users")
         .select("*")
         .eq("user_id", userId)
-        .single();
+        .limit(10); // Support multiple for super admins
+
+      const tenantUserData = tenantUserList?.[0] || null;
 
       if (tenantUserData) {
         setTenantUser(tenantUserData);
@@ -171,7 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (tenantData) {
           setTenant(tenantData as Tenant);
 
-          // Fetch subscription
+          // Fetch subscription (for subscription gating)
           const { data: subData } = await supabase
             .from("subscriptions")
             .select("*")
@@ -188,7 +213,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .maybeSingle();
           
           setAssistantSettings(settingsData);
+
+          // For super admins, fetch admin settings AFTER we have a default tenant
+          if (isAdmin) {
+            await fetchAdminSettings(userId, tenantData.id);
+          }
         }
+      } else if (isAdmin) {
+        // Super admin with no tenant_users - still fetch admin settings
+        await fetchAdminSettings(userId, null);
       }
     } catch (error) {
       console.error("Error fetching tenant data:", error);

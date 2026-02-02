@@ -40,6 +40,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useEffect, useMemo } from "react";
 import { AdminModeSwitcher } from "@/components/admin/AdminModeSwitcher";
+import { AdminTenantSwitcher } from "@/components/admin/AdminTenantSwitcher";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 interface NavItem {
@@ -81,6 +82,9 @@ export function AppLayout() {
   const { unresolvedCount: conflictsCount } = useKnowledgeConflicts();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Super admins bypass subscription gating for testing
+  const effectiveHasSubscription = isSuperAdmin || hasActiveSubscription;
 
   // Filter nav items based on enabled modules
   const navItems = useMemo(() => {
@@ -136,7 +140,10 @@ export function AppLayout() {
   }, [loading, user, tenant, isSuperAdmin, location.pathname, navigate]);
 
   // Check if user needs to go through go-live (with debounce to prevent race conditions)
+  // Super admins bypass this check entirely for testing
   useEffect(() => {
+    if (isSuperAdmin) return; // Super admins can access everything
+    
     // Skip check if coming from onboarding (give time for subscription to be created)
     const justCompletedOnboarding = sessionStorage.getItem("selectedPlan") !== null;
     if (justCompletedOnboarding) {
@@ -152,7 +159,7 @@ export function AppLayout() {
         navigate("/app/go-live");
       }
     }
-  }, [loading, tenant, hasActiveSubscription, location.pathname, navigate]);
+  }, [loading, tenant, hasActiveSubscription, isSuperAdmin, location.pathname, navigate]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -171,8 +178,8 @@ export function AppLayout() {
     return null;
   }
 
-  // Check if current route is accessible
-  const isRouteAccessible = hasActiveSubscription || 
+  // Check if current route is accessible (super admins can access everything)
+  const isRouteAccessible = effectiveHasSubscription || 
     alwaysAccessibleRoutes.some(route => location.pathname.startsWith(route));
 
   return (
@@ -191,6 +198,8 @@ export function AppLayout() {
           </Link>
 
           <div className="flex items-center gap-2">
+            {/* Admin Tenant Switcher - only visible to super admins */}
+            <AdminTenantSwitcher />
             <NotificationBell />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -231,7 +240,7 @@ export function AppLayout() {
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.href;
-              const isLocked = !hasActiveSubscription && 
+              const isLocked = !effectiveHasSubscription && 
                 !alwaysAccessibleRoutes.some(route => item.href.startsWith(route));
               const showBadge = item.href === "/app/business-brain" && conflictsCount > 0;
               
@@ -268,7 +277,7 @@ export function AppLayout() {
             {mobileNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.href;
-              const isLocked = !hasActiveSubscription && 
+              const isLocked = !effectiveHasSubscription && 
                 !alwaysAccessibleRoutes.some(route => item.href.startsWith(route));
               const showBadge = item.href === "/app/dashboard" && conflictsCount > 0;
               

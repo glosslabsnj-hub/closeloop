@@ -19,7 +19,7 @@ export function DynamicVariablesDebugPanel({
   dynamicVariables,
   forceShow = false,
 }: DynamicVariablesDebugPanelProps) {
-  const { isSuperAdmin } = useAuth();
+  const { isSuperAdmin, effectiveTenantId } = useAuth();
 
   // Only show for super admins unless forceShow
   if (!isSuperAdmin && !forceShow) return null;
@@ -27,13 +27,16 @@ export function DynamicVariablesDebugPanel({
   const copyToClipboard = () => {
     const data = {
       tenant_id: tenantId,
+      expected_tenant_id: effectiveTenantId,
       dynamic_variables: dynamicVariables,
     };
     navigator.clipboard.writeText(JSON.stringify(data, null, 2));
     toast.success("Copied to clipboard");
   };
 
-  const hasValidTenant = tenantId && tenantId !== "a0000000-0000-0000-0000-000000000001";
+  // Validate: tenant ID must be present and match the expected effective tenant
+  const hasValidTenant = !!tenantId;
+  const tenantMatchesExpected = tenantId === effectiveTenantId;
   const businessName = dynamicVariables?.business_name || dynamicVariables?.businessname;
   const businessMode = dynamicVariables?.business_mode;
 
@@ -52,19 +55,30 @@ export function DynamicVariablesDebugPanel({
         {/* Tenant ID Status */}
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium w-24">Tenant ID:</span>
-          {hasValidTenant ? (
+          {hasValidTenant && tenantMatchesExpected ? (
             <div className="flex items-center gap-2">
               <Check className="h-4 w-4 text-green-500" />
               <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                 {tenantId?.slice(0, 8)}...
               </code>
+              <Badge variant="outline" className="text-[10px] text-green-600 border-green-500">
+                Matches selected
+              </Badge>
+            </div>
+          ) : hasValidTenant && !tenantMatchesExpected ? (
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-yellow-500" />
+              <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
+                {tenantId?.slice(0, 8)}...
+              </code>
+              <Badge variant="outline" className="text-[10px] text-yellow-600 border-yellow-500">
+                Mismatch! Expected: {effectiveTenantId?.slice(0, 8)}...
+              </Badge>
             </div>
           ) : (
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-destructive" />
-              <span className="text-sm text-destructive">
-                {tenantId ? "Demo tenant (blocked)" : "Missing"}
-              </span>
+              <span className="text-sm text-destructive">Missing tenant ID</span>
             </div>
           )}
         </div>
