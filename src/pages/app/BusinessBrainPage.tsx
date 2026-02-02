@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
-import { Brain, Building2, Package, MapPin, Calendar, FileText, Shield, Upload, AlertCircle } from "lucide-react";
+import { Brain, Building2, Package, MapPin, Calendar, FileText, Shield, Upload, AlertCircle, Navigation } from "lucide-react";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { PricingRulesEditor } from "@/components/settings/PricingRulesEditor";
 import { BusynessRulesEditor } from "@/components/settings/BusynessRulesEditor";
@@ -23,6 +23,7 @@ import { BrainReviewQueue, useBrainReviewCount } from "@/components/brain/BrainR
 import { QuoteReadinessCard } from "@/components/brain/QuoteReadinessCard";
 import { IndustryTemplateCard } from "@/components/brain/IndustryTemplateCard";
 import { ServiceAreaPreview } from "@/components/debug/ServiceAreaPreview";
+import { DistanceEtaSection } from "@/components/business-brain/DistanceEtaSection";
 
 /**
  * Business Brain - Centralized hub for ALL business knowledge editing
@@ -222,6 +223,10 @@ export default function BusinessBrainPage() {
               </div>
 
               <ServiceAreaManager />
+
+              <div className="mt-6">
+                <DistanceEtaSection />
+              </div>
             </SettingsSection>
           )}
 

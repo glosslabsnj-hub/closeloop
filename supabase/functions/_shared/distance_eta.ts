@@ -834,24 +834,26 @@ async function geocodeAddress(
 
   if (result.ok && result.lat !== null && result.lng !== null) {
     // Store in cache (fire-and-forget, don't block on insert)
-    supabase
-      .from("geocode_cache")
-      .upsert({
-        tenant_id: tenantId,
-        address_hash: addressHash,
-        lat: result.lat,
-        lng: result.lng,
-        confidence: "high",
-        provider: "mapbox",
-        fetched_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
-      }, { onConflict: "tenant_id,address_hash,provider" })
-      .then(() => {
+    (async () => {
+      try {
+        await supabase
+          .from("geocode_cache")
+          .upsert({
+            tenant_id: tenantId,
+            address_hash: addressHash,
+            lat: result.lat,
+            lng: result.lng,
+            confidence: "high",
+            provider: "mapbox",
+            fetched_at: new Date().toISOString(),
+            expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
+          }, { onConflict: "tenant_id,address_hash,provider" });
         console.log(`[distance_eta] Geocode cached for hash ${addressHash.substring(0, 8)}...`);
-      })
-      .catch((err) => {
-        console.warn(`[distance_eta] Failed to cache geocode:`, err.message);
-      });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        console.warn(`[distance_eta] Failed to cache geocode:`, message);
+      }
+    })();
   }
 
   return result;

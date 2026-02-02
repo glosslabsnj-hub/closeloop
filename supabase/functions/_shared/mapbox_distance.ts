@@ -172,27 +172,29 @@ export async function geocodeAddress(params: {
 
     // Store in cache (fire-and-forget, don't block)
     const expiresAt = new Date(Date.now() + CACHE_TTL_GEOCODE_DAYS * 24 * 60 * 60 * 1000);
-    supabase
-      .from("geocode_cache")
-      .upsert(
-        {
-          tenant_id: tenantId,
-          address_hash: addressHash,
-          lat,
-          lng,
-          confidence: "high",
-          provider: "mapbox",
-          fetched_at: new Date().toISOString(),
-          expires_at: expiresAt.toISOString(),
-        },
-        { onConflict: "tenant_id,address_hash,provider" }
-      )
-      .then(() => {
+    (async () => {
+      try {
+        await supabase
+          .from("geocode_cache")
+          .upsert(
+            {
+              tenant_id: tenantId,
+              address_hash: addressHash,
+              lat,
+              lng,
+              confidence: "high",
+              provider: "mapbox",
+              fetched_at: new Date().toISOString(),
+              expires_at: expiresAt.toISOString(),
+            },
+            { onConflict: "tenant_id,address_hash,provider" }
+          );
         console.log(`[mapbox_distance] Geocode cached for tenant ${tenantId.substring(0, 8)}...`);
-      })
-      .catch((err) => {
-        console.warn(`[mapbox_distance] Cache write failed:`, err.message);
-      });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        console.warn(`[mapbox_distance] Cache write failed:`, message);
+      }
+    })();
 
     return {
       ok: true,
@@ -308,30 +310,32 @@ export async function routeDuration(params: {
 
     // Store in route cache (fire-and-forget)
     const expiresAt = new Date(Date.now() + CACHE_TTL_ROUTE_DAYS * 24 * 60 * 60 * 1000);
-    supabase
-      .from("route_cache")
-      .insert({
-        tenant_id: tenantId,
-        origin_lat: roundedOriginLat,
-        origin_lng: roundedOriginLng,
-        dest_lat: roundedDestLat,
-        dest_lng: roundedDestLng,
-        distance_miles: distanceMeters / METERS_PER_MILE,
-        drive_time_minutes: durationSeconds / 60,
-        provider: "mapbox",
-        route_profile: profile,
-        fetched_at: new Date().toISOString(),
-        expires_at: expiresAt.toISOString(),
-      })
-      .then(() => {
+    (async () => {
+      try {
+        await supabase
+          .from("route_cache")
+          .insert({
+            tenant_id: tenantId,
+            origin_lat: roundedOriginLat,
+            origin_lng: roundedOriginLng,
+            dest_lat: roundedDestLat,
+            dest_lng: roundedDestLng,
+            distance_miles: distanceMeters / METERS_PER_MILE,
+            drive_time_minutes: durationSeconds / 60,
+            provider: "mapbox",
+            route_profile: profile,
+            fetched_at: new Date().toISOString(),
+            expires_at: expiresAt.toISOString(),
+          });
         console.log(`[mapbox_distance] Route cached for tenant ${tenantId.substring(0, 8)}...`);
-      })
-      .catch((err) => {
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Unknown error";
         // Ignore duplicate key errors (concurrent requests)
-        if (!err.message?.includes("duplicate")) {
-          console.warn(`[mapbox_distance] Route cache write failed:`, err.message);
+        if (!message.includes("duplicate")) {
+          console.warn(`[mapbox_distance] Route cache write failed:`, message);
         }
-      });
+      }
+    })();
 
     return {
       ok: true,

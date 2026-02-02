@@ -3666,6 +3666,65 @@ export type Database = {
           },
         ]
       }
+      tenant_distance_settings: {
+        Row: {
+          base_lat: number | null
+          base_lng: number | null
+          base_place_name: string | null
+          created_at: string
+          distance_provider_enabled: boolean
+          eta_base_minutes: number
+          eta_max_minutes: number | null
+          eta_min_minutes: number | null
+          eta_per_mile_minutes: number | null
+          eta_rounding_minutes: number
+          mapbox_route_profile: string
+          provider: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          base_lat?: number | null
+          base_lng?: number | null
+          base_place_name?: string | null
+          created_at?: string
+          distance_provider_enabled?: boolean
+          eta_base_minutes?: number
+          eta_max_minutes?: number | null
+          eta_min_minutes?: number | null
+          eta_per_mile_minutes?: number | null
+          eta_rounding_minutes?: number
+          mapbox_route_profile?: string
+          provider?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          base_lat?: number | null
+          base_lng?: number | null
+          base_place_name?: string | null
+          created_at?: string
+          distance_provider_enabled?: boolean
+          eta_base_minutes?: number
+          eta_max_minutes?: number | null
+          eta_min_minutes?: number | null
+          eta_per_mile_minutes?: number | null
+          eta_rounding_minutes?: number
+          mapbox_route_profile?: string
+          provider?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_distance_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_intelligence_settings: {
         Row: {
           copilot_can_suggest_rules: boolean | null
