@@ -45,6 +45,23 @@ serve(async (req) => {
       );
     }
 
+    // Log every endpoint hit for debugging (no PII)
+    if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const supabaseForLog = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        await supabaseForLog.from("ai_event_logs").insert({
+          tenant_id: null,
+          stage: "voice_endpoint_hit",
+          event_data: {
+            endpoint: "elevenlabs-conversation-token",
+            timestamp: new Date().toISOString(),
+          },
+        });
+      } catch (logError) {
+        console.error("[elevenlabs-token] Failed to log endpoint hit:", logError);
+      }
+    }
+
     // Parse request body to get tenantId, locationId, and connectionType
     let tenantId: string | null = null;
     let locationId: string | null = null;
@@ -97,6 +114,42 @@ serve(async (req) => {
       } catch (validationError) {
         console.error("[elevenlabs-token] Tenant validation failed:", validationError);
       }
+    }
+
+    // TRIPWIRE: Block demo tenant from being used in voice sessions
+    const DEMO_TENANT_ID = "a0000000-0000-0000-0000-000000000001";
+    if (tenantId === DEMO_TENANT_ID) {
+      console.error(`[elevenlabs-token] TRIPWIRE: Blocked demo tenant ${DEMO_TENANT_ID}`);
+
+      if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+        try {
+          const supabaseForTripwire = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+          await supabaseForTripwire.from("ai_event_logs").insert({
+            tenant_id: tenantId,
+            stage: "voice_tenant_tripwire",
+            error_message: "Demo tenant fallback blocked",
+            event_data: {
+              endpoint: "elevenlabs-conversation-token",
+              tenant_id: tenantId,
+              has_location_id: !!locationId,
+              connection_type: connectionType,
+            },
+          });
+        } catch (logError) {
+          console.error("[elevenlabs-token] Failed to log tripwire:", logError);
+        }
+      }
+
+      return new Response(
+        JSON.stringify({
+          error: "tenant resolution failed: demo tenant fallback blocked",
+          _debug: {
+            tripwire: true,
+            endpoint: "elevenlabs-conversation-token",
+          },
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Initialize dynamic variables with safe defaults

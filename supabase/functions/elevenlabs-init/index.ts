@@ -178,6 +178,20 @@ serve(async (req) => {
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+  // Log every endpoint hit for debugging (no PII)
+  try {
+    await supabase.from("ai_event_logs").insert({
+      tenant_id: null,
+      stage: "voice_endpoint_hit",
+      event_data: {
+        endpoint: "elevenlabs-init",
+        timestamp: new Date().toISOString(),
+      },
+    });
+  } catch (logError) {
+    console.error("[elevenlabs-init] Failed to log endpoint hit:", logError);
+  }
+
   let requestBody: Record<string, unknown> = {};
   let toNumber = "";
   let fromNumber = "";
@@ -422,6 +436,40 @@ serve(async (req) => {
         },
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  // TRIPWIRE: Block demo tenant from being used in voice sessions
+  const DEMO_TENANT_ID = "a0000000-0000-0000-0000-000000000001";
+  if (tenantId === DEMO_TENANT_ID) {
+    console.error(`[elevenlabs-init] TRIPWIRE: Blocked demo tenant ${DEMO_TENANT_ID}`);
+
+    try {
+      await supabase.from("ai_event_logs").insert({
+        tenant_id: tenantId,
+        stage: "voice_tenant_tripwire",
+        error_message: "Demo tenant fallback blocked",
+        event_data: {
+          endpoint: "elevenlabs-init",
+          tenant_id: tenantId,
+          has_to_number: !!toPhoneE164,
+          has_explicit_tenant: false,
+          has_admin_override: false,
+        },
+      });
+    } catch (logError) {
+      console.error("[elevenlabs-init] Failed to log tripwire:", logError);
+    }
+
+    return new Response(
+      JSON.stringify({
+        error: "tenant resolution failed: demo tenant fallback blocked",
+        _debug: {
+          tripwire: true,
+          endpoint: "elevenlabs-init",
+        },
+      }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 
