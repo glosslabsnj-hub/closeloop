@@ -77,6 +77,13 @@ export interface EtaPolicyJson {
   };
   busyness_buffer_pct?: number;
   holiday_buffer_pct?: number;
+  // Step 2: Provider settings
+  provider_enabled?: boolean;
+  max_service_radius_miles?: number;
+  allow_vague_address_fallback?: boolean;
+  food_prep_minutes?: number;
+  dispatch_response_minutes?: number;
+  traffic_buffer_pct?: number;
 }
 
 export interface BusinessContext {
@@ -188,6 +195,16 @@ export interface BusinessContext {
     source: string;
     /** Policy loaded from tenant */
     policy: EtaPolicyJson | null;
+    /** Whether distance provider (Mapbox) is enabled and configured */
+    distance_provider_enabled: boolean;
+    /** ETA policy summary for AI context */
+    eta_policy_summary: string;
+    /** ETA estimation rules for AI */
+    eta_estimate_rules: {
+      requires_exact_address: boolean;
+      range_only: boolean;
+      max_service_radius_miles: number | null;
+    };
   };
   safety: {
     hipaa_mode: boolean;
@@ -296,12 +313,34 @@ function computeEtaForContext(
     spoken = `${formatTime(range.min)} to ${formatTime(range.max)}`;
   }
 
+  // Step 2: Check if distance provider is enabled
+  // Provider is enabled if provider_enabled flag is true AND MAPBOX_ACCESS_TOKEN env exists
+  const providerEnabled = effectivePolicy.provider_enabled === true;
+  const mapboxConfigured = !!Deno.env.get("MAPBOX_ACCESS_TOKEN");
+  const distanceProviderEnabled = providerEnabled && mapboxConfigured;
+
+  // Build policy summary
+  let etaPolicySummary = `Default ETA: ${effectivePolicy.default_range_minutes.min}-${effectivePolicy.default_range_minutes.max} minutes`;
+  if (distanceProviderEnabled) {
+    etaPolicySummary += ". Mapbox routing enabled for exact ETAs.";
+  }
+  if (effectivePolicy.max_service_radius_miles) {
+    etaPolicySummary += ` Max service radius: ${effectivePolicy.max_service_radius_miles} miles.`;
+  }
+
   return {
     spoken,
     min_minutes: range.min,
     max_minutes: range.max,
     source,
     policy: effectivePolicy,
+    distance_provider_enabled: distanceProviderEnabled,
+    eta_policy_summary: etaPolicySummary,
+    eta_estimate_rules: {
+      requires_exact_address: distanceProviderEnabled,
+      range_only: true, // Step 2 always returns ranges, never exact times
+      max_service_radius_miles: effectivePolicy.max_service_radius_miles ?? null,
+    },
   };
 }
 

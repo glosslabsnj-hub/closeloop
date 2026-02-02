@@ -13,6 +13,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type AiEventType =
   | "eta_computed"
+  | "eta_fallback"
+  | "eta_blocked_missing_address"
+  | "eta_out_of_area"
   | "call_initiated"
   | "call_completed"
   | "intent_detected"
@@ -28,6 +31,14 @@ export interface EtaComputedEventData {
   busyness_pct?: number;
   job_type?: string;
   is_holiday?: boolean;
+  // Step 2 fields
+  distance_miles?: number;
+  duration_minutes?: number;
+  confidence?: "high" | "medium" | "low";
+  provider?: "mapbox" | "none";
+  cached?: boolean;
+  destination_provided?: boolean;
+  destination_vague?: boolean;
 }
 
 export interface BaseAiEventOptions {
