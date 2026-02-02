@@ -733,6 +733,26 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     defaultValue: "",
     category: "debug",
   },
+
+  // ===== BUSINESS BRAIN SNAPSHOT =====
+  {
+    key: "business_brain_summary",
+    description: "AI-facing summary of Business Brain (business identity, service area, policies, counts)",
+    type: "string",
+    source: "business_brain_summary",
+    defaultValue: "",
+    category: "meta",
+    includeInCompactJson: false, // Already summarizes the brain
+  },
+  {
+    key: "business_brain_json",
+    description: "Full Business Brain snapshot as JSON string",
+    type: "string",
+    source: "business_brain_json",
+    defaultValue: "{}",
+    category: "meta",
+    includeInCompactJson: false, // Too large for compact
+  },
 ];
 
 // ============= REGISTRY-DRIVEN BUILDER =============
