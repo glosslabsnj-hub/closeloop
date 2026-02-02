@@ -77,7 +77,15 @@ export function PricingRulesEditor() {
         .single();
 
       if (error) throw error;
-      return (data?.pricing_rules_jsonb as PricingRule[]) || [];
+      
+      // Safe extraction: handle array, object with rules, or null
+      const jsonb = data?.pricing_rules_jsonb;
+      if (!jsonb) return [];
+      if (Array.isArray(jsonb)) return jsonb as unknown as PricingRule[];
+      if (typeof jsonb === 'object' && 'rules' in jsonb && Array.isArray((jsonb as Record<string, unknown>).rules)) {
+        return (jsonb as Record<string, unknown>).rules as unknown as PricingRule[];
+      }
+      return [];
     },
     enabled: !!tenant?.id,
   });

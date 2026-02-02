@@ -101,10 +101,10 @@ function extractCityOnly(address: string): string {
  * @param eventData - Event-specific data (will be sanitized)
  * @returns Debug info for client-side use
  */
-export async function logAiEvent<T extends Record<string, unknown>>(
+export async function logAiEvent(
   eventType: AiEventType,
   options: BaseAiEventOptions,
-  eventData: T
+  eventData: Record<string, unknown>
 ): Promise<{ logged: boolean; debug?: Record<string, unknown> }> {
   const { tenantId, sessionId, callSid, conversationId } = options;
 
@@ -123,14 +123,14 @@ export async function logAiEvent<T extends Record<string, unknown>>(
     }
 
     // Insert the log entry
-    const { error } = await supabase.from("ai_event_logs").insert({
+    const { error } = await supabase.from("ai_event_logs").insert([{
       tenant_id: tenantId,
       session_id: sessionId || null,
       call_sid: callSid || null,
       conversation_id: conversationId || null,
       stage: eventType,
-      event_data: sanitizedData,
-    });
+      event_data: sanitizedData as unknown as import("@/integrations/supabase/types").Json,
+    }]);
 
     if (error) {
       console.error(`[logAiEvent] Failed to log ${eventType}:`, error);
@@ -158,7 +158,7 @@ export async function logEtaComputed(
   options: BaseAiEventOptions,
   data: EtaComputedEventData & { pickup_address?: string; dropoff_address?: string }
 ): Promise<{ logged: boolean; debug?: Record<string, unknown> }> {
-  return logAiEvent("eta_computed", options, data);
+  return logAiEvent("eta_computed", options, { ...data });
 }
 
 // ============================================================================
