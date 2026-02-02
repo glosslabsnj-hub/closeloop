@@ -669,6 +669,120 @@ export async function resolveConflictCustomMerge(
 }
 
 // ============================================================================
+// BUSINESS MODE & INDUSTRY (SLIDER EXCEPTION)
+// ============================================================================
+
+/**
+ * LOCKDOWN EXCEPTION: Update business mode only
+ *
+ * This is one of ONLY two fields that can be changed outside of Business Brain.
+ * The homepage slider may call this method to switch business mode.
+ *
+ * This method MUST NOT:
+ * - Write services, FAQs, policies, or any other business knowledge
+ * - Trigger template application
+ * - Modify enabled_modules (that's a separate concern)
+ *
+ * @see docs/LOCKDOWN_SLIDER_EXCEPTION.md
+ */
+export async function setBusinessMode(
+  tenantId: string,
+  businessMode: "service" | "dispatch" | "food" | "medical" | "general"
+) {
+  const { data, error } = await supabase
+    .from("tenants")
+    .update({ business_mode: businessMode })
+    .eq("id", tenantId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  await logBrainChange(
+    tenantId,
+    "tenants",
+    "update",
+    tenantId,
+    { business_mode: businessMode, _source: "slider_exception" }
+  );
+
+  return data;
+}
+
+/**
+ * LOCKDOWN EXCEPTION: Update industry key only
+ *
+ * This is one of ONLY two fields that can be changed outside of Business Brain.
+ * The homepage slider may call this method to switch industry.
+ *
+ * This method MUST NOT:
+ * - Write services, FAQs, policies, or any other business knowledge
+ * - Trigger template application (templates are applied separately in Business Brain)
+ * - Modify enabled_modules (that's a separate concern)
+ *
+ * @see docs/LOCKDOWN_SLIDER_EXCEPTION.md
+ */
+export async function setIndustryKey(
+  tenantId: string,
+  industryKey: string
+) {
+  const { data, error } = await supabase
+    .from("tenants")
+    .update({ industry: industryKey })
+    .eq("id", tenantId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  await logBrainChange(
+    tenantId,
+    "tenants",
+    "update",
+    tenantId,
+    { industry: industryKey, _source: "slider_exception" }
+  );
+
+  return data;
+}
+
+/**
+ * LOCKDOWN EXCEPTION: Update business mode and industry together
+ *
+ * Convenience method when both need to change atomically.
+ * Still subject to same constraints as individual methods.
+ *
+ * @see docs/LOCKDOWN_SLIDER_EXCEPTION.md
+ */
+export async function setBusinessModeAndIndustry(
+  tenantId: string,
+  businessMode: "service" | "dispatch" | "food" | "medical" | "general",
+  industryKey: string
+) {
+  const { data, error } = await supabase
+    .from("tenants")
+    .update({
+      business_mode: businessMode,
+      industry: industryKey,
+    })
+    .eq("id", tenantId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  await logBrainChange(
+    tenantId,
+    "tenants",
+    "update",
+    tenantId,
+    { business_mode: businessMode, industry: industryKey, _source: "slider_exception" }
+  );
+
+  return data;
+}
+
+// ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
 
