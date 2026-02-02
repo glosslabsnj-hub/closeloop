@@ -22,7 +22,6 @@ import { BrainAssetsManager } from "@/components/brain/BrainAssetsManager";
 import { BrainReviewQueue, useBrainReviewCount } from "@/components/brain/BrainReviewQueue";
 import { QuoteReadinessCard } from "@/components/brain/QuoteReadinessCard";
 import { IndustryTemplateCard } from "@/components/brain/IndustryTemplateCard";
-import { cn } from "@/lib/utils";
 
 /**
  * Business Brain - Centralized hub for ALL business knowledge editing
@@ -31,6 +30,16 @@ import { cn } from "@/lib/utils";
  * 1. This is the ONLY page where business knowledge can be edited
  * 2. All other pages must be read-only with "Edit in Business Brain" CTAs
  * 3. All writes route through src/lib/brain/writeBrainFact.ts
+ *
+ * Sections:
+ * - #profile: Business name, contact info, hours
+ * - #services: Service catalog, menu items, pricing rules
+ * - #service-area: Dispatch zones (future)
+ * - #scheduling: Hours, busyness, availability
+ * - #policies: Cancellation, payment, HIPAA, retention, delivery handoff
+ * - #faqs: Business FAQs
+ * - #assets: Knowledge uploads
+ * - #review-queue: Conflicts, suggestions, merge queue
  */
 
 interface BrainNavItem {
@@ -45,49 +54,49 @@ const navigationItems: BrainNavItem[] = [
     id: "profile",
     label: "Business Profile",
     icon: Building2,
-    description: "Name, contact, hours"
+    description: "Name, contact info, hours, and identity"
   },
   {
     id: "services",
     label: "Services & Pricing",
     icon: Package,
-    description: "Catalog and pricing rules"
+    description: "Service catalog, menu items, and pricing rules"
   },
   {
     id: "service-area",
     label: "Service Area",
     icon: MapPin,
-    description: "Dispatch zones and coverage"
+    description: "Dispatch zones and delivery coverage (future)"
   },
   {
     id: "scheduling",
-    label: "Scheduling",
+    label: "Scheduling & Availability",
     icon: Calendar,
-    description: "Hours and availability"
+    description: "Hours, busyness rules, and availability slots"
   },
   {
     id: "policies",
     label: "Policies & Rules",
     icon: Shield,
-    description: "Cancellation, payment, HIPAA"
+    description: "Cancellation, payment, HIPAA, retention, delivery"
   },
   {
     id: "faqs",
     label: "FAQs & Knowledge",
     icon: FileText,
-    description: "Common questions"
+    description: "Business FAQs and common questions"
   },
   {
     id: "assets",
     label: "Knowledge Assets",
     icon: Upload,
-    description: "Documents and sources"
+    description: "Uploaded documents and knowledge sources"
   },
   {
     id: "review-queue",
     label: "Review Queue",
     icon: AlertCircle,
-    description: "Conflicts and approvals"
+    description: "Conflicts, suggestions, and merge approvals"
   }
 ];
 
@@ -107,13 +116,13 @@ export default function BusinessBrainPage() {
   return (
     <div className="flex min-h-screen bg-background">
       {/* Sidebar Navigation */}
-      <aside className="hidden lg:block w-60 border-r bg-sidebar sticky top-0 h-screen overflow-y-auto">
-        <div className="p-4">
-          <div className="flex items-center gap-2 px-3 py-3 mb-2">
-            <Brain className="h-5 w-5 text-primary" />
-            <h2 className="font-semibold">Business Brain</h2>
+      <aside className="hidden lg:block w-64 border-r border-border bg-card/50 sticky top-0 h-screen overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <Brain className="h-6 w-6 text-primary" />
+            <h2 className="text-lg font-semibold">Business Brain</h2>
           </div>
-          <nav className="space-y-0.5">
+          <nav className="space-y-1">
             {navigationItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeSection === item.id;
@@ -122,28 +131,28 @@ export default function BusinessBrainPage() {
                 <button
                   key={item.id}
                   onClick={() => setActiveSection(item.id)}
-                  className={cn(
-                    "nav-item w-full",
-                    isActive ? "nav-item-active" : "nav-item-inactive"
-                  )}
+                  className={`
+                    w-full flex items-start gap-3 px-3 py-2 rounded-md text-sm transition-colors relative
+                    ${isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                    }
+                  `}
                 >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  <div className="text-left flex-1 min-w-0">
-                    <div className="font-medium text-sm flex items-center gap-2">
-                      <span className="truncate">{item.label}</span>
+                  <Icon className="h-4 w-4 mt-0.5 shrink-0" />
+                  <div className="text-left flex-1">
+                    <div className="font-medium flex items-center gap-2">
+                      {item.label}
                       {showBadge && (
                         <Badge
                           variant={isActive ? "secondary" : "destructive"}
-                          className="h-5 px-1.5 text-xs shrink-0"
+                          className="h-5 px-1.5 text-xs"
                         >
                           {reviewCount}
                         </Badge>
                       )}
                     </div>
-                    <div className={cn(
-                      "text-xs truncate",
-                      isActive ? "text-primary-foreground/80" : "text-muted-foreground"
-                    )}>
+                    <div className={`text-xs ${isActive ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
                       {item.description}
                     </div>
                   </div>
@@ -156,28 +165,28 @@ export default function BusinessBrainPage() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl py-6 px-4 sm:px-6 lg:px-8 animate-fade-in">
+        <div className="container max-w-5xl py-8 px-4 sm:px-6 lg:px-8">
           {/* Header */}
-          <div className="page-header">
-            <h1 className="page-title">Business Brain</h1>
-            <p className="page-subtitle">
-              Centralized hub for all business knowledge. Changes sync to your AI in real-time.
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold mb-2">Business Brain</h1>
+            <p className="text-muted-foreground">
+              Centralized hub for all business knowledge. All edits here flow to your AI assistant in real-time.
             </p>
           </div>
 
           {/* Profile Section */}
           {activeSection === "profile" && (
-            <div className="content-stack">
-              <SettingsSection
-                id="profile"
-                title="Business Profile"
-                description="Your business identity, contact information, and operating hours"
-              >
-                <BusinessProfileEditor />
-              </SettingsSection>
+            <SettingsSection
+              id="profile"
+              title="Business Profile"
+              description="Your business identity, contact information, and operating hours"
+            >
+              <BusinessProfileEditor />
 
-              <IndustryTemplateCard />
-            </div>
+              <div className="mt-6">
+                <IndustryTemplateCard />
+              </div>
+            </SettingsSection>
           )}
 
           {/* Services & Pricing Section */}
@@ -187,9 +196,13 @@ export default function BusinessBrainPage() {
               title="Services & Pricing"
               description="Manage your service catalog, menu items, and pricing rules"
             >
-              <div className="content-stack">
-                <QuoteReadinessCard />
+              <QuoteReadinessCard />
+
+              <div className="mt-6">
                 <PricingRulesEditor />
+              </div>
+
+              <div className="mt-6">
                 <ServiceCatalogEditor />
               </div>
             </SettingsSection>
@@ -213,8 +226,9 @@ export default function BusinessBrainPage() {
               title="Scheduling & Availability"
               description="Configure hours, busyness rules, and availability slots"
             >
-              <div className="content-stack">
-                <BusynessRulesEditor />
+              <BusynessRulesEditor />
+
+              <div className="mt-6">
                 <AvailabilityHub />
               </div>
             </SettingsSection>
@@ -227,13 +241,29 @@ export default function BusinessBrainPage() {
               title="Policies & Rules"
               description="Define business policies for cancellation, payment, HIPAA, and more"
             >
-              <div className="content-stack">
-                <RequiredQuestionsEditor />
+              <RequiredQuestionsEditor />
+
+              <div className="mt-6">
                 <AIBusinessPolicies />
+              </div>
+
+              <div className="mt-6">
                 <BookingDeliverySettings />
+              </div>
+
+              <div className="mt-6">
                 <FoodOrderSettings />
+              </div>
+
+              <div className="mt-6">
                 <DispatchDeliverySettings />
+              </div>
+
+              <div className="mt-6">
                 <MedicalHIPAASettings />
+              </div>
+
+              <div className="mt-6">
                 <BusinessPoliciesEditor />
               </div>
             </SettingsSection>
@@ -246,8 +276,9 @@ export default function BusinessBrainPage() {
               title="FAQs & Knowledge"
               description="Manage frequently asked questions and objection responses"
             >
-              <div className="content-stack">
-                <BusinessFAQEditor />
+              <BusinessFAQEditor />
+
+              <div className="mt-6">
                 <BusinessObjectionEditor />
               </div>
             </SettingsSection>

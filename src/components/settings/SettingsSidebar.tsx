@@ -108,8 +108,8 @@ export function SettingsSidebar({ activeSection, onSectionChange, config }: Sett
   };
 
   return (
-    <aside className="w-60 shrink-0 border-r bg-sidebar p-4 space-y-4 hidden md:block">
-      <div className="font-semibold text-base px-3 pt-1 pb-2">Settings</div>
+    <aside className="w-64 shrink-0 border-r bg-muted/30 p-4 space-y-6 hidden md:block">
+      <div className="font-semibold text-lg px-3">Settings</div>
 
       <nav className="space-y-4">
         {navGroups.map((group) => {
@@ -119,8 +119,8 @@ export function SettingsSidebar({ activeSection, onSectionChange, config }: Sett
           const isGroupActive = visibleItems.some((item) => item.id === activeSection);
 
           return (
-            <div key={group.id} className="space-y-0.5">
-              <div className="nav-section-header">
+            <div key={group.id} className="space-y-1">
+              <div className={cn("text-xs font-medium px-3 py-1 uppercase tracking-wider", group.colorClass)}>
                 {group.label}
               </div>
               {visibleItems.map((item) => (
@@ -138,7 +138,7 @@ export function SettingsSidebar({ activeSection, onSectionChange, config }: Sett
 
         {/* Advanced Section - Collapsible */}
         <Collapsible open={advancedOpen || activeSection === "developer"} onOpenChange={setAdvancedOpen}>
-          <CollapsibleTrigger className="flex items-center gap-2 w-full px-3 py-2 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider hover:text-foreground transition-colors">
+          <CollapsibleTrigger className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors">
             {advancedOpen || activeSection === "developer" ? (
               <ChevronDown className="h-3 w-3" />
             ) : (
@@ -146,7 +146,7 @@ export function SettingsSidebar({ activeSection, onSectionChange, config }: Sett
             )}
             Advanced
           </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-0.5 pt-1">
+          <CollapsibleContent className="space-y-1 pt-1">
             <SettingsNavItem
               icon={Bug}
               label="Developer Tools"

@@ -23,19 +23,19 @@ export function SettingsNavItem({
     <button
       onClick={onClick}
       className={cn(
-        "nav-item w-full",
+        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors text-sm",
         isActive
-          ? "nav-item-active"
-          : "nav-item-inactive"
+          ? "bg-primary/10 text-primary font-medium"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground"
       )}
     >
       <Icon className="h-4 w-4 shrink-0" />
-      <span className="flex-1 truncate text-left">{label}</span>
+      <span className="flex-1 truncate">{label}</span>
       {status === "attention" && (
         <span className="h-2 w-2 rounded-full bg-warning" />
       )}
       {status === "complete" && (
-        <span className="h-2 w-2 rounded-full bg-success" />
+        <span className="h-2 w-2 rounded-full bg-accent" />
       )}
       {badge && (
         <span className="text-xs bg-muted px-1.5 py-0.5 rounded">{badge}</span>

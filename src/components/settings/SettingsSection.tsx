@@ -9,12 +9,12 @@ interface SettingsSectionProps {
 
 export function SettingsSection({ title, description, children, id }: SettingsSectionProps) {
   return (
-    <div className="page-section" id={id}>
-      <div className="border-b border-border pb-4 mb-6">
-        <h2 className="text-lg font-semibold">{title}</h2>
-        <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{description}</p>
+    <div className="space-y-6" id={id}>
+      <div className="border-b pb-4">
+        <h2 className="text-xl font-semibold">{title}</h2>
+        <p className="text-sm text-muted-foreground mt-1">{description}</p>
       </div>
-      <div className="content-stack">{children}</div>
+      <div className="space-y-6">{children}</div>
     </div>
   );
 }
