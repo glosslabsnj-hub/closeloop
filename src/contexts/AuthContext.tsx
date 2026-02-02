@@ -1,7 +1,12 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tenant, TenantUser, UserRoleType, Subscription, AssistantSettings } from "@/types/database";
+import { toast } from "sonner";
+
+interface AdminSettings {
+  admin_active_tenant_id: string | null;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -14,6 +19,11 @@ interface AuthContextType {
   subscription: Subscription | null;
   assistantSettings: AssistantSettings | null;
   hasActiveSubscription: boolean;
+  // Admin tenant switching
+  effectiveTenantId: string | null;
+  effectiveTenant: Tenant | null;
+  setActiveTenantId: (tenantId: string) => Promise<void>;
+  // Methods
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -32,6 +42,94 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [assistantSettings, setAssistantSettings] = useState<AssistantSettings | null>(null);
+  
+  // Admin-specific state for tenant switching
+  const [adminSettings, setAdminSettings] = useState<AdminSettings | null>(null);
+  const [activeTenant, setActiveTenant] = useState<Tenant | null>(null);
+
+  // Computed: The effective tenant ID that should be used for all operations
+  const effectiveTenantId = isSuperAdmin && adminSettings?.admin_active_tenant_id
+    ? adminSettings.admin_active_tenant_id
+    : tenant?.id || null;
+
+  // Computed: The effective tenant object
+  const effectiveTenant = isSuperAdmin && activeTenant
+    ? activeTenant
+    : tenant;
+
+  // Fetch admin settings (admin_active_tenant_id) for super admins
+  const fetchAdminSettings = useCallback(async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("admin_settings")
+        .select("admin_active_tenant_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (error) {
+        console.warn("Failed to fetch admin settings:", error);
+        return;
+      }
+
+      setAdminSettings(data);
+
+      // If admin has an active tenant selected, fetch that tenant's data
+      if (data?.admin_active_tenant_id) {
+        const { data: tenantData } = await supabase
+          .from("tenants")
+          .select("*")
+          .eq("id", data.admin_active_tenant_id)
+          .single();
+
+        if (tenantData) {
+          setActiveTenant(tenantData as Tenant);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching admin settings:", error);
+    }
+  }, []);
+
+  // Set the active tenant for admin testing
+  const setActiveTenantId = useCallback(async (tenantId: string) => {
+    if (!user || !isSuperAdmin) {
+      console.warn("setActiveTenantId called without super admin privileges");
+      return;
+    }
+
+    try {
+      // Upsert admin settings
+      const { error } = await supabase
+        .from("admin_settings")
+        .upsert({
+          user_id: user.id,
+          admin_active_tenant_id: tenantId,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: "user_id",
+        });
+
+      if (error) throw error;
+
+      // Update local state
+      setAdminSettings({ admin_active_tenant_id: tenantId });
+
+      // Fetch the selected tenant's data
+      const { data: tenantData } = await supabase
+        .from("tenants")
+        .select("*")
+        .eq("id", tenantId)
+        .single();
+
+      if (tenantData) {
+        setActiveTenant(tenantData as Tenant);
+        toast.success(`Switched to ${tenantData.name}`);
+      }
+    } catch (error: any) {
+      console.error("Failed to set active tenant:", error);
+      toast.error("Failed to switch tenant");
+    }
+  }, [user, isSuperAdmin]);
 
   const fetchTenantData = async (userId: string) => {
     try {
@@ -42,10 +140,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq("user_id", userId)
         .single();
 
-      if (roleData?.role === "super_admin") {
+      const isAdmin = roleData?.role === "super_admin";
+      if (isAdmin) {
         setIsSuperAdmin(true);
         setUserRole("super_admin");
-        // Don't return early - super_admins may also have tenant data for testing
+        // Fetch admin settings for super admins
+        await fetchAdminSettings(userId);
       }
 
       // Fetch tenant user
@@ -57,7 +157,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (tenantUserData) {
         setTenantUser(tenantUserData);
-        setUserRole(tenantUserData.role);
+        if (!isAdmin) {
+          setUserRole(tenantUserData.role);
+        }
 
         // Fetch tenant
         const { data: tenantData } = await supabase
@@ -191,6 +293,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         subscription,
         assistantSettings,
         hasActiveSubscription,
+        effectiveTenantId,
+        effectiveTenant,
+        setActiveTenantId,
         signIn,
         signUp,
         signOut,
