@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { requireAuthedTenant, requireInternalSecret, serviceClient } from "../_shared/tenant.ts";
+import { computeDistanceEta, DistanceEtaResult } from "../_shared/distance_eta.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -62,11 +63,14 @@ async function validateAccess(
  * - requested_date: Date in YYYY-MM-DD format
  * - requested_time: Time in HH:MM format (24h)
  * - duration_minutes: How long the appointment needs (default: 60)
+ * - destination_address: (optional) Customer address for distance-based ETA
  *
  * Returns:
  * - available: boolean - whether the slot is free
  * - conflict_reason: string | null - why it's not available
  * - alternative_slots: array of available times nearby
+ * - travel_eta: (if destination_address provided) distance/time info
+ * - not_serviceable: boolean - true if destination exceeds max service distance
  */
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -79,6 +83,7 @@ serve(async (req: Request) => {
       requested_date,
       requested_time,
       duration_minutes = 60,
+      destination_address,
     } = body;
     const requestedTenantId = body.tenant_id ?? body.tenantId ?? null;
 
@@ -220,15 +225,62 @@ serve(async (req: Request) => {
     // No conflicts - slot is available!
     console.log("Slot is AVAILABLE");
 
+    // ===== Distance-aware ETA (if destination provided) =====
+    let travelEta: DistanceEtaResult | null = null;
+    let notServiceable = false;
+
+    if (destination_address && typeof destination_address === "string" && destination_address.trim()) {
+      travelEta = await computeDistanceEta({
+        supabase,
+        tenantId,
+        destinationAddress: destination_address.trim(),
+      });
+
+      // If max distance exceeded, mark as not serviceable
+      if (travelEta.max_distance_exceeded) {
+        notServiceable = true;
+        console.log(`[check-availability] Destination exceeds max service distance`);
+      }
+    }
+
+    // Build response
+    const response: Record<string, unknown> = {
+      available: !notServiceable, // Not available if not serviceable
+      conflict_reason: notServiceable
+        ? "That location is outside our service area"
+        : null,
+      slot: {
+        start: requestedStart.toISOString(),
+        end: requestedEnd.toISOString(),
+      },
+      not_serviceable: notServiceable,
+    };
+
+    // Include travel ETA if computed
+    if (travelEta && travelEta.ok) {
+      response.travel_eta = {
+        distance_miles: travelEta.distance_miles,
+        drive_minutes: travelEta.drive_minutes,
+        rounded_travel_minutes: travelEta.rounded_travel_minutes,
+        provider_used: travelEta.provider_used,
+      };
+
+      // Add total ETA including travel (arrival time estimate)
+      if (travelEta.rounded_travel_minutes !== null) {
+        const arrivalTime = new Date(requestedStart.getTime() - travelEta.rounded_travel_minutes * 60 * 1000);
+        response.suggested_departure_time = arrivalTime.toISOString();
+        response.total_eta_minutes = travelEta.rounded_travel_minutes;
+      }
+    } else if (travelEta && !travelEta.ok) {
+      // Include error info (but don't fail the whole request)
+      response.travel_eta = {
+        error: travelEta.error,
+        provider_used: travelEta.provider_used,
+      };
+    }
+
     return new Response(
-      JSON.stringify({
-        available: true,
-        conflict_reason: null,
-        slot: {
-          start: requestedStart.toISOString(),
-          end: requestedEnd.toISOString(),
-        },
-      }),
+      JSON.stringify(response),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {
