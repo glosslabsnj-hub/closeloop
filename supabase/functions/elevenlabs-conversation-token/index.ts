@@ -199,6 +199,12 @@ serve(async (req) => {
       debug_tenant_source: resolutionSource,
       debug_tenant_endpoint: "elevenlabs-conversation-token",
       debug_tenant_field: tenantId ? "tenantId" : "none",
+      // Contract meta fields (for deploy verification)
+      business_brain_json_compact: "",
+      business_brain_json_hash: "",
+      business_brain_json_truncated: "false",
+      context_contract_version: "v1",
+      dynamic_variables_keys: "",
     };
 
     // If tenantId provided, build FULL business context using canonical builder
