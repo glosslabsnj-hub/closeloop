@@ -10,6 +10,12 @@ import {
   buildDynamicVariablesFromRegistry,
   getAllVariableKeys,
 } from "./voiceContextContract.ts";
+import {
+  getBusinessBrainSnapshot,
+  buildBusinessBrainSummary,
+  serializeBusinessBrainSnapshot,
+  type BusinessBrainSnapshot,
+} from "./getBusinessBrainSnapshot.ts";
 
 // ============= TYPE DEFINITIONS =============
 
@@ -222,6 +228,14 @@ export interface BusinessContext {
     greeting_script: string;
     fallback_script: string;
   };
+  // Business Brain snapshot (full structured data)
+  business_brain?: BusinessBrainSnapshot;
+  // Business Brain summary (AI-facing text summary)
+  business_brain_summary: string;
+  // Serialized Business Brain JSON for dynamic variables
+  business_brain_json: string;
+  // Whether JSON was truncated due to size
+  business_brain_json_truncated: boolean;
   // Metadata
   _meta: {
     channel: string;
@@ -232,6 +246,9 @@ export interface BusinessContext {
     missing_sections: string[];
   };
 }
+
+// Re-export snapshot type for consumers
+export type { BusinessBrainSnapshot } from "./getBusinessBrainSnapshot.ts";
 
 // ============= CONSTANTS =============
 
@@ -1313,6 +1330,10 @@ export async function buildBusinessContext(
       greeting_script: assistant?.greeting_script || "",
       fallback_script: assistant?.fallback_script || "",
     },
+    // Business Brain fields - initialized with defaults, populated below
+    business_brain_summary: "",
+    business_brain_json: "{}",
+    business_brain_json_truncated: false,
     _meta: {
       channel,
       session_id: sessionId,
@@ -1322,6 +1343,36 @@ export async function buildBusinessContext(
       missing_sections: missingSections,
     },
   };
+  
+  // ===== FETCH AND ATTACH BUSINESS BRAIN SNAPSHOT =====
+  try {
+    const businessBrainSnapshot = await getBusinessBrainSnapshot(supabase, {
+      tenantId,
+      locationId,
+    });
+    
+    // Generate summary and serialized JSON
+    const brainSummary = buildBusinessBrainSummary(businessBrainSnapshot);
+    const { json: brainJson, truncated: brainTruncated } = serializeBusinessBrainSnapshot(businessBrainSnapshot);
+    
+    // Attach to context
+    context.business_brain = businessBrainSnapshot;
+    context.business_brain_summary = brainSummary;
+    context.business_brain_json = brainJson;
+    context.business_brain_json_truncated = brainTruncated;
+    
+    // Log snapshot stats
+    console.log(`[buildBusinessContext] Business Brain attached:`, {
+      tenant_id: tenantId,
+      business_mode: businessBrainSnapshot._meta.business_mode,
+      section_counts: businessBrainSnapshot._meta.section_counts,
+      json_size: brainJson.length,
+      truncated: brainTruncated,
+    });
+  } catch (brainError) {
+    console.error(`[buildBusinessContext] Failed to fetch Business Brain:`, brainError);
+    // Context still valid without snapshot - fields already have defaults
+  }
   
   // ===== BUILD SYSTEM PROMPT =====
   const systemPrompt = buildSystemPrompt(context);
