@@ -58,6 +58,10 @@ This document provides a comprehensive inventory of all business context variabl
 | `context_menu_count` | string | computed | debug flag | ✅ | No |
 | `context_services_count` | string | computed | debug flag | ✅ | No |
 | `context_missing_sections` | string | computed | debug flag | ✅ | Yes |
+| `debug_tenant_id` | string | runtime | tenant resolution result | ✅ | Yes |
+| `debug_tenant_source` | string | runtime | resolution strategy used | ✅ | No |
+| `debug_tenant_endpoint` | string | runtime | which endpoint handled call | ✅ | No |
+| `debug_tenant_field` | string | runtime | which request field was used | ✅ | No |
 
 ---
 
@@ -93,7 +97,7 @@ This document provides a comprehensive inventory of all business context variabl
 - `greeting_script`, `fallback_script`, `tone`
 - `intent_rules_summary`, `required_questions_summary`
 - `memory_hints_summary`, `memory_enabled`
-- Debug flags: `context_*`
+- Debug flags: `context_*`, `debug_tenant_*`
 
 ### Food Mode (`business_mode = "food"`)
 - `menu_summary` (primary content)
@@ -288,7 +292,7 @@ Key variables available in ElevenLabs agent prompts:
 - `{{greeting_script}}` - Opening script
 - `{{tone}}` - Voice personality
 
-### Total Variables: 44
+### Total Variables: 48
 
 - Core identifiers: 8
 - Caller info: 2
@@ -300,3 +304,40 @@ Key variables available in ElevenLabs agent prompts:
 - Intelligence: 4
 - Pricing/ETA: 4
 - Debug flags: 6
+- Routing debug: 4
+
+---
+
+## I. Voice-Activated Debug Commands
+
+### "Debug Routing" Command
+
+When a caller says **"debug routing"** on a call, the AI can read back tenant resolution information without needing Supabase UI access.
+
+**Available Debug Variables:**
+
+| Variable | Description | Example Values |
+|----------|-------------|----------------|
+| `debug_tenant_id` | The resolved tenant UUID | `"abc123..."` |
+| `debug_tenant_source` | How tenant was resolved | `"phone_numbers"`, `"tenants_phone_public"`, `"explicit"`, `"lookup_failed"` |
+| `debug_tenant_endpoint` | Which endpoint handled the call | `"elevenlabs-init"`, `"elevenlabs-conversation-token"` |
+| `debug_tenant_field` | Which request field contained the routing info | `"To"`, `"to_number"`, `"call.to"`, `"tenantId"`, `"none"` |
+
+**Example AI Response:**
+
+> "Debug routing: Tenant ID is abc-one-two-three. Source was phone numbers table. Endpoint is elevenlabs-init. Field used was capital T-O."
+
+### Source Values Explained
+
+| Source | Meaning |
+|--------|---------|
+| `phone_numbers` | Resolved via `phone_numbers` table lookup |
+| `tenants_phone_public` | Resolved via `tenants.phone_public` fallback |
+| `explicit` | Tenant ID was explicitly provided (browser test) |
+| `lookup_failed` | No tenant found or validation failed |
+
+### Security Notes
+
+- **No PII**: These debug vars contain no phone numbers or addresses
+- **No HIPAA risk**: Only contains routing metadata
+- **Production safe**: Can be enabled in all environments

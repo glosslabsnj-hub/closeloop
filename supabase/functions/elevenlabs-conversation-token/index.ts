@@ -178,6 +178,11 @@ serve(async (req) => {
       memory_enabled: false,
       tenant_id: "",
       location_id: "",
+      // Debug routing vars (spoken only when caller says "debug routing")
+      debug_tenant_id: tenantId || "",
+      debug_tenant_source: resolutionSource,
+      debug_tenant_endpoint: "elevenlabs-conversation-token",
+      debug_tenant_field: tenantId ? "tenantId" : "none",
     };
 
     // If tenantId provided, build FULL business context using canonical builder
@@ -209,7 +214,13 @@ serve(async (req) => {
 
         // Build flattened dynamic variables using shared helper
         dynamicVariables = buildDynamicVariables(context, "browser_test", null);
-        
+
+        // Re-add debug routing vars after buildDynamicVariables overwrites
+        dynamicVariables.debug_tenant_id = tenantId || "";
+        dynamicVariables.debug_tenant_source = resolutionSource;
+        dynamicVariables.debug_tenant_endpoint = "elevenlabs-conversation-token";
+        dynamicVariables.debug_tenant_field = "tenantId";
+
         // Precompute tomorrow's slots for strict enforcement
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);

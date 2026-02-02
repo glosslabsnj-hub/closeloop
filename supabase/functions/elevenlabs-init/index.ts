@@ -95,6 +95,11 @@ function getEmptyDynamicVariables(): Record<string, string> {
     context_menu_count: "0",
     context_services_count: "0",
     context_missing_sections: "",
+    // Debug routing vars (spoken only when caller says "debug routing")
+    debug_tenant_id: "",
+    debug_tenant_source: "",
+    debug_tenant_endpoint: "elevenlabs-init",
+    debug_tenant_field: "",
   };
 }
 
@@ -198,6 +203,7 @@ serve(async (req) => {
   let callSid = "";
   let conversationId = "";
   let sessionId = "";
+  let toFieldUsed = ""; // Track which request field contained the "To" number
 
   let rawBody = "";
   
@@ -250,16 +256,29 @@ serve(async (req) => {
     }
 
     // Extract phone numbers from various possible field names
-    // ElevenLabs payload structure can vary
-    toNumber = String(
-      requestBody.To || 
-      requestBody.to || 
-      requestBody.to_number || 
-      requestBody.called_number ||
-      requestBody.called ||
-      (requestBody.call as Record<string, unknown>)?.to ||
-      ""
-    );
+    // ElevenLabs payload structure can vary - track which field was used
+    if (requestBody.To) {
+      toNumber = String(requestBody.To);
+      toFieldUsed = "To";
+    } else if (requestBody.to) {
+      toNumber = String(requestBody.to);
+      toFieldUsed = "to";
+    } else if (requestBody.to_number) {
+      toNumber = String(requestBody.to_number);
+      toFieldUsed = "to_number";
+    } else if (requestBody.called_number) {
+      toNumber = String(requestBody.called_number);
+      toFieldUsed = "called_number";
+    } else if (requestBody.called) {
+      toNumber = String(requestBody.called);
+      toFieldUsed = "called";
+    } else if ((requestBody.call as Record<string, unknown>)?.to) {
+      toNumber = String((requestBody.call as Record<string, unknown>).to);
+      toFieldUsed = "call.to";
+    } else {
+      toNumber = "";
+      toFieldUsed = "none";
+    }
     
     fromNumber = String(
       requestBody.From || 
@@ -541,6 +560,12 @@ serve(async (req) => {
 
   // Build safe dynamic variables
   const dynamicVariables = buildSafeDynamicVars(context, callerPhoneE164, customerId);
+
+  // Add debug routing vars (spoken only when caller says "debug routing")
+  dynamicVariables.debug_tenant_id = tenantId || "";
+  dynamicVariables.debug_tenant_source = resolutionSource;
+  dynamicVariables.debug_tenant_endpoint = "elevenlabs-init";
+  dynamicVariables.debug_tenant_field = toFieldUsed;
 
   // Apply HIPAA filtering if needed
   if (context?.safety.hipaa_mode) {
