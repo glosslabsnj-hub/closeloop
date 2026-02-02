@@ -309,10 +309,20 @@ serve(async (req) => {
   const callerPhoneE164 = normalizeToE164(fromNumber);
   const toPhoneE164 = normalizeToE164(toNumber) || toNumber;
 
-  // Lookup tenant by "To" phone number
+  // Enhanced logging: show all extracted phone numbers for debugging
+  console.log(`[elevenlabs-init] Phone extraction:`, {
+    raw_to: toNumber,
+    raw_from: fromNumber?.substring(0, 8) + "...",
+    normalized_to: toPhoneE164,
+    normalized_from: callerPhoneE164?.substring(0, 8) + "...",
+  });
+
+  // Lookup tenant by "To" phone number with multiple fallback strategies
   let tenantId: string | null = null;
   let locationId: string | null = null;
+  let resolutionSource: "phone_numbers" | "tenants_phone_public" | "explicit" | "lookup_failed" = "lookup_failed";
 
+  // Strategy 1: Lookup in phone_numbers table (primary method)
   try {
     const { data: phoneRecord, error: phoneError } = await supabase
       .from("phone_numbers")
@@ -322,37 +332,94 @@ serve(async (req) => {
       .maybeSingle();
 
     if (phoneError) {
-      console.error("[elevenlabs-init] Database error:", phoneError);
-      await supabase.from("ai_event_logs").insert({
-        tenant_id: null,
-        stage: "elevenlabs_init_db_error",
-        error_message: phoneError.message,
-        event_data: { to_number: toPhoneE164, code: phoneError.code },
-      });
+      console.error("[elevenlabs-init] phone_numbers lookup error:", phoneError);
     } else if (phoneRecord) {
       tenantId = phoneRecord.tenant_id;
       locationId = phoneRecord.location_id;
-      console.log(`[elevenlabs-init] Resolved tenant: ${tenantId}, location: ${locationId}`);
-    } else {
-      console.warn(`[elevenlabs-init] No tenant found for number: ${toPhoneE164}`);
-      await supabase.from("ai_event_logs").insert({
-        tenant_id: null,
-        stage: "elevenlabs_init_tenant_not_found",
-        error_message: `No active tenant found for number: ${toPhoneE164}`,
-        event_data: { to_number: toPhoneE164, from_number: callerPhoneE164?.substring(0, 8) },
-      });
+      resolutionSource = "phone_numbers";
+      console.log(`[elevenlabs-init] Resolved via phone_numbers: tenant=${tenantId}, location=${locationId}`);
     }
   } catch (lookupError) {
-    console.error("[elevenlabs-init] Tenant lookup failed:", lookupError);
+    console.error("[elevenlabs-init] phone_numbers lookup failed:", lookupError);
   }
 
-  // If no tenant found, return safe empty response
+  // Strategy 2: Fallback to tenants.phone_public if phone_numbers didn't match
+  if (!tenantId && toPhoneE164) {
+    try {
+      // Try exact match first
+      const { data: tenantByPhone } = await supabase
+        .from("tenants")
+        .select("id")
+        .eq("phone_public", toPhoneE164)
+        .maybeSingle();
+
+      if (tenantByPhone) {
+        tenantId = tenantByPhone.id;
+        resolutionSource = "tenants_phone_public";
+        console.log(`[elevenlabs-init] Resolved via tenants.phone_public: tenant=${tenantId}`);
+      } else {
+        // Try without + prefix (some systems store without it)
+        const phoneWithoutPlus = toPhoneE164.replace(/^\+/, "");
+        const { data: tenantByPhoneAlt } = await supabase
+          .from("tenants")
+          .select("id")
+          .or(`phone_public.eq.${toPhoneE164},phone_public.eq.${phoneWithoutPlus},phone_public.eq.+${phoneWithoutPlus}`)
+          .maybeSingle();
+
+        if (tenantByPhoneAlt) {
+          tenantId = tenantByPhoneAlt.id;
+          resolutionSource = "tenants_phone_public";
+          console.log(`[elevenlabs-init] Resolved via tenants.phone_public (alt format): tenant=${tenantId}`);
+        }
+      }
+    } catch (fallbackError) {
+      console.error("[elevenlabs-init] tenants.phone_public fallback failed:", fallbackError);
+    }
+  }
+
+  // Log tenant resolution result (HIPAA-safe: no raw phone numbers in event_data)
+  try {
+    await supabase.from("ai_event_logs").insert({
+      tenant_id: tenantId,
+      stage: "voice_tenant_resolved",
+      event_data: {
+        tenant_id: tenantId,
+        source: resolutionSource,
+        has_location_id: !!locationId,
+        to_number_prefix: toPhoneE164?.substring(0, 8),
+        session_id: sessionId,
+      },
+    });
+  } catch (logError) {
+    console.error("[elevenlabs-init] Failed to log voice_tenant_resolved:", logError);
+  }
+
+  // If no tenant found, log and return safe empty response
   if (!tenantId) {
+    console.warn(`[elevenlabs-init] TENANT NOT FOUND for number: ${toPhoneE164}`);
+    console.warn(`[elevenlabs-init] To fix: Add this number to phone_numbers table OR set as tenants.phone_public`);
+
+    await supabase.from("ai_event_logs").insert({
+      tenant_id: null,
+      stage: "elevenlabs_init_tenant_not_found",
+      error_message: `No tenant found for number. Tried: phone_numbers table, tenants.phone_public`,
+      event_data: {
+        to_number_prefix: toPhoneE164?.substring(0, 8),
+        from_number_prefix: callerPhoneE164?.substring(0, 8),
+        strategies_tried: ["phone_numbers", "tenants_phone_public"],
+      },
+    });
+
     const emptyVars = buildSafeDynamicVars(null, callerPhoneE164, null);
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         dynamic_variables: emptyVars,
         client_data: emptyVars,
+        _debug: {
+          error: "tenant_not_found",
+          to_number_prefix: toPhoneE164?.substring(0, 8),
+          resolution_source: resolutionSource,
+        },
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

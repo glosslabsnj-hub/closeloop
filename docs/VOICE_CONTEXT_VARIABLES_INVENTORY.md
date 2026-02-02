@@ -12,8 +12,8 @@ This document provides a comprehensive inventory of all business context variabl
 
 | Variable Key | Type | Source Table(s) | Source Field(s) | HIPAA Safe | Can Be Empty |
 |-------------|------|-----------------|-----------------|------------|--------------|
-| `tenant_id` | string | `tenants` | `id` | ✅ | No |
-| `location_id` | string | session metadata | `_meta.location_id` | ✅ | Yes |
+| `tenant_id` | string | voice routing | resolved from `phone_numbers` or `tenants.phone_public` | ✅ | No |
+| `location_id` | string | voice routing | `phone_numbers.location_id` | ✅ | Yes |
 | `business_name` | string | `tenants` | `business_name` | ✅ | No (defaults to "Our Business") |
 | `businessname` | string | `tenants` | `business_name` (alias) | ✅ | No (defaults to "Our Business") |
 | `business_mode` | string | `tenants` | `business_mode` | ✅ | No (defaults to "general") |
@@ -194,14 +194,54 @@ The `/debug/ai-context` page reads these variables to verify context completenes
 
 ---
 
-## G. Logging Events
+## G. Tenant Resolution
+
+### How tenant_id is Resolved
+
+Voice sessions resolve tenant_id through these strategies (in order):
+
+1. **Phone Calls (elevenlabs-init):**
+   - **Primary:** Lookup `phone_numbers` table by `to_number` (E.164 normalized)
+   - **Fallback:** Lookup `tenants.phone_public` by `to_number`
+   - **If no match:** Returns empty `tenant_id` (no demo fallback)
+
+2. **Browser Tests (elevenlabs-conversation-token):**
+   - Receives `tenantId` from request body (from authenticated user's tenant)
+   - Validates tenant exists in database
+
+### Resolution Source Tracking
+
+The `voice_tenant_resolved` event logs how tenant was resolved:
+
+```typescript
+event_data: {
+  tenant_id: "uuid",
+  source: "phone_numbers" | "tenants_phone_public" | "explicit" | "lookup_failed",
+  has_location_id: boolean,
+  channel: "voice" | "browser_test"
+}
+```
+
+### Troubleshooting "Wrong Tenant"
+
+If calls are using the wrong tenant:
+1. Check `ai_event_logs` for `voice_tenant_resolved` events
+2. Verify the business phone number is in `phone_numbers` table with correct `tenant_id`
+3. Or verify `tenants.phone_public` matches the Twilio/ElevenLabs "To" number
+
+---
+
+## H. Logging Events
 
 ### Existing Events
+- `voice_tenant_resolved` - Logged when tenant is resolved from phone number
+- `voice_context_injected` - Logged when dynamic variables are injected
 - `eta_computed` - Logged when ETA is calculated (includes distance, duration, confidence)
 - `eta_fallback` - Logged when falling back to baseline estimate
 - `eta_blocked_missing_address` - Logged when address geocoding fails
+- `elevenlabs_init_tenant_not_found` - Logged when no tenant matches the phone number
 
-### Recommended New Event
+### voice_context_injected Event
 
 ```typescript
 // Log at session start to track what context was injected

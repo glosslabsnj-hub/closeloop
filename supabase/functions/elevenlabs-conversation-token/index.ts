@@ -49,14 +49,54 @@ serve(async (req) => {
     let tenantId: string | null = null;
     let locationId: string | null = null;
     let connectionType: "webrtc" | "websocket" = "webrtc"; // Default to WebRTC
+    let resolutionSource: "explicit" | "lookup_failed" = "lookup_failed";
 
     try {
       const body = await req.json();
       tenantId = body.tenantId;
       locationId = body.locationId || null;
       connectionType = body.connectionType || "webrtc";
+
+      if (tenantId) {
+        resolutionSource = "explicit";
+      }
     } catch {
       // No body or invalid JSON - continue without tenant context
+    }
+
+    // Validate tenantId exists in database (prevents using non-existent tenants)
+    if (tenantId && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      const supabaseForValidation = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+      try {
+        const { data: tenant, error } = await supabaseForValidation
+          .from("tenants")
+          .select("id, name")
+          .eq("id", tenantId)
+          .maybeSingle();
+
+        if (error || !tenant) {
+          console.warn(`[elevenlabs-token] Invalid tenantId provided: ${tenantId}`);
+          resolutionSource = "lookup_failed";
+        } else {
+          console.log(`[elevenlabs-token] Validated tenant: ${tenant.name} (${tenantId})`);
+        }
+
+        // Log tenant resolution for browser tests (HIPAA-safe)
+        await supabaseForValidation.from("ai_event_logs").insert({
+          tenant_id: tenantId,
+          stage: "voice_tenant_resolved",
+          event_data: {
+            tenant_id: tenantId,
+            source: resolutionSource,
+            has_location_id: !!locationId,
+            channel: "browser_test",
+            connection_type: connectionType,
+          },
+        });
+      } catch (validationError) {
+        console.error("[elevenlabs-token] Tenant validation failed:", validationError);
+      }
     }
 
     // Initialize dynamic variables with safe defaults
