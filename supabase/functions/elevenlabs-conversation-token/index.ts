@@ -81,8 +81,42 @@ serve(async (req) => {
       // No body or invalid JSON - continue without tenant context
     }
 
-    // Validate tenantId exists in database (prevents using non-existent tenants)
-    if (tenantId && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+    // CRITICAL: Require explicit tenant_id - no fallbacks allowed
+    if (!tenantId) {
+      console.error("[elevenlabs-token] Missing tenant_id - no fallback allowed");
+      
+      if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+        try {
+          const supabaseForLog = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+          await supabaseForLog.from("ai_event_logs").insert({
+            tenant_id: null,
+            stage: "voice_tenant_missing",
+            error_message: "tenant_id required for voice session",
+            event_data: {
+              endpoint: "elevenlabs-conversation-token",
+              connection_type: connectionType,
+            },
+          });
+        } catch (logError) {
+          console.error("[elevenlabs-token] Failed to log missing tenant:", logError);
+        }
+      }
+
+      return new Response(
+        JSON.stringify({
+          error: "tenant_id required for voice session",
+          _debug: {
+            endpoint: "elevenlabs-conversation-token",
+            reason: "no_tenant_id_provided",
+          },
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate tenantId exists in database
+    let tenantValidated = false;
+    if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
       const supabaseForValidation = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
       try {
@@ -93,11 +127,21 @@ serve(async (req) => {
           .maybeSingle();
 
         if (error || !tenant) {
-          console.warn(`[elevenlabs-token] Invalid tenantId provided: ${tenantId}`);
-          resolutionSource = "lookup_failed";
-        } else {
-          console.log(`[elevenlabs-token] Validated tenant: ${tenant.name} (${tenantId})`);
+          console.error(`[elevenlabs-token] Invalid tenantId: ${tenantId}`);
+          return new Response(
+            JSON.stringify({
+              error: "Invalid tenant_id - tenant not found",
+              _debug: {
+                endpoint: "elevenlabs-conversation-token",
+                tenant_id: tenantId,
+              },
+            }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
         }
+
+        tenantValidated = true;
+        console.log(`[elevenlabs-token] Validated tenant: ${tenant.name} (${tenantId})`);
 
         // Log tenant resolution for browser tests (HIPAA-safe)
         await supabaseForValidation.from("ai_event_logs").insert({
@@ -105,6 +149,7 @@ serve(async (req) => {
           stage: "voice_tenant_resolved",
           event_data: {
             tenant_id: tenantId,
+            tenant_name: tenant.name,
             source: resolutionSource,
             has_location_id: !!locationId,
             channel: "browser_test",
@@ -113,43 +158,14 @@ serve(async (req) => {
         });
       } catch (validationError) {
         console.error("[elevenlabs-token] Tenant validation failed:", validationError);
+        return new Response(
+          JSON.stringify({
+            error: "Tenant validation failed",
+            _debug: { endpoint: "elevenlabs-conversation-token" },
+          }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
-    }
-
-    // TRIPWIRE: Block demo tenant from being used in voice sessions
-    const DEMO_TENANT_ID = "a0000000-0000-0000-0000-000000000001";
-    if (tenantId === DEMO_TENANT_ID) {
-      console.error(`[elevenlabs-token] TRIPWIRE: Blocked demo tenant ${DEMO_TENANT_ID}`);
-
-      if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
-        try {
-          const supabaseForTripwire = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-          await supabaseForTripwire.from("ai_event_logs").insert({
-            tenant_id: tenantId,
-            stage: "voice_tenant_tripwire",
-            error_message: "Demo tenant fallback blocked",
-            event_data: {
-              endpoint: "elevenlabs-conversation-token",
-              tenant_id: tenantId,
-              has_location_id: !!locationId,
-              connection_type: connectionType,
-            },
-          });
-        } catch (logError) {
-          console.error("[elevenlabs-token] Failed to log tripwire:", logError);
-        }
-      }
-
-      return new Response(
-        JSON.stringify({
-          error: "tenant resolution failed: demo tenant fallback blocked",
-          _debug: {
-            tripwire: true,
-            endpoint: "elevenlabs-conversation-token",
-          },
-        }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
     }
 
     // Initialize dynamic variables with safe defaults

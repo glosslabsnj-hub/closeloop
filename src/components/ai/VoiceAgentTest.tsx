@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Phone, PhoneOff, Mic, MicOff, Volume2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { DynamicVariablesDebugPanel } from "@/components/admin/DynamicVariablesDebugPanel";
 
 interface DebugEvent {
   timestamp: number;
@@ -15,12 +16,13 @@ interface DebugEvent {
 }
 
 export default function VoiceAgentTest() {
-  const { tenant } = useAuth();
+  const { effectiveTenantId, isSuperAdmin } = useAuth();
   const { toast } = useToast();
   const [isConnecting, setIsConnecting] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [debugEvents, setDebugEvents] = useState<DebugEvent[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [lastDynamicVars, setLastDynamicVars] = useState<Record<string, any> | null>(null);
 
   const addDebugEvent = useCallback((type: string, data: any) => {
     setDebugEvents(prev => [...prev.slice(-19), { timestamp: Date.now(), type, data }]);
@@ -82,10 +84,11 @@ export default function VoiceAgentTest() {
   });
 
   const startConversation = useCallback(async () => {
-    console.log("🎙️ [VoiceTest] Starting conversation flow...", { tenantId: tenant?.id });
+    console.log("🎙️ [VoiceTest] Starting conversation flow...", { tenantId: effectiveTenantId });
     setIsConnecting(true);
     setDebugEvents([]); // Clear previous debug events
     setConversationId(null);
+    setLastDynamicVars(null);
 
     try {
       // Request microphone permission
@@ -99,11 +102,11 @@ export default function VoiceAgentTest() {
       let connectionMode: "webrtc" | "websocket" = "webrtc";
 
       console.log("🎙️ [VoiceTest] Step 2: Fetching token (WebRTC mode)...");
-      addDebugEvent("TOKEN_REQUEST", { mode: "webrtc" });
+      addDebugEvent("TOKEN_REQUEST", { mode: "webrtc", tenantId: effectiveTenantId });
 
       const { data, error } = await supabase.functions.invoke(
         "elevenlabs-conversation-token",
-        { body: { tenantId: tenant?.id, connectionType: connectionMode } }
+        { body: { tenantId: effectiveTenantId, connectionType: connectionMode } }
       );
 
       if (error) {
@@ -131,6 +134,11 @@ export default function VoiceAgentTest() {
         conversationId: data?.conversationId,
         deployedVersion: data?.deployedVersion,
       });
+
+      // Store dynamic variables for debug panel
+      if (data?.dynamicVariables) {
+        setLastDynamicVars(data.dynamicVariables);
+      }
 
       // Store token/id if returned (for debug display)
       const debugId = (data?.token as string | undefined) || (data?.conversationId as string | undefined) || null;
@@ -181,7 +189,7 @@ export default function VoiceAgentTest() {
     } finally {
       setIsConnecting(false);
     }
-  }, [conversation, tenant?.id, toast, addDebugEvent]);
+  }, [conversation, effectiveTenantId, toast, addDebugEvent]);
 
   const stopConversation = useCallback(async () => {
     await conversation.endSession();
@@ -323,6 +331,14 @@ export default function VoiceAgentTest() {
               })}
             </div>
           </details>
+        )}
+
+        {/* Admin Debug Panel */}
+        {isSuperAdmin && (
+          <DynamicVariablesDebugPanel
+            tenantId={effectiveTenantId}
+            dynamicVariables={lastDynamicVars}
+          />
         )}
       </CardContent>
     </Card>

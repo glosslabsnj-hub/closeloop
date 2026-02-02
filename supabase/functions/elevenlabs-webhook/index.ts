@@ -612,8 +612,8 @@ async function processCallData(
   });
 
   // ===== COMPUTE QUOTES (if customer asked about price/time) =====
-  const hasPricingQuestion = detectPricingQuestion(transcriptText);
-  const hasEtaQuestion = detectEtaQuestion(transcriptText);
+  const hasPricingQuestion = detectPricingQuestion(transcriptText || "");
+  const hasEtaQuestion = detectEtaQuestion(transcriptText || "");
 
   if (hasPricingQuestion || hasEtaQuestion) {
     const contextData = existingContext as any;
@@ -654,9 +654,8 @@ async function processCallData(
           busynessRules,
           mode: tenantBusinessMode,
           queueMetrics: {
-            current_queue_length: 0, // Could fetch from real queue later
-            avg_service_time_minutes: 30,
-            busyness_level: "medium",
+            busynessLevel: "medium",
+            queueLength: 0,
           },
           inputs,
         });
