@@ -4665,6 +4665,7 @@ export type Database = {
         Args: { _tenant_id: string }
         Returns: undefined
       }
+      is_tenant_member: { Args: { p_tenant_id: string }; Returns: boolean }
       normalize_phone_e164: { Args: { phone: string }; Returns: string }
       resolve_customer: {
         Args: {
