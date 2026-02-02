@@ -88,11 +88,16 @@ serve(async (req: Request) => {
         },
         settings: settings
           ? {
-              enabled: settings.enabled,
+              distance_provider_enabled: settings.distance_provider_enabled,
               provider: settings.provider,
-              fallback_mode: settings.fallback_mode,
+              base_lat: settings.base_lat ? "[CONFIGURED]" : null,
+              base_lng: settings.base_lng ? "[CONFIGURED]" : null,
+              mapbox_route_profile: settings.mapbox_route_profile,
+              eta_base_minutes: settings.eta_base_minutes,
+              eta_per_mile_minutes: settings.eta_per_mile_minutes,
+              eta_min_minutes: settings.eta_min_minutes,
+              eta_max_minutes: settings.eta_max_minutes,
               eta_rounding_minutes: settings.eta_rounding_minutes,
-              max_distance_miles: settings.max_distance_miles,
             }
           : null,
         destination_provided: "[ADDRESS PROVIDED]",

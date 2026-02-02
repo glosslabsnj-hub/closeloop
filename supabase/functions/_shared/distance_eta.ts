@@ -50,15 +50,20 @@ interface TenantDistanceConfig {
   eta_max_minutes: number | null;
 }
 
-/** Legacy tenant_distance_settings table */
+/** tenant_distance_settings table (Business Brain) */
 interface DistanceSettings {
   tenant_id: string;
-  enabled: boolean;
+  distance_provider_enabled: boolean;
   provider: string;
-  fallback_mode: string;
-  fallback_minutes_per_mile: number;
+  base_lat: number | null;
+  base_lng: number | null;
+  base_place_name: string | null;
+  mapbox_route_profile: string;
+  eta_base_minutes: number;
+  eta_per_mile_minutes: number | null;
+  eta_min_minutes: number | null;
+  eta_max_minutes: number | null;
   eta_rounding_minutes: number;
-  max_distance_miles: number | null;
 }
 
 interface GoogleDistanceMatrixResponse {
@@ -204,24 +209,28 @@ export async function computeDistanceEta(
     }
 
     // If no settings row or disabled, return early
-    if (!settings || !settings.enabled) {
+    if (!settings || !settings.distance_provider_enabled) {
       logDistanceEta(tenantId, "none", true, false, "disabled_or_no_config");
       return disabledResult;
     }
 
     const distanceSettings = settings as DistanceSettings;
 
+    // Get origin coordinates (prefer base_lat/lng from settings, fallback to tenant address)
+    let originLat = distanceSettings.base_lat;
+    let originLng = distanceSettings.base_lng;
     const originAddress = tenantConfig.address;
-    if (!originAddress || originAddress.trim().length < 5) {
-      logDistanceEta(tenantId, "none", false, false, "missing_origin_address");
+
+    if ((originLat === null || originLng === null) && (!originAddress || originAddress.trim().length < 5)) {
+      logDistanceEta(tenantId, "none", false, false, "missing_origin_coords_and_address");
       return {
         ...disabledResult,
         ok: false,
-        error: "Tenant base address not configured",
+        error: "Tenant base location not configured (no coordinates or address)",
       };
     }
 
-    // ===== 4. Call distance provider (legacy path) =====
+    // ===== 4. Call distance provider =====
     let providerResult: {
       ok: boolean;
       distance_meters: number | null;
@@ -230,17 +239,27 @@ export async function computeDistanceEta(
     } = { ok: false, distance_meters: null, duration_seconds: null, error: null };
 
     const provider = distanceSettings.provider;
+    const routeProfile = distanceSettings.mapbox_route_profile || "mapbox/driving-traffic";
 
     if (provider === "google") {
-      providerResult = await callGoogleDistanceMatrix(originAddress, destinationAddress);
+      // Google needs address strings
+      const originStr = originAddress || `${originLat},${originLng}`;
+      providerResult = await callGoogleDistanceMatrix(originStr, destinationAddress);
     } else if (provider === "mapbox") {
-      // Use new Mapbox implementation
-      const mapboxResult = await callMapboxDirections(
-        { address: originAddress },
-        { address: destinationAddress },
-        tenantConfig.mapbox_route_profile
-      );
-      providerResult = mapboxResult;
+      // Mapbox can use coordinates or addresses
+      if (originLat !== null && originLng !== null) {
+        providerResult = await callMapboxDirections(
+          { lat: originLat, lng: originLng },
+          { address: destinationAddress },
+          routeProfile
+        );
+      } else if (originAddress) {
+        providerResult = await callMapboxDirections(
+          { address: originAddress },
+          { address: destinationAddress },
+          routeProfile
+        );
+      }
     } else if (provider === "osrm") {
       providerResult = { ok: false, distance_meters: null, duration_seconds: null, error: "OSRM provider not yet implemented" };
     } else if (provider === "none") {
@@ -260,21 +279,13 @@ export async function computeDistanceEta(
       drive_minutes = providerResult.duration_seconds / SECONDS_PER_MINUTE;
       provider_used = provider as DistanceEtaResult["provider_used"];
     } else {
-      if (distanceSettings.fallback_mode === "per_mile") {
-        if (providerResult.distance_meters !== null) {
-          distance_miles = providerResult.distance_meters / METERS_PER_MILE;
-        } else {
-          logDistanceEta(tenantId, "fallback_per_mile", false, false, "no_distance_data_for_fallback");
-          return {
-            ...disabledResult,
-            ok: false,
-            error: "Distance provider failed and no distance data available for fallback",
-          };
-        }
-
-        drive_minutes = distance_miles * distanceSettings.fallback_minutes_per_mile;
+      // Use eta_per_mile_minutes as fallback if configured
+      const etaPerMile = distanceSettings.eta_per_mile_minutes;
+      if (etaPerMile !== null && etaPerMile > 0 && providerResult.distance_meters !== null) {
+        distance_miles = providerResult.distance_meters / METERS_PER_MILE;
+        drive_minutes = distanceSettings.eta_base_minutes + distance_miles * etaPerMile;
         provider_used = "fallback_per_mile";
-        console.log(`[distance_eta] Using fallback: ${distance_miles.toFixed(2)} mi * ${distanceSettings.fallback_minutes_per_mile} = ${drive_minutes.toFixed(1)} min`);
+        console.log(`[distance_eta] Using fallback: ${distanceSettings.eta_base_minutes} base + ${distance_miles.toFixed(2)} mi * ${etaPerMile} = ${drive_minutes.toFixed(1)} min`);
       } else {
         logDistanceEta(tenantId, "none", false, false, providerResult.error || "provider_failed");
         return {
@@ -285,14 +296,23 @@ export async function computeDistanceEta(
       }
     }
 
+    // Add base prep time
+    drive_minutes += distanceSettings.eta_base_minutes;
+
+    // Apply min/max clamps
+    if (distanceSettings.eta_min_minutes !== null && drive_minutes < distanceSettings.eta_min_minutes) {
+      drive_minutes = distanceSettings.eta_min_minutes;
+    }
+    if (distanceSettings.eta_max_minutes !== null && drive_minutes > distanceSettings.eta_max_minutes) {
+      drive_minutes = distanceSettings.eta_max_minutes;
+    }
+
     // ===== 6. Apply rounding =====
     const roundingMinutes = distanceSettings.eta_rounding_minutes || 5;
     const rounded_travel_minutes = Math.ceil(drive_minutes / roundingMinutes) * roundingMinutes;
 
-    // ===== 7. Check max distance cutoff =====
-    const max_distance_exceeded =
-      distanceSettings.max_distance_miles !== null &&
-      distance_miles > distanceSettings.max_distance_miles;
+    // ===== 7. Check max distance cutoff (use eta_max_minutes as proxy) =====
+    const max_distance_exceeded = false; // Removed - use eta_max_minutes clamping instead
 
     logDistanceEta(tenantId, provider_used, true, max_distance_exceeded, null);
 
