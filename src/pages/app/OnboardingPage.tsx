@@ -521,13 +521,13 @@ export default function OnboardingPage() {
 
       // Auto-create default workflows based on business mode (from industry config)
       try {
-        const industryEntry = getIndustryBySlug(businessIdentity.industry);
-        const businessMode = industryEntry?.businessMode || "service";
-        console.log("WorkflowsAutoCreate: start", { tenantId, businessMode });
-        
+        const industryEntry = getIndustryBySlug(industrySlug);
+        const workflowBusinessMode = industryEntry?.businessMode || "service";
+        console.log("WorkflowsAutoCreate: start", { tenantId, businessMode: workflowBusinessMode });
+
         const { success, workflowIds, error: workflowError } = await createDefaultWorkflowsForMode(
-          tenantId, 
-          businessMode as any
+          tenantId,
+          workflowBusinessMode as any
         );
         
         if (success) {

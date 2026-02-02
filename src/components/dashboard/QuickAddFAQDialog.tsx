@@ -1,7 +1,4 @@
-import { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -11,63 +8,25 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { HelpCircle, Loader2 } from "lucide-react";
+import { Brain, HelpCircle } from "lucide-react";
 
 interface QuickAddFAQDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+/**
+ * QuickAddFAQDialog - Redirects to Business Brain
+ *
+ * This dialog no longer performs writes. All FAQ management
+ * has been moved to the Business Brain page for centralized control.
+ */
 export function QuickAddFAQDialog({ open, onOpenChange }: QuickAddFAQDialogProps) {
-  const { tenant } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!tenant?.id || !question.trim() || !answer.trim()) return;
-
-    setIsSubmitting(true);
-
-    try {
-      const { error } = await supabase.from("business_faqs").insert({
-        tenant_id: tenant.id,
-        question: question.trim(),
-        answer: answer.trim(),
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "FAQ added!",
-        description: "Your AI now knows this answer.",
-      });
-
-      // Reset and close
-      setQuestion("");
-      setAnswer("");
-      onOpenChange(false);
-
-      // Invalidate queries
-      queryClient.invalidateQueries({ queryKey: ["business-context"] });
-      queryClient.invalidateQueries({ queryKey: ["faqs"] });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Failed to add FAQ",
-        description: error.message,
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleGoToBrain = () => {
+    onOpenChange(false);
+    navigate("/app/business-brain");
   };
 
   return (
@@ -75,48 +34,52 @@ export function QuickAddFAQDialog({ open, onOpenChange }: QuickAddFAQDialogProps
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <HelpCircle className="h-5 w-5 text-primary" />
-            Add FAQ
+            <Brain className="h-5 w-5 text-primary" />
+            Add FAQ in Business Brain
           </DialogTitle>
           <DialogDescription>
-            Add a common question and answer. Your AI will use this to respond to customers.
+            FAQ management has moved to a centralized location
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="question">Question</Label>
-            <Input
-              id="question"
-              placeholder='e.g., "Do you offer free parking?"'
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              required
-            />
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+          <div className="flex items-start gap-3">
+            <HelpCircle className="h-8 w-8 text-primary shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium mb-2">
+                All FAQs and objection responses are now managed in Business Brain
+              </p>
+              <p className="text-xs text-muted-foreground mb-3">
+                This ensures consistency across your AI and gives you a single place
+                to manage all your business knowledge.
+              </p>
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  <span>Add and edit FAQs</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  <span>Manage objection handlers</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  <span>See your AI's complete knowledge base</span>
+                </div>
+              </div>
+            </div>
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="answer">Answer</Label>
-            <Textarea
-              id="answer"
-              placeholder="Enter the answer your AI should give..."
-              value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
-              rows={4}
-              required
-            />
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting || !question.trim() || !answer.trim()}>
-              {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Add FAQ
-            </Button>
-          </DialogFooter>
-        </form>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleGoToBrain}>
+            <Brain className="h-4 w-4 mr-2" />
+            Go to Business Brain
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

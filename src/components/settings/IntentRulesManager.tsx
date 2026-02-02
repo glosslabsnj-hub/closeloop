@@ -223,6 +223,7 @@ function RuleCard({ rule, onToggle, onDelete }: RuleCardProps) {
       discount_guardrail: <DollarSign className="h-4 w-4" />,
       urgency_handling: <AlertTriangle className="h-4 w-4" />,
       capacity_protection: <BarChart3 className="h-4 w-4" />,
+      required_inputs: <Zap className="h-4 w-4" />,
     };
     return iconMap[rule.rule_type] || <Zap className="h-4 w-4" />;
   };

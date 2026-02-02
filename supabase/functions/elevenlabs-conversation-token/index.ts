@@ -1,9 +1,11 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// DEPLOYMENT TIMESTAMP: 2026-02-01T21:00:00Z - DYNAMIC-VARS-FIX
+// If you see this comment, the new version is deployed
+import { serve } from "https://deno.land/std@0.191.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { 
-  buildBusinessContext, 
-  storeContextSnapshot, 
-  buildDynamicVariables 
+import {
+  buildBusinessContext,
+  storeContextSnapshot,
+  buildDynamicVariables
 } from "../_shared/buildBusinessContext.ts";
 
 const corsHeaders = {
@@ -13,6 +15,9 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // VERSION STAMP - This proves new code is deployed
+  console.log("🚀 [ElevenLabs Token] DYNAMIC-VARS-FIX - Deployment: 2026-02-01T21:00:00Z");
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -40,14 +45,16 @@ serve(async (req) => {
       );
     }
 
-    // Parse request body to get tenantId and optional locationId
+    // Parse request body to get tenantId, locationId, and connectionType
     let tenantId: string | null = null;
     let locationId: string | null = null;
-    
+    let connectionType: "webrtc" | "websocket" = "webrtc"; // Default to WebRTC
+
     try {
       const body = await req.json();
       tenantId = body.tenantId;
       locationId = body.locationId || null;
+      connectionType = body.connectionType || "webrtc";
     } catch {
       // No body or invalid JSON - continue without tenant context
     }
@@ -55,6 +62,7 @@ serve(async (req) => {
     // Initialize dynamic variables with safe defaults
     let dynamicVariables: Record<string, string | number | boolean> = {
       business_name: "our business",
+      businessname: "our business", // Alias for ElevenLabs compatibility
       business_mode: "general",
       enabled_modules: "",
       hipaa_mode: false,
@@ -151,49 +159,118 @@ serve(async (req) => {
       console.log("No tenantId provided for browser test - using minimal defaults");
     }
 
-    // Build strict scheduling instructions
-    const schedulingInstructions = `
-STRICT SCHEDULING RULES (MANDATORY):
-- You MUST verify availability before confirming ANY appointment time.
-- NEVER invent or guess available times. Only offer times you know are available.
-- Tomorrow's available slots: ${precomputedSlots.length > 0 ? precomputedSlots.join(", ") : "Check availability before suggesting times"}
-- If a customer asks for "earlier" times and none exist, explain: "That's our earliest opening for [service duration]."
-- Always confirm the service type first to ensure correct duration (some services need 2+ hours).
-- When a customer requests a specific time, verify it's in the available slots before confirming.
-`;
+    const DEPLOYED_VERSION = "2026-02-01T21:00:00Z";
 
-    // Get a conversation token for WebRTC connection (lower latency than WebSocket signed URL)
-    const response = await fetch(
-      `https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=${ELEVENLABS_AGENT_ID}`,
-      {
-        method: "GET",
-        headers: {
-          "xi-api-key": ELEVENLABS_API_KEY,
-        },
+    // Log deployment version for verification
+    console.log(`✅ ELEV_TOKEN_VERSION=${DEPLOYED_VERSION} | MODE=${connectionType} | VARS=${Object.keys(dynamicVariables).length}`);
+
+    // DUAL PATH: WebRTC (default) or WebSocket
+    if (connectionType === "webrtc") {
+      // WebRTC PATH: fetch a short-lived conversation token.
+      // IMPORTANT: Do NOT POST to the WebSocket conversation endpoint.
+      console.log("Getting WebRTC conversation token for agent:", {
+        agent_id: ELEVENLABS_AGENT_ID,
+        tenantId,
+        flow: "webrtc-token",
+      });
+
+      const tokenResponse = await fetch(
+        `https://api.elevenlabs.io/v1/convai/conversation/token?agent_id=${ELEVENLABS_AGENT_ID}`,
+        {
+          method: "GET",
+          headers: {
+            "xi-api-key": ELEVENLABS_API_KEY,
+          },
+        }
+      );
+
+      if (!tokenResponse.ok) {
+        const errorText = await tokenResponse.text();
+        console.error("ElevenLabs conversation token error:", tokenResponse.status, errorText);
+        return new Response(
+          JSON.stringify({ error: "Failed to get conversation token", details: errorText }),
+          { status: tokenResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
-    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("ElevenLabs API error:", response.status, errorText);
+      const tokenData = await tokenResponse.json().catch(() => ({} as any));
+      const token = (tokenData as any)?.token as string | undefined;
+
+      if (!token) {
+        console.error("ElevenLabs conversation token missing in response", tokenData);
+        return new Response(
+          JSON.stringify({ error: "Conversation token missing from ElevenLabs response" }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      console.log("WebRTC token received:", { tokenPrefix: token.slice(0, 12) });
+
       return new Response(
-        JSON.stringify({ error: "Failed to get conversation token", details: errorText }),
-        { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          token,
+          dynamicVariables: dynamicVariables,
+          precomputedSlots: precomputedSlots,
+          deployedVersion: DEPLOYED_VERSION,
+          connectionType: "webrtc",
+          _debug: {
+            deployedVersion: DEPLOYED_VERSION,
+            flow: "webrtc-token",
+            agentId: ELEVENLABS_AGENT_ID,
+            tokenPrefix: token.slice(0, 12),
+            denoStdVersion: "0.191.0",
+            dynamicVarsCount: Object.keys(dynamicVariables).length,
+          },
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } else {
+      // WEBSOCKET PATH: Get signed URL directly (original flow)
+      console.log("Getting WebSocket signed URL directly for agent:", {
+        agent_id: ELEVENLABS_AGENT_ID,
+        tenantId,
+        flow: "websocket-signed-url",
+      });
+
+      const signedUrlResponse = await fetch(
+        `https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=${ELEVENLABS_AGENT_ID}`,
+        {
+          method: "GET",
+          headers: {
+            "xi-api-key": ELEVENLABS_API_KEY,
+          },
+        }
+      );
+
+      if (!signedUrlResponse.ok) {
+        const errorText = await signedUrlResponse.text();
+        console.error("ElevenLabs signed URL error:", signedUrlResponse.status, errorText);
+        return new Response(
+          JSON.stringify({ error: "Failed to get signed URL", details: errorText }),
+          { status: signedUrlResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const signedUrlData = await signedUrlResponse.json();
+
+      return new Response(
+        JSON.stringify({
+          signedUrl: signedUrlData.signed_url,
+          dynamicVariables: dynamicVariables,
+          precomputedSlots: precomputedSlots,
+          deployedVersion: DEPLOYED_VERSION,
+          connectionType: "websocket",
+          _debug: {
+            deployedVersion: DEPLOYED_VERSION,
+            flow: "websocket-signed-url",
+            agentId: ELEVENLABS_AGENT_ID,
+            denoStdVersion: "0.191.0",
+            dynamicVarsCount: Object.keys(dynamicVariables).length,
+          },
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const data = await response.json();
-
-    // Return the signed URL along with dynamic variables and prompt override for the client
-    return new Response(
-      JSON.stringify({ 
-        signedUrl: data.signed_url,
-        dynamicVariables: dynamicVariables,
-        promptOverride: systemPrompt ? systemPrompt + "\n\n" + schedulingInstructions : schedulingInstructions,
-        precomputedSlots: precomputedSlots,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
   } catch (error) {
     console.error("Error in elevenlabs-conversation-token:", error);
     return new Response(

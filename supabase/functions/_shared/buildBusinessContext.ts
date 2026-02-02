@@ -47,6 +47,19 @@ export interface IntentRule {
   priority: number;
 }
 
+export interface RequiredQuestionField {
+  key: string;
+  label: string;
+  ask_prompt: string;
+  why_needed: string;
+}
+
+export interface RequiredQuestionsConfig {
+  intent: string;
+  required_inputs: RequiredQuestionField[];
+  optional_inputs: RequiredQuestionField[];
+}
+
 export interface MemoryHint {
   type: string;
   summary: string;
@@ -139,8 +152,18 @@ export interface BusinessContext {
     };
     intent_rules: IntentRule[];
     intent_rules_summary: string;
+    required_questions: RequiredQuestionsConfig[];
+    required_questions_summary: string;
     memory_hints: MemoryHint[];
     memory_hints_summary: string;
+  };
+  pricing: {
+    rules_summary: string;
+    busyness_config: {
+      base_prep_minutes: number;
+      busy_buffer_minutes: number;
+      manual_busyness_pct: number;
+    } | null;
   };
   safety: {
     hipaa_mode: boolean;
@@ -507,6 +530,57 @@ function buildMemoryHintsSummary(hints: MemoryHint[], forVoice = false): string 
   }).join("; ");
 }
 
+function buildRequiredQuestionsSummary(configs: RequiredQuestionsConfig[]): string {
+  if (configs.length === 0) return "No required questions configured";
+
+  const summaries: string[] = [];
+  for (const config of configs) {
+    const requiredCount = config.required_inputs.length;
+    const optionalCount = config.optional_inputs.length;
+
+    if (requiredCount > 0) {
+      const fields = config.required_inputs.slice(0, 3).map(f => f.label).join(", ");
+      summaries.push(`${config.intent}: ${requiredCount} required (${fields}${requiredCount > 3 ? '...' : ''})`);
+    }
+  }
+
+  return summaries.length > 0 ? summaries.join("; ") : "No required questions configured";
+}
+
+function buildPricingRulesSummary(pricingRulesJsonb: any): string {
+  if (!pricingRulesJsonb || !pricingRulesJsonb.rules || !Array.isArray(pricingRulesJsonb.rules)) {
+    return "No pricing rules configured";
+  }
+
+  const rules = pricingRulesJsonb.rules;
+  if (rules.length === 0) {
+    return "No pricing rules configured";
+  }
+
+  const summaries: string[] = [];
+  for (const rule of rules.slice(0, 5)) { // Show first 5 rules
+    const serviceLabel = rule.service_name || "All services";
+    const typeLabel = rule.type === "distance-based" ? "distance-based" :
+                      rule.type === "flat" ? "flat rate" :
+                      rule.type === "per-unit" ? "per-unit" :
+                      rule.type === "tiered" ? "tiered" :
+                      rule.type === "range-only" ? "price range" :
+                      "quote only";
+
+    const requiredInputs = rule.required_inputs || [];
+    const inputsStr = requiredInputs.length > 0 ? ` (needs: ${requiredInputs.join(", ")})` : "";
+
+    summaries.push(`${serviceLabel}: ${typeLabel}${inputsStr}`);
+  }
+
+  const remaining = rules.length - 5;
+  if (remaining > 0) {
+    summaries.push(`+${remaining} more`);
+  }
+
+  return summaries.join("; ");
+}
+
 function determineUsage(memoryType: string): string {
   switch (memoryType) {
     case "time_pattern": return "timing_preference";
@@ -743,11 +817,12 @@ export async function buildBusinessContext(
   
   // ===== FETCH INTELLIGENCE LAYERS =====
   let intentRules: IntentRule[] = [];
+  let requiredQuestions: RequiredQuestionsConfig[] = [];
   let memoryHints: MemoryHint[] = [];
-  
+
   const hipaaMode = tenant.hipaa_mode === true;
   const memoryEnabled = intelligenceSettings?.memory_enabled === true && !hipaaMode;
-  
+
   if (includeIntelligence) {
     const { data: rules } = await supabase
       .from("business_intent_rules")
@@ -757,15 +832,21 @@ export async function buildBusinessContext(
       .eq("is_suggested", false)
       .order("priority", { ascending: false })
       .limit(10);
-    
+
     if (rules && rules.length > 0) {
-      intentRules = rules.map(r => ({
+      intentRules = rules.filter(r => r.rule_type !== "required_inputs").map(r => ({
         id: r.id,
         name: r.name,
         rule_type: r.rule_type,
         action: r.action_json || {},
         priority: r.priority || 0,
       }));
+
+      // Extract required questions rules
+      requiredQuestions = rules
+        .filter(r => r.rule_type === "required_inputs" && r.action_json)
+        .map(r => r.action_json as unknown as RequiredQuestionsConfig)
+        .filter(config => config.intent && Array.isArray(config.required_inputs));
     }
     
     if (memoryEnabled) {
@@ -898,8 +979,14 @@ export async function buildBusinessContext(
       },
       intent_rules: intentRules,
       intent_rules_summary: buildIntentRulesSummary(intentRules),
+      required_questions: requiredQuestions,
+      required_questions_summary: buildRequiredQuestionsSummary(requiredQuestions),
       memory_hints: memoryHints,
       memory_hints_summary: buildMemoryHintsSummary(memoryHints),
+    },
+    pricing: {
+      rules_summary: buildPricingRulesSummary(tenant.pricing_rules_jsonb),
+      busyness_config: tenant.busyness_rules_jsonb || null,
     },
     safety: {
       hipaa_mode: hipaaMode,
@@ -1084,6 +1171,211 @@ The system automatically checks busy_blocks (synced calendars + existing booking
 
 `;
 
+  // Required questions
+  if (ctx.intelligence.required_questions.length > 0) {
+    prompt += `REQUIRED QUESTIONS (CRITICAL - MUST COLLECT BEFORE PROVIDING PRICES/ETA/BOOKING):
+
+Before you can provide a price quote, ETA, or complete a booking/order/dispatch, you MUST collect all required information first.
+
+`;
+
+    for (const config of ctx.intelligence.required_questions) {
+      const intent = config.intent;
+      const requiredFields = config.required_inputs || [];
+
+      if (requiredFields.length > 0) {
+        prompt += `FOR ${intent.toUpperCase()} REQUESTS, YOU MUST ASK:\\n`;
+
+        for (const field of requiredFields) {
+          prompt += `- ${field.label}: "${field.ask_prompt}"\\n`;
+          if (field.why_needed) {
+            prompt += `  (Why: ${field.why_needed})\\n`;
+          }
+        }
+
+        prompt += `\\n`;
+      }
+    }
+
+    prompt += `WORKFLOW:
+1. Customer expresses intent (e.g., "I need a plumber" or "Can I book an appointment?")
+2. YOU MUST ask each required question BEFORE providing pricing or confirming availability
+3. Once you have ALL required inputs, THEN you can:
+   - Provide exact pricing (if service has fixed price)
+   - Provide estimate (if service is "starting at")
+   - Check availability and confirm booking
+   - Complete the order/dispatch
+
+CORRECT EXAMPLE:
+Customer: "How much does drain cleaning cost?"
+You: "I'd be happy to help with that! May I have your name and phone number first?" [collect required inputs]
+Customer: "Sure, it's John at 555-1234"
+You: "Thanks John! And what's the address where you need the drain cleaning?" [continue collecting]
+Customer: "123 Main St"
+You: "Perfect! Drain cleaning is $149. When would work best for you?"
+
+WRONG EXAMPLE:
+Customer: "How much does drain cleaning cost?"
+You: "Drain cleaning is $149" [WRONG - didn't collect required info first]
+
+DISPATCH-SPECIFIC REQUIREMENT (CRITICAL):
+For DISPATCH requests, address fields MUST be collected with exact specificity:
+1. ALWAYS ask for exact street address first (e.g., "123 Main Street, Chicago")
+2. If customer cannot provide exact address, ask for nearest cross streets + city (e.g., "corner of Main and Oak in Springfield")
+3. FALLBACK: If customer has neither exact address nor cross streets, collect:
+   - Pickup ZIP code
+   - Dropoff ZIP code
+   - Estimated miles between locations
+4. When using fallback (ZIP + miles), you MUST label any quote as an ESTIMATE and explain exact pricing requires exact addresses
+
+DISPATCH CORRECT EXAMPLE:
+Customer: "How much to tow my car?"
+You: "I can help with that! What's the exact street address where your car is located?"
+Customer: "I'm not sure of the exact address, I'm on the highway"
+You: "No problem! Can you tell me the nearest cross streets or exit number and the city?"
+Customer: "I'm near exit 42 on I-94 in Detroit"
+You: "Got it. And where would you like us to tow it to? What's that address?"
+[Collects exact dropoff or cross streets]
+You: "Perfect! Based on that route, it'll be approximately $150-$180. I can give you an exact quote once our driver confirms the precise pickup location."
+
+DISPATCH WRONG EXAMPLE:
+Customer: "How much to tow from downtown to the airport?"
+You: "That'll be about $75" [WRONG - no exact addresses or cross streets collected]
+
+VALIDATION REQUIREMENTS (CRITICAL - ENFORCE DATA QUALITY):
+Required inputs must meet validation rules, not just be "non-empty":
+
+1. ADDRESS FIELDS (pickup_address, dropoff_address, delivery_address):
+   ✓ Valid: "123 Main Street, Chicago" (street number + city)
+   ✓ Valid: "123 Main St, 60601" (street number + ZIP)
+   ✓ Valid: "Corner of Main and Oak, Springfield" (cross streets + city)
+   ✓ Valid: "Main & 5th, 62701" (cross streets + ZIP)
+   ✗ Invalid: "downtown" (too vague)
+   ✗ Invalid: "Main Street" (no number or cross streets)
+   ✗ Invalid: "123 Main" (no city or ZIP)
+   → If invalid, re-ask: "I need a more specific address. Can you provide the street number and city, or the nearest cross streets?"
+
+2. DATE FIELDS (reservation_date, preferred_date):
+   ✓ Valid: "tomorrow", "December 25th", "12/25", "next Monday"
+   ✗ Invalid: "soon", "later", "sometime"
+   → If invalid, re-ask: "I need a specific date. Would you prefer tomorrow, a day this week, or a specific date?"
+
+3. TIME FIELDS (reservation_time, preferred_time):
+   ✓ Valid: "2pm", "2:30pm", "morning", "around 3pm"
+   ✗ Invalid: "later", "sometime", "whenever"
+   → If invalid, re-ask: "What time would work best? Morning, afternoon, or a specific time like 2pm?"
+
+4. MILES/DISTANCE (estimated_miles):
+   ✓ Valid: "5", "5 miles", "about 10 miles", "5-10 miles"
+   ✗ Invalid: "not far", "close by" (no number)
+   → If invalid, re-ask: "About how many miles would you estimate? Just a rough number is fine."
+
+5. PARTY SIZE (party_size):
+   ✓ Valid: "2", "4 people", "party of 6"
+   ✗ Invalid: "a few", "some people" (not specific)
+   → If invalid, re-ask: "How many people exactly? Just need a number."
+
+6. PHONE NUMBERS (customer_phone, phone):
+   ✓ Valid: "555-1234", "(555) 123-4567", "555.123.4567"
+   ✗ Invalid: Fewer than 7 digits
+   → If invalid, re-ask: "I need a complete phone number to reach you. What's the full number?"
+
+7. EMAIL (customer_email, email):
+   ✓ Valid: "john@example.com"
+   ✗ Invalid: Missing @ or domain
+   → If invalid, re-ask: "I need a valid email address like yourname@example.com"
+
+RE-ASK WORKFLOW:
+1. Customer provides vague/invalid input
+2. You recognize it doesn't meet validation (e.g., "downtown" for address)
+3. You politely re-ask with specific guidance: "I need a more specific address with a street number and city, like '123 Main Street, Chicago'. What's the exact address?"
+4. Customer provides valid input
+5. Continue to next required field
+
+VALIDATION EXAMPLE:
+Customer: "I need a reservation"
+You: "Great! What date would you like?" [asking for date]
+Customer: "sometime next week" [INVALID - too vague]
+You: "I need a specific date to hold your reservation. Would you prefer Monday, Tuesday, or another day next week?" [RE-ASK with guidance]
+Customer: "Tuesday"
+You: "Perfect! And what time on Tuesday?" [VALID - proceed to next field]
+
+EXCEPTION: If customer ONLY asks for general information (hours, location, general services), you don't need all required fields. But for pricing, booking, ordering, or dispatch, you MUST collect required inputs first AND ensure they meet validation requirements.
+
+`;
+  }
+
+  // Pricing resolution contract
+  prompt += `PRICING RESOLUTION CONTRACT (CRITICAL - FOLLOW DETERMINISTIC WATERFALL):
+
+When a customer asks for pricing, you MUST follow this exact sequence:
+
+STEP 1: CHECK REQUIRED INPUTS
+- First, ensure ALL required inputs for the intent are collected AND VALID (see REQUIRED QUESTIONS above)
+- If any required inputs are missing or invalid, ask for them FIRST before attempting pricing
+- Do NOT proceed to pricing until validation passes
+
+STEP 2: MATCH PRICING RULES
+- If pricing rules are configured, attempt to match and calculate:
+  ${ctx.pricing?.rules_summary || "No pricing rules configured"}
+- Example: Distance-based rule requires "miles" + "vehicle_type"
+- If rule matches AND inputs are valid → Provide calculated price
+- If rule is range-only → Provide price range
+- If rule is quote-only → Explain that custom quote is needed
+
+STEP 3: FALLBACK TO SERVICE PRICE
+- If no pricing rule matched, check if service has fixed price
+- Fixed price → Provide exact price: "That will be $X"
+- Starting at price → Provide estimate: "That starts at $X"
+- Quote only → Explain custom quote needed
+
+STEP 4: UNKNOWN - COLLECT MORE INFO
+- If neither pricing rules nor service price available → Ask for missing information
+- Examples:
+  * "I need to know the distance to provide an exact price. About how many miles is it?"
+  * "Let me get some information to provide accurate pricing. What's the pickup address?"
+  * "I'll need to provide a custom quote. Let me collect your details and we'll follow up."
+
+PRICING EXAMPLES:
+
+CORRECT - Distance-based dispatch:
+Customer: "How much to tow my car?"
+You: "I can help! What's the exact address where your car is?"
+Customer: "123 Main Street, Chicago"
+You: "And where would you like us to tow it?"
+Customer: "456 Oak Ave, same city - about 5 miles"
+You: [Validates: addresses valid, miles valid]
+You: [Matches: distance-based rule, calculates: $50 base + $8/mile * 5 = $90]
+You: "That will be $90 for a 5-mile tow from Main Street to Oak Avenue."
+
+CORRECT - Missing required inputs:
+Customer: "How much to tow from downtown to airport?"
+You: [Checks: addresses are vague, no exact miles]
+You: "I need more specific addresses to provide accurate pricing. What's the exact street address downtown where your car is?"
+
+CORRECT - Fallback to service price:
+Customer: "How much for drain cleaning?"
+You: [Checks: no pricing rules for drain cleaning]
+You: [Checks: drain cleaning service has fixed price $149]
+You: "Drain cleaning is $149. When would work best for you?"
+
+WRONG - Pricing without validation:
+Customer: "How much to tow?"
+You: "Towing starts at $75" [WRONG - didn't collect addresses or validate]
+
+WRONG - Vague pricing:
+Customer: "What's your towing rate?"
+You: "It depends on distance" [WRONG - be specific: "Our rate is $50 base plus $8 per mile"]
+
+LOGGING REQUIREMENT:
+When pricing fails (missing inputs, no rules, no service price), the system logs:
+- Reason for failure
+- Missing inputs
+- Deep link to fix configuration
+This helps the business owner improve pricing setup.
+
+`;
+
   // Intent rules
   if (ctx.intelligence.intent_rules.length > 0) {
     prompt += `BEHAVIOR RULES (from business owner):\\n`;
@@ -1214,6 +1506,7 @@ export function buildDynamicVariables(
     tenant_id: ctx.tenant.tenant_id || "",
     location_id: ctx._meta.location_id || "",
     business_name: ctx.tenant.business_name || "Our Business",
+    businessname: ctx.tenant.business_name || "Our Business", // Alias for ElevenLabs compatibility
     business_mode: ctx.tenant.business_mode || "general",
     enabled_modules: enabledModulesArray.join(",") || "",
     hipaa_mode: ctx.safety.hipaa_mode,
@@ -1265,9 +1558,16 @@ export function buildDynamicVariables(
     
     // Intelligence layers
     intent_rules_summary: ctx.intelligence.intent_rules_summary || "",
+    required_questions_summary: ctx.intelligence.required_questions_summary || "No required questions configured",
     memory_hints_summary: ctx.safety.hipaa_mode ? "" : (ctx.intelligence.memory_hints_summary || ""),
     memory_enabled: ctx.intelligence.settings.memory_enabled,
-    
+
+    // Pricing & ETA
+    pricing_rules_summary: ctx.pricing.rules_summary || "No pricing rules configured",
+    base_prep_minutes: ctx.pricing.busyness_config?.base_prep_minutes || 30,
+    busy_buffer_minutes: ctx.pricing.busyness_config?.busy_buffer_minutes || 15,
+    current_busyness_pct: ctx.pricing.busyness_config?.manual_busyness_pct || 0,
+
     // DEBUG flags - for /debug/ai-context page verification (NEVER null)
     context_has_hours: hasHours ? "true" : "false",
     context_has_menu: hasMenu ? "true" : "false",

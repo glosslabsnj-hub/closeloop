@@ -73,4 +73,39 @@ function SkeletonAvatar({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   return <Skeleton className={cn("rounded-full", sizeClasses[size])} />;
 }
 
-export { Skeleton, SkeletonText, SkeletonCard, SkeletonTable, SkeletonAvatar };
+/**
+ * Stat card loading skeleton
+ */
+function SkeletonStatCard({ className }: { className?: string }) {
+  return (
+    <Card className={className}>
+      <CardContent className="p-5 space-y-3">
+        <Skeleton className="h-4 w-20" />
+        <Skeleton className="h-8 w-16" />
+        <Skeleton className="h-3 w-24" />
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * List item loading skeleton
+ */
+function SkeletonList({ items = 5 }: { items?: number }) {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: items }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3 p-3 rounded-lg border">
+          <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-3 w-2/3" />
+          </div>
+          <Skeleton className="h-8 w-20" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export { Skeleton, SkeletonText, SkeletonCard, SkeletonTable, SkeletonAvatar, SkeletonStatCard, SkeletonList };

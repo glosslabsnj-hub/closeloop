@@ -30,6 +30,8 @@ import SimulatorPage from "@/pages/app/SimulatorPage";
 import GoLivePage from "@/pages/app/GoLivePage";
 import CallsPage from "@/pages/app/CallsPage";
 import BusinessBrainPage from "@/pages/app/BusinessBrainPage";
+import BusinessBrainGapsPage from "@/pages/app/BusinessBrainGapsPage";
+import ReadinessFixCenterPage from "@/pages/app/ReadinessFixCenterPage";
 import UsagePage from "@/pages/app/UsagePage";
 
 // Module-specific pages
@@ -100,6 +102,8 @@ const App = () => (
               <Route path="/app/automations" element={<IntegrationsPage />} />
               <Route path="/app/simulator" element={<SimulatorPage />} />
               <Route path="/app/business-brain" element={<BusinessBrainPage />} />
+              <Route path="/app/business-brain/gaps" element={<BusinessBrainGapsPage />} />
+              <Route path="/app/readiness" element={<ReadinessFixCenterPage />} />
               <Route path="/app/usage" element={<UsagePage />} />
               <Route path="/app/settings" element={<SettingsPage />} />
               {/* Module-specific routes */}

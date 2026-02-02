@@ -4,12 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useBusinessContext, calculateReadinessFromContext } from "@/hooks/useBusinessContext";
 import { hasVoiceFeature, hasSmsFeature } from "@/config/pricing";
-import { 
-  Phone, 
+import {
+  Phone,
   MessageSquare,
   Zap,
   Copy,
@@ -17,10 +19,13 @@ import {
   Settings2,
   Calendar,
   TrendingUp,
-  Brain
+  Brain,
+  Gauge
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { startOfDay, endOfDay, startOfWeek, endOfWeek } from "date-fns";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { AgentOffBehaviorModal } from "./AgentOffBehaviorModal";
 
 export function DashboardHeroCard() {
   const { tenant, assistantSettings, refreshTenant, subscription } = useAuth();
@@ -37,6 +42,22 @@ export function DashboardHeroCard() {
   const smsEnabled = assistantSettings?.instant_text_enabled || false;
   const isAnyActive = voiceEnabled || smsEnabled;
   const closeloopNumber = assistantSettings?.closeloop_number;
+
+  // Busyness level state
+  const [busynessLevel, setBusynessLevel] = useState(30);
+  const [busynessSaving, setBusynessSaving] = useState(false);
+
+  // OFF behavior modal state
+  const [offBehaviorModalOpen, setOffBehaviorModalOpen] = useState(false);
+
+  // Load busyness level from tenant on mount
+  useEffect(() => {
+    const tenantAny = tenant as any;
+    if (tenantAny?.busyness_rules_jsonb) {
+      const rules = tenantAny.busyness_rules_jsonb as any;
+      setBusynessLevel(rules.manual_busyness_pct || 30);
+    }
+  }, [tenant]);
 
   // Fetch real stats
   const { data: stats } = useQuery({
@@ -91,6 +112,18 @@ export function DashboardHeroCard() {
   const handleToggle = async (enabled: boolean) => {
     if (!tenant) return;
 
+    // If turning OFF, check if off_behavior is configured
+    if (!enabled && hasVoice) {
+      const offBehavior = (assistantSettings as any)?.off_behavior || "FORWARD_OWNER";
+      const forwardNumber = (assistantSettings as any)?.owner_forward_number;
+
+      // If FORWARD_OWNER but no number configured, show modal
+      if (offBehavior === "FORWARD_OWNER" && !forwardNumber) {
+        setOffBehaviorModalOpen(true);
+        return;
+      }
+    }
+
     try {
       const updates: Record<string, any> = {
         updated_at: new Date().toISOString(),
@@ -101,7 +134,7 @@ export function DashboardHeroCard() {
         updates.go_live_enabled = enabled;
         updates.voice_ai_enabled = enabled;
       }
-      
+
       // Update SMS settings if user has SMS capability
       if (hasSms) {
         updates.instant_text_enabled = enabled;
@@ -115,11 +148,16 @@ export function DashboardHeroCard() {
       if (error) throw error;
 
       await refreshTenant();
+
+      // Get configured off behavior for better messaging
+      const offBehavior = (assistantSettings as any)?.off_behavior || "FORWARD_OWNER";
+      const offBehaviorLabel = getOffBehaviorLabel(offBehavior);
+
       toast({
         title: enabled ? "AI Agent Activated ✅" : "AI Agent Paused",
-        description: enabled 
-          ? "Now handling calls & messages 24/7" 
-          : "Paused - won't handle calls",
+        description: enabled
+          ? "Now handling calls & messages 24/7"
+          : `Paused - ${offBehaviorLabel}`,
       });
     } catch (error: any) {
       toast({
@@ -127,6 +165,19 @@ export function DashboardHeroCard() {
         title: "Update Failed",
         description: error.message,
       });
+    }
+  };
+
+  const getOffBehaviorLabel = (behavior: string): string => {
+    switch (behavior) {
+      case "FORWARD_OWNER":
+        return "calls will forward to you";
+      case "VOICEMAIL":
+        return "calls go to voicemail";
+      case "CALLBACK_ONLY":
+        return "capturing callback requests";
+      default:
+        return "won't handle calls";
     }
   };
 
@@ -138,6 +189,66 @@ export function DashboardHeroCard() {
         description: "Phone number copied to clipboard",
       });
     }
+  };
+
+  // Debounced save for busyness level
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const saveBusynessLevel = useCallback(
+    async (level: number) => {
+      if (!tenant?.id) return;
+      setBusynessSaving(true);
+
+      try {
+        const tenantAny = tenant as any;
+        const currentRules = tenantAny.busyness_rules_jsonb || {};
+        const updatedRules = {
+          ...currentRules,
+          manual_busyness_pct: level,
+        };
+
+        const { error } = await supabase
+          .from("tenants")
+          .update({ busyness_rules_jsonb: updatedRules } as any)
+          .eq("id", tenant.id);
+
+        if (error) throw error;
+
+        await refreshTenant();
+        toast({
+          title: "Saved",
+          description: `Busyness level set to ${level}%`,
+        });
+      } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "Save Failed",
+          description: error.message,
+        });
+      } finally {
+        setBusynessSaving(false);
+      }
+    },
+    [tenant?.id, refreshTenant, toast]
+  );
+
+  const handleBusynessChange = (values: number[]) => {
+    const level = values[0];
+    setBusynessLevel(level);
+
+    // Debounce the save
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(() => {
+      saveBusynessLevel(level);
+    }, 500);
+  };
+
+  const getBusynessHelperText = (level: number): string => {
+    if (level <= 25) return "Relaxed: answer fast, be flexible";
+    if (level <= 70) return "Normal: balanced";
+    return "Packed: stricter, prioritize callback";
   };
 
   if (!planCode) {
@@ -262,8 +373,8 @@ export function DashboardHeroCard() {
 
           {/* Quick Actions */}
           <div className="flex flex-wrap gap-2 mt-4">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               className="gap-2"
               onClick={() => navigate("/app/simulator")}
@@ -271,8 +382,8 @@ export function DashboardHeroCard() {
               <Play className="h-4 w-4" />
               Test AI
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               className="gap-2"
               onClick={() => navigate("/app/business-brain")}
@@ -280,8 +391,8 @@ export function DashboardHeroCard() {
               <Brain className="h-4 w-4" />
               Add Knowledge
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               className="gap-2"
               onClick={() => navigate("/app/calls")}
@@ -290,6 +401,32 @@ export function DashboardHeroCard() {
               View Calls
             </Button>
           </div>
+        </div>
+
+        {/* Middle Section: Busyness Slider */}
+        <div className="border-t border-border/50 bg-muted/20 px-6 py-4">
+          <div className="flex items-center gap-3 mb-3">
+            <Gauge className="h-4 w-4 text-muted-foreground" />
+            <Label className="text-sm font-medium">Today's Busyness</Label>
+            <span className="text-sm font-semibold tabular-nums ml-auto">
+              {busynessLevel}%
+            </span>
+            {busynessSaving && (
+              <Badge variant="outline" className="text-xs">Saving...</Badge>
+            )}
+          </div>
+          <Slider
+            value={[busynessLevel]}
+            onValueChange={handleBusynessChange}
+            min={0}
+            max={100}
+            step={5}
+            className="w-full"
+            disabled={busynessSaving}
+          />
+          <p className="text-xs text-muted-foreground mt-2">
+            {getBusynessHelperText(busynessLevel)}
+          </p>
         </div>
 
         {/* Bottom Section: Metrics Strip */}
@@ -309,6 +446,20 @@ export function DashboardHeroCard() {
           </div>
         </div>
       </CardContent>
+
+      {/* OFF Behavior Configuration Modal */}
+      <AgentOffBehaviorModal
+        open={offBehaviorModalOpen}
+        onOpenChange={setOffBehaviorModalOpen}
+        tenantId={tenant?.id || ""}
+        currentBehavior={(assistantSettings as any)?.off_behavior}
+        currentForwardNumber={(assistantSettings as any)?.owner_forward_number}
+        onConfigured={async () => {
+          await refreshTenant();
+          // After configuration, proceed with toggle OFF
+          handleToggle(false);
+        }}
+      />
     </Card>
   );
 }

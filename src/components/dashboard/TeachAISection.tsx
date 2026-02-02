@@ -176,38 +176,19 @@ export function TeachAISection() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Upload Zone */}
+          {/* Upload Zone - Redirects to Business Brain */}
           <div
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-colors ${
-              isDragging
-                ? 'border-primary bg-primary/10'
-                : 'border-border hover:border-primary/50 hover:bg-muted/50'
-            }`}
+            onClick={() => navigate('/app/business-brain')}
+            className="relative border-2 border-dashed border-primary/50 rounded-xl p-6 text-center transition-colors hover:border-primary hover:bg-primary/5 cursor-pointer"
           >
-            {isUploading ? (
-              <div className="flex flex-col items-center gap-2">
-                <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                <p className="text-sm font-medium">Uploading...</p>
-              </div>
-            ) : (
-              <>
-                <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm font-medium mb-1">Drop files here to upload</p>
-                <p className="text-xs text-muted-foreground">
-                  PDF, Images, Word, Excel — we'll extract the knowledge
-                </p>
-                <input
-                  type="file"
-                  multiple
-                  accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"
-                  onChange={(e) => e.target.files && handleFileUpload(e.target.files)}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                />
-              </>
-            )}
+            <Brain className="h-8 w-8 mx-auto text-primary mb-2" />
+            <p className="text-sm font-medium mb-1">Upload Knowledge in Business Brain</p>
+            <p className="text-xs text-muted-foreground mb-3">
+              Click here to upload menus, policies, and other documents
+            </p>
+            <Button size="sm" variant="outline" className="pointer-events-none">
+              Go to Business Brain
+            </Button>
           </div>
 
           {/* Processing indicator */}

@@ -123,9 +123,9 @@ export function AIReadinessPanel({ compact = false, alwaysShow = false }: AIRead
               </div>
             )}
             
-            {/* Action Button */}
+            {/* Action Button - Route to Fix Center if issues exist, else Go Live */}
             <Button size="sm" className="gap-1 shrink-0" asChild>
-              <Link to="/app/go-live">
+              <Link to={canGoLive ? "/app/go-live" : "/app/readiness"}>
                 <Sparkles className="h-3.5 w-3.5" />
                 {canGoLive ? "Go Live" : "Fix Issues"}
                 <ChevronRight className="h-3.5 w-3.5" />

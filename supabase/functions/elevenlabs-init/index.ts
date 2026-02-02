@@ -65,6 +65,7 @@ function getEmptyDynamicVariables(): Record<string, string> {
     tenant_id: "",
     location_id: "",
     business_name: "",
+    businessname: "", // Alias for ElevenLabs compatibility
     business_mode: "",
     enabled_modules: "",
     hipaa_mode: "false",

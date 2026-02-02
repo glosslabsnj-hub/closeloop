@@ -8,66 +8,171 @@ import { Badge } from "@/components/ui/badge";
 import { Phone, PhoneOff, Mic, MicOff, Volume2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+interface DebugEvent {
+  timestamp: number;
+  type: string;
+  data: any;
+}
+
 export default function VoiceAgentTest() {
   const { tenant } = useAuth();
   const { toast } = useToast();
   const [isConnecting, setIsConnecting] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [debugEvents, setDebugEvents] = useState<DebugEvent[]>([]);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+
+  const addDebugEvent = useCallback((type: string, data: any) => {
+    setDebugEvents(prev => [...prev.slice(-19), { timestamp: Date.now(), type, data }]);
+  }, []);
+
+  // Helper to ensure dynamic variables are safe (no nulls) and include businessname alias
+  const toSafeVars = (vars: Record<string, any> | null | undefined): Record<string, string | number | boolean> => {
+    if (!vars) return { businessname: "our business" };
+    
+    const safe = Object.fromEntries(
+      Object.entries(vars).map(([k, v]) => [k, v == null ? "" : v])
+    );
+    
+    // Ensure businessname alias is always present (ElevenLabs expects no underscore)
+    if (!safe.businessname && safe.business_name) {
+      safe.businessname = safe.business_name;
+    }
+    if (!safe.businessname) {
+      safe.businessname = "our business";
+    }
+    
+    return safe;
+  };
 
   const conversation = useConversation({
     onConnect: () => {
-      console.log("Connected to ElevenLabs agent");
+      console.log("🎙️ [VoiceTest] ✓ CONNECTED to ElevenLabs agent");
+      addDebugEvent("CONNECTED", { status: conversation.status });
       toast({
         title: "Connected",
         description: "AI voice agent is now listening",
       });
     },
-    onDisconnect: () => {
-      console.log("Disconnected from ElevenLabs agent");
+    onDisconnect: (details) => {
+      console.log("🎙️ [VoiceTest] ⚠️ DISCONNECTED from ElevenLabs agent", details);
+      addDebugEvent("DISCONNECTED", { status: conversation.status, details });
     },
     onMessage: (message) => {
-      console.log("Agent message:", message);
+      console.log("🎙️ [VoiceTest] Message:", message);
+      addDebugEvent("MESSAGE", { role: message.role, source: message.source });
     },
-    onError: (error) => {
-      console.error("Conversation error:", error);
+    onError: (error: string) => {
+      console.error("🎙️ [VoiceTest] ✗ ERROR:", error);
+      addDebugEvent("ERROR", { message: error });
       toast({
         variant: "destructive",
         title: "Connection Error",
-        description: "Failed to connect to voice agent. Please try again.",
+        description: error || "Failed to connect to voice agent. Please try again.",
       });
+    },
+    onDebug: (event) => {
+      console.log("🎙️ [VoiceTest] DEBUG:", event);
+      addDebugEvent("DEBUG", event);
+    },
+    onStatusChange: (status) => {
+      console.log("🎙️ [VoiceTest] STATUS_CHANGE:", status);
+      addDebugEvent("STATUS", { status });
     },
   });
 
   const startConversation = useCallback(async () => {
+    console.log("🎙️ [VoiceTest] Starting conversation flow...", { tenantId: tenant?.id });
     setIsConnecting(true);
+    setDebugEvents([]); // Clear previous debug events
+    setConversationId(null);
+
     try {
       // Request microphone permission
+      console.log("🎙️ [VoiceTest] Step 1: Requesting microphone...");
+      addDebugEvent("MIC_REQUEST", { status: "requesting" });
       await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log("🎙️ [VoiceTest] ✓ Microphone granted");
+      addDebugEvent("MIC_GRANTED", { status: "granted" });
 
-      // Get signed URL and dynamic variables from edge function
+      // Try WebRTC first, fallback to WebSocket
+      let connectionMode: "webrtc" | "websocket" = "webrtc";
+
+      console.log("🎙️ [VoiceTest] Step 2: Fetching token (WebRTC mode)...");
+      addDebugEvent("TOKEN_REQUEST", { mode: "webrtc" });
+
       const { data, error } = await supabase.functions.invoke(
         "elevenlabs-conversation-token",
-        { body: { tenantId: tenant?.id } }
+        { body: { tenantId: tenant?.id, connectionType: connectionMode } }
       );
 
       if (error) {
+        console.error("🎙️ [VoiceTest] ✗ Token error:", error);
+        addDebugEvent("TOKEN_ERROR", { error: error.message });
         throw new Error(error.message || "Failed to get conversation token");
       }
 
-      if (!data?.signedUrl) {
-        throw new Error("No signed URL received from server");
+      console.log("🎙️ [VoiceTest] ✓ Token response:", {
+        connectionType: data?.connectionType,
+        hasSignedUrl: !!data?.signedUrl,
+        hasToken: !!data?.token,
+        hasConversationId: !!data?.conversationId,
+        tokenPrefix: data?.token ? String(data.token).slice(0, 12) : undefined,
+        conversationId: data?.conversationId,
+        businessName: data?.dynamicVariables?.business_name,
+        deployedVersion: data?.deployedVersion || "OLD_VERSION",
+        fullDebug: data?._debug,
+      });
+
+      addDebugEvent("TOKEN_RECEIVED", {
+        connectionType: data?.connectionType,
+        hasSignedUrl: !!data?.signedUrl,
+        hasToken: !!data?.token,
+        conversationId: data?.conversationId,
+        deployedVersion: data?.deployedVersion,
+      });
+
+      // Store token/id if returned (for debug display)
+      const debugId = (data?.token as string | undefined) || (data?.conversationId as string | undefined) || null;
+      if (debugId) {
+        setConversationId(debugId);
+        console.log("🎙️ [VoiceTest] DebugID:", debugId);
       }
 
-      console.log("Starting conversation with business context:", data.dynamicVariables);
+      console.log("🎙️ [VoiceTest] Step 3: Starting session...");
+      addDebugEvent("STARTING_SESSION", { mode: data?.connectionType || connectionMode });
 
-      // Start the conversation with WebSocket using signed URL
-      // Pass dynamic variables directly - the agent uses these via {{variable_name}} syntax
-      await conversation.startSession({
-        signedUrl: data.signedUrl,
-        dynamicVariables: data.dynamicVariables,
-      });
+      // Start session based on returned connection type
+      if (data?.token && data?.connectionType === "webrtc") {
+        // WebRTC mode - use conversation token
+        await conversation.startSession({
+          conversationToken: data.token,
+          connectionType: "webrtc" as const,
+          dynamicVariables: toSafeVars(data.dynamicVariables),
+        });
+      } else if (data?.conversationId && data?.connectionType === "webrtc") {
+        // Backwards compatibility (older backend versions)
+        await conversation.startSession({
+          conversationToken: data.conversationId,
+          connectionType: "webrtc" as const,
+          dynamicVariables: toSafeVars(data.dynamicVariables),
+        });
+      } else if (data?.signedUrl) {
+        // WebSocket mode - use signed URL
+        await conversation.startSession({
+          signedUrl: data.signedUrl,
+          connectionType: "websocket" as const,
+          dynamicVariables: toSafeVars(data.dynamicVariables),
+        });
+      } else {
+        throw new Error("No token, conversationId, or signedUrl received from server");
+      }
+
+      console.log("🎙️ [VoiceTest] ✓ Session started");
+      addDebugEvent("SESSION_STARTED", { status: "success" });
     } catch (error: any) {
-      console.error("Failed to start conversation:", error);
+      console.error("🎙️ [VoiceTest] ✗ Failed:", error);
+      addDebugEvent("SESSION_ERROR", { error: error.message });
       toast({
         variant: "destructive",
         title: "Failed to Start",
@@ -76,7 +181,7 @@ export default function VoiceAgentTest() {
     } finally {
       setIsConnecting(false);
     }
-  }, [conversation, tenant?.id, toast]);
+  }, [conversation, tenant?.id, toast, addDebugEvent]);
 
   const stopConversation = useCallback(async () => {
     await conversation.endSession();
@@ -190,6 +295,35 @@ export default function VoiceAgentTest() {
         <p className="text-center text-sm text-muted-foreground">
           Speak naturally with your AI assistant. It will use your business knowledge to answer questions.
         </p>
+
+        {/* Debug Events */}
+        {debugEvents.length > 0 && (
+          <details className="mt-6" open>
+            <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">
+              Debug Events ({debugEvents.length})
+              {conversationId && <span className="ml-2 text-xs">ID: {conversationId.slice(0, 8)}...</span>}
+            </summary>
+            <div className="mt-2 max-h-96 overflow-y-auto rounded-md border bg-muted/30 p-3 text-xs font-mono space-y-2">
+              {debugEvents.map((event, idx) => {
+                const time = new Date(event.timestamp).toLocaleTimeString();
+                const dataStr = typeof event.data === "object"
+                  ? JSON.stringify(event.data, null, 2)
+                  : String(event.data);
+                return (
+                  <div key={idx} className="border-b border-muted pb-2 last:border-b-0">
+                    <div className="flex gap-2 mb-1">
+                      <span className="text-muted-foreground">{time}</span>
+                      <span className="font-semibold text-primary">{event.type}</span>
+                    </div>
+                    <pre className="text-muted-foreground whitespace-pre-wrap break-all text-xs ml-2">
+                      {dataStr}
+                    </pre>
+                  </div>
+                );
+              })}
+            </div>
+          </details>
+        )}
       </CardContent>
     </Card>
   );

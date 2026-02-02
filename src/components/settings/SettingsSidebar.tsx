@@ -70,6 +70,8 @@ export function SettingsSidebar({ activeSection, onSectionChange, config }: Sett
       colorClass: "text-violet-500",
       items: [
         { id: "ai-learning", label: "AI Learning", icon: Brain },
+        { id: "ai-rules", label: "Required Questions", icon: Brain },
+        { id: "pricing-estimates", label: "Pricing & Estimates", icon: DollarSign },
         { id: "data-privacy", label: "Data & Privacy", icon: Shield },
         { id: "hipaa", label: "HIPAA Compliance", icon: Stethoscope, visible: config.showHipaa },
       ],
