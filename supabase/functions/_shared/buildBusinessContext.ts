@@ -253,6 +253,102 @@ function truncate(text: string | null | undefined, maxLength: number): string {
 }
 
 /**
+ * Formats service area config into a speakable description
+ * Example outputs:
+ * - "within 50 miles of our location"
+ * - "the following ZIP codes: 08610, 08620, 08638"
+ * - "nationwide"
+ */
+function formatServiceAreaForVoice(
+  serviceArea: { type: string; miles?: number; zip_codes?: string[]; counties?: string[] } | null
+): string {
+  if (!serviceArea) return "";
+  
+  const mode = serviceArea.type || "";
+  
+  if ((mode === "radius" || mode === "miles") && serviceArea.miles) {
+    return `within ${serviceArea.miles} miles of our location`;
+  }
+  
+  if ((mode === "zips" || mode === "zip_codes") && serviceArea.zip_codes?.length) {
+    const count = serviceArea.zip_codes.length;
+    if (count <= 5) {
+      return `the following ZIP codes: ${serviceArea.zip_codes.join(", ")}`;
+    }
+    return `${count} specific ZIP code areas`;
+  }
+  
+  if (mode === "counties" && serviceArea.counties?.length) {
+    const count = serviceArea.counties.length;
+    if (count <= 3) {
+      return `${serviceArea.counties.join(", ")}`;
+    }
+    return `${count} county areas`;
+  }
+  
+  if (mode === "unlimited" || mode === "nationwide") {
+    return "nationwide";
+  }
+  
+  return "";
+}
+
+/**
+ * Formats weekly hours into a speakable summary
+ * Example: "Monday: 9:00 - 17:00, Tuesday: 9:00 - 17:00, ..."
+ */
+function formatWeeklyHoursForVoice(
+  hours: Record<string, { open: string; close: string; is_open: boolean }>
+): string {
+  if (!hours || Object.keys(hours).length === 0) return "";
+  
+  const dayOrder = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+  const parts: string[] = [];
+  
+  for (const day of dayOrder) {
+    const h = hours[day];
+    if (!h) continue;
+    
+    const dayName = day.charAt(0).toUpperCase() + day.slice(1);
+    if (!h.is_open) {
+      parts.push(`${dayName}: Closed`);
+    } else if (h.open && h.close) {
+      parts.push(`${dayName}: ${h.open} - ${h.close}`);
+    }
+  }
+  
+  return parts.join(", ");
+}
+
+/**
+ * Formats objection responses for AI context
+ * Example: "When customer says 'too expensive': 'We offer flexible payment plans...'"
+ */
+function formatObjectionsForVoice(
+  objections: Array<{ objection: string; response: string }>
+): string {
+  if (!objections || objections.length === 0) return "";
+  
+  return objections
+    .slice(0, 5) // Limit to 5 objections for voice context
+    .map(o => `When customer says "${o.objection}": "${truncate(o.response, 150)}"`)
+    .join(" | ");
+}
+
+/**
+ * Formats intake fields for medical mode
+ * Example: "Please collect: insurance provider, date of birth, current medications"
+ */
+function formatIntakeFieldsForVoice(fields: IntakeField[]): string {
+  if (!fields || fields.length === 0) return "";
+  
+  const required = fields.filter(f => f.required);
+  if (required.length === 0) return "";
+  
+  return `Please collect: ${required.map(f => f.label).join(", ")}`;
+}
+
+/**
  * Compute ETA for business context.
  * Uses the tenant's ETA policy to provide a spoken ETA range.
  *
@@ -1614,7 +1710,7 @@ export function buildDynamicVariables(
   const menuMetadata = getMenuMetadata(ctx.offerings.menu);
   
   return {
-    // Core identifiers (NEVER null - always default to empty string)
+    // === CORE IDENTIFIERS (NEVER null - always default to empty string) ===
     tenant_id: ctx.tenant.tenant_id || "",
     location_id: ctx._meta.location_id || "",
     business_name: ctx.tenant.business_name || "Our Business",
@@ -1624,35 +1720,60 @@ export function buildDynamicVariables(
     hipaa_mode: ctx.safety.hipaa_mode,
     timezone: ctx.tenant.timezone || "America/New_York",
     
+    // === BUSINESS IDENTITY (NEW - address, phone, website, etc.) ===
+    address: ctx.tenant.address || "",
+    phone: ctx.tenant.phone_e164 || "",
+    website: ctx.tenant.website || "",
+    tagline: ctx.tenant.tagline || "",
+    years_in_business: String(ctx.tenant.years_in_business || ""),
+    industry: ctx.tenant.industry_slug || "",
+    
+    // === SERVICE AREA (NEW - formatted for voice) ===
+    service_area_description: formatServiceAreaForVoice(ctx.tenant.service_area),
+    service_area_mode: ctx.tenant.service_area?.type || "",
+    service_area_radius_miles: String(ctx.tenant.service_area?.miles || ""),
+    
     // Caller info (respect PHI settings) - NEVER null
     caller_phone: ctx.safety.hipaa_mode ? "" : (callerPhoneE164 || ""),
     customer_id: customerId || "",
     
-    // Hours and availability - CRITICAL for answering hours questions
+    // === HOURS AND AVAILABILITY ===
     hours_today: ctx.tenant.hours_today || "",
+    hours_weekly: formatWeeklyHoursForVoice(ctx.tenant.hours),
     calendar_connected: ctx.operations.availability.calendar_connected,
     booking_link: ctx.operations.availability.booking_url || "",
+    booking_mode: ctx.operations.availability.booking_mode || "",
     
-    // Business Brain content - CRITICAL: these power the AI's knowledge
+    // === BUSINESS BRAIN CONTENT - CRITICAL: these power the AI's knowledge ===
     // For food mode, menu_summary is primary; for service mode, services_pricing is primary
     service_summary: ctx.offerings.services_summary || "",
     services_pricing: ctx.offerings.services_for_prompt || "",
     menu_summary: ctx.offerings.menu_summary || "",
     pricing_rules_summary: ctx.pricing.rules_summary || "",
     eta_rules_summary: ctx.eta.rules_summary || "",
+    
+    // === POLICIES (complete - cancellation, deposit, refund, payment, restrictions) ===
     policies_summary: [
       ctx.policies.cancellation && `Cancellation: ${ctx.policies.cancellation}`,
       ctx.policies.deposit && `Deposit: ${ctx.policies.deposit}`,
       ctx.policies.payment_methods.length > 0 && `Payment: ${ctx.policies.payment_methods.join(", ")}`,
     ].filter(Boolean).join(". ") || "",
+    cancellation_policy: ctx.policies.cancellation || "",
+    deposit_policy: ctx.policies.deposit || "",
+    refund_policy: ctx.policies.refund || "",
+    payment_methods: ctx.policies.payment_methods.join(", ") || "",
+    ai_never_promise: (ctx.policies.ai_never_promise || []).join("; ") || "",
+    
+    // === KNOWLEDGE - FAQs and Objection Responses ===
     faqs_summary: ctx.knowledge.faqs_summary || "",
+    objections_summary: formatObjectionsForVoice(ctx.knowledge.objections),
     
     // Menu metadata for large menus (allows AI to ask about specific categories)
     menu_has_more: menuMetadata.hasMore ? "true" : "false",
     menu_top_categories: menuMetadata.topCategories.join(", ") || "",
     menu_summary_length: String(ctx.offerings.menu_summary?.length || 0),
     
-    // Food settings (for food mode businesses)
+    // === FOOD SETTINGS (for food mode businesses) ===
     estimated_prep_minutes: ctx.food_settings?.estimated_prep_minutes || 15,
     accepts_pickup: ctx.food_settings?.accepts_pickup !== false ? "true" : "false",
     accepts_delivery: ctx.food_settings?.accepts_delivery === true ? "true" : "false",
@@ -1662,24 +1783,29 @@ export function buildDynamicVariables(
       ? String((ctx.food_settings.delivery_minimum_cents / 100).toFixed(2)) 
       : "",
     accepts_catering: ctx.food_settings?.accepts_catering === true ? "true" : "false",
+    catering_min_guests: String(ctx.food_settings?.catering_min_guests || ""),
+    catering_lead_days: String(ctx.food_settings?.catering_lead_days || ""),
     
-    // AI assistant settings (NEVER null)
+    // === MEDICAL INTAKE (for medical mode) ===
+    intake_fields_summary: formatIntakeFieldsForVoice(ctx.intake.required_fields),
+    
+    // === AI ASSISTANT SETTINGS (NEVER null) ===
     greeting_script: ctx.ai_settings.greeting_script || "",
     fallback_script: ctx.ai_settings.fallback_script || "",
     tone: ctx.ai_settings.tone || "friendly",
     
-    // Intelligence layers
+    // === INTELLIGENCE LAYERS ===
     intent_rules_summary: ctx.intelligence.intent_rules_summary || "",
     required_questions_summary: ctx.intelligence.required_questions_summary || "No required questions configured",
     memory_hints_summary: ctx.safety.hipaa_mode ? "" : (ctx.intelligence.memory_hints_summary || ""),
     memory_enabled: ctx.intelligence.settings.memory_enabled,
 
-    // Pricing & ETA (busyness config)
+    // === PRICING & ETA (busyness config) ===
     base_prep_minutes: ctx.pricing.busyness_config?.base_prep_minutes || 30,
     busy_buffer_minutes: ctx.pricing.busyness_config?.busy_buffer_minutes || 15,
     current_busyness_pct: ctx.pricing.busyness_config?.manual_busyness_pct || 0,
 
-    // DEBUG flags - for /debug/ai-context page verification (NEVER null)
+    // === DEBUG FLAGS - for /debug/ai-context page verification (NEVER null) ===
     context_has_hours: hasHours ? "true" : "false",
     context_has_menu: hasMenu ? "true" : "false",
     context_has_services: hasServices ? "true" : "false",
