@@ -67,6 +67,18 @@ export interface MemoryHint {
   confidence: number;
 }
 
+export interface EtaPolicyJson {
+  default_range_minutes: { min: number; max: number };
+  mode_overrides?: {
+    [mode: string]: { range_minutes: { min: number; max: number } };
+  };
+  job_type_overrides?: {
+    [jobType: string]: { range_minutes: { min: number; max: number } };
+  };
+  busyness_buffer_pct?: number;
+  holiday_buffer_pct?: number;
+}
+
 export interface BusinessContext {
   tenant: {
     tenant_id: string;
@@ -165,6 +177,18 @@ export interface BusinessContext {
       manual_busyness_pct: number;
     } | null;
   };
+  eta: {
+    /** Pre-computed ETA for AI to speak ("30 to 45 minutes") */
+    spoken: string;
+    /** Minimum ETA in minutes */
+    min_minutes: number;
+    /** Maximum ETA in minutes */
+    max_minutes: number;
+    /** Source of the range: "job_type" | "mode" | "default" */
+    source: string;
+    /** Policy loaded from tenant */
+    policy: EtaPolicyJson | null;
+  };
   safety: {
     hipaa_mode: boolean;
     store_transcripts: boolean;
@@ -214,6 +238,71 @@ function truncate(text: string | null | undefined, maxLength: number): string {
   if (!text) return "";
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength - 3) + "...";
+}
+
+/**
+ * Compute ETA for business context.
+ * Uses the tenant's ETA policy to provide a spoken ETA range.
+ *
+ * @param policy - The tenant's eta_policy_jsonb
+ * @param businessMode - Current business mode
+ * @param busynessPct - Current busyness percentage (0-100)
+ */
+function computeEtaForContext(
+  policy: EtaPolicyJson | null,
+  businessMode: string,
+  busynessPct: number
+): BusinessContext["eta"] {
+  // Default policy if none configured
+  const defaultPolicy: EtaPolicyJson = {
+    default_range_minutes: { min: 30, max: 60 },
+    busyness_buffer_pct: 15,
+    holiday_buffer_pct: 10,
+  };
+
+  const effectivePolicy = policy || defaultPolicy;
+  let range = { ...effectivePolicy.default_range_minutes };
+  let source = "default";
+
+  // Check mode overrides
+  if (effectivePolicy.mode_overrides?.[businessMode]) {
+    range = { ...effectivePolicy.mode_overrides[businessMode].range_minutes };
+    source = "mode";
+  }
+
+  // Apply busyness buffer
+  const busynessBufferPct = Math.min(50, Math.max(0, effectivePolicy.busyness_buffer_pct ?? 0));
+  const clampedBusyness = Math.min(100, Math.max(0, busynessPct));
+
+  if (clampedBusyness > 0 && busynessBufferPct > 0) {
+    const multiplier = 1 + (busynessBufferPct * clampedBusyness) / 10000;
+    range.min = Math.round(range.min * multiplier);
+    range.max = Math.round(range.max * multiplier);
+  }
+
+  // Format spoken ETA
+  let spoken: string;
+  if (range.max < 60) {
+    spoken = `${range.min} to ${range.max} minutes`;
+  } else {
+    const formatTime = (mins: number): string => {
+      if (mins < 60) return `${Math.round(mins)} minutes`;
+      const hours = Math.floor(mins / 60);
+      const remainder = mins % 60;
+      if (remainder === 0) return hours === 1 ? "1 hour" : `${hours} hours`;
+      if (remainder === 30) return hours === 1 ? "1 and a half hours" : `${hours} and a half hours`;
+      return hours === 1 ? "about 1 hour" : `about ${hours} hours`;
+    };
+    spoken = `${formatTime(range.min)} to ${formatTime(range.max)}`;
+  }
+
+  return {
+    spoken,
+    min_minutes: range.min,
+    max_minutes: range.max,
+    source,
+    policy: effectivePolicy,
+  };
 }
 
 /**
@@ -988,6 +1077,11 @@ export async function buildBusinessContext(
       rules_summary: buildPricingRulesSummary(tenant.pricing_rules_jsonb),
       busyness_config: tenant.busyness_rules_jsonb || null,
     },
+    eta: computeEtaForContext(
+      tenant.eta_policy_jsonb as EtaPolicyJson | null,
+      tenant.business_mode || "general",
+      tenant.busyness_rules_jsonb?.manual_busyness_pct || 0
+    ),
     safety: {
       hipaa_mode: hipaaMode,
       store_transcripts: retentionSettings?.store_transcripts !== false && !hipaaMode,
