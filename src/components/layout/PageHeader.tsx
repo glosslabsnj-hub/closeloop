@@ -15,7 +15,7 @@ interface PageHeaderProps {
  */
 export function PageHeader({ title, description, action, className, badge }: PageHeaderProps) {
   return (
-    <div className={cn("mb-6", className)}>
+    <div className={cn("mb-6 surface-1", className)}>
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2.5 flex-wrap">
@@ -23,7 +23,7 @@ export function PageHeader({ title, description, action, className, badge }: Pag
             {badge}
           </div>
           {description && (
-            <p className="text-muted-foreground text-sm mt-1 leading-relaxed max-w-2xl">
+            <p className="text-muted-foreground text-sm mt-1.5 leading-relaxed max-w-2xl">
               {description}
             </p>
           )}

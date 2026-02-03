@@ -25,7 +25,7 @@ export function LiveDashboard() {
   const hasVoice = hasVoiceFeature(subscription?.plan_code);
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto animate-fade-in">
+    <div className="space-y-6 max-w-5xl mx-auto animate-fade-in relative z-10">
       {/* Audio notification manager */}
       <SoundManager />
 
@@ -35,8 +35,10 @@ export function LiveDashboard() {
       <KnowledgeUploadBanner />
       <UsageThresholdBanner threshold={80} />
 
-      {/* HERO: Agent Status + Toggle */}
-      <DashboardHeroCard />
+      {/* HERO: Agent Status + Toggle - Lower z-index than nav */}
+      <div className="relative z-10">
+        <DashboardHeroCard />
+      </div>
 
       {/* Phone Number Card - Prominent for Voice plans */}
       {hasVoice && <PhoneNumberCard />}
@@ -65,12 +67,14 @@ export function LiveDashboard() {
       {/* Go-Live Checklist - Only show when not live */}
       {!isLive && <GoLiveChecklist />}
 
-      {/* Copilot FAB */}
-      {copilotOpen ? (
-        <Copilot isOpen={copilotOpen} onClose={() => setCopilotOpen(false)} />
-      ) : (
-        <CopilotTrigger onClick={() => setCopilotOpen(true)} />
-      )}
+      {/* Copilot FAB - Higher z-index */}
+      <div className="relative z-30">
+        {copilotOpen ? (
+          <Copilot isOpen={copilotOpen} onClose={() => setCopilotOpen(false)} />
+        ) : (
+          <CopilotTrigger onClick={() => setCopilotOpen(true)} />
+        )}
+      </div>
     </div>
   );
 }

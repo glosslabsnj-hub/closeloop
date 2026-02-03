@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-auto rounded-xl border border-border/40 bg-card/30 backdrop-blur-sm">
+    <div className="relative w-full overflow-auto rounded-xl border border-border/40 bg-card/50 backdrop-blur-sm">
       <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
     </div>
   )
@@ -16,7 +16,8 @@ const TableHeader = React.forwardRef<HTMLTableSectionElement, React.HTMLAttribut
     <thead
       ref={ref}
       className={cn(
-        "sticky top-0 z-10 bg-muted/60 backdrop-blur-md [&_tr]:border-b [&_tr]:border-border/30",
+        "sticky top-0 z-10 [&_tr]:border-b [&_tr]:border-border/30",
+        "bg-muted/50 backdrop-blur-md",
         className
       )}
       {...props}
@@ -49,8 +50,8 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
       ref={ref}
       className={cn(
         "border-b border-border/20 transition-colors duration-150",
-        "hover:bg-muted/30",
-        "data-[state=selected]:bg-muted/50",
+        "hover:bg-muted/25",
+        "data-[state=selected]:bg-muted/40",
         zebra && "even:bg-muted/10",
         className
       )}

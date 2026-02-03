@@ -59,7 +59,7 @@ interface NavItem {
   label: string;
   icon: React.ElementType;
   requiredModules?: string[];
-  dynamicLabelKey?: "bookingsPageTitle" | "servicesPageTitle"; // Keys from IndustryTerms
+  dynamicLabelKey?: "bookingsPageTitle" | "servicesPageTitle";
 }
 
 const baseNavItems: NavItem[] = [
@@ -248,12 +248,12 @@ function AppLayoutContent() {
 
   return (
     <TooltipProvider delayDuration={0}>
-      <div className="min-h-screen app-shell-bg">
+      <div className="min-h-screen app-bg">
         {/* Admin Mode Switcher Banner */}
         <AdminModeSwitcher />
         
         {/* Top Navigation - Mobile First */}
-        <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
+        <header className="sticky top-0 z-50 border-b border-border/40 bg-background/85 backdrop-blur-xl">
           <div className="flex h-14 items-center justify-between px-3 md:px-5">
             <div className="flex items-center gap-2">
               {/* Sidebar Toggle Button - Desktop Only */}
@@ -279,11 +279,14 @@ function AppLayoutContent() {
               </Link>
             </div>
 
-            <div className="flex items-center gap-1.5">
+            {/* Right side controls - ensure no overflow clipping */}
+            <div className="flex items-center gap-1.5 relative z-50">
               {/* Admin Mode Selector and Tenant Switcher - only visible to super admins */}
               {isSuperAdmin && <AdminModeSelector />}
               <AdminTenantSwitcher />
               <NotificationBell />
+              
+              {/* Profile Dropdown - FIX: Use Portal with proper collision handling */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 hover:ring-2 hover:ring-primary/20 transition-all">
@@ -294,7 +297,14 @@ function AppLayoutContent() {
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52 surface-3">
+                <DropdownMenuContent 
+                  align="end" 
+                  side="bottom"
+                  sideOffset={8}
+                  collisionPadding={12}
+                  avoidCollisions={true}
+                  className="w-52 z-[100]"
+                >
                   <div className="px-3 py-2.5 border-b border-border/30">
                     <p className="text-sm font-medium truncate">{user.email}</p>
                     <p className="text-xs text-muted-foreground truncate mt-0.5">{displayTenant?.name}</p>
@@ -320,12 +330,12 @@ function AppLayoutContent() {
           {!hideSidebar && (
             <aside 
               className={cn(
-                "hidden md:flex flex-col fixed left-0 top-14 bottom-0 border-r border-border/40 transition-all duration-300 ease-out",
+                "hidden md:flex flex-col fixed left-0 top-14 bottom-0 border-r border-border/40 transition-all duration-300 ease-out z-40",
                 "bg-sidebar/95 backdrop-blur-xl",
                 sidebarCollapsed ? "w-14" : "w-60"
               )}
             >
-            <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
+            <nav className="flex-1 p-2 space-y-1 overflow-y-auto relative z-10">
               {navItems.map((item, index) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.href;
@@ -341,10 +351,10 @@ function AppLayoutContent() {
                       "group flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-200 relative",
                       sidebarCollapsed ? "px-2.5 py-2.5 justify-center" : "px-3 py-2.5",
                       isActive
-                        ? "bg-primary/15 text-primary border-l-2 border-l-primary"
+                        ? "bg-primary/15 text-primary border-l-2 border-l-primary ml-[-1px]"
                         : isLocked
                           ? "text-muted-foreground/40 cursor-not-allowed"
-                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/80 hover:text-sidebar-foreground"
+                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
                     )}
                   >
                     <Icon className={cn(
@@ -377,7 +387,7 @@ function AppLayoutContent() {
                           {navLink}
                         </div>
                       </TooltipTrigger>
-                      <TooltipContent side="right" sideOffset={8} className="font-medium surface-3">
+                      <TooltipContent side="right" sideOffset={8} className="font-medium">
                         {item.label}
                         {isLocked && " (Locked)"}
                       </TooltipContent>
@@ -400,8 +410,8 @@ function AppLayoutContent() {
           </aside>
           )}
 
-          {/* Mobile Bottom Nav */}
-          <nav className="md:hidden mobile-nav-floating safe-area-pb">
+          {/* Mobile Bottom Nav - Higher z-index than content */}
+          <nav className="md:hidden mobile-nav-floating safe-area-pb z-40">
             <div className="grid grid-cols-5 h-14">
               {mobileNavItems.map((item) => {
                 const Icon = item.icon;
@@ -439,11 +449,11 @@ function AppLayoutContent() {
             </div>
           </nav>
 
-          {/* Page Content */}
+          {/* Page Content - z-index lower than nav */}
           <main 
             className={cn(
-              "flex-1 pb-20 md:pb-0 min-h-[calc(100vh-4rem)] transition-all duration-200 ease-in-out",
-              hideSidebar ? "md:ml-0" : sidebarCollapsed ? "md:ml-14" : "md:ml-64"
+              "flex-1 pb-20 md:pb-0 min-h-[calc(100vh-4rem)] transition-all duration-200 ease-in-out relative z-10",
+              hideSidebar ? "md:ml-0" : sidebarCollapsed ? "md:ml-14" : "md:ml-60"
             )}
           >
             {isRouteAccessible ? (

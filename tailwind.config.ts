@@ -75,12 +75,12 @@ export default {
         "2xl": "calc(var(--radius) + 8px)",
       },
       boxShadow: {
-        'soft': '0 2px 8px -2px rgba(0, 0, 0, 0.4), 0 4px 16px -4px rgba(0, 0, 0, 0.3)',
-        'soft-lg': '0 4px 16px -4px rgba(0, 0, 0, 0.5), 0 8px 32px -8px rgba(0, 0, 0, 0.4)',
-        'soft-xl': '0 8px 24px -6px rgba(0, 0, 0, 0.5), 0 16px 48px -12px rgba(0, 0, 0, 0.4)',
-        'glow': '0 0 20px -5px hsl(var(--primary) / 0.4)',
-        'glow-lg': '0 0 40px -10px hsl(var(--primary) / 0.5)',
-        'inner-soft': 'inset 0 1px 2px 0 rgba(0, 0, 0, 0.15)',
+        'soft': '0 2px 8px -2px rgba(0, 0, 0, 0.35), 0 4px 16px -4px rgba(0, 0, 0, 0.25)',
+        'soft-lg': '0 4px 16px -4px rgba(0, 0, 0, 0.45), 0 8px 32px -8px rgba(0, 0, 0, 0.35)',
+        'soft-xl': '0 8px 32px -8px rgba(0, 0, 0, 0.5), 0 16px 64px -16px rgba(0, 0, 0, 0.4)',
+        'glow': '0 0 24px -6px hsl(var(--primary) / 0.45)',
+        'glow-lg': '0 0 48px -12px hsl(var(--primary) / 0.55)',
+        'inner-soft': 'inset 0 1px 3px 0 rgba(0, 0, 0, 0.2)',
       },
       keyframes: {
         "accordion-down": {
