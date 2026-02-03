@@ -351,10 +351,10 @@ function AppLayoutContent() {
                       "group flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-200 relative",
                       sidebarCollapsed ? "px-2.5 py-2.5 justify-center" : "px-3 py-2.5",
                       isActive
-                        ? "bg-primary/15 text-primary border-l-2 border-l-primary ml-[-1px]"
+                        ? "bg-primary/12 text-primary border-l-2 border-l-primary ml-[-1px] shadow-[inset_0_0_12px_-4px_hsl(var(--primary)/0.15)]"
                         : isLocked
                           ? "text-muted-foreground/40 cursor-not-allowed"
-                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground hover:border-l-2 hover:border-l-primary/30 hover:ml-[-1px]"
                     )}
                   >
                     <Icon className={cn(

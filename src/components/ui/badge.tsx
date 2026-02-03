@@ -10,12 +10,13 @@ const badgeVariants = cva(
       variant: {
         default: "border-transparent gradient-primary text-primary-foreground shadow-sm",
         secondary: "border-border/50 bg-secondary/80 text-secondary-foreground backdrop-blur-sm",
-        destructive: "border-destructive/25 bg-destructive/12 text-destructive",
-        success: "border-success/25 bg-success/12 text-success",
-        warning: "border-warning/25 bg-warning/12 text-warning",
+        destructive: "border-destructive/20 bg-destructive/10 text-destructive",
+        success: "border-success/20 bg-success/10 text-success",
+        warning: "border-warning/20 bg-warning/10 text-warning",
         outline: "text-foreground border-border/60 bg-transparent",
         muted: "border-transparent bg-muted text-muted-foreground",
         ghost: "border-transparent bg-transparent text-muted-foreground hover:text-foreground",
+        primary: "border-primary/20 bg-primary/10 text-primary",
       },
       size: {
         default: "px-2.5 py-0.5 text-xs",

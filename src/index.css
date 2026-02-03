@@ -2,64 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
-/* CloseLoop Design System - 2026 "Graphite Glass + Electric Indigo" */
+/* CloseLoop Design System - 2026/2027 "Graphite HUD" */
 @layer base {
   :root {
     /* Core Background System - Deep Graphite */
-    --background: 225 12% 6%;
-    --foreground: 210 15% 92%;
+    --background: 220 16% 6%;
+    --foreground: 210 20% 92%;
 
     /* Cards - elevated glass surfaces */
-    --card: 225 12% 9%;
-    --card-foreground: 210 15% 92%;
+    --card: 220 16% 9%;
+    --card-foreground: 210 20% 92%;
 
-    --popover: 225 12% 9%;
-    --popover-foreground: 210 15% 92%;
+    --popover: 220 16% 9%;
+    --popover-foreground: 210 20% 92%;
 
-    /* Primary - Electric Indigo */
-    --primary: 246 90% 70%;
-    --primary-foreground: 230 20% 8%;
-    --primary-glow: 246 95% 75%;
+    /* Primary - Cyan/Teal (NO PURPLE) */
+    --primary: 190 95% 55%;
+    --primary-foreground: 220 18% 8%;
+    --primary-glow: 190 100% 60%;
 
     /* Secondary - Soft graphite panel */
-    --secondary: 225 12% 12%;
-    --secondary-foreground: 210 12% 90%;
+    --secondary: 220 16% 12%;
+    --secondary-foreground: 210 15% 90%;
 
     /* Muted - For subtle backgrounds and text (AA compliant) */
-    --muted: 225 12% 11%;
-    --muted-foreground: 215 10% 68%;
+    --muted: 220 16% 10%;
+    --muted-foreground: 215 12% 70%;
 
-    /* Accent - Indigo tinted for highlights */
-    --accent: 246 40% 16%;
-    --accent-foreground: 246 90% 80%;
+    /* Accent - Cyan tinted for highlights */
+    --accent: 190 55% 16%;
+    --accent-foreground: 190 95% 75%;
 
-    /* Status Colors - Refined, less saturated */
-    --destructive: 0 75% 60%;
+    /* Status Colors - Modern + calmer */
+    --destructive: 0 78% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 155 65% 45%;
+    --success: 158 70% 42%;
     --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 56%;
     --warning-foreground: 0 0% 10%;
 
     /* Borders & Inputs */
-    --border: 225 10% 18%;
-    --input: 225 10% 12%;
-    --ring: 246 90% 70%;
+    --border: 220 14% 18%;
+    --input: 220 14% 12%;
+    --ring: 190 95% 55%;
 
     /* Radius - Premium rounded */
     --radius: 0.875rem;
 
     /* Sidebar - Deepest graphite for visual hierarchy */
-    --sidebar-background: 225 12% 5%;
-    --sidebar-foreground: 210 12% 88%;
-    --sidebar-primary: 246 90% 72%;
-    --sidebar-primary-foreground: 230 20% 8%;
-    --sidebar-accent: 225 12% 10%;
-    --sidebar-accent-foreground: 210 12% 90%;
-    --sidebar-border: 225 10% 16%;
-    --sidebar-ring: 246 90% 72%;
+    --sidebar-background: 220 18% 5%;
+    --sidebar-foreground: 210 15% 88%;
+    --sidebar-primary: 190 95% 60%;
+    --sidebar-primary-foreground: 220 18% 8%;
+    --sidebar-accent: 220 16% 10%;
+    --sidebar-accent-foreground: 210 15% 90%;
+    --sidebar-border: 220 14% 16%;
+    --sidebar-ring: 190 95% 60%;
   }
 }
 
@@ -111,7 +111,7 @@
 
 @layer utilities {
   /* ==========================================
-     APP BACKGROUND SYSTEM - "Graphite Glass"
+     APP BACKGROUND SYSTEM - "Graphite HUD"
      ========================================== */
   .app-bg {
     position: relative;
@@ -124,9 +124,9 @@
     inset: 0;
     pointer-events: none;
     background: 
-      radial-gradient(ellipse 100% 80% at 5% 0%, hsl(var(--primary) / 0.08) 0%, transparent 45%),
-      radial-gradient(ellipse 60% 50% at 95% 90%, hsl(246 60% 40% / 0.05) 0%, transparent 50%),
-      radial-gradient(ellipse 120% 120% at 50% 50%, transparent 30%, hsl(0 0% 0% / 0.2) 100%);
+      radial-gradient(ellipse 100% 80% at 5% 0%, hsl(var(--primary) / 0.06) 0%, transparent 45%),
+      radial-gradient(ellipse 60% 50% at 95% 90%, hsl(190 60% 30% / 0.04) 0%, transparent 50%),
+      radial-gradient(ellipse 120% 120% at 50% 50%, transparent 30%, hsl(0 0% 0% / 0.25) 100%);
     z-index: 0;
   }
 
@@ -136,7 +136,7 @@
     position: fixed;
     inset: 0;
     pointer-events: none;
-    opacity: 0.02;
+    opacity: 0.015;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
     z-index: 0;
   }
@@ -317,7 +317,7 @@
   }
 
   /* ==========================================
-     PREMIUM GRADIENTS
+     PREMIUM GRADIENTS - Cyan/Teal Theme
      ========================================== */
   .gradient-primary {
     background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 100%);
@@ -328,14 +328,14 @@
   }
 
   .gradient-hero {
-    background: linear-gradient(135deg, hsl(246 80% 40%) 0%, hsl(246 75% 30%) 100%);
+    background: linear-gradient(135deg, hsl(190 80% 35%) 0%, hsl(190 75% 25%) 100%);
   }
 
   .gradient-subtle {
-    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(225 12% 8%) 100%);
+    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(220 16% 8%) 100%);
   }
 
-  /* Button gradient glow on hover */
+  /* Button gradient glow on hover - Cyan glow */
   .btn-glow {
     position: relative;
     overflow: hidden;
@@ -345,7 +345,7 @@
     content: '';
     position: absolute;
     inset: -2px;
-    background: linear-gradient(135deg, hsl(var(--primary-glow) / 0.35) 0%, hsl(var(--primary) / 0.15) 100%);
+    background: linear-gradient(135deg, hsl(var(--primary-glow) / 0.30) 0%, hsl(var(--primary) / 0.12) 100%);
     border-radius: inherit;
     opacity: 0;
     transition: opacity 0.25s ease;

@@ -5,15 +5,15 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 btn-press",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 active:translate-y-[1px] active:scale-[0.99]",
   {
     variants: {
       variant: {
         default: "gradient-primary text-primary-foreground shadow-soft hover:shadow-glow btn-glow",
-        destructive: "bg-destructive text-destructive-foreground shadow-soft hover:bg-destructive/90 hover:shadow-soft-lg",
-        outline: "border border-border/60 bg-transparent hover:bg-muted/40 hover:border-primary/30 hover:text-foreground",
-        secondary: "bg-secondary/80 text-secondary-foreground border border-border/40 backdrop-blur-sm hover:bg-secondary hover:border-border/60",
-        ghost: "hover:bg-muted/50 hover:text-foreground",
+        destructive: "bg-destructive/90 text-destructive-foreground shadow-soft hover:bg-destructive hover:shadow-soft-lg",
+        outline: "border border-border/60 bg-transparent hover:bg-primary/8 hover:border-primary/40 hover:text-foreground",
+        secondary: "bg-secondary/80 text-secondary-foreground border border-border/40 backdrop-blur-sm hover:bg-secondary hover:border-primary/25",
+        ghost: "hover:bg-muted/60 hover:text-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {

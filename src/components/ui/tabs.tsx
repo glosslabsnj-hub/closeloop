@@ -13,7 +13,7 @@ const TabsList = React.forwardRef<
     ref={ref}
     className={cn(
       "inline-flex h-12 items-center justify-center gap-1 rounded-xl p-1.5 text-muted-foreground",
-      "bg-muted/40 border border-border/40",
+      "bg-muted/50 border border-border/50",
       className
     )}
     {...props}
@@ -30,10 +30,10 @@ const TabsTrigger = React.forwardRef<
     className={cn(
       "inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-medium ring-offset-background transition-all duration-200",
       "min-h-[44px]",
-      "data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/50",
-      "data-[state=active]:bg-background/90 data-[state=active]:text-foreground data-[state=active]:backdrop-blur-sm",
-      "data-[state=active]:shadow-[0_1px_3px_0_rgba(0,0,0,0.25),inset_0_1px_0_0_rgba(255,255,255,0.05)]",
-      "data-[state=active]:border data-[state=active]:border-border/50",
+      "data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/60",
+      "data-[state=active]:bg-primary/12 data-[state=active]:text-primary data-[state=active]:backdrop-blur-sm",
+      "data-[state=active]:shadow-[0_1px_4px_0_rgba(0,0,0,0.2),inset_0_0_12px_-4px_hsl(var(--primary)/0.12)]",
+      "data-[state=active]:border data-[state=active]:border-primary/25",
       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
       "disabled:pointer-events-none disabled:opacity-50",
       className
