@@ -27,6 +27,12 @@ interface ComputeEtaRequest {
   dest_lat?: number;
   dest_lng?: number;
   intent?: "dispatch" | "delivery";
+  // Optional origin override - if not provided, uses tenant base location
+  origin_lat?: number;
+  origin_lng?: number;
+  origin_address_text?: string;
+  // If true, skips tenant settings lookup (for simple point-to-point calculations)
+  skip_eta_settings?: boolean;
 }
 
 interface ComputeEtaResponse {
@@ -89,7 +95,17 @@ serve(async (req: Request) => {
 
     // Parse request
     const body: ComputeEtaRequest = await req.json();
-    const { tenant_id, address_text, dest_lat, dest_lng, intent = "dispatch" } = body;
+    const { 
+      tenant_id, 
+      address_text, 
+      dest_lat, 
+      dest_lng, 
+      intent = "dispatch",
+      origin_lat,
+      origin_lng,
+      origin_address_text,
+      skip_eta_settings = false
+    } = body;
 
     if (!tenant_id) {
       return new Response(
@@ -164,12 +180,39 @@ serve(async (req: Request) => {
       );
     }
 
-    // Check base coordinates
-    if (settings.base_lat === null || settings.base_lng === null) {
-      return new Response(
-        JSON.stringify({ ...disabledResult, error: "Tenant base coordinates not configured" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Determine origin coordinates - use override if provided, else tenant base
+    let originLat = origin_lat;
+    let originLng = origin_lng;
+    let originPlaceName: string | null = null;
+
+    // If origin override via address, geocode it
+    if (origin_address_text && (originLat === undefined || originLng === undefined)) {
+      const accessToken = Deno.env.get("MAPBOX_ACCESS_TOKEN");
+      if (accessToken) {
+        const encodedOrigin = encodeURIComponent(origin_address_text.trim());
+        const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodedOrigin}.json?access_token=${accessToken}&limit=1`;
+        const geocodeRes = await fetch(geocodeUrl);
+        if (geocodeRes.ok) {
+          const geocodeData = await geocodeRes.json();
+          if (geocodeData.features?.length > 0) {
+            [originLng, originLat] = geocodeData.features[0].center;
+            originPlaceName = geocodeData.features[0].place_name;
+          }
+        }
+      }
+    }
+
+    // Fall back to tenant base if no origin override
+    if (originLat === undefined || originLng === undefined) {
+      if (settings.base_lat === null || settings.base_lng === null) {
+        return new Response(
+          JSON.stringify({ ...disabledResult, error: "Tenant base coordinates not configured" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      originLat = settings.base_lat;
+      originLng = settings.base_lng;
+      originPlaceName = settings.base_place_name;
     }
 
     // Get Mapbox token
@@ -219,9 +262,9 @@ serve(async (req: Request) => {
       );
     }
 
-    // Get route from Mapbox Directions
+    // Get route from Mapbox Directions (using origin coords, which may be tenant base or override)
     const profile = settings.mapbox_route_profile.replace("mapbox/", "");
-    const coordinates = `${settings.base_lng},${settings.base_lat};${destLng},${destLat}`;
+    const coordinates = `${originLng},${originLat};${destLng},${destLat}`;
     const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/${profile}/${coordinates}?access_token=${accessToken}&overview=false`;
 
     const directionsRes = await fetch(directionsUrl);
@@ -244,30 +287,44 @@ serve(async (req: Request) => {
     const distanceMiles = route.distance / METERS_PER_MILE;
     const durationMinutes = Math.ceil(route.duration / 60);
 
-    // Calculate ETA
-    let etaMinutes = settings.eta_base_minutes + durationMinutes;
-
-    // Add per-mile buffer if configured
-    if (settings.eta_per_mile_minutes) {
-      etaMinutes += Math.ceil(distanceMiles * settings.eta_per_mile_minutes);
-    }
-
-    // Apply min/max clamps
-    if (settings.eta_min_minutes !== null) {
-      etaMinutes = Math.max(etaMinutes, settings.eta_min_minutes);
-    }
-    if (settings.eta_max_minutes !== null) {
-      etaMinutes = Math.min(etaMinutes, settings.eta_max_minutes);
-    }
-
-    // Apply rounding
+    // Calculate ETA - skip complex ETA settings if doing simple point-to-point
+    let etaMinutes: number;
+    let etaRangeLow: number;
+    let etaRangeHigh: number;
+    let etaRangeStr: string;
     const rounding = settings.eta_rounding_minutes || 5;
-    etaMinutes = Math.ceil(etaMinutes / rounding) * rounding;
 
-    // Calculate range
-    const etaRangeLow = etaMinutes;
-    const etaRangeHigh = etaMinutes + rounding;
-    const etaRangeStr = `${etaRangeLow}–${etaRangeHigh}`;
+    if (skip_eta_settings) {
+      // Simple point-to-point: just use raw duration
+      etaMinutes = Math.ceil(durationMinutes / rounding) * rounding;
+      etaRangeLow = etaMinutes;
+      etaRangeHigh = etaMinutes + rounding;
+      etaRangeStr = `${etaRangeLow}–${etaRangeHigh}`;
+    } else {
+      // Full ETA calculation with tenant settings
+      etaMinutes = settings.eta_base_minutes + durationMinutes;
+
+      // Add per-mile buffer if configured
+      if (settings.eta_per_mile_minutes) {
+        etaMinutes += Math.ceil(distanceMiles * settings.eta_per_mile_minutes);
+      }
+
+      // Apply min/max clamps
+      if (settings.eta_min_minutes !== null) {
+        etaMinutes = Math.max(etaMinutes, settings.eta_min_minutes);
+      }
+      if (settings.eta_max_minutes !== null) {
+        etaMinutes = Math.min(etaMinutes, settings.eta_max_minutes);
+      }
+
+      // Apply rounding
+      etaMinutes = Math.ceil(etaMinutes / rounding) * rounding;
+
+      // Calculate range
+      etaRangeLow = etaMinutes;
+      etaRangeHigh = etaMinutes + rounding;
+      etaRangeStr = `${etaRangeLow}–${etaRangeHigh}`;
+    }
 
     // Log success (no PII)
     console.log(`[compute-distance-eta] tenant=${tenant_id.substring(0, 8)}... intent=${intent} distance=${distanceMiles.toFixed(1)}mi eta=${etaMinutes}min`);

@@ -46,8 +46,10 @@ import {
   DISPATCH_SERVICE_PRESETS,
   DISPATCH_CATEGORIES,
   VEHICLE_TYPES,
+  DISTANCE_BASIS_OPTIONS,
   type DispatchPricingConfig,
   type DistanceTier,
+  type DistanceBasis,
   type DispatchServiceCategory,
   type DispatchServiceType,
   generatePricingSummary,
@@ -404,6 +406,39 @@ export function DispatchServiceEditor({
               {/* Distance Tiered Pricing */}
               {formData.pricing_config.pricing_model === "distance_tiered" && (
                 <div className="space-y-4">
+                  {/* Distance Basis Selector */}
+                  <div className="space-y-2">
+                    <Label>Distance Measured From</Label>
+                    <Select
+                      value={formData.pricing_config.distance_basis || "tow_distance"}
+                      onValueChange={(v) => setFormData({
+                        ...formData,
+                        pricing_config: { ...formData.pricing_config, distance_basis: v as DistanceBasis },
+                      })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DISTANCE_BASIS_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            <div className="flex flex-col">
+                              <span>{option.label}</span>
+                              <span className="text-xs text-muted-foreground">{option.description}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      {formData.pricing_config.distance_basis === "dispatch_distance" 
+                        ? "Price will be based on how far we travel to reach the customer."
+                        : formData.pricing_config.distance_basis === "total_trip"
+                        ? "Price will be based on the entire trip distance (to customer + tow)."
+                        : "Price will be based on how far the vehicle is towed (pickup to dropoff)."}
+                    </p>
+                  </div>
+
                   <div className="flex items-center justify-between">
                     <Label>Distance Tiers</Label>
                     <Button variant="outline" size="sm" onClick={addDistanceTier}>
