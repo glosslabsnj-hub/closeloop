@@ -119,7 +119,7 @@ export function useAIReadiness(): AIReadinessScore {
         description: 'Set when you are open',
         weight: 10,
         complete: hoursComplete,
-        href: '/app/settings',
+        href: '/app/business-brain?section=hours',
         category: 'knowledge',
       },
       {
@@ -128,7 +128,7 @@ export function useAIReadiness(): AIReadinessScore {
         description: isFood ? 'Add at least 5 menu items with prices' : 'Add at least 3 services with pricing',
         weight: 20,
         complete: itemsComplete,
-        href: isFood ? '/app/menu-center' : '/app/services',
+        href: '/app/business-brain?section=services',
         category: 'knowledge',
       },
       {
@@ -137,7 +137,7 @@ export function useAIReadiness(): AIReadinessScore {
         description: 'Set cancellation, deposit, or payment policies',
         weight: 10,
         complete: policiesComplete,
-        href: '/app/settings',
+        href: '/app/business-brain?section=policies',
         category: 'knowledge',
       },
       {
@@ -146,7 +146,7 @@ export function useAIReadiness(): AIReadinessScore {
         description: 'Define what info to collect from callers',
         weight: 10,
         complete: intakeComplete,
-        href: '/app/settings',
+        href: '/app/business-brain?section=policies',
         category: 'knowledge',
       },
       {
@@ -155,7 +155,7 @@ export function useAIReadiness(): AIReadinessScore {
         description: 'Add frequently asked questions',
         weight: 10,
         complete: faqsComplete,
-        href: '/app/business-brain',
+        href: '/app/business-brain?section=knowledge',
         category: 'knowledge',
       },
       {
@@ -164,7 +164,7 @@ export function useAIReadiness(): AIReadinessScore {
         description: 'Connect calendar or use pending approval',
         weight: 15,
         complete: calendarOrApprovalComplete,
-        href: '/app/settings',
+        href: '/app/integrations/schedule',
         category: 'connection',
       },
       {
@@ -173,7 +173,7 @@ export function useAIReadiness(): AIReadinessScore {
         description: 'Connect phone and complete test call',
         weight: 10,
         complete: phoneComplete,
-        href: '/app/go-live',
+        href: '/app/integrations',
         category: 'connection',
       },
       {
@@ -182,7 +182,7 @@ export function useAIReadiness(): AIReadinessScore {
         description: 'Configure booking delivery webhook',
         weight: 15,
         complete: webhookComplete,
-        href: '/app/settings',
+        href: '/app/business-brain?section=policies',
         category: 'connection',
       },
     ];
