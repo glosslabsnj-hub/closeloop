@@ -120,6 +120,14 @@ export default function ReadinessFixCenterPage() {
             </p>
           </div>
         </div>
+        {/* Encouragement message */}
+        {(p0Issues.length > 0 || p1Issues.length > 0) && score >= 50 && (
+          <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+            <p className="text-sm text-primary font-medium">
+              🎯 You're almost there! Complete these items to launch your AI.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Score Card */}
@@ -192,13 +200,13 @@ export default function ReadinessFixCenterPage() {
         </Card>
       )}
 
-      {/* Blocking Issues (P0) */}
+      {/* Blocking Issues (P0) - Required */}
       {p0Issues.length > 0 && (
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <XCircle className="h-5 w-5 text-rose-500" />
             <h2 className="text-lg font-semibold text-rose-600 dark:text-rose-400">
-              Must Fix to Go Live ({p0Issues.length})
+              Required to Go Live ({p0Issues.length})
             </h2>
           </div>
           <div className="space-y-3">
@@ -209,13 +217,13 @@ export default function ReadinessFixCenterPage() {
         </div>
       )}
 
-      {/* Recommended Improvements (P1) */}
+      {/* Optional Improvements (P1) */}
       {p1Issues.length > 0 && (
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <Info className="h-5 w-5 text-amber-500" />
             <h2 className="text-lg font-semibold text-amber-600 dark:text-amber-400">
-              Recommended Improvements ({p1Issues.length})
+              Optional Improvements ({p1Issues.length})
             </h2>
           </div>
           <div className="space-y-3">

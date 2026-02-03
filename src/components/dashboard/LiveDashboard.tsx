@@ -12,6 +12,7 @@ import { Copilot, CopilotTrigger } from "./Copilot";
 import { KnowledgeConflictBanner } from "./KnowledgeConflictBanner";
 import { KnowledgeUploadBanner } from "./KnowledgeUploadBanner";
 import { AIReadinessPanel } from "./AIReadinessPanel";
+import { SetupProgressChecklist } from "./SetupProgressChecklist";
 import { ScheduleConnectionCard } from "@/components/schedule/ScheduleConnectionCard";
 import { SoundManager } from "@/components/notifications/SoundManager";
 import { hasVoiceFeature } from "@/config/pricing";
@@ -49,13 +50,15 @@ export function LiveDashboard() {
       {/* Needs Attention Banner - Consolidated urgent items */}
       <NeedsAttentionBanner />
 
-      {/* Two Column: Live Activity + Quick Actions */}
+      {/* Two Column: Live Activity + Quick Actions + Setup Progress */}
       <div className="grid md:grid-cols-5 gap-6">
         <div className="md:col-span-3">
           <LiveActivityFeed />
         </div>
-        <div className="md:col-span-2">
+        <div className="md:col-span-2 space-y-4">
           <QuickActionsCard />
+          {/* Setup Progress Checklist - only shows if not live */}
+          <SetupProgressChecklist />
         </div>
       </div>
 

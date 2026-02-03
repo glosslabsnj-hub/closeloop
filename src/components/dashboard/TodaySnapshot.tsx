@@ -14,8 +14,15 @@ import {
   Users,
   Stethoscope,
   TrendingUp,
+  HelpCircle,
 } from "lucide-react";
 import { startOfDay, startOfWeek, endOfDay } from "date-fns";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface MetricCard {
   label: string;
@@ -24,6 +31,7 @@ interface MetricCard {
   href: string;
   color: string;
   bgColor: string;
+  tooltip?: string;
 }
 
 export function TodaySnapshot() {
@@ -161,31 +169,31 @@ export function TodaySnapshot() {
         return [
           { label: "Orders Today", value: ordersToday, icon: UtensilsCrossed, href: "/app/orders", color: "text-orange-400", bgColor: "bg-orange-500/15" },
           { label: "Pending Prep", value: pendingPrep, icon: Truck, href: "/app/orders", color: "text-amber-400", bgColor: "bg-amber-500/15" },
-          { label: "Calls Today", value: callsToday, icon: Phone, href: "/app/calls", color: "text-emerald-400", bgColor: "bg-emerald-500/15" },
-          { label: "AI Ready", value: `${aiScore}%`, icon: Bot, href: "/app/business-brain", color: "text-primary", bgColor: "bg-primary/15" },
+          { label: "Calls Today", value: callsToday, icon: Phone, href: "/app/inbox?tab=calls", color: "text-emerald-400", bgColor: "bg-emerald-500/15" },
+          { label: "Knowledge Score", value: `${aiScore}%`, icon: Bot, href: "/app/business-brain", color: "text-primary", bgColor: "bg-primary/15", tooltip: "How much your AI knows about your business. Add FAQs, services, and policies to improve." },
         ];
       case "dispatch":
         return [
           { label: "Jobs Pending", value: jobsPending, icon: Truck, href: "/app/dispatch", color: "text-sky-400", bgColor: "bg-sky-500/15" },
-          { label: "Calls Today", value: callsToday, icon: Phone, href: "/app/calls", color: "text-emerald-400", bgColor: "bg-emerald-500/15" },
-          { label: "Leads", value: bookingsWeek, icon: Users, href: "/app/leads", color: "text-purple-400", bgColor: "bg-purple-500/15" },
-          { label: "AI Ready", value: `${aiScore}%`, icon: Bot, href: "/app/business-brain", color: "text-primary", bgColor: "bg-primary/15" },
+          { label: "Calls Today", value: callsToday, icon: Phone, href: "/app/inbox?tab=calls", color: "text-emerald-400", bgColor: "bg-emerald-500/15" },
+          { label: "Leads", value: bookingsWeek, icon: Users, href: "/app/inbox?tab=leads", color: "text-purple-400", bgColor: "bg-purple-500/15" },
+          { label: "Knowledge Score", value: `${aiScore}%`, icon: Bot, href: "/app/business-brain", color: "text-primary", bgColor: "bg-primary/15", tooltip: "How much your AI knows about your business. Add FAQs, services, and policies to improve." },
         ];
       case "medical":
         return [
           { label: "Intakes Today", value: intakesToday, icon: Stethoscope, href: "/app/medical-intake", color: "text-rose-400", bgColor: "bg-rose-500/15" },
           { label: "Appointments", value: bookingsWeek, icon: Calendar, href: "/app/bookings", color: "text-blue-400", bgColor: "bg-blue-500/15" },
-          { label: "Calls Today", value: callsToday, icon: Phone, href: "/app/calls", color: "text-emerald-400", bgColor: "bg-emerald-500/15" },
-          { label: "AI Ready", value: `${aiScore}%`, icon: Bot, href: "/app/business-brain", color: "text-primary", bgColor: "bg-primary/15" },
+          { label: "Calls Today", value: callsToday, icon: Phone, href: "/app/inbox?tab=calls", color: "text-emerald-400", bgColor: "bg-emerald-500/15" },
+          { label: "Knowledge Score", value: `${aiScore}%`, icon: Bot, href: "/app/business-brain", color: "text-primary", bgColor: "bg-primary/15", tooltip: "How much your AI knows about your business. Add FAQs, services, and policies to improve." },
         ];
       case "service":
       case "general":
       default:
         return [
-          { label: "Calls Today", value: callsToday, icon: Phone, href: "/app/calls", color: "text-emerald-400", bgColor: "bg-emerald-500/15" },
+          { label: "Calls Today", value: callsToday, icon: Phone, href: "/app/inbox?tab=calls", color: "text-emerald-400", bgColor: "bg-emerald-500/15" },
           { label: "Bookings", value: bookingsWeek, icon: Calendar, href: "/app/bookings", color: "text-blue-400", bgColor: "bg-blue-500/15" },
-          { label: "This Week", value: bookingsWeek > 0 ? `+${bookingsWeek}` : "0", icon: TrendingUp, href: "/app/leads", color: "text-purple-400", bgColor: "bg-purple-500/15" },
-          { label: "AI Ready", value: `${aiScore}%`, icon: Bot, href: "/app/business-brain", color: "text-primary", bgColor: "bg-primary/15" },
+          { label: "This Week", value: bookingsWeek > 0 ? `+${bookingsWeek}` : "0", icon: TrendingUp, href: "/app/inbox?tab=leads", color: "text-purple-400", bgColor: "bg-purple-500/15" },
+          { label: "Knowledge Score", value: `${aiScore}%`, icon: Bot, href: "/app/business-brain", color: "text-primary", bgColor: "bg-primary/15", tooltip: "How much your AI knows about your business. Add FAQs, services, and policies to improve." },
         ];
     }
   };
@@ -193,29 +201,49 @@ export function TodaySnapshot() {
   const metrics = getMetrics();
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      {metrics.map((metric) => {
-        const Icon = metric.icon;
-        return (
-          <Card 
-            key={metric.label}
-            className="cursor-pointer hover:border-primary/30 transition-all hover:shadow-md group"
-            onClick={() => navigate(metric.href)}
-          >
-            <CardContent className="pt-4 pb-4">
-              <div className="flex items-center gap-3">
-                <div className={`h-10 w-10 rounded-xl ${metric.bgColor} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
-                  <Icon className={`h-5 w-5 ${metric.color}`} />
+    <TooltipProvider>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {metrics.map((metric) => {
+          const Icon = metric.icon;
+          const cardContent = (
+            <Card 
+              key={metric.label}
+              className="cursor-pointer hover:border-primary/30 transition-all hover:shadow-md group"
+              onClick={() => navigate(metric.href)}
+            >
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className={`h-10 w-10 rounded-xl ${metric.bgColor} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
+                    <Icon className={`h-5 w-5 ${metric.color}`} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-2xl font-bold truncate">{metric.value}</p>
+                    <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                      {metric.label}
+                      {metric.tooltip && <HelpCircle className="h-3 w-3 opacity-50" />}
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-2xl font-bold truncate">{metric.value}</p>
-                  <p className="text-xs text-muted-foreground truncate">{metric.label}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
+              </CardContent>
+            </Card>
+          );
+
+          if (metric.tooltip) {
+            return (
+              <Tooltip key={metric.label}>
+                <TooltipTrigger asChild>
+                  {cardContent}
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <p>{metric.tooltip}</p>
+                </TooltipContent>
+              </Tooltip>
+            );
+          }
+
+          return cardContent;
+        })}
+      </div>
+    </TooltipProvider>
   );
 }

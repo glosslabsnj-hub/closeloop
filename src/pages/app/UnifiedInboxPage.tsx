@@ -51,15 +51,15 @@ export default function UnifiedInboxPage() {
           <TabsList className="w-full max-w-md">
             <TabsTrigger value="inbox" className="flex-1 gap-2">
               <MessageSquare className="h-4 w-4" />
-              <span className="hidden sm:inline">Inbox</span>
+              <span>Inbox</span>
             </TabsTrigger>
             <TabsTrigger value="calls" className="flex-1 gap-2">
               <PhoneCall className="h-4 w-4" />
-              <span className="hidden sm:inline">Calls</span>
+              <span>Calls</span>
             </TabsTrigger>
             <TabsTrigger value="leads" className="flex-1 gap-2">
               <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Leads</span>
+              <span>Leads</span>
             </TabsTrigger>
           </TabsList>
         </div>

@@ -107,6 +107,9 @@ export function NeedsAttentionBanner() {
         </div>
         <div className="min-w-0">
           <p className="text-sm font-semibold text-warning">Needs Attention</p>
+          <p className="text-xs text-warning/70 mb-1">
+            These items need your attention to keep your business running smoothly
+          </p>
           <p className="text-sm text-warning/80 truncate">
             {items.map((item, i) => (
               <span key={item.href}>

@@ -1,5 +1,5 @@
 import { useMemo, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,6 +16,7 @@ import {
   MessageSquare,
   ArrowRight,
   Activity,
+  FlaskConical,
 } from "lucide-react";
 
 interface ActivityItem {
@@ -270,7 +271,13 @@ export function LiveActivityFeed() {
           <div className="text-center py-8 text-muted-foreground">
             <Phone className="h-10 w-10 mx-auto mb-3 opacity-40" />
             <p className="text-sm font-medium">No activity yet</p>
-            <p className="text-xs">Calls, bookings, and orders appear here</p>
+            <p className="text-xs mb-4">Your AI hasn't handled any calls or bookings yet.</p>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/app/simulator" className="gap-2">
+                <FlaskConical className="h-4 w-4" />
+                Test AI in Simulator
+              </Link>
+            </Button>
           </div>
         )}
       </CardContent>

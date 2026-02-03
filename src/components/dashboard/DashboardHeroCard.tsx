@@ -20,12 +20,19 @@ import {
   Calendar,
   TrendingUp,
   Brain,
-  Gauge
+  Gauge,
+  HelpCircle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { startOfDay, endOfDay, startOfWeek, endOfWeek } from "date-fns";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { AgentOffBehaviorModal } from "./AgentOffBehaviorModal";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export function DashboardHeroCard() {
   const { tenant, assistantSettings, refreshTenant, subscription } = useAuth();
@@ -404,30 +411,42 @@ export function DashboardHeroCard() {
         </div>
 
         {/* Middle Section: Busyness Slider */}
-        <div className="border-t border-border/50 bg-muted/20 px-6 py-4">
-          <div className="flex items-center gap-3 mb-3">
-            <Gauge className="h-4 w-4 text-muted-foreground" />
-            <Label className="text-sm font-medium">Today's Busyness</Label>
-            <span className="text-sm font-semibold tabular-nums ml-auto">
-              {busynessLevel}%
-            </span>
-            {busynessSaving && (
-              <Badge variant="outline" className="text-xs">Saving...</Badge>
-            )}
+        <TooltipProvider>
+          <div className="border-t border-border/50 bg-muted/20 px-6 py-4">
+            <div className="flex items-center gap-3 mb-3">
+              <Gauge className="h-4 w-4 text-muted-foreground" />
+              <Label className="text-sm font-medium flex items-center gap-1.5">
+                Today's Busyness
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p>Tells the AI how busy you are today. Higher = AI prioritizes urgent requests and offers callbacks for non-urgent ones.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
+              <span className="text-sm font-semibold tabular-nums ml-auto">
+                {busynessLevel}%
+              </span>
+              {busynessSaving && (
+                <Badge variant="outline" className="text-xs">Saving...</Badge>
+              )}
+            </div>
+            <Slider
+              value={[busynessLevel]}
+              onValueChange={handleBusynessChange}
+              min={0}
+              max={100}
+              step={5}
+              className="w-full"
+              disabled={busynessSaving}
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              {getBusynessHelperText(busynessLevel)}
+            </p>
           </div>
-          <Slider
-            value={[busynessLevel]}
-            onValueChange={handleBusynessChange}
-            min={0}
-            max={100}
-            step={5}
-            className="w-full"
-            disabled={busynessSaving}
-          />
-          <p className="text-xs text-muted-foreground mt-2">
-            {getBusynessHelperText(busynessLevel)}
-          </p>
-        </div>
+        </TooltipProvider>
 
         {/* Bottom Section: Metrics Strip */}
         <div className="border-t border-border/50 bg-muted/30 px-6 py-4">

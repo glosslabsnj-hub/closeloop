@@ -96,7 +96,7 @@ const navigationItems: BrainNavItem[] = [
     id: "policies",
     label: "Policies & Rules",
     icon: Shield,
-    description: "Cancellation, payment, delivery"
+    description: "Your business policies and what questions the AI must ask"
   },
   {
     id: "ai-behavior",
@@ -108,7 +108,7 @@ const navigationItems: BrainNavItem[] = [
     id: "knowledge",
     label: "Knowledge & Training",
     icon: BookOpen,
-    description: "FAQs, objections, uploads, review"
+    description: "FAQs, customer concerns, uploaded documents, and items to review"
   }
 ];
 
@@ -362,7 +362,7 @@ export default function BusinessBrainPage() {
             <SettingsSection
               id="knowledge"
               title="Knowledge & Training"
-              description="FAQs, objection responses, uploaded documents, and items needing review"
+              description="FAQs, customer concerns, uploaded documents, and items needing review"
             >
               {reviewCount > 0 && (
                 <div className="mb-6">
@@ -403,7 +403,7 @@ export default function BusinessBrainPage() {
                         Review Queue
                       </CardTitle>
                       <CardDescription>
-                        No items pending review
+                        No items pending review. When you upload documents or add knowledge, items that need approval will appear here.
                       </CardDescription>
                     </CardHeader>
                     <CardContent>

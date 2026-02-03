@@ -314,8 +314,14 @@ export default function InboxPage() {
         <div className="text-center max-w-md p-8">
           <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
           <h2 className="text-xl font-semibold mb-2">No conversations yet</h2>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mb-4">
             When customers text or call your business, their conversations will appear here.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            <a href="/app/simulator" className="text-primary hover:underline">
+              Make a test call
+            </a>
+            {" "}to see it appear here.
           </p>
         </div>
       </div>
