@@ -26,10 +26,13 @@ export function PageHeader({
   if (editorial) {
     return (
       <div className={cn("editorial-header relative", className)}>
-        {/* Warm amber accent line */}
+        {/* Aurora accent line - cyan to violet gradient */}
         <div 
           className="absolute -left-4 top-0 bottom-0 w-0.5 rounded-full hidden md:block"
-          style={{ background: 'linear-gradient(to bottom, hsl(var(--accent-signature)), hsl(var(--accent-signature) / 0.2))' }}
+          style={{ 
+            background: 'linear-gradient(to bottom, hsl(var(--accent-signature)), hsl(var(--accent-violet) / 0.5), transparent)',
+            boxShadow: '0 0 20px hsl(var(--accent-signature) / 0.3)'
+          }}
         />
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
           <div className="flex-1 min-w-0">
@@ -52,13 +55,15 @@ export function PageHeader({
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-5">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-lg md:text-xl font-normal tracking-tight text-foreground/85 -tracking-[0.01em]">
-              {title}
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight">
+              <span className="bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+                {title}
+              </span>
             </h1>
             {badge}
           </div>
           {description && (
-            <p className="text-muted-foreground/55 text-sm mt-3 leading-relaxed max-w-md">
+            <p className="text-muted-foreground text-sm mt-3 leading-relaxed max-w-lg">
               {description}
             </p>
           )}
