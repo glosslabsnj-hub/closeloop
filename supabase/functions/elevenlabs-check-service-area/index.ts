@@ -1,10 +1,11 @@
 /**
  * elevenlabs-check-service-area: ElevenLabs tool endpoint for real-time
- * service area verification and ETA calculation.
+ * service area verification, ETA calculation, and pricing.
  * 
  * Called by ElevenLabs agent during voice calls when it needs to:
  * 1. Verify if an address is within the tenant's service area
  * 2. Get real-time ETA based on traffic conditions
+ * 3. Calculate accurate pricing based on pickup → dropoff distance
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -17,6 +18,11 @@ const corsHeaders = {
 interface ElevenLabsToolRequest {
   address?: string;
   adress?: string;  // Handle common typo in tool config
+  // NEW: Dropoff address for tow distance calculation
+  dropoff_address?: string;
+  dropoff?: string;
+  // Vehicle type for price modifiers
+  vehicle_type?: string;
   // Tenant identification - preferred method
   tenant_id?: string;
   tenantId?: string;
@@ -29,13 +35,26 @@ interface ElevenLabsToolRequest {
   params?: {
     address?: string;
     adress?: string;
+    dropoff_address?: string;
+    dropoff?: string;
+    vehicle_type?: string;
     tenant_id?: string;
   };
 }
 
+interface PriceBreakdown {
+  base_price: number;
+  distance_charge: number;
+  distance_miles_charged: number;
+  modifier_charges: { name: string; amount: number }[];
+  total_estimate: number;
+}
+
 interface ServiceAreaResponse {
   in_area: boolean;
-  distance_miles: number | null;
+  distance_miles: number | null;           // Dispatch distance (base → pickup)
+  tow_distance_miles: number | null;       // Tow distance (pickup → dropoff)
+  dropoff_geocoded: string | null;         // Resolved dropoff address
   eta_minutes: number | null;
   eta_range: string;
   message: string;
@@ -43,6 +62,23 @@ interface ServiceAreaResponse {
   service_tier: "local" | "long_distance" | "out_of_area";
   pricing_note: string;
   local_radius_miles: number;
+  distance_basis_used: string;             // Which distance was used for pricing
+  price_breakdown: PriceBreakdown | null;  // Detailed price calculation
+}
+
+// Distance tier interface matching the frontend type
+interface DistanceTier {
+  min_miles: number;
+  max_miles: number | null;
+  base_price: number;
+  per_mile_price?: number;
+}
+
+// Price modifier interface
+interface PriceModifier {
+  value: string;
+  price_adjustment: number;
+  adjustment_type: "fixed" | "percent";
 }
 
 serve(async (req: Request) => {
@@ -57,25 +93,29 @@ serve(async (req: Request) => {
     console.log(`[check-service-area] Full request body:`, JSON.stringify(body));
     
     // Handle different request formats - ElevenLabs may nest parameters or have typos
-    // Note: ElevenLabs tool config may have "adress" typo - handle both spellings
     const address = body.address || body.adress || body.params?.address || body.params?.adress || "";
+    const dropoffAddress = body.dropoff_address || body.dropoff || body.params?.dropoff_address || body.params?.dropoff || "";
+    const vehicleType = body.vehicle_type || body.params?.vehicle_type || "";
     const conversationId = body.conversation_id || body.call_id || body.conversationId || "";
-    // Direct tenant_id is the most reliable method
     const directTenantId = body.tenant_id || body.tenantId || body.params?.tenant_id || "";
 
-    console.log(`[check-service-area] Parsed: tenant_id=${directTenantId || 'NONE'}, conversation_id=${conversationId || 'NONE'}, address="${(address || '').substring(0, 40)}..."`);
+    console.log(`[check-service-area] Parsed: tenant_id=${directTenantId || 'NONE'}, address="${(address || '').substring(0, 40)}...", dropoff="${(dropoffAddress || '').substring(0, 40)}..."`);
 
     if (!address) {
       return new Response(
         JSON.stringify({
           in_area: false,
           distance_miles: null,
+          tow_distance_miles: null,
+          dropoff_geocoded: null,
           eta_minutes: null,
           eta_range: "",
           message: "No address provided",
           service_tier: "out_of_area",
           pricing_note: "No address provided - cannot determine pricing tier.",
-          local_radius_miles: 10
+          local_radius_miles: 10,
+          distance_basis_used: "none",
+          price_breakdown: null
         } as ServiceAreaResponse),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -141,14 +181,18 @@ serve(async (req: Request) => {
     if (!tenantId) {
       return new Response(
         JSON.stringify({
-          in_area: true, // Default to accepting if we can't verify
+          in_area: true,
           distance_miles: null,
+          tow_distance_miles: null,
+          dropoff_geocoded: null,
           eta_minutes: null,
           eta_range: "30-60 minutes",
           message: "Unable to verify - defaulting to in-area",
           service_tier: "long_distance",
           pricing_note: "Unable to verify tenant - treat as long distance, collect details for pricing.",
-          local_radius_miles: 10
+          local_radius_miles: 10,
+          distance_basis_used: "unknown",
+          price_breakdown: null
         } as ServiceAreaResponse),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -160,11 +204,11 @@ serve(async (req: Request) => {
       supabase.from("tenant_distance_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
       // Fetch towing services that may have distance-tiered pricing
       supabase.from("services")
-        .select("id, name, pricing_config_json")
+        .select("id, name, pricing_config_json, service_category")
         .eq("tenant_id", tenantId)
         .eq("is_active", true)
-        .ilike("name", "%tow%")
-        .limit(5)
+        .or("name.ilike.%tow%,service_category.eq.towing")
+        .limit(10)
     ]);
 
     const serviceArea = tenantResult.data?.service_area_json as Record<string, unknown> | null;
@@ -176,24 +220,28 @@ serve(async (req: Request) => {
       const radiusMiles = (serviceArea?.radius_miles as number) || (serviceArea?.miles as number) || 50;
       return new Response(
         JSON.stringify({
-          in_area: true, // Can't verify, assume in-area
+          in_area: true,
           distance_miles: null,
+          tow_distance_miles: null,
+          dropoff_geocoded: null,
           eta_minutes: distanceSettings?.eta_base_minutes || 45,
           eta_range: `${distanceSettings?.eta_min_minutes || 30}-${distanceSettings?.eta_max_minutes || 60} minutes`,
           message: `Within our ${radiusMiles}-mile service area`,
           service_tier: "long_distance",
           pricing_note: "Distance calculation unavailable - treat as long distance, collect details for pricing.",
-          local_radius_miles: 10
+          local_radius_miles: 10,
+          distance_basis_used: "unavailable",
+          price_breakdown: null
         } as ServiceAreaResponse),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Call compute-distance-eta to get real distance and ETA
     const internalSecret = Deno.env.get("CLOSELOOP_INTERNAL_SECRET");
     const computeEtaUrl = `${supabaseUrl}/functions/v1/compute-distance-eta`;
-    
-    const etaResponse = await fetch(computeEtaUrl, {
+
+    // Calculate dispatch distance (base → pickup) for ETA
+    const dispatchResponse = await fetch(computeEtaUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -205,97 +253,223 @@ serve(async (req: Request) => {
         intent: "dispatch"
       })
     });
+    const dispatchData = await dispatchResponse.json();
+    const dispatchDistanceMiles = dispatchData.route_distance_miles as number | null;
 
-    const etaData = await etaResponse.json();
+    // Calculate tow distance (pickup → dropoff) if dropoff provided
+    let towDistanceMiles: number | null = null;
+    let dropoffGeocoded: string | null = null;
 
-    // Check if within service area radius
-    // Handle various service_area_json structures (can be nested or flat)
+    if (dropoffAddress) {
+      console.log(`[check-service-area] Calculating tow distance: pickup="${address.substring(0, 30)}..." → dropoff="${dropoffAddress.substring(0, 30)}..."`);
+      
+      const towResponse = await fetch(computeEtaUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-closeloop-secret": internalSecret || "",
+        },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          origin_address_text: address,      // Pickup as origin
+          address_text: dropoffAddress,       // Dropoff as destination
+          intent: "dispatch",
+          skip_eta_settings: true             // Just need distance, not full ETA
+        })
+      });
+      const towData = await towResponse.json();
+      towDistanceMiles = towData.route_distance_miles as number | null;
+      dropoffGeocoded = towData.geocoded_place_name || null;
+      
+      console.log(`[check-service-area] Tow distance calculated: ${towDistanceMiles?.toFixed(1) || 'null'} miles`);
+    }
+
+    // Check if within service area radius (based on dispatch distance)
     const radiusMiles = (
       (serviceArea?.radius_miles as number) ||
       (serviceArea?.miles as number) ||
       ((serviceArea as Record<string, unknown>)?.radius_miles as number) ||
-      100 // Default to 100 miles if not configured
+      100
     );
-    const distanceMiles = etaData.route_distance_miles as number | null;
-    const inArea = distanceMiles !== null ? distanceMiles <= radiusMiles : true;
+    const inArea = dispatchDistanceMiles !== null ? dispatchDistanceMiles <= radiusMiles : true;
     
-    // Local radius for pricing tiers (matches "Local Tow (0-10 miles)" service)
+    // Local radius for pricing tiers
     const localRadiusMiles = 10;
     
-    // Determine service tier and pricing note based on distance
-    let serviceTier: "local" | "long_distance" | "out_of_area";
-    let pricingNote: string;
+    // Find the appropriate towing service to use for pricing
+    const primaryTowService = towingServices.find(s => 
+      s.name.toLowerCase().includes("local") && s.name.toLowerCase().includes("tow")
+    ) || towingServices.find(s => 
+      s.name.toLowerCase().includes("tow")
+    ) || towingServices[0];
+
+    // Determine which distance to use for pricing based on service config
+    const pricingConfig = primaryTowService?.pricing_config_json as Record<string, unknown> | null;
+    const distanceBasis = (pricingConfig?.distance_basis as string) || "tow_distance";
+    
+    let pricingDistanceMiles: number | null;
+    let distanceBasisUsed: string;
+    
+    if (distanceBasis === "dispatch_distance") {
+      pricingDistanceMiles = dispatchDistanceMiles;
+      distanceBasisUsed = "dispatch_distance";
+    } else if (distanceBasis === "total_trip") {
+      pricingDistanceMiles = (dispatchDistanceMiles || 0) + (towDistanceMiles || 0);
+      distanceBasisUsed = "total_trip";
+    } else {
+      // Default: tow_distance - use tow distance if available, else dispatch
+      pricingDistanceMiles = towDistanceMiles ?? dispatchDistanceMiles;
+      distanceBasisUsed = towDistanceMiles !== null ? "tow_distance" : "dispatch_distance";
+    }
+
+    // Determine service tier based on pricing distance
+    let serviceTier: "local" | "long_distance" | "out_of_area" = "long_distance";
+    let pricingNote: string = "Collect details for pricing.";
+    let priceBreakdown: PriceBreakdown | null = null;
     
     if (!inArea) {
       serviceTier = "out_of_area";
       pricingNote = "Customer is outside service area. Use out_of_area_message.";
-    } else if (distanceMiles !== null && distanceMiles <= localRadiusMiles) {
+    } else if (pricingDistanceMiles !== null && pricingDistanceMiles <= localRadiusMiles) {
       serviceTier = "local";
-      pricingNote = `Within ${localRadiusMiles} miles. Quote Local Tow pricing ($85).`;
+      
+      // Calculate local tow pricing
+      const localService = towingServices.find(s => 
+        s.name.toLowerCase().includes("local") && s.name.toLowerCase().includes("tow")
+      );
+      
+      if (localService?.pricing_config_json) {
+        const config = localService.pricing_config_json as Record<string, unknown>;
+        const minPrice = Number(config.min_price) || 85;
+        
+        // Apply vehicle modifier if provided
+        let modifierCharges: { name: string; amount: number }[] = [];
+        let modifierTotal = 0;
+        
+        if (vehicleType && config.variables && Array.isArray(config.variables)) {
+          for (const variable of config.variables as Array<Record<string, unknown>>) {
+            if (variable.key === "vehicle_type" && Array.isArray(variable.modifiers)) {
+              const modifier = (variable.modifiers as PriceModifier[]).find(
+                m => m.value.toLowerCase() === vehicleType.toLowerCase()
+              );
+              if (modifier) {
+                const adjustment = modifier.adjustment_type === "percent" 
+                  ? minPrice * (modifier.price_adjustment / 100)
+                  : modifier.price_adjustment;
+                modifierTotal += adjustment;
+                modifierCharges.push({ 
+                  name: `Vehicle: ${vehicleType}`, 
+                  amount: adjustment 
+                });
+              }
+            }
+          }
+        }
+        
+        const total = minPrice + modifierTotal;
+        priceBreakdown = {
+          base_price: minPrice,
+          distance_charge: 0,
+          distance_miles_charged: pricingDistanceMiles,
+          modifier_charges: modifierCharges,
+          total_estimate: total
+        };
+        
+        pricingNote = modifierCharges.length > 0
+          ? `Local Tow (${pricingDistanceMiles.toFixed(0)} mi): $${minPrice} + ${modifierCharges.map(m => `$${m.amount} ${m.name}`).join(", ")} = $${total.toFixed(0)}`
+          : `Local Tow (${pricingDistanceMiles.toFixed(0)} mi): $${minPrice}`;
+      } else {
+        pricingNote = `Within ${localRadiusMiles} miles. Quote Local Tow pricing ($85).`;
+      }
     } else {
       serviceTier = "long_distance";
       
-      // Find Long Distance Tow service and build dynamic pricing note
+      // Find Long Distance Tow service and build dynamic pricing
       const longDistanceService = towingServices.find(s => 
         s.name.toLowerCase().includes("long distance") || 
         s.name.toLowerCase().includes("long-distance")
-      );
+      ) || primaryTowService;
       
-      if (longDistanceService?.pricing_config_json) {
+      if (longDistanceService?.pricing_config_json && pricingDistanceMiles !== null) {
         const config = longDistanceService.pricing_config_json as Record<string, unknown>;
-        // Note: DB stores "pricing_model" field, normalize to "model"
         const pricingModel = (config.model || config.pricing_model) as string;
         
         if (pricingModel === "distance_tiered" && Array.isArray(config.distance_tiers)) {
-          const tiers = config.distance_tiers as Array<Record<string, unknown>>;
+          const tiers = config.distance_tiers as DistanceTier[];
           
-          // Build a comprehensive pricing note based on actual tiers
-          const tierDescriptions: string[] = [];
-          let applicableTierNote = "";
-          
+          // Find applicable tier
           for (const tier of tiers) {
             const minMiles = Number(tier.min_miles) || 0;
-            const maxMiles = tier.max_miles != null ? Number(tier.max_miles) : null;
+            const maxMiles = tier.max_miles != null ? Number(tier.max_miles) : Infinity;
             const basePrice = Number(tier.base_price) || 0;
-            const perMilePrice = tier.per_mile_price != null ? Number(tier.per_mile_price) : null;
+            const perMilePrice = tier.per_mile_price != null ? Number(tier.per_mile_price) : 0;
             
-            // Check if this tier applies to the current distance
-            if (distanceMiles !== null) {
-              const withinMin = distanceMiles >= minMiles;
-              const withinMax = maxMiles === null || distanceMiles <= maxMiles;
+            if (pricingDistanceMiles >= minMiles && pricingDistanceMiles <= maxMiles) {
+              const extraMiles = Math.max(0, pricingDistanceMiles - minMiles);
+              const distanceCharge = extraMiles * perMilePrice;
+              let baseTotal = basePrice + distanceCharge;
               
-              if (withinMin && withinMax) {
-                if (perMilePrice && maxMiles === null) {
-                  // Calculate total for over-threshold distances
-                  const extraMiles = Math.max(0, distanceMiles - minMiles);
-                  const extraCharge = extraMiles * perMilePrice;
-                  const total = basePrice + extraCharge;
-                  applicableTierNote = `At ${distanceMiles.toFixed(0)} miles: $${basePrice} base + $${perMilePrice}/mile for ${extraMiles.toFixed(0)} miles over ${minMiles} = approximately $${total.toFixed(2)}`;
-                } else {
-                  applicableTierNote = `At ${distanceMiles.toFixed(0)} miles: $${basePrice} base rate`;
+              // Apply vehicle modifier if provided
+              let modifierCharges: { name: string; amount: number }[] = [];
+              let modifierTotal = 0;
+              
+              if (vehicleType && config.variables && Array.isArray(config.variables)) {
+                for (const variable of config.variables as Array<Record<string, unknown>>) {
+                  if (variable.key === "vehicle_type" && Array.isArray(variable.modifiers)) {
+                    const modifier = (variable.modifiers as PriceModifier[]).find(
+                      m => m.value.toLowerCase() === vehicleType.toLowerCase()
+                    );
+                    if (modifier) {
+                      const adjustment = modifier.adjustment_type === "percent" 
+                        ? baseTotal * (modifier.price_adjustment / 100)
+                        : modifier.price_adjustment;
+                      modifierTotal += adjustment;
+                      modifierCharges.push({ 
+                        name: `Vehicle: ${vehicleType}`, 
+                        amount: adjustment 
+                      });
+                    }
+                  }
                 }
               }
-            }
-            
-            // Build tier description for reference
-            const rangeText = maxMiles != null ? `${minMiles}-${maxMiles} miles` : `Over ${minMiles} miles`;
-            if (perMilePrice) {
-              tierDescriptions.push(`${rangeText}: $${basePrice} + $${perMilePrice}/mile beyond ${minMiles}`);
-            } else {
-              tierDescriptions.push(`${rangeText}: $${basePrice}`);
+              
+              const total = baseTotal + modifierTotal;
+              priceBreakdown = {
+                base_price: basePrice,
+                distance_charge: distanceCharge,
+                distance_miles_charged: pricingDistanceMiles,
+                modifier_charges: modifierCharges,
+                total_estimate: total
+              };
+              
+              if (perMilePrice > 0 && extraMiles > 0) {
+                pricingNote = `${pricingDistanceMiles.toFixed(0)}-mile tow: $${basePrice} base + $${distanceCharge.toFixed(2)} (${extraMiles.toFixed(0)} mi × $${perMilePrice}/mi)`;
+                if (modifierCharges.length > 0) {
+                  pricingNote += ` + ${modifierCharges.map(m => `$${m.amount} ${m.name}`).join(", ")}`;
+                }
+                pricingNote += ` = $${total.toFixed(0)}`;
+              } else {
+                pricingNote = `${pricingDistanceMiles.toFixed(0)}-mile tow: $${basePrice} base`;
+                if (modifierCharges.length > 0) {
+                  pricingNote += ` + ${modifierCharges.map(m => `$${m.amount} ${m.name}`).join(", ")} = $${total.toFixed(0)}`;
+                }
+              }
+              break;
             }
           }
           
-          // Combine applicable tier + full tier reference
-          pricingNote = applicableTierNote || `Long Distance Tow pricing tiers: ${tierDescriptions.join("; ")}`;
+          // Fallback if no tier matched
+          if (!priceBreakdown) {
+            pricingNote = `${pricingDistanceMiles.toFixed(0)} miles - Long Distance Tow. Collect details for pricing.`;
+          }
         } else {
-          pricingNote = distanceMiles 
-            ? `${distanceMiles.toFixed(0)} miles - Long Distance Tow applies. Collect details for pricing.`
+          pricingNote = pricingDistanceMiles 
+            ? `${pricingDistanceMiles.toFixed(0)} miles - Long Distance Tow applies. Collect details for pricing.`
             : "Distance unknown - treat as Long Distance Tow. Collect details for pricing.";
         }
       } else {
-        pricingNote = distanceMiles 
-          ? `${distanceMiles.toFixed(0)} miles - this is a Long Distance Tow. Quote varies by distance - collect details and confirm pricing.`
+        pricingNote = pricingDistanceMiles 
+          ? `${pricingDistanceMiles.toFixed(0)} miles - this is a Long Distance Tow. Quote varies by distance - collect details and confirm pricing.`
           : "Distance unknown - treat as Long Distance Tow. Collect details for pricing.";
       }
     }
@@ -303,24 +477,32 @@ serve(async (req: Request) => {
     // Build message
     let message = "";
     if (inArea) {
-      message = `Within service area - ${distanceMiles?.toFixed(1) || "?"} miles from base`;
+      if (towDistanceMiles !== null) {
+        message = `Dispatch: ${dispatchDistanceMiles?.toFixed(1) || "?"} mi to pickup, Tow: ${towDistanceMiles.toFixed(1)} mi to dropoff`;
+      } else {
+        message = `Within service area - ${dispatchDistanceMiles?.toFixed(1) || "?"} miles from base`;
+      }
     } else {
-      message = `Outside ${radiusMiles}-mile service area (${distanceMiles?.toFixed(1)} miles away)`;
+      message = `Outside ${radiusMiles}-mile service area (${dispatchDistanceMiles?.toFixed(1)} miles away)`;
     }
 
     const response: ServiceAreaResponse = {
       in_area: inArea,
-      distance_miles: distanceMiles,
-      eta_minutes: etaData.eta_minutes_estimate,
-      eta_range: etaData.eta_range_minutes || `${distanceSettings.eta_min_minutes || 30}-${distanceSettings.eta_max_minutes || 60} minutes`,
+      distance_miles: dispatchDistanceMiles,
+      tow_distance_miles: towDistanceMiles,
+      dropoff_geocoded: dropoffGeocoded,
+      eta_minutes: dispatchData.eta_minutes_estimate,
+      eta_range: dispatchData.eta_range_minutes || `${distanceSettings.eta_min_minutes || 30}-${distanceSettings.eta_max_minutes || 60} minutes`,
       message,
       service_tier: serviceTier,
       pricing_note: pricingNote,
-      local_radius_miles: localRadiusMiles
+      local_radius_miles: localRadiusMiles,
+      distance_basis_used: distanceBasisUsed,
+      price_breakdown: priceBreakdown
     };
 
-    // Log for debugging (no PII - truncate address)
-    console.log(`[check-service-area] tenant=${tenantId.substring(0, 8)}... address="${address.substring(0, 30)}..." in_area=${inArea} distance=${distanceMiles?.toFixed(1)}mi eta=${etaData.eta_minutes_estimate}min`);
+    // Log for debugging (no PII - truncate addresses)
+    console.log(`[check-service-area] tenant=${tenantId.substring(0, 8)}... dispatch=${dispatchDistanceMiles?.toFixed(1)}mi tow=${towDistanceMiles?.toFixed(1) || 'N/A'}mi tier=${serviceTier} basis=${distanceBasisUsed}`);
 
     return new Response(JSON.stringify(response), {
       status: 200,
@@ -331,14 +513,18 @@ serve(async (req: Request) => {
     console.error("[check-service-area] Error:", error);
     return new Response(
       JSON.stringify({
-        in_area: true, // Default to accepting on error
+        in_area: true,
         distance_miles: null,
+        tow_distance_miles: null,
+        dropoff_geocoded: null,
         eta_minutes: 45,
         eta_range: "30-60 minutes",
         message: "Verification unavailable - proceeding with dispatch",
         service_tier: "long_distance",
         pricing_note: "Verification failed - treat as long distance, collect details for pricing.",
-        local_radius_miles: 10
+        local_radius_miles: 10,
+        distance_basis_used: "error",
+        price_breakdown: null
       } as ServiceAreaResponse),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

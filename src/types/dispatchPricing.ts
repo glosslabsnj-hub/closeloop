@@ -8,6 +8,38 @@
 
 export type PricingModel = "flat" | "distance_tiered" | "variable";
 
+/**
+ * Distance basis determines which distance measurement is used for pricing calculations.
+ * Different businesses have different pricing models:
+ * - tow_distance: Charge based on how far the vehicle is towed (pickup → dropoff)
+ * - dispatch_distance: Charge based on how far we travel to reach the customer (base → pickup)
+ * - total_trip: Charge for the entire trip (base → pickup → dropoff)
+ * - flat: Distance doesn't affect pricing
+ */
+export type DistanceBasis = 
+  | "tow_distance"      // Pickup → Dropoff (most common for towing)
+  | "dispatch_distance" // Base → Pickup (charge for coming to you)
+  | "total_trip"        // Base → Pickup → Dropoff (full trip)
+  | "flat";             // Ignore distance
+
+export const DISTANCE_BASIS_OPTIONS = [
+  { 
+    value: "tow_distance" as const, 
+    label: "Tow Distance (pickup → dropoff)", 
+    description: "Price based on how far the vehicle is towed" 
+  },
+  { 
+    value: "dispatch_distance" as const, 
+    label: "Dispatch Distance (base → pickup)", 
+    description: "Price based on how far we travel to reach customer" 
+  },
+  { 
+    value: "total_trip" as const, 
+    label: "Total Trip (base → pickup → dropoff)", 
+    description: "Price based on entire round trip distance" 
+  },
+] as const;
+
 export interface DistanceTier {
   min_miles: number;
   max_miles: number | null; // null = unlimited
@@ -35,6 +67,12 @@ export interface DestinationRule {
 
 export interface DispatchPricingConfig {
   pricing_model: PricingModel;
+  
+  /**
+   * Which distance to use for pricing calculations.
+   * Defaults to "tow_distance" for towing services, "dispatch_distance" for others.
+   */
+  distance_basis?: DistanceBasis;
   
   // For distance-tiered pricing (towing, delivery)
   distance_tiers?: DistanceTier[];
