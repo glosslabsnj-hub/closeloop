@@ -25,11 +25,11 @@ export function LiveDashboard() {
   const hasVoice = hasVoiceFeature(subscription?.plan_code);
 
   return (
-    <div className="space-y-6 max-w-[1320px] mx-auto animate-fade-in relative z-10">
+    <div className="space-y-6 max-w-[1280px] mx-auto animate-fade-in">
       {/* Audio notification manager */}
       <SoundManager />
 
-      {/* Critical Banners */}
+      {/* Critical Banners - Minimal, Clear */}
       <div className="space-y-4">
         <AIReadinessPanel compact />
         <KnowledgeConflictBanner />
@@ -37,10 +37,8 @@ export function LiveDashboard() {
         <UsageThresholdBanner threshold={80} />
       </div>
 
-      {/* HERO: Agent Status + Toggle */}
-      <div className="relative">
-        <DashboardHeroCard />
-      </div>
+      {/* HERO: Agent Status + Toggle - Main Focus */}
+      <DashboardHeroCard />
 
       {/* Phone Number Card - Prominent for Voice plans */}
       {hasVoice && <PhoneNumberCard />}
@@ -55,11 +53,11 @@ export function LiveDashboard() {
       <NeedsAttentionBanner />
 
       {/* Two Column: Live Activity + Quick Actions + Setup Progress */}
-      <div className="grid md:grid-cols-5 gap-6">
-        <div className="md:col-span-3">
+      <div className="grid lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-3">
           <LiveActivityFeed />
         </div>
-        <div className="md:col-span-2 space-y-4">
+        <div className="lg:col-span-2 space-y-4">
           <QuickActionsCard />
           {/* Setup Progress Checklist - only shows if not live */}
           <SetupProgressChecklist />

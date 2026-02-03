@@ -2,64 +2,68 @@
 @tailwind components;
 @tailwind utilities;
 
-/* CloseLoop Design System - 2026/2027 "Calm Executive Dashboard" */
+/* =====================================================
+   CloseLoop Design System - 2026/2027
+   Theme: "Warm Stone" - Business-Friendly, Calm, Premium
+   ===================================================== */
+
 @layer base {
   :root {
-    /* Core Background System - Warm Charcoal (calmer, less techy) */
-    --background: 220 10% 8%;
-    --foreground: 210 15% 92%;
+    /* Core Background System - Warm Stone/Slate */
+    --background: 30 8% 7%;
+    --foreground: 40 10% 92%;
 
-    /* Cards - soft elevated surfaces */
-    --card: 220 10% 11%;
-    --card-foreground: 210 15% 92%;
+    /* Cards - Warm elevated surfaces */
+    --card: 30 6% 10%;
+    --card-foreground: 40 10% 92%;
 
-    --popover: 220 10% 11%;
-    --popover-foreground: 210 15% 92%;
+    --popover: 30 6% 11%;
+    --popover-foreground: 40 10% 92%;
 
-    /* Primary - Trust Blue (business-friendly, calming) */
-    --primary: 210 90% 62%;
-    --primary-foreground: 220 18% 10%;
-    --primary-glow: 210 95% 68%;
+    /* Primary - Warm Olive/Sage (trustworthy, calm, natural) */
+    --primary: 150 25% 45%;
+    --primary-foreground: 30 8% 6%;
+    --primary-glow: 150 30% 55%;
 
-    /* Secondary - Soft neutral panel */
-    --secondary: 220 10% 14%;
-    --secondary-foreground: 210 12% 88%;
+    /* Secondary - Soft warm panel */
+    --secondary: 30 5% 14%;
+    --secondary-foreground: 40 8% 85%;
 
-    /* Muted - For subtle backgrounds and text (AA compliant ~4.8:1) */
-    --muted: 220 10% 12%;
-    --muted-foreground: 215 10% 72%;
+    /* Muted - For subtle backgrounds and text (AA compliant) */
+    --muted: 30 5% 13%;
+    --muted-foreground: 35 6% 65%;
 
-    /* Accent - Blue tinted for subtle highlights */
-    --accent: 210 55% 18%;
-    --accent-foreground: 210 90% 75%;
+    /* Accent - Warm sage tint */
+    --accent: 150 15% 18%;
+    --accent-foreground: 150 25% 75%;
 
-    /* Status Colors - Calmer, modern */
-    --destructive: 0 75% 60%;
+    /* Status Colors - Soft, Approachable */
+    --destructive: 0 55% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 155 60% 42%;
+    --success: 145 45% 42%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 90% 56%;
-    --warning-foreground: 0 0% 10%;
+    --warning: 35 75% 55%;
+    --warning-foreground: 30 60% 8%;
 
-    /* Borders & Inputs - Subtle separation */
-    --border: 220 10% 18%;
-    --input: 220 10% 14%;
-    --ring: 210 90% 62%;
+    /* Borders & Inputs - Subtle warmth */
+    --border: 30 6% 18%;
+    --input: 30 5% 13%;
+    --ring: 150 25% 45%;
 
-    /* Radius - Friendly rounded */
-    --radius: 0.75rem;
+    /* Radius - Generous, friendly */
+    --radius: 0.625rem;
 
-    /* Sidebar - Deeper for hierarchy */
-    --sidebar-background: 220 10% 7%;
-    --sidebar-foreground: 210 12% 86%;
-    --sidebar-primary: 210 90% 62%;
-    --sidebar-primary-foreground: 220 18% 10%;
-    --sidebar-accent: 220 10% 11%;
-    --sidebar-accent-foreground: 210 12% 88%;
-    --sidebar-border: 220 10% 16%;
-    --sidebar-ring: 210 90% 62%;
+    /* Sidebar - Slightly deeper, warm */
+    --sidebar-background: 30 8% 6%;
+    --sidebar-foreground: 40 8% 80%;
+    --sidebar-primary: 150 25% 48%;
+    --sidebar-primary-foreground: 30 8% 6%;
+    --sidebar-accent: 30 6% 12%;
+    --sidebar-accent-foreground: 40 8% 85%;
+    --sidebar-border: 30 6% 15%;
+    --sidebar-ring: 150 25% 45%;
   }
 }
 
@@ -76,42 +80,44 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Improved typography scale with better leading */
+  /* Typography - Clean, Readable */
   h1 {
-    @apply text-3xl md:text-4xl font-bold tracking-tight leading-tight;
-  }
-
-  h2 {
-    @apply text-2xl md:text-3xl font-bold tracking-tight leading-tight;
-  }
-
-  h3 {
-    @apply text-xl font-semibold tracking-tight leading-snug;
-  }
-
-  h4 {
-    @apply text-lg font-semibold leading-snug;
-  }
-
-  /* Text balance for headings where supported */
-  h1, h2, h3, h4 {
+    @apply text-2xl md:text-3xl font-semibold tracking-tight leading-tight;
     text-wrap: balance;
   }
 
-  /* Text-heavy sections get relaxed leading */
-  .text-content {
-    @apply leading-relaxed;
+  h2 {
+    @apply text-xl md:text-2xl font-semibold tracking-tight leading-tight;
+    text-wrap: balance;
   }
 
-  /* Improved focus states for accessibility */
+  h3 {
+    @apply text-lg font-medium tracking-tight leading-snug;
+    text-wrap: balance;
+  }
+
+  h4 {
+    @apply text-base font-medium leading-snug;
+  }
+
+  /* Focus states - Clear but not jarring */
   *:focus-visible {
-    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+    @apply outline-none ring-2 ring-primary/70 ring-offset-2 ring-offset-background;
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
 @layer utilities {
   /* ==========================================
-     APP BACKGROUND SYSTEM - "Calm Executive"
+     APP BACKGROUND - Warm, Welcoming
      ========================================== */
   .app-bg {
     position: relative;
@@ -123,66 +129,51 @@
     position: fixed;
     inset: 0;
     pointer-events: none;
-    /* Gentle top fade - very low intensity, welcoming */
+    /* Very subtle warm wash - barely visible, cozy */
     background: 
-      radial-gradient(ellipse 90% 60% at 10% 0%, hsl(var(--primary) / 0.05) 0%, transparent 40%),
-      radial-gradient(ellipse 50% 40% at 90% 100%, hsl(210 50% 25% / 0.03) 0%, transparent 45%);
+      radial-gradient(ellipse 80% 50% at 0% 0%, hsl(150 20% 25% / 0.04) 0%, transparent 50%),
+      radial-gradient(ellipse 60% 40% at 100% 100%, hsl(30 15% 15% / 0.05) 0%, transparent 50%);
     z-index: 0;
   }
 
-  /* Subtle noise - barely visible, premium feel */
-  .app-bg::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    opacity: 0.012;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-    z-index: 0;
-  }
-
-  /* Legacy class alias */
+  /* Legacy alias */
   .app-shell-bg {
     @apply app-bg;
   }
 
   /* ==========================================
-     ELEVATION / SURFACE SYSTEM - Soft, Welcoming
+     SURFACE SYSTEM - Soft Elevation
      ========================================== */
   .surface-1 {
     @apply relative rounded-xl;
-    background: hsl(var(--card) / 0.85);
-    border: 1px solid hsl(var(--border) / 0.5);
-    box-shadow: 0 1px 4px -1px rgba(0, 0, 0, 0.2);
+    background: hsl(var(--card) / 0.9);
+    border: 1px solid hsl(var(--border) / 0.6);
+    box-shadow: 0 1px 2px -1px rgba(0, 0, 0, 0.15);
     z-index: 1;
   }
 
   .surface-2 {
     @apply relative rounded-xl;
-    background: hsl(var(--card) / 0.70);
+    background: hsl(var(--card) / 0.75);
     border: 1px solid hsl(var(--border) / 0.5);
-    box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 2px 6px -2px rgba(0, 0, 0, 0.2);
     z-index: 2;
-  }
-
-  .surface-2:hover {
-    border-color: hsl(var(--border) / 0.7);
   }
 
   .surface-3 {
     @apply relative rounded-xl;
-    background: hsl(var(--popover) / 0.95);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid hsl(var(--border) / 0.6);
+    background: hsl(var(--popover) / 0.98);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid hsl(var(--border) / 0.7);
     box-shadow: 
-      0 8px 24px -6px rgba(0, 0, 0, 0.5),
-      0 4px 12px -2px rgba(0, 0, 0, 0.35);
+      0 8px 24px -8px rgba(0, 0, 0, 0.4),
+      0 4px 12px -4px rgba(0, 0, 0, 0.25);
     z-index: 100;
   }
 
   /* ==========================================
-     MICRO-LABEL TYPOGRAPHY
+     TYPOGRAPHY UTILITIES
      ========================================== */
   .micro-label {
     @apply text-xs font-medium tracking-wide;
@@ -190,8 +181,12 @@
   }
 
   .section-label {
-    @apply text-[10px] font-semibold uppercase tracking-widest;
-    color: hsl(var(--muted-foreground) / 0.65);
+    @apply text-[11px] font-semibold uppercase tracking-widest;
+    color: hsl(var(--muted-foreground) / 0.7);
+  }
+
+  .text-content {
+    @apply leading-relaxed;
   }
 
   /* ==========================================
@@ -200,15 +195,15 @@
   .field-inset {
     @apply relative rounded-lg;
     background: hsl(var(--input));
-    border: 1px solid hsl(var(--border) / 0.6);
-    box-shadow: inset 0 1px 3px 0 hsl(0 0% 0% / 0.2);
+    border: 1px solid hsl(var(--border) / 0.7);
+    box-shadow: inset 0 1px 2px 0 hsl(0 0% 0% / 0.12);
   }
 
   .field-inset:focus-within {
-    border-color: hsl(var(--primary) / 0.5);
+    border-color: hsl(var(--primary) / 0.6);
     box-shadow: 
-      inset 0 1px 3px 0 hsl(0 0% 0% / 0.2),
-      0 0 0 3px hsl(var(--primary) / 0.15);
+      inset 0 1px 2px 0 hsl(0 0% 0% / 0.12),
+      0 0 0 3px hsl(var(--primary) / 0.12);
   }
 
   /* ==========================================
@@ -216,24 +211,21 @@
      ========================================== */
   .tab-pill {
     @apply relative inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200;
-    @apply text-muted-foreground hover:text-foreground hover:bg-muted/40;
+    @apply text-muted-foreground hover:text-foreground hover:bg-muted/50;
   }
 
   .tab-pill[data-state="active"] {
     @apply text-foreground;
-    background: hsl(var(--muted) / 0.9);
-    backdrop-filter: blur(8px);
-    box-shadow: 
-      0 1px 3px 0 hsl(0 0% 0% / 0.25),
-      inset 0 1px 0 0 hsl(0 0% 100% / 0.05);
+    background: hsl(var(--muted));
+    box-shadow: 0 1px 2px 0 hsl(0 0% 0% / 0.15);
   }
 
   /* ==========================================
      TABLE TOOLBAR PATTERN
      ========================================== */
   .table-toolbar {
-    @apply flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4 p-3 rounded-xl;
-    background: hsl(var(--muted) / 0.35);
+    @apply flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-5 p-3 rounded-xl;
+    background: hsl(var(--muted) / 0.4);
     border: 1px solid hsl(var(--border) / 0.4);
   }
 
@@ -250,29 +242,29 @@
   }
 
   /* ==========================================
-     STATUS BADGE SOFT BACKGROUNDS
+     STATUS BADGES - Soft, Readable
      ========================================== */
   .status-soft-success {
-    @apply bg-success/12 text-success border-success/20;
+    @apply bg-success/12 text-success border-success/25;
   }
 
   .status-soft-warning {
-    @apply bg-warning/12 text-warning border-warning/20;
+    @apply bg-warning/12 text-warning border-warning/25;
   }
 
   .status-soft-destructive {
-    @apply bg-destructive/12 text-destructive border-destructive/20;
+    @apply bg-destructive/12 text-destructive border-destructive/25;
   }
 
   .status-soft-primary {
-    @apply bg-primary/12 text-primary border-primary/20;
+    @apply bg-primary/12 text-primary border-primary/25;
   }
 
   .status-soft-muted {
-    @apply bg-muted text-muted-foreground border-border/40;
+    @apply bg-muted text-muted-foreground border-border/50;
   }
 
-  /* Priority accent bar for urgent items */
+  /* Priority accent bar */
   .priority-accent-urgent {
     @apply border-l-2 border-l-destructive;
   }
@@ -282,117 +274,117 @@
   }
 
   .priority-accent-normal {
-    @apply border-l-2 border-l-primary/40;
+    @apply border-l-2 border-l-primary/50;
   }
 
   /* ==========================================
      PAGE LAYOUT PATTERNS
      ========================================== */
   .page-header {
-    @apply mb-6 md:mb-8;
+    @apply mb-8;
   }
   
   .page-title {
-    @apply text-2xl md:text-3xl font-bold tracking-tight;
+    @apply text-xl md:text-2xl font-semibold tracking-tight;
   }
   
   .page-subtitle {
-    @apply mt-1 text-sm md:text-base leading-relaxed;
+    @apply mt-1.5 text-sm md:text-base leading-relaxed;
     color: hsl(var(--muted-foreground));
   }
 
   .page-max-width {
-    @apply max-w-[1440px] mx-auto;
+    @apply max-w-[1280px] mx-auto;
   }
 
-  /* Sticky soft header on scroll */
+  /* Sticky header */
   .sticky-header {
     @apply sticky top-0 z-30 py-3 -mx-4 px-4 md:-mx-6 md:px-6;
-    background: hsl(var(--background) / 0.85);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: hsl(var(--background) / 0.9);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid hsl(var(--border) / 0.3);
   }
 
   /* ==========================================
-     PREMIUM GRADIENTS - Trust Blue Theme (calmer)
+     GRADIENTS - Subtle, Warm
      ========================================== */
   .gradient-primary {
     background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 100%);
   }
 
   .gradient-primary-subtle {
-    background: linear-gradient(135deg, hsl(var(--primary) / 0.10) 0%, hsl(var(--primary) / 0.03) 100%);
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.08) 0%, hsl(var(--primary) / 0.02) 100%);
   }
 
   .gradient-hero {
-    background: linear-gradient(135deg, hsl(210 75% 40%) 0%, hsl(210 70% 30%) 100%);
+    background: linear-gradient(135deg, hsl(150 25% 35%) 0%, hsl(150 20% 28%) 100%);
   }
 
   .gradient-subtle {
-    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(220 10% 6%) 100%);
+    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(30 8% 5%) 100%);
   }
 
-  /* Button hover - subtle lighten, no glow */
+  /* Button hover - clean, no glow */
   .btn-glow {
     position: relative;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
   }
 
   .btn-glow:hover {
-    filter: brightness(1.08);
+    filter: brightness(1.05);
   }
 
   /* ==========================================
-     GLASS EFFECTS - Refined
+     GLASS EFFECTS - Subtle
      ========================================== */
   .glass {
-    @apply bg-white/[0.03] border border-white/[0.06];
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    @apply bg-white/[0.02] border border-white/[0.05];
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
 
   .glass-strong {
-    @apply bg-white/[0.06] border border-white/[0.1];
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-  }
-
-  /* Floating mobile nav */
-  .mobile-nav-floating {
-    @apply fixed bottom-0 left-0 right-0 z-40;
-    background: hsl(var(--background) / 0.92);
+    @apply bg-white/[0.04] border border-white/[0.08];
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+  }
+
+  /* Mobile nav */
+  .mobile-nav-floating {
+    @apply fixed bottom-0 left-0 right-0 z-50;
+    background: hsl(var(--background) / 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border-top: 1px solid hsl(var(--border) / 0.5);
-    box-shadow: 0 -8px 32px -8px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 -4px 20px -4px rgba(0, 0, 0, 0.3);
   }
 
   /* ==========================================
-     CARD SYSTEM - Enhanced
+     CARD SYSTEM
      ========================================== */
   .card-elevated {
-    @apply shadow-soft transition-all duration-300 ease-out;
+    @apply shadow-soft transition-all duration-200 ease-out;
   }
 
   .card-interactive {
-    @apply transition-all duration-300 ease-out cursor-pointer;
-    @apply hover:shadow-soft-lg hover:-translate-y-0.5 hover:border-primary/25;
-    @apply active:translate-y-0 active:scale-[0.99];
+    @apply transition-all duration-200 ease-out cursor-pointer;
+    @apply hover:bg-card hover:border-border/80 hover:shadow-md;
+    @apply active:scale-[0.99];
   }
 
   .card-hover-glow {
-    @apply transition-all duration-300 hover:shadow-glow hover:border-primary/30;
+    @apply transition-all duration-200 hover:border-primary/30;
   }
 
-  /* Icon container in stat cards */
+  /* Stat icon container */
   .stat-icon-container {
     @apply flex items-center justify-center h-10 w-10 rounded-lg;
-    background: hsl(var(--primary) / 0.12);
+    background: hsl(var(--primary) / 0.1);
   }
 
   /* ==========================================
-     SECTION SPACING - Harmonized 8px rhythm
+     SECTION SPACING
      ========================================== */
   .section-gap {
     @apply space-y-6 md:space-y-8;
@@ -410,20 +402,20 @@
   }
 
   /* ==========================================
-     PREMIUM ANIMATIONS
+     ANIMATIONS - Calm, Not Flashy
      ========================================== */
   @keyframes fade-in {
-    from { opacity: 0; transform: translateY(8px); }
+    from { opacity: 0; transform: translateY(6px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
   @keyframes slide-up-fade {
-    from { opacity: 0; transform: translateY(12px); }
+    from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
   @keyframes scale-fade-in {
-    from { opacity: 0; transform: scale(0.96); }
+    from { opacity: 0; transform: scale(0.97); }
     to { opacity: 1; transform: scale(1); }
   }
 
@@ -434,29 +426,19 @@
 
   @keyframes pulse-soft {
     0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
-  }
-
-  @keyframes subtle-bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-2px); }
-  }
-
-  @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-4px); }
+    50% { opacity: 0.5; }
   }
 
   .animate-fade-in {
-    animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: fade-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .animate-slide-up-fade {
-    animation: slide-up-fade 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: slide-up-fade 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .animate-scale-fade-in {
-    animation: scale-fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: scale-fade-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .animate-shimmer {
@@ -467,145 +449,90 @@
     animation: pulse-soft 2s ease-in-out infinite;
   }
 
-  .animate-subtle-bounce {
-    animation: subtle-bounce 2s ease-in-out infinite;
-  }
-
-  .animate-float {
-    animation: float 3s ease-in-out infinite;
-  }
-
-  /* Staggered animations for lists */
+  /* Stagger */
   .stagger-1 { animation-delay: 50ms; }
   .stagger-2 { animation-delay: 100ms; }
   .stagger-3 { animation-delay: 150ms; }
   .stagger-4 { animation-delay: 200ms; }
-  .stagger-5 { animation-delay: 250ms; }
 
   /* ==========================================
-     HOVER EFFECTS
+     HOVER EFFECTS - Subtle
      ========================================== */
   .hover-lift {
-    @apply transition-transform duration-300 ease-out hover:-translate-y-0.5;
+    @apply transition-transform duration-200 ease-out hover:-translate-y-0.5;
   }
 
   .hover-scale {
-    @apply transition-transform duration-300 ease-out hover:scale-[1.02];
-  }
-
-  .hover-glow {
-    @apply transition-shadow duration-300 hover:shadow-glow;
+    @apply transition-transform duration-200 ease-out hover:scale-[1.01];
   }
 
   /* ==========================================
-     INTERACTIVE AFFORDANCES
-     ========================================== */
-  .clickable {
-    @apply cursor-pointer select-none transition-transform duration-150;
-    @apply active:scale-[0.98];
-  }
-
-  .btn-press {
-    @apply transition-all duration-150;
-    @apply active:translate-y-[1px] active:scale-[0.99];
-  }
-
-  /* ==========================================
-     STATUS INDICATORS
+     STATUS DOT - Live Indicator
      ========================================== */
   .status-dot {
-    @apply w-2 h-2 rounded-full shrink-0;
+    @apply relative inline-flex h-2 w-2 rounded-full;
+  }
+
+  .status-dot::before {
+    content: '';
+    @apply absolute inset-0 rounded-full animate-ping opacity-75;
+    background-color: inherit;
   }
 
   .status-dot-live {
     @apply bg-success;
-    box-shadow: 0 0 10px hsl(var(--success) / 0.6);
   }
 
-  .status-dot-paused {
-    @apply bg-muted-foreground/50;
+  .status-dot-offline {
+    @apply bg-muted-foreground;
   }
 
   .status-dot-warning {
     @apply bg-warning;
-    box-shadow: 0 0 10px hsl(var(--warning) / 0.5);
   }
 
   /* ==========================================
-     FOCUS RING UTILITY
+     SCROLLBAR STYLING
      ========================================== */
-  .focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.4);
   }
 
   /* ==========================================
-     STRIPED PATTERN
+     SKELETON LOADING
      ========================================== */
-  .bg-stripes {
-    background-image: repeating-linear-gradient(
-      -45deg,
+  .skeleton {
+    @apply relative overflow-hidden bg-muted/60 rounded;
+  }
+
+  .skeleton::after {
+    content: '';
+    @apply absolute inset-0;
+    background: linear-gradient(
+      90deg,
       transparent,
-      transparent 4px,
-      hsl(var(--muted-foreground) / 0.08) 4px,
-      hsl(var(--muted-foreground) / 0.08) 8px
+      hsl(var(--foreground) / 0.03),
+      transparent
     );
-  }
-
-  /* ==========================================
-     TEXT TRUNCATION
-     ========================================== */
-  .line-clamp-2 {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .line-clamp-3 {
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  /* ==========================================
-     NAV ACTIVE PILL HIGHLIGHT - Calm Blue
-     ========================================== */
-  .nav-item-active {
-    @apply bg-primary/12 text-primary;
-    border-left: 2px solid hsl(var(--primary));
-  }
-
-  .nav-item-hover {
-    @apply hover:bg-sidebar-accent/50 hover:text-sidebar-foreground;
-  }
-
-  /* ==========================================
-     REDUCED MOTION SUPPORT
-     ========================================== */
-  @media (prefers-reduced-motion: reduce) {
-    .animate-fade-in,
-    .animate-slide-up-fade,
-    .animate-scale-fade-in,
-    .animate-shimmer,
-    .animate-pulse-soft,
-    .animate-subtle-bounce,
-    .animate-float {
-      animation: none;
-    }
-    
-    .hover-lift,
-    .hover-scale,
-    .card-interactive,
-    .btn-press {
-      transform: none !important;
-    }
-
-    .app-bg::before,
-    .app-bg::after,
-    .app-shell-bg::before,
-    .app-shell-bg::after {
-      display: none;
-    }
+    animation: shimmer 2s infinite;
   }
 }
