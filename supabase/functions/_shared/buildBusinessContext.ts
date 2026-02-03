@@ -19,6 +19,18 @@ import {
 
 // ============= TYPE DEFINITIONS =============
 
+export interface DistanceTier {
+  min_miles: number;
+  max_miles: number | null;
+  base_price: number;
+  per_mile_price?: number;
+}
+
+export interface PricingConfig {
+  model: "flat" | "distance_tiered" | "variable";
+  distance_tiers?: DistanceTier[];
+}
+
 export interface NormalizedService {
   id: string;
   name: string;
@@ -30,6 +42,7 @@ export interface NormalizedService {
   deposit_amount: number | null;
   prep_instructions: string;
   synonyms: string[];
+  pricing_config: PricingConfig | null;
 }
 
 export interface NormalizedMenuItem {
@@ -666,6 +679,7 @@ function normalizeServices(services: Array<{
   deposit_required?: boolean | null;
   deposit_amount?: number | null;
   preparation_instructions?: string | null;
+  pricing_config_json?: Record<string, unknown> | null;
 }> | null): NormalizedService[] {
   if (!services || services.length === 0) return [];
   
@@ -692,6 +706,30 @@ function normalizeServices(services: Array<{
       }
     }
     
+    // Parse pricing_config_json for tiered/variable pricing
+    // Note: DB stores "pricing_model" field, normalize to "model"
+    let pricingConfig: PricingConfig | null = null;
+    if (s.pricing_config_json) {
+      const configJson = s.pricing_config_json;
+      const model = (configJson.model || configJson.pricing_model) as string;
+      
+      if (model === "distance_tiered" && Array.isArray(configJson.distance_tiers)) {
+        pricingConfig = {
+          model: "distance_tiered",
+          distance_tiers: (configJson.distance_tiers as Array<Record<string, unknown>>).map(tier => ({
+            min_miles: Number(tier.min_miles) || 0,
+            max_miles: tier.max_miles != null ? Number(tier.max_miles) : null,
+            base_price: Number(tier.base_price) || 0,
+            per_mile_price: tier.per_mile_price != null ? Number(tier.per_mile_price) : undefined,
+          })),
+        };
+      } else if (model === "variable") {
+        pricingConfig = { model: "variable" };
+      } else if (model === "flat") {
+        pricingConfig = { model: "flat" };
+      }
+    }
+    
     return {
       id: s.id,
       name: s.name,
@@ -703,6 +741,7 @@ function normalizeServices(services: Array<{
       deposit_amount: s.deposit_amount ?? null,
       prep_instructions: s.preparation_instructions || "",
       synonyms,
+      pricing_config: pricingConfig,
     };
   });
 }
@@ -733,7 +772,24 @@ function buildServicesForPrompt(services: NormalizedService[]): string {
   
   return services.map(s => {
     let priceText = "";
-    if (s.price_type === "fixed" && s.price_amount) {
+    
+    // Check for distance-tiered pricing first
+    if (s.pricing_config?.model === "distance_tiered" && s.pricing_config.distance_tiers?.length) {
+      const tiers = s.pricing_config.distance_tiers;
+      const tierDescriptions = tiers.map(tier => {
+        const rangeText = tier.max_miles != null 
+          ? `${tier.min_miles}-${tier.max_miles} miles` 
+          : `Over ${tier.min_miles} miles`;
+        
+        if (tier.per_mile_price) {
+          return `${rangeText}: $${tier.base_price} base + $${tier.per_mile_price}/mile`;
+        }
+        return `${rangeText}: $${tier.base_price}`;
+      });
+      priceText = `Distance-tiered:\n    - ${tierDescriptions.join("\n    - ")}`;
+    } else if (s.pricing_config?.model === "variable") {
+      priceText = s.price_amount ? `Starting at $${s.price_amount} (varies by job)` : "Price varies by job";
+    } else if (s.price_type === "fixed" && s.price_amount) {
       priceText = `$${s.price_amount} (exact price)`;
     } else if (s.price_type === "starting_at" && s.price_amount) {
       priceText = `Starting at $${s.price_amount} (final price varies)`;
@@ -742,7 +798,7 @@ function buildServicesForPrompt(services: NormalizedService[]): string {
     }
     
     let line = `• ${s.name}: ${priceText}`;
-    if (s.duration_minutes) line += `, ${s.duration_minutes} min`;
+    if (s.duration_minutes) line += `\n  Duration: ${s.duration_minutes} min`;
     if (s.synonyms.length > 0) line += ` [also: ${s.synonyms.slice(0, 3).join(", ")}]`;
     return line;
   }).join("\n");
