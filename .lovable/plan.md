@@ -1,155 +1,274 @@
 
+# Make Dashboard Terms Industry-Aware
 
-# Elevate Integrations to Enterprise-Grade Professional Quality
+## Overview
 
-## Vision Alignment
-
-CloseLoop is the **AI-powered command center** for local businesses - answering calls, scheduling appointments, handling cancellations, managing orders, and seamlessly syncing with whatever tools they already use. The integrations system is the bridge that makes this possible.
-
----
-
-## Current State Assessment
-
-The system already has solid foundations:
-- Real OAuth flows for Google Calendar/Sheets
-- Webhook support with HMAC signatures
-- PrintNode cloud printing integration
-- Concierge request system for expert help
-- 20+ integrations in the "More" catalog
-- Step-by-step setup guides for self-service tools
+This plan creates a centralized terminology system so all user-facing text automatically adapts based on the business mode (service, dispatch, food, medical, general). Instead of saying "bookings" for restaurants or "services" for medical practices, the UI will use contextually appropriate terms.
 
 ---
 
-## Proposed Enhancements
+## Current State
 
-### 1. Visual Connection Status Dashboard
+The codebase has scattered hardcoded terms that don't adapt to business mode:
 
-Add a prominent status section at the top of the Connect tab showing what's active:
+| Current Term | Service | Dispatch | Food | Medical | General |
+|-------------|---------|----------|------|---------|---------|
+| "Bookings" | Bookings | Jobs | Orders | Appointments | Bookings |
+| "Services" | Services | Services | Menu | Services | Offerings |
+| "Customer" | Customer | Customer | Guest | Patient | Customer |
+| "Booking created" | Booking created | Job dispatched | Order placed | Appointment scheduled | Booking created |
 
+---
+
+## Solution: Centralized Terminology Hook
+
+Create a single source of truth for all industry-aware terms.
+
+### New File: `src/lib/terminology.ts`
+
+```typescript
+// Centralized terminology mapping by business mode
+export interface IndustryTerms {
+  // Core entities
+  booking: string;
+  bookings: string;
+  service: string;
+  services: string;
+  customer: string;
+  customers: string;
+  
+  // Actions
+  bookingCreated: string;
+  viewBookings: string;
+  addService: string;
+  
+  // Page titles
+  bookingsPageTitle: string;
+  servicesPageTitle: string;
+  
+  // Setup steps
+  addServicesStep: string;
+  addServicesDescription: string;
+}
+
+const TERMINOLOGY: Record<BusinessMode, IndustryTerms> = {
+  service: {
+    booking: "booking",
+    bookings: "bookings",
+    service: "service",
+    services: "services",
+    customer: "customer",
+    customers: "customers",
+    bookingCreated: "Booking created",
+    viewBookings: "View Bookings",
+    addService: "Add Service",
+    bookingsPageTitle: "Schedule",
+    servicesPageTitle: "Services",
+    addServicesStep: "Add your services",
+    addServicesDescription: "What you offer and pricing",
+  },
+  dispatch: {
+    booking: "job",
+    bookings: "jobs",
+    service: "service",
+    services: "services",
+    customer: "customer",
+    customers: "customers",
+    bookingCreated: "Job dispatched",
+    viewBookings: "Dispatch Queue",
+    addService: "Add Service",
+    bookingsPageTitle: "Dispatch Queue",
+    servicesPageTitle: "Services",
+    addServicesStep: "Add your services",
+    addServicesDescription: "What jobs you handle and rates",
+  },
+  food: {
+    booking: "order",
+    bookings: "orders",
+    service: "menu item",
+    services: "menu",
+    customer: "guest",
+    customers: "guests",
+    bookingCreated: "Order placed",
+    viewBookings: "View Orders",
+    addService: "Add Menu Item",
+    bookingsPageTitle: "Orders",
+    servicesPageTitle: "Menu",
+    addServicesStep: "Add your menu",
+    addServicesDescription: "Items you serve and pricing",
+  },
+  medical: {
+    booking: "appointment",
+    bookings: "appointments",
+    service: "service",
+    services: "services",
+    customer: "patient",
+    customers: "patients",
+    bookingCreated: "Appointment scheduled",
+    viewBookings: "View Appointments",
+    addService: "Add Service",
+    bookingsPageTitle: "Appointments",
+    servicesPageTitle: "Services",
+    addServicesStep: "Add your services",
+    addServicesDescription: "Procedures and visit types",
+  },
+  general: {
+    booking: "booking",
+    bookings: "bookings",
+    service: "offering",
+    services: "offerings",
+    customer: "customer",
+    customers: "customers",
+    bookingCreated: "Booking created",
+    viewBookings: "View Bookings",
+    addService: "Add Offering",
+    bookingsPageTitle: "Bookings",
+    servicesPageTitle: "Offerings",
+    addServicesStep: "Add your offerings",
+    addServicesDescription: "What you provide and pricing",
+  },
+};
+
+export function getTerminology(mode: BusinessMode): IndustryTerms {
+  return TERMINOLOGY[mode] || TERMINOLOGY.service;
+}
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  YOUR INTEGRATIONS                                          │
-│  ┌────────────┐ ┌────────────┐ ┌────────────┐              │
-│  │ ✅ Google   │ │ ⚡ Webhook  │ │ 🖨️ Printer │  + Add More │
-│  │   Calendar  │ │   Active   │ │  Ready    │              │
-│  │ Last sync:  │ │ 12 calls   │ │ 5 prints  │              │
-│  │ 5 min ago   │ │ today      │ │ today     │              │
-│  └────────────┘ └────────────┘ └────────────┘              │
-└─────────────────────────────────────────────────────────────┘
-```
 
-This gives users immediate visual confirmation that their integrations are working.
+### New Hook: `src/hooks/useTerminology.ts`
 
----
+```typescript
+import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { getTerminology, IndustryTerms } from "@/lib/terminology";
 
-### 2. Live Activity Feed in History Tab
-
-Enhance the History tab to show real-time activity with clear success/failure indicators:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  RECENT ACTIVITY                                            │
-│  ────────────────────────────────────────────────────────── │
-│  ✅ 2 min ago    Booking synced to Google Calendar          │
-│                  John Smith - Plumbing Repair               │
-│  ────────────────────────────────────────────────────────── │
-│  ✅ 15 min ago   Lead sent to Google Sheets                 │
-│                  Row 47 added to "Incoming Leads"           │
-│  ────────────────────────────────────────────────────────── │
-│  ✅ 1 hour ago   Webhook triggered                          │
-│                  POST to zapier.com → 200 OK                │
-│  ────────────────────────────────────────────────────────── │
-│  ❌ Yesterday    Calendar sync failed                       │
-│                  Token expired - [Reconnect]                │
-└─────────────────────────────────────────────────────────────┘
+export function useTerminology(): IndustryTerms {
+  const { businessMode } = useTenantConfig();
+  return getTerminology(businessMode);
+}
 ```
 
 ---
 
-### 3. Integration Health Monitoring
+## Files to Update
 
-Add automatic health checks that alert users when connections need attention:
+### 1. Dashboard Components
 
-- Token expiration warnings (before they expire)
-- Failed webhook delivery alerts
-- Disconnection notifications
-- One-click reconnect for expired OAuth
+| File | Changes |
+|------|---------|
+| `SetupProgressChecklist.tsx` | Use `terms.addServicesStep` instead of "Add your services" |
+| `QuickActionsCard.tsx` | Use `terms.viewBookings` instead of "View Bookings" |
+| `TodaySnapshot.tsx` | Use `terms.bookings` for metric labels |
+| `NeedsAttentionBanner.tsx` | Use `terms.booking` for "pending booking" |
+| `LiveActivityFeed.tsx` | Use `terms.bookingCreated` for activity titles |
 
----
+### 2. Navigation & Layout
 
-### 4. Expanded Self-Setup Capabilities
+| File | Changes |
+|------|---------|
+| `AppLayout.tsx` | Make nav item labels adapt: "Bookings" → `terms.bookingsPageTitle` |
 
-Add more tools that users can connect themselves:
+### 3. Page Headers
 
-**New Self-Setup Integrations:**
-- **Zapier** - Pre-configured Zap templates for common scenarios
-- **Make (Integromat)** - Similar to Zapier with scenario templates
-- **Microsoft Outlook Calendar** - OAuth flow like Google Calendar
-- **iCloud Calendar** - ICS feed subscription
+| File | Changes |
+|------|---------|
+| `BookingsPage.tsx` | Already says "Schedule" - add subtitle with `terms.bookings` |
+| `ServicesPage.tsx` | Use `terms.servicesPageTitle` for page title |
 
----
+### 4. Settings Page
 
-### 5. Automation Templates by Industry
-
-Show pre-built automation templates based on business mode:
-
-**For Service Businesses:**
-- New booking → Calendar + SMS confirmation + Webhook
-- Cancellation → Calendar update + Owner alert + Customer SMS
-- Completed job → Invoice trigger + Review request
-
-**For Restaurants:**
-- New order → Print ticket + SMS customer + Update POS
-- Order ready → SMS customer pickup notification
-- Delivery order → Dispatch to driver + Track ETA
-
-**For Medical:**
-- Appointment booked → Calendar + Patient portal + HIPAA-compliant record
-- No-show → Reschedule prompt + Flag patient record
-- Intake complete → Provider notification + EHR sync
+| File | Changes |
+|------|---------|
+| `SettingsPage.tsx` | "Bookings" in alerts → `terms.bookings` |
 
 ---
 
-### 6. Two-Way Sync Indicators
+## Implementation Details
 
-For integrations that support it, show two-way sync status:
+### Example: SetupProgressChecklist.tsx
 
-```
-Google Calendar
-├── Outbound: Bookings → Calendar events ✅
-└── Inbound: External events → Busy blocks ✅ (syncing every 15 min)
+Before:
+```typescript
+{
+  id: "services",
+  label: "Add your services",
+  description: "What you offer and pricing",
+  // ...
+}
 ```
 
+After:
+```typescript
+const terms = useTerminology();
+
+{
+  id: "services",
+  label: terms.addServicesStep,
+  description: terms.addServicesDescription,
+  // ...
+}
+```
+
+### Example: QuickActionsCard.tsx
+
+Before:
+```typescript
+case "service":
+case "general":
+default:
+  if (enabledModules.includes("booking")) {
+    actions.push({ label: "View Bookings", icon: Calendar, href: "/app/bookings" });
+  }
+```
+
+After:
+```typescript
+const terms = useTerminology();
+
+case "service":
+case "general":
+default:
+  if (enabledModules.includes("booking")) {
+    actions.push({ label: terms.viewBookings, icon: Calendar, href: "/app/bookings" });
+  }
+```
+
+### Example: AppLayout.tsx Nav Items
+
+Before:
+```typescript
+const allNavItems: NavItem[] = [
+  { href: "/app/bookings", label: "Bookings", icon: Calendar, requiredModules: ["booking"] },
+  // ...
+];
+```
+
+After (using a function to get dynamic labels):
+```typescript
+const getNavItems = (terms: IndustryTerms): NavItem[] => [
+  { href: "/app/bookings", label: terms.bookingsPageTitle, icon: Calendar, requiredModules: ["booking"] },
+  // ...
+];
+
+// In component:
+const terms = useTerminology();
+const navItems = useMemo(() => {
+  const baseItems = getNavItems(terms);
+  return baseItems.filter(/* existing filter logic */);
+}, [enabledModules, terms]);
+```
+
 ---
 
-### 7. Quick Actions from Integration Cards
+## Complete Term Mapping
 
-Add contextual quick actions:
-
-- **Google Calendar**: "View latest synced event" → Opens in new tab
-- **Google Sheets**: "View spreadsheet" → Opens the connected sheet
-- **Webhook**: "View last delivery" → Shows payload and response
-- **Printer**: "Print test ticket" → Sends test print job
-
----
-
-### 8. Connection Troubleshooting
-
-Add inline troubleshooting for common issues:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  ⚠️ Calendar sync issue detected                            │
-│                                                             │
-│  Your Google Calendar connection shows an error.            │
-│                                                             │
-│  Common fixes:                                              │
-│  1. Your Google account password may have changed           │
-│  2. CloseLoop access may have been revoked                  │
-│                                                             │
-│  [Reconnect Now]  [Contact Support]                         │
-└─────────────────────────────────────────────────────────────┘
-```
+| Context | Service | Dispatch | Food | Medical | General |
+|---------|---------|----------|------|---------|---------|
+| **Nav label** | Bookings | Dispatch | Orders | Appointments | Bookings |
+| **Page title** | Schedule | Dispatch Queue | Orders | Appointments | Schedule |
+| **Quick action** | View Bookings | Dispatch Queue | View Orders | View Appointments | View Bookings |
+| **Setup step** | Add your services | Add your services | Add your menu | Add your services | Add your offerings |
+| **Attention item** | pending booking | pending job | new order | pending appointment | pending booking |
+| **Activity feed** | Booking created | Job dispatched | Order placed | Appointment scheduled | Booking created |
+| **Customer term** | customer | customer | guest | patient | customer |
 
 ---
 
@@ -157,85 +276,37 @@ Add inline troubleshooting for common issues:
 
 | File | Action |
 |------|--------|
-| `src/components/integrations/IntegrationStatusDashboard.tsx` | NEW - Active connections summary |
-| `src/components/integrations/IntegrationHealthAlert.tsx` | NEW - Health warnings component |
-| `src/components/integrations/AutomationActivityFeed.tsx` | NEW - Enhanced history view |
-| `src/components/integrations/QuickActionsMenu.tsx` | NEW - Contextual actions per integration |
-| `src/pages/app/IntegrationsPage.tsx` | Add status dashboard, enhance layout |
-| `src/hooks/useIntegrations.ts` | Add health check queries |
-| `src/data/automationTemplates.ts` | NEW - Industry-specific templates |
+| `src/lib/terminology.ts` | NEW - Centralized term definitions |
+| `src/hooks/useTerminology.ts` | NEW - Hook to access terms |
+| `src/components/layouts/AppLayout.tsx` | Update nav labels |
+| `src/components/dashboard/SetupProgressChecklist.tsx` | Use terms for steps |
+| `src/components/dashboard/QuickActionsCard.tsx` | Use terms for actions |
+| `src/components/dashboard/TodaySnapshot.tsx` | Use terms for metrics |
+| `src/components/dashboard/NeedsAttentionBanner.tsx` | Use terms for items |
+| `src/components/dashboard/LiveActivityFeed.tsx` | Use terms for activity |
+| `src/pages/app/BookingsPage.tsx` | Use terms for page text |
+| `src/pages/app/ServicesPage.tsx` | Use terms for page title |
+| `src/pages/app/SettingsPage.tsx` | Use terms in alerts section |
+
+---
+
+## Benefits
+
+1. **Single source of truth** - All terminology in one file
+2. **Easy to maintain** - Add new terms in one place
+3. **Consistent UX** - Users see familiar terms for their industry
+4. **Type-safe** - TypeScript ensures all terms are defined
+5. **Extensible** - Easy to add new business modes or terms
 
 ---
 
 ## Implementation Order
 
-1. **Phase 1: Visual Polish**
-   - Integration Status Dashboard at top of page
-   - Connection health indicators
-   - Quick actions on cards
+1. Create `src/lib/terminology.ts` with complete term mapping
+2. Create `src/hooks/useTerminology.ts` hook
+3. Update dashboard components (SetupProgressChecklist, QuickActionsCard, etc.)
+4. Update AppLayout nav labels
+5. Update page headers and titles
+6. Update settings and other secondary pages
 
-2. **Phase 2: Activity Enhancement**
-   - Enhanced activity feed with details
-   - Success/failure visualization
-   - One-click error resolution
-
-3. **Phase 3: Templates & Expansion**
-   - Industry-specific automation templates
-   - Additional self-setup integrations (Outlook, Zapier)
-   - Two-way sync status indicators
-
----
-
-## Technical Details
-
-### Integration Health Check
-
-```typescript
-// Query to check connection health
-const { data: healthStatus } = useQuery({
-  queryKey: ["integration-health", tenantId],
-  queryFn: async () => {
-    // Check OAuth token expiration
-    // Check recent automation run failures
-    // Check webhook delivery success rate
-    return { healthy: true, warnings: [], errors: [] };
-  },
-  refetchInterval: 60000, // Every minute
-});
-```
-
-### Activity Feed Query
-
-```typescript
-// Enhanced activity feed with detailed logs
-const { data: recentActivity } = useQuery({
-  queryKey: ["automation-activity", tenantId],
-  queryFn: async () => {
-    return supabase
-      .from("automation_runs")
-      .select(`
-        *,
-        rule:automation_rules(name),
-        steps:automation_run_steps(*)
-      `)
-      .eq("tenant_id", tenantId)
-      .order("created_at", { ascending: false })
-      .limit(20);
-  },
-});
-```
-
----
-
-## Expected Outcome
-
-After these enhancements:
-
-1. Users see at-a-glance which integrations are working
-2. Real-time feedback when automations fire
-3. Clear guidance when something needs attention
-4. Pre-built templates for common workflows
-5. Professional, enterprise-grade experience that inspires confidence
-
-This transforms the Integrations page from "configure your tools" into "here's your AI business running itself" - with full visibility and control.
-
+This is a low-risk change since it's purely presentational - no business logic or data changes.
