@@ -131,7 +131,7 @@ serve(async (req) => {
       phone_public: body.phone_public ?? null,
       address: body.address ?? null,
       hours_json: body.hours_json ?? null,
-      industry: body.industry ?? null,
+      industry: body.industry || "general", // Default to "general" if not provided
       enabled_modules: body.enabled_modules ?? [],
       cancellation_policy: body.cancellation_policy ?? null,
       deposit_policy: body.deposit_policy ?? null,
