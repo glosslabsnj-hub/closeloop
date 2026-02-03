@@ -2,6 +2,7 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { AdminModeProvider } from "@/contexts/AdminModeContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useTerminology } from "@/hooks/useTerminology";
 import { useKnowledgeConflicts } from "@/hooks/useKnowledgeConflicts";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -58,12 +59,13 @@ interface NavItem {
   label: string;
   icon: React.ElementType;
   requiredModules?: string[];
+  dynamicLabelKey?: "bookingsPageTitle" | "servicesPageTitle"; // Keys from IndustryTerms
 }
 
-const allNavItems: NavItem[] = [
+const baseNavItems: NavItem[] = [
   { href: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/app/inbox", label: "Inbox", icon: MessageSquare },
-  { href: "/app/bookings", label: "Bookings", icon: Calendar, requiredModules: ["booking"] },
+  { href: "/app/bookings", label: "Bookings", icon: Calendar, requiredModules: ["booking"], dynamicLabelKey: "bookingsPageTitle" },
   { href: "/app/dispatch", label: "Dispatch", icon: Truck, requiredModules: ["dispatch_queue"] },
   { href: "/app/orders", label: "Orders", icon: UtensilsCrossed, requiredModules: ["food_orders"] },
   { href: "/app/menu-center", label: "Menu Center", icon: BookOpen, requiredModules: ["menu_knowledge"] },
@@ -86,6 +88,7 @@ const alwaysAccessibleRoutes = [
 function AppLayoutContent() {
   const { user, tenant, effectiveTenant, signOut, loading, hasActiveSubscription, isSuperAdmin } = useAuth();
   const { enabledModules } = useTenantConfig();
+  const terms = useTerminology();
   const { unresolvedCount: conflictsCount } = useKnowledgeConflicts();
   const location = useLocation();
   const navigate = useNavigate();
@@ -119,13 +122,18 @@ function AppLayoutContent() {
   // For super-admin testing, use the effective tenant everywhere in the app shell.
   const displayTenant = isSuperAdmin ? (effectiveTenant ?? tenant) : tenant;
 
-  // Filter nav items based on enabled modules
+  // Filter nav items based on enabled modules and apply dynamic labels
   const navItems = useMemo(() => {
-    return allNavItems.filter(item => {
-      if (!item.requiredModules) return true;
-      return item.requiredModules.some(mod => enabledModules.includes(mod));
-    });
-  }, [enabledModules]);
+    return baseNavItems
+      .filter(item => {
+        if (!item.requiredModules) return true;
+        return item.requiredModules.some(mod => enabledModules.includes(mod));
+      })
+      .map(item => ({
+        ...item,
+        label: item.dynamicLabelKey ? terms[item.dynamicLabelKey] : item.label,
+      }));
+  }, [enabledModules, terms]);
 
   // Get priority mobile nav items based on business mode
   const mobileNavItems = useMemo(() => {
@@ -137,11 +145,13 @@ function AppLayoutContent() {
     const businessMode = (displayTenant as any)?.business_mode || "service";
     
     if (businessMode === "food" && enabledModules.includes("food_orders")) {
-      prioritized.push({ href: "/app/orders", label: "Orders", icon: UtensilsCrossed });
+      prioritized.push({ href: "/app/orders", label: terms.bookingsPageTitle, icon: UtensilsCrossed });
     } else if (businessMode === "dispatch" && enabledModules.includes("dispatch_queue")) {
-      prioritized.push({ href: "/app/dispatch", label: "Dispatch", icon: Truck });
+      prioritized.push({ href: "/app/dispatch", label: terms.bookingsPageTitle, icon: Truck });
+    } else if (businessMode === "medical" && enabledModules.includes("booking")) {
+      prioritized.push({ href: "/app/bookings", label: terms.bookingsPageTitle, icon: Calendar });
     } else if (enabledModules.includes("booking")) {
-      prioritized.push({ href: "/app/bookings", label: "Bookings", icon: Calendar });
+      prioritized.push({ href: "/app/bookings", label: terms.bookingsPageTitle, icon: Calendar });
     }
 
     // Always include Inbox (unified: messages, calls, leads)
@@ -151,7 +161,7 @@ function AppLayoutContent() {
     prioritized.push({ href: "/app/settings", label: "Settings", icon: Settings });
 
     return prioritized.slice(0, 5); // Max 5 items for mobile nav
-  }, [enabledModules, displayTenant]);
+  }, [enabledModules, displayTenant, terms]);
 
   useEffect(() => {
     if (!loading && !user) {

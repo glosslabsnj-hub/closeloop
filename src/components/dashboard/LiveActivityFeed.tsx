@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTerminology } from "@/hooks/useTerminology";
 import { formatDistanceToNow } from "date-fns";
 import {
   Phone,
@@ -33,6 +34,7 @@ export function LiveActivityFeed() {
   const navigate = useNavigate();
   const { tenant } = useAuth();
   const queryClient = useQueryClient();
+  const terms = useTerminology();
 
   // Realtime subscription
   useEffect(() => {
@@ -103,11 +105,12 @@ export function LiveActivityFeed() {
         .limit(4);
 
       bookings?.forEach((booking) => {
-        const leadName = (booking.leads as any)?.full_name || "Customer";
+        const leadName = (booking.leads as any)?.full_name || terms.customer;
+        const statusLabel = booking.status === 'confirmed' ? terms.bookingConfirmed : terms.bookingCreated;
         results.push({
           id: `booking-${booking.id}`,
           type: "booking",
-          title: `Booking ${booking.status === 'confirmed' ? 'confirmed' : 'created'}`,
+          title: statusLabel,
           subtitle: leadName,
           time: formatDistanceToNow(new Date(booking.created_at), { addSuffix: true }),
           timestamp: new Date(booking.created_at),

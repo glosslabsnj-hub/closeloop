@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTerminology } from "@/hooks/useTerminology";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -21,6 +22,7 @@ export default function SettingsPage() {
   const { user, signOut, tenant } = useAuth();
   const { isFoodMode } = useFoodMode();
   const { hipaaMode } = useTenantConfig();
+  const terms = useTerminology();
   const isBookingEnabled = useModuleEnabled("booking");
   const isDispatchEnabled = useModuleEnabled("dispatch_queue");
   const isMedicalMode = useModuleEnabled("medical_intake");
@@ -124,7 +126,7 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               {[
                 { label: "New leads", description: "When a new lead comes in" },
-                { label: "Bookings", description: "When appointments are booked or changed" },
+                { label: terms.bookingsMetricLabel, description: `When ${terms.bookings} are created or changed` },
                 { label: "Payments", description: "When deposits are collected" },
                 { label: "AI escalations", description: "When AI needs human help" },
               ].map((item) => (
