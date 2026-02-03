@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       admin_settings: {
         Row: {
+          admin_active_mode: string | null
           admin_active_tenant_id: string | null
           created_at: string | null
           id: string
@@ -23,6 +24,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          admin_active_mode?: string | null
           admin_active_tenant_id?: string | null
           created_at?: string | null
           id?: string
@@ -30,6 +32,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          admin_active_mode?: string | null
           admin_active_tenant_id?: string | null
           created_at?: string | null
           id?: string
