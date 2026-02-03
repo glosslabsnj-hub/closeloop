@@ -1,19 +1,14 @@
 import { useState } from "react";
 import {
-  Building2,
-  Clock,
   Users,
   CreditCard,
   Bell,
-  Brain,
   Shield,
-  Stethoscope,
   Webhook,
   Zap,
   Bug,
   ChevronDown,
   ChevronRight,
-  DollarSign,
 } from "lucide-react";
 import { SettingsNavItem } from "./SettingsNavItem";
 import { cn } from "@/lib/utils";
@@ -35,7 +30,6 @@ interface SettingsSidebarProps {
 interface NavGroup {
   id: string;
   label: string;
-  icon: typeof Building2;
   colorClass: string;
   items: NavItem[];
 }
@@ -43,70 +37,43 @@ interface NavGroup {
 interface NavItem {
   id: string;
   label: string;
-  icon: typeof Building2;
+  icon: typeof Users;
   visible?: boolean;
 }
 
 export function SettingsSidebar({ activeSection, onSectionChange, config }: SettingsSidebarProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
+  // Simplified nav groups: Account, Data & Privacy, Notifications, Advanced
   const navGroups: NavGroup[] = [
     {
-      id: "business",
-      label: "Your Business",
-      icon: Building2,
+      id: "account",
+      label: "Account",
       colorClass: "text-primary",
       items: [
-        { id: "profile", label: "Profile", icon: Building2 },
-        { id: "hours", label: "Business Hours", icon: Clock },
-        { id: "pricing", label: "Pricing & Estimates", icon: DollarSign },
         { id: "team", label: "Team Members", icon: Users },
+        { id: "plan", label: "Plan & Billing", icon: CreditCard },
       ],
     },
     {
-      id: "ai-privacy",
-      label: "AI & Privacy",
-      icon: Brain,
+      id: "data-privacy",
+      label: "Data & Privacy",
       colorClass: "text-violet-500",
       items: [
-        { id: "ai-learning", label: "AI Learning", icon: Brain },
-        { id: "ai-rules", label: "Required Questions", icon: Brain },
-        { id: "pricing-estimates", label: "Pricing & Estimates", icon: DollarSign },
-        { id: "data-privacy", label: "Data & Privacy", icon: Shield },
-        { id: "hipaa", label: "HIPAA Compliance", icon: Stethoscope, visible: config.showHipaa },
+        { id: "data-privacy", label: "Data Controls", icon: Shield },
       ],
     },
     {
       id: "notifications",
-      label: "Notifications & Delivery",
-      icon: Bell,
+      label: "Notifications",
       colorClass: "text-amber-500",
       items: [
-        { id: "alerts", label: "How You Get Notified", icon: Bell },
-        { id: "integrations", label: "Where Things Go", icon: Webhook },
-        { id: "automation", label: "Automation Rules", icon: Zap },
-      ],
-    },
-    {
-      id: "billing",
-      label: "Plan & Billing",
-      icon: CreditCard,
-      colorClass: "text-emerald-500",
-      items: [
-        { id: "plan", label: "Your Plan", icon: CreditCard },
+        { id: "alerts", label: "Alerts", icon: Bell },
+        { id: "integrations", label: "Integrations", icon: Webhook },
+        { id: "automation", label: "Automation", icon: Zap },
       ],
     },
   ];
-
-  // Check if current section is in a group
-  const getGroupForSection = (sectionId: string): string | null => {
-    for (const group of navGroups) {
-      if (group.items.some((item) => item.id === sectionId)) {
-        return group.id;
-      }
-    }
-    return null;
-  };
 
   return (
     <aside className="w-64 shrink-0 border-r bg-muted/30 p-4 space-y-6 hidden md:block">
@@ -116,8 +83,6 @@ export function SettingsSidebar({ activeSection, onSectionChange, config }: Sett
         {navGroups.map((group) => {
           const visibleItems = group.items.filter((item) => item.visible !== false);
           if (visibleItems.length === 0) return null;
-
-          const isGroupActive = visibleItems.some((item) => item.id === activeSection);
 
           return (
             <div key={group.id} className="space-y-1">

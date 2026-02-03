@@ -1,18 +1,13 @@
 import { useState } from "react";
 import {
-  Building2,
-  Clock,
   Users,
   CreditCard,
   Bell,
-  Brain,
   Shield,
-  Stethoscope,
   Webhook,
   Zap,
   Bug,
   ChevronDown,
-  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -27,7 +22,6 @@ interface MobileSettingsNavProps {
 interface NavGroup {
   id: string;
   label: string;
-  icon: typeof Building2;
   colorClass: string;
   items: NavItem[];
 }
@@ -35,22 +29,18 @@ interface NavGroup {
 interface NavItem {
   id: string;
   label: string;
-  icon: typeof Building2;
+  icon: typeof Users;
   visible?: boolean;
 }
 
 // Section labels for display
 const sectionLabels: Record<string, string> = {
-  profile: "Profile",
-  hours: "Business Hours",
   team: "Team Members",
-  "ai-learning": "AI Learning",
-  "data-privacy": "Data & Privacy",
-  hipaa: "HIPAA Compliance",
-  alerts: "Notifications",
+  plan: "Plan & Billing",
+  "data-privacy": "Data Controls",
+  alerts: "Alerts",
   integrations: "Integrations",
   automation: "Automation",
-  plan: "Your Plan",
   developer: "Developer Tools",
 };
 
@@ -59,49 +49,35 @@ export function MobileSettingsNav({ activeSection, onSectionChange, config }: Mo
 
   const navGroups: NavGroup[] = [
     {
-      id: "business",
-      label: "Your Business",
-      icon: Building2,
+      id: "account",
+      label: "Account",
       colorClass: "text-primary",
       items: [
-        { id: "profile", label: "Profile", icon: Building2 },
-        { id: "hours", label: "Business Hours", icon: Clock },
         { id: "team", label: "Team Members", icon: Users },
+        { id: "plan", label: "Plan & Billing", icon: CreditCard },
       ],
     },
     {
-      id: "ai-privacy",
-      label: "AI & Privacy",
-      icon: Brain,
+      id: "data-privacy",
+      label: "Data & Privacy",
       colorClass: "text-violet-500",
       items: [
-        { id: "ai-learning", label: "AI Learning", icon: Brain },
-        { id: "data-privacy", label: "Data & Privacy", icon: Shield },
-        { id: "hipaa", label: "HIPAA Compliance", icon: Stethoscope, visible: config.showHipaa },
+        { id: "data-privacy", label: "Data Controls", icon: Shield },
       ],
     },
     {
       id: "notifications",
-      label: "Notifications & Delivery",
-      icon: Bell,
+      label: "Notifications",
       colorClass: "text-amber-500",
       items: [
-        { id: "alerts", label: "How You Get Notified", icon: Bell },
-        { id: "integrations", label: "Where Things Go", icon: Webhook },
-        { id: "automation", label: "Automation Rules", icon: Zap },
+        { id: "alerts", label: "Alerts", icon: Bell },
+        { id: "integrations", label: "Integrations", icon: Webhook },
+        { id: "automation", label: "Automation", icon: Zap },
       ],
-    },
-    {
-      id: "billing",
-      label: "Plan & Billing",
-      icon: CreditCard,
-      colorClass: "text-emerald-500",
-      items: [{ id: "plan", label: "Your Plan", icon: CreditCard }],
     },
     {
       id: "advanced",
       label: "Advanced",
-      icon: Bug,
       colorClass: "text-muted-foreground",
       items: [{ id: "developer", label: "Developer Tools", icon: Bug }],
     },

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
-import { Brain, Building2, Package, MapPin, Calendar, FileText, Shield, Upload, AlertCircle, Navigation } from "lucide-react";
+import { Brain, Building2, Package, MapPin, Calendar, FileText, Shield, Upload, AlertCircle, Settings2 } from "lucide-react";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { PricingRulesEditor } from "@/components/settings/PricingRulesEditor";
 import { BusynessRulesEditor } from "@/components/settings/BusynessRulesEditor";
@@ -24,6 +24,7 @@ import { QuoteReadinessCard } from "@/components/brain/QuoteReadinessCard";
 import { IndustryTemplateCard } from "@/components/brain/IndustryTemplateCard";
 import { ServiceAreaPreview } from "@/components/debug/ServiceAreaPreview";
 import { DistanceEtaSection } from "@/components/business-brain/DistanceEtaSection";
+import { IntelligenceSettingsForm } from "@/components/settings/IntelligenceSettingsForm";
 
 /**
  * Business Brain - Centralized hub for ALL business knowledge editing
@@ -41,6 +42,7 @@ import { DistanceEtaSection } from "@/components/business-brain/DistanceEtaSecti
  * - #policies: Cancellation, payment, HIPAA, retention, delivery handoff
  * - #faqs: Business FAQs
  * - #assets: Knowledge uploads
+ * - #ai-intelligence: AI learning, memory, copilot settings
  * - #review-queue: Conflicts, suggestions, merge queue
  */
 
@@ -93,6 +95,12 @@ const navigationItems: BrainNavItem[] = [
     label: "Knowledge Assets",
     icon: Upload,
     description: "Uploaded documents and knowledge sources"
+  },
+  {
+    id: "ai-intelligence",
+    label: "AI Intelligence",
+    icon: Settings2,
+    description: "Memory, learning settings, and copilot config"
   },
   {
     id: "review-queue",
@@ -314,6 +322,17 @@ export default function BusinessBrainPage() {
               description="Review conflicts, AI suggestions, and approve knowledge merges"
             >
               <BrainReviewQueue />
+            </SettingsSection>
+          )}
+
+          {/* AI Intelligence Section */}
+          {activeSection === "ai-intelligence" && (
+            <SettingsSection
+              id="ai-intelligence"
+              title="AI Intelligence"
+              description="Configure how your AI learns and adapts over time"
+            >
+              <IntelligenceSettingsForm />
             </SettingsSection>
           )}
         </div>
