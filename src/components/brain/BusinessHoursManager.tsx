@@ -39,6 +39,21 @@ function getTodayHoursPreview(hours: BusinessHours): string {
   return `We're open today from ${formatTimeForDisplay(todayHours.open)} to ${formatTimeForDisplay(todayHours.close)}.`;
 }
 
+function getSampleQueryPreview(hours: BusinessHours): string {
+  // Show a sample response for "Are you open Sunday?"
+  const sundayHours = hours.sunday;
+  if (!sundayHours || sundayHours.closed) {
+    return "No, we're closed on Sundays.";
+  }
+  return `Yes, on Sundays we're open from ${formatTimeForDisplay(sundayHours.open)} to ${formatTimeForDisplay(sundayHours.close)}.`;
+}
+
+function getIs24x7(hours: BusinessHours): boolean {
+  return Object.values(hours).every(
+    day => !day.closed && day.open === "00:00" && day.close === "23:59"
+  );
+}
+
 export function BusinessHoursManager() {
   const { tenant } = useAuth();
   const queryClient = useQueryClient();
@@ -94,9 +109,26 @@ export function BusinessHoursManager() {
     );
   }
 
+  const is24x7 = getIs24x7(hours);
+
+  const toggle24x7 = () => {
+    if (is24x7) {
+      // Revert to default hours
+      setHours(defaultHours);
+    } else {
+      // Set to 24/7
+      const allOpen: BusinessHours = {} as BusinessHours;
+      const dayNames = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+      dayNames.forEach(day => {
+        allOpen[day] = { open: "00:00", close: "23:59", closed: false };
+      });
+      setHours(allOpen);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* AI Preview Card */}
+      {/* AI Preview Card - Enhanced with multiple examples */}
       <Card className="bg-primary/5 border-primary/20">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
@@ -104,33 +136,59 @@ export function BusinessHoursManager() {
             What the AI tells callers
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-sm font-medium">{getTodayHoursPreview(hours)}</p>
-          <p className="text-xs text-muted-foreground mt-2">
-            This is what callers hear when they ask about your hours.
-          </p>
+        <CardContent className="space-y-3">
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">When asked "Are you open?"</p>
+            <p className="text-sm italic">"{getTodayHoursPreview(hours)}"</p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">When asked "Are you open Sunday?"</p>
+            <p className="text-sm italic">"{getSampleQueryPreview(hours)}"</p>
+          </div>
         </CardContent>
       </Card>
+
+      {/* Info Banner */}
+      <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 border">
+        <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+        <div className="text-sm text-muted-foreground">
+          <p>
+            Set your regular weekly hours here. Need to block specific dates (holidays, vacation)? 
+            Use the <strong>Availability</strong> tab after saving.
+          </p>
+        </div>
+      </div>
 
       {/* Hours Editor */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Operating Hours
-          </CardTitle>
-          <CardDescription>
-            Set when your business is open. These hours are used by the AI to answer questions and schedule appointments.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Operating Hours
+              </CardTitle>
+              <CardDescription>
+                Your regular weekly schedule — the AI uses this to answer scheduling questions
+              </CardDescription>
+            </div>
+            <Button
+              variant={is24x7 ? "secondary" : "outline"}
+              size="sm"
+              onClick={toggle24x7}
+            >
+              {is24x7 ? "Clear 24/7" : "Set 24/7"}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           <BusinessHoursEditor hours={hours} onChange={setHours} />
 
           <div className="flex items-center justify-between pt-4 border-t">
             <p className="text-sm text-muted-foreground">
-              Need to block specific times?{" "}
-              <Link to="/app/business-brain" className="text-primary hover:underline">
-                Use Availability settings
+              Need to block specific dates?{" "}
+              <Link to="/app/business-brain?tab=availability" className="text-primary hover:underline">
+                Go to Availability
               </Link>
             </p>
             <Button onClick={handleSave} disabled={isSaving}>

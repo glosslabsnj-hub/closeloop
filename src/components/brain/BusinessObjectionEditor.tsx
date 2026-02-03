@@ -116,9 +116,12 @@ export function BusinessObjectionEditor() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-lg">Objection Handlers</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <ShieldQuestion className="h-5 w-5" />
+              Handling Customer Concerns
+            </CardTitle>
             <CardDescription>
-              Teach your AI how to respond when customers push back or have concerns
+              When customers have doubts or push back, here's how your AI responds
             </CardDescription>
           </div>
         </div>
@@ -126,9 +129,9 @@ export function BusinessObjectionEditor() {
       <CardContent className="space-y-4">
         {/* Add new objection */}
         <div className="p-4 border rounded-lg bg-secondary/30 space-y-3">
-          <p className="font-medium text-sm">Add New Objection Handler</p>
+          <p className="font-medium text-sm">Add New Response</p>
           <Input
-            placeholder="Customer says: That's too expensive"
+            placeholder="When customer says: 'That's too expensive'"
             value={newObjection}
             onChange={(e) => setNewObjection(e.target.value)}
           />
@@ -145,15 +148,19 @@ export function BusinessObjectionEditor() {
             className="gap-2"
           >
             <Plus className="h-4 w-4" />
-            Add Objection Handler
+            Add Response
           </Button>
         </div>
 
         {/* Existing objections */}
         {objections.length === 0 ? (
-          <p className="text-center text-muted-foreground py-4">
-            No objection handlers configured. Add some above!
-          </p>
+          <div className="text-center py-6">
+            <ShieldQuestion className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
+            <p className="font-medium">No responses configured</p>
+            <p className="text-sm text-muted-foreground">
+              Add responses for common customer concerns like pricing or timing
+            </p>
+          </div>
         ) : (
           <div className="space-y-3">
             {objections.map((objection) => (

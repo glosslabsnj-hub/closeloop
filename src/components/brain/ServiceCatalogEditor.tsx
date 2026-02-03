@@ -191,14 +191,42 @@ export function ServiceCatalogEditor() {
     );
   }
 
+  // Build AI quote preview from first service
+  const firstService = services?.[0];
+  const aiQuotePreview = firstService
+    ? `Our ${firstService.name.toLowerCase()} ${
+        firstService.price_type === "starting_at" 
+          ? `starts at $${firstService.price_amount}` 
+          : firstService.price_type === "quote_only"
+          ? "requires a custom quote"
+          : `is $${firstService.price_amount}`
+      }${firstService.duration_minutes ? ` and takes about ${formatDuration(firstService.duration_minutes)}` : ""}.`
+    : "I can tell you about our services and pricing.";
+
   return (
     <div className="space-y-6">
+      {/* AI Preview */}
+      {services && services.length > 0 && (
+        <div className="rounded-lg border bg-primary/5 border-primary/20 p-4">
+          <div className="flex items-start gap-3">
+            <DollarSign className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-primary mb-1">What the AI tells customers</p>
+              <p className="text-sm italic">"{aiQuotePreview}"</p>
+              <p className="text-xs text-muted-foreground mt-2">
+                The AI uses your service catalog to provide accurate pricing and duration info
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Service Catalog</h3>
           <p className="text-sm text-muted-foreground">
-            Manage your services, pricing, and duration
+            Add your services so the AI can quote prices and book appointments
           </p>
         </div>
         <Button onClick={openCreateDialog}>
@@ -278,15 +306,17 @@ export function ServiceCatalogEditor() {
       ) : (
         <Card>
           <CardContent className="p-12 text-center">
-            <div className="flex flex-col items-center gap-2">
-              <DollarSign className="h-12 w-12 text-muted-foreground" />
-              <h3 className="font-semibold">No services yet</h3>
-              <p className="text-sm text-muted-foreground">
-                Add your first service to start managing your catalog
+            <div className="flex flex-col items-center gap-3">
+              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                <DollarSign className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="font-semibold text-lg">No services yet</h3>
+              <p className="text-sm text-muted-foreground max-w-sm">
+                Start by adding your most popular services. The AI will use these to answer pricing questions and help customers book.
               </p>
-              <Button onClick={openCreateDialog} className="mt-4">
+              <Button onClick={openCreateDialog} className="mt-2">
                 <Plus className="h-4 w-4 mr-2" />
-                Add Service
+                Add Your First Service
               </Button>
             </div>
           </CardContent>
@@ -339,11 +369,16 @@ export function ServiceCatalogEditor() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="fixed">Fixed Price</SelectItem>
+                    <SelectItem value="fixed">Exact Price</SelectItem>
                     <SelectItem value="starting_at">Starting At</SelectItem>
-                    <SelectItem value="quote_only">Quote Only</SelectItem>
+                    <SelectItem value="quote_only">Needs Quote</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  {formData.price_type === "fixed" && "AI will quote this exact price"}
+                  {formData.price_type === "starting_at" && "AI will say 'starting at...'"}
+                  {formData.price_type === "quote_only" && "AI will offer to provide a quote"}
+                </p>
               </div>
             </div>
             <div className="space-y-2">
