@@ -68,7 +68,6 @@ const baseNavItems: NavItem[] = [
   { href: "/app/bookings", label: "Bookings", icon: Calendar, requiredModules: ["booking"], dynamicLabelKey: "bookingsPageTitle" },
   { href: "/app/dispatch", label: "Dispatch", icon: Truck, requiredModules: ["dispatch_queue"] },
   { href: "/app/orders", label: "Orders", icon: UtensilsCrossed, requiredModules: ["food_orders"] },
-  { href: "/app/menu-center", label: "Menu Center", icon: BookOpen, requiredModules: ["menu_knowledge"] },
   { href: "/app/reservations", label: "Reservations", icon: Clock, requiredModules: ["reservations"] },
   { href: "/app/catering", label: "Catering", icon: Cake, requiredModules: ["catering"] },
   { href: "/app/medical-intake", label: "Medical Intake", icon: Stethoscope, requiredModules: ["medical_intake"] },

@@ -120,9 +120,9 @@ export function HelpGuideFood({ searchQuery = "" }: HelpGuideFoodProps) {
             </ul>
           </div>
           <Button variant="outline" size="sm" asChild>
-            <a href="/app/menu-center" className="gap-2">
+            <a href="/app/business-brain" className="gap-2">
               <BookOpen className="h-4 w-4" />
-              Go to Menu Center
+              Edit Menu in Business Brain
             </a>
           </Button>
         </div>

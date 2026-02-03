@@ -6,6 +6,7 @@ import { SettingsSection } from "@/components/settings/SettingsSection";
 import { PricingRulesEditor } from "@/components/settings/PricingRulesEditor";
 import { BusynessRulesEditor } from "@/components/settings/BusynessRulesEditor";
 import { ServiceCatalogEditor } from "@/components/brain/ServiceCatalogEditor";
+import { MenuCatalogEditor } from "@/components/brain/MenuCatalogEditor";
 import { RequiredQuestionsEditor } from "@/components/settings/RequiredQuestionsEditor";
 import { AIBusinessPolicies } from "@/components/settings/AIBusinessPolicies";
 import { AvailabilityHub } from "@/components/availability/AvailabilityHub";
@@ -32,9 +33,6 @@ import { AIScriptsEditor } from "@/components/brain/AIScriptsEditor";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useFoodMode } from "@/hooks/useFoodMode";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { ExternalLink, Utensils } from "lucide-react";
 
 /**
  * Business Brain - Centralized hub for ALL business knowledge editing
@@ -232,34 +230,10 @@ export default function BusinessBrainPage() {
                 <PricingRulesEditor />
               </div>
 
-              {/* Mode-aware: Services for most modes, Menu link for food mode */}
-              {isFoodMode ? (
-                <div className="mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Utensils className="h-5 w-5" />
-                        Menu Items
-                      </CardTitle>
-                      <CardDescription>
-                        Manage your food menu, categories, and item details
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button asChild>
-                        <Link to="/app/menu-center">
-                          <ExternalLink className="h-4 w-4 mr-2" />
-                          Open Menu Center
-                        </Link>
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </div>
-              ) : (
-                <div className="mt-6">
-                  <ServiceCatalogEditor />
-                </div>
-              )}
+              {/* Mode-aware: Menu for food mode, Services for other modes */}
+              <div className="mt-6">
+                {isFoodMode ? <MenuCatalogEditor /> : <ServiceCatalogEditor />}
+              </div>
             </SettingsSection>
           )}
 

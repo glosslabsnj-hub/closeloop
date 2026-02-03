@@ -176,13 +176,14 @@ function generateResponse(query: string, ctx: CopilotContext): Message {
     }
     return {
       role: 'assistant',
-      content: "Your menu is managed in Menu Center.",
+      content: "Your menu is managed in Business Brain.",
       steps: [
-        "Go to Menu Center from the sidebar",
+        "Go to Business Brain from the sidebar",
+        "Navigate to Services & Menu tab",
         "Add items with name, price, category, and dietary tags",
         "Items marked unavailable won't be offered by the AI"
       ],
-      links: [{ label: "Open Menu Center", path: "/app/menu-center" }],
+      links: [{ label: "Open Business Brain", path: "/app/business-brain" }],
       nextActions: ["How do orders work?", "Configure order delivery"],
     };
   }
@@ -261,7 +262,7 @@ function generateResponse(query: string, ctx: CopilotContext): Message {
         ],
         links: [
           { label: "View Orders", path: "/app/orders" },
-          { label: "Menu Center", path: "/app/menu-center" },
+          { label: "Edit Menu", path: "/app/business-brain" },
         ],
         nextActions: ["Configure order delivery", "Edit my menu"],
       };
