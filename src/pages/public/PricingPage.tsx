@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Shield, Clock, CreditCard, Check, ArrowRight, Sparkles, MessageSquare, Phone } from "lucide-react";
+import { Shield, CreditCard, Check, ArrowRight, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,33 +9,13 @@ import { Label } from "@/components/ui/label";
 import {
   TIERS,
   LADDER_STEPS,
-  INCLUDED_IN_ALL_PLANS,
   LOCATION_ADD_ONS,
   getLadderStepsForTier,
   getDefaultStepForTier,
   formatPrice,
   type PlanTier,
   type PlanSku,
-  type TierInfo,
 } from "@/config/pricing";
-
-const getIcon = (iconName: TierInfo["icon"]) => {
-  switch (iconName) {
-    case "MessageSquare":
-      return MessageSquare;
-    case "Phone":
-      return Phone;
-    case "Sparkles":
-      return Sparkles;
-  }
-};
-
-// Re-order tiers to put "Both" in the middle (recommended)
-const orderedTiers = [
-  TIERS.find(t => t.tier === "sms")!,
-  TIERS.find(t => t.tier === "both")!,
-  TIERS.find(t => t.tier === "voice")!,
-];
 
 export default function PricingPage() {
   const [selectedSkus, setSelectedSkus] = useState<Record<PlanTier, PlanSku>>(() => {
@@ -65,7 +45,7 @@ export default function PricingPage() {
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">Simple, transparent pricing</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Start your 7-day free trial. No charge until it ends.
+            Choose your plan and get started today.
           </p>
         </div>
 
@@ -76,20 +56,14 @@ export default function PricingPage() {
             <span>Cancel anytime</span>
           </div>
           <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            <span>7-day free trial</span>
-          </div>
-          <div className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
-            <span>No charge until trial ends</span>
+            <span>Secure payment</span>
           </div>
         </div>
 
-        {/* Pricing Cards */}
-        <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto mb-12">
-          {orderedTiers.map((tierInfo) => {
-            const Icon = getIcon(tierInfo.icon);
-            const isRecommended = tierInfo.tier === "both";
+        {/* Pricing Cards - Single voice tier */}
+        <div className="max-w-lg mx-auto mb-12">
+          {TIERS.map((tierInfo) => {
             const ladderSteps = getLadderStepsForTier(tierInfo.tier);
             const selectedSku = selectedSkus[tierInfo.tier];
             const selectedStep = getSelectedStep(tierInfo.tier);
@@ -97,30 +71,18 @@ export default function PricingPage() {
             return (
               <Card
                 key={tierInfo.tier}
-                className={`relative transition-all ${
-                  isRecommended
-                    ? "border-primary shadow-xl scale-[1.02] md:scale-105"
-                    : "hover:border-primary/50"
-                }`}
+                className="relative transition-all border-primary shadow-xl"
               >
-                {isRecommended && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-primary text-primary-foreground gap-1 px-4 py-1">
-                      <Sparkles className="h-3 w-3" />
-                      Recommended
-                    </Badge>
-                  </div>
-                )}
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <Badge className="bg-primary text-primary-foreground gap-1 px-4 py-1">
+                    <Phone className="h-3 w-3" />
+                    AI Receptionist
+                  </Badge>
+                </div>
 
-                <CardHeader className="pb-4 pt-6">
-                  <div
-                    className={`flex h-12 w-12 items-center justify-center rounded-xl mb-4 ${
-                      isRecommended
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-primary/10 text-primary"
-                    }`}
-                  >
-                    <Icon className="h-6 w-6" />
+                <CardHeader className="pb-4 pt-8">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl mb-4 bg-primary text-primary-foreground">
+                    <Phone className="h-6 w-6" />
                   </div>
                   <CardTitle className="text-xl">{tierInfo.displayName}</CardTitle>
                   <CardDescription className="min-h-[40px]">{tierInfo.shortDescription}</CardDescription>
@@ -137,10 +99,7 @@ export default function PricingPage() {
                     </div>
                     {selectedStep && (
                       <p className="text-sm text-muted-foreground mt-1">
-                        {selectedStep.includedMinutes && `${selectedStep.includedMinutes.toLocaleString()} min`}
-                        {selectedStep.includedMinutes && selectedStep.includedSmsSegments && " + "}
-                        {selectedStep.includedSmsSegments && `${selectedStep.includedSmsSegments.toLocaleString()} SMS`}
-                        {" included"}
+                        {selectedStep.includedMinutes && `${selectedStep.includedMinutes.toLocaleString()} minutes included`}
                       </p>
                     )}
                   </div>
@@ -175,17 +134,14 @@ export default function PricingPage() {
                     </RadioGroup>
                     {selectedStep && (
                       <p className="text-xs text-muted-foreground">
-                        Overage:{" "}
-                        {selectedStep.overageMinuteRate && `$${selectedStep.overageMinuteRate}/min`}
-                        {selectedStep.overageMinuteRate && selectedStep.overageSmsRate && " • "}
-                        {selectedStep.overageSmsRate && `$${selectedStep.overageSmsRate}/SMS`}
+                        Overage: ${selectedStep.overageMinuteRate}/min over included
                       </p>
                     )}
                   </div>
 
                   {/* Features */}
                   <ul className="space-y-2">
-                    {tierInfo.features.slice(0, 4).map((feature, i) => (
+                    {tierInfo.features.slice(0, 5).map((feature, i) => (
                       <li key={i} className="flex items-start gap-2 text-sm">
                         <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                         <span>{feature}</span>
@@ -197,10 +153,10 @@ export default function PricingPage() {
                   <Link to={`/signup?sku=${selectedSku}`}>
                     <Button
                       className="w-full gap-2"
-                      variant={isRecommended ? "default" : "outline"}
+                      variant="default"
                       size="lg"
                     >
-                      Start Free Trial
+                      Get Started
                       <ArrowRight className="h-4 w-4" />
                     </Button>
                   </Link>
@@ -237,7 +193,7 @@ export default function PricingPage() {
         <div className="max-w-xl mx-auto text-center mb-16 p-4 rounded-xl border bg-card">
           <p className="font-medium mb-1">Need multiple locations?</p>
           <p className="text-sm text-muted-foreground">
-            Add extra locations from ${LOCATION_ADD_ONS.smsOnly}/mo (SMS) or ${LOCATION_ADD_ONS.voiceOrBoth}/mo (Voice/Both).
+            Add extra locations from ${LOCATION_ADD_ONS.voice}/mo each.
             Each includes a dedicated number.
           </p>
         </div>
@@ -248,20 +204,16 @@ export default function PricingPage() {
           <div className="space-y-6">
             {[
               {
-                q: "How does the 7-day free trial work?",
-                a: "Select your plan, enter your payment info, and get full access for 7 days. You won't be charged until the trial ends. Cancel anytime before that — no questions asked.",
-              },
-              {
                 q: "Can I change plans later?",
-                a: "Absolutely. You can upgrade to a higher usage tier or switch between SMS, Voice, or Both at any time. Changes take effect on your next billing cycle.",
+                a: "Absolutely. You can upgrade to a higher usage tier at any time. Changes take effect on your next billing cycle.",
               },
               {
                 q: "What if I go over my included limits?",
                 a: "No worries! Your service continues uninterrupted. You'll be billed for overages at the rates shown. If you consistently exceed limits, upgrading often saves money.",
               },
               {
-                q: "What's the difference between the plans?",
-                a: "SMS Instant Respond texts back missed calls automatically. AI Voice Receptionist answers calls live, qualifies leads, and books appointments. Both combines everything for maximum conversion.",
+                q: "What does the AI Receptionist do?",
+                a: "The AI answers your calls 24/7, qualifies leads, captures customer information, handles common objections, and can push callers to your booking system.",
               },
             ].map((faq) => (
               <div key={faq.q}>
@@ -280,9 +232,6 @@ export default function PricingPage() {
               <ArrowRight className="h-5 w-5" />
             </Button>
           </Link>
-          <p className="text-sm text-muted-foreground mt-4">
-            7-day free trial • No charge until trial ends
-          </p>
         </div>
       </div>
     </div>

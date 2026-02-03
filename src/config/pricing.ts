@@ -3,17 +3,13 @@
  * Single source of truth for all pricing throughout the application
  */
 
-// Tier types
-export type PlanTier = "sms" | "voice" | "both";
+// Tier types - SMS tier removed (coming soon)
+export type PlanTier = "voice";
 
-// Ladder SKU codes - each tier has multiple usage levels
+// Ladder SKU codes - Voice tier only (SMS coming soon)
 export type PlanSku =
-  // SMS tier
-  | "sms-500" | "sms-1500" | "sms-3500"
   // Voice tier
-  | "voice-200" | "voice-600" | "voice-1500"
-  // Both tier
-  | "both-200-500" | "both-600-1500" | "both-1500-3500";
+  | "voice-200" | "voice-600" | "voice-1500";
 
 // Legacy plan codes (for backward compatibility during migration)
 export type LegacyPlanCode = "text" | "voice" | "both";
@@ -43,23 +39,8 @@ export interface TierInfo {
   icon: "MessageSquare" | "Phone" | "Sparkles";
 }
 
-// Tier definitions
+// Tier definitions - Only Voice tier available (SMS coming soon)
 export const TIERS: TierInfo[] = [
-  {
-    tier: "sms",
-    displayName: "SMS Instant Respond",
-    startingPrice: 129,
-    description: "Automated SMS follow-ups for missed calls and new leads",
-    shortDescription: "Text-back automation",
-    features: [
-      "Instant missed call text-back",
-      "New lead auto-SMS",
-      "Follow-up sequences",
-      "Booking link delivery",
-      "Smart conversation tracking",
-    ],
-    icon: "MessageSquare",
-  },
   {
     tier: "voice",
     displayName: "AI Voice Receptionist",
@@ -71,70 +52,16 @@ export const TIERS: TierInfo[] = [
       "Captures customer info automatically",
       "Handles objections naturally",
       "Pushes to booking links",
-      "SMS follow-up messages",
       "Multiple routing modes",
+      "Smart call routing",
     ],
     highlight: true,
     icon: "Phone",
   },
-  {
-    tier: "both",
-    displayName: "Voice + SMS",
-    startingPrice: 299,
-    description: "Full AI voice + instant text-back for maximum conversion",
-    shortDescription: "Complete package",
-    features: [
-      "Everything in SMS Instant Respond",
-      "Everything in AI Voice Receptionist",
-      "Combined automation power",
-      "Priority support",
-      "Advanced analytics",
-    ],
-    icon: "Sparkles",
-  },
 ];
 
-// Ladder steps for each tier
+// Ladder steps - Voice tier only (SMS coming soon)
 export const LADDER_STEPS: PlanLadderStep[] = [
-  // SMS Tier
-  {
-    sku: "sms-500",
-    tier: "sms",
-    name: "SMS 500",
-    shortName: "500 segments",
-    price: 129,
-    includedMinutes: null,
-    includedSmsSegments: 500,
-    overageMinuteRate: null,
-    overageSmsRate: 0.03,
-    stripePriceId: null,
-    isDefault: true,
-  },
-  {
-    sku: "sms-1500",
-    tier: "sms",
-    name: "SMS 1500",
-    shortName: "1,500 segments",
-    price: 149,
-    includedMinutes: null,
-    includedSmsSegments: 1500,
-    overageMinuteRate: null,
-    overageSmsRate: 0.03,
-    stripePriceId: null,
-  },
-  {
-    sku: "sms-3500",
-    tier: "sms",
-    name: "SMS 3500",
-    shortName: "3,500 segments",
-    price: 199,
-    includedMinutes: null,
-    includedSmsSegments: 3500,
-    overageMinuteRate: null,
-    overageSmsRate: 0.03,
-    stripePriceId: null,
-  },
-
   // Voice Tier
   {
     sku: "voice-200",
@@ -173,56 +100,11 @@ export const LADDER_STEPS: PlanLadderStep[] = [
     overageSmsRate: 0.03,
     stripePriceId: null,
   },
-
-  // Both Tier
-  {
-    sku: "both-200-500",
-    tier: "both",
-    name: "Voice + SMS Starter",
-    shortName: "200 min + 500 SMS",
-    price: 299,
-    includedMinutes: 200,
-    includedSmsSegments: 500,
-    overageMinuteRate: 0.35,
-    overageSmsRate: 0.03,
-    stripePriceId: null,
-    isDefault: true,
-  },
-  {
-    sku: "both-600-1500",
-    tier: "both",
-    name: "Voice + SMS Growth",
-    shortName: "600 min + 1,500 SMS",
-    price: 399,
-    includedMinutes: 600,
-    includedSmsSegments: 1500,
-    overageMinuteRate: 0.35,
-    overageSmsRate: 0.03,
-    stripePriceId: null,
-  },
-  {
-    sku: "both-1500-3500",
-    tier: "both",
-    name: "Voice + SMS Pro",
-    shortName: "1,500 min + 3,500 SMS",
-    price: 649,
-    includedMinutes: 1500,
-    includedSmsSegments: 3500,
-    overageMinuteRate: 0.35,
-    overageSmsRate: 0.03,
-    stripePriceId: null,
-  },
 ];
 
 // Location add-ons
 export const LOCATION_ADD_ONS = {
-  smsOnly: 49, // per month
-  voiceOrBoth: 99, // per month
-};
-
-// Trial configuration
-export const TRIAL_CONFIG = {
-  trialDays: 7,
+  voice: 99, // per month - extra location with dedicated number
 };
 
 // What's included in all plans
@@ -252,11 +134,11 @@ export function getLadderStep(sku: PlanSku): PlanLadderStep | undefined {
 
 export function getTierFromSku(sku: PlanSku): PlanTier {
   const step = getLadderStep(sku);
-  return step?.tier || "sms";
+  return step?.tier || "voice";
 }
 
-export function getLocationAddOnPrice(tier: PlanTier): number {
-  return tier === "sms" ? LOCATION_ADD_ONS.smsOnly : LOCATION_ADD_ONS.voiceOrBoth;
+export function getLocationAddOnPrice(_tier: PlanTier): number {
+  return LOCATION_ADD_ONS.voice;
 }
 
 // Feature entitlement checks based on SKU - handles both new SKUs and legacy plan codes
@@ -265,19 +147,16 @@ export function hasVoiceFeature(sku: string | null | undefined): boolean {
   return sku.startsWith("voice") || sku.startsWith("both");
 }
 
-export function hasSmsFeature(sku: string | null | undefined): boolean {
-  if (!sku) return false;
-  return sku.startsWith("sms") || sku.startsWith("both") || sku === "text";
+// SMS feature is disabled / coming soon - always returns false
+export function hasSmsFeature(_sku: string | null | undefined): boolean {
+  return false;
 }
 
 // Get plan family/tier from any SKU (new or legacy)
 export function getPlanFamily(sku: string | null | undefined): PlanTier | "unknown" {
   if (!sku) return "unknown";
-  if (sku.startsWith("both")) return "both";
   if (sku.startsWith("voice")) return "voice";
-  if (sku.startsWith("sms") || sku === "text") return "sms";
-  // Legacy exact matches
-  if (sku === "both") return "both";
+  // Legacy support - redirect to voice
   if (sku === "voice") return "voice";
   return "unknown";
 }
@@ -287,16 +166,9 @@ export function isEligibleForTwilioProvision(sku: string | null | undefined): bo
   return hasVoiceFeature(sku);
 }
 
-// Legacy compatibility: map old plan codes to new SKUs
-export function legacyPlanCodeToDefaultSku(legacyCode: LegacyPlanCode): PlanSku {
-  switch (legacyCode) {
-    case "text":
-      return "sms-500";
-    case "voice":
-      return "voice-200";
-    case "both":
-      return "both-200-500";
-  }
+// Legacy compatibility: map old plan codes to new SKUs - all map to voice now
+export function legacyPlanCodeToDefaultSku(_legacyCode: LegacyPlanCode): PlanSku {
+  return "voice-200";
 }
 
 // Format helpers
@@ -344,6 +216,5 @@ export const PRICING_CONFIG = {
   tiers: TIERS,
   ladderSteps: LADDER_STEPS,
   locationAddOns: LOCATION_ADD_ONS,
-  trialDays: TRIAL_CONFIG.trialDays,
   includedInAllPlans: INCLUDED_IN_ALL_PLANS,
 };

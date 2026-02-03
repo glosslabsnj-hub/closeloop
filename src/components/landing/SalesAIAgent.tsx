@@ -69,32 +69,27 @@ function generateRecommendation(answers: Record<string, string>): RecommendedSet
     businessTypeDisplay = 'General Business';
   }
 
-  let tier: 'sms' | 'voice' | 'both' = 'both';
-  if (channel.includes('SMS')) tier = 'sms';
-  else if (channel.includes('Voice')) tier = 'voice';
+  // All channels now map to voice tier (SMS coming soon)
+  const tier: 'voice' = 'voice';
 
   const defaultStep = getDefaultStepForTier(tier);
-  let sku = defaultStep?.sku || 'both-200-500';
-  let price = defaultStep?.price || 299;
+  let sku = defaultStep?.sku || 'voice-200';
+  let price = defaultStep?.price || 249;
 
   if (callVolume.includes('21–60') || callVolume.includes('60+')) {
-    if (tier === 'sms') { sku = 'sms-1500'; price = 149; }
-    else if (tier === 'voice') { sku = 'voice-600'; price = 299; }
-    else { sku = 'both-600-1500'; price = 399; }
+    sku = 'voice-600'; price = 299;
   }
 
   const keyFeatures: string[] = [];
-  if (tier === 'voice' || tier === 'both') keyFeatures.push('AI answers calls 24/7');
-  if (tier === 'sms' || tier === 'both') keyFeatures.push('Instant missed-call text-back');
+  keyFeatures.push('AI answers calls 24/7');
   keyFeatures.push('Captures customer data automatically');
+  keyFeatures.push('Handles objections naturally');
 
   const whyItFits: string[] = [];
   if (businessMode === 'food') whyItFits.push('Handles orders, reservations, catering');
   else if (businessMode === 'medical') whyItFits.push('Includes intake forms & scheduling');
   else if (businessMode === 'dispatch') whyItFits.push('Prioritizes urgency & location');
   else whyItFits.push('Optimized for booking appointments');
-  
-  if (tier === 'both') whyItFits.push('Maximum lead capture with Voice + SMS');
 
   const tierInfo = getTierInfo(tier);
 

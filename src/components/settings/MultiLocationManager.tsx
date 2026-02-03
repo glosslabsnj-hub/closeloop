@@ -81,9 +81,8 @@ export function MultiLocationManager() {
     return phoneNumbers?.find(p => p.id === phoneNumberId);
   };
 
-  // Calculate add-on price based on plan tier
-  const tier = planSku ? getTierFromSku(planSku) : "sms";
-  const addOnPrice = getLocationAddOnPrice(tier);
+  // Calculate add-on price - voice only now
+  const addOnPrice = getLocationAddOnPrice("voice");
 
   // Add location mutation
   const addLocation = useMutation({
