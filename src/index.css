@@ -4,78 +4,71 @@
 
 /* =====================================================
    CloseLoop Design System - 2026/2027
-   Theme: "Paper & Ink" - Light, Warm, Sophisticated
-   Inspired by premium print, quality stationery
+   Theme: "Quiet Charcoal" - Emotionally Calm, Near-Monochrome
    ===================================================== */
 
 @layer base {
   :root {
     /* =====================================================
-       "Paper & Ink" Theme
-       Warm cream backgrounds, rich ink, cobalt accent
-       Clean, airy, professional light mode
+       "Quiet Charcoal" Theme - Near-Monochrome, Business Tool
+       One muted accent, warm grays, invisible UI
        ===================================================== */
 
-    /* Core Background - Warm cream paper */
-    --background: 40 30% 97%;
-    --foreground: 220 25% 12%;
+    /* Core Background - Slightly lifted warm charcoal for comfort */
+    --background: 220 6% 11%;
+    --foreground: 220 8% 88%;
 
-    /* Cards - Pure white with subtle warmth */
-    --card: 0 0% 100%;
-    --card-foreground: 220 25% 12%;
+    /* Cards - Minimal contrast, spacing does the work */
+    --card: 220 5% 13%;
+    --card-foreground: 220 6% 86%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 25% 12%;
+    --popover: 220 5% 14%;
+    --popover-foreground: 220 6% 88%;
 
-    /* Primary - Rich cobalt blue (sophisticated, trustworthy) */
-    --primary: 220 75% 45%;
-    --primary-foreground: 0 0% 100%;
+    /* Primary - Muted warm neutral (NOT blue, NOT green) */
+    /* Desaturated slate with warm undertone */
+    --primary: 220 8% 52%;
+    --primary-foreground: 220 6% 98%;
 
-    /* Secondary - Soft warm gray */
-    --secondary: 40 15% 94%;
-    --secondary-foreground: 220 15% 35%;
+    /* Secondary - Nearly invisible panel */
+    --secondary: 220 5% 15%;
+    --secondary-foreground: 220 6% 72%;
 
-    /* Muted - Light warm gray */
-    --muted: 40 20% 96%;
-    --muted-foreground: 220 10% 45%;
+    /* Muted - Soft, readable, never harsh */
+    --muted: 220 5% 16%;
+    --muted-foreground: 220 5% 55%;
 
-    /* Accent - Subtle blue tint */
-    --accent: 220 30% 95%;
-    --accent-foreground: 220 75% 40%;
+    /* Accent - Barely visible tint for active states */
+    --accent: 220 6% 18%;
+    --accent-foreground: 220 6% 75%;
 
-    /* Signature - Cobalt for emphasis */
-    --accent-signature: 220 75% 50%;
-    
-    /* Secondary signature - Warm terracotta */
-    --accent-warm: 15 70% 55%;
-
-    /* Status Colors - Clear and confident */
-    --destructive: 0 72% 50%;
+    /* Status Colors - Informational only, muted */
+    --destructive: 0 45% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 155 70% 35%;
+    --success: 150 35% 42%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 95% 50%;
-    --warning-foreground: 38 100% 15%;
+    --warning: 38 60% 50%;
+    --warning-foreground: 38 80% 10%;
 
-    /* Borders & Inputs - Stronger contrast */
-    --border: 220 20% 82%;
-    --input: 0 0% 100%;
-    --ring: 220 75% 45%;
+    /* Borders & Inputs - Very soft, minimal */
+    --border: 220 5% 20%;
+    --input: 220 5% 15%;
+    --ring: 220 8% 52%;
 
-    /* Radius - Refined, not too round */
-    --radius: 0.625rem;
+    /* Radius - Comfortable, not too round */
+    --radius: 0.5rem;
 
-    /* Sidebar - Slightly darker warm */
-    --sidebar-background: 40 25% 94%;
-    --sidebar-foreground: 220 15% 40%;
-    --sidebar-primary: 220 75% 45%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 30% 92%;
-    --sidebar-accent-foreground: 220 75% 40%;
-    --sidebar-border: 220 20% 85%;
-    --sidebar-ring: 220 75% 45%;
+    /* Sidebar - Blends with background */
+    --sidebar-background: 220 6% 10%;
+    --sidebar-foreground: 220 5% 60%;
+    --sidebar-primary: 220 8% 52%;
+    --sidebar-primary-foreground: 220 6% 98%;
+    --sidebar-accent: 220 5% 16%;
+    --sidebar-accent-foreground: 220 5% 75%;
+    --sidebar-border: 220 5% 18%;
+    --sidebar-ring: 220 8% 52%;
   }
 }
 
@@ -92,38 +85,29 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Typography - Elegant, Editorial */
+  /* Typography - Clean, Readable - Hierarchy through size/weight only */
   h1 {
-    @apply text-2xl md:text-3xl font-bold tracking-tight leading-tight;
+    @apply text-xl md:text-2xl font-medium tracking-tight leading-tight;
     text-wrap: balance;
-    color: hsl(var(--foreground));
-    letter-spacing: -0.03em;
   }
 
   h2 {
-    @apply text-xl md:text-2xl font-bold tracking-tight leading-tight;
+    @apply text-lg md:text-xl font-medium tracking-tight leading-tight;
     text-wrap: balance;
-    color: hsl(var(--foreground));
   }
 
   h3 {
-    @apply text-lg font-semibold tracking-tight leading-snug;
+    @apply text-base font-medium tracking-tight leading-snug;
     text-wrap: balance;
   }
 
   h4 {
-    @apply text-base font-semibold leading-snug;
+    @apply text-sm font-medium leading-snug;
   }
 
-  /* Focus states - Cobalt ring */
+  /* Focus states - Clear but not jarring */
   *:focus-visible {
-    @apply outline-none ring-2 ring-primary/30 ring-offset-2 ring-offset-background;
-  }
-
-  /* Selection */
-  ::selection {
-    background: hsl(var(--primary) / 0.15);
-    color: hsl(var(--foreground));
+    @apply outline-none ring-2 ring-primary/50 ring-offset-2 ring-offset-background;
   }
 
   /* Reduced motion support */
@@ -138,29 +122,16 @@
 
 @layer utilities {
   /* ==========================================
-     PAPER & INK WORKSPACE
-     Clean, warm, airy light mode
+     EXECUTIVE WORKSPACE BACKGROUND
+     Warm, stable, non-technical
      ========================================== */
   .app-bg {
     position: relative;
     background: hsl(var(--background));
   }
   
-  /* Subtle warm gradient at top */
   .app-bg::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 400px;
-    background: linear-gradient(
-      180deg,
-      hsl(40 40% 96%),
-      hsl(var(--background)) 100%
-    );
-    pointer-events: none;
-    z-index: 0;
+    display: none;
   }
 
   .app-shell-bg {
@@ -168,104 +139,81 @@
   }
 
   /* ==========================================
-     WORKSPACE FRAME - Ink accent
+     EXECUTIVE WORKSPACE FRAME
+     Signature structural element - the "desk" feeling
      ========================================== */
   .workspace-frame {
     @apply relative;
-    border-left: 3px solid hsl(var(--primary));
+    /* Subtle left emphasis strip - signature element */
+    border-left: 2px solid hsl(var(--border) / 0.3);
     padding-left: 1.5rem;
   }
 
   .workspace-frame-subtle {
     @apply relative;
-    border-left: 2px solid hsl(var(--border));
+    border-left: 1px solid hsl(var(--border) / 0.15);
     padding-left: 1rem;
   }
 
-  /* Focus rail - clean centered content */
+  /* Focus rail - inset content column with calm framing */
   .focus-rail {
     @apply relative mx-auto;
-    max-width: 1000px;
+    max-width: 960px;
   }
 
   .focus-rail::before {
-    display: none;
+    content: '';
+    @apply absolute -left-6 top-0 bottom-0 w-px;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      hsl(var(--border) / 0.2) 10%,
+      hsl(var(--border) / 0.2) 90%,
+      transparent
+    );
   }
 
-  /* Work area - white card with strong shadow and border */
+  /* Work area - framed content zone */
   .work-area {
     @apply relative rounded-xl;
-    background: hsl(var(--card));
-    border: 1.5px solid hsl(var(--border));
-    box-shadow: 
-      0 1px 3px hsl(220 20% 10% / 0.06),
-      0 8px 24px hsl(220 20% 10% / 0.08),
-      0 20px 48px hsl(220 20% 10% / 0.05);
+    background: hsl(var(--card) / 0.5);
+    border: 1px solid hsl(var(--border) / 0.2);
     padding: 2rem;
   }
 
   .work-area-compact {
     @apply relative rounded-lg;
-    background: hsl(var(--card));
-    border: 1.5px solid hsl(var(--border));
-    box-shadow: 
-      0 1px 3px hsl(220 20% 10% / 0.05),
-      0 4px 12px hsl(220 20% 10% / 0.06);
-    padding: 1.5rem;
+    background: hsl(var(--card) / 0.4);
+    border: 1px solid hsl(var(--border) / 0.15);
+    padding: 1.25rem;
   }
 
   /* ==========================================
-     SURFACE SYSTEM - Paper Layers
-     Clean whites, subtle shadows
+     SURFACE SYSTEM - Minimal, Breathing
+     Spacing > Contrast, borders barely visible
      ========================================== */
   .surface-1 {
     @apply relative rounded-xl;
-    background: hsl(var(--card));
-    border: 1.5px solid hsl(var(--border));
-    box-shadow: 
-      0 1px 3px hsl(220 20% 10% / 0.05),
-      0 4px 16px hsl(220 20% 10% / 0.08),
-      0 12px 32px hsl(220 20% 10% / 0.05);
+    background: hsl(var(--card) / 0.6);
+    border: 1px solid hsl(var(--border) / 0.2);
   }
 
   .surface-2 {
     @apply relative rounded-lg;
-    background: hsl(var(--card));
-    border: 1.5px solid hsl(var(--border));
-    box-shadow: 
-      0 1px 2px hsl(220 20% 10% / 0.04),
-      0 4px 10px hsl(220 20% 10% / 0.05);
+    background: hsl(var(--card) / 0.4);
+    border: 1px solid hsl(var(--border) / 0.15);
   }
 
   .surface-3 {
     @apply relative rounded-xl;
-    background: hsl(var(--card));
-    border: 1.5px solid hsl(var(--border));
-    box-shadow: 
-      0 4px 12px hsl(220 20% 10% / 0.1),
-      0 16px 32px hsl(220 20% 10% / 0.12),
-      0 32px 64px hsl(220 20% 10% / 0.08);
+    background: hsl(var(--popover));
+    border: 1px solid hsl(var(--border) / 0.25);
+    box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.3);
     z-index: 100;
   }
 
-  /* Accent-bordered card - adds visual pop */
-  .surface-accent {
-    @apply relative rounded-xl overflow-hidden;
-    background: hsl(var(--card));
-    border: 1.5px solid hsl(var(--border));
-    box-shadow: 
-      0 2px 8px hsl(220 20% 10% / 0.06),
-      0 8px 24px hsl(220 20% 10% / 0.08);
-  }
-  
-  .surface-accent::before {
-    content: '';
-    @apply absolute top-0 left-0 right-0 h-1;
-    background: hsl(var(--primary));
-  }
-
   /* ==========================================
-     EDITORIAL HEADERS - Ink emphasis
+     EDITORIAL HEADERS - Not technical, purposeful
      ========================================== */
   .editorial-header {
     @apply relative pb-8 mb-10;
@@ -273,33 +221,27 @@
 
   .editorial-header::after {
     content: '';
-    @apply absolute bottom-0 left-0 h-0.5 rounded-full;
+    @apply absolute bottom-0 left-0 h-px;
     width: 4rem;
-    background: hsl(var(--primary));
+    background: hsl(var(--border) / 0.4);
   }
 
   .editorial-title {
-    @apply text-2xl md:text-3xl font-bold tracking-tight;
-    color: hsl(var(--foreground));
-    letter-spacing: -0.03em;
+    @apply text-xl md:text-2xl font-normal tracking-tight;
+    color: hsl(var(--foreground) / 0.95);
+    letter-spacing: -0.02em;
   }
 
   .editorial-subtitle {
-    @apply text-base mt-3 leading-relaxed;
-    color: hsl(var(--muted-foreground));
-    max-width: 36rem;
+    @apply text-sm mt-3 leading-relaxed;
+    color: hsl(var(--muted-foreground) / 0.7);
+    max-width: 32rem;
   }
 
-  /* Section label - cobalt ink */
+  /* Section label - editorial style */
   .section-label {
-    @apply text-[11px] font-bold uppercase tracking-[0.15em] mb-4;
-    color: hsl(var(--primary));
-  }
-
-  /* Section divider - subtle line */
-  .section-divider {
-    @apply h-px my-8;
-    background: hsl(var(--border));
+    @apply text-[10px] font-medium uppercase tracking-[0.15em] mb-4;
+    color: hsl(var(--muted-foreground) / 0.5);
   }
 
   /* ==========================================
@@ -334,24 +276,24 @@
   }
 
   /* ==========================================
-     TAB STYLING - Clean active state
+     TAB STYLING - Minimal, editorial
      ========================================== */
   .tab-pill {
-    @apply relative inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200;
-    @apply text-muted-foreground hover:text-foreground hover:bg-secondary;
+    @apply relative inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors duration-150;
+    @apply text-muted-foreground/60 hover:text-foreground/70;
   }
 
   .tab-pill[data-state="active"] {
-    @apply text-primary-foreground bg-primary;
-    box-shadow: 0 1px 3px hsl(var(--primary) / 0.3);
+    @apply text-foreground;
+    background: hsl(var(--muted) / 0.4);
   }
 
   /* ==========================================
-     TABLE TOOLBAR - Clean divider
+     TABLE TOOLBAR - Quiet, functional
      ========================================== */
   .table-toolbar {
     @apply flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-8 py-3;
-    border-bottom: 1px solid hsl(var(--border));
+    border-bottom: 1px solid hsl(var(--border) / 0.15);
   }
 
   .table-toolbar-search {
@@ -367,67 +309,39 @@
   }
 
   /* ==========================================
-     STATUS - Clear, professional
+     STATUS - Informational only, very muted
      ========================================== */
   .status-soft-success {
-    @apply rounded-md px-3 py-1.5 font-medium;
-    background: hsl(155 70% 94%);
-    color: hsl(155 75% 28%);
-    border: 1.5px solid hsl(155 70% 75%);
-    box-shadow: 0 1px 2px hsl(155 70% 30% / 0.08);
+    @apply bg-success/6 text-success/80 border-success/10;
   }
 
   .status-soft-warning {
-    @apply rounded-md px-3 py-1.5 font-medium;
-    background: hsl(38 95% 93%);
-    color: hsl(30 90% 28%);
-    border: 1.5px solid hsl(38 90% 72%);
-    box-shadow: 0 1px 2px hsl(38 90% 30% / 0.08);
+    @apply bg-warning/6 text-warning/80 border-warning/10;
   }
 
   .status-soft-destructive {
-    @apply rounded-md px-3 py-1.5 font-medium;
-    background: hsl(0 72% 95%);
-    color: hsl(0 72% 38%);
-    border: 1.5px solid hsl(0 72% 82%);
-    box-shadow: 0 1px 2px hsl(0 72% 30% / 0.08);
+    @apply bg-destructive/6 text-destructive/80 border-destructive/10;
   }
 
   .status-soft-primary {
-    @apply rounded-md px-3 py-1.5 font-medium;
-    background: hsl(220 75% 96%);
-    color: hsl(var(--primary));
-    border: 1.5px solid hsl(220 75% 82%);
-    box-shadow: 0 1px 2px hsl(220 75% 30% / 0.08);
+    @apply bg-muted/40 text-foreground/70 border-border/20;
   }
 
   .status-soft-muted {
-    @apply rounded-md px-3 py-1.5 font-medium;
-    background: hsl(var(--secondary));
-    color: hsl(var(--muted-foreground));
-    border: 1.5px solid hsl(var(--border));
-    box-shadow: 0 1px 2px hsl(220 20% 10% / 0.04);
+    @apply bg-muted/30 text-muted-foreground/60 border-border/15;
   }
 
-  /* Accent emphasis - subtle blue tint */
-  .accent-emphasis {
-    background: hsl(220 75% 97%);
-    border: 1px solid hsl(220 75% 90%);
-  }
-
-  /* Priority accent - clean left border */
+  /* Priority accent - very subtle */
   .priority-accent-urgent {
-    @apply border-l-3;
-    border-left-color: hsl(0 72% 50%);
+    @apply border-l-2 border-l-destructive/40;
   }
 
   .priority-accent-high {
-    @apply border-l-3;
-    border-left-color: hsl(38 95% 50%);
+    @apply border-l-2 border-l-warning/40;
   }
 
   .priority-accent-normal {
-    @apply border-l-3 border-l-border;
+    @apply border-l-2 border-l-border/30;
   }
 
   /* ==========================================
@@ -478,108 +392,75 @@
   }
 
   /* ==========================================
-     PAPER & INK VISUAL ELEMENTS
+     CALM VISUAL ELEMENTS
      ========================================== */
   .gradient-primary {
     background: hsl(var(--primary));
   }
 
   .gradient-primary-subtle {
-    background: hsl(var(--secondary));
+    background: hsl(var(--muted) / 0.3);
   }
 
   .gradient-hero {
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
-    box-shadow: 0 4px 16px hsl(220 20% 10% / 0.08);
+    background: hsl(var(--muted) / 0.5);
   }
 
   .gradient-subtle {
     background: hsl(var(--background));
   }
 
-  /* Clean hover/focus effects */
-  .focus-glow {
-    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15);
-  }
-
   .btn-glow {
     position: relative;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
   }
 
   .btn-glow:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px hsl(var(--primary) / 0.2);
+    filter: brightness(1.03);
   }
 
   /* ==========================================
-     GLASS - Light frosted glass
+     GLASS - Subtle backdrop
      ========================================== */
   .glass {
-    @apply border rounded-xl;
-    background: hsl(var(--card) / 0.8);
-    border-color: hsl(var(--border));
+    @apply bg-card/50 border border-border/20;
     backdrop-filter: blur(8px);
   }
 
   .glass-strong {
-    @apply border rounded-xl;
-    background: hsl(var(--card) / 0.95);
-    border-color: hsl(var(--border));
+    @apply bg-card/70 border border-border/25;
     backdrop-filter: blur(12px);
-    box-shadow: 0 4px 16px hsl(220 20% 10% / 0.08);
   }
 
-  /* Mobile nav - clean bottom bar */
+  /* Mobile nav */
   .mobile-nav-floating {
     @apply fixed bottom-0 left-0 right-0 z-50;
-    background: hsl(var(--card));
+    background: hsl(var(--background) / 0.95);
     backdrop-filter: blur(12px);
-    border-top: 1px solid hsl(var(--border));
-    box-shadow: 0 -2px 16px hsl(220 20% 10% / 0.06);
+    border-top: 1px solid hsl(var(--border) / 0.2);
   }
 
   /* ==========================================
-     CARD SYSTEM - Paper cards
+     CARD SYSTEM - Breathing, not boxed
      ========================================== */
   .card-elevated {
-    @apply transition-all duration-200 ease-out;
-    box-shadow: 
-      0 1px 3px hsl(220 20% 10% / 0.04),
-      0 4px 12px hsl(220 20% 10% / 0.06);
-  }
-
-  .card-elevated:hover {
-    box-shadow: 
-      0 2px 8px hsl(220 20% 10% / 0.06),
-      0 8px 24px hsl(220 20% 10% / 0.1);
+    @apply transition-all duration-150 ease-out;
   }
 
   .card-interactive {
-    @apply transition-all duration-200 ease-out cursor-pointer;
-  }
-
-  .card-interactive:hover {
-    background: hsl(var(--secondary));
-    border-color: hsl(var(--primary) / 0.3);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px hsl(220 20% 10% / 0.08);
+    @apply transition-colors duration-150 ease-out cursor-pointer;
+    @apply hover:bg-muted/10;
   }
 
   .card-hover-glow {
-    @apply transition-all duration-200;
+    @apply transition-colors duration-150;
   }
 
-  .card-hover-glow:hover {
-    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.1);
-  }
-
-  /* Stat icon - cobalt accent */
+  /* Stat icon - nearly invisible */
   .stat-icon-container {
-    @apply flex items-center justify-center h-10 w-10 rounded-lg;
-    background: hsl(220 75% 95%);
-    color: hsl(var(--primary));
+    @apply flex items-center justify-center h-8 w-8 rounded-lg;
+    background: hsl(var(--muted) / 0.3);
+    color: hsl(var(--muted-foreground) / 0.5);
   }
 
   /* ==========================================
@@ -666,20 +547,20 @@
   }
 
   /* ==========================================
-     STATUS DOT - Clean indicator
+     STATUS DOT - Live Indicator
      ========================================== */
   .status-dot {
-    @apply relative inline-flex h-2 w-2 rounded-full;
+    @apply relative inline-flex h-1.5 w-1.5 rounded-full;
   }
 
   .status-dot::before {
     content: '';
-    @apply absolute inset-0 rounded-full animate-ping opacity-40;
+    @apply absolute inset-0 rounded-full animate-ping opacity-60;
     background-color: inherit;
   }
 
   .status-dot-live {
-    @apply bg-success;
+    @apply bg-success/80;
   }
 
   .status-dot-offline {
@@ -687,24 +568,20 @@
   }
 
   .status-dot-warning {
-    @apply bg-warning;
-  }
-
-  .status-dot-primary {
-    background: hsl(var(--primary));
+    @apply bg-warning/80;
   }
 
   /* ==========================================
-     SCROLLBAR - Subtle gray
+     SCROLLBAR - Nearly invisible
      ========================================== */
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: hsl(var(--border)) transparent;
+    scrollbar-color: hsl(var(--border) / 0.5) transparent;
   }
 
   .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-track {
@@ -712,20 +589,19 @@
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: hsl(var(--border));
-    border-radius: 4px;
+    background-color: hsl(var(--border) / 0.4);
+    border-radius: 3px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.4);
+    background-color: hsl(var(--muted-foreground) / 0.3);
   }
 
   /* ==========================================
-     SKELETON LOADING - Subtle shimmer
+     SKELETON LOADING
      ========================================== */
   .skeleton {
-    @apply relative overflow-hidden rounded-lg;
-    background: hsl(var(--muted));
+    @apply relative overflow-hidden bg-muted/40 rounded;
   }
 
   .skeleton::after {
@@ -734,9 +610,9 @@
     background: linear-gradient(
       90deg,
       transparent,
-      hsl(var(--card) / 0.6),
+      hsl(var(--foreground) / 0.02),
       transparent
     );
-    animation: shimmer 2s infinite;
+    animation: shimmer 2.5s infinite;
   }
 }

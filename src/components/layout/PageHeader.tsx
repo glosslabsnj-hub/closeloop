@@ -25,11 +25,7 @@ export function PageHeader({
 }: PageHeaderProps) {
   if (editorial) {
     return (
-      <div className={cn("editorial-header relative", className)}>
-        {/* Cobalt accent line */}
-        <div 
-          className="absolute -left-4 top-0 bottom-0 w-0.5 rounded-full hidden md:block bg-primary"
-        />
+      <div className={cn("editorial-header", className)}>
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
@@ -47,17 +43,17 @@ export function PageHeader({
   }
 
   return (
-    <div className={cn("mb-12", className)}>
+    <div className={cn("mb-14", className)}>
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-5">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+            <h1 className="text-lg md:text-xl font-normal tracking-tight text-foreground/85 -tracking-[0.01em]">
               {title}
             </h1>
             {badge}
           </div>
           {description && (
-            <p className="text-muted-foreground text-base mt-3 leading-relaxed max-w-xl">
+            <p className="text-muted-foreground/55 text-sm mt-3 leading-relaxed max-w-md">
               {description}
             </p>
           )}
