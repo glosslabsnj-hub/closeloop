@@ -79,7 +79,7 @@ const alwaysAccessibleRoutes = [
 ];
 
 function AppLayoutContent() {
-  const { user, tenant, signOut, loading, hasActiveSubscription, isSuperAdmin } = useAuth();
+  const { user, tenant, effectiveTenant, signOut, loading, hasActiveSubscription, isSuperAdmin } = useAuth();
   const { enabledModules } = useTenantConfig();
   const { unresolvedCount: conflictsCount } = useKnowledgeConflicts();
   const location = useLocation();
@@ -87,6 +87,9 @@ function AppLayoutContent() {
 
   // Super admins bypass subscription gating for testing
   const effectiveHasSubscription = isSuperAdmin || hasActiveSubscription;
+
+  // For super-admin testing, use the effective tenant everywhere in the app shell.
+  const displayTenant = isSuperAdmin ? (effectiveTenant ?? tenant) : tenant;
 
   // Filter nav items based on enabled modules
   const navItems = useMemo(() => {
@@ -103,7 +106,7 @@ function AppLayoutContent() {
     ];
 
     // Add mode-specific priority items
-    const businessMode = (tenant as any)?.business_mode || "service";
+    const businessMode = (displayTenant as any)?.business_mode || "service";
     
     if (businessMode === "food" && enabledModules.includes("food_orders")) {
       prioritized.push({ href: "/app/orders", label: "Orders", icon: UtensilsCrossed });
@@ -124,7 +127,7 @@ function AppLayoutContent() {
     prioritized.push({ href: "/app/settings", label: "Settings", icon: Settings });
 
     return prioritized.slice(0, 5); // Max 5 items for mobile nav
-  }, [enabledModules, tenant]);
+  }, [enabledModules, displayTenant]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -196,7 +199,7 @@ function AppLayoutContent() {
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-sm">
               <Phone className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="font-bold text-lg hidden sm:inline">{tenant?.name || "CloseLoop"}</span>
+            <span className="font-bold text-lg hidden sm:inline">{displayTenant?.name || "CloseLoop"}</span>
           </Link>
 
           <div className="flex items-center gap-2">
@@ -217,7 +220,7 @@ function AppLayoutContent() {
               <DropdownMenuContent align="end" className="w-56">
                 <div className="px-3 py-2">
                   <p className="text-sm font-medium truncate">{user.email}</p>
-                  <p className="text-xs text-muted-foreground truncate">{tenant?.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{displayTenant?.name}</p>
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => navigate("/app/settings")} className="cursor-pointer">

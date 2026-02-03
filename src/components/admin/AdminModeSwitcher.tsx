@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdminMode } from "@/contexts/AdminModeContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -349,14 +350,15 @@ async function resetAllTestData(tenantId: string, mode: BusinessMode) {
 }
 
 export function AdminModeSwitcher() {
-  const { tenant, user, isSuperAdmin, refreshTenant } = useAuth();
+  const { tenant, user, isSuperAdmin, setActiveTenantId } = useAuth();
+  const adminMode = useAdminMode();
   const [isLoading, setIsLoading] = useState(false);
 
   // P0-1: Only show for super_admin users - this component injects test data
   // and should NEVER be visible to regular tenants in production
   if (!tenant || !user || !isSuperAdmin) return null;
 
-  const currentMode = (tenant.business_mode as BusinessMode) || "service";
+  const currentMode = (adminMode?.selectedMode ?? (tenant.business_mode as BusinessMode) ?? "service");
   const CurrentIcon = BUSINESS_MODES[currentMode]?.icon || Briefcase;
 
   const handleModeChange = async (newMode: BusinessMode) => {
@@ -364,15 +366,28 @@ export function AdminModeSwitcher() {
     
     setIsLoading(true);
     try {
-      // Reset ALL test data for this mode
-      await resetAllTestData(tenant.id, newMode);
+      // 1) Persist selected mode
+      if (adminMode) await adminMode.setSelectedMode(newMode);
 
-      toast.success(`Switched to ${BUSINESS_MODES[newMode].label} mode`, {
-        description: `Business data updated to ${INDUSTRY_TEST_DATA[newMode].tenantName}`,
+      // 2) Switch active tenant to a tenant of that mode
+      const { data, error } = await supabase
+        .from("tenants")
+        .select("id, name")
+        .eq("business_mode", newMode)
+        .order("name")
+        .limit(1);
+
+      if (error) throw error;
+      const match = data?.[0];
+      if (!match) {
+        toast.error(`No ${BUSINESS_MODES[newMode].label} tenant found`);
+        return;
+      }
+
+      await setActiveTenantId(match.id);
+      toast.success(`Switched to ${match.name}`, {
+        description: `${BUSINESS_MODES[newMode].label} mode`,
       });
-      
-      // Refresh tenant data to update navigation and context
-      await refreshTenant();
     } catch (error) {
       console.error("Failed to switch mode:", error);
       toast.error("Failed to switch business mode");

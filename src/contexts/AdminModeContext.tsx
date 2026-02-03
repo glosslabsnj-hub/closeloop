@@ -12,7 +12,7 @@ interface AdminModeContextType {
 const AdminModeContext = createContext<AdminModeContextType | undefined>(undefined);
 
 export function AdminModeProvider({ children }: { children: ReactNode }) {
-  const { user, isSuperAdmin } = useAuth();
+  const { user, isSuperAdmin, effectiveTenant } = useAuth();
   const [selectedMode, setSelectedModeState] = useState<BusinessMode>("service");
   const [isLoading, setIsLoading] = useState(true);
 
@@ -43,6 +43,35 @@ export function AdminModeProvider({ children }: { children: ReactNode }) {
 
     fetchMode();
   }, [user, isSuperAdmin]);
+
+  // Keep selectedMode aligned with the effective tenant being viewed by super admins.
+  // This prevents mismatches where the active tenant is Food but the mode filter is still Service.
+  useEffect(() => {
+    if (!user || !isSuperAdmin) return;
+
+    const effectiveMode = (effectiveTenant?.business_mode as BusinessMode | null) || null;
+    if (!effectiveMode) return;
+
+    if (effectiveMode === selectedMode) return;
+
+    // Update local state immediately
+    setSelectedModeState(effectiveMode);
+
+    // Best-effort persistence
+    supabase
+      .from("admin_settings")
+      .upsert(
+        {
+          user_id: user.id,
+          admin_active_mode: effectiveMode,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" }
+      )
+      .then(({ error }) => {
+        if (error) console.error("Error syncing admin mode to effective tenant:", error);
+      });
+  }, [user, isSuperAdmin, effectiveTenant?.business_mode, selectedMode]);
 
   // Persist on change
   const setSelectedMode = async (mode: BusinessMode) => {
