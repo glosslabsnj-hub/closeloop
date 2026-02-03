@@ -1,437 +1,173 @@
 
+# Fix: Connect ETA Settings to AI Voice Context
 
-# Business Brain Dispatch & Service Overhaul
+## Problem Summary
 
-## Executive Summary
+When you call Hawks Towing and ask for an ETA, the AI says it can't provide one, even though ETA is configured in Business Brain with:
+- Response time: 55 minutes
+- Distance provider: enabled
+- Base location: set
 
-This plan redesigns the Business Brain for dispatch-based businesses (towing, HVAC, plumbing, locksmith, etc.) to make service setup, pricing rules, ETA configuration, and navigation intuitive and scalable. The core insight: dispatch services have **variable pricing based on real-world factors** (distance, vehicle type, urgency), which the current flat-service model doesn't support.
+**Root Cause**: The UI saves ETA settings to `tenant_distance_settings`, but the AI context builder tries to read from a non-existent `eta_policy_jsonb` column. The two systems are disconnected.
 
----
+## Technical Diagnosis
 
-## Current State Analysis
+| Component | What It Does | Status |
+|-----------|--------------|--------|
+| `DispatchEtaSection.tsx` (UI) | Saves settings to `tenant_distance_settings` | Working |
+| `useTenantDistanceSettings.ts` (Hook) | CRUD for ETA settings | Working |
+| `buildBusinessContext.ts` (Backend) | Reads `tenant.eta_policy_jsonb` | Broken - column doesn't exist |
+| ElevenLabs System Prompt | No ETA instructions for dispatch | Missing |
 
-| Area | Current State | Problem |
-|------|---------------|---------|
-| **Services** | Flat list with fixed/starting_at/quote-only pricing | No support for distance ranges, vehicle types, or conditional logic |
-| **Pricing Rules** | Generic surcharge/discount/fee modifiers | Disconnected from service context; no inline examples |
-| **ETA Configuration** | 4 separate fields (base, per-mile, min, max) | Confusing; no single "response time" concept |
-| **Service Catalog UI** | 2-column card grid | Doesn't scale to 50+ services; no grouping or search |
-| **Navigation** | Dual sidebars (main nav + Business Brain tabs) | Cramped workspace; Business Brain feels buried |
+## Solution: Wire ETA Settings to AI Context
 
----
+### Phase 1: Fetch ETA Settings in buildBusinessContext
 
-## Phase 1: Industry-Aware Dispatch Service Builder
-
-### 1.1 New Data Model: Service Pricing Tiers
-
-Extend the `services` table schema via `pricing_config_json` to support complex dispatch pricing:
-
-```typescript
-interface DispatchPricingConfig {
-  pricing_model: "flat" | "distance_tiered" | "variable";
-  
-  // For distance-tiered (towing, delivery)
-  distance_tiers?: Array<{
-    min_miles: number;
-    max_miles: number | null; // null = unlimited
-    base_price: number;
-    per_mile_price?: number;
-  }>;
-  
-  // For variable pricing
-  variables?: Array<{
-    key: string; // "vehicle_type" | "fuel_type" | "urgency"
-    modifiers: Array<{
-      value: string; // "sedan" | "SUV" | "truck"
-      price_adjustment: number; // +50 for SUV, +100 for truck
-      adjustment_type: "fixed" | "percent";
-    }>;
-  }>;
-  
-  // Common fields
-  min_price?: number;
-  max_price?: number;
-  destination_rules?: Array<{
-    type: "customer_choice" | "nearest_shop" | "home";
-    price_adjustment?: number;
-  }>;
-}
-```
-
-**Example for "Local Tow":**
-```json
-{
-  "pricing_model": "distance_tiered",
-  "distance_tiers": [
-    { "min_miles": 0, "max_miles": 10, "base_price": 125, "per_mile_price": 0 },
-    { "min_miles": 10, "max_miles": 25, "base_price": 125, "per_mile_price": 5 },
-    { "min_miles": 25, "max_miles": null, "base_price": 200, "per_mile_price": 4 }
-  ],
-  "variables": [
-    {
-      "key": "vehicle_type",
-      "modifiers": [
-        { "value": "motorcycle", "price_adjustment": -25, "adjustment_type": "fixed" },
-        { "value": "suv", "price_adjustment": 25, "adjustment_type": "fixed" },
-        { "value": "truck", "price_adjustment": 50, "adjustment_type": "fixed" }
-      ]
-    }
-  ],
-  "min_price": 85
-}
-```
-
-### 1.2 New Component: DispatchServiceEditor
-
-Create a specialized service editor that replaces the generic `ServiceCatalogEditor` when `business_mode === "dispatch"`:
-
-```
-src/components/brain/DispatchServiceEditor.tsx
-```
-
-**UI Features:**
-
-1. **Service Type Presets** - Quick-start templates for common dispatch services:
-   - Tow (Local) / Tow (Long Distance)
-   - Jump Start
-   - Lockout
-   - Tire Change
-   - Fuel Delivery
-   - Winch Out
-
-2. **Step-by-Step Pricing Wizard**:
-   - Step 1: "What's your base price for this service?"
-   - Step 2: "Does price change based on distance?"
-     - If yes: "What's included in your base price? (e.g., first 10 miles)"
-     - "What do you charge per mile after that?"
-   - Step 3: "Does vehicle type affect pricing?"
-     - Show +/- adjustments by vehicle type
-   - Step 4: Review with plain English summary
-
-3. **Live AI Preview Panel**:
-   ```
-   "A local tow within 10 miles is $125. 
-    After 10 miles, it's $5 per mile. 
-    For trucks or SUVs, add $25-50."
-   ```
-
-### 1.3 Database Migration
-
-```sql
-ALTER TABLE services 
-ADD COLUMN pricing_config_json JSONB DEFAULT NULL,
-ADD COLUMN service_category TEXT DEFAULT NULL,
-ADD COLUMN service_type TEXT DEFAULT NULL; -- "tow", "roadside", "recovery", etc.
-```
-
----
-
-## Phase 2: Industry-Aware Pricing Rules UX
-
-### 2.1 Contextual Inline Explanations
-
-Update `PricingRulesEditor.tsx` to show mode-specific examples and guidance:
+Add `tenant_distance_settings` to the parallel fetch in `buildBusinessContext.ts`:
 
 ```typescript
-const PRICING_EXAMPLES: Record<BusinessMode, Array<{ rule: string; explanation: string }>> = {
-  dispatch: [
-    { rule: "After-Hours Surcharge", explanation: "Add $25 for calls after 6PM" },
-    { rule: "Highway Mileage Rate", explanation: "Interstate miles at $3/mile vs $5/mile local" },
-    { rule: "Heavy Vehicle Fee", explanation: "Trucks and RVs add 25% to base price" },
-  ],
-  food: [
-    { rule: "Delivery Fee", explanation: "Add $5 for orders under $25" },
-    { rule: "Catering Discount", explanation: "10% off orders over $200" },
-  ],
-  // ... other modes
-};
+// Add to the parallel Promise.all at line ~1085
+distanceSettingsResult = supabase
+  .from("tenant_distance_settings")
+  .select("*")
+  .eq("tenant_id", tenantId)
+  .maybeSingle();
 ```
 
-### 2.2 Rule Priority Visualization
-
-Show a "waterfall" view explaining which rules apply when:
-
-```
-text
-     IF distance > 25 miles:      Highway Rate applies ($3/mi)
-ELSE IF distance > 10 miles:      Standard Rate applies ($5/mi)
-ELSE:                            Included in base price
-     
-     THEN IF vehicle = truck:     +$50 heavy vehicle
-     THEN IF time is after 6PM:   +$25 after-hours
-```
-
-### 2.3 Rule Conflict Detection
-
-Warn when rules overlap:
-- "Weekend Surcharge" and "After-Hours Fee" both applying to Saturday 8PM
-- Suggest: "Combine into 'Weekend Evening' rule?"
-
----
-
-## Phase 3: Simplified ETA Configuration
-
-### 3.1 New Mental Model: Response Time + Travel Time
-
-Replace the 4-field technical setup with a 2-concept model that matches how business owners think:
-
-| Concept | What It Means | Current Field Mapping |
-|---------|---------------|----------------------|
-| **Response Time** | "How long until your driver leaves the shop?" | `eta_base_minutes` |
-| **Travel Time** | "Calculated automatically from Mapbox" | Computed via `distance_eta.ts` |
-
-### 3.2 Redesigned ETA Section
-
-```
-src/components/business-brain/DispatchEtaSection.tsx
-```
-
-**UI Layout:**
-
-```
-text
-     AVERAGE RESPONSE TIME
-     How long does it typically take to dispatch a driver?
-     
-     [====30 mins====] slider (5-120 min range)
-     
-     "When someone calls, the AI will add travel time to this number."
-     
-     
-     EXAMPLE ETA CALCULATION
-     
-     Customer in Oakville (12 miles away):
-     - Your response time:     30 min
-     - Travel time:            18 min (via Mapbox)
-     - Quoted ETA:            "About 45-50 minutes"
-     
-     
-     ADVANCED OPTIONS (collapsed by default)
-     
-     [ ] Round up to nearest:  [5 min ▼]
-     [ ] Minimum ETA:          [15 min]
-     [ ] Maximum ETA:          [90 min] (say "over an hour" after this)
-```
-
-### 3.3 AI Voice Script Integration
-
-Show what the AI will actually say:
-
-```
-"We can have a driver to you in approximately 45 to 50 minutes."
-```
-
-Not:
-```
-"Your ETA is calculated as base_minutes plus per_mile_minutes times..."
-```
-
----
-
-## Phase 4: Scalable Service Catalog Layout
-
-### 4.1 Category-Based Service Organization
-
-Replace the flat grid with a collapsible category structure:
-
-```
-text
-     TOWING SERVICES (4)                               [+ Add]
-     Local Tow          $125 base + $5/mi     [Edit] [Duplicate] [...]
-     Long Distance      Quote only            [Edit] [Duplicate] [...]
-     Motorcycle Tow     $85 flat              [Edit] [Duplicate] [...]
-     Heavy Duty         $250 base + $8/mi     [Edit] [Duplicate] [...]
-     
-     ROADSIDE SERVICES (5)                             [+ Add]
-     Jump Start         $65 flat              [Edit] [Duplicate] [...]
-     Tire Change        $85 flat              [Edit] [Duplicate] [...]
-     Fuel Delivery      $55 + fuel cost       [Edit] [Duplicate] [...]
-     Lockout            $75 flat              [Edit] [Duplicate] [...]
-     Winch Out          $100+ (quote)         [Edit] [Duplicate] [...]
-     
-     ADD-ONS (2)                                       [+ Add]
-     Wait Time          $1/min after 15min    [Edit] [Duplicate] [...]
-     Storage            $45/day               [Edit] [Duplicate] [...]
-```
-
-### 4.2 Quick Actions
-
-- **Duplicate**: Copy a service with "-Copy" suffix for fast creation
-- **Bulk Edit**: Select multiple services to change pricing/status together
-- **Search/Filter**: Type to filter services by name, category, or price
-
-### 4.3 Implementation
-
-```
-src/components/brain/dispatch/
-  DispatchServiceCatalog.tsx   -- Category-based layout
-  ServiceCategoryCard.tsx      -- Collapsible category section
-  ServiceRowItem.tsx           -- Compact service row with actions
-  QuickDuplicateDialog.tsx     -- Fast duplication flow
-  BulkEditPanel.tsx            -- Multi-select editing
-```
-
----
-
-## Phase 5: Navigation & Screen Real Estate
-
-### 5.1 Auto-Collapse Main Sidebar in Business Brain
-
-Modify `AppLayout.tsx` to auto-collapse the main sidebar when navigating to `/app/business-brain`:
+Then use it to build the `eta` context:
 
 ```typescript
-// In AppLayout.tsx
-useEffect(() => {
-  const isBusinessBrain = location.pathname === "/app/business-brain";
-  if (isBusinessBrain && !sidebarCollapsed) {
-    setSidebarCollapsed(true);
+const distanceSettings = distanceSettingsResult.data;
+const etaContext = computeEtaFromDistanceSettings(
+  distanceSettings,
+  tenant.business_mode
+);
+```
+
+### Phase 2: Build Proper ETA Context for Dispatch
+
+Create a new helper that reads `tenant_distance_settings`:
+
+```typescript
+function computeEtaFromDistanceSettings(
+  settings: TenantDistanceSettings | null,
+  businessMode: string
+): BusinessContext["eta"] {
+  // If no settings, use mode-appropriate defaults
+  if (!settings) {
+    return getDefaultEtaForMode(businessMode);
   }
-}, [location.pathname]);
+
+  const responseMinutes = settings.eta_base_minutes || 30;
+  const minEta = settings.eta_min_minutes || Math.max(15, responseMinutes - 15);
+  const maxEta = settings.eta_max_minutes || responseMinutes + 30;
+  
+  // Format spoken ETA
+  const spoken = maxEta <= 60
+    ? `${responseMinutes} to ${maxEta} minutes`
+    : `about ${Math.floor(maxEta / 60)} hour${maxEta >= 120 ? 's' : ''}`;
+
+  return {
+    spoken,
+    min_minutes: minEta,
+    max_minutes: maxEta,
+    source: "tenant_distance_settings",
+    distance_provider_enabled: settings.distance_provider_enabled,
+    // ... other fields
+  };
+}
 ```
 
-### 5.2 Compact Business Brain Tab Navigation
+### Phase 3: Add ETA Instructions to System Prompt
 
-Replace the current 264px wide sidebar with a more compact design:
+For dispatch mode, add explicit ETA guidance to the system prompt:
 
-**Option A: Icon-Only Tab Bar (Top)**
+```typescript
+if (ctx.tenant.business_mode === "dispatch") {
+  prompt += `DISPATCH ETA BEHAVIOR:
+
+When a customer asks for an ETA or arrival time:
+
+1. YOUR AVERAGE RESPONSE TIME IS: ${ctx.eta.min_minutes}-${ctx.eta.max_minutes} minutes
+   - This is your dispatch + travel time estimate
+   - Say: "We can have someone to you in ${ctx.eta.spoken}"
+
+2. IF YOU HAVE THE CUSTOMER'S EXACT ADDRESS:
+   - You can give a more specific estimate
+   - Say: "Based on your location, our driver can be there in approximately X minutes"
+
+3. IF YOU DON'T HAVE THE ADDRESS YET:
+   - First ask for the address: "What's the exact address where you need service?"
+   - Then give the ETA estimate
+
+4. NEVER SAY:
+   - "I can't give you an ETA" (you CAN - use the range above)
+   - "I don't have access to arrival times"
+
+5. ALWAYS USE RANGES:
+   - ✅ "About 45 to 55 minutes"
+   - ❌ "Exactly 47 minutes" (too precise)
+
+`;
+}
 ```
-text
-[Profile] [Hours] [Services] [Area] [Availability] [Policies] [AI] [Knowledge]
-     
-(Icons with tooltips, selected tab shows label)
+
+### Phase 4: Add ETA to Dynamic Variables
+
+Update `voiceContextContract.ts` to include ETA variables:
+
+```typescript
+{
+  key: "response_time_spoken",
+  description: "Spoken ETA for customer (e.g., '45 to 55 minutes')",
+  type: "string",
+  source: "eta.spoken",
+  defaultValue: "30 to 45 minutes",
+  category: "pricing",
+},
+{
+  key: "response_time_min",
+  description: "Minimum ETA in minutes",
+  type: "number",
+  source: "eta.min_minutes",
+  defaultValue: 30,
+  category: "pricing",
+},
+{
+  key: "response_time_max",
+  description: "Maximum ETA in minutes",
+  type: "number",
+  source: "eta.max_minutes",
+  defaultValue: 60,
+  category: "pricing",
+},
 ```
-
-**Option B: Floating Tab Pills**
-```
-text
-Profile & Identity | Operating Hours | Services & Menu | Service Area & ETA | ...
-```
-
-### 5.3 Focus Mode Toggle
-
-Add a "Focus Mode" button in Business Brain header that:
-- Hides main sidebar completely
-- Maximizes content area
-- Persists via localStorage
-- Toggle back with Escape or button
-
----
-
-## Implementation Phases
-
-### Phase 1: Foundation (Week 1-2)
-
-| Task | Files |
-|------|-------|
-| Add `pricing_config_json`, `service_category`, `service_type` to services table | Migration |
-| Create `DispatchServiceEditor.tsx` with step-by-step wizard | New component |
-| Add dispatch service presets (tow, jump start, lockout, etc.) | Template data |
-| Update `BusinessBrainPage.tsx` to use dispatch editor when mode=dispatch | Conditional render |
-
-### Phase 2: Pricing UX (Week 2-3)
-
-| Task | Files |
-|------|-------|
-| Add mode-specific examples to `PricingRulesEditor.tsx` | Enhance existing |
-| Add rule priority visualization component | New component |
-| Add rule conflict detection logic | New utility |
-| Update terminology for dispatch (rules = "pricing tiers") | `terminology.ts` |
-
-### Phase 3: ETA Simplification (Week 3)
-
-| Task | Files |
-|------|-------|
-| Create `DispatchEtaSection.tsx` with slider-based response time | New component |
-| Add live example calculation with mock distance | New component |
-| Add AI preview showing spoken ETA format | Integration |
-| Collapse advanced options by default | UI refinement |
-
-### Phase 4: Scalable Catalog (Week 4)
-
-| Task | Files |
-|------|-------|
-| Create category-based `DispatchServiceCatalog.tsx` | New component |
-| Add search/filter functionality | Integration |
-| Add duplicate and bulk edit actions | New components |
-| Add collapsible category headers | UI refinement |
-
-### Phase 5: Navigation (Week 4-5)
-
-| Task | Files |
-|------|-------|
-| Auto-collapse sidebar on Business Brain entry | `AppLayout.tsx` |
-| Add Focus Mode toggle | `BusinessBrainPage.tsx` |
-| Compact tab navigation option | `BusinessBrainPage.tsx` |
-
----
-
-## Files to Create
-
-| File | Purpose |
-|------|---------|
-| `src/components/brain/dispatch/DispatchServiceEditor.tsx` | Step-by-step service wizard for dispatch |
-| `src/components/brain/dispatch/DispatchServiceCatalog.tsx` | Category-based service list |
-| `src/components/brain/dispatch/ServiceCategoryCard.tsx` | Collapsible category section |
-| `src/components/brain/dispatch/ServiceRowItem.tsx` | Compact service row |
-| `src/components/brain/dispatch/PricingTierBuilder.tsx` | Distance-tiered pricing UI |
-| `src/components/brain/dispatch/VariableModifierEditor.tsx` | Vehicle type/urgency modifiers |
-| `src/components/business-brain/DispatchEtaSection.tsx` | Simplified ETA config |
-| `src/lib/dispatchPricing.ts` | Pricing calculation utilities |
-| `src/hooks/useDispatchServices.ts` | Dispatch-specific service queries |
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/pages/app/BusinessBrainPage.tsx` | Conditional render for dispatch mode; focus mode toggle |
-| `src/components/layouts/AppLayout.tsx` | Auto-collapse sidebar for Business Brain |
-| `src/components/knowledge/PricingRulesEditor.tsx` | Mode-specific examples and guidance |
-| `src/components/business-brain/DistanceEtaSection.tsx` | Redirect to simplified version for dispatch |
-| `src/lib/terminology.ts` | Add dispatch-specific pricing terminology |
-| `src/lib/quoteEngine/rulesApply.ts` | Support new pricing_config_json structure |
+| `supabase/functions/_shared/buildBusinessContext.ts` | Fetch `tenant_distance_settings`, build ETA from it, add dispatch ETA to system prompt |
+| `supabase/functions/_shared/voiceContextContract.ts` | Add `response_time_spoken`, `response_time_min`, `response_time_max` variables |
 
----
+## Expected Result After Fix
 
-## AI Preview Examples (By Mode)
-
-### Dispatch/Towing
-
+**Before (current broken behavior):**
 ```
-"A local tow within 10 miles is $125. After that, it's $5 per mile. 
- For trucks or large SUVs, there's an additional $25-50 depending on size.
- I can give you an exact quote once I have your pickup and drop-off locations."
+Customer: "How long until someone can get here?"
+AI: "I'm not able to provide an exact ETA..."
 ```
 
-### Service/Detailing
-
+**After (fixed behavior):**
 ```
-"Our full detail starts at $250 for sedans. 
- SUVs and trucks start at $300.
- That includes interior and exterior cleaning, plus a protective wax."
-```
-
-### Food/Restaurant
-
-```
-"We offer delivery within 5 miles for a $5 fee.
- Orders over $40 qualify for free delivery."
+Customer: "How long until someone can get here?"
+AI: "We can have a driver to you in approximately 45 to 55 minutes. 
+     What's the exact address where you need service?"
 ```
 
----
+## Verification Steps
 
-## Success Metrics
-
-1. **Time to Configure Service**: < 3 minutes for a new dispatch service with tiered pricing
-2. **ETA Accuracy**: Owner-reported satisfaction with quoted vs actual arrival times
-3. **Scalability**: Catalog remains usable with 100+ services (search, categories)
-4. **Screen Real Estate**: Business Brain content area expands by 40%+ in focus mode
-
----
-
-## Technical Notes
-
-- All new components follow existing patterns (React Query, shadcn/ui, Tailwind)
-- Database changes use JSONB to avoid schema migrations for future pricing models
-- Backward compatible: existing services with flat pricing continue to work
-- Quote engine (`rulesApply.ts`) will be extended to support new `pricing_config_json`
-
+1. Deploy the updated edge functions
+2. Call +1-855-329-7357 while admin-switched to Hawks Towing
+3. Ask "How long until someone can get here?"
+4. AI should respond with the configured 55-minute response time (±buffer)
