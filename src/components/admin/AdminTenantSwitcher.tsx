@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { CreateTestTenantDialog } from "./CreateTestTenantDialog";
-import type { Tenant } from "@/types/database";
+import type { Tenant, BusinessMode } from "@/types/database";
 
 export function AdminTenantSwitcher() {
   const { user, isSuperAdmin, effectiveTenantId, setActiveTenantId } = useAuth();
@@ -66,6 +66,15 @@ export function AdminTenantSwitcher() {
 
   const handleTenantSelect = async (tenantId: string) => {
     if (tenantId === effectiveTenantId || isLoading) return;
+
+    // If a tenant is selected directly, keep the mode filter aligned to that tenant.
+    const selectedTenant = tenants?.find((t) => t.id === tenantId);
+    if (adminModeContext && selectedTenant?.business_mode) {
+      const mode = selectedTenant.business_mode as BusinessMode;
+      if (mode !== selectedMode) {
+        await adminModeContext.setSelectedMode(mode);
+      }
+    }
     
     setIsLoading(true);
     try {

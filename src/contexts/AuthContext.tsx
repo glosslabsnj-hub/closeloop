@@ -313,13 +313,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasActiveSubscription = subscription?.status === "active" || subscription?.status === "trialing";
 
+  // For super admins, expose the *effective* tenant as `tenant` so the whole app updates
+  // when switching the active test tenant.
+  const tenantForApp = effectiveTenant;
+
   return (
     <AuthContext.Provider
       value={{
         user,
         session,
         loading,
-        tenant,
+        tenant: tenantForApp,
         tenantUser,
         userRole,
         isSuperAdmin,
@@ -327,7 +331,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         assistantSettings,
         hasActiveSubscription,
         effectiveTenantId,
-        effectiveTenant,
+        effectiveTenant: tenantForApp,
         setActiveTenantId,
         signIn,
         signUp,
