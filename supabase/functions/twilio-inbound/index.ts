@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildBusinessContext, storeContextSnapshot, buildDynamicVariables } from "../_shared/buildBusinessContext.ts";
+import { getAgentIdForMode } from "../_shared/agentResolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -93,7 +94,7 @@ serve(async (req) => {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY_2") || Deno.env.get("ELEVENLABS_API_KEY");
-  const ELEVENLABS_AGENT_ID = Deno.env.get("ELEVENLABS_AGENT_ID");
+  // Note: Agent ID is now resolved dynamically per business_mode via getAgentIdForMode()
 
   // Parse Twilio's form data
   let formData: URLSearchParams;
@@ -123,9 +124,9 @@ serve(async (req) => {
 
   await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, null, callSid, toNumber, fromNumber, "request_received", null, null, { method: req.method });
 
-  if (!ELEVENLABS_API_KEY || !ELEVENLABS_AGENT_ID) {
-    console.error("Missing ElevenLabs configuration");
-    await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, null, callSid, toNumber, fromNumber, "config_error", null, "Missing ELEVENLABS_API_KEY or ELEVENLABS_AGENT_ID", null);
+  if (!ELEVENLABS_API_KEY) {
+    console.error("Missing ElevenLabs API key");
+    await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, null, callSid, toNumber, fromNumber, "config_error", null, "Missing ELEVENLABS_API_KEY", null);
     return twimlResponse(hangupTwiml("Our voice assistant is currently unavailable. Please leave a message or try again later."));
   }
 
@@ -451,8 +452,19 @@ STRICT SCHEDULING RULES (MANDATORY):
 - When a customer requests a specific time, verify it's in the available slots before confirming.
 `;
 
+    // ===== RESOLVE MODE-SPECIFIC AGENT ID =====
+    const { agentId, source: agentSource, envKey: agentEnvKey } = getAgentIdForMode(context.tenant.business_mode);
+    
+    if (!agentId) {
+      console.error(`No ElevenLabs agent configured for mode: ${context.tenant.business_mode}`);
+      await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, tenantId, callSid, toNumber, fromNumber, "agent_not_configured", null, `No agent for mode: ${context.tenant.business_mode}`, null, context.safety.phi_minimization);
+      return twimlResponse(hangupTwiml("Our voice assistant is temporarily unavailable. Please try again later."));
+    }
+
+    console.log(`Using ElevenLabs agent: ${agentId.slice(0, 12)}... (source: ${agentSource}, mode: ${context.tenant.business_mode})`);
+
     const registerCallPayload = {
-      agent_id: ELEVENLABS_AGENT_ID,
+      agent_id: agentId,
       from_number: fromNumber,
       to_number: toNumber,
       conversation_initiation_client_data: {
@@ -467,7 +479,7 @@ STRICT SCHEDULING RULES (MANDATORY):
       },
     };
     
-    console.log("Sending to ElevenLabs with prompt override, slots:", precomputedSlots.length);
+    console.log(`Sending to ElevenLabs agent ${agentId.slice(0, 12)}... with prompt override, slots: ${precomputedSlots.length}`);
     
     const registerCallResponse = await fetch(
       `https://api.elevenlabs.io/v1/convai/twilio/register-call`,
