@@ -97,11 +97,34 @@ function AppLayoutContent() {
     return localStorage.getItem('sidebar-collapsed') === 'true';
   });
 
+  // Focus mode state (from Business Brain)
+  const [focusMode, setFocusMode] = useState(() => {
+    return localStorage.getItem('business-brain-focus-mode') === 'true';
+  });
+
   const toggleSidebar = useCallback(() => {
     const newState = !sidebarCollapsed;
     setSidebarCollapsed(newState);
     localStorage.setItem('sidebar-collapsed', String(newState));
   }, [sidebarCollapsed]);
+
+  // Auto-collapse sidebar when entering Business Brain
+  const isBusinessBrain = location.pathname === "/app/business-brain";
+  useEffect(() => {
+    if (isBusinessBrain && !sidebarCollapsed) {
+      setSidebarCollapsed(true);
+      localStorage.setItem('sidebar-collapsed', 'true');
+    }
+  }, [isBusinessBrain]);
+
+  // Listen for focus mode changes from Business Brain
+  useEffect(() => {
+    const handleFocusMode = (e: CustomEvent) => {
+      setFocusMode(e.detail);
+    };
+    window.addEventListener('business-brain-focus-mode', handleFocusMode as EventListener);
+    return () => window.removeEventListener('business-brain-focus-mode', handleFocusMode as EventListener);
+  }, []);
 
   // Keyboard shortcut: Ctrl/Cmd + B to toggle sidebar
   useEffect(() => {
@@ -114,6 +137,9 @@ function AppLayoutContent() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [toggleSidebar]);
+
+  // Hide sidebar completely in focus mode on Business Brain
+  const hideSidebar = isBusinessBrain && focusMode;
 
   // Super admins bypass subscription gating for testing
   const effectiveHasSubscription = isSuperAdmin || hasActiveSubscription;
@@ -291,13 +317,14 @@ function AppLayoutContent() {
 
         {/* Main Content */}
         <div className="flex">
-          {/* Desktop Sidebar - Collapsible */}
-          <aside 
-            className={cn(
-              "hidden md:flex flex-col fixed left-0 top-16 bottom-0 border-r bg-background transition-all duration-200 ease-in-out",
-              sidebarCollapsed ? "w-14" : "w-64"
-            )}
-          >
+          {/* Desktop Sidebar - Collapsible, hidden in focus mode */}
+          {!hideSidebar && (
+            <aside 
+              className={cn(
+                "hidden md:flex flex-col fixed left-0 top-16 bottom-0 border-r bg-background transition-all duration-200 ease-in-out",
+                sidebarCollapsed ? "w-14" : "w-64"
+              )}
+            >
             <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -368,6 +395,7 @@ function AppLayoutContent() {
               </div>
             )}
           </aside>
+          )}
 
           {/* Mobile Bottom Nav */}
           <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 safe-area-pb">
@@ -412,7 +440,7 @@ function AppLayoutContent() {
           <main 
             className={cn(
               "flex-1 pb-20 md:pb-0 min-h-[calc(100vh-4rem)] transition-all duration-200 ease-in-out",
-              sidebarCollapsed ? "md:ml-14" : "md:ml-64"
+              hideSidebar ? "md:ml-0" : sidebarCollapsed ? "md:ml-14" : "md:ml-64"
             )}
           >
             {isRouteAccessible ? (
