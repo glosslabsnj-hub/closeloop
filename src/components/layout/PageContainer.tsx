@@ -10,7 +10,7 @@ interface PageContainerProps {
 
 /**
  * Standardized page container with consistent padding and max-width.
- * Use this as the root element for all app pages.
+ * Generous padding for breathing room.
  */
 export function PageContainer({ 
   children, 
@@ -21,9 +21,9 @@ export function PageContainer({
   return (
     <div
       className={cn(
-        "p-5 md:p-6 lg:p-8",
-        maxWidth === "wide" && "max-w-[1400px] mx-auto",
-        maxWidth === "default" && "max-w-[1200px] mx-auto",
+        "p-6 md:p-8 lg:p-10",
+        maxWidth === "wide" && "max-w-[1280px] mx-auto",
+        maxWidth === "default" && "max-w-[1100px] mx-auto",
         maxWidth === "full" && "w-full",
         animate && "animate-fade-in",
         className

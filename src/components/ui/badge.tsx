@@ -4,19 +4,21 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring/50 focus:ring-offset-2",
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary text-primary-foreground",
-        secondary: "border-border/60 bg-secondary text-secondary-foreground",
-        destructive: "border-destructive/30 bg-destructive/12 text-destructive",
-        success: "border-success/30 bg-success/12 text-success",
-        warning: "border-warning/30 bg-warning/12 text-warning",
-        outline: "text-foreground border-border/70 bg-transparent",
-        muted: "border-transparent bg-muted text-muted-foreground",
+        // Default uses muted, not primary accent
+        default: "border-border/30 bg-muted/60 text-foreground/80",
+        secondary: "border-border/25 bg-muted/40 text-muted-foreground",
+        // Status colors - only for meaning, very muted
+        destructive: "border-destructive/20 bg-destructive/6 text-destructive/80",
+        success: "border-success/20 bg-success/6 text-success/80",
+        warning: "border-warning/20 bg-warning/6 text-warning/80",
+        outline: "text-foreground/70 border-border/40 bg-transparent",
+        muted: "border-transparent bg-muted/40 text-muted-foreground",
         ghost: "border-transparent bg-transparent text-muted-foreground",
-        primary: "border-primary/30 bg-primary/12 text-primary",
+        primary: "border-border/30 bg-muted/50 text-foreground/75",
       },
       size: {
         default: "px-2 py-0.5 text-xs",

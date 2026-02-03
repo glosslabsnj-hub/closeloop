@@ -252,8 +252,8 @@ function AppLayoutContent() {
         {/* Admin Mode Switcher Banner */}
         <AdminModeSwitcher />
         
-        {/* Top Navigation - Clean, Minimal Header */}
-        <header className="sticky top-0 z-50 border-b border-border/50 bg-background/90 backdrop-blur-md">
+        {/* Top Navigation - Minimal, Quiet Header */}
+        <header className="sticky top-0 z-50 border-b border-border/25 bg-background">
           <div className="flex h-14 items-center justify-between px-4 md:px-6">
             <div className="flex items-center gap-3">
               {/* Sidebar Toggle Button - Desktop Only */}
@@ -261,7 +261,7 @@ function AppLayoutContent() {
                 variant="ghost"
                 size="icon"
                 onClick={toggleSidebar}
-                className="hidden md:flex h-9 w-9 hover:bg-muted"
+                className="hidden md:flex h-9 w-9"
                 aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
               >
                 {sidebarCollapsed ? (
@@ -272,10 +272,10 @@ function AppLayoutContent() {
               </Button>
               
               <Link to="/app/dashboard" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-foreground/70">
                   <Phone className="h-4 w-4" />
                 </div>
-                <span className="font-semibold text-sm hidden sm:inline truncate max-w-[160px]">{displayTenant?.name || "CloseLoop"}</span>
+                <span className="font-medium text-sm hidden sm:inline truncate max-w-[160px] text-foreground/80">{displayTenant?.name || "CloseLoop"}</span>
               </Link>
             </div>
 
@@ -289,9 +289,9 @@ function AppLayoutContent() {
               {/* Profile Dropdown - Fixed: Portal with high z-index */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 hover:bg-muted">
+                  <Button variant="ghost" size="icon" className="rounded-full h-9 w-9">
                     <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
+                      <AvatarFallback className="bg-muted text-muted-foreground text-xs font-medium">
                         {user.email?.[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
@@ -305,16 +305,16 @@ function AppLayoutContent() {
                   avoidCollisions={true}
                   className="w-56 z-[100]"
                 >
-                  <div className="px-3 py-2.5 border-b border-border/40">
-                    <p className="text-sm font-medium truncate">{user.email}</p>
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">{displayTenant?.name}</p>
+                  <div className="px-3 py-2.5 border-b border-border/25">
+                    <p className="text-sm font-medium truncate text-foreground/90">{user.email}</p>
+                    <p className="text-xs text-muted-foreground/70 truncate mt-0.5">{displayTenant?.name}</p>
                   </div>
                   <DropdownMenuItem onClick={() => navigate("/app/settings")} className="cursor-pointer py-2.5">
-                    <Settings className="mr-2.5 h-4 w-4 opacity-60" />
+                    <Settings className="mr-2.5 h-4 w-4 opacity-50" />
                     Settings
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer py-2.5">
+                  <DropdownMenuItem onClick={handleSignOut} className="text-destructive/80 cursor-pointer py-2.5">
                     <LogOut className="mr-2.5 h-4 w-4" />
                     Sign out
                   </DropdownMenuItem>
@@ -326,13 +326,13 @@ function AppLayoutContent() {
 
         {/* Main Content */}
         <div className="flex">
-          {/* Desktop Sidebar - Clean, Calm Design */}
+          {/* Desktop Sidebar - Quiet, Fades into Background */}
           {!hideSidebar && (
             <aside 
               className={cn(
-                "hidden md:flex flex-col fixed left-0 top-14 bottom-0 border-r border-border/50 transition-all duration-200 ease-out",
+                "hidden md:flex flex-col fixed left-0 top-14 bottom-0 border-r border-border/20 transition-all duration-150 ease-out",
                 "bg-sidebar z-40",
-                sidebarCollapsed ? "w-14" : "w-56"
+                sidebarCollapsed ? "w-14" : "w-52"
               )}
             >
               <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto scrollbar-thin">
@@ -348,32 +348,32 @@ function AppLayoutContent() {
                       key={item.href}
                       to={isLocked ? "/app/go-live" : item.href}
                       className={cn(
-                        "group flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-150",
+                        "group flex items-center gap-3 rounded-lg text-sm transition-colors duration-100",
                         sidebarCollapsed ? "px-2.5 py-2.5 justify-center" : "px-3 py-2.5",
                         isActive
-                          ? "bg-primary/10 text-primary"
+                          ? "bg-muted/50 text-foreground"
                           : isLocked
-                            ? "text-muted-foreground/40 cursor-not-allowed"
-                            : "text-sidebar-foreground/80 hover:bg-muted hover:text-sidebar-foreground"
+                            ? "text-muted-foreground/30 cursor-not-allowed"
+                            : "text-sidebar-foreground/60 hover:bg-muted/30 hover:text-sidebar-foreground/80"
                       )}
                     >
                       <Icon className={cn(
-                        "h-[18px] w-[18px] shrink-0 transition-colors duration-150",
-                        isActive && "text-primary"
+                        "h-[17px] w-[17px] shrink-0 transition-colors duration-100",
+                        isActive ? "text-foreground/80" : "opacity-60"
                       )} />
                       {!sidebarCollapsed && (
                         <>
-                          <span className="truncate">{item.label}</span>
+                          <span className="truncate font-normal">{item.label}</span>
                           {showBadge && (
                             <Badge variant="destructive" size="sm" className="ml-auto">
                               <AlertTriangle className="h-3 w-3" />
                             </Badge>
                           )}
-                          {isLocked && <Lock className="h-3.5 w-3.5 ml-auto opacity-40" />}
+                          {isLocked && <Lock className="h-3.5 w-3.5 ml-auto opacity-30" />}
                         </>
                       )}
                       {sidebarCollapsed && showBadge && (
-                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-destructive animate-pulse-soft" />
+                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-destructive/70" />
                       )}
                     </Link>
                   );
@@ -387,7 +387,7 @@ function AppLayoutContent() {
                             {navLink}
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent side="right" sideOffset={8} className="font-medium">
+                        <TooltipContent side="right" sideOffset={8}>
                           {item.label}
                           {isLocked && " (Locked)"}
                         </TooltipContent>
@@ -401,9 +401,9 @@ function AppLayoutContent() {
               
               {/* Keyboard shortcut hint when expanded */}
               {!sidebarCollapsed && (
-                <div className="p-3 border-t border-sidebar-border/40">
-                  <p className="text-[11px] text-muted-foreground/50 text-center">
-                    <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted/50 rounded border border-border/30">⌘B</kbd> to collapse
+                <div className="p-3 border-t border-sidebar-border/20">
+                  <p className="text-[11px] text-muted-foreground/40 text-center">
+                    <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted/30 rounded border border-border/20">⌘B</kbd> to collapse
                   </p>
                 </div>
               )}
