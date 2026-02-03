@@ -4,73 +4,78 @@
 
 /* =====================================================
    CloseLoop Design System - 2026/2027
-   Theme: "Midnight Sapphire" - Premium, Alive, Inviting
+   Theme: "Aurora" - Premium, Electric, World-Class
+   Inspired by Linear, Raycast, Vercel
    ===================================================== */
 
 @layer base {
   :root {
     /* =====================================================
-       "Midnight Sapphire" Theme
-       Deep rich backgrounds, warm amber accent, subtle life
+       "Aurora" Theme
+       Deep space backgrounds, electric cyan accent,
+       violet undertones, premium glassmorphism
        ===================================================== */
 
-    /* Core Background - Deep sapphire navy, rich not flat */
-    --background: 224 25% 8%;
-    --foreground: 210 20% 95%;
+    /* Core Background - Deep space, rich and immersive */
+    --background: 240 15% 6%;
+    --foreground: 210 40% 96%;
 
-    /* Cards - Lifted, distinguished, inviting */
-    --card: 224 22% 12%;
-    --card-foreground: 210 15% 92%;
+    /* Cards - Elevated glass surfaces */
+    --card: 240 12% 10%;
+    --card-foreground: 210 35% 94%;
 
-    --popover: 224 24% 14%;
-    --popover-foreground: 210 20% 95%;
+    --popover: 240 14% 12%;
+    --popover-foreground: 210 40% 96%;
 
-    /* Primary - Warm amber/gold (inviting, premium) */
-    --primary: 38 90% 55%;
-    --primary-foreground: 224 25% 8%;
+    /* Primary - Electric cyan (premium tech feel) */
+    --primary: 185 85% 50%;
+    --primary-foreground: 240 15% 6%;
 
-    /* Secondary - Soft navy panel */
-    --secondary: 224 18% 15%;
-    --secondary-foreground: 210 12% 70%;
+    /* Secondary - Soft violet undertone */
+    --secondary: 260 20% 14%;
+    --secondary-foreground: 260 15% 75%;
 
-    /* Muted - Deep navy gray */
-    --muted: 224 15% 17%;
-    --muted-foreground: 210 10% 55%;
+    /* Muted - Deep space gray with violet hint */
+    --muted: 250 12% 14%;
+    --muted-foreground: 240 10% 55%;
 
-    /* Accent - Subtle sapphire lift */
-    --accent: 224 30% 20%;
-    --accent-foreground: 210 15% 85%;
+    /* Accent - Violet glow */
+    --accent: 260 30% 18%;
+    --accent-foreground: 260 20% 85%;
 
-    /* Signature accent - warm amber for emphasis */
-    --accent-signature: 38 85% 58%;
+    /* Signature - Electric cyan for emphasis */
+    --accent-signature: 185 85% 55%;
+    
+    /* Secondary signature - Soft violet */
+    --accent-violet: 270 60% 60%;
 
-    /* Status Colors - Vibrant but controlled */
-    --destructive: 0 72% 55%;
+    /* Status Colors - Vibrant, modern */
+    --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 152 60% 48%;
+    --success: 160 75% 45%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 42 90% 55%;
-    --warning-foreground: 42 95% 10%;
+    --warning: 45 95% 55%;
+    --warning-foreground: 45 100% 10%;
 
-    /* Borders & Inputs - Soft navy edges */
-    --border: 224 15% 20%;
-    --input: 224 18% 13%;
-    --ring: 38 90% 55%;
+    /* Borders & Inputs */
+    --border: 250 15% 18%;
+    --input: 240 12% 11%;
+    --ring: 185 85% 50%;
 
     /* Radius - Smooth, modern */
-    --radius: 0.625rem;
+    --radius: 0.75rem;
 
-    /* Sidebar - Rich, cohesive */
-    --sidebar-background: 224 28% 6%;
-    --sidebar-foreground: 210 12% 60%;
-    --sidebar-primary: 38 90% 55%;
-    --sidebar-primary-foreground: 224 25% 8%;
-    --sidebar-accent: 224 25% 14%;
-    --sidebar-accent-foreground: 210 15% 80%;
-    --sidebar-border: 224 20% 15%;
-    --sidebar-ring: 38 90% 55%;
+    /* Sidebar */
+    --sidebar-background: 240 18% 5%;
+    --sidebar-foreground: 240 10% 60%;
+    --sidebar-primary: 185 85% 50%;
+    --sidebar-primary-foreground: 240 15% 6%;
+    --sidebar-accent: 260 25% 15%;
+    --sidebar-accent-foreground: 260 15% 80%;
+    --sidebar-border: 250 15% 14%;
+    --sidebar-ring: 185 85% 50%;
   }
 }
 
@@ -87,30 +92,39 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Typography - Confident, Clear, Premium */
+  /* Typography - Premium, Confident */
   h1 {
-    @apply text-xl md:text-2xl font-semibold tracking-tight leading-tight;
+    @apply text-2xl md:text-3xl font-bold tracking-tight leading-tight;
     text-wrap: balance;
-    color: hsl(var(--foreground));
+    background: linear-gradient(135deg, hsl(var(--foreground)) 0%, hsl(var(--foreground) / 0.8) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   h2 {
-    @apply text-lg md:text-xl font-semibold tracking-tight leading-tight;
+    @apply text-xl md:text-2xl font-bold tracking-tight leading-tight;
     text-wrap: balance;
   }
 
   h3 {
-    @apply text-base font-semibold tracking-tight leading-snug;
+    @apply text-lg font-semibold tracking-tight leading-snug;
     text-wrap: balance;
   }
 
   h4 {
-    @apply text-sm font-semibold leading-snug;
+    @apply text-base font-semibold leading-snug;
   }
 
-  /* Focus states - Warm amber glow */
+  /* Focus states - Electric cyan ring */
   *:focus-visible {
-    @apply outline-none ring-2 ring-primary/40 ring-offset-2 ring-offset-background;
+    @apply outline-none ring-2 ring-primary/50 ring-offset-2 ring-offset-background;
+  }
+
+  /* Selection */
+  ::selection {
+    background: hsl(var(--primary) / 0.3);
+    color: hsl(var(--foreground));
   }
 
   /* Reduced motion support */
@@ -125,30 +139,29 @@
 
 @layer utilities {
   /* ==========================================
-     PREMIUM WORKSPACE BACKGROUND
-     Rich, deep, inviting atmosphere
+     AURORA WORKSPACE BACKGROUND
+     Deep space with electric glow accents
      ========================================== */
   .app-bg {
     position: relative;
     background: 
-      radial-gradient(ellipse 100% 80% at 50% -20%, hsl(224 35% 15% / 0.6), transparent 60%),
-      radial-gradient(ellipse 80% 60% at 80% 50%, hsl(38 50% 20% / 0.08), transparent 50%),
+      radial-gradient(ellipse 120% 80% at 50% -30%, hsl(260 40% 15% / 0.7), transparent 55%),
+      radial-gradient(ellipse 80% 60% at 90% 20%, hsl(185 60% 20% / 0.15), transparent 50%),
+      radial-gradient(ellipse 60% 50% at 10% 80%, hsl(270 50% 15% / 0.2), transparent 50%),
       hsl(var(--background));
   }
   
-  /* Subtle ambient light from top */
+  /* Aurora ambient glow */
   .app-bg::before {
     content: '';
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
-    height: 50vh;
-    background: radial-gradient(
-      ellipse 70% 40% at 50% 0%,
-      hsl(224 40% 18% / 0.5),
-      transparent 70%
-    );
+    height: 60vh;
+    background: 
+      radial-gradient(ellipse 60% 35% at 30% 0%, hsl(270 50% 25% / 0.2), transparent 60%),
+      radial-gradient(ellipse 50% 30% at 70% 0%, hsl(185 70% 30% / 0.15), transparent 55%);
     pointer-events: none;
     z-index: 0;
   }
@@ -158,25 +171,25 @@
   }
 
   /* ==========================================
-     PREMIUM WORKSPACE FRAME
-     Signature structural element with warm accent
+     AURORA WORKSPACE FRAME
+     Electric cyan accent strips
      ========================================== */
   .workspace-frame {
     @apply relative;
-    border-left: 2px solid hsl(var(--accent-signature) / 0.4);
+    border-left: 2px solid hsl(var(--accent-signature) / 0.5);
     padding-left: 1.5rem;
   }
 
   .workspace-frame-subtle {
     @apply relative;
-    border-left: 1px solid hsl(var(--accent-signature) / 0.25);
+    border-left: 1px solid hsl(var(--accent-signature) / 0.3);
     padding-left: 1rem;
   }
 
-  /* Focus rail - warm amber edge glow */
+  /* Focus rail - electric cyan edge */
   .focus-rail {
     @apply relative mx-auto;
-    max-width: 960px;
+    max-width: 1000px;
   }
 
   .focus-rail::before {
@@ -185,117 +198,129 @@
     background: linear-gradient(
       to bottom,
       transparent,
-      hsl(var(--accent-signature) / 0.3) 15%,
-      hsl(var(--accent-signature) / 0.3) 85%,
+      hsl(var(--accent-signature) / 0.4) 20%,
+      hsl(var(--accent-violet) / 0.3) 50%,
+      hsl(var(--accent-signature) / 0.4) 80%,
       transparent
     );
   }
 
-  /* Work area - premium elevated surface */
+  /* Work area - glass surface with aurora glow */
   .work-area {
-    @apply relative rounded-xl;
+    @apply relative rounded-2xl overflow-hidden;
     background: linear-gradient(
-      145deg,
+      160deg,
       hsl(var(--card)) 0%,
-      hsl(224 20% 10%) 100%
+      hsl(240 15% 9%) 100%
     );
     border: 1px solid hsl(var(--border) / 0.6);
     box-shadow: 
-      0 4px 24px -8px hsl(0 0% 0% / 0.4),
-      0 0 0 1px hsl(var(--accent-signature) / 0.05),
-      inset 0 1px 0 hsl(210 20% 98% / 0.03);
+      0 8px 32px -8px hsl(0 0% 0% / 0.5),
+      0 0 0 1px hsl(var(--accent-signature) / 0.08),
+      inset 0 1px 0 hsl(210 40% 98% / 0.05),
+      0 0 80px -20px hsl(var(--accent-signature) / 0.1);
     padding: 2rem;
   }
 
   .work-area-compact {
-    @apply relative rounded-lg;
+    @apply relative rounded-xl;
     background: hsl(var(--card));
     border: 1px solid hsl(var(--border) / 0.5);
-    box-shadow: 0 2px 12px hsl(0 0% 0% / 0.2);
-    padding: 1.25rem;
+    box-shadow: 
+      0 4px 16px hsl(0 0% 0% / 0.25),
+      inset 0 1px 0 hsl(210 40% 98% / 0.03);
+    padding: 1.5rem;
   }
 
   /* ==========================================
-     SURFACE SYSTEM - Rich Depth, Premium Feel
-     Layered shadows, subtle gradients, warmth
+     SURFACE SYSTEM - Aurora Glass Layers
+     Subtle gradients, premium depth, electric edges
      ========================================== */
   .surface-1 {
-    @apply relative rounded-xl;
+    @apply relative rounded-2xl overflow-hidden;
     background: linear-gradient(
       160deg,
       hsl(var(--card)) 0%,
-      hsl(224 18% 11%) 100%
+      hsl(250 15% 9%) 100%
     );
     border: 1px solid hsl(var(--border) / 0.5);
     box-shadow: 
-      0 4px 20px -6px hsl(0 0% 0% / 0.35),
-      inset 0 1px 0 hsl(210 20% 98% / 0.04);
+      0 8px 32px -8px hsl(0 0% 0% / 0.4),
+      inset 0 1px 0 hsl(210 40% 98% / 0.05);
   }
 
   .surface-2 {
-    @apply relative rounded-lg;
+    @apply relative rounded-xl;
     background: hsl(var(--card));
     border: 1px solid hsl(var(--border) / 0.4);
-    box-shadow: 0 2px 10px hsl(0 0% 0% / 0.2);
+    box-shadow: 0 4px 16px hsl(0 0% 0% / 0.25);
   }
 
   .surface-3 {
-    @apply relative rounded-xl;
+    @apply relative rounded-2xl overflow-hidden;
     background: linear-gradient(
       160deg,
       hsl(var(--popover)) 0%,
-      hsl(224 20% 12%) 100%
+      hsl(250 18% 10%) 100%
     );
     border: 1px solid hsl(var(--border) / 0.6);
     box-shadow: 
-      0 12px 40px -12px hsl(0 0% 0% / 0.5),
-      0 0 0 1px hsl(var(--accent-signature) / 0.08);
+      0 16px 48px -12px hsl(0 0% 0% / 0.6),
+      0 0 0 1px hsl(var(--accent-signature) / 0.1),
+      0 0 60px -15px hsl(var(--accent-signature) / 0.15);
     z-index: 100;
   }
 
   /* ==========================================
-     EDITORIAL HEADERS - Warm amber emphasis
+     EDITORIAL HEADERS - Electric cyan emphasis
      ========================================== */
   .editorial-header {
-    @apply relative pb-8 mb-10;
+    @apply relative pb-10 mb-12;
   }
 
   .editorial-header::after {
     content: '';
     @apply absolute bottom-0 left-0 h-0.5 rounded-full;
-    width: 5rem;
+    width: 6rem;
     background: linear-gradient(
       90deg,
       hsl(var(--accent-signature)),
-      hsl(var(--accent-signature) / 0.2)
+      hsl(var(--accent-violet) / 0.6) 60%,
+      transparent
     );
+    box-shadow: 0 0 20px hsl(var(--accent-signature) / 0.4);
   }
 
   .editorial-title {
-    @apply text-xl md:text-2xl font-semibold tracking-tight;
-    color: hsl(var(--foreground));
-    letter-spacing: -0.02em;
+    @apply text-2xl md:text-3xl font-bold tracking-tight;
+    background: linear-gradient(135deg, hsl(var(--foreground)) 0%, hsl(var(--foreground) / 0.85) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.03em;
   }
 
   .editorial-subtitle {
-    @apply text-sm mt-3 leading-relaxed;
+    @apply text-base mt-4 leading-relaxed;
     color: hsl(var(--muted-foreground));
-    max-width: 32rem;
+    max-width: 36rem;
   }
 
-  /* Section label - warm amber style */
+  /* Section label - electric cyan */
   .section-label {
-    @apply text-[10px] font-bold uppercase tracking-[0.15em] mb-4;
+    @apply text-[11px] font-bold uppercase tracking-[0.2em] mb-5;
     color: hsl(var(--accent-signature));
+    text-shadow: 0 0 20px hsl(var(--accent-signature) / 0.3);
   }
 
-  /* Section divider - amber gradient */
+  /* Section divider - aurora gradient */
   .section-divider {
-    @apply h-px my-8;
+    @apply h-px my-10;
     background: linear-gradient(
       90deg,
-      hsl(var(--accent-signature) / 0.4),
-      hsl(var(--border) / 0.3) 40%,
+      hsl(var(--accent-signature) / 0.5),
+      hsl(var(--accent-violet) / 0.3) 30%,
+      hsl(var(--border) / 0.2) 60%,
       transparent
     );
   }
@@ -371,54 +396,64 @@
   }
 
   /* ==========================================
-     STATUS - Vibrant but controlled
+     STATUS - Vibrant with glow effects
      ========================================== */
   .status-soft-success {
-    @apply border rounded-lg px-2 py-0.5;
-    background: linear-gradient(145deg, hsl(152 60% 48% / 0.15), hsl(152 60% 48% / 0.08));
-    color: hsl(152 55% 55%);
-    border-color: hsl(152 60% 48% / 0.25);
+    @apply border rounded-lg px-2.5 py-1;
+    background: linear-gradient(145deg, hsl(160 75% 45% / 0.18), hsl(160 75% 45% / 0.08));
+    color: hsl(160 70% 55%);
+    border-color: hsl(160 75% 45% / 0.3);
+    box-shadow: 0 0 12px hsl(160 75% 45% / 0.15);
   }
 
   .status-soft-warning {
-    @apply border rounded-lg px-2 py-0.5;
-    background: linear-gradient(145deg, hsl(42 90% 55% / 0.15), hsl(42 90% 55% / 0.08));
-    color: hsl(42 85% 55%);
-    border-color: hsl(42 90% 55% / 0.25);
+    @apply border rounded-lg px-2.5 py-1;
+    background: linear-gradient(145deg, hsl(45 95% 55% / 0.18), hsl(45 95% 55% / 0.08));
+    color: hsl(45 90% 55%);
+    border-color: hsl(45 95% 55% / 0.3);
+    box-shadow: 0 0 12px hsl(45 95% 55% / 0.15);
   }
 
   .status-soft-destructive {
-    @apply border rounded-lg px-2 py-0.5;
-    background: linear-gradient(145deg, hsl(0 72% 55% / 0.15), hsl(0 72% 55% / 0.08));
-    color: hsl(0 68% 60%);
-    border-color: hsl(0 72% 55% / 0.25);
+    @apply border rounded-lg px-2.5 py-1;
+    background: linear-gradient(145deg, hsl(0 75% 55% / 0.18), hsl(0 75% 55% / 0.08));
+    color: hsl(0 70% 60%);
+    border-color: hsl(0 75% 55% / 0.3);
+    box-shadow: 0 0 12px hsl(0 75% 55% / 0.15);
   }
 
   .status-soft-primary {
-    @apply border rounded-lg px-2 py-0.5;
-    background: linear-gradient(145deg, hsl(var(--primary) / 0.15), hsl(var(--primary) / 0.08));
+    @apply border rounded-lg px-2.5 py-1;
+    background: linear-gradient(145deg, hsl(var(--primary) / 0.18), hsl(var(--primary) / 0.08));
     color: hsl(var(--primary));
-    border-color: hsl(var(--primary) / 0.3);
+    border-color: hsl(var(--primary) / 0.35);
+    box-shadow: 0 0 12px hsl(var(--primary) / 0.2);
   }
 
   .status-soft-muted {
-    @apply bg-muted/60 text-muted-foreground border-border/40 rounded-lg px-2 py-0.5;
+    @apply bg-muted/70 text-muted-foreground border border-border/50 rounded-lg px-2.5 py-1;
   }
 
-  /* Accent emphasis - warm amber highlight */
+  /* Aurora emphasis - cyan/violet glow */
   .accent-emphasis {
-    background: linear-gradient(145deg, hsl(var(--accent-signature) / 0.12), hsl(var(--accent-signature) / 0.06));
-    border: 1px solid hsl(var(--accent-signature) / 0.25);
-    box-shadow: 0 0 20px hsl(var(--accent-signature) / 0.08);
+    background: linear-gradient(145deg, hsl(var(--accent-signature) / 0.15), hsl(var(--accent-violet) / 0.08));
+    border: 1px solid hsl(var(--accent-signature) / 0.3);
+    box-shadow: 
+      0 0 24px hsl(var(--accent-signature) / 0.12),
+      0 0 48px hsl(var(--accent-violet) / 0.08);
   }
 
-  /* Priority accent - clean and clear */
+  /* Priority accent - glowing edges */
   .priority-accent-urgent {
-    @apply border-l-2 border-l-destructive/60;
+    @apply border-l-2;
+    border-left-color: hsl(0 75% 55%);
+    box-shadow: -4px 0 12px -4px hsl(0 75% 55% / 0.3);
   }
 
   .priority-accent-high {
-    @apply border-l-2 border-l-warning/60;
+    @apply border-l-2;
+    border-left-color: hsl(45 95% 55%);
+    box-shadow: -4px 0 12px -4px hsl(45 95% 55% / 0.3);
   }
 
   .priority-accent-normal {
@@ -473,13 +508,13 @@
   }
 
   /* ==========================================
-     PREMIUM VISUAL ELEMENTS
+     AURORA VISUAL ELEMENTS
      ========================================== */
   .gradient-primary {
     background: linear-gradient(
-      145deg,
+      135deg,
       hsl(var(--primary)),
-      hsl(38 80% 48%)
+      hsl(var(--accent-violet))
     );
   }
 
@@ -487,7 +522,7 @@
     background: linear-gradient(
       145deg,
       hsl(var(--muted)),
-      hsl(224 15% 14%)
+      hsl(250 15% 12%)
     );
   }
 
@@ -495,127 +530,150 @@
     background: linear-gradient(
       160deg,
       hsl(var(--card)) 0%,
-      hsl(224 22% 10%) 50%,
-      hsl(224 28% 8%) 100%
+      hsl(250 18% 8%) 50%,
+      hsl(240 20% 6%) 100%
     );
     border: 1px solid hsl(var(--border) / 0.5);
     box-shadow: 
-      0 8px 32px -8px hsl(0 0% 0% / 0.4),
-      inset 0 1px 0 hsl(210 20% 98% / 0.04);
+      0 12px 40px -10px hsl(0 0% 0% / 0.5),
+      inset 0 1px 0 hsl(210 40% 98% / 0.05),
+      0 0 80px -20px hsl(var(--accent-signature) / 0.12);
   }
 
   .gradient-subtle {
     background: linear-gradient(
       180deg,
       hsl(var(--background)),
-      hsl(224 22% 7%)
+      hsl(250 18% 5%)
     );
   }
 
-  /* Premium glow effects */
-  .amber-glow {
+  /* Aurora glow effects */
+  .aurora-glow {
     box-shadow: 
-      0 0 30px hsl(var(--accent-signature) / 0.12),
-      0 0 60px hsl(var(--accent-signature) / 0.06);
+      0 0 40px hsl(var(--accent-signature) / 0.15),
+      0 0 80px hsl(var(--accent-violet) / 0.1);
+  }
+
+  .cyan-glow {
+    box-shadow: 
+      0 0 30px hsl(var(--accent-signature) / 0.2),
+      0 0 60px hsl(var(--accent-signature) / 0.1);
   }
 
   .focus-glow {
-    box-shadow: 0 0 0 3px hsl(var(--accent-signature) / 0.25);
+    box-shadow: 
+      0 0 0 3px hsl(var(--accent-signature) / 0.3),
+      0 0 20px hsl(var(--accent-signature) / 0.15);
   }
 
   .btn-glow {
     position: relative;
-    transition: all 0.2s ease;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .btn-glow:hover {
-    transform: translateY(-1px);
+    transform: translateY(-2px);
     box-shadow: 
-      0 4px 16px hsl(var(--primary) / 0.3),
-      0 0 0 1px hsl(var(--primary) / 0.2);
+      0 8px 24px hsl(var(--primary) / 0.35),
+      0 0 0 1px hsl(var(--primary) / 0.3),
+      0 0 40px hsl(var(--primary) / 0.2);
   }
 
   /* ==========================================
-     GLASS - Premium frosted effect
+     GLASS - Aurora frosted glass
      ========================================== */
   .glass {
-    @apply border rounded-xl;
-    background: hsl(var(--card) / 0.6);
+    @apply border rounded-2xl;
+    background: hsl(var(--card) / 0.65);
     border-color: hsl(var(--border) / 0.4);
-    backdrop-filter: blur(12px);
-    box-shadow: inset 0 1px 0 hsl(210 20% 98% / 0.04);
+    backdrop-filter: blur(16px) saturate(150%);
+    box-shadow: 
+      inset 0 1px 0 hsl(210 40% 98% / 0.05),
+      0 4px 24px hsl(0 0% 0% / 0.2);
   }
 
   .glass-strong {
-    @apply border rounded-xl;
-    background: hsl(var(--card) / 0.8);
+    @apply border rounded-2xl;
+    background: hsl(var(--card) / 0.85);
     border-color: hsl(var(--border) / 0.5);
-    backdrop-filter: blur(16px);
+    backdrop-filter: blur(20px) saturate(150%);
     box-shadow: 
-      inset 0 1px 0 hsl(210 20% 98% / 0.06),
-      0 4px 20px hsl(0 0% 0% / 0.2);
+      inset 0 1px 0 hsl(210 40% 98% / 0.08),
+      0 8px 32px hsl(0 0% 0% / 0.3),
+      0 0 0 1px hsl(var(--accent-signature) / 0.05);
   }
 
-  /* Mobile nav - premium bottom bar */
+  /* Mobile nav - aurora bottom bar */
   .mobile-nav-floating {
     @apply fixed bottom-0 left-0 right-0 z-50;
     background: linear-gradient(
       180deg,
-      hsl(var(--background) / 0.95),
+      hsl(var(--background) / 0.9),
       hsl(var(--background))
     );
-    backdrop-filter: blur(16px);
-    border-top: 1px solid hsl(var(--accent-signature) / 0.15);
-    box-shadow: 0 -4px 20px hsl(0 0% 0% / 0.3);
+    backdrop-filter: blur(20px) saturate(150%);
+    border-top: 1px solid hsl(var(--accent-signature) / 0.2);
+    box-shadow: 
+      0 -8px 32px hsl(0 0% 0% / 0.4),
+      0 0 40px hsl(var(--accent-signature) / 0.08);
   }
 
   /* ==========================================
-     CARD SYSTEM - Rich depth, premium shadows
+     CARD SYSTEM - Aurora glass cards
      ========================================== */
   .card-elevated {
-    @apply transition-all duration-200 ease-out;
+    @apply transition-all duration-300 ease-out;
     box-shadow: 
-      0 4px 16px -4px hsl(0 0% 0% / 0.3),
-      0 0 0 1px hsl(var(--border) / 0.3);
+      0 8px 24px -6px hsl(0 0% 0% / 0.4),
+      0 0 0 1px hsl(var(--border) / 0.3),
+      inset 0 1px 0 hsl(210 40% 98% / 0.04);
   }
 
   .card-elevated:hover {
     box-shadow: 
-      0 8px 24px -6px hsl(0 0% 0% / 0.4),
-      0 0 0 1px hsl(var(--accent-signature) / 0.15);
+      0 12px 36px -8px hsl(0 0% 0% / 0.5),
+      0 0 0 1px hsl(var(--accent-signature) / 0.2),
+      0 0 40px -10px hsl(var(--accent-signature) / 0.15);
   }
 
   .card-interactive {
-    @apply transition-all duration-200 ease-out cursor-pointer;
+    @apply transition-all duration-300 ease-out cursor-pointer;
   }
 
   .card-interactive:hover {
     background: linear-gradient(
-      145deg,
-      hsl(var(--accent) / 0.5),
+      160deg,
+      hsl(var(--accent) / 0.6),
       hsl(var(--accent) / 0.3)
     );
-    border-color: hsl(var(--accent-signature) / 0.2);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px -8px hsl(0 0% 0% / 0.35);
+    border-color: hsl(var(--accent-signature) / 0.25);
+    transform: translateY(-3px);
+    box-shadow: 
+      0 12px 32px -8px hsl(0 0% 0% / 0.45),
+      0 0 0 1px hsl(var(--accent-signature) / 0.2),
+      0 0 48px -12px hsl(var(--accent-signature) / 0.12);
   }
 
   .card-hover-glow {
-    @apply transition-all duration-200;
+    @apply transition-all duration-300;
   }
 
   .card-hover-glow:hover {
     box-shadow: 
-      0 0 24px hsl(var(--accent-signature) / 0.12),
-      0 0 0 1px hsl(var(--accent-signature) / 0.15);
+      0 0 32px hsl(var(--accent-signature) / 0.15),
+      0 0 64px hsl(var(--accent-violet) / 0.08),
+      0 0 0 1px hsl(var(--accent-signature) / 0.2);
   }
 
-  /* Stat icon - amber accented */
+  /* Stat icon - aurora accented */
   .stat-icon-container {
-    @apply flex items-center justify-center h-9 w-9 rounded-lg;
-    background: linear-gradient(145deg, hsl(var(--accent-signature) / 0.18), hsl(var(--accent-signature) / 0.08));
+    @apply flex items-center justify-center h-10 w-10 rounded-xl;
+    background: linear-gradient(145deg, hsl(var(--accent-signature) / 0.2), hsl(var(--accent-violet) / 0.1));
     color: hsl(var(--accent-signature));
-    box-shadow: 0 2px 8px hsl(var(--accent-signature) / 0.1);
+    box-shadow: 
+      0 4px 12px hsl(var(--accent-signature) / 0.15),
+      inset 0 1px 0 hsl(210 40% 98% / 0.1);
   }
 
   /* ==========================================
@@ -702,21 +760,21 @@
   }
 
   /* ==========================================
-     STATUS DOT - Live Indicator with Glow
+     STATUS DOT - Live Indicator with aurora glow
      ========================================== */
   .status-dot {
-    @apply relative inline-flex h-2 w-2 rounded-full;
+    @apply relative inline-flex h-2.5 w-2.5 rounded-full;
   }
 
   .status-dot::before {
     content: '';
-    @apply absolute inset-0 rounded-full animate-ping opacity-50;
+    @apply absolute inset-0 rounded-full animate-ping opacity-40;
     background-color: inherit;
   }
 
   .status-dot-live {
     @apply bg-success;
-    box-shadow: 0 0 8px hsl(152 60% 48% / 0.5);
+    box-shadow: 0 0 12px hsl(160 75% 45% / 0.6);
   }
 
   .status-dot-offline {
@@ -725,25 +783,25 @@
 
   .status-dot-warning {
     @apply bg-warning;
-    box-shadow: 0 0 8px hsl(42 90% 55% / 0.5);
+    box-shadow: 0 0 12px hsl(45 95% 55% / 0.6);
   }
 
   .status-dot-primary {
     background: hsl(var(--primary));
-    box-shadow: 0 0 8px hsl(var(--primary) / 0.5);
+    box-shadow: 0 0 12px hsl(var(--primary) / 0.6);
   }
 
   /* ==========================================
-     SCROLLBAR - Nearly invisible
+     SCROLLBAR - Subtle aurora tint
      ========================================== */
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: hsl(var(--border) / 0.5) transparent;
+    scrollbar-color: hsl(var(--accent-signature) / 0.3) transparent;
   }
 
   .scrollbar-thin::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+    width: 6px;
+    height: 6px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-track {
@@ -751,19 +809,20 @@
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--border) / 0.4);
-    border-radius: 3px;
+    background: linear-gradient(180deg, hsl(var(--accent-signature) / 0.3), hsl(var(--accent-violet) / 0.2));
+    border-radius: 4px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background-color: hsl(var(--muted-foreground) / 0.3);
+    background: linear-gradient(180deg, hsl(var(--accent-signature) / 0.5), hsl(var(--accent-violet) / 0.3));
   }
 
   /* ==========================================
-     SKELETON LOADING
+     SKELETON LOADING - Aurora shimmer
      ========================================== */
   .skeleton {
-    @apply relative overflow-hidden bg-muted/40 rounded;
+    @apply relative overflow-hidden rounded-lg;
+    background: linear-gradient(90deg, hsl(var(--muted) / 0.5), hsl(var(--muted) / 0.3));
   }
 
   .skeleton::after {
@@ -772,9 +831,9 @@
     background: linear-gradient(
       90deg,
       transparent,
-      hsl(var(--foreground) / 0.02),
+      hsl(var(--accent-signature) / 0.05),
       transparent
     );
-    animation: shimmer 2.5s infinite;
+    animation: shimmer 2s infinite;
   }
 }
