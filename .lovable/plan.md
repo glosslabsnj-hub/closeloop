@@ -1,312 +1,345 @@
 
-# Make Dashboard Terms Industry-Aware
+# Smart Document Upload with Auto-Detection & Conflict Resolution
 
-## Overview
+## Summary
 
-This plan creates a centralized terminology system so all user-facing text automatically adapts based on the business mode (service, dispatch, food, medical, general). Instead of saying "bookings" for restaurants or "services" for medical practices, the UI will use contextually appropriate terms.
+You want a **smart upload system** where:
+1. User uploads a photo/document (menu, service list, hours sign, anything)
+2. AI automatically detects what type of document it is
+3. AI extracts structured data (items, prices, descriptions, categories)
+4. System compares against existing data and shows conflicts clearly
+5. Owner reviews with simple "Keep Mine" / "Accept Upload" / "Edit" options
 
----
-
-## Current State
-
-The codebase has scattered hardcoded terms that don't adapt to business mode:
-
-| Current Term | Service | Dispatch | Food | Medical | General |
-|-------------|---------|----------|------|---------|---------|
-| "Bookings" | Bookings | Jobs | Orders | Appointments | Bookings |
-| "Services" | Services | Services | Menu | Services | Offerings |
-| "Customer" | Customer | Customer | Guest | Patient | Customer |
-| "Booking created" | Booking created | Job dispatched | Order placed | Appointment scheduled | Booking created |
+The good news: **80% of the infrastructure already exists**. We need to enhance it with auto-detection and a better user experience.
 
 ---
 
-## Solution: Centralized Terminology Hook
+## What Already Exists
 
-Create a single source of truth for all industry-aware terms.
+| Component | Status | Location |
+|-----------|--------|----------|
+| Document upload UI | Built | `KnowledgeUploadHub.tsx` |
+| File storage (Supabase bucket) | Built | `knowledge-documents` bucket |
+| AI extraction edge function | Built | `process-knowledge-upload/index.ts` |
+| Image OCR support | Built | Uses Lovable AI vision |
+| Conflict detection logic | Built | Compares against existing services/menu items |
+| `knowledge_conflicts` table | Built | Stores differing data with side-by-side |
+| `extracted_knowledge_suggestions` table | Built | Stores new items awaiting approval |
+| Review Queue UI | Built | `BrainReviewQueue.tsx` with Accept/Reject/Merge |
 
-### New File: `src/lib/terminology.ts`
+---
+
+## What Needs to Be Built
+
+### 1. Auto-Detection Phase (No Manual Type Selection)
+
+**Current Flow:**
+```
+User selects "Menu" → Uploads photo → AI extracts menu items
+```
+
+**New Flow:**
+```
+User uploads photo → AI classifies document type → Extracts appropriate data
+```
+
+**Changes:**
+
+**A. New Auto-Classify Tool in Edge Function**
+
+Update `process-knowledge-upload/index.ts` to add a classification step before extraction:
 
 ```typescript
-// Centralized terminology mapping by business mode
-export interface IndustryTerms {
-  // Core entities
-  booking: string;
-  bookings: string;
-  service: string;
-  services: string;
-  customer: string;
-  customers: string;
-  
-  // Actions
-  bookingCreated: string;
-  viewBookings: string;
-  addService: string;
-  
-  // Page titles
-  bookingsPageTitle: string;
-  servicesPageTitle: string;
-  
-  // Setup steps
-  addServicesStep: string;
-  addServicesDescription: string;
-}
-
-const TERMINOLOGY: Record<BusinessMode, IndustryTerms> = {
-  service: {
-    booking: "booking",
-    bookings: "bookings",
-    service: "service",
-    services: "services",
-    customer: "customer",
-    customers: "customers",
-    bookingCreated: "Booking created",
-    viewBookings: "View Bookings",
-    addService: "Add Service",
-    bookingsPageTitle: "Schedule",
-    servicesPageTitle: "Services",
-    addServicesStep: "Add your services",
-    addServicesDescription: "What you offer and pricing",
-  },
-  dispatch: {
-    booking: "job",
-    bookings: "jobs",
-    service: "service",
-    services: "services",
-    customer: "customer",
-    customers: "customers",
-    bookingCreated: "Job dispatched",
-    viewBookings: "Dispatch Queue",
-    addService: "Add Service",
-    bookingsPageTitle: "Dispatch Queue",
-    servicesPageTitle: "Services",
-    addServicesStep: "Add your services",
-    addServicesDescription: "What jobs you handle and rates",
-  },
-  food: {
-    booking: "order",
-    bookings: "orders",
-    service: "menu item",
-    services: "menu",
-    customer: "guest",
-    customers: "guests",
-    bookingCreated: "Order placed",
-    viewBookings: "View Orders",
-    addService: "Add Menu Item",
-    bookingsPageTitle: "Orders",
-    servicesPageTitle: "Menu",
-    addServicesStep: "Add your menu",
-    addServicesDescription: "Items you serve and pricing",
-  },
-  medical: {
-    booking: "appointment",
-    bookings: "appointments",
-    service: "service",
-    services: "services",
-    customer: "patient",
-    customers: "patients",
-    bookingCreated: "Appointment scheduled",
-    viewBookings: "View Appointments",
-    addService: "Add Service",
-    bookingsPageTitle: "Appointments",
-    servicesPageTitle: "Services",
-    addServicesStep: "Add your services",
-    addServicesDescription: "Procedures and visit types",
-  },
-  general: {
-    booking: "booking",
-    bookings: "bookings",
-    service: "offering",
-    services: "offerings",
-    customer: "customer",
-    customers: "customers",
-    bookingCreated: "Booking created",
-    viewBookings: "View Bookings",
-    addService: "Add Offering",
-    bookingsPageTitle: "Bookings",
-    servicesPageTitle: "Offerings",
-    addServicesStep: "Add your offerings",
-    addServicesDescription: "What you provide and pricing",
-  },
+// Step 1: Classify the document
+const classifyTool = {
+  type: "function",
+  function: {
+    name: "classify_document",
+    description: "Classify what type of business document this is",
+    parameters: {
+      type: "object",
+      properties: {
+        document_type: {
+          type: "string",
+          enum: ["menu", "services", "pricing", "hours", "policies", "faq", "general"],
+          description: "The type of business document"
+        },
+        confidence: { type: "number", description: "0-1 confidence score" },
+        reasoning: { type: "string", description: "Brief explanation" }
+      },
+      required: ["document_type", "confidence"]
+    }
+  }
 };
 
-export function getTerminology(mode: BusinessMode): IndustryTerms {
-  return TERMINOLOGY[mode] || TERMINOLOGY.service;
-}
+// Call AI to classify first
+const classifyResponse = await fetch(aiGateway, {
+  body: JSON.stringify({
+    model: "google/gemini-2.5-flash",
+    messages: [
+      { role: "system", content: "You classify business documents. Look for menus, service lists, operating hours, policies, FAQs, or pricing sheets." },
+      { role: "user", content: [
+        { type: "text", text: "What type of business document is this?" },
+        { type: "image_url", image_url: { url: imageBase64 } }
+      ]}
+    ],
+    tools: [classifyTool],
+    tool_choice: { type: "function", function: { name: "classify_document" } }
+  })
+});
+
+const classification = parseToolCall(classifyResponse);
+// Now use classification.document_type for extraction
 ```
 
-### New Hook: `src/hooks/useTerminology.ts`
+**B. Simplified Upload UI**
+
+Update `KnowledgeUploadHub.tsx` to remove the document type dropdown and add an "auto-detect" mode:
 
 ```typescript
-import { useTenantConfig } from "@/hooks/useTenantConfig";
-import { getTerminology, IndustryTerms } from "@/lib/terminology";
+// Remove manual type selection
+// Just show a simple drop zone with smart messaging:
 
-export function useTerminology(): IndustryTerms {
-  const { businessMode } = useTenantConfig();
-  return getTerminology(businessMode);
-}
+<DropZone>
+  <Upload icon />
+  <p>Drop your menu, price list, or hours photo here</p>
+  <p className="text-xs text-muted-foreground">
+    We'll automatically figure out what it is
+  </p>
+</DropZone>
 ```
 
 ---
 
-## Files to Update
+### 2. Enhanced Conflict Resolution UI
 
-### 1. Dashboard Components
+The current `BrainReviewQueue` works but needs to be more intuitive. Enhance it with:
 
-| File | Changes |
-|------|---------|
-| `SetupProgressChecklist.tsx` | Use `terms.addServicesStep` instead of "Add your services" |
-| `QuickActionsCard.tsx` | Use `terms.viewBookings` instead of "View Bookings" |
-| `TodaySnapshot.tsx` | Use `terms.bookings` for metric labels |
-| `NeedsAttentionBanner.tsx` | Use `terms.booking` for "pending booking" |
-| `LiveActivityFeed.tsx` | Use `terms.bookingCreated` for activity titles |
+**A. Visual Side-by-Side Cards**
 
-### 2. Navigation & Layout
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  ⚠️ PRICE DIFFERENCE                                                    │
+│                                                                         │
+│  "Classic Burger"                                                       │
+│                                                                         │
+│  ┌──────────────────────┐    ┌──────────────────────┐                  │
+│  │  YOUR CURRENT VALUE  │    │   FROM UPLOAD        │                  │
+│  │  ──────────────────  │    │   ──────────────────  │                  │
+│  │  $12.99              │    │   $14.99             │                  │
+│  │                      │    │                      │                  │
+│  │  [KEEP THIS]         │    │  [USE THIS]          │                  │
+│  └──────────────────────┘    └──────────────────────┘                  │
+│                                                                         │
+│  [Edit & Merge] → Opens inline editor to type custom value             │
+└─────────────────────────────────────────────────────────────────────────┘
+```
 
-| File | Changes |
-|------|---------|
-| `AppLayout.tsx` | Make nav item labels adapt: "Bookings" → `terms.bookingsPageTitle` |
+**B. Batch Actions**
 
-### 3. Page Headers
+Add "Accept All New Items" and "Keep All Existing" buttons for bulk operations:
 
-| File | Changes |
-|------|---------|
-| `BookingsPage.tsx` | Already says "Schedule" - add subtitle with `terms.bookings` |
-| `ServicesPage.tsx` | Use `terms.servicesPageTitle` for page title |
+```typescript
+<div className="flex gap-2 mb-4">
+  <Button onClick={acceptAllProposals}>
+    Accept All {pendingCount} New Items
+  </Button>
+  <Button variant="outline" onClick={rejectAllProposals}>
+    Dismiss All
+  </Button>
+</div>
+```
 
-### 4. Settings Page
+**C. Progress Indicator**
 
-| File | Changes |
-|------|---------|
-| `SettingsPage.tsx` | "Bookings" in alerts → `terms.bookings` |
+Show how many items were extracted and how many need review:
+
+```
+Extracted from "menu-photo.jpg":
+├── 12 new items ready to add
+├── 3 items with price differences
+└── 5 items already matched (no action needed)
+```
 
 ---
 
-## Implementation Details
+### 3. New Extraction Types
 
-### Example: SetupProgressChecklist.tsx
+Add support for extracting:
 
-Before:
+**A. Operating Hours from Photos**
+
 ```typescript
+// New extraction tool for hours
 {
-  id: "services",
-  label: "Add your services",
-  description: "What you offer and pricing",
-  // ...
+  name: "extract_hours",
+  parameters: {
+    type: "object",
+    properties: {
+      hours: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            day: { type: "string", enum: ["monday", "tuesday", ...] },
+            open: { type: "string", description: "HH:MM format" },
+            close: { type: "string", description: "HH:MM format" },
+            closed: { type: "boolean" }
+          }
+        }
+      }
+    }
+  }
 }
 ```
 
-After:
-```typescript
-const terms = useTerminology();
+**B. Policies from Documents**
 
-{
-  id: "services",
-  label: terms.addServicesStep,
-  description: terms.addServicesDescription,
-  // ...
+Detect and extract cancellation, refund, and deposit policies.
+
+---
+
+## Implementation Plan
+
+### Phase 1: Auto-Detection (Edge Function)
+
+| File | Changes |
+|------|---------|
+| `supabase/functions/process-knowledge-upload/index.ts` | Add `classifyDocument()` step before extraction |
+| | Add new extraction tools for hours and policies |
+| | Improve conflict detection to compare more fields |
+| | Return classification confidence in response |
+
+### Phase 2: Simplified Upload UI
+
+| File | Changes |
+|------|---------|
+| `src/components/knowledge/KnowledgeUploadHub.tsx` | Remove document type dropdown |
+| | Add "auto-detect" mode as default |
+| | Show AI's detected type after processing |
+| | Add "Was this wrong? Change type" option |
+| `src/components/brain/BrainAssetsManager.tsx` | Update to show detected document type |
+
+### Phase 3: Enhanced Conflict Review
+
+| File | Changes |
+|------|---------|
+| `src/components/brain/BrainReviewQueue.tsx` | Improve side-by-side diff visualization |
+| | Add batch accept/reject all buttons |
+| | Add inline editing for custom values |
+| | Show extraction summary stats |
+| `src/hooks/useKnowledgeSuggestions.ts` | Add `approveAll()` and `rejectAll()` methods |
+| `src/hooks/useKnowledgeConflicts.ts` | Add batch resolution methods |
+
+### Phase 4: Hours & Policy Extraction
+
+| File | Changes |
+|------|---------|
+| `supabase/functions/process-knowledge-upload/index.ts` | Add hours extraction tool |
+| | Add policy extraction tool |
+| | Create conflicts for hours/policy differences |
+| `src/components/brain/BrainReviewQueue.tsx` | Add UI for reviewing hours conflicts |
+| | Add UI for reviewing policy conflicts |
+
+---
+
+## Database Tables (Already Exist)
+
+No new tables needed. Uses:
+
+- `knowledge_sources` - Tracks uploaded files
+- `extracted_knowledge_suggestions` - Stores AI-proposed new items
+- `knowledge_conflicts` - Stores differences with existing data
+- `knowledge_merge_queue` - Alternative queue (can consolidate)
+
+---
+
+## User Flow After Implementation
+
+```
+1. Owner takes photo of 4-page menu
+   ↓
+2. Drops all 4 photos into Business Brain → Upload
+   ↓
+3. System shows: "Processing 4 images..."
+   ↓
+4. AI classifies each: "Menu detected" ✓ ✓ ✓ ✓
+   ↓
+5. AI extracts: 47 items found
+   ↓
+6. System compares to existing 23 menu items
+   ↓
+7. Results:
+   - 15 new items (need approval)
+   - 8 price differences (need resolution)
+   - 24 items matched perfectly (auto-skipped)
+   ↓
+8. Owner sees Review Queue with:
+   - "Proposals" tab: 15 new items to accept/reject
+   - "Conflicts" tab: 8 price differences to resolve
+   ↓
+9. Owner clicks "Accept All New Items"
+   ↓
+10. Owner reviews 8 conflicts one by one:
+    - "Burger was $12.99, photo shows $14.99" → [Keep Current] [Accept Upload] [Edit]
+   ↓
+11. Done! Menu fully synced.
+```
+
+---
+
+## Technical Details
+
+### Auto-Classification Prompt
+
+```typescript
+const classifySystemPrompt = `You are a business document classifier. 
+Analyze the image and determine what type of business document it is.
+
+Categories:
+- "menu" - Restaurant/food menus with dishes and prices
+- "services" - Service catalogs for salons, contractors, etc.
+- "pricing" - General price lists
+- "hours" - Operating hours signs or schedules
+- "policies" - Cancellation, refund, deposit policies
+- "faq" - FAQ documents or info sheets
+- "general" - Other business documents
+
+Be confident in your classification. Look for visual cues like:
+- Menu: Food items, categories like Appetizers/Entrees, $X.XX prices
+- Services: Duration times, service names like "Haircut", "Plumbing Repair"
+- Hours: Days of week, open/close times
+`;
+```
+
+### Confidence Handling
+
+```typescript
+if (classification.confidence < 0.7) {
+  // Low confidence - ask user to confirm
+  return { needsConfirmation: true, suggestedType: classification.document_type };
 }
-```
-
-### Example: QuickActionsCard.tsx
-
-Before:
-```typescript
-case "service":
-case "general":
-default:
-  if (enabledModules.includes("booking")) {
-    actions.push({ label: "View Bookings", icon: Calendar, href: "/app/bookings" });
-  }
-```
-
-After:
-```typescript
-const terms = useTerminology();
-
-case "service":
-case "general":
-default:
-  if (enabledModules.includes("booking")) {
-    actions.push({ label: terms.viewBookings, icon: Calendar, href: "/app/bookings" });
-  }
-```
-
-### Example: AppLayout.tsx Nav Items
-
-Before:
-```typescript
-const allNavItems: NavItem[] = [
-  { href: "/app/bookings", label: "Bookings", icon: Calendar, requiredModules: ["booking"] },
-  // ...
-];
-```
-
-After (using a function to get dynamic labels):
-```typescript
-const getNavItems = (terms: IndustryTerms): NavItem[] => [
-  { href: "/app/bookings", label: terms.bookingsPageTitle, icon: Calendar, requiredModules: ["booking"] },
-  // ...
-];
-
-// In component:
-const terms = useTerminology();
-const navItems = useMemo(() => {
-  const baseItems = getNavItems(terms);
-  return baseItems.filter(/* existing filter logic */);
-}, [enabledModules, terms]);
+// High confidence - proceed automatically
 ```
 
 ---
 
-## Complete Term Mapping
+## What You Need To Do
 
-| Context | Service | Dispatch | Food | Medical | General |
-|---------|---------|----------|------|---------|---------|
-| **Nav label** | Bookings | Dispatch | Orders | Appointments | Bookings |
-| **Page title** | Schedule | Dispatch Queue | Orders | Appointments | Schedule |
-| **Quick action** | View Bookings | Dispatch Queue | View Orders | View Appointments | View Bookings |
-| **Setup step** | Add your services | Add your services | Add your menu | Add your services | Add your offerings |
-| **Attention item** | pending booking | pending job | new order | pending appointment | pending booking |
-| **Activity feed** | Booking created | Job dispatched | Order placed | Appointment scheduled | Booking created |
-| **Customer term** | customer | customer | guest | patient | customer |
+1. **Nothing special** - this is all buildable with existing infrastructure
+2. Ensure the Lovable AI gateway is working (already is via `LOVABLE_API_KEY`)
+3. Ensure storage bucket `knowledge-documents` is accessible (already is)
 
 ---
 
-## Files to Create/Modify
+## Expected Outcome
 
-| File | Action |
-|------|--------|
-| `src/lib/terminology.ts` | NEW - Centralized term definitions |
-| `src/hooks/useTerminology.ts` | NEW - Hook to access terms |
-| `src/components/layouts/AppLayout.tsx` | Update nav labels |
-| `src/components/dashboard/SetupProgressChecklist.tsx` | Use terms for steps |
-| `src/components/dashboard/QuickActionsCard.tsx` | Use terms for actions |
-| `src/components/dashboard/TodaySnapshot.tsx` | Use terms for metrics |
-| `src/components/dashboard/NeedsAttentionBanner.tsx` | Use terms for items |
-| `src/components/dashboard/LiveActivityFeed.tsx` | Use terms for activity |
-| `src/pages/app/BookingsPage.tsx` | Use terms for page text |
-| `src/pages/app/ServicesPage.tsx` | Use terms for page title |
-| `src/pages/app/SettingsPage.tsx` | Use terms in alerts section |
+After implementation:
 
----
+1. **Zero-friction uploads** - Just drop a photo, no type selection needed
+2. **Smart extraction** - AI figures out what the document is
+3. **Clear conflict resolution** - Side-by-side comparison with one-click choices
+4. **Batch operations** - Handle 50 items from a menu photo efficiently
+5. **Extensible** - Same pattern works for hours, policies, FAQs
 
-## Benefits
-
-1. **Single source of truth** - All terminology in one file
-2. **Easy to maintain** - Add new terms in one place
-3. **Consistent UX** - Users see familiar terms for their industry
-4. **Type-safe** - TypeScript ensures all terms are defined
-5. **Extensible** - Easy to add new business modes or terms
-
----
-
-## Implementation Order
-
-1. Create `src/lib/terminology.ts` with complete term mapping
-2. Create `src/hooks/useTerminology.ts` hook
-3. Update dashboard components (SetupProgressChecklist, QuickActionsCard, etc.)
-4. Update AppLayout nav labels
-5. Update page headers and titles
-6. Update settings and other secondary pages
-
-This is a low-risk change since it's purely presentational - no business logic or data changes.
+This turns a 4-page menu into structured data in under 2 minutes with minimal owner effort.
