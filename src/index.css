@@ -4,71 +4,71 @@
 
 /* =====================================================
    CloseLoop Design System - 2026/2027
-   Theme: "Warm Stone" - Business-Friendly, Calm, Premium
+   Theme: "Quiet Charcoal" - Emotionally Calm, Near-Monochrome
    ===================================================== */
 
 @layer base {
   :root {
     /* =====================================================
-       "Warm Executive" Theme - Trust-First, Business-Friendly
-       Steel blue accent, warm charcoal base, calm & professional
+       "Quiet Charcoal" Theme - Near-Monochrome, Business Tool
+       One muted accent, warm grays, invisible UI
        ===================================================== */
 
-    /* Core Background - Warm charcoal, slightly lifted for friendliness */
-    --background: 220 12% 9%;
-    --foreground: 220 15% 93%;
+    /* Core Background - Slightly lifted warm charcoal for comfort */
+    --background: 220 6% 11%;
+    --foreground: 220 8% 88%;
 
-    /* Cards - Subtle elevation through warmth */
-    --card: 220 10% 12%;
-    --card-foreground: 220 12% 92%;
+    /* Cards - Minimal contrast, spacing does the work */
+    --card: 220 5% 13%;
+    --card-foreground: 220 6% 86%;
 
-    --popover: 220 10% 13%;
-    --popover-foreground: 220 12% 92%;
+    --popover: 220 5% 14%;
+    --popover-foreground: 220 6% 88%;
 
-    /* Primary - Steel Blue (trust, professionalism, calm confidence) */
-    --primary: 215 55% 55%;
-    --primary-foreground: 220 20% 98%;
-    --primary-glow: 215 60% 62%;
+    /* Primary - Muted warm neutral (NOT blue, NOT green) */
+    /* Desaturated slate with warm undertone */
+    --primary: 220 8% 52%;
+    --primary-foreground: 220 6% 98%;
 
-    /* Secondary - Warm neutral panel */
-    --secondary: 220 8% 15%;
-    --secondary-foreground: 220 10% 82%;
+    /* Secondary - Nearly invisible panel */
+    --secondary: 220 5% 15%;
+    --secondary-foreground: 220 6% 72%;
 
     /* Muted - Soft, readable, never harsh */
-    --muted: 220 8% 14%;
-    --muted-foreground: 220 8% 60%;
+    --muted: 220 5% 16%;
+    --muted-foreground: 220 5% 55%;
 
-    /* Accent - Very subtle blue tint for highlights */
-    --accent: 215 20% 16%;
-    --accent-foreground: 215 40% 75%;
+    /* Accent - Barely visible tint for active states */
+    --accent: 220 6% 18%;
+    --accent-foreground: 220 6% 75%;
 
-    /* Status Colors - Reserved for meaning, not decoration */
-    --destructive: 0 60% 55%;
+    /* Status Colors - Informational only, muted */
+    --destructive: 0 45% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 152 50% 40%;
+    --success: 150 35% 42%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 85% 52%;
-    --warning-foreground: 38 90% 10%;
+    --warning: 38 60% 50%;
+    --warning-foreground: 38 80% 10%;
 
-    /* Borders & Inputs - Soft, stable */
-    --border: 220 8% 20%;
-    --input: 220 8% 14%;
-    --ring: 215 55% 55%;
+    /* Borders & Inputs - Very soft, minimal */
+    --border: 220 5% 20%;
+    --input: 220 5% 15%;
+    --ring: 220 8% 52%;
 
     /* Radius - Comfortable, not too round */
     --radius: 0.5rem;
 
-    /* Sidebar - Calm, grounded */
-    --sidebar-background: 220 12% 8%;
-    --sidebar-foreground: 220 10% 75%;
-    --sidebar-primary: 215 55% 55%;
-    --sidebar-primary-foreground: 220 20% 98%;
-    --sidebar-accent: 220 10% 14%;
-    --sidebar-accent-foreground: 220 10% 85%;
-    --sidebar-border: 220 8% 18%;
-    --sidebar-ring: 215 55% 55%;
+    /* Sidebar - Blends with background */
+    --sidebar-background: 220 6% 10%;
+    --sidebar-foreground: 220 5% 60%;
+    --sidebar-primary: 220 8% 52%;
+    --sidebar-primary-foreground: 220 6% 98%;
+    --sidebar-accent: 220 5% 16%;
+    --sidebar-accent-foreground: 220 5% 75%;
+    --sidebar-border: 220 5% 18%;
+    --sidebar-ring: 220 8% 52%;
   }
 }
 
@@ -85,29 +85,29 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Typography - Clean, Readable */
+  /* Typography - Clean, Readable - Hierarchy through size/weight only */
   h1 {
-    @apply text-2xl md:text-3xl font-semibold tracking-tight leading-tight;
+    @apply text-xl md:text-2xl font-medium tracking-tight leading-tight;
     text-wrap: balance;
   }
 
   h2 {
-    @apply text-xl md:text-2xl font-semibold tracking-tight leading-tight;
+    @apply text-lg md:text-xl font-medium tracking-tight leading-tight;
     text-wrap: balance;
   }
 
   h3 {
-    @apply text-lg font-medium tracking-tight leading-snug;
+    @apply text-base font-medium tracking-tight leading-snug;
     text-wrap: balance;
   }
 
   h4 {
-    @apply text-base font-medium leading-snug;
+    @apply text-sm font-medium leading-snug;
   }
 
   /* Focus states - Clear but not jarring */
   *:focus-visible {
-    @apply outline-none ring-2 ring-primary/70 ring-offset-2 ring-offset-background;
+    @apply outline-none ring-2 ring-primary/50 ring-offset-2 ring-offset-background;
   }
 
   /* Reduced motion support */
@@ -122,110 +122,104 @@
 
 @layer utilities {
   /* ==========================================
-     APP BACKGROUND - Stable, Professional
-     No gradients, no glow - just calm depth
+     APP BACKGROUND - Flat, Calm, Eye-Comfortable
+     No gradients, no vignettes - just stable charcoal
      ========================================== */
   .app-bg {
     position: relative;
     background: hsl(var(--background));
   }
   
-  /* Removed gradient wash - keeping it flat and stable */
   .app-bg::before {
     display: none;
   }
 
-  /* Legacy alias */
   .app-shell-bg {
     @apply app-bg;
   }
 
   /* ==========================================
-     SURFACE SYSTEM - Subtle, Spacious
-     Elevation through spacing, not contrast
+     SURFACE SYSTEM - Minimal Elevation
+     Spacing > Contrast, borders are optional
      ========================================== */
   .surface-1 {
     @apply relative rounded-lg;
     background: hsl(var(--card));
-    border: 1px solid hsl(var(--border) / 0.5);
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.08);
+    border: 1px solid hsl(var(--border) / 0.35);
     z-index: 1;
   }
 
   .surface-2 {
     @apply relative rounded-lg;
-    background: hsl(var(--card) / 0.85);
-    border: 1px solid hsl(var(--border) / 0.4);
+    background: hsl(var(--card) / 0.7);
+    border: 1px solid hsl(var(--border) / 0.25);
     z-index: 2;
   }
 
   .surface-3 {
     @apply relative rounded-lg;
     background: hsl(var(--popover));
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid hsl(var(--border) / 0.6);
-    box-shadow: 
-      0 4px 16px -4px rgba(0, 0, 0, 0.3),
-      0 2px 8px -2px rgba(0, 0, 0, 0.15);
+    border: 1px solid hsl(var(--border) / 0.4);
+    box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.25);
     z-index: 100;
   }
 
   /* ==========================================
-     TYPOGRAPHY UTILITIES
+     TYPOGRAPHY UTILITIES - Hierarchy through text only
      ========================================== */
   .micro-label {
-    @apply text-xs font-medium tracking-wide;
-    color: hsl(var(--muted-foreground) / 0.9);
+    @apply text-xs font-medium;
+    color: hsl(var(--muted-foreground) / 0.8);
   }
 
   .section-label {
-    @apply text-[11px] font-semibold uppercase tracking-widest;
-    color: hsl(var(--muted-foreground) / 0.7);
+    @apply text-[11px] font-medium uppercase tracking-wider;
+    color: hsl(var(--muted-foreground) / 0.6);
   }
 
   .text-content {
     @apply leading-relaxed;
   }
 
+  /* Metadata styling - smaller and lighter */
+  .text-meta {
+    @apply text-xs text-muted-foreground/70;
+  }
+
   /* ==========================================
-     FIELD / INPUT STYLING
+     FIELD / INPUT STYLING - Safe, Clear
      ========================================== */
   .field-inset {
     @apply relative rounded-lg;
     background: hsl(var(--input));
-    border: 1px solid hsl(var(--border) / 0.7);
-    box-shadow: inset 0 1px 2px 0 hsl(0 0% 0% / 0.12);
+    border: 1px solid hsl(var(--border) / 0.5);
   }
 
   .field-inset:focus-within {
-    border-color: hsl(var(--primary) / 0.6);
-    box-shadow: 
-      inset 0 1px 2px 0 hsl(0 0% 0% / 0.12),
-      0 0 0 3px hsl(var(--primary) / 0.12);
+    border-color: hsl(var(--primary) / 0.5);
+    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.08);
   }
 
   /* ==========================================
-     TAB PILL STYLING
+     TAB PILL STYLING - Subtle active state
      ========================================== */
   .tab-pill {
-    @apply relative inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200;
-    @apply text-muted-foreground hover:text-foreground hover:bg-muted/50;
+    @apply relative inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors duration-150;
+    @apply text-muted-foreground hover:text-foreground/80;
   }
 
   .tab-pill[data-state="active"] {
     @apply text-foreground;
-    background: hsl(var(--muted));
-    box-shadow: 0 1px 2px 0 hsl(0 0% 0% / 0.15);
+    background: hsl(var(--muted) / 0.6);
   }
 
   /* ==========================================
-     TABLE TOOLBAR PATTERN
+     TABLE TOOLBAR PATTERN - Quiet background
      ========================================== */
   .table-toolbar {
-    @apply flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-5 p-3 rounded-xl;
-    background: hsl(var(--muted) / 0.4);
-    border: 1px solid hsl(var(--border) / 0.4);
+    @apply flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6 p-3 rounded-lg;
+    background: hsl(var(--muted) / 0.25);
+    border: 1px solid hsl(var(--border) / 0.25);
   }
 
   .table-toolbar-search {
@@ -241,156 +235,148 @@
   }
 
   /* ==========================================
-     STATUS BADGES - Soft, Readable
+     STATUS BADGES - Informational only, muted
      ========================================== */
   .status-soft-success {
-    @apply bg-success/12 text-success border-success/25;
+    @apply bg-success/8 text-success/90 border-success/15;
   }
 
   .status-soft-warning {
-    @apply bg-warning/12 text-warning border-warning/25;
+    @apply bg-warning/8 text-warning/90 border-warning/15;
   }
 
   .status-soft-destructive {
-    @apply bg-destructive/12 text-destructive border-destructive/25;
+    @apply bg-destructive/8 text-destructive/90 border-destructive/15;
   }
 
   .status-soft-primary {
-    @apply bg-primary/12 text-primary border-primary/25;
+    @apply bg-muted text-foreground/80 border-border/30;
   }
 
   .status-soft-muted {
-    @apply bg-muted text-muted-foreground border-border/50;
+    @apply bg-muted/50 text-muted-foreground border-border/25;
   }
 
-  /* Priority accent bar */
+  /* Priority accent bar - subtle */
   .priority-accent-urgent {
-    @apply border-l-2 border-l-destructive;
+    @apply border-l-2 border-l-destructive/60;
   }
 
   .priority-accent-high {
-    @apply border-l-2 border-l-warning;
+    @apply border-l-2 border-l-warning/60;
   }
 
   .priority-accent-normal {
-    @apply border-l-2 border-l-primary/50;
+    @apply border-l-2 border-l-border;
   }
 
   /* ==========================================
-     PAGE LAYOUT PATTERNS - More Breathing Room
+     PAGE LAYOUT PATTERNS - Generous Breathing Room
      ========================================== */
   .page-header {
-    @apply mb-10;
+    @apply mb-12;
   }
   
   .page-title {
-    @apply text-xl md:text-2xl font-semibold tracking-tight;
+    @apply text-lg md:text-xl font-medium tracking-tight;
     color: hsl(var(--foreground));
   }
   
   .page-subtitle {
     @apply mt-2 text-sm leading-relaxed;
-    color: hsl(var(--muted-foreground));
+    color: hsl(var(--muted-foreground) / 0.8);
   }
 
   .page-max-width {
-    @apply max-w-[1200px] mx-auto;
+    @apply max-w-[1100px] mx-auto;
   }
 
-  /* Sticky header - softer */
+  /* Sticky header - minimal */
   .sticky-header {
     @apply sticky top-0 z-30 py-4 -mx-4 px-4 md:-mx-6 md:px-6;
-    background: hsl(var(--background) / 0.95);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border-bottom: 1px solid hsl(var(--border) / 0.25);
+    background: hsl(var(--background) / 0.98);
+    border-bottom: 1px solid hsl(var(--border) / 0.15);
   }
 
   /* ==========================================
-     GRADIENTS - Removed in favor of flat design
+     GRADIENTS - All flat, no gradients
      ========================================== */
   .gradient-primary {
     background: hsl(var(--primary));
   }
 
   .gradient-primary-subtle {
-    background: hsl(var(--primary) / 0.08);
+    background: hsl(var(--muted) / 0.5);
   }
 
   .gradient-hero {
-    background: hsl(var(--primary));
+    background: hsl(var(--muted));
   }
 
   .gradient-subtle {
     background: hsl(var(--background));
   }
 
-  /* Button hover - subtle, no glow */
+  /* Button hover - barely visible */
   .btn-glow {
     position: relative;
-    transition: all 0.15s ease;
+    transition: all 0.1s ease;
   }
 
   .btn-glow:hover {
-    filter: brightness(1.03);
+    filter: brightness(1.02);
   }
 
   /* ==========================================
-     GLASS EFFECTS - Very Subtle (avoid sci-fi look)
+     GLASS EFFECTS - Removed, use surfaces instead
      ========================================== */
   .glass {
-    @apply bg-card/80 border border-border/40;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    @apply bg-card border border-border/30;
   }
 
   .glass-strong {
-    @apply bg-card/90 border border-border/50;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    @apply bg-card border border-border/40;
   }
 
-  /* Mobile nav - calm, grounded */
+  /* Mobile nav - blends in */
   .mobile-nav-floating {
     @apply fixed bottom-0 left-0 right-0 z-50;
     background: hsl(var(--background));
-    border-top: 1px solid hsl(var(--border) / 0.4);
-    box-shadow: 0 -2px 12px -2px rgba(0, 0, 0, 0.2);
+    border-top: 1px solid hsl(var(--border) / 0.3);
   }
 
   /* ==========================================
-     CARD SYSTEM - Calm, Spacious
+     CARD SYSTEM - Quiet, Spacious
      ========================================== */
   .card-elevated {
-    @apply shadow-soft transition-all duration-150 ease-out;
+    @apply transition-all duration-100 ease-out;
   }
 
   .card-interactive {
-    @apply transition-all duration-150 ease-out cursor-pointer;
-    @apply hover:bg-muted/30;
-    @apply active:scale-[0.995];
+    @apply transition-colors duration-100 ease-out cursor-pointer;
+    @apply hover:bg-muted/20;
   }
 
   .card-hover-glow {
-    @apply transition-all duration-150 hover:border-border;
+    @apply transition-colors duration-100;
   }
 
-  /* Stat icon container - subtle, not attention-grabbing */
+  /* Stat icon container - invisible */
   .stat-icon-container {
-    @apply flex items-center justify-center h-10 w-10 rounded-lg;
-    background: hsl(var(--muted));
-    color: hsl(var(--muted-foreground));
+    @apply flex items-center justify-center h-9 w-9 rounded-lg;
+    background: hsl(var(--muted) / 0.5);
+    color: hsl(var(--muted-foreground) / 0.7);
   }
 
   /* ==========================================
-     SECTION SPACING - More Breathing Room
+     SECTION SPACING - Maximum Breathing Room
      ========================================== */
   .section-gap {
-    @apply space-y-8 md:space-y-10;
+    @apply space-y-10 md:space-y-12;
   }
 
   .section-gap-sm {
-    @apply space-y-5 md:space-y-7;
+    @apply space-y-6 md:space-y-8;
   }
 
   /* ==========================================
