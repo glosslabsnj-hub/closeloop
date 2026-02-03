@@ -75,8 +75,14 @@ export function AdminModeProvider({ children }: { children: ReactNode }) {
 
 export function useAdminMode() {
   const context = useContext(AdminModeContext);
+  // Return null if not within provider - allows component to check
+  return context;
+}
+
+export function useAdminModeRequired() {
+  const context = useContext(AdminModeContext);
   if (context === undefined) {
-    throw new Error("useAdminMode must be used within an AdminModeProvider");
+    throw new Error("useAdminModeRequired must be used within an AdminModeProvider");
   }
   return context;
 }

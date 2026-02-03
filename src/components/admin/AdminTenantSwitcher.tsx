@@ -24,9 +24,12 @@ import type { Tenant } from "@/types/database";
 
 export function AdminTenantSwitcher() {
   const { user, isSuperAdmin, effectiveTenantId, setActiveTenantId } = useAuth();
-  const { selectedMode } = useAdminMode();
+  const adminModeContext = useAdminMode();
   const [isLoading, setIsLoading] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  
+  // Get selectedMode, default to "service" if context not available
+  const selectedMode = adminModeContext?.selectedMode ?? "service";
 
   // Fetch tenants filtered by selected mode
   const { data: tenants, refetch: refetchTenants } = useQuery({
