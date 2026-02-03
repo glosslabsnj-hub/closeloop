@@ -1,5 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -312,70 +313,75 @@ export function DashboardHeroCard() {
   ];
 
   return (
-    <Card className={`overflow-hidden transition-all ${
+    <Card className={cn(
+      "overflow-hidden transition-all duration-300 animate-fade-in",
       isAnyActive 
-        ? "border-primary/40 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 shadow-lg shadow-primary/5" 
-        : "border-border"
-    }`}>
+        ? "border-primary/30 bg-gradient-to-br from-primary/[0.04] via-transparent to-primary/[0.06]" 
+        : "border-border/60"
+    )}>
       <CardContent className="p-0">
         {/* Top Section: Agent Status */}
-        <div className="p-6 pb-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className={`relative flex items-center justify-center h-14 w-14 rounded-2xl transition-colors ${
+        <div className="p-4 md:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "relative flex items-center justify-center h-12 w-12 rounded-xl transition-all duration-300",
                 isAnyActive 
-                  ? "bg-primary text-primary-foreground" 
+                  ? "bg-primary text-primary-foreground shadow-glow" 
                   : "bg-muted text-muted-foreground"
-              }`}>
-                {hasVoice ? <Phone className="h-7 w-7" /> : <MessageSquare className="h-7 w-7" />}
+              )}>
+                {hasVoice ? <Phone className="h-5 w-5" /> : <MessageSquare className="h-5 w-5" />}
                 {isAnyActive && (
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-4 w-4 bg-primary border-2 border-background"></span>
+                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-success border-2 border-card"></span>
                   </span>
                 )}
               </div>
-              <div>
+              <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="font-semibold text-lg">AI Agent</h2>
-                  <Badge variant={isAnyActive ? "default" : "secondary"} className="text-xs">
+                  <h2 className="font-semibold text-base">AI Agent</h2>
+                  <Badge 
+                    variant={isAnyActive ? "success" : "muted"} 
+                    size="sm"
+                    className={cn(isAnyActive && "status-dot-live")}
+                  >
                     {isAnyActive ? "Live" : "Paused"}
                   </Badge>
                   {hasVoice && hasSms && (
-                    <Badge variant="outline" className="text-xs">Voice + SMS</Badge>
+                    <Badge variant="outline" size="sm" className="hidden sm:inline-flex">Voice + SMS</Badge>
                   )}
                 </div>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <p className="text-sm text-muted-foreground">
-                    {isAnyActive 
-                      ? hasVoice && hasSms
-                        ? `Answering calls & texts for ${tenant?.name || "your business"}`
-                        : hasVoice
-                          ? `Answering calls for ${tenant?.name || "your business"}`
-                          : `Sending instant text-backs for ${tenant?.name || "your business"}`
-                      : hasVoice 
-                        ? "Toggle to start answering calls"
-                        : "Toggle to enable instant text responses"
-                    }
-                  </p>
-                  {closeloopNumber && (
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-6 w-6 shrink-0"
-                      onClick={copyPhoneNumber}
-                    >
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                  )}
-                </div>
+                <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[240px]">
+                  {isAnyActive 
+                    ? hasVoice && hasSms
+                      ? `Handling calls & texts for ${tenant?.name || "your business"}`
+                      : hasVoice
+                        ? `Answering calls for ${tenant?.name || "your business"}`
+                        : `Text-backs for ${tenant?.name || "your business"}`
+                    : hasVoice 
+                      ? "Toggle to start answering calls"
+                      : "Enable instant text responses"
+                  }
+                </p>
               </div>
             </div>
-            <Switch
-              checked={isAnyActive}
-              onCheckedChange={handleToggle}
-              className="mt-1"
-            />
+            <div className="flex items-center gap-2">
+              {closeloopNumber && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  onClick={copyPhoneNumber}
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+              )}
+              <Switch
+                checked={isAnyActive}
+                onCheckedChange={handleToggle}
+              />
+            </div>
           </div>
 
           {/* Quick Actions */}
@@ -383,54 +389,54 @@ export function DashboardHeroCard() {
             <Button
               variant="outline"
               size="sm"
-              className="gap-2"
+              className="h-8 gap-1.5 text-xs"
               onClick={() => navigate("/app/simulator")}
             >
-              <Play className="h-4 w-4" />
-              Test AI
+              <Play className="h-3.5 w-3.5" />
+              Test
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="gap-2"
+              className="h-8 gap-1.5 text-xs"
               onClick={() => navigate("/app/business-brain")}
             >
-              <Brain className="h-4 w-4" />
-              Add Knowledge
+              <Brain className="h-3.5 w-3.5" />
+              Knowledge
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="gap-2"
-              onClick={() => navigate("/app/calls")}
+              className="h-8 gap-1.5 text-xs"
+              onClick={() => navigate("/app/inbox?tab=calls")}
             >
-              <Phone className="h-4 w-4" />
-              View Calls
+              <Phone className="h-3.5 w-3.5" />
+              Calls
             </Button>
           </div>
         </div>
 
         {/* Middle Section: Busyness Slider */}
         <TooltipProvider>
-          <div className="border-t border-border/50 bg-muted/20 px-6 py-4">
-            <div className="flex items-center gap-3 mb-3">
-              <Gauge className="h-4 w-4 text-muted-foreground" />
-              <Label className="text-sm font-medium flex items-center gap-1.5">
-                Today's Busyness
+          <div className="border-t border-border/40 bg-muted/15 px-4 md:px-5 py-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Gauge className="h-3.5 w-3.5 text-muted-foreground/70" />
+              <Label className="text-xs font-medium flex items-center gap-1">
+                Busyness
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                    <HelpCircle className="h-3 w-3 text-muted-foreground/50 cursor-help" />
                   </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs">
-                    <p>Tells the AI how busy you are today. Higher = AI prioritizes urgent requests and offers callbacks for non-urgent ones.</p>
+                  <TooltipContent side="top" className="max-w-xs text-xs">
+                    <p>Higher values make AI prioritize urgent requests and offer callbacks.</p>
                   </TooltipContent>
                 </Tooltip>
               </Label>
-              <span className="text-sm font-semibold tabular-nums ml-auto">
+              <span className="text-xs font-semibold tabular-nums ml-auto text-muted-foreground">
                 {busynessLevel}%
               </span>
               {busynessSaving && (
-                <Badge variant="outline" className="text-xs">Saving...</Badge>
+                <Badge variant="muted" size="sm">Saving...</Badge>
               )}
             </div>
             <Slider
@@ -442,23 +448,26 @@ export function DashboardHeroCard() {
               className="w-full"
               disabled={busynessSaving}
             />
-            <p className="text-xs text-muted-foreground mt-2">
+            <p className="text-[11px] text-muted-foreground/60 mt-1.5">
               {getBusynessHelperText(busynessLevel)}
             </p>
           </div>
         </TooltipProvider>
 
         {/* Bottom Section: Metrics Strip */}
-        <div className="border-t border-border/50 bg-muted/30 px-6 py-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="border-t border-border/40 bg-muted/25 px-4 md:px-5 py-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             {metrics.map((metric) => (
-              <div key={metric.label} className="flex items-center gap-3">
-                <div className={`flex items-center justify-center h-9 w-9 rounded-lg ${metric.iconBg}`}>
-                  <metric.icon className={`h-4 w-4 ${metric.iconColor}`} />
+              <div key={metric.label} className="flex items-center gap-2.5 group">
+                <div className={cn(
+                  "flex items-center justify-center h-8 w-8 rounded-lg transition-transform duration-200 group-hover:scale-105",
+                  metric.iconBg
+                )}>
+                  <metric.icon className={cn("h-4 w-4", metric.iconColor)} />
                 </div>
-                <div>
-                  <p className="text-lg font-bold leading-none">{metric.value}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{metric.label}</p>
+                <div className="min-w-0">
+                  <p className="text-base font-bold leading-none tabular-nums">{metric.value}</p>
+                  <p className="text-[10px] text-muted-foreground/70 mt-0.5 truncate">{metric.label}</p>
                 </div>
               </div>
             ))}

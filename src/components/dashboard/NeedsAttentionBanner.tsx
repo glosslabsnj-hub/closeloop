@@ -102,21 +102,18 @@ export function NeedsAttentionBanner() {
   const primaryItem = items[0];
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl bg-warning/10 border border-warning/30 animate-fade-in">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl bg-warning/8 border border-warning/20 animate-fade-in backdrop-blur-sm">
       <div className="flex items-center gap-3 flex-1 min-w-0">
-        <div className="h-10 w-10 rounded-xl bg-warning/20 flex items-center justify-center shrink-0">
-          <AlertCircle className="h-5 w-5 text-warning" />
+        <div className="h-9 w-9 rounded-lg bg-warning/15 flex items-center justify-center shrink-0">
+          <AlertCircle className="h-4 w-4 text-warning" />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-warning">Needs Attention</p>
-          <p className="text-xs text-warning/70 mb-1">
-            These items need your attention to keep your business running smoothly
-          </p>
-          <p className="text-sm text-warning/80 truncate">
+          <p className="text-sm font-medium text-warning">Needs Attention</p>
+          <p className="text-xs text-warning/60 truncate">
             {items.map((item, i) => (
               <span key={item.href}>
                 {item.count} {item.label}
-                {i < items.length - 1 && " • "}
+                {i < items.length - 1 && " · "}
               </span>
             ))}
           </p>
@@ -124,11 +121,11 @@ export function NeedsAttentionBanner() {
       </div>
       <Button 
         size="sm"
-        className="bg-warning hover:bg-warning/90 text-warning-foreground shrink-0"
+        className="bg-warning hover:bg-warning/90 text-warning-foreground shrink-0 h-8 text-xs font-medium"
         onClick={() => navigate(primaryItem.href)}
       >
-        View {primaryItem.label.split(" ").pop()}
-        <ArrowRight className="h-4 w-4 ml-1" />
+        Review
+        <ArrowRight className="h-3 w-3 ml-1" />
       </Button>
     </div>
   );
