@@ -11,12 +11,14 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ArrowUpRight, Check, Loader2, TrendingUp } from "lucide-react";
+import { ArrowUpRight, Check, Loader2, TrendingUp, MapPin } from "lucide-react";
 import {
   getLadderStep,
   getLadderStepsForTier,
   getTierInfo,
   formatPrice,
+  mapLegacyToNewSku,
+  LOCATION_ADD_ONS,
   type PlanSku,
   type PlanLadderStep,
 } from "@/config/pricing";
@@ -29,10 +31,12 @@ export function PlanUpgradeCard() {
   const [selectedUpgradeSku, setSelectedUpgradeSku] = useState<PlanSku | null>(null);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
 
-  const currentStep = planSku ? getLadderStep(planSku) : null;
+  // Map legacy SKU if needed
+  const mappedSku = planSku ? mapLegacyToNewSku(planSku) : null;
+  const currentStep = mappedSku ? getLadderStep(mappedSku) : null;
   const tierInfo = currentStep ? getTierInfo(currentStep.tier) : null;
   const tierSteps = currentStep ? getLadderStepsForTier(currentStep.tier) : [];
-  const currentIndex = tierSteps.findIndex(s => s.sku === planSku);
+  const currentIndex = tierSteps.findIndex(s => s.sku === mappedSku);
 
   const handleUpgrade = async () => {
     if (!tenant?.id || !selectedUpgradeSku) return;
@@ -42,24 +46,19 @@ export function PlanUpgradeCard() {
       const newStep = getLadderStep(selectedUpgradeSku);
       if (!newStep) throw new Error("Invalid SKU");
 
-      // Update subscription with new plan
+      // Update subscription with new plan (cast to any for DB type compatibility)
       const { error } = await supabase
         .from("subscriptions")
         .update({
-          plan_code: selectedUpgradeSku,
+          plan_code: selectedUpgradeSku as string,
           included_minutes: newStep.includedMinutes,
           included_sms_segments: newStep.includedSmsSegments,
           overage_minute_rate_cents: newStep.overageMinuteRate ? Math.round(newStep.overageMinuteRate * 100) : null,
-          overage_sms_rate_cents: Math.round(newStep.overageSmsRate * 100),
-        })
+          overage_sms_rate_cents: Math.round((newStep.overageSmsRate || 0) * 100),
+        } as any)
         .eq("tenant_id", tenant.id);
 
       if (error) throw error;
-
-      // In production, this would also update the Stripe subscription
-      // await supabase.functions.invoke("update-stripe-subscription", {
-      //   body: { tenant_id: tenant.id, new_sku: selectedUpgradeSku }
-      // });
 
       toast.success(`Upgraded to ${newStep.name}!`, {
         description: `Your new included limits are now active.`,
@@ -80,7 +79,7 @@ export function PlanUpgradeCard() {
     return null;
   }
 
-  const totalOverage = (usage?.projectedVoiceOverage || 0) + (usage?.projectedSmsOverage || 0);
+  const totalOverage = usage?.projectedVoiceOverage || 0;
   const availableUpgrades = tierSteps.slice(currentIndex + 1);
 
   return (
@@ -91,9 +90,7 @@ export function PlanUpgradeCard() {
             <CardTitle>Current Plan</CardTitle>
             <CardDescription>{tierInfo.displayName}</CardDescription>
           </div>
-          <Badge variant={subscription.status === "trialing" ? "secondary" : "default"}>
-            {subscription.status === "trialing" ? "Trial" : "Active"}
-          </Badge>
+          <Badge variant="default">Active</Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -104,40 +101,40 @@ export function PlanUpgradeCard() {
             <span className="font-bold text-xl">{formatPrice(currentStep.price)}/mo</span>
           </div>
           <div className="text-sm text-muted-foreground">
-            {currentStep.includedMinutes && `${currentStep.includedMinutes.toLocaleString()} minutes`}
-            {currentStep.includedMinutes && currentStep.includedSmsSegments && " + "}
-            {currentStep.includedSmsSegments && `${currentStep.includedSmsSegments.toLocaleString()} SMS`}
-            {" included"}
+            {currentStep.includedMinutes?.toLocaleString()} pooled minutes included
+          </div>
+          {currentStep.overageMinuteRate && (
+            <div className="text-sm text-muted-foreground">
+              Overage rate: ${currentStep.overageMinuteRate}/min
+            </div>
+          )}
+        </div>
+
+        {/* Location Info */}
+        <div className="p-3 rounded-lg bg-muted/50 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm">Locations</span>
+          </div>
+          <div className="text-sm">
+            <span className="font-medium">1 location</span>
+            <span className="text-muted-foreground"> • Additional: ${LOCATION_ADD_ONS.voice}/mo each</span>
           </div>
         </div>
 
         {/* Usage Summary */}
-        {usage && (
+        {usage && hasVoice && usage.includedMinutes !== null && (
           <div className="space-y-3">
-            {hasVoice && usage.includedMinutes !== null && (
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Voice minutes</span>
-                  <span>{usage.voiceMinutesUsed.toLocaleString()} / {usage.includedMinutes.toLocaleString()}</span>
-                </div>
-                <Progress 
-                  value={usage.voicePercentUsed} 
-                  className={usage.voicePercentUsed >= 90 ? "bg-destructive/20" : ""}
-                />
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span>Voice minutes</span>
+                <span>{usage.voiceMinutesUsed.toLocaleString()} / {usage.includedMinutes.toLocaleString()}</span>
               </div>
-            )}
-            {hasSms && usage.includedSmsSegments !== null && (
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span>SMS segments</span>
-                  <span>{usage.smsSegmentsUsed.toLocaleString()} / {usage.includedSmsSegments.toLocaleString()}</span>
-                </div>
-                <Progress 
-                  value={usage.smsPercentUsed}
-                  className={usage.smsPercentUsed >= 90 ? "bg-destructive/20" : ""}
-                />
-              </div>
-            )}
+              <Progress 
+                value={usage.voicePercentUsed} 
+                className={usage.voicePercentUsed >= 90 ? "bg-destructive/20" : ""}
+              />
+            </div>
             {totalOverage > 0 && (
               <div className="flex items-center justify-between p-3 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400">
                 <span className="text-sm font-medium">Projected overage this period</span>
@@ -153,7 +150,7 @@ export function PlanUpgradeCard() {
             <div className="border-t pt-4">
               <div className="flex items-center gap-2 mb-3">
                 <TrendingUp className="h-4 w-4 text-primary" />
-                <span className="font-medium">Upgrade for more included usage</span>
+                <span className="font-medium">Upgrade for more minutes</span>
               </div>
               
               <div className="space-y-2">
@@ -173,9 +170,7 @@ export function PlanUpgradeCard() {
                       <div>
                         <div className="font-medium">{step.name}</div>
                         <div className="text-sm text-muted-foreground">
-                          {step.includedMinutes && `${step.includedMinutes.toLocaleString()} min`}
-                          {step.includedMinutes && step.includedSmsSegments && " + "}
-                          {step.includedSmsSegments && `${step.includedSmsSegments.toLocaleString()} SMS`}
+                          {step.includedMinutes?.toLocaleString()} pooled minutes
                         </div>
                       </div>
                       <div className="text-right">
@@ -199,10 +194,8 @@ export function PlanUpgradeCard() {
 
         {/* Overage Rates */}
         <div className="text-xs text-muted-foreground border-t pt-4">
-          <strong>Overage rates:</strong>{" "}
-          {currentStep.overageMinuteRate && `$${currentStep.overageMinuteRate.toFixed(2)}/min`}
-          {currentStep.overageMinuteRate && currentStep.overageSmsRate && " • "}
-          {currentStep.overageSmsRate && `$${currentStep.overageSmsRate.toFixed(2)}/SMS`}
+          <strong>Overage rate:</strong>{" "}
+          {currentStep.overageMinuteRate ? `$${currentStep.overageMinuteRate.toFixed(2)}/min` : "N/A"}
         </div>
       </CardContent>
 
@@ -212,7 +205,7 @@ export function PlanUpgradeCard() {
           <DialogHeader>
             <DialogTitle>Confirm Plan Upgrade</DialogTitle>
             <DialogDescription>
-              You're upgrading to a plan with more included usage.
+              You're upgrading to a plan with more included minutes.
             </DialogDescription>
           </DialogHeader>
           
@@ -252,13 +245,13 @@ export function PlanUpgradeCard() {
                     {newStep.includedMinutes && (
                       <li className="flex items-center gap-2">
                         <Check className="h-3 w-3 text-primary" />
-                        {newStep.includedMinutes.toLocaleString()} voice minutes
+                        {newStep.includedMinutes.toLocaleString()} pooled voice minutes
                       </li>
                     )}
-                    {newStep.includedSmsSegments && (
+                    {newStep.overageMinuteRate && (
                       <li className="flex items-center gap-2">
                         <Check className="h-3 w-3 text-primary" />
-                        {newStep.includedSmsSegments.toLocaleString()} SMS segments
+                        Lower overage rate: ${newStep.overageMinuteRate}/min
                       </li>
                     )}
                   </ul>
