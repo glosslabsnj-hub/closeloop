@@ -248,12 +248,12 @@ function AppLayoutContent() {
 
   return (
     <TooltipProvider delayDuration={0}>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen app-shell-bg">
         {/* Admin Mode Switcher Banner */}
         <AdminModeSwitcher />
         
         {/* Top Navigation - Mobile First */}
-        <header className="sticky top-0 z-50 border-b border-border/60 bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/85">
+        <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
           <div className="flex h-14 items-center justify-between px-3 md:px-5">
             <div className="flex items-center gap-2">
               {/* Sidebar Toggle Button - Desktop Only */}
@@ -261,7 +261,7 @@ function AppLayoutContent() {
                 variant="ghost"
                 size="icon"
                 onClick={toggleSidebar}
-                className="hidden md:flex h-8 w-8 hover:bg-muted/60"
+                className="hidden md:flex h-8 w-8 hover:bg-muted/50"
                 aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
               >
                 {sidebarCollapsed ? (
@@ -272,7 +272,7 @@ function AppLayoutContent() {
               </Button>
               
               <Link to="/app/dashboard" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary shadow-sm">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-primary shadow-soft">
                   <Phone className="h-4 w-4 text-primary-foreground" />
                 </div>
                 <span className="font-semibold text-sm hidden sm:inline truncate max-w-[140px]">{displayTenant?.name || "CloseLoop"}</span>
@@ -286,25 +286,25 @@ function AppLayoutContent() {
               <NotificationBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 hover:ring-2 hover:ring-primary/10 transition-all">
+                  <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 hover:ring-2 hover:ring-primary/20 transition-all">
                     <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                      <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold">
                         {user.email?.[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52">
-                  <div className="px-3 py-2.5 border-b border-border/50">
+                <DropdownMenuContent align="end" className="w-52 surface-3">
+                  <div className="px-3 py-2.5 border-b border-border/30">
                     <p className="text-sm font-medium truncate">{user.email}</p>
                     <p className="text-xs text-muted-foreground truncate mt-0.5">{displayTenant?.name}</p>
                   </div>
-                  <DropdownMenuItem onClick={() => navigate("/app/settings")} className="cursor-pointer py-2">
+                  <DropdownMenuItem onClick={() => navigate("/app/settings")} className="cursor-pointer py-2.5">
                     <Settings className="mr-2 h-4 w-4 opacity-60" />
                     Settings
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer py-2">
+                  <DropdownMenuSeparator className="bg-border/30" />
+                  <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer py-2.5">
                     <LogOut className="mr-2 h-4 w-4" />
                     Log out
                   </DropdownMenuItem>
@@ -315,16 +315,17 @@ function AppLayoutContent() {
         </header>
 
         {/* Main Content */}
-        <div className="flex">
+        <div className="flex relative z-10">
           {/* Desktop Sidebar - Collapsible, hidden in focus mode */}
           {!hideSidebar && (
             <aside 
               className={cn(
-                "hidden md:flex flex-col fixed left-0 top-16 bottom-0 border-r border-border/60 bg-sidebar transition-all duration-300 ease-out",
+                "hidden md:flex flex-col fixed left-0 top-14 bottom-0 border-r border-border/40 transition-all duration-300 ease-out",
+                "bg-sidebar/95 backdrop-blur-xl",
                 sidebarCollapsed ? "w-14" : "w-60"
               )}
             >
-            <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
+            <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
               {navItems.map((item, index) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.href;
@@ -337,18 +338,18 @@ function AppLayoutContent() {
                     key={item.href}
                     to={isLocked ? "/app/go-live" : item.href}
                     className={cn(
-                      "group flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-200",
-                      sidebarCollapsed ? "px-2.5 py-2.5 justify-center" : "px-3 py-2",
+                      "group flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-200 relative",
+                      sidebarCollapsed ? "px-2.5 py-2.5 justify-center" : "px-3 py-2.5",
                       isActive
-                        ? "bg-primary/15 text-primary border border-primary/20"
+                        ? "bg-primary/15 text-primary border-l-2 border-l-primary"
                         : isLocked
                           ? "text-muted-foreground/40 cursor-not-allowed"
-                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground border border-transparent"
+                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/80 hover:text-sidebar-foreground"
                     )}
                   >
                     <Icon className={cn(
                       "h-[18px] w-[18px] shrink-0 transition-transform duration-200",
-                      !isActive && !isLocked && "group-hover:scale-110"
+                      !isActive && !isLocked && "group-hover:scale-105"
                     )} />
                     {!sidebarCollapsed && (
                       <>
@@ -376,7 +377,7 @@ function AppLayoutContent() {
                           {navLink}
                         </div>
                       </TooltipTrigger>
-                      <TooltipContent side="right" sideOffset={8} className="font-medium">
+                      <TooltipContent side="right" sideOffset={8} className="font-medium surface-3">
                         {item.label}
                         {isLocked && " (Locked)"}
                       </TooltipContent>
@@ -390,9 +391,9 @@ function AppLayoutContent() {
             
             {/* Keyboard shortcut hint when expanded */}
             {!sidebarCollapsed && (
-              <div className="p-3 border-t border-sidebar-border/50">
-                <p className="text-[11px] text-muted-foreground/60 text-center">
-                  <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted/50 rounded border border-border/30">⌘B</kbd> to collapse
+              <div className="p-3 border-t border-sidebar-border/30">
+                <p className="text-[11px] text-muted-foreground/50 text-center">
+                  <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted/30 rounded border border-border/20">⌘B</kbd> to collapse
                 </p>
               </div>
             )}
@@ -400,7 +401,7 @@ function AppLayoutContent() {
           )}
 
           {/* Mobile Bottom Nav */}
-          <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border/60 bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/85 safe-area-pb">
+          <nav className="md:hidden mobile-nav-floating safe-area-pb">
             <div className="grid grid-cols-5 h-14">
               {mobileNavItems.map((item) => {
                 const Icon = item.icon;
@@ -423,7 +424,7 @@ function AppLayoutContent() {
                     )}
                   >
                     {isActive && (
-                      <span className="absolute top-0 w-8 h-0.5 rounded-b-full bg-primary" />
+                      <span className="absolute top-0 w-10 h-0.5 rounded-full bg-primary shadow-glow" />
                     )}
                     <div className="relative">
                       <Icon className={cn("h-5 w-5 transition-transform", isActive && "scale-110")} />

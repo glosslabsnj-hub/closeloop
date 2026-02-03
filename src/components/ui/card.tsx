@@ -11,9 +11,10 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-xl border bg-card text-card-foreground transition-all duration-300",
+      "rounded-xl border border-border/50 text-card-foreground transition-all duration-300",
+      "bg-card/80 backdrop-blur-sm",
       elevated && "shadow-soft",
-      interactive && "cursor-pointer hover:border-primary/20 hover:shadow-soft-lg hover:-translate-y-0.5 active:scale-[0.99]",
+      interactive && "cursor-pointer hover:border-primary/30 hover:shadow-soft-lg hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99]",
       !elevated && !interactive && "shadow-soft",
       className
     )}
