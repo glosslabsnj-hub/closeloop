@@ -133,10 +133,10 @@ serve(async (req) => {
   const callerPhoneE164 = normalizeToE164(fromNumber);
 
   try {
-    // Lookup tenant by the "To" number
+    // Lookup tenant by the "To" number (including admin test line fields)
     const { data: phoneRecord, error: phoneError } = await supabase
       .from("phone_numbers")
-      .select("tenant_id, status, location_id")
+      .select("tenant_id, status, location_id, is_admin_test_line, fallback_tenant_id")
       .eq("phone_e164", toNumber)
       .maybeSingle();
 
@@ -152,9 +152,51 @@ serve(async (req) => {
       return twimlResponse(hangupTwiml("This number is not currently in service. Please check the number and try again."));
     }
 
-    const tenantId = phoneRecord.tenant_id;
+    let tenantId = phoneRecord.tenant_id;
     const locationId = phoneRecord.location_id || null;
-    console.log(`Resolved tenant: ${tenantId}, location: ${locationId}`);
+    let isAdminTestCall = false;
+
+    // ===== ADMIN TEST LINE ROUTING =====
+    // If this number is marked as an admin test line, check if caller is a registered super admin
+    if (phoneRecord.is_admin_test_line) {
+      console.log("Admin test line detected, checking caller for admin routing");
+      await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, null, callSid, toNumber, fromNumber, "admin_test_line_check", null, null, { caller: callerPhoneE164 });
+
+      // Look up if caller phone is registered to a super admin
+      const { data: adminMatch } = await supabase
+        .from("admin_settings")
+        .select("admin_active_tenant_id, user_id")
+        .eq("admin_phone_e164", callerPhoneE164)
+        .maybeSingle();
+
+      if (adminMatch?.admin_active_tenant_id && adminMatch?.user_id) {
+        // Verify this user is actually a super_admin
+        const { data: roleCheck } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", adminMatch.user_id)
+          .eq("role", "super_admin")
+          .maybeSingle();
+
+        if (roleCheck) {
+          console.log(`Admin caller detected, routing to active tenant: ${adminMatch.admin_active_tenant_id}`);
+          await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, adminMatch.admin_active_tenant_id, callSid, toNumber, fromNumber, "admin_test_routing", 200, null, { 
+            original_tenant: phoneRecord.tenant_id,
+            routed_tenant: adminMatch.admin_active_tenant_id,
+            admin_user_id: adminMatch.user_id 
+          });
+          tenantId = adminMatch.admin_active_tenant_id;
+          isAdminTestCall = true;
+        }
+      } else if (phoneRecord.fallback_tenant_id) {
+        // Non-admin caller on admin test line - use fallback tenant
+        console.log(`Non-admin caller, using fallback tenant: ${phoneRecord.fallback_tenant_id}`);
+        await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, phoneRecord.fallback_tenant_id, callSid, toNumber, fromNumber, "admin_test_fallback", 200, null, { fallback_tenant: phoneRecord.fallback_tenant_id });
+        tenantId = phoneRecord.fallback_tenant_id;
+      }
+    }
+
+    console.log(`Resolved tenant: ${tenantId}, location: ${locationId}, isAdminTestCall: ${isAdminTestCall}`);
 
     // ===== RESOLVE CUSTOMER BY PHONE =====
     let customerId: string | null = null;

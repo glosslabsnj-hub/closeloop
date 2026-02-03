@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, Users, DollarSign, TrendingUp } from "lucide-react";
+import { AdminPhoneSettings } from "@/components/admin/AdminPhoneSettings";
 
 export default function AdminOverviewPage() {
   return (
@@ -25,6 +26,9 @@ export default function AdminOverviewPage() {
           </Card>
         ))}
       </div>
+
+      {/* Admin Phone Settings for Universal Test Line */}
+      <AdminPhoneSettings />
     </div>
   );
 }

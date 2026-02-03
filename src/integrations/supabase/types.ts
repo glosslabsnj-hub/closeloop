@@ -18,6 +18,8 @@ export type Database = {
         Row: {
           admin_active_mode: string | null
           admin_active_tenant_id: string | null
+          admin_phone_e164: string | null
+          admin_phone_verified: boolean | null
           created_at: string | null
           id: string
           updated_at: string | null
@@ -26,6 +28,8 @@ export type Database = {
         Insert: {
           admin_active_mode?: string | null
           admin_active_tenant_id?: string | null
+          admin_phone_e164?: string | null
+          admin_phone_verified?: boolean | null
           created_at?: string | null
           id?: string
           updated_at?: string | null
@@ -34,6 +38,8 @@ export type Database = {
         Update: {
           admin_active_mode?: string | null
           admin_active_tenant_id?: string | null
+          admin_phone_e164?: string | null
+          admin_phone_verified?: boolean | null
           created_at?: string | null
           id?: string
           updated_at?: string | null
@@ -3182,7 +3188,9 @@ export type Database = {
       phone_numbers: {
         Row: {
           created_at: string
+          fallback_tenant_id: string | null
           id: string
+          is_admin_test_line: boolean | null
           location_id: string | null
           phone_e164: string
           purpose: string
@@ -3192,7 +3200,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          fallback_tenant_id?: string | null
           id?: string
+          is_admin_test_line?: boolean | null
           location_id?: string | null
           phone_e164: string
           purpose?: string
@@ -3202,7 +3212,9 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          fallback_tenant_id?: string | null
           id?: string
+          is_admin_test_line?: boolean | null
           location_id?: string | null
           phone_e164?: string
           purpose?: string
@@ -3211,6 +3223,13 @@ export type Database = {
           twilio_sid?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "phone_numbers_fallback_tenant_id_fkey"
+            columns: ["fallback_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "phone_numbers_location_id_fkey"
             columns: ["location_id"]
