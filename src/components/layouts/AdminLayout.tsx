@@ -64,7 +64,7 @@ export function AdminLayout() {
     <AdminModeProvider>
       <div className="min-h-screen bg-secondary/30">
         {/* Top Navigation */}
-        <header className="sticky top-0 z-50 border-b bg-sidebar text-sidebar-foreground">
+        <header className="sticky top-0 z-50 border-b border-border/40 bg-sidebar/98">
           <div className="flex h-14 items-center justify-between px-4">
             <div className="flex items-center gap-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">

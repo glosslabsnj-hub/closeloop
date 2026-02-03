@@ -330,8 +330,8 @@ function AppLayoutContent() {
           {!hideSidebar && (
             <aside 
               className={cn(
-                "hidden md:flex flex-col fixed left-0 top-14 bottom-0 border-r border-border/40 transition-all duration-300 ease-out z-40",
-                "bg-sidebar/95 backdrop-blur-xl",
+                "hidden md:flex flex-col fixed left-0 top-14 bottom-0 border-r border-border/40 transition-all duration-300 ease-out",
+                "bg-sidebar/98 z-40",
                 sidebarCollapsed ? "w-14" : "w-60"
               )}
             >
@@ -351,10 +351,10 @@ function AppLayoutContent() {
                       "group flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-200 relative",
                       sidebarCollapsed ? "px-2.5 py-2.5 justify-center" : "px-3 py-2.5",
                       isActive
-                        ? "bg-primary/12 text-primary border-l-2 border-l-primary ml-[-1px] shadow-[inset_0_0_12px_-4px_hsl(var(--primary)/0.15)]"
+                        ? "bg-primary/10 text-primary border-l-2 border-l-primary ml-[-1px]"
                         : isLocked
                           ? "text-muted-foreground/40 cursor-not-allowed"
-                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground hover:border-l-2 hover:border-l-primary/30 hover:ml-[-1px]"
+                          : "text-sidebar-foreground/70 hover:bg-muted/40 hover:text-sidebar-foreground"
                     )}
                   >
                     <Icon className={cn(

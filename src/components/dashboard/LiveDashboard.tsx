@@ -25,20 +25,20 @@ export function LiveDashboard() {
   const hasVoice = hasVoiceFeature(subscription?.plan_code);
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto animate-fade-in relative z-10">
+    <div className="space-y-6 max-w-[1320px] mx-auto animate-fade-in relative z-10">
       {/* Audio notification manager */}
       <SoundManager />
 
-      {/* Critical Banners - z-20 to stay below nav but above content */}
-      <div className="relative z-20 space-y-4">
+      {/* Critical Banners */}
+      <div className="space-y-4">
         <AIReadinessPanel compact />
         <KnowledgeConflictBanner />
         <KnowledgeUploadBanner />
         <UsageThresholdBanner threshold={80} />
       </div>
 
-      {/* HERO: Agent Status + Toggle - z-10 to stay below banners and nav */}
-      <div className="relative z-10">
+      {/* HERO: Agent Status + Toggle */}
+      <div className="relative">
         <DashboardHeroCard />
       </div>
 
@@ -69,8 +69,8 @@ export function LiveDashboard() {
       {/* Go-Live Checklist - Only show when not live */}
       {!isLive && <GoLiveChecklist />}
 
-      {/* Copilot FAB - z-25 to stay below nav (z-40) but above content */}
-      <div className="relative z-[25]">
+      {/* Copilot FAB */}
+      <div className="relative z-30">
         {copilotOpen ? (
           <Copilot isOpen={copilotOpen} onClose={() => setCopilotOpen(false)} />
         ) : (

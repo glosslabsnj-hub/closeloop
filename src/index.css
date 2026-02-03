@@ -2,64 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
-/* CloseLoop Design System - 2026/2027 "Graphite HUD" */
+/* CloseLoop Design System - 2026/2027 "Calm Executive Dashboard" */
 @layer base {
   :root {
-    /* Core Background System - Deep Graphite */
-    --background: 220 16% 6%;
-    --foreground: 210 20% 92%;
+    /* Core Background System - Warm Charcoal (calmer, less techy) */
+    --background: 220 10% 8%;
+    --foreground: 210 15% 92%;
 
-    /* Cards - elevated glass surfaces */
-    --card: 220 16% 9%;
-    --card-foreground: 210 20% 92%;
+    /* Cards - soft elevated surfaces */
+    --card: 220 10% 11%;
+    --card-foreground: 210 15% 92%;
 
-    --popover: 220 16% 9%;
-    --popover-foreground: 210 20% 92%;
+    --popover: 220 10% 11%;
+    --popover-foreground: 210 15% 92%;
 
-    /* Primary - Cyan/Teal (NO PURPLE) */
-    --primary: 190 95% 55%;
-    --primary-foreground: 220 18% 8%;
-    --primary-glow: 190 100% 60%;
+    /* Primary - Trust Blue (business-friendly, calming) */
+    --primary: 210 90% 62%;
+    --primary-foreground: 220 18% 10%;
+    --primary-glow: 210 95% 68%;
 
-    /* Secondary - Soft graphite panel */
-    --secondary: 220 16% 12%;
-    --secondary-foreground: 210 15% 90%;
+    /* Secondary - Soft neutral panel */
+    --secondary: 220 10% 14%;
+    --secondary-foreground: 210 12% 88%;
 
-    /* Muted - For subtle backgrounds and text (AA compliant) */
-    --muted: 220 16% 10%;
-    --muted-foreground: 215 12% 70%;
+    /* Muted - For subtle backgrounds and text (AA compliant ~4.8:1) */
+    --muted: 220 10% 12%;
+    --muted-foreground: 215 10% 72%;
 
-    /* Accent - Cyan tinted for highlights */
-    --accent: 190 55% 16%;
-    --accent-foreground: 190 95% 75%;
+    /* Accent - Blue tinted for subtle highlights */
+    --accent: 210 55% 18%;
+    --accent-foreground: 210 90% 75%;
 
-    /* Status Colors - Modern + calmer */
-    --destructive: 0 78% 60%;
+    /* Status Colors - Calmer, modern */
+    --destructive: 0 75% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 158 70% 42%;
+    --success: 155 60% 42%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 56%;
+    --warning: 38 90% 56%;
     --warning-foreground: 0 0% 10%;
 
-    /* Borders & Inputs */
-    --border: 220 14% 18%;
-    --input: 220 14% 12%;
-    --ring: 190 95% 55%;
+    /* Borders & Inputs - Subtle separation */
+    --border: 220 10% 18%;
+    --input: 220 10% 14%;
+    --ring: 210 90% 62%;
 
-    /* Radius - Premium rounded */
-    --radius: 0.875rem;
+    /* Radius - Friendly rounded */
+    --radius: 0.75rem;
 
-    /* Sidebar - Deepest graphite for visual hierarchy */
-    --sidebar-background: 220 18% 5%;
-    --sidebar-foreground: 210 15% 88%;
-    --sidebar-primary: 190 95% 60%;
-    --sidebar-primary-foreground: 220 18% 8%;
-    --sidebar-accent: 220 16% 10%;
-    --sidebar-accent-foreground: 210 15% 90%;
-    --sidebar-border: 220 14% 16%;
-    --sidebar-ring: 190 95% 60%;
+    /* Sidebar - Deeper for hierarchy */
+    --sidebar-background: 220 10% 7%;
+    --sidebar-foreground: 210 12% 86%;
+    --sidebar-primary: 210 90% 62%;
+    --sidebar-primary-foreground: 220 18% 10%;
+    --sidebar-accent: 220 10% 11%;
+    --sidebar-accent-foreground: 210 12% 88%;
+    --sidebar-border: 220 10% 16%;
+    --sidebar-ring: 210 90% 62%;
   }
 }
 
@@ -111,7 +111,7 @@
 
 @layer utilities {
   /* ==========================================
-     APP BACKGROUND SYSTEM - "Graphite HUD"
+     APP BACKGROUND SYSTEM - "Calm Executive"
      ========================================== */
   .app-bg {
     position: relative;
@@ -123,20 +123,20 @@
     position: fixed;
     inset: 0;
     pointer-events: none;
+    /* Gentle top fade - very low intensity, welcoming */
     background: 
-      radial-gradient(ellipse 100% 80% at 5% 0%, hsl(var(--primary) / 0.06) 0%, transparent 45%),
-      radial-gradient(ellipse 60% 50% at 95% 90%, hsl(190 60% 30% / 0.04) 0%, transparent 50%),
-      radial-gradient(ellipse 120% 120% at 50% 50%, transparent 30%, hsl(0 0% 0% / 0.25) 100%);
+      radial-gradient(ellipse 90% 60% at 10% 0%, hsl(var(--primary) / 0.05) 0%, transparent 40%),
+      radial-gradient(ellipse 50% 40% at 90% 100%, hsl(210 50% 25% / 0.03) 0%, transparent 45%);
     z-index: 0;
   }
 
-  /* Ultra-subtle noise texture using CSS */
+  /* Subtle noise - barely visible, premium feel */
   .app-bg::after {
     content: '';
     position: fixed;
     inset: 0;
     pointer-events: none;
-    opacity: 0.015;
+    opacity: 0.012;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
     z-index: 0;
   }
@@ -147,40 +147,38 @@
   }
 
   /* ==========================================
-     ELEVATION / SURFACE SYSTEM
+     ELEVATION / SURFACE SYSTEM - Soft, Welcoming
      ========================================== */
   .surface-1 {
-    @apply relative;
+    @apply relative rounded-xl;
+    background: hsl(var(--card) / 0.85);
+    border: 1px solid hsl(var(--border) / 0.5);
+    box-shadow: 0 1px 4px -1px rgba(0, 0, 0, 0.2);
     z-index: 1;
   }
 
   .surface-2 {
     @apply relative rounded-xl;
-    background: hsl(var(--card) / 0.75);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: hsl(var(--card) / 0.70);
     border: 1px solid hsl(var(--border) / 0.5);
-    box-shadow: 
-      0 2px 8px -2px rgba(0, 0, 0, 0.3),
-      inset 0 1px 0 0 hsl(0 0% 100% / 0.02);
+    box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.25);
     z-index: 2;
   }
 
   .surface-2:hover {
-    border-color: hsl(var(--primary) / 0.25);
+    border-color: hsl(var(--border) / 0.7);
   }
 
   .surface-3 {
     @apply relative rounded-xl;
-    background: hsl(var(--popover) / 0.92);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    background: hsl(var(--popover) / 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border: 1px solid hsl(var(--border) / 0.6);
     box-shadow: 
-      0 8px 32px -8px rgba(0, 0, 0, 0.6),
-      0 4px 16px -4px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 0 hsl(0 0% 100% / 0.04);
-    z-index: 50;
+      0 8px 24px -6px rgba(0, 0, 0, 0.5),
+      0 4px 12px -2px rgba(0, 0, 0, 0.35);
+    z-index: 100;
   }
 
   /* ==========================================
@@ -317,43 +315,32 @@
   }
 
   /* ==========================================
-     PREMIUM GRADIENTS - Cyan/Teal Theme
+     PREMIUM GRADIENTS - Trust Blue Theme (calmer)
      ========================================== */
   .gradient-primary {
     background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 100%);
   }
 
   .gradient-primary-subtle {
-    background: linear-gradient(135deg, hsl(var(--primary) / 0.12) 0%, hsl(var(--primary) / 0.04) 100%);
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.10) 0%, hsl(var(--primary) / 0.03) 100%);
   }
 
   .gradient-hero {
-    background: linear-gradient(135deg, hsl(190 80% 35%) 0%, hsl(190 75% 25%) 100%);
+    background: linear-gradient(135deg, hsl(210 75% 40%) 0%, hsl(210 70% 30%) 100%);
   }
 
   .gradient-subtle {
-    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(220 16% 8%) 100%);
+    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(220 10% 6%) 100%);
   }
 
-  /* Button gradient glow on hover - Cyan glow */
+  /* Button hover - subtle lighten, no glow */
   .btn-glow {
     position: relative;
-    overflow: hidden;
+    transition: all 0.2s ease;
   }
 
-  .btn-glow::before {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    background: linear-gradient(135deg, hsl(var(--primary-glow) / 0.30) 0%, hsl(var(--primary) / 0.12) 100%);
-    border-radius: inherit;
-    opacity: 0;
-    transition: opacity 0.25s ease;
-    z-index: -1;
-  }
-
-  .btn-glow:hover::before {
-    opacity: 1;
+  .btn-glow:hover {
+    filter: brightness(1.08);
   }
 
   /* ==========================================
@@ -582,15 +569,15 @@
   }
 
   /* ==========================================
-     NAV ACTIVE PILL HIGHLIGHT
+     NAV ACTIVE PILL HIGHLIGHT - Calm Blue
      ========================================== */
   .nav-item-active {
-    @apply bg-primary/15 text-primary;
+    @apply bg-primary/12 text-primary;
     border-left: 2px solid hsl(var(--primary));
   }
 
   .nav-item-hover {
-    @apply hover:bg-sidebar-accent/60 hover:text-sidebar-foreground;
+    @apply hover:bg-sidebar-accent/50 hover:text-sidebar-foreground;
   }
 
   /* ==========================================
