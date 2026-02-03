@@ -36,7 +36,6 @@ import UsagePage from "@/pages/app/UsagePage";
 import OrdersPage from "@/pages/app/OrdersPage";
 import ReservationsPage from "@/pages/app/ReservationsPage";
 import CateringPage from "@/pages/app/CateringPage";
-import MenuCenterPage from "@/pages/app/MenuCenterPage";
 import DispatchPage from "@/pages/app/DispatchPage";
 import MedicalIntakePage from "@/pages/app/MedicalIntakePage";
 import OrderTicketPage from "@/pages/app/OrderTicketPage";
@@ -110,11 +109,12 @@ const App = () => (
               <Route path="/app/orders" element={<OrdersPage />} />
               <Route path="/app/reservations" element={<ReservationsPage />} />
               <Route path="/app/catering" element={<CateringPage />} />
-              <Route path="/app/menu-center" element={<MenuCenterPage />} />
               <Route path="/app/dispatch" element={<DispatchPage />} />
               <Route path="/app/medical-intake" element={<MedicalIntakePage />} />
               <Route path="/app/orders/:orderId/ticket" element={<OrderTicketPage />} />
               <Route path="/app/help" element={<HelpCenterPage />} />
+              {/* Legacy: Menu Center now lives in Business Brain */}
+              <Route path="/app/menu-center" element={<Navigate to="/app/business-brain" replace />} />
               {/* Legacy workflow routes - deprecated but accessible via direct URL */}
               <Route path="/app/workflows" element={<IntegrationsPage />} />
               <Route path="/app/workflows/new" element={<WorkflowEditPage />} />

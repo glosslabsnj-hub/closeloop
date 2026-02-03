@@ -71,7 +71,7 @@ export default function AIReadinessScore({ compact = false }: AIReadinessScorePr
         icon: UtensilsCrossed,
         iconBg: 'bg-orange-500/15',
         iconColor: 'text-orange-400',
-        href: '/app/menu-center',
+        href: '/app/business-brain',
         points: 20,
         complete: (context?.services?.length || 0) >= 5, // menu_items mapped to services
       });
