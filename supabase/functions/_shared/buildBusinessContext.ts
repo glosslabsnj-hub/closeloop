@@ -374,19 +374,146 @@ function formatIntakeFieldsForVoice(fields: IntakeField[]): string {
 }
 
 /**
- * Compute ETA for business context.
- * Uses the tenant's ETA policy to provide a spoken ETA range.
- *
- * @param policy - The tenant's eta_policy_jsonb
- * @param businessMode - Current business mode
- * @param busynessPct - Current busyness percentage (0-100)
+ * Distance settings from tenant_distance_settings table
+ */
+interface TenantDistanceSettings {
+  tenant_id: string;
+  distance_provider_enabled: boolean;
+  provider: string;
+  base_lat: number | null;
+  base_lng: number | null;
+  base_place_name: string | null;
+  mapbox_route_profile: string;
+  eta_base_minutes: number;
+  eta_per_mile_minutes: number | null;
+  eta_min_minutes: number | null;
+  eta_max_minutes: number | null;
+  eta_rounding_minutes: number;
+}
+
+/**
+ * Compute ETA from tenant_distance_settings (the canonical source)
+ * Falls back to mode-appropriate defaults if no settings exist
+ */
+function computeEtaFromDistanceSettings(
+  distanceSettings: TenantDistanceSettings | null,
+  businessMode: string,
+  busynessPct: number
+): BusinessContext["eta"] {
+  // Mode-appropriate defaults
+  const modeDefaults: Record<string, { min: number; max: number }> = {
+    dispatch: { min: 30, max: 60 },
+    food: { min: 20, max: 40 },
+    service: { min: 30, max: 60 },
+    medical: { min: 15, max: 30 },
+    general: { min: 30, max: 60 },
+  };
+
+  const defaultRange = modeDefaults[businessMode] || modeDefaults.general;
+
+  // If no distance settings, use defaults
+  if (!distanceSettings) {
+    const spoken = `${defaultRange.min} to ${defaultRange.max} minutes`;
+    return {
+      busyness_rules: {},
+      rules_summary: "",
+      spoken,
+      min_minutes: defaultRange.min,
+      max_minutes: defaultRange.max,
+      source: "mode_default",
+      policy: null,
+      distance_provider_enabled: false,
+      eta_policy_summary: `Default ETA: ${defaultRange.min}-${defaultRange.max} minutes`,
+      eta_estimate_rules: {
+        requires_exact_address: false,
+        range_only: true,
+        max_service_radius_miles: null,
+      },
+    };
+  }
+
+  // Use configured values from tenant_distance_settings
+  const baseMinutes = distanceSettings.eta_base_minutes || 30;
+  let minEta = distanceSettings.eta_min_minutes ?? Math.max(15, baseMinutes - 15);
+  let maxEta = distanceSettings.eta_max_minutes ?? baseMinutes + 30;
+
+  // Apply busyness buffer (up to 25% increase at 100% busyness)
+  const clampedBusyness = Math.min(100, Math.max(0, busynessPct));
+  if (clampedBusyness > 0) {
+    const multiplier = 1 + (0.25 * clampedBusyness) / 100;
+    minEta = Math.round(minEta * multiplier);
+    maxEta = Math.round(maxEta * multiplier);
+  }
+
+  // Round to configured rounding interval
+  const roundTo = distanceSettings.eta_rounding_minutes || 5;
+  minEta = Math.round(minEta / roundTo) * roundTo;
+  maxEta = Math.round(maxEta / roundTo) * roundTo;
+
+  // Format spoken ETA for natural speech
+  let spoken: string;
+  if (maxEta <= 60) {
+    spoken = `${minEta} to ${maxEta} minutes`;
+  } else {
+    const formatTime = (mins: number): string => {
+      if (mins < 60) return `${Math.round(mins)} minutes`;
+      const hours = Math.floor(mins / 60);
+      const remainder = mins % 60;
+      if (remainder === 0) return hours === 1 ? "1 hour" : `${hours} hours`;
+      if (remainder === 30) return hours === 1 ? "1 and a half hours" : `${hours} and a half hours`;
+      return hours === 1 ? "about 1 hour" : `about ${hours} hours`;
+    };
+    spoken = `${formatTime(minEta)} to ${formatTime(maxEta)}`;
+  }
+
+  // Check if distance provider (Mapbox) is enabled and configured
+  const providerEnabled = distanceSettings.distance_provider_enabled === true;
+  const mapboxConfigured = !!Deno.env.get("MAPBOX_ACCESS_TOKEN");
+  const distanceProviderEnabled = providerEnabled && mapboxConfigured;
+  const hasBaseLocation = distanceSettings.base_lat != null && distanceSettings.base_lng != null;
+
+  // Build policy summary
+  let etaPolicySummary = `Response time: ${minEta}-${maxEta} minutes`;
+  if (distanceProviderEnabled && hasBaseLocation) {
+    etaPolicySummary += `. Distance-based ETA enabled (base: ${distanceSettings.base_place_name || 'configured'})`;
+  }
+  if (distanceSettings.eta_per_mile_minutes) {
+    etaPolicySummary += `. Add ~${distanceSettings.eta_per_mile_minutes} min per mile`;
+  }
+
+  return {
+    busyness_rules: {},
+    rules_summary: "",
+    spoken,
+    min_minutes: minEta,
+    max_minutes: maxEta,
+    source: "tenant_distance_settings",
+    policy: null, // Legacy field, not used with new settings
+    distance_provider_enabled: distanceProviderEnabled,
+    eta_policy_summary: etaPolicySummary,
+    eta_estimate_rules: {
+      requires_exact_address: distanceProviderEnabled && hasBaseLocation,
+      range_only: !distanceProviderEnabled,
+      max_service_radius_miles: null,
+    },
+  };
+}
+
+/**
+ * Legacy compute ETA function for backward compatibility
+ * Delegates to new function when possible
  */
 function computeEtaForContext(
   policy: EtaPolicyJson | null,
   businessMode: string,
   busynessPct: number
 ): BusinessContext["eta"] {
-  // Default policy if none configured
+  // If no legacy policy, return mode defaults
+  if (!policy) {
+    return computeEtaFromDistanceSettings(null, businessMode, busynessPct);
+  }
+
+  // Use legacy policy if it exists (backward compatibility)
   const defaultPolicy: EtaPolicyJson = {
     default_range_minutes: { min: 30, max: 60 },
     busyness_buffer_pct: 15,
@@ -429,13 +556,10 @@ function computeEtaForContext(
     spoken = `${formatTime(range.min)} to ${formatTime(range.max)}`;
   }
 
-  // Step 2: Check if distance provider is enabled
-  // Provider is enabled if provider_enabled flag is true AND MAPBOX_ACCESS_TOKEN env exists
   const providerEnabled = effectivePolicy.provider_enabled === true;
   const mapboxConfigured = !!Deno.env.get("MAPBOX_ACCESS_TOKEN");
   const distanceProviderEnabled = providerEnabled && mapboxConfigured;
 
-  // Build policy summary
   let etaPolicySummary = `Default ETA: ${effectivePolicy.default_range_minutes.min}-${effectivePolicy.default_range_minutes.max} minutes`;
   if (distanceProviderEnabled) {
     etaPolicySummary += ". Mapbox routing enabled for exact ETAs.";
@@ -445,8 +569,8 @@ function computeEtaForContext(
   }
 
   return {
-    busyness_rules: {}, // Will be populated by caller
-    rules_summary: "", // Will be populated by caller
+    busyness_rules: {},
+    rules_summary: "",
     spoken,
     min_minutes: range.min,
     max_minutes: range.max,
@@ -456,7 +580,7 @@ function computeEtaForContext(
     eta_policy_summary: etaPolicySummary,
     eta_estimate_rules: {
       requires_exact_address: distanceProviderEnabled,
-      range_only: true, // Step 2 always returns ranges, never exact times
+      range_only: true,
       max_service_radius_miles: effectivePolicy.max_service_radius_miles ?? null,
     },
   };
@@ -1094,6 +1218,7 @@ export async function buildBusinessContext(
     intelligenceSettingsResult,
     retentionSettingsResult,
     foodSettingsResult,
+    distanceSettingsResult,
   ] = await Promise.all([
     supabase.from("tenants").select("*, pricing_rules_jsonb, busyness_rules_jsonb").eq("id", tenantId).single(),
     supabase.from("services").select("*").eq("tenant_id", tenantId).eq("is_active", true).limit(20),
@@ -1106,6 +1231,8 @@ export async function buildBusinessContext(
     supabase.from("tenant_intelligence_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
     supabase.from("data_retention_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
     supabase.from("tenant_food_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
+    // NEW: Fetch ETA/distance settings from the canonical table
+    supabase.from("tenant_distance_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
   ]);
   
   if (tenantResult.error || !tenantResult.data) {
@@ -1123,6 +1250,7 @@ export async function buildBusinessContext(
   const intelligenceSettings = intelligenceSettingsResult.data;
   const retentionSettings = retentionSettingsResult.data;
   const foodSettings = foodSettingsResult.data;
+  const distanceSettings = distanceSettingsResult.data as TenantDistanceSettings | null;
   
   // Track missing sections
   if (services.length === 0 && tenant.business_mode !== "food") missingSections.push("services");
@@ -1247,11 +1375,23 @@ export async function buildBusinessContext(
       busyness_config: tenant.busyness_rules_jsonb || null,
     },
     eta: (() => {
-      const baseEta = computeEtaForContext(
-        tenant.eta_policy_jsonb as EtaPolicyJson | null,
-        tenant.business_mode || "general",
-        tenant.busyness_rules_jsonb?.manual_busyness_pct || 0
-      );
+      // PRIORITY: Use tenant_distance_settings if available (canonical source)
+      // Otherwise fall back to legacy eta_policy_jsonb
+      const busynessPct = tenant.busyness_rules_jsonb?.manual_busyness_pct || 0;
+      
+      let baseEta: BusinessContext["eta"];
+      if (distanceSettings && distanceSettings.eta_base_minutes > 0) {
+        // Use new canonical source: tenant_distance_settings
+        baseEta = computeEtaFromDistanceSettings(distanceSettings, businessMode, busynessPct);
+      } else {
+        // Fall back to legacy eta_policy_jsonb
+        baseEta = computeEtaForContext(
+          tenant.eta_policy_jsonb as EtaPolicyJson | null,
+          businessMode,
+          busynessPct
+        );
+      }
+      
       return {
         ...baseEta,
         busyness_rules: tenant.busyness_rules_jsonb || busynessRules,
@@ -1520,6 +1660,57 @@ If the slot is NOT available, explain why and offer alternatives:
 - "We have an appointment at that time. I do have [time] or [time] available."
 
 The system automatically checks busy_blocks (synced calendars + existing bookings) to prevent double-booking.
+
+`;
+  }
+
+  // DISPATCH ETA BEHAVIOR - CRITICAL for dispatch/towing businesses
+  if (ctx.tenant.business_mode === "dispatch" || ctx.operations.modules.dispatch_enabled) {
+    prompt += `DISPATCH ETA BEHAVIOR (CRITICAL - YOU CAN PROVIDE ETAs):
+
+YOUR CONFIGURED RESPONSE TIME: ${ctx.eta.min_minutes} to ${ctx.eta.max_minutes} minutes
+SPOKEN FORMAT: "${ctx.eta.spoken}"
+
+When a customer asks for an ETA, arrival time, or "how long will it take":
+
+1. YOU CAN AND SHOULD PROVIDE ETAs - use the range above:
+   ✅ "We can have a driver to you in ${ctx.eta.spoken}"
+   ✅ "Our average response time is ${ctx.eta.spoken}"
+   ✅ "Based on current availability, expect us in about ${ctx.eta.min_minutes} to ${ctx.eta.max_minutes} minutes"
+
+2. IF YOU DON'T HAVE THE ADDRESS YET:
+   - First collect the address: "What's the exact address where you need service?"
+   - Then give the ETA: "We can be there in ${ctx.eta.spoken}"
+
+3. NEVER SAY THESE THINGS:
+   ❌ "I can't give you an ETA" (you CAN - use the range above)
+   ❌ "I don't have access to arrival times" (you DO - use ${ctx.eta.spoken})
+   ❌ "I'm not able to provide that information"
+   ❌ "You'll need to call dispatch for an ETA"
+
+4. ALWAYS USE RANGES, NOT EXACT TIMES:
+   ✅ "About ${ctx.eta.min_minutes} to ${ctx.eta.max_minutes} minutes"
+   ❌ "Exactly 47 minutes" (too precise)
+
+5. IF ASKED ABOUT CURRENT DRIVER LOCATION:
+   Say: "I don't have real-time driver tracking, but our average response time is ${ctx.eta.spoken}"
+
+CORRECT EXAMPLES:
+Customer: "How long until someone can get here?"
+You: "We can have a driver to you in ${ctx.eta.spoken}. What's the address where you need service?"
+
+Customer: "What's your ETA?"  
+You: "Our typical response time is ${ctx.eta.spoken}. Can I get your location?"
+
+Customer: "When will you arrive?"
+You: "We should be there in ${ctx.eta.spoken}. Let me confirm your pickup address."
+
+WRONG EXAMPLES:
+Customer: "How long will it take?"
+You: "I'm not able to provide an exact ETA" ❌ WRONG - use ${ctx.eta.spoken}
+
+Customer: "What's your response time?"
+You: "It depends on availability" ❌ WRONG - give the range: ${ctx.eta.spoken}
 
 `;
   }
