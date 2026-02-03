@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
@@ -204,25 +205,33 @@ export function TodaySnapshot() {
 
   return (
     <TooltipProvider>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {metrics.map((metric) => {
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        {metrics.map((metric, index) => {
           const Icon = metric.icon;
           const cardContent = (
             <Card 
               key={metric.label}
-              className="cursor-pointer hover:border-primary/30 transition-all hover:shadow-md group"
+              interactive
+              className={cn(
+                "group animate-fade-in",
+                `stagger-${index + 1}`
+              )}
               onClick={() => navigate(metric.href)}
             >
-              <CardContent className="pt-4 pb-4">
+              <CardContent className="py-4 px-4">
                 <div className="flex items-center gap-3">
-                  <div className={`h-10 w-10 rounded-xl ${metric.bgColor} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
-                    <Icon className={`h-5 w-5 ${metric.color}`} />
+                  <div className={cn(
+                    "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300",
+                    metric.bgColor,
+                    "group-hover:scale-110"
+                  )}>
+                    <Icon className={cn("h-5 w-5", metric.color)} />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-2xl font-bold truncate">{metric.value}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-2xl font-bold truncate tabular-nums">{metric.value}</p>
                     <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
                       {metric.label}
-                      {metric.tooltip && <HelpCircle className="h-3 w-3 opacity-50" />}
+                      {metric.tooltip && <HelpCircle className="h-3 w-3 opacity-40" />}
                     </p>
                   </div>
                 </div>
@@ -237,7 +246,7 @@ export function TodaySnapshot() {
                   {cardContent}
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-xs">
-                  <p>{metric.tooltip}</p>
+                  <p className="text-xs">{metric.tooltip}</p>
                 </TooltipContent>
               </Tooltip>
             );

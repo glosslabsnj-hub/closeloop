@@ -1,5 +1,6 @@
 import { useMemo, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -229,55 +230,66 @@ export function LiveActivityFeed() {
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-3 flex-row items-center justify-between">
-        <CardTitle className="text-base font-medium flex items-center gap-2">
-          <Activity className="h-4 w-4 text-primary" />
+    <Card className="animate-fade-in">
+      <CardHeader className="pb-3 pt-4 px-4 flex-row items-center justify-between">
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
+            <Activity className="h-3.5 w-3.5 text-primary" />
+          </div>
           Live Activity
         </CardTitle>
         <Button
           variant="ghost"
           size="sm"
-          className="gap-1 text-xs h-7"
+          className="gap-1 text-xs h-7 text-muted-foreground hover:text-foreground"
           onClick={() => navigate("/app/inbox")}
         >
           View All
           <ArrowRight className="h-3 w-3" />
         </Button>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-4 pb-4">
         {hasActivity ? (
-          <div className="space-y-1">
-            {activities.slice(0, 8).map((item) => {
+          <div className="space-y-0.5">
+            {activities.slice(0, 8).map((item, index) => {
               const iconStyles = getIconStyles(item.type);
               return (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between py-2.5 px-2 -mx-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                  className={cn(
+                    "flex items-center justify-between py-2 px-2 -mx-2 rounded-lg hover:bg-muted/40 cursor-pointer transition-all duration-200 group",
+                    `stagger-${Math.min(index + 1, 5)}`
+                  )}
                   onClick={() => navigate(getNavPath(item.type))}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`flex h-9 w-9 items-center justify-center rounded-full shrink-0 ${iconStyles.bg} ${iconStyles.color}`}>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={cn(
+                      "flex h-8 w-8 items-center justify-center rounded-lg shrink-0 transition-transform duration-200 group-hover:scale-110",
+                      iconStyles.bg,
+                      iconStyles.color
+                    )}>
                       {getIcon(item.type)}
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">{item.title}</p>
-                      <p className="text-xs text-muted-foreground truncate max-w-[180px]">{item.subtitle}</p>
+                      <p className="text-xs text-muted-foreground truncate max-w-[160px]">{item.subtitle}</p>
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground shrink-0 ml-2">{item.time}</p>
+                  <p className="text-[11px] text-muted-foreground/70 shrink-0 ml-2">{item.time}</p>
                 </div>
               );
             })}
           </div>
         ) : (
           <div className="text-center py-8 text-muted-foreground">
-            <Phone className="h-10 w-10 mx-auto mb-3 opacity-40" />
+            <div className="h-12 w-12 rounded-xl bg-muted/50 flex items-center justify-center mx-auto mb-3">
+              <Phone className="h-6 w-6 opacity-40" />
+            </div>
             <p className="text-sm font-medium">No activity yet</p>
-            <p className="text-xs mb-4">Your AI hasn't handled any calls or bookings yet.</p>
-            <Button variant="outline" size="sm" asChild>
+            <p className="text-xs text-muted-foreground/70 mb-4">Your AI hasn't handled any calls or bookings yet.</p>
+            <Button variant="outline" size="sm" asChild className="h-8 text-xs">
               <Link to="/app/simulator" className="gap-2">
-                <FlaskConical className="h-4 w-4" />
+                <FlaskConical className="h-3.5 w-3.5" />
                 Test AI in Simulator
               </Link>
             </Button>

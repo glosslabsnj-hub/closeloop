@@ -15,15 +15,15 @@ interface PageHeaderProps {
  */
 export function PageHeader({ title, description, action, className, badge }: PageHeaderProps) {
   return (
-    <div className={cn("mb-6 md:mb-8", className)}>
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+    <div className={cn("mb-6", className)}>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight truncate">{title}</h1>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-xl md:text-2xl font-semibold tracking-tight">{title}</h1>
             {badge}
           </div>
           {description && (
-            <p className="text-muted-foreground text-sm md:text-base mt-1.5 leading-relaxed">
+            <p className="text-muted-foreground text-sm mt-1 leading-relaxed max-w-2xl">
               {description}
             </p>
           )}

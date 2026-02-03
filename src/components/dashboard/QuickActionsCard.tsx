@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
@@ -62,27 +63,29 @@ export function QuickActionsCard() {
   const actions = getActions();
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base font-medium flex items-center gap-2">
-          <Zap className="h-4 w-4 text-primary" />
+    <Card className="animate-fade-in">
+      <CardHeader className="pb-3 pt-4 px-4">
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
+            <Zap className="h-3.5 w-3.5 text-primary" />
+          </div>
           Quick Actions
         </CardTitle>
-        <p className="text-xs text-muted-foreground">
-          Common tasks you can do right now
-        </p>
       </CardHeader>
-      <CardContent className="space-y-2">
-        {actions.map((action) => {
+      <CardContent className="space-y-1.5 px-4 pb-4">
+        {actions.map((action, index) => {
           const Icon = action.icon;
           return (
             <Button
               key={action.label}
               variant={action.variant || "secondary"}
-              className="w-full justify-start gap-2 h-10"
+              className={cn(
+                "w-full justify-start gap-2.5 h-9 text-sm font-normal hover:translate-x-0.5 transition-all",
+                action.variant === "outline" && "text-muted-foreground hover:text-foreground"
+              )}
               onClick={() => navigate(action.href)}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className="h-4 w-4 opacity-70" />
               {action.label}
             </Button>
           );
