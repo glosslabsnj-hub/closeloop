@@ -1,85 +1,32 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTenantSettings, useAvailabilitySlots, useAssistantSettings } from "@/hooks/useSettings";
-import { useFoodMode } from "@/hooks/useFoodMode";
-import { useModuleEnabled, useTenantConfig } from "@/hooks/useTenantConfig";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Lock, Loader2, Brain } from "lucide-react";
+import { Lock, Loader2 } from "lucide-react";
 import { CallContextDebugger } from "@/components/ai/CallContextDebugger";
 import { PlanUpgradeCard } from "@/components/settings/PlanUpgradeCard";
 import { MultiLocationManager } from "@/components/settings/MultiLocationManager";
 import { DeliveryIntegrationsSettings } from "@/components/settings/DeliveryIntegrationsSettings";
 import { AutomationRulesSettings } from "@/components/settings/AutomationRulesSettings";
-import { IntelligenceSettingsForm } from "@/components/settings/IntelligenceSettingsForm";
-import { AIBusinessPolicies } from "@/components/settings/AIBusinessPolicies";
 import { DataControlsPanel } from "@/components/settings/DataControlsPanel";
-import { RequiredQuestionsEditor } from "@/components/settings/RequiredQuestionsEditor";
-import { Link } from "react-router-dom";
 import { SettingsSidebar, SettingsNavConfig } from "@/components/settings/SettingsSidebar";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { MobileSettingsNav } from "@/components/settings/MobileSettingsNav";
-import { AvailabilityHub } from "@/components/availability/AvailabilityHub";
-import { PricingRulesEditor } from "@/components/settings/PricingRulesEditor";
-import { BusynessRulesEditor } from "@/components/settings/BusynessRulesEditor";
-
-const timezones = [
-  { value: "America/New_York", label: "Eastern Time" },
-  { value: "America/Chicago", label: "Central Time" },
-  { value: "America/Denver", label: "Mountain Time" },
-  { value: "America/Los_Angeles", label: "Pacific Time" },
-];
-
-const daysOfWeek = [
-  { value: 0, label: "Sunday" },
-  { value: 1, label: "Monday" },
-  { value: 2, label: "Tuesday" },
-  { value: 3, label: "Wednesday" },
-  { value: 4, label: "Thursday" },
-  { value: 5, label: "Friday" },
-  { value: 6, label: "Saturday" },
-];
-
-interface HoursState {
-  [key: number]: { enabled: boolean; start: string; end: string };
-}
+import { BusinessBrainCTA } from "@/components/settings/BusinessBrainCTA";
+import { useFoodMode } from "@/hooks/useFoodMode";
+import { useModuleEnabled, useTenantConfig } from "@/hooks/useTenantConfig";
 
 export default function SettingsPage() {
   const { user, signOut, tenant } = useAuth();
-  const { tenant: tenantData, updateTenant, isUpdating } = useTenantSettings();
-  const { settings: assistantSettings, updateSettings, isUpdating: isUpdatingSettings } = useAssistantSettings();
-  const { slots, saveSlots, isSaving } = useAvailabilitySlots();
   const { isFoodMode } = useFoodMode();
   const { hipaaMode } = useTenantConfig();
   const isBookingEnabled = useModuleEnabled("booking");
   const isDispatchEnabled = useModuleEnabled("dispatch_queue");
   const isMedicalMode = useModuleEnabled("medical_intake");
-  const [activeSection, setActiveSection] = useState("profile");
-
-  // Business form state
-  const [businessName, setBusinessName] = useState("");
-  const [timezone, setTimezone] = useState("America/New_York");
-  const [phone, setPhone] = useState("");
-  const [tagline, setTagline] = useState("");
-
-  // Hours state
-  const [hours, setHours] = useState<HoursState>(() => {
-    const initial: HoursState = {};
-    daysOfWeek.forEach((d) => {
-      initial[d.value] = { enabled: d.value !== 0, start: "09:00", end: "17:00" };
-    });
-    return initial;
-  });
+  
+  // Default to first available section
+  const [activeSection, setActiveSection] = useState("team");
 
   // Navigation config based on enabled modules
   const navConfig: SettingsNavConfig = {
@@ -89,126 +36,31 @@ export default function SettingsPage() {
     showFoodSettings: isFoodMode,
   };
 
-  // Initialize from tenant and assistant settings
-  useEffect(() => {
-    if (tenantData) {
-      setBusinessName(tenantData.name || "");
-      setTimezone(tenantData.timezone || "America/New_York");
-      setTagline(tenantData.tagline || "");
-    }
-  }, [tenantData]);
-
-  // Load phone from assistant_settings (primary source) or fall back to tenant
-  useEffect(() => {
-    if (assistantSettings?.business_phone_number) {
-      setPhone(assistantSettings.business_phone_number);
-    } else if (tenantData?.phone_public) {
-      setPhone(tenantData.phone_public);
-    }
-  }, [assistantSettings, tenantData]);
-
-  // Initialize hours from slots
-  useEffect(() => {
-    if (slots.length > 0) {
-      const newHours: HoursState = {};
-      daysOfWeek.forEach((d) => {
-        const slot = slots.find((s) => s.day_of_week === d.value);
-        if (slot) {
-          newHours[d.value] = {
-            enabled: slot.is_available ?? true,
-            start: slot.start_time,
-            end: slot.end_time,
-          };
-        } else {
-          newHours[d.value] = { enabled: false, start: "09:00", end: "17:00" };
-        }
-      });
-      setHours(newHours);
-    }
-  }, [slots]);
-
-  const handleSaveBusiness = async () => {
-    await updateTenant.mutateAsync({
-      name: businessName,
-      timezone,
-      phone_public: phone || null,
-      tagline: tagline || null,
-    });
-
-    if (phone) {
-      await updateSettings.mutateAsync({
-        business_phone_number: phone,
-      });
-    }
-  };
-
-  const handleSaveHours = async () => {
-    const slotsToSave = daysOfWeek
-      .filter((d) => hours[d.value]?.enabled)
-      .map((d) => ({
-        day_of_week: d.value,
-        start_time: hours[d.value].start,
-        end_time: hours[d.value].end,
-        is_available: true,
-      }));
-    await saveSlots.mutateAsync(slotsToSave);
-  };
-
-  const isSavingBusiness = isUpdating || isUpdatingSettings;
-
-  // Section descriptions for user-friendly context
+  // Simplified section metadata
   const sectionMeta: Record<string, { title: string; description: string }> = {
-    profile: {
-      title: "Business Profile",
-      description: "Your business name, phone number, and timezone. This helps your AI answer questions accurately.",
-    },
-    hours: {
-      title: "Business Hours",
-      description: "When you're open for calls and appointments. Your AI will use this to schedule bookings.",
-    },
-    pricing: {
-      title: "Pricing & Estimates",
-      description: "Define pricing rules for services and quotes. Your AI uses these to provide accurate pricing to customers.",
-    },
     team: {
       title: "Team Members",
       description: "Manage who has access to your account and their permissions.",
     },
-    "ai-learning": {
-      title: "AI Learning",
-      description: "How your AI learns from interactions and improves over time.",
-    },
-    "ai-rules": {
-      title: "Required Questions",
-      description: "Configure what information your AI must collect for each type of request (booking, order, dispatch, etc.).",
-    },
-    "pricing-estimates": {
-      title: "Pricing & Estimates",
-      description: "Configure pricing rules and ETA calculation. Control how your AI quotes prices and arrival times.",
+    plan: {
+      title: "Plan & Billing",
+      description: "View your current plan, usage limits, and upgrade options.",
     },
     "data-privacy": {
-      title: "Data & Privacy",
+      title: "Data Controls",
       description: "Control what call data is saved and for how long. Manage recording and transcript storage.",
     },
-    hipaa: {
-      title: "HIPAA Compliance",
-      description: "Medical privacy settings to ensure your practice stays compliant.",
-    },
     alerts: {
-      title: "How You Get Notified",
+      title: "Alerts",
       description: "Choose which events trigger email and SMS alerts to you.",
     },
     integrations: {
-      title: "Where Things Go",
-      description: "Push bookings, orders, and leads to your existing tools via webhooks and integrations.",
+      title: "Integrations",
+      description: "Push bookings, orders, and leads to your existing tools via webhooks.",
     },
     automation: {
       title: "Automation Rules",
       description: "Auto-confirm bookings, send follow-ups, and route leads automatically.",
-    },
-    plan: {
-      title: "Your Plan",
-      description: "View your current plan, usage limits, and upgrade options.",
     },
     developer: {
       title: "Developer Tools",
@@ -220,108 +72,6 @@ export default function SettingsPage() {
 
   const renderSectionContent = () => {
     switch (activeSection) {
-      case "profile":
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
-              <CardDescription>Update your business details</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Business Name</Label>
-                <Input value={businessName} onChange={(e) => setBusinessName(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Tagline</Label>
-                <Input
-                  value={tagline}
-                  onChange={(e) => setTagline(e.target.value)}
-                  placeholder="We make your car shine!"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Public Phone Number</Label>
-                <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 555-0123" />
-              </div>
-              <div className="space-y-2">
-                <Label>Timezone</Label>
-                <Select value={timezone} onValueChange={setTimezone}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timezones.map((tz) => (
-                      <SelectItem key={tz.value} value={tz.value}>
-                        {tz.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button onClick={handleSaveBusiness} disabled={isSavingBusiness}>
-                {isSavingBusiness && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Save Changes
-              </Button>
-            </CardContent>
-          </Card>
-        );
-
-      case "hours":
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Business Hours & Availability</span>
-                <Button asChild>
-                  <Link to="/app/business-brain">
-                    <Brain className="mr-2 h-4 w-4" />
-                    Edit in Business Brain
-                  </Link>
-                </Button>
-              </CardTitle>
-              <CardDescription>
-                Manage your business hours and availability in the Business Brain
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                <div className="flex items-start gap-3">
-                  <Brain className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium mb-2">Hours and availability management has moved to Business Brain</p>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      Manage your operating hours, availability slots, and busy blocks in one centralized location.
-                    </p>
-                    <div className="space-y-2 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                        <span>Set weekly business hours</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                        <span>View and manage busy blocks</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                        <span>Connect calendar for automatic scheduling</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        );
-
-      case "pricing":
-        return (
-          <div className="space-y-6">
-            <PricingRulesEditor />
-            <BusynessRulesEditor />
-          </div>
-        );
-
       case "team":
         return (
           <Card>
@@ -353,147 +103,16 @@ export default function SettingsPage() {
           </Card>
         );
 
-      case "ai-learning":
-        return <IntelligenceSettingsForm />;
-
-      case "ai-rules":
+      case "plan":
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Required Questions & AI Rules</span>
-                <Button asChild>
-                  <Link to="/app/business-brain">
-                    <Brain className="mr-2 h-4 w-4" />
-                    Edit in Business Brain
-                  </Link>
-                </Button>
-              </CardTitle>
-              <CardDescription>
-                Configure required questions and AI business policies in the Business Brain
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                <div className="flex items-start gap-3">
-                  <Brain className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium mb-2">All AI rules and policies have moved to Business Brain</p>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      Required questions and AI business policies are now managed centrally to ensure your AI collects the right information consistently.
-                    </p>
-                    <div className="space-y-2 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                        <span>Set required questions per intent (booking, dispatch, etc.)</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                        <span>Configure AI policies for upselling, pricing, capacity</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                        <span>Manage escalation and recognition rules</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        );
-
-      case "pricing-estimates":
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Pricing & Estimates</span>
-                <Button asChild>
-                  <Link to="/app/business-brain">
-                    <Brain className="mr-2 h-4 w-4" />
-                    Edit in Business Brain
-                  </Link>
-                </Button>
-              </CardTitle>
-              <CardDescription>
-                Configure pricing rules and busyness-based ETAs in the Business Brain
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                <div className="flex items-start gap-3">
-                  <Brain className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium mb-2">All pricing configuration has moved to Business Brain</p>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      Pricing rules and busyness settings are now managed in a centralized location to ensure consistency across your AI.
-                    </p>
-                    <div className="space-y-2 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                        <span>Configure distance-based, flat, per-unit, and tiered pricing</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                        <span>Set base prep times and busy-day buffers for accurate ETAs</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                        <span>Adjust real-time busyness to control customer expectations</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <>
+            <PlanUpgradeCard />
+            <MultiLocationManager />
+          </>
         );
 
       case "data-privacy":
         return <DataControlsPanel />;
-
-      case "hipaa":
-        return (
-          <Card className="border-primary/20 bg-primary/5">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>HIPAA Settings</span>
-                <Button asChild>
-                  <Link to="/app/business-brain">
-                    <Brain className="mr-2 h-4 w-4" />
-                    Edit in Business Brain
-                  </Link>
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Brain className="h-5 w-5 text-primary" />
-                  <p className="font-medium">HIPAA Management Has Moved</p>
-                </div>
-                <p className="text-sm text-muted-foreground mb-3">
-                  All HIPAA and medical compliance settings are now managed in Business Brain for centralized control
-                </p>
-                <div className="space-y-2 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                    <span>Configure data storage settings</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                    <span>Set retention policies</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                    <span>Manage consent requirements</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        );
 
       case "alerts":
         return (
@@ -522,61 +141,10 @@ export default function SettingsPage() {
         );
 
       case "integrations":
-        return (
-          <div className="space-y-6">
-            <DeliveryIntegrationsSettings />
-
-            <Card className="border-primary/20 bg-primary/5">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Delivery & Handoff Settings</span>
-                  <Button asChild>
-                    <Link to="/app/business-brain">
-                      <Brain className="mr-2 h-4 w-4" />
-                      Edit in Business Brain
-                    </Link>
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Brain className="h-5 w-5 text-primary" />
-                    <p className="font-medium">Delivery Management Has Moved</p>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    All booking, order, and dispatch delivery settings are now managed in Business Brain
-                  </p>
-                  <div className="space-y-2 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                      <span>Configure webhooks and integrations</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                      <span>Set up email and SMS notifications</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                      <span>Manage handoff methods</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        );
+        return <DeliveryIntegrationsSettings />;
 
       case "automation":
         return <AutomationRulesSettings />;
-
-      case "plan":
-        return (
-          <>
-            <PlanUpgradeCard />
-            <MultiLocationManager />
-          </>
-        );
 
       case "developer":
         return (
@@ -618,6 +186,9 @@ export default function SettingsPage() {
           onSectionChange={setActiveSection}
           config={navConfig}
         />
+
+        {/* Business Brain CTA Banner */}
+        <BusinessBrainCTA />
 
         {/* Section Header + Content */}
         <SettingsSection title={currentMeta.title} description={currentMeta.description}>
