@@ -9,21 +9,21 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        // Primary: Rich cobalt blue
-        default: "bg-primary text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 active:translate-y-0",
-        destructive: "bg-destructive text-destructive-foreground shadow-md hover:bg-destructive/90 hover:shadow-lg",
-        // Outline: Clean border with primary hover
-        outline: "border-2 border-border bg-card hover:bg-secondary hover:border-primary/30 text-foreground",
+        // Primary: Rich cobalt blue with strong shadow
+        default: "bg-primary text-primary-foreground border border-primary shadow-[0_2px_8px_hsl(220_75%_45%/0.25),0_4px_16px_hsl(220_75%_45%/0.15)] hover:bg-primary/90 hover:shadow-[0_4px_12px_hsl(220_75%_45%/0.35),0_8px_24px_hsl(220_75%_45%/0.2)] hover:-translate-y-0.5 active:translate-y-0",
+        destructive: "bg-destructive text-destructive-foreground border border-destructive shadow-[0_2px_8px_hsl(0_72%_50%/0.25)] hover:bg-destructive/90 hover:shadow-[0_4px_16px_hsl(0_72%_50%/0.3)]",
+        // Outline: Clean border with hover lift
+        outline: "border-2 border-border bg-card shadow-[0_1px_3px_hsl(220_20%_10%/0.05)] hover:bg-secondary hover:border-primary/40 hover:shadow-[0_2px_8px_hsl(220_20%_10%/0.08)] text-foreground",
         // Secondary: Soft gray panel
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        // Ghost: Minimal
+        secondary: "bg-secondary text-secondary-foreground border border-border/50 shadow-[0_1px_2px_hsl(220_20%_10%/0.04)] hover:bg-secondary/80 hover:shadow-[0_2px_6px_hsl(220_20%_10%/0.06)]",
+        // Ghost: Minimal with subtle hover
         ghost: "text-muted-foreground hover:bg-secondary hover:text-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
         default: "h-10 px-5 py-2",
         sm: "h-9 rounded-md px-4 text-xs",
-        lg: "h-11 rounded-lg px-6",
+        lg: "h-12 rounded-lg px-7 text-base",
         icon: "h-10 w-10",
       },
     },

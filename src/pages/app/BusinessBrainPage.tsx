@@ -164,13 +164,15 @@ export default function BusinessBrainPage() {
     <div className="flex min-h-screen bg-background">
       {/* Sidebar Navigation - Hidden in Focus Mode */}
       {!focusMode && (
-        <aside className="hidden lg:block w-64 border-r border-border bg-card/50 sticky top-0 h-screen overflow-y-auto">
+        <aside className="hidden lg:block w-64 border-r-2 border-border bg-secondary/30 sticky top-0 h-screen overflow-y-auto">
           <div className="p-6">
-            <div className="flex items-center gap-2 mb-6">
-              <Brain className="h-6 w-6 text-primary" />
-              <h2 className="text-lg font-semibold">Business Brain</h2>
+            <div className="flex items-center gap-3 mb-8 pb-4 border-b border-border">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Brain className="h-5 w-5 text-primary" />
+              </div>
+              <h2 className="text-lg font-bold text-foreground">Business Brain</h2>
             </div>
-            <nav className="space-y-1">
+            <nav className="space-y-1.5">
               {navigationItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeSection === item.id;
@@ -180,16 +182,16 @@ export default function BusinessBrainPage() {
                     key={item.id}
                     onClick={() => setActiveSection(item.id)}
                     className={`
-                      w-full flex items-start gap-3 px-3 py-2 rounded-md text-sm transition-colors relative
+                      w-full flex items-start gap-3 px-3 py-3 rounded-lg text-sm transition-all duration-150 relative
                       ${isActive
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                        ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                        : "hover:bg-secondary border border-transparent hover:border-border text-muted-foreground hover:text-foreground"
                       }
                     `}
                   >
                     <Icon className="h-4 w-4 mt-0.5 shrink-0" />
                     <div className="text-left flex-1">
-                      <div className="font-medium flex items-center gap-2">
+                      <div className="font-semibold flex items-center gap-2">
                         {item.label}
                         {showBadge && (
                           <Badge
@@ -200,7 +202,7 @@ export default function BusinessBrainPage() {
                           </Badge>
                         )}
                       </div>
-                      <div className={`text-xs ${isActive ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+                      <div className={`text-xs mt-0.5 ${isActive ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
                         {item.description}
                       </div>
                     </div>
@@ -214,12 +216,12 @@ export default function BusinessBrainPage() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
-        <div className="container max-w-5xl py-8 px-4 sm:px-6 lg:px-8">
+        <div className="container max-w-5xl pt-10 pb-12 px-4 sm:px-6 lg:px-8">
           {/* Header with Focus Mode Toggle */}
-          <div className="mb-8 flex items-start justify-between">
+          <div className="mb-10 flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Business Brain</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-3xl font-bold mb-3 text-foreground">Business Brain</h1>
+              <p className="text-muted-foreground text-sm leading-relaxed max-w-xl">
                 Everything your AI needs to know. All edits here flow to your assistant in real-time.
               </p>
             </div>

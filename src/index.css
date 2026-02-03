@@ -59,8 +59,8 @@
     --warning: 38 95% 50%;
     --warning-foreground: 38 100% 15%;
 
-    /* Borders & Inputs */
-    --border: 220 15% 88%;
+    /* Borders & Inputs - Stronger contrast */
+    --border: 220 20% 82%;
     --input: 0 0% 100%;
     --ring: 220 75% 45%;
 
@@ -68,13 +68,13 @@
     --radius: 0.625rem;
 
     /* Sidebar - Slightly darker warm */
-    --sidebar-background: 40 25% 95%;
+    --sidebar-background: 40 25% 94%;
     --sidebar-foreground: 220 15% 40%;
     --sidebar-primary: 220 75% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 30% 92%;
     --sidebar-accent-foreground: 220 75% 40%;
-    --sidebar-border: 220 15% 90%;
+    --sidebar-border: 220 20% 85%;
     --sidebar-ring: 220 75% 45%;
   }
 }
@@ -192,22 +192,25 @@
     display: none;
   }
 
-  /* Work area - white card with subtle shadow */
+  /* Work area - white card with strong shadow and border */
   .work-area {
     @apply relative rounded-xl;
     background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
+    border: 1.5px solid hsl(var(--border));
     box-shadow: 
-      0 1px 3px hsl(220 20% 10% / 0.04),
-      0 8px 24px hsl(220 20% 10% / 0.06);
+      0 1px 3px hsl(220 20% 10% / 0.06),
+      0 8px 24px hsl(220 20% 10% / 0.08),
+      0 20px 48px hsl(220 20% 10% / 0.05);
     padding: 2rem;
   }
 
   .work-area-compact {
     @apply relative rounded-lg;
     background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
-    box-shadow: 0 1px 3px hsl(220 20% 10% / 0.04);
+    border: 1.5px solid hsl(var(--border));
+    box-shadow: 
+      0 1px 3px hsl(220 20% 10% / 0.05),
+      0 4px 12px hsl(220 20% 10% / 0.06);
     padding: 1.5rem;
   }
 
@@ -218,27 +221,47 @@
   .surface-1 {
     @apply relative rounded-xl;
     background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
+    border: 1.5px solid hsl(var(--border));
     box-shadow: 
-      0 1px 3px hsl(220 20% 10% / 0.04),
-      0 4px 16px hsl(220 20% 10% / 0.06);
+      0 1px 3px hsl(220 20% 10% / 0.05),
+      0 4px 16px hsl(220 20% 10% / 0.08),
+      0 12px 32px hsl(220 20% 10% / 0.05);
   }
 
   .surface-2 {
     @apply relative rounded-lg;
     background: hsl(var(--card));
-    border: 1px solid hsl(var(--border) / 0.7);
-    box-shadow: 0 1px 2px hsl(220 20% 10% / 0.03);
+    border: 1.5px solid hsl(var(--border));
+    box-shadow: 
+      0 1px 2px hsl(220 20% 10% / 0.04),
+      0 4px 10px hsl(220 20% 10% / 0.05);
   }
 
   .surface-3 {
     @apply relative rounded-xl;
     background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
+    border: 1.5px solid hsl(var(--border));
     box-shadow: 
-      0 4px 12px hsl(220 20% 10% / 0.08),
-      0 16px 32px hsl(220 20% 10% / 0.1);
+      0 4px 12px hsl(220 20% 10% / 0.1),
+      0 16px 32px hsl(220 20% 10% / 0.12),
+      0 32px 64px hsl(220 20% 10% / 0.08);
     z-index: 100;
+  }
+
+  /* Accent-bordered card - adds visual pop */
+  .surface-accent {
+    @apply relative rounded-xl overflow-hidden;
+    background: hsl(var(--card));
+    border: 1.5px solid hsl(var(--border));
+    box-shadow: 
+      0 2px 8px hsl(220 20% 10% / 0.06),
+      0 8px 24px hsl(220 20% 10% / 0.08);
+  }
+  
+  .surface-accent::before {
+    content: '';
+    @apply absolute top-0 left-0 right-0 h-1;
+    background: hsl(var(--primary));
   }
 
   /* ==========================================
@@ -347,35 +370,43 @@
      STATUS - Clear, professional
      ========================================== */
   .status-soft-success {
-    @apply border rounded-md px-2.5 py-1;
-    background: hsl(155 70% 95%);
-    color: hsl(155 70% 30%);
-    border-color: hsl(155 70% 85%);
+    @apply rounded-md px-3 py-1.5 font-medium;
+    background: hsl(155 70% 94%);
+    color: hsl(155 75% 28%);
+    border: 1.5px solid hsl(155 70% 75%);
+    box-shadow: 0 1px 2px hsl(155 70% 30% / 0.08);
   }
 
   .status-soft-warning {
-    @apply border rounded-md px-2.5 py-1;
-    background: hsl(38 95% 94%);
-    color: hsl(38 90% 30%);
-    border-color: hsl(38 95% 80%);
+    @apply rounded-md px-3 py-1.5 font-medium;
+    background: hsl(38 95% 93%);
+    color: hsl(30 90% 28%);
+    border: 1.5px solid hsl(38 90% 72%);
+    box-shadow: 0 1px 2px hsl(38 90% 30% / 0.08);
   }
 
   .status-soft-destructive {
-    @apply border rounded-md px-2.5 py-1;
+    @apply rounded-md px-3 py-1.5 font-medium;
     background: hsl(0 72% 95%);
-    color: hsl(0 72% 40%);
-    border-color: hsl(0 72% 88%);
+    color: hsl(0 72% 38%);
+    border: 1.5px solid hsl(0 72% 82%);
+    box-shadow: 0 1px 2px hsl(0 72% 30% / 0.08);
   }
 
   .status-soft-primary {
-    @apply border rounded-md px-2.5 py-1;
+    @apply rounded-md px-3 py-1.5 font-medium;
     background: hsl(220 75% 96%);
     color: hsl(var(--primary));
-    border-color: hsl(220 75% 88%);
+    border: 1.5px solid hsl(220 75% 82%);
+    box-shadow: 0 1px 2px hsl(220 75% 30% / 0.08);
   }
 
   .status-soft-muted {
-    @apply bg-secondary text-muted-foreground border border-border rounded-md px-2.5 py-1;
+    @apply rounded-md px-3 py-1.5 font-medium;
+    background: hsl(var(--secondary));
+    color: hsl(var(--muted-foreground));
+    border: 1.5px solid hsl(var(--border));
+    box-shadow: 0 1px 2px hsl(220 20% 10% / 0.04);
   }
 
   /* Accent emphasis - subtle blue tint */
