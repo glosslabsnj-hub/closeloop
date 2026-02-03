@@ -1,256 +1,281 @@
 
+# Make Integrations Actually Work
 
-# Bookings + Dispatch UX Polish & Collapsible Sidebar Plan
+## Overview
 
-## Executive Summary
-
-This plan delivers three improvements:
-1. **Bookings Page** - Enhanced clarity with helper text, tooltips, and better empty states
-2. **Dispatch Page** - Improved job management UX with clearer labels and guidance
-3. **Collapsible Sidebar** - Toggle button to collapse/expand the sidebar for better calendar viewing
-
-All changes are UI/UX only - no database, edge function, or business logic changes.
+The Integrations page currently has UI for connecting various tools, but most "Connect" buttons don't actually connect anything. This plan wires up the real OAuth flows and makes automations trigger correctly when enabled.
 
 ---
 
-## 1. Collapsible Sidebar
+## Current State
 
-### Current State
-- Fixed-width sidebar (w-64 / 256px)
-- Always visible on desktop
-- No way to collapse it for more screen space
-
-### After
-- Sidebar collapses to icon-only mode (w-14 / 56px)
-- Toggle button in header to expand/collapse
-- State persisted in localStorage
-- Keyboard shortcut (Ctrl/Cmd + B) to toggle
-- Smooth transition animation
-- Tooltips on icons when collapsed
-
-### Implementation
-
-**File: `src/components/layouts/AppLayout.tsx`**
-
-Changes:
-1. Add `sidebarCollapsed` state with localStorage persistence
-2. Add toggle button in header (PanelLeft icon)
-3. Update sidebar width classes to transition between `w-64` and `w-14`
-4. Update nav items to show icon-only when collapsed
-5. Add tooltips on nav items when collapsed
-6. Update main content margin to match sidebar width
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ [☰] CloseLoop                                    [🔔] [Avatar] │
-├──────┬──────────────────────────────────────────────────────────┤
-│ 🏠   │                                                          │
-│ 📥   │                                                          │
-│ 📅   │              Main Content Area                           │
-│ 🚚   │              (Calendar gets more space)                  │
-│ 🤖   │                                                          │
-│ ⚙️   │                                                          │
-└──────┴──────────────────────────────────────────────────────────┘
-  ↑ Collapsed sidebar (icon only, with tooltips on hover)
-```
+| Integration | Current Status | After This |
+|-------------|----------------|------------|
+| Google Calendar | OAuth exists but not called from UI | Fully working |
+| Google Sheets | Stub only | Real OAuth + append rows |
+| Webhook | Works | Works (no change) |
+| Printer | Sets flag only | PrintNode API or local print |
+| Square, Calendly, Jobber | UI only | Concierge-only (with explanation) |
+| SMS | Works via Twilio | Works (no change) |
 
 ---
 
-## 2. Bookings Page UX Improvements
+## Changes
 
-### Current Issues
-- No guidance on how to create a booking from the calendar
-- Legend at bottom may be missed
-- Stats cards lack context
-- Empty list state is minimal
+### 1. Fix Google Calendar Connect Button
 
-### Changes
+**File: `src/components/integrations/IntegrationConnectDialog.tsx`**
 
-**File: `src/pages/app/BookingsPage.tsx`**
+The current dialog creates a database record but doesn't initiate the OAuth flow. We need to:
 
-| Section | Change |
-|---------|--------|
-| Page subtitle | Update to: "Your calendar and upcoming appointments. Click any time slot to create a booking." |
-| Stats cards | Add tooltips explaining each metric |
-| Calendar card | Add a subtle instruction banner above: "Tip: Click any empty time slot to create a booking" |
-| List empty state | Add: "When customers book through your AI receptionist or you create appointments, they'll appear here." |
-| Legend | Move above the calendar and make it more prominent |
-
-**File: `src/components/calendar/ScheduleCalendar.tsx`**
-
-| Change |
-|--------|
-| Add keyboard shortcut hint: "Press → to navigate weeks" |
-| Add helper text when calendar is empty for the week |
-
-**File: `src/components/calendar/CalendarHeader.tsx`**
-
-| Change |
-|--------|
-| Add tooltip on Week/Day toggle buttons explaining the views |
-
-**File: `src/components/calendar/CreateBookingDialog.tsx`**
-
-| Change |
-|--------|
-| Add helper text under phone field: "We'll use this to link the booking to the customer's record" |
-| Add helper text under service dropdown: "Leave blank if unsure - you can update this later" |
-
----
-
-## 3. Dispatch Page UX Improvements
-
-### Current Issues
-- Stats cards are small and lack context
-- Priority badges don't explain urgency levels
-- "New Job" button has no guidance
-- Empty table state is minimal
-- Status transitions aren't explained
-
-### Changes
-
-**File: `src/pages/app/DispatchPage.tsx`**
-
-| Section | Change |
-|---------|--------|
-| Page subtitle | Update to: "Track and dispatch service calls to your team" |
-| Urgent alert | Add tooltip: "Jobs marked 'urgent' have been escalated and need immediate attention" |
-| Stats cards | Add descriptive labels: "Waiting for assignment", "Crew assigned", "On the way", "Working on site", "Finished today" |
-| Priority badges | Add tooltips explaining each level (Low: "Can wait", Normal: "Standard timing", High: "Priority handling", Urgent: "Drop everything") |
-| Status dropdown | Add helper text in each option explaining the transition |
-| Empty table | Improve to: "No jobs yet. When customers call for service, your AI will capture the details and they'll appear here ready for dispatch." |
-| Filter dropdown | Add helper text: "Filter jobs by their current status" |
-| Table header | Add tooltips explaining columns (Job #, Priority, Customer, etc.) |
-
-### Status Flow Explanation
-
-Add a collapsible section or tooltip showing the job lifecycle:
-
-```
-Pending → Assigned → En Route → On Site → Completed
-   ↓         ↓          ↓          ↓
-Cancelled (can happen at any stage)
-```
-
----
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/components/layouts/AppLayout.tsx` | Add collapsible sidebar with toggle, localStorage persistence |
-| `src/pages/app/BookingsPage.tsx` | Page subtitle, stats tooltips, calendar tip, empty state enhancement |
-| `src/pages/app/DispatchPage.tsx` | Page subtitle, stats labels, tooltips, empty state, status explanations |
-| `src/components/calendar/ScheduleCalendar.tsx` | Legend position, keyboard hints, empty week state |
-| `src/components/calendar/CalendarHeader.tsx` | Tooltips on view toggle buttons |
-| `src/components/calendar/CreateBookingDialog.tsx` | Helper text for form fields |
-
----
-
-## Technical Approach
-
-### Sidebar Collapse Implementation
+- Call `calendar-oauth-start` edge function for Google Calendar
+- Open the OAuth popup window
+- Listen for the `postMessage` from the callback
+- Update connection status on success
 
 ```typescript
-// In AppLayout.tsx
-const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-  return localStorage.getItem('sidebar-collapsed') === 'true';
+// When "Connect with Google" is clicked for google_calendar:
+const response = await supabase.functions.invoke("calendar-oauth-start", {
+  body: { provider: "google" }
 });
+const popup = window.open(response.data.auth_url, "_blank", "width=500,height=600");
+// Listen for postMessage from callback
+```
 
-const toggleSidebar = () => {
-  const newState = !sidebarCollapsed;
-  setSidebarCollapsed(newState);
-  localStorage.setItem('sidebar-collapsed', String(newState));
-};
+---
 
-// Keyboard shortcut
-useEffect(() => {
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
-      e.preventDefault();
-      toggleSidebar();
+### 2. Add Google Sheets OAuth Integration
+
+**New Files:**
+- `supabase/functions/sheets-oauth-start/index.ts` 
+- `supabase/functions/sheets-oauth-callback/index.ts`
+- `supabase/functions/append-sheet-row/index.ts`
+
+**Secrets Required:**
+- `GOOGLE_SHEETS_CLIENT_ID`
+- `GOOGLE_SHEETS_CLIENT_SECRET`
+- `GOOGLE_SHEETS_REDIRECT_URI`
+
+(Can reuse the same Google OAuth app as Calendar with additional scopes)
+
+The flow:
+1. User clicks "Connect Google Sheets"
+2. OAuth popup opens with Sheets scopes
+3. Callback stores tokens and creates integration record
+4. When automation fires, call `append-sheet-row` with the data
+
+---
+
+### 3. Wire Up Printer Integration
+
+**File: `supabase/functions/trigger-workflow/index.ts` (executePrintAction)**
+
+Two options:
+
+**Option A: PrintNode Integration (Cloud Printers)**
+- Add `PRINTNODE_API_KEY` secret
+- Call PrintNode API to submit print job
+- Works with any PrintNode-connected printer
+
+**Option B: Browser-Based Printing (Local)**
+- Keep the `print_requested: true` flag approach
+- Add a polling mechanism on the Orders page
+- Auto-open print dialog when new orders arrive
+
+Recommend Option A for reliability, with Option B as fallback.
+
+---
+
+### 4. Mark Unsupported Integrations as "Concierge Only"
+
+**File: `src/pages/app/IntegrationsPage.tsx`**
+
+For Square, Calendly, Jobber - these require complex OAuth or proprietary APIs:
+
+- Change "Connect" button to "Request Setup"
+- Opens the ConciergeRequestDialog instead
+- Add a tooltip explaining why
+
+```typescript
+const CONCIERGE_ONLY = ["square", "calendly", "jobber"];
+
+// In the UI:
+{CONCIERGE_ONLY.includes(tool.id) ? (
+  <Button onClick={() => setConciergeOpen(true)}>
+    Request Setup
+  </Button>
+) : (
+  <Button onClick={() => handleConnect(tool.id)}>
+    Connect
+  </Button>
+)}
+```
+
+---
+
+### 5. Update IntegrationConnectDialog for Real OAuth
+
+**File: `src/components/integrations/IntegrationConnectDialog.tsx`**
+
+Complete rewrite of the connect flow:
+
+```typescript
+const handleConnect = async () => {
+  if (providerId === "google_calendar") {
+    // Call calendar-oauth-start
+    const { data, error } = await supabase.functions.invoke("calendar-oauth-start", {
+      body: { provider: "google" }
+    });
+    if (data?.auth_url) {
+      const popup = window.open(data.auth_url, "oauth", "width=500,height=600");
+      // Listen for completion
+      window.addEventListener("message", handleOAuthMessage);
     }
-  };
-  window.addEventListener('keydown', handleKeyDown);
-  return () => window.removeEventListener('keydown', handleKeyDown);
-}, [sidebarCollapsed]);
-```
-
-### Sidebar Width Classes
-
-```tsx
-// Sidebar
-<aside className={cn(
-  "hidden md:flex flex-col fixed left-0 top-16 bottom-0 border-r bg-background transition-all duration-200",
-  sidebarCollapsed ? "w-14" : "w-64"
-)}>
-
-// Main content margin
-<main className={cn(
-  "flex-1 pb-20 md:pb-0 min-h-[calc(100vh-4rem)] transition-all duration-200",
-  sidebarCollapsed ? "md:ml-14" : "md:ml-64"
-)}>
+  } else if (providerId === "google_sheets") {
+    // Similar for Sheets
+    const { data } = await supabase.functions.invoke("sheets-oauth-start", {
+      body: { provider: "google" }
+    });
+    // ...
+  } else if (providerId === "webhook") {
+    // Just save URL config
+    await createIntegration.mutateAsync({...});
+  } else if (providerId === "printer") {
+    // Show PrintNode API key input or local mode selection
+  }
+};
 ```
 
 ---
 
-## Before/After Summary
+### 6. Fix Automation Rules Triggering Calendar Events
 
-### Sidebar
-- **Before**: Fixed 256px width, always visible
-- **After**: Collapsible to 56px, toggle in header, keyboard shortcut, state persisted
+**File: `supabase/functions/trigger-workflow/index.ts` (executeCalendarAction)**
 
-### Bookings Page
-- **Before**: Minimal guidance, legend at bottom, sparse empty states
-- **After**: Clear instructions to click time slots, tooltips on stats, prominent legend, helpful empty states
+Currently returns `simulated: true`. Update to:
 
-### Dispatch Page
-- **Before**: Technical status names, minimal context, sparse empty state
-- **After**: Descriptive labels, priority explanations, status flow guidance, welcoming empty state
+1. Look up the tenant's `calendar_connections` and `calendar_tokens`
+2. Refresh token if expired
+3. Call Google Calendar API to create event
+4. Return the created event ID
+
+```typescript
+async function executeCalendarAction(...) {
+  // Get calendar connection and tokens
+  const { data: connection } = await supabase
+    .from("calendar_connections")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .eq("provider", "google")
+    .eq("status", "active")
+    .single();
+
+  if (!connection) {
+    return { success: false, error: "No calendar connected" };
+  }
+
+  // Get tokens, refresh if needed
+  // ... (reuse logic from create-calendar-event)
+
+  // Create event via Google API
+  const event = await createGoogleEvent(accessToken, calendarId, eventDetails);
+  return { success: true, response: { event_id: event.id } };
+}
+```
 
 ---
 
-## Constraints Respected
+### 7. Fix Google Sheets Automation Action
 
-| Constraint | Status |
-|------------|--------|
-| No DB changes | Verified - only UI changes |
-| No edge function changes | Verified - no backend modifications |
-| No business logic changes | Verified - same functionality |
-| No booking/dispatch flow changes | Verified - only adding helper text |
-| No ElevenLabs payload changes | Verified - not touching AI context |
+**File: `supabase/functions/trigger-workflow/index.ts` (executeSheetsAction)**
+
+Update from stub to real implementation:
+
+1. Look up `integrations` table for google_sheets config
+2. Get OAuth tokens (need new `sheets_tokens` table or reuse `calendar_tokens`)
+3. Call Google Sheets API to append row
 
 ---
 
-## 5-Minute Manual Test Checklist
+## Implementation Order
+
+1. **IntegrationConnectDialog OAuth fix** - Makes Google Calendar actually connect
+2. **executeCalendarAction fix** - Makes the automation actually work
+3. **Concierge-only integrations** - Sets correct expectations
+4. **Printer via PrintNode** - Adds real print capability
+5. **Google Sheets OAuth + action** - Full Sheets integration
+
+---
+
+## Files to Create/Modify
+
+| File | Action |
+|------|--------|
+| `src/components/integrations/IntegrationConnectDialog.tsx` | Rewrite connect flow |
+| `src/pages/app/IntegrationsPage.tsx` | Mark concierge-only tools |
+| `supabase/functions/trigger-workflow/index.ts` | Fix calendar + sheets actions |
+| `supabase/functions/append-sheet-row/index.ts` | NEW - Sheets API wrapper |
+| `supabase/functions/print-receipt/index.ts` | NEW - PrintNode integration |
+| `supabase/config.toml` | Add new function entries |
+
+---
+
+## Secrets Required
+
+| Secret | Purpose |
+|--------|---------|
+| `GOOGLE_SHEETS_CLIENT_ID` | OAuth for Sheets (can reuse Calendar app) |
+| `GOOGLE_SHEETS_CLIENT_SECRET` | OAuth for Sheets |
+| `PRINTNODE_API_KEY` | Cloud printing (optional) |
+
+---
+
+## Testing Checklist
 
 After implementation:
 
-1. **Sidebar Toggle**
-   - Click toggle button - sidebar collapses to icons
-   - Click again - sidebar expands
-   - Hover icons when collapsed - tooltips appear
-   - Refresh page - sidebar state persists
-   - Press Ctrl/Cmd + B - sidebar toggles
+1. **Google Calendar Connect**
+   - Click "Connect" on Google Calendar
+   - OAuth popup opens with Google consent screen
+   - After approving, popup closes and integration shows "Connected"
+   - Enable "Push bookings to Google Calendar" automation
+   - Create a test booking
+   - Verify event appears in Google Calendar
 
-2. **Bookings Page**
-   - Calendar loads correctly
-   - Click empty time slot - booking dialog opens
-   - Helper text visible in dialog
-   - Stats cards have tooltips (hover)
-   - Legend is visible and clear
-   - Empty list shows helpful message
+2. **Google Sheets Connect**
+   - Click "Connect" on Google Sheets
+   - OAuth flow completes
+   - Enable "Send leads to Google Sheets" automation
+   - Complete a test call
+   - Verify row appears in configured sheet
 
-3. **Dispatch Page**
-   - Page loads with all stats
-   - Hover priority badges - tooltips show
-   - Hover stats cards - tooltips show
-   - Filter dropdown works
-   - Empty table shows helpful message
-   - Status dropdown works for changing job status
+3. **Printer**
+   - Configure PrintNode API key (or use local mode)
+   - Enable "Print orders automatically"
+   - Create test order
+   - Verify print job sent to PrintNode (or print dialog opens)
 
-4. **Mobile**
-   - Sidebar toggle not visible (mobile uses bottom nav)
-   - Bottom nav still works correctly
-   - Bookings and Dispatch pages render properly
+4. **Webhook**
+   - Enable a webhook automation
+   - Enter a test URL (e.g., webhook.site)
+   - Trigger the event
+   - Verify data received at webhook URL
 
+5. **Concierge-Only Tools**
+   - Click "Request Setup" on Square/Calendly/Jobber
+   - Concierge dialog opens
+   - Submit creates a setup_request record
+
+---
+
+## Summary
+
+This plan transforms the Integrations page from mostly-UI-stubs to real, working connections. The key changes are:
+
+1. Hook up the OAuth flows that already exist (Calendar)
+2. Create the missing OAuth flows (Sheets)
+3. Make automation actions call real APIs instead of returning `simulated: true`
+4. Set correct expectations for integrations that require concierge setup
+5. Add PrintNode for cloud printing
+
+After these changes, when a user clicks "Connect" on Google Calendar and enables the automation, confirmed bookings will actually appear in their calendar.
