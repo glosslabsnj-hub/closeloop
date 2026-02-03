@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { 
   Link2, Zap, History, Settings2, Headset, ChevronDown, ChevronUp,
   Calendar, FileSpreadsheet, Printer, Webhook, MessageSquare, ExternalLink,
@@ -27,6 +27,7 @@ import {
   useIntegrationMutations,
   useAutomationRules,
   useAutomationRuleMutations,
+  useAutomationRuns,
   useTestAutomation,
   PROVIDERS 
 } from "@/hooks/useIntegrations";
@@ -36,6 +37,9 @@ import { ConciergeRequestDialog } from "@/components/integrations/ConciergeReque
 import { IntegrationConnectDialog } from "@/components/integrations/IntegrationConnectDialog";
 import { IntegrationCard } from "@/components/integrations/IntegrationCard";
 import { MoreIntegrationsDialog } from "@/components/integrations/MoreIntegrationsDialog";
+import { IntegrationStatusDashboard } from "@/components/integrations/IntegrationStatusDashboard";
+import { IntegrationHealthAlert, type HealthWarning } from "@/components/integrations/IntegrationHealthAlert";
+import { AutomationActivityFeed } from "@/components/integrations/AutomationActivityFeed";
 import { SELF_SETUP_INTEGRATIONS, FEATURED_EXPERT_INTEGRATIONS } from "@/data/popularIntegrations";
 
 // Quick automation presets that create real automation_rules
@@ -161,9 +165,70 @@ export default function IntegrationsPage() {
   // Data hooks
   const { data: integrations, isLoading: integrationsLoading } = useIntegrations(tenantId);
   const { data: rules, isLoading: rulesLoading } = useAutomationRules(tenantId);
+  const { data: automationRuns, isLoading: runsLoading } = useAutomationRuns(tenantId, 50);
   const { createRule, toggleRule } = useAutomationRuleMutations(tenantId);
-  const { createIntegration, testIntegration } = useIntegrationMutations(tenantId);
+  const { createIntegration, testIntegration, updateIntegration } = useIntegrationMutations(tenantId);
   const testAutomation = useTestAutomation();
+
+  // Compute automation stats for dashboard
+  const automationStats = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const todayRuns = (automationRuns || []).filter(r => new Date(r.started_at) >= today);
+    const successCount = todayRuns.filter(r => r.status === "success").length;
+    const failureCount = todayRuns.filter(r => r.status === "failed").length;
+    const lastRunAt = automationRuns?.[0]?.started_at || null;
+    
+    return {
+      totalRuns: todayRuns.length,
+      successCount,
+      failureCount,
+      lastRunAt,
+    };
+  }, [automationRuns]);
+
+  // Check for health warnings
+  const healthWarnings = useMemo((): HealthWarning[] => {
+    const warnings: HealthWarning[] = [];
+    
+    // Check for error integrations
+    (integrations || []).forEach(integration => {
+      if (integration.status === "error") {
+        warnings.push({
+          id: `error-${integration.id}`,
+          type: "sync_error",
+          integrationId: integration.id,
+          integrationName: integration.display_name,
+          message: integration.error_message || "Connection error detected. Please reconnect.",
+        });
+      }
+    });
+    
+    // Check for failed automation runs
+    const recentFailures = (automationRuns || [])
+      .filter(r => r.status === "failed")
+      .slice(0, 3);
+    
+    if (recentFailures.length > 0) {
+      const failedProviders = [...new Set(recentFailures.map(r => r.rule?.destination_provider).filter(Boolean))];
+      if (failedProviders.length > 0) {
+        warnings.push({
+          id: "webhook-failures",
+          type: "webhook_failing",
+          integrationId: recentFailures[0].rule?.integration_id || "",
+          integrationName: failedProviders.join(", "),
+          message: `${recentFailures.length} recent automation${recentFailures.length > 1 ? "s" : ""} failed. Check the History tab for details.`,
+          actionLabel: "View History",
+        });
+      }
+    }
+    
+    return warnings;
+  }, [integrations, automationRuns]);
+
+  const [dismissedWarnings, setDismissedWarnings] = useState<string[]>([]);
+  const activeWarnings = healthWarnings.filter(w => !dismissedWarnings.includes(w.id));
 
   if (!tenantId) {
     return (
@@ -450,6 +515,36 @@ export default function IntegrationsPage() {
 
         {/* Connect Tools Tab - Redesigned */}
         <TabsContent value="connect" className="space-y-8">
+          {/* Status Dashboard - Shows connected integrations at a glance */}
+          <IntegrationStatusDashboard
+            integrations={integrations || []}
+            automationStats={automationStats}
+            onAddIntegration={() => setActiveTab("connect")}
+            onReconnect={(id) => {
+              const integration = integrations?.find(i => i.id === id);
+              if (integration) {
+                setSelectedProvider(integration.provider);
+                setConnectDialogOpen(true);
+              }
+            }}
+            isLoading={integrationsLoading}
+          />
+
+          {/* Health Alerts */}
+          {activeWarnings.length > 0 && (
+            <IntegrationHealthAlert
+              warnings={activeWarnings}
+              onReconnect={(id) => {
+                const integration = integrations?.find(i => i.id === id);
+                if (integration) {
+                  setSelectedProvider(integration.provider);
+                  setConnectDialogOpen(true);
+                }
+              }}
+              onDismiss={(warningId) => setDismissedWarnings(prev => [...prev, warningId])}
+            />
+          )}
+
           {/* Intro Section */}
           <Card className="bg-muted/30 border-dashed">
             <CardContent className="p-6">
@@ -470,7 +565,7 @@ export default function IntegrationsPage() {
           {/* Section A: Self-Setup Integrations */}
           <section className="space-y-4">
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-500" />
+              <CheckCircle className="h-5 w-5 text-primary" />
               <h2 className="text-lg font-semibold">Set Up Yourself</h2>
               <Badge variant="secondary" className="text-xs">Free</Badge>
             </div>
@@ -573,9 +668,18 @@ export default function IntegrationsPage() {
           </Card>
         </TabsContent>
 
-        {/* History Tab */}
+        {/* History Tab - Enhanced Activity Feed */}
         <TabsContent value="history" className="space-y-6">
-          <AutomationRunHistorySection tenantId={tenantId} />
+          <AutomationActivityFeed
+            runs={automationRuns || []}
+            isLoading={runsLoading}
+            onRetry={(runId) => {
+              const run = automationRuns?.find(r => r.id === runId);
+              if (run?.rule_id) {
+                testAutomation.mutate({ rule_id: run.rule_id, dry_run: false });
+              }
+            }}
+          />
         </TabsContent>
       </Tabs>
 
