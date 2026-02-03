@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
-import { Brain, Building2, Package, MapPin, Calendar, Shield, Clock, Sparkles, BookOpen, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Brain, Building2, Package, MapPin, Calendar, Shield, Clock, Sparkles, BookOpen, AlertCircle, Maximize2, Minimize2 } from "lucide-react";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { PricingRulesEditor } from "@/components/settings/PricingRulesEditor";
 import { BusynessRulesEditor } from "@/components/settings/BusynessRulesEditor";
 import { ServiceCatalogEditor } from "@/components/brain/ServiceCatalogEditor";
 import { MenuCatalogEditor } from "@/components/brain/MenuCatalogEditor";
+import { DispatchServiceCatalog } from "@/components/brain/dispatch/DispatchServiceCatalog";
 import { RequiredQuestionsEditor } from "@/components/settings/RequiredQuestionsEditor";
 import { AIBusinessPolicies } from "@/components/settings/AIBusinessPolicies";
 import { AvailabilityHub } from "@/components/availability/AvailabilityHub";
@@ -26,6 +28,7 @@ import { QuoteReadinessCard } from "@/components/brain/QuoteReadinessCard";
 import { IndustryTemplateCard } from "@/components/brain/IndustryTemplateCard";
 import { ServiceAreaPreview } from "@/components/debug/ServiceAreaPreview";
 import { DistanceEtaSection } from "@/components/business-brain/DistanceEtaSection";
+import { DispatchEtaSection } from "@/components/business-brain/DispatchEtaSection";
 import { IntelligenceSettingsForm } from "@/components/settings/IntelligenceSettingsForm";
 import { BusinessHoursManager } from "@/components/brain/BusinessHoursManager";
 import { AINeverPromiseEditor } from "@/components/brain/AINeverPromiseEditor";
@@ -117,6 +120,31 @@ export default function BusinessBrainPage() {
   const reviewCount = useBrainReviewCount();
   const { businessMode } = useTenantConfig();
   const { isFoodMode, hasFoodOrders, hasMenuKnowledge } = useFoodMode();
+  
+  // Focus mode state - persisted to localStorage
+  const [focusMode, setFocusMode] = useState(() => {
+    return localStorage.getItem('business-brain-focus-mode') === 'true';
+  });
+
+  // Toggle focus mode and persist
+  const toggleFocusMode = () => {
+    const newValue = !focusMode;
+    setFocusMode(newValue);
+    localStorage.setItem('business-brain-focus-mode', String(newValue));
+    // Dispatch custom event so AppLayout can respond
+    window.dispatchEvent(new CustomEvent('business-brain-focus-mode', { detail: newValue }));
+  };
+
+  // Escape key exits focus mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && focusMode) {
+        toggleFocusMode();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [focusMode]);
 
   if (!tenant) {
     return (
@@ -130,66 +158,89 @@ export default function BusinessBrainPage() {
   const showDispatchDelivery = businessMode === "dispatch";
   const showFoodDelivery = businessMode === "food" || hasFoodOrders;
   const showMedicalSettings = businessMode === "medical";
+  const isDispatchMode = businessMode === "dispatch";
 
   return (
     <div className="flex min-h-screen bg-background">
-      {/* Sidebar Navigation */}
-      <aside className="hidden lg:block w-64 border-r border-border bg-card/50 sticky top-0 h-screen overflow-y-auto">
-        <div className="p-6">
-          <div className="flex items-center gap-2 mb-6">
-            <Brain className="h-6 w-6 text-primary" />
-            <h2 className="text-lg font-semibold">Business Brain</h2>
+      {/* Sidebar Navigation - Hidden in Focus Mode */}
+      {!focusMode && (
+        <aside className="hidden lg:block w-64 border-r border-border bg-card/50 sticky top-0 h-screen overflow-y-auto">
+          <div className="p-6">
+            <div className="flex items-center gap-2 mb-6">
+              <Brain className="h-6 w-6 text-primary" />
+              <h2 className="text-lg font-semibold">Business Brain</h2>
+            </div>
+            <nav className="space-y-1">
+              {navigationItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeSection === item.id;
+                const showBadge = item.id === "knowledge" && reviewCount > 0;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveSection(item.id)}
+                    className={`
+                      w-full flex items-start gap-3 px-3 py-2 rounded-md text-sm transition-colors relative
+                      ${isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                      }
+                    `}
+                  >
+                    <Icon className="h-4 w-4 mt-0.5 shrink-0" />
+                    <div className="text-left flex-1">
+                      <div className="font-medium flex items-center gap-2">
+                        {item.label}
+                        {showBadge && (
+                          <Badge
+                            variant={isActive ? "secondary" : "destructive"}
+                            className="h-5 px-1.5 text-xs"
+                          >
+                            {reviewCount}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className={`text-xs ${isActive ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+                        {item.description}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </nav>
           </div>
-          <nav className="space-y-1">
-            {navigationItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeSection === item.id;
-              const showBadge = item.id === "knowledge" && reviewCount > 0;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveSection(item.id)}
-                  className={`
-                    w-full flex items-start gap-3 px-3 py-2 rounded-md text-sm transition-colors relative
-                    ${isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted text-muted-foreground hover:text-foreground"
-                    }
-                  `}
-                >
-                  <Icon className="h-4 w-4 mt-0.5 shrink-0" />
-                  <div className="text-left flex-1">
-                    <div className="font-medium flex items-center gap-2">
-                      {item.label}
-                      {showBadge && (
-                        <Badge
-                          variant={isActive ? "secondary" : "destructive"}
-                          className="h-5 px-1.5 text-xs"
-                        >
-                          {reviewCount}
-                        </Badge>
-                      )}
-                    </div>
-                    <div className={`text-xs ${isActive ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
-                      {item.description}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-      </aside>
+        </aside>
+      )}
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
         <div className="container max-w-5xl py-8 px-4 sm:px-6 lg:px-8">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">Business Brain</h1>
-            <p className="text-muted-foreground">
-              Everything your AI needs to know. All edits here flow to your assistant in real-time.
-            </p>
+          {/* Header with Focus Mode Toggle */}
+          <div className="mb-8 flex items-start justify-between">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Business Brain</h1>
+              <p className="text-muted-foreground">
+                Everything your AI needs to know. All edits here flow to your assistant in real-time.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleFocusMode}
+              className="gap-2"
+            >
+              {focusMode ? (
+                <>
+                  <Minimize2 className="h-4 w-4" />
+                  Exit Focus
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="h-4 w-4" />
+                  Focus Mode
+                </>
+              )}
+            </Button>
           </div>
 
           {/* Profile & Identity Section */}
@@ -222,17 +273,26 @@ export default function BusinessBrainPage() {
             <SettingsSection
               id="services"
               title="Services & Menu"
-              description={isFoodMode ? "Manage your menu items and pricing" : "Manage your service catalog and pricing rules"}
+              description={isFoodMode ? "Manage your menu items and pricing" : isDispatchMode ? "Configure your dispatch services with distance-based pricing" : "Manage your service catalog and pricing rules"}
             >
               <QuoteReadinessCard />
 
-              <div className="mt-6">
-                <PricingRulesEditor />
-              </div>
+              {/* Only show pricing rules for non-dispatch modes */}
+              {!isDispatchMode && (
+                <div className="mt-6">
+                  <PricingRulesEditor />
+                </div>
+              )}
 
-              {/* Mode-aware: Menu for food mode, Services for other modes */}
+              {/* Mode-aware service catalog */}
               <div className="mt-6">
-                {isFoodMode ? <MenuCatalogEditor /> : <ServiceCatalogEditor />}
+                {isFoodMode ? (
+                  <MenuCatalogEditor />
+                ) : isDispatchMode ? (
+                  <DispatchServiceCatalog />
+                ) : (
+                  <ServiceCatalogEditor />
+                )}
               </div>
             </SettingsSection>
           )}
@@ -249,7 +309,8 @@ export default function BusinessBrainPage() {
               </div>
               <ServiceAreaManager />
               <div className="mt-6">
-                <DistanceEtaSection />
+                {/* Use simplified dispatch ETA for dispatch mode, standard for others */}
+                {isDispatchMode ? <DispatchEtaSection /> : <DistanceEtaSection />}
               </div>
             </SettingsSection>
           )}

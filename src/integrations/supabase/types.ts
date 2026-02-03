@@ -3426,6 +3426,7 @@ export type Database = {
           deposit_amount: number | null
           deposit_required: boolean | null
           description: string | null
+          display_order: number | null
           duration_minutes: number
           id: string
           is_active: boolean
@@ -3433,6 +3434,9 @@ export type Database = {
           preparation_instructions: string | null
           price_amount: number | null
           price_type: Database["public"]["Enums"]["price_type"]
+          pricing_config_json: Json | null
+          service_category: string | null
+          service_type: string | null
           tenant_id: string
           upsell_suggestions: string[] | null
         }
@@ -3441,6 +3445,7 @@ export type Database = {
           deposit_amount?: number | null
           deposit_required?: boolean | null
           description?: string | null
+          display_order?: number | null
           duration_minutes?: number
           id?: string
           is_active?: boolean
@@ -3448,6 +3453,9 @@ export type Database = {
           preparation_instructions?: string | null
           price_amount?: number | null
           price_type?: Database["public"]["Enums"]["price_type"]
+          pricing_config_json?: Json | null
+          service_category?: string | null
+          service_type?: string | null
           tenant_id: string
           upsell_suggestions?: string[] | null
         }
@@ -3456,6 +3464,7 @@ export type Database = {
           deposit_amount?: number | null
           deposit_required?: boolean | null
           description?: string | null
+          display_order?: number | null
           duration_minutes?: number
           id?: string
           is_active?: boolean
@@ -3463,6 +3472,9 @@ export type Database = {
           preparation_instructions?: string | null
           price_amount?: number | null
           price_type?: Database["public"]["Enums"]["price_type"]
+          pricing_config_json?: Json | null
+          service_category?: string | null
+          service_type?: string | null
           tenant_id?: string
           upsell_suggestions?: string[] | null
         }

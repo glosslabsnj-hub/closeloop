@@ -136,6 +136,11 @@ export async function createService(
     deposit_amount?: number;
     deposit_required?: boolean;
     is_active?: boolean;
+    // Dispatch pricing fields
+    service_category?: string;
+    service_type?: string;
+    pricing_config_json?: Record<string, unknown>;
+    display_order?: number;
   }
 ) {
   const { data, error } = await supabase
@@ -150,6 +155,11 @@ export async function createService(
       deposit_amount: service.deposit_amount || null,
       deposit_required: service.deposit_required || false,
       is_active: service.is_active !== undefined ? service.is_active : true,
+      // Dispatch pricing fields
+      service_category: service.service_category || null,
+      service_type: service.service_type || null,
+      pricing_config_json: service.pricing_config_json as Json || null,
+      display_order: service.display_order || 0,
     })
     .select()
     .single();
@@ -182,11 +192,22 @@ export async function updateService(
     deposit_amount?: number;
     deposit_required?: boolean;
     is_active?: boolean;
+    // Dispatch pricing fields
+    service_category?: string;
+    service_type?: string | null;
+    pricing_config_json?: Record<string, unknown>;
+    display_order?: number;
   }
 ) {
+  // Transform pricing_config_json to Json type if present
+  const dbUpdates = {
+    ...updates,
+    pricing_config_json: updates.pricing_config_json as Json | undefined,
+  };
+
   const { data, error } = await supabase
     .from("services")
-    .update(updates)
+    .update(dbUpdates)
     .eq("id", serviceId)
     .eq("tenant_id", tenantId)
     .select()
