@@ -20,6 +20,7 @@ import { BusinessPoliciesEditor } from "@/components/brain/BusinessPoliciesEdito
 import { ServiceAreaManager } from "@/components/brain/ServiceAreaManager";
 import { BrainAssetsManager } from "@/components/brain/BrainAssetsManager";
 import { BrainReviewQueue, useBrainReviewCount } from "@/components/brain/BrainReviewQueue";
+import { CustomKnowledgeEditor } from "@/components/brain/CustomKnowledgeEditor";
 import { QuoteReadinessCard } from "@/components/brain/QuoteReadinessCard";
 import { IndustryTemplateCard } from "@/components/brain/IndustryTemplateCard";
 import { ServiceAreaPreview } from "@/components/debug/ServiceAreaPreview";
@@ -388,6 +389,10 @@ export default function BusinessBrainPage() {
 
               <div className="mt-6">
                 <BusinessObjectionEditor />
+              </div>
+
+              <div className="mt-6">
+                <CustomKnowledgeEditor />
               </div>
 
               <div className="mt-6">
