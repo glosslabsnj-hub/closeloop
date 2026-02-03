@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
-import { Brain, Building2, Package, MapPin, Calendar, FileText, Shield, Upload, AlertCircle, Settings2 } from "lucide-react";
+import { Brain, Building2, Package, MapPin, Calendar, Shield, Clock, Sparkles, BookOpen, AlertCircle } from "lucide-react";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { PricingRulesEditor } from "@/components/settings/PricingRulesEditor";
 import { BusynessRulesEditor } from "@/components/settings/BusynessRulesEditor";
@@ -25,6 +25,15 @@ import { IndustryTemplateCard } from "@/components/brain/IndustryTemplateCard";
 import { ServiceAreaPreview } from "@/components/debug/ServiceAreaPreview";
 import { DistanceEtaSection } from "@/components/business-brain/DistanceEtaSection";
 import { IntelligenceSettingsForm } from "@/components/settings/IntelligenceSettingsForm";
+import { BusinessHoursManager } from "@/components/brain/BusinessHoursManager";
+import { AINeverPromiseEditor } from "@/components/brain/AINeverPromiseEditor";
+import { AIScriptsEditor } from "@/components/brain/AIScriptsEditor";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useFoodMode } from "@/hooks/useFoodMode";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { ExternalLink, Utensils } from "lucide-react";
 
 /**
  * Business Brain - Centralized hub for ALL business knowledge editing
@@ -34,16 +43,15 @@ import { IntelligenceSettingsForm } from "@/components/settings/IntelligenceSett
  * 2. All other pages must be read-only with "Edit in Business Brain" CTAs
  * 3. All writes route through src/lib/brain/writeBrainFact.ts
  *
- * Sections:
- * - #profile: Business name, contact info, hours
- * - #services: Service catalog, menu items, pricing rules
- * - #service-area: Dispatch zones (future)
- * - #scheduling: Hours, busyness, availability
- * - #policies: Cancellation, payment, HIPAA, retention, delivery handoff
- * - #faqs: Business FAQs
- * - #assets: Knowledge uploads
- * - #ai-intelligence: AI learning, memory, copilot settings
- * - #review-queue: Conflicts, suggestions, merge queue
+ * Tab Structure (Reorganized):
+ * - Profile & Identity: Business name, contact, website, years in business
+ * - Operating Hours: Business hours with AI preview
+ * - Services & Menu: Mode-aware services or menu items
+ * - Service Area & ETA: Coverage zones and ETAs
+ * - Availability: Calendar sync and blocks
+ * - Policies & Rules: Mode-aware delivery settings, cancellation, AI restrictions
+ * - AI Behavior: Scripts, intelligence, business policies
+ * - Knowledge & Training: FAQs, objections, uploads, review queue
  */
 
 interface BrainNavItem {
@@ -56,57 +64,51 @@ interface BrainNavItem {
 const navigationItems: BrainNavItem[] = [
   {
     id: "profile",
-    label: "Business Profile",
+    label: "Profile & Identity",
     icon: Building2,
-    description: "Name, contact info, hours, and identity"
+    description: "Business name, contact, website, years"
+  },
+  {
+    id: "hours",
+    label: "Operating Hours",
+    icon: Clock,
+    description: "When you're open for business"
   },
   {
     id: "services",
-    label: "Services & Pricing",
+    label: "Services & Menu",
     icon: Package,
-    description: "Service catalog, menu items, and pricing rules"
+    description: "What you offer and pricing"
   },
   {
     id: "service-area",
-    label: "Service Area",
+    label: "Service Area & ETA",
     icon: MapPin,
-    description: "Dispatch zones and delivery coverage (future)"
+    description: "Where you serve and travel times"
   },
   {
-    id: "scheduling",
-    label: "Scheduling & Availability",
+    id: "availability",
+    label: "Availability",
     icon: Calendar,
-    description: "Hours, busyness rules, and availability slots"
+    description: "Calendar sync and blocked times"
   },
   {
     id: "policies",
     label: "Policies & Rules",
     icon: Shield,
-    description: "Cancellation, payment, HIPAA, retention, delivery"
+    description: "Cancellation, payment, delivery"
   },
   {
-    id: "faqs",
-    label: "FAQs & Knowledge",
-    icon: FileText,
-    description: "Business FAQs and common questions"
+    id: "ai-behavior",
+    label: "AI Behavior",
+    icon: Sparkles,
+    description: "Scripts, memory, intelligence"
   },
   {
-    id: "assets",
-    label: "Knowledge Assets",
-    icon: Upload,
-    description: "Uploaded documents and knowledge sources"
-  },
-  {
-    id: "ai-intelligence",
-    label: "AI Intelligence",
-    icon: Settings2,
-    description: "Memory, learning settings, and copilot config"
-  },
-  {
-    id: "review-queue",
-    label: "Review Queue",
-    icon: AlertCircle,
-    description: "Conflicts, suggestions, and merge approvals"
+    id: "knowledge",
+    label: "Knowledge & Training",
+    icon: BookOpen,
+    description: "FAQs, objections, uploads, review"
   }
 ];
 
@@ -114,6 +116,8 @@ export default function BusinessBrainPage() {
   const { tenant } = useAuth();
   const [activeSection, setActiveSection] = useState("profile");
   const reviewCount = useBrainReviewCount();
+  const { businessMode } = useTenantConfig();
+  const { isFoodMode, hasFoodOrders, hasMenuKnowledge } = useFoodMode();
 
   if (!tenant) {
     return (
@@ -122,6 +126,11 @@ export default function BusinessBrainPage() {
       </div>
     );
   }
+
+  const showBookingDelivery = ["service", "medical", "general"].includes(businessMode);
+  const showDispatchDelivery = businessMode === "dispatch";
+  const showFoodDelivery = businessMode === "food" || hasFoodOrders;
+  const showMedicalSettings = businessMode === "medical";
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -136,7 +145,7 @@ export default function BusinessBrainPage() {
             {navigationItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeSection === item.id;
-              const showBadge = item.id === "review-queue" && reviewCount > 0;
+              const showBadge = item.id === "knowledge" && reviewCount > 0;
               return (
                 <button
                   key={item.id}
@@ -180,31 +189,41 @@ export default function BusinessBrainPage() {
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">Business Brain</h1>
             <p className="text-muted-foreground">
-              Centralized hub for all business knowledge. All edits here flow to your AI assistant in real-time.
+              Everything your AI needs to know. All edits here flow to your assistant in real-time.
             </p>
           </div>
 
-          {/* Profile Section */}
+          {/* Profile & Identity Section */}
           {activeSection === "profile" && (
             <SettingsSection
               id="profile"
-              title="Business Profile"
-              description="Your business identity, contact information, and operating hours"
+              title="Profile & Identity"
+              description="Your business identity and contact information"
             >
               <BusinessProfileEditor />
-
               <div className="mt-6">
                 <IndustryTemplateCard />
               </div>
             </SettingsSection>
           )}
 
-          {/* Services & Pricing Section */}
+          {/* Operating Hours Section */}
+          {activeSection === "hours" && (
+            <SettingsSection
+              id="hours"
+              title="Operating Hours"
+              description="Set when your business is open. The AI uses this to answer 'Are you open?' and schedule appointments."
+            >
+              <BusinessHoursManager />
+            </SettingsSection>
+          )}
+
+          {/* Services & Menu Section */}
           {activeSection === "services" && (
             <SettingsSection
               id="services"
-              title="Services & Pricing"
-              description="Manage your service catalog, menu items, and pricing rules"
+              title="Services & Menu"
+              description={isFoodMode ? "Manage your menu items and pricing" : "Manage your service catalog and pricing rules"}
             >
               <QuoteReadinessCard />
 
@@ -212,41 +231,62 @@ export default function BusinessBrainPage() {
                 <PricingRulesEditor />
               </div>
 
-              <div className="mt-6">
-                <ServiceCatalogEditor />
-              </div>
+              {/* Mode-aware: Services for most modes, Menu link for food mode */}
+              {isFoodMode ? (
+                <div className="mt-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Utensils className="h-5 w-5" />
+                        Menu Items
+                      </CardTitle>
+                      <CardDescription>
+                        Manage your food menu, categories, and item details
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button asChild>
+                        <Link to="/app/menu-center">
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          Open Menu Center
+                        </Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : (
+                <div className="mt-6">
+                  <ServiceCatalogEditor />
+                </div>
+              )}
             </SettingsSection>
           )}
 
-          {/* Service Area Section */}
+          {/* Service Area & ETA Section */}
           {activeSection === "service-area" && (
             <SettingsSection
               id="service-area"
-              title="Service Area"
-              description="Define dispatch zones and delivery coverage areas"
+              title="Service Area & ETA"
+              description="Define where you serve and estimated travel times"
             >
-              {/* Live Preview of what AI will say */}
               <div className="mb-6">
                 <ServiceAreaPreview />
               </div>
-
               <ServiceAreaManager />
-
               <div className="mt-6">
                 <DistanceEtaSection />
               </div>
             </SettingsSection>
           )}
 
-          {/* Scheduling & Availability Section */}
-          {activeSection === "scheduling" && (
+          {/* Availability Section */}
+          {activeSection === "availability" && (
             <SettingsSection
-              id="scheduling"
-              title="Scheduling & Availability"
-              description="Configure hours, busyness rules, and availability slots"
+              id="availability"
+              title="Availability & Scheduling"
+              description="Connect calendars and manage blocked times. Operating hours are set in the Hours tab."
             >
               <BusynessRulesEditor />
-
               <div className="mt-6">
                 <AvailabilityHub />
               </div>
@@ -258,81 +298,120 @@ export default function BusinessBrainPage() {
             <SettingsSection
               id="policies"
               title="Policies & Rules"
-              description="Define business policies for cancellation, payment, HIPAA, and more"
+              description="Define business policies and what the AI must collect from callers"
             >
-              <RequiredQuestionsEditor />
+              {/* Core Policies */}
+              <BusinessPoliciesEditor />
+
+              <div className="mt-6">
+                <AINeverPromiseEditor />
+              </div>
+
+              <div className="mt-6">
+                <RequiredQuestionsEditor />
+              </div>
+
+              {/* Mode-specific Delivery Settings */}
+              {showBookingDelivery && (
+                <div className="mt-6">
+                  <BookingDeliverySettings />
+                </div>
+              )}
+
+              {showFoodDelivery && (
+                <div className="mt-6">
+                  <FoodOrderSettings />
+                </div>
+              )}
+
+              {showDispatchDelivery && (
+                <div className="mt-6">
+                  <DispatchDeliverySettings />
+                </div>
+              )}
+
+              {showMedicalSettings && (
+                <div className="mt-6">
+                  <MedicalHIPAASettings />
+                </div>
+              )}
+            </SettingsSection>
+          )}
+
+          {/* AI Behavior Section */}
+          {activeSection === "ai-behavior" && (
+            <SettingsSection
+              id="ai-behavior"
+              title="AI Behavior"
+              description="Customize how your AI speaks, negotiates, and learns"
+            >
+              <AIScriptsEditor />
 
               <div className="mt-6">
                 <AIBusinessPolicies />
               </div>
 
               <div className="mt-6">
-                <BookingDeliverySettings />
-              </div>
-
-              <div className="mt-6">
-                <FoodOrderSettings />
-              </div>
-
-              <div className="mt-6">
-                <DispatchDeliverySettings />
-              </div>
-
-              <div className="mt-6">
-                <MedicalHIPAASettings />
-              </div>
-
-              <div className="mt-6">
-                <BusinessPoliciesEditor />
+                <IntelligenceSettingsForm />
               </div>
             </SettingsSection>
           )}
 
-          {/* FAQs & Knowledge Section */}
-          {activeSection === "faqs" && (
+          {/* Knowledge & Training Section */}
+          {activeSection === "knowledge" && (
             <SettingsSection
-              id="faqs"
-              title="FAQs & Knowledge"
-              description="Manage frequently asked questions and objection responses"
+              id="knowledge"
+              title="Knowledge & Training"
+              description="FAQs, objection responses, uploaded documents, and items needing review"
             >
+              {reviewCount > 0 && (
+                <div className="mb-6">
+                  <Card className="border-destructive/50 bg-destructive/5">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <AlertCircle className="h-5 w-5 text-destructive" />
+                        Review Queue
+                        <Badge variant="destructive">{reviewCount}</Badge>
+                      </CardTitle>
+                      <CardDescription>
+                        Items need your review before the AI can use them
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <BrainReviewQueue />
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
               <BusinessFAQEditor />
 
               <div className="mt-6">
                 <BusinessObjectionEditor />
               </div>
-            </SettingsSection>
-          )}
 
-          {/* Knowledge Assets Section */}
-          {activeSection === "assets" && (
-            <SettingsSection
-              id="assets"
-              title="Knowledge Assets"
-              description="Upload and manage documents, PDFs, and other knowledge sources"
-            >
-              <BrainAssetsManager />
-            </SettingsSection>
-          )}
+              <div className="mt-6">
+                <BrainAssetsManager />
+              </div>
 
-          {/* Review Queue Section */}
-          {activeSection === "review-queue" && (
-            <SettingsSection
-              id="review-queue"
-              title="Review Queue"
-              description="Review conflicts, AI suggestions, and approve knowledge merges"
-            >
-              <BrainReviewQueue />
-            </SettingsSection>
-          )}
-
-          {/* AI Intelligence Section */}
-          {activeSection === "ai-intelligence" && (
-            <SettingsSection
-              id="ai-intelligence"
-              title="AI Intelligence"
-              description="Configure how your AI learns and adapts over time"
-            >
-              <IntelligenceSettingsForm />
+              {reviewCount === 0 && (
+                <div className="mt-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <AlertCircle className="h-5 w-5 text-muted-foreground" />
+                        Review Queue
+                      </CardTitle>
+                      <CardDescription>
+                        No items pending review
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <BrainReviewQueue />
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
             </SettingsSection>
           )}
         </div>

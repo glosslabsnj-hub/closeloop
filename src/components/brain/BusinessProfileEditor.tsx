@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Save, MapPin, Building2, AlertTriangle } from "lucide-react";
 import { updateBusinessProfile } from "@/lib/brain/writeBrainFact";
+import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ServiceAreaPreview } from "@/components/debug/ServiceAreaPreview";
@@ -99,6 +100,8 @@ export function BusinessProfileEditor() {
     tagline: "",
     phone_public: "",
     timezone: "",
+    website_url: "",
+    years_in_business: "",
     // Address components
     address_line1: "",
     address_city: "",
@@ -118,6 +121,8 @@ export function BusinessProfileEditor() {
         tagline: tenant.tagline || "",
         phone_public: tenant.phone_public || "",
         timezone: tenant.timezone || "America/New_York",
+        website_url: (tenant as any).website_url || "",
+        years_in_business: (tenant as any).years_in_business?.toString() || "",
         address_line1: addressComponents.line1,
         address_city: addressComponents.city,
         address_state: addressComponents.state,
@@ -144,6 +149,7 @@ export function BusinessProfileEditor() {
         zip: formData.address_zip.trim(),
       });
 
+      // Update profile with core fields
       await updateBusinessProfile(tenant.id, {
         name: formData.name.trim(),
         tagline: formData.tagline.trim() || undefined,
@@ -151,6 +157,17 @@ export function BusinessProfileEditor() {
         address: combinedAddress || undefined,
         timezone: formData.timezone,
       });
+
+      // Update additional fields directly
+      const { error } = await supabase
+        .from("tenants")
+        .update({
+          website_url: formData.website_url.trim() || null,
+          years_in_business: formData.years_in_business ? parseInt(formData.years_in_business) : null,
+        } as any)
+        .eq("id", tenant.id);
+
+      if (error) throw error;
 
       toast.success("Business profile updated successfully");
       queryClient.invalidateQueries({ queryKey: ["business-context"] });
@@ -253,6 +270,35 @@ export function BusinessProfileEditor() {
             </div>
           </div>
 
+          {/* Additional Business Info */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="website">Website URL</Label>
+              <Input
+                id="website"
+                type="url"
+                value={formData.website_url}
+                onChange={(e) => setFormData({ ...formData, website_url: e.target.value })}
+                placeholder="https://www.yourbusiness.com"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="years">Years in Business</Label>
+              <Input
+                id="years"
+                type="number"
+                min="0"
+                value={formData.years_in_business}
+                onChange={(e) => setFormData({ ...formData, years_in_business: e.target.value })}
+                placeholder="10"
+              />
+              <p className="text-xs text-muted-foreground">
+                The AI uses this to build caller trust
+              </p>
+            </div>
+          </div>
+
           <Separator />
 
           {/* Address Section */}
@@ -263,7 +309,7 @@ export function BusinessProfileEditor() {
                 <Label className="text-base font-medium">Business Address</Label>
               </div>
               {!hasAddress && (
-                <Badge variant="outline" className="text-amber-600 border-amber-300">
+                <Badge variant="outline" className="text-destructive border-destructive/50">
                   <AlertTriangle className="h-3 w-3 mr-1" />
                   Recommended
                 </Badge>
