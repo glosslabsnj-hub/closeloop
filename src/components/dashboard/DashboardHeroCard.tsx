@@ -261,7 +261,7 @@ export function DashboardHeroCard() {
 
   if (!planCode) {
     return (
-      <Card className="border-border">
+      <Card className="border-border/50">
         <CardContent className="p-6">
           <div className="flex items-center gap-4">
             <div className="flex items-center justify-center h-14 w-14 rounded-2xl bg-muted text-muted-foreground">
@@ -284,7 +284,7 @@ export function DashboardHeroCard() {
       label: "Calls Today",
       value: stats?.callsToday || 0,
       icon: Phone,
-      iconBg: "bg-emerald-500/15",
+      iconBg: "bg-emerald-500/12",
       iconColor: "text-emerald-400",
     },
     {
@@ -292,7 +292,7 @@ export function DashboardHeroCard() {
       value: stats?.bookingsThisWeek || 0,
       icon: Calendar,
       sublabel: "this week",
-      iconBg: "bg-blue-500/15",
+      iconBg: "bg-blue-500/12",
       iconColor: "text-blue-400",
     },
     {
@@ -300,24 +300,24 @@ export function DashboardHeroCard() {
       value: `$${(stats?.revenueRecovered || 0).toLocaleString()}`,
       icon: TrendingUp,
       sublabel: "recovered",
-      iconBg: "bg-amber-500/15",
+      iconBg: "bg-amber-500/12",
       iconColor: "text-amber-400",
     },
     {
       label: "AI Ready",
       value: `${readinessScore}%`,
       icon: Brain,
-      iconBg: "bg-purple-500/15",
+      iconBg: "bg-purple-500/12",
       iconColor: "text-purple-400",
     },
   ];
 
   return (
     <Card className={cn(
-      "overflow-hidden transition-all duration-300 animate-fade-in",
+      "overflow-hidden transition-all duration-300 animate-fade-in relative z-10",
       isAnyActive 
-        ? "border-primary/30 bg-gradient-to-br from-primary/[0.04] via-transparent to-primary/[0.06]" 
-        : "border-border/60"
+        ? "border-primary/30 bg-gradient-to-br from-primary/[0.06] via-transparent to-primary/[0.08]" 
+        : "border-border/50"
     )}>
       <CardContent className="p-0">
         {/* Top Section: Agent Status */}
@@ -418,7 +418,7 @@ export function DashboardHeroCard() {
 
         {/* Middle Section: Busyness Slider */}
         <TooltipProvider>
-          <div className="border-t border-border/40 bg-muted/15 px-4 md:px-5 py-3">
+          <div className="border-t border-border/40 bg-muted/20 px-4 md:px-5 py-3">
             <div className="flex items-center gap-2 mb-2">
               <Gauge className="h-3.5 w-3.5 text-muted-foreground/70" />
               <Label className="text-xs font-medium flex items-center gap-1">
@@ -455,7 +455,7 @@ export function DashboardHeroCard() {
         </TooltipProvider>
 
         {/* Bottom Section: Metrics Strip */}
-        <div className="border-t border-border/40 bg-muted/25 px-4 md:px-5 py-3">
+        <div className="border-t border-border/40 bg-muted/30 px-4 md:px-5 py-3">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             {metrics.map((metric) => (
               <div key={metric.label} className="flex items-center gap-2.5 group">
