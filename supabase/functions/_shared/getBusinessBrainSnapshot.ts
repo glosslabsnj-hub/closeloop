@@ -30,6 +30,10 @@ export interface TenantSnapshot {
   years_in_business: number | null;
   hours_json: Record<string, { open: string; close: string; closed?: boolean; isOpen?: boolean }>;
   service_area_json: { type?: string; miles?: number; zip_codes?: string[]; mode?: string; radius_miles?: number; include?: { zips?: string[] } } | null;
+  /**
+   * NOTE: Not a physical column on tenants in the current schema.
+   * Kept for backwards compatibility; will be empty unless computed elsewhere.
+   */
   out_of_area_message: string;
   cancellation_policy: string;
   deposit_policy: string;
@@ -40,6 +44,10 @@ export interface TenantSnapshot {
   hipaa_mode: boolean;
   pricing_rules_jsonb: any;
   busyness_rules_jsonb: any;
+  /**
+   * NOTE: Legacy field (tenant_distance_settings is now canonical for ETA).
+   * Kept for backwards compatibility.
+   */
   eta_policy_jsonb: any;
   context_fields_json: any[];
 }
@@ -339,10 +347,10 @@ export async function getBusinessBrainSnapshot(
     .select(`
       id, name, tagline, business_mode, industry, timezone,
       phone_public, website_url, address, years_in_business,
-      hours_json, service_area_json, out_of_area_message,
+      hours_json, service_area_json,
       cancellation_policy, deposit_policy, refund_policy, payment_methods,
       ai_never_promise, enabled_modules, hipaa_mode,
-      pricing_rules_jsonb, busyness_rules_jsonb, eta_policy_jsonb, context_fields_json
+      pricing_rules_jsonb, busyness_rules_jsonb, context_fields_json
     `)
     .eq("id", tenantId)
     .single();
@@ -469,7 +477,8 @@ export async function getBusinessBrainSnapshot(
     years_in_business: tenantData.years_in_business,
     hours_json: safeObject(tenantData.hours_json),
     service_area_json: tenantData.service_area_json || null,
-    out_of_area_message: safeString(tenantData.out_of_area_message),
+    // Not present in tenants table; kept for backwards compatibility
+    out_of_area_message: "",
     cancellation_policy: safeString(tenantData.cancellation_policy),
     deposit_policy: safeString(tenantData.deposit_policy),
     refund_policy: safeString(tenantData.refund_policy),
@@ -479,7 +488,8 @@ export async function getBusinessBrainSnapshot(
     hipaa_mode: safeBoolean(tenantData.hipaa_mode),
     pricing_rules_jsonb: tenantData.pricing_rules_jsonb || null,
     busyness_rules_jsonb: tenantData.busyness_rules_jsonb || null,
-    eta_policy_jsonb: tenantData.eta_policy_jsonb || null,
+    // Legacy field; tenant_distance_settings is now canonical for ETA
+    eta_policy_jsonb: null,
     context_fields_json: safeArray(tenantData.context_fields_json),
   };
 
