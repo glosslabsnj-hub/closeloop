@@ -16,9 +16,14 @@ const corsHeaders = {
 
 interface ElevenLabsToolRequest {
   address: string;
-  // ElevenLabs passes conversation context
+  // ElevenLabs may pass conversation context in various formats
   conversation_id?: string;
+  call_id?: string;  // Alternative field name
   agent_id?: string;
+  // Some implementations nest params
+  params?: {
+    address?: string;
+  };
 }
 
 interface ServiceAreaResponse {
@@ -35,8 +40,16 @@ serve(async (req: Request) => {
   }
 
   try {
-    const body: ElevenLabsToolRequest = await req.json();
-    const { address, conversation_id } = body;
+    const body = await req.json();
+    
+    // Log full request body to understand what ElevenLabs sends
+    console.log(`[check-service-area] Full request body:`, JSON.stringify(body));
+    
+    // Handle different request formats - ElevenLabs may nest parameters
+    const address = body.address || body.params?.address || "";
+    const conversationId = body.conversation_id || body.call_id || "";
+
+    console.log(`[check-service-area] Parsed: conversation_id=${conversationId || 'NONE'}, address="${(address || '').substring(0, 30)}..."`);
 
     if (!address) {
       return new Response(
@@ -57,19 +70,23 @@ serve(async (req: Request) => {
 
     // Get tenant_id from active conversation
     let tenantId: string | null = null;
+    let resolutionMethod = "none";
     
-    if (conversation_id) {
+    if (conversationId) {
       // Try ai_call_sessions first (current table name)
       const { data: session } = await supabase
         .from("ai_call_sessions")
         .select("tenant_id")
-        .eq("elevenlabs_conversation_id", conversation_id)
+        .eq("elevenlabs_conversation_id", conversationId)
         .maybeSingle();
       
-      tenantId = session?.tenant_id || null;
+      if (session?.tenant_id) {
+        tenantId = session.tenant_id;
+        resolutionMethod = "conversation_id";
+      }
     }
 
-    // Fallback: try to get from most recent active session
+    // Fallback 1: most recent active session (ended_at is null)
     if (!tenantId) {
       const { data: recentSession } = await supabase
         .from("ai_call_sessions")
@@ -79,8 +96,30 @@ serve(async (req: Request) => {
         .limit(1)
         .maybeSingle();
       
-      tenantId = recentSession?.tenant_id || null;
+      if (recentSession?.tenant_id) {
+        tenantId = recentSession.tenant_id;
+        resolutionMethod = "active_session";
+      }
     }
+
+    // Fallback 2: most recent session created in last 5 minutes (even if ended)
+    if (!tenantId) {
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { data: recentSession } = await supabase
+        .from("ai_call_sessions")
+        .select("tenant_id")
+        .gte("created_at", fiveMinutesAgo)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (recentSession?.tenant_id) {
+        tenantId = recentSession.tenant_id;
+        resolutionMethod = "recent_session_5min";
+      }
+    }
+
+    console.log(`[check-service-area] Tenant resolution: method=${resolutionMethod}, tenant_id=${tenantId || 'NONE'}`);
 
     if (!tenantId) {
       return new Response(
@@ -139,7 +178,13 @@ serve(async (req: Request) => {
     const etaData = await etaResponse.json();
 
     // Check if within service area radius
-    const radiusMiles = (serviceArea?.radius_miles as number) || (serviceArea?.miles as number) || 50;
+    // Handle various service_area_json structures (can be nested or flat)
+    const radiusMiles = (
+      (serviceArea?.radius_miles as number) ||
+      (serviceArea?.miles as number) ||
+      ((serviceArea as Record<string, unknown>)?.radius_miles as number) ||
+      100 // Default to 100 miles if not configured
+    );
     const distanceMiles = etaData.route_distance_miles as number | null;
     const inArea = distanceMiles !== null ? distanceMiles <= radiusMiles : true;
     
