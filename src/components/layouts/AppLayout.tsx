@@ -1,5 +1,6 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { AdminModeProvider } from "@/contexts/AdminModeContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useKnowledgeConflicts } from "@/hooks/useKnowledgeConflicts";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ import { cn } from "@/lib/utils";
 import { useEffect, useMemo } from "react";
 import { AdminModeSwitcher } from "@/components/admin/AdminModeSwitcher";
 import { AdminTenantSwitcher } from "@/components/admin/AdminTenantSwitcher";
+import { AdminModeSelector } from "@/components/admin/AdminModeSelector";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 interface NavItem {
@@ -76,7 +78,7 @@ const alwaysAccessibleRoutes = [
   "/app/go-live",
 ];
 
-export function AppLayout() {
+function AppLayoutContent() {
   const { user, tenant, signOut, loading, hasActiveSubscription, isSuperAdmin } = useAuth();
   const { enabledModules } = useTenantConfig();
   const { unresolvedCount: conflictsCount } = useKnowledgeConflicts();
@@ -198,7 +200,8 @@ export function AppLayout() {
           </Link>
 
           <div className="flex items-center gap-2">
-            {/* Admin Tenant Switcher - only visible to super admins */}
+            {/* Admin Mode Selector and Tenant Switcher - only visible to super admins */}
+            {isSuperAdmin && <AdminModeSelector />}
             <AdminTenantSwitcher />
             <NotificationBell />
             <DropdownMenu>
@@ -345,5 +348,14 @@ export function AppLayout() {
         </main>
       </div>
     </div>
+  );
+}
+
+// Wrap with AdminModeProvider for super admin mode switching
+export function AppLayout() {
+  return (
+    <AdminModeProvider>
+      <AppLayoutContent />
+    </AdminModeProvider>
   );
 }
