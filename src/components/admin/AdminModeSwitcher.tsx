@@ -350,7 +350,7 @@ async function resetAllTestData(tenantId: string, mode: BusinessMode) {
 }
 
 export function AdminModeSwitcher() {
-  const { tenant, user, isSuperAdmin, setActiveTenantId } = useAuth();
+  const { tenant, user, isSuperAdmin } = useAuth();
   const adminMode = useAdminMode();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -369,25 +369,18 @@ export function AdminModeSwitcher() {
       // 1) Persist selected mode
       if (adminMode) await adminMode.setSelectedMode(newMode);
 
-      // 2) Switch active tenant to a tenant of that mode
+      // 2) Validate we have at least one tenant for that mode.
+      // The actual active-tenant switch happens in AdminTenantSwitcher (auto-picks first match).
       const { data, error } = await supabase
         .from("tenants")
-        .select("id, name")
+        .select("id")
         .eq("business_mode", newMode)
-        .order("name")
         .limit(1);
 
       if (error) throw error;
-      const match = data?.[0];
-      if (!match) {
-        toast.error(`No ${BUSINESS_MODES[newMode].label} tenant found`);
-        return;
+      if (!data || data.length === 0) {
+        toast.error(`No ${BUSINESS_MODES[newMode].label} tenant found. Create one from the tenant dropdown.`);
       }
-
-      await setActiveTenantId(match.id);
-      toast.success(`Switched to ${match.name}`, {
-        description: `${BUSINESS_MODES[newMode].label} mode`,
-      });
     } catch (error) {
       console.error("Failed to switch mode:", error);
       toast.error("Failed to switch business mode");
