@@ -86,7 +86,7 @@ export function SettingsSidebar({ activeSection, onSectionChange, config }: Sett
 
           return (
             <div key={group.id} className="space-y-1">
-              <div className={cn("text-xs font-medium px-3 py-1 uppercase tracking-wider", group.colorClass)}>
+              <div className="text-xs font-semibold px-3 py-1.5 uppercase tracking-wider text-foreground/50">
                 {group.label}
               </div>
               {visibleItems.map((item) => (
@@ -104,7 +104,7 @@ export function SettingsSidebar({ activeSection, onSectionChange, config }: Sett
 
         {/* Advanced Section - Collapsible */}
         <Collapsible open={advancedOpen || activeSection === "developer"} onOpenChange={setAdvancedOpen}>
-          <CollapsibleTrigger className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors">
+          <CollapsibleTrigger className="flex items-center gap-2 w-full px-3 py-1.5 text-xs font-semibold text-foreground/50 uppercase tracking-wider hover:text-foreground transition-colors">
             {advancedOpen || activeSection === "developer" ? (
               <ChevronDown className="h-3 w-3" />
             ) : (
