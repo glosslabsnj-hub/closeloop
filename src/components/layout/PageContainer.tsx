@@ -21,9 +21,9 @@ export function PageContainer({
   return (
     <div
       className={cn(
-        "p-4 md:p-5 lg:p-6",
-        maxWidth === "wide" && "max-w-screen-2xl mx-auto",
-        maxWidth === "default" && "max-w-screen-xl mx-auto",
+        "p-5 md:p-6 lg:p-8",
+        maxWidth === "wide" && "max-w-[1400px] mx-auto",
+        maxWidth === "default" && "max-w-[1200px] mx-auto",
         maxWidth === "full" && "w-full",
         animate && "animate-fade-in",
         className
