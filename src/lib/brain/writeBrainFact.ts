@@ -783,6 +783,84 @@ export async function setBusinessModeAndIndustry(
 }
 
 // ============================================================================
+// CUSTOM KNOWLEDGE SECTION (#custom-knowledge)
+// Uses ai_knowledge_base table with types: policy, upsell
+// ============================================================================
+
+/**
+ * Create a custom knowledge entry
+ */
+export async function createCustomKnowledge(
+  tenantId: string,
+  entry: {
+    type: "policy" | "upsell";
+    title: string;
+    content: string;
+    priority_weight?: number;
+  }
+) {
+  const { data, error } = await supabase
+    .from("ai_knowledge_base")
+    .insert({
+      tenant_id: tenantId,
+      type: entry.type,
+      title: entry.title,
+      content: entry.content,
+      priority_weight: entry.priority_weight || 0,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  await logBrainChange(tenantId, "ai_knowledge_base", "insert", data.id, entry);
+
+  return data;
+}
+
+/**
+ * Update a custom knowledge entry
+ */
+export async function updateCustomKnowledge(
+  id: string,
+  tenantId: string,
+  updates: {
+    title?: string;
+    content?: string;
+    type?: "policy" | "upsell";
+  }
+) {
+  const { data, error } = await supabase
+    .from("ai_knowledge_base")
+    .update(updates)
+    .eq("id", id)
+    .eq("tenant_id", tenantId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  await logBrainChange(tenantId, "ai_knowledge_base", "update", id, updates);
+
+  return data;
+}
+
+/**
+ * Delete a custom knowledge entry
+ */
+export async function deleteCustomKnowledge(id: string, tenantId: string) {
+  const { error } = await supabase
+    .from("ai_knowledge_base")
+    .delete()
+    .eq("id", id)
+    .eq("tenant_id", tenantId);
+
+  if (error) throw error;
+
+  await logBrainChange(tenantId, "ai_knowledge_base", "delete", id, {});
+}
+
+// ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
 
