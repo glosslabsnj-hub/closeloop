@@ -4,71 +4,73 @@
 
 /* =====================================================
    CloseLoop Design System - 2026/2027
-   Theme: "Quiet Charcoal" - Emotionally Calm, Near-Monochrome
+   Theme: "Professional Clean" - Sharp, Modern, Enterprise
    ===================================================== */
 
 @layer base {
   :root {
     /* =====================================================
-       "Quiet Charcoal" Theme - Near-Monochrome, Business Tool
-       One muted accent, warm grays, invisible UI
+       "Professional Clean" Theme
+       Cool slate surfaces, crisp indigo accent, no earth tones
        ===================================================== */
 
-    /* Core Background - Slightly lifted warm charcoal for comfort */
-    --background: 220 6% 11%;
-    --foreground: 220 8% 88%;
+    /* Core Background - Neutral slate, lighter and cleaner */
+    --background: 222 14% 11%;
+    --foreground: 220 10% 92%;
 
-    /* Cards - Minimal contrast, spacing does the work */
-    --card: 220 5% 13%;
-    --card-foreground: 220 6% 86%;
+    /* Cards - Clear distinction, professional layering */
+    --card: 222 12% 14%;
+    --card-foreground: 220 8% 90%;
 
-    --popover: 220 5% 14%;
-    --popover-foreground: 220 6% 88%;
+    --popover: 222 14% 16%;
+    --popover-foreground: 220 10% 92%;
 
-    /* Primary - Muted warm neutral (NOT blue, NOT green) */
-    /* Desaturated slate with warm undertone */
-    --primary: 220 8% 52%;
-    --primary-foreground: 220 6% 98%;
+    /* Primary - Cool indigo accent (sharp, professional) */
+    --primary: 235 55% 58%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Nearly invisible panel */
-    --secondary: 220 5% 15%;
-    --secondary-foreground: 220 6% 72%;
+    /* Secondary - Neutral slate panel */
+    --secondary: 222 10% 16%;
+    --secondary-foreground: 220 8% 68%;
 
-    /* Muted - Soft, readable, never harsh */
-    --muted: 220 5% 16%;
-    --muted-foreground: 220 5% 55%;
+    /* Muted - Cool neutral gray */
+    --muted: 222 8% 18%;
+    --muted-foreground: 220 6% 50%;
 
-    /* Accent - Barely visible tint for active states */
-    --accent: 220 6% 18%;
-    --accent-foreground: 220 6% 75%;
+    /* Accent - Subtle indigo tint for emphasis */
+    --accent: 235 20% 20%;
+    --accent-foreground: 235 15% 80%;
 
-    /* Status Colors - Informational only, muted */
-    --destructive: 0 45% 50%;
+    /* Accent signature - for editorial emphasis (clean, not warm) */
+    --accent-signature: 235 40% 60%;
+
+    /* Status Colors - Informational only, professional */
+    --destructive: 0 55% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 150 35% 42%;
+    --success: 160 50% 42%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 60% 50%;
-    --warning-foreground: 38 80% 10%;
+    --warning: 42 75% 50%;
+    --warning-foreground: 42 90% 10%;
 
-    /* Borders & Inputs - Very soft, minimal */
-    --border: 220 5% 20%;
-    --input: 220 5% 15%;
-    --ring: 220 8% 52%;
+    /* Borders & Inputs - Clean, defined */
+    --border: 222 10% 22%;
+    --input: 222 10% 14%;
+    --ring: 235 55% 58%;
 
-    /* Radius - Comfortable, not too round */
+    /* Radius - Clean, professional */
     --radius: 0.5rem;
 
-    /* Sidebar - Blends with background */
-    --sidebar-background: 220 6% 10%;
-    --sidebar-foreground: 220 5% 60%;
-    --sidebar-primary: 220 8% 52%;
-    --sidebar-primary-foreground: 220 6% 98%;
-    --sidebar-accent: 220 5% 16%;
-    --sidebar-accent-foreground: 220 5% 75%;
-    --sidebar-border: 220 5% 18%;
-    --sidebar-ring: 220 8% 52%;
+    /* Sidebar - Neutral, professional */
+    --sidebar-background: 222 14% 9%;
+    --sidebar-foreground: 220 8% 55%;
+    --sidebar-primary: 235 55% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 235 15% 18%;
+    --sidebar-accent-foreground: 235 10% 75%;
+    --sidebar-border: 222 10% 18%;
+    --sidebar-ring: 235 55% 58%;
   }
 }
 
@@ -122,14 +124,15 @@
 
 @layer utilities {
   /* ==========================================
-     EXECUTIVE WORKSPACE BACKGROUND
-     Warm, stable, non-technical
+     PROFESSIONAL WORKSPACE BACKGROUND
+     Clean, neutral, enterprise
      ========================================== */
   .app-bg {
     position: relative;
     background: hsl(var(--background));
   }
   
+  /* No ambient glow - clean and flat */
   .app-bg::before {
     display: none;
   }
@@ -139,23 +142,23 @@
   }
 
   /* ==========================================
-     EXECUTIVE WORKSPACE FRAME
-     Signature structural element - the "desk" feeling
+     PROFESSIONAL WORKSPACE FRAME
+     Signature structural element with accent
      ========================================== */
   .workspace-frame {
     @apply relative;
-    /* Subtle left emphasis strip - signature element */
-    border-left: 2px solid hsl(var(--border) / 0.3);
+    /* Clean accent left strip */
+    border-left: 2px solid hsl(var(--accent-signature) / 0.25);
     padding-left: 1.5rem;
   }
 
   .workspace-frame-subtle {
     @apply relative;
-    border-left: 1px solid hsl(var(--border) / 0.15);
+    border-left: 1px solid hsl(var(--accent-signature) / 0.15);
     padding-left: 1rem;
   }
 
-  /* Focus rail - inset content column with calm framing */
+  /* Focus rail - inset content with clean edge */
   .focus-rail {
     @apply relative mx-auto;
     max-width: 960px;
@@ -167,53 +170,57 @@
     background: linear-gradient(
       to bottom,
       transparent,
-      hsl(var(--border) / 0.2) 10%,
-      hsl(var(--border) / 0.2) 90%,
+      hsl(var(--accent-signature) / 0.2) 15%,
+      hsl(var(--accent-signature) / 0.2) 85%,
       transparent
     );
   }
 
-  /* Work area - framed content zone */
+  /* Work area - clean framed content zone */
   .work-area {
-    @apply relative rounded-xl;
-    background: hsl(var(--card) / 0.5);
-    border: 1px solid hsl(var(--border) / 0.2);
+    @apply relative rounded-lg;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border) / 0.5);
+    box-shadow: 0 1px 3px hsl(0 0% 0% / 0.15);
     padding: 2rem;
   }
 
   .work-area-compact {
     @apply relative rounded-lg;
-    background: hsl(var(--card) / 0.4);
-    border: 1px solid hsl(var(--border) / 0.15);
+    background: hsl(var(--card) / 0.8);
+    border: 1px solid hsl(var(--border) / 0.4);
+    box-shadow: 0 1px 2px hsl(0 0% 0% / 0.1);
     padding: 1.25rem;
   }
 
   /* ==========================================
-     SURFACE SYSTEM - Minimal, Breathing
-     Spacing > Contrast, borders barely visible
+     SURFACE SYSTEM - Clean Layers, Professional Depth
+     Crisp borders, subtle shadows, neutral tones
      ========================================== */
   .surface-1 {
-    @apply relative rounded-xl;
-    background: hsl(var(--card) / 0.6);
-    border: 1px solid hsl(var(--border) / 0.2);
+    @apply relative rounded-lg;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border) / 0.5);
+    box-shadow: 0 1px 3px hsl(0 0% 0% / 0.12);
   }
 
   .surface-2 {
     @apply relative rounded-lg;
-    background: hsl(var(--card) / 0.4);
-    border: 1px solid hsl(var(--border) / 0.15);
+    background: hsl(var(--card) / 0.8);
+    border: 1px solid hsl(var(--border) / 0.4);
+    box-shadow: 0 1px 2px hsl(0 0% 0% / 0.08);
   }
 
   .surface-3 {
-    @apply relative rounded-xl;
+    @apply relative rounded-lg;
     background: hsl(var(--popover));
-    border: 1px solid hsl(var(--border) / 0.25);
-    box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.3);
+    border: 1px solid hsl(var(--border) / 0.6);
+    box-shadow: 0 8px 24px -8px hsl(0 0% 0% / 0.4);
     z-index: 100;
   }
 
   /* ==========================================
-     EDITORIAL HEADERS - Not technical, purposeful
+     EDITORIAL HEADERS - Professional emphasis
      ========================================== */
   .editorial-header {
     @apply relative pb-8 mb-10;
@@ -223,25 +230,40 @@
     content: '';
     @apply absolute bottom-0 left-0 h-px;
     width: 4rem;
-    background: hsl(var(--border) / 0.4);
+    background: linear-gradient(
+      90deg,
+      hsl(var(--accent-signature) / 0.5),
+      hsl(var(--accent-signature) / 0.1)
+    );
   }
 
   .editorial-title {
-    @apply text-xl md:text-2xl font-normal tracking-tight;
-    color: hsl(var(--foreground) / 0.95);
+    @apply text-xl md:text-2xl font-medium tracking-tight;
+    color: hsl(var(--foreground));
     letter-spacing: -0.02em;
   }
 
   .editorial-subtitle {
     @apply text-sm mt-3 leading-relaxed;
-    color: hsl(var(--muted-foreground) / 0.7);
+    color: hsl(var(--muted-foreground));
     max-width: 32rem;
   }
 
-  /* Section label - editorial style */
+  /* Section label - professional style */
   .section-label {
-    @apply text-[10px] font-medium uppercase tracking-[0.15em] mb-4;
-    color: hsl(var(--muted-foreground) / 0.5);
+    @apply text-[10px] font-semibold uppercase tracking-[0.15em] mb-4;
+    color: hsl(var(--accent-signature) / 0.7);
+  }
+
+  /* Section divider - clean accent */
+  .section-divider {
+    @apply h-px my-8;
+    background: linear-gradient(
+      90deg,
+      hsl(var(--accent-signature) / 0.2),
+      hsl(var(--border) / 0.3) 30%,
+      transparent
+    );
   }
 
   /* ==========================================
@@ -276,24 +298,25 @@
   }
 
   /* ==========================================
-     TAB STYLING - Minimal, editorial
+     TAB STYLING - Clean active state
      ========================================== */
   .tab-pill {
-    @apply relative inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors duration-150;
-    @apply text-muted-foreground/60 hover:text-foreground/70;
+    @apply relative inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-150;
+    @apply text-muted-foreground hover:text-foreground;
   }
 
   .tab-pill[data-state="active"] {
     @apply text-foreground;
-    background: hsl(var(--muted) / 0.4);
+    background: hsl(var(--accent) / 0.6);
+    border: 1px solid hsl(var(--accent-signature) / 0.2);
   }
 
   /* ==========================================
-     TABLE TOOLBAR - Quiet, functional
+     TABLE TOOLBAR - Clean divider
      ========================================== */
   .table-toolbar {
     @apply flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-8 py-3;
-    border-bottom: 1px solid hsl(var(--border) / 0.15);
+    border-bottom: 1px solid hsl(var(--border) / 0.5);
   }
 
   .table-toolbar-search {
@@ -309,39 +332,45 @@
   }
 
   /* ==========================================
-     STATUS - Informational only, very muted
+     STATUS - Informational only, professional
      ========================================== */
   .status-soft-success {
-    @apply bg-success/6 text-success/80 border-success/10;
+    @apply bg-success/10 text-success border-success/20;
   }
 
   .status-soft-warning {
-    @apply bg-warning/6 text-warning/80 border-warning/10;
+    @apply bg-warning/10 text-warning border-warning/20;
   }
 
   .status-soft-destructive {
-    @apply bg-destructive/6 text-destructive/80 border-destructive/10;
+    @apply bg-destructive/10 text-destructive border-destructive/20;
   }
 
   .status-soft-primary {
-    @apply bg-muted/40 text-foreground/70 border-border/20;
+    @apply bg-primary/10 text-primary border-primary/20;
   }
 
   .status-soft-muted {
-    @apply bg-muted/30 text-muted-foreground/60 border-border/15;
+    @apply bg-muted/50 text-muted-foreground border-border/30;
   }
 
-  /* Priority accent - very subtle */
+  /* Accent emphasis - for important but not urgent elements */
+  .accent-emphasis {
+    background: hsl(var(--accent-signature) / 0.1);
+    border: 1px solid hsl(var(--accent-signature) / 0.2);
+  }
+
+  /* Priority accent - clean and clear */
   .priority-accent-urgent {
-    @apply border-l-2 border-l-destructive/40;
+    @apply border-l-2 border-l-destructive/60;
   }
 
   .priority-accent-high {
-    @apply border-l-2 border-l-warning/40;
+    @apply border-l-2 border-l-warning/60;
   }
 
   .priority-accent-normal {
-    @apply border-l-2 border-l-border/30;
+    @apply border-l-2 border-l-border/50;
   }
 
   /* ==========================================
@@ -392,22 +421,28 @@
   }
 
   /* ==========================================
-     CALM VISUAL ELEMENTS
+     PROFESSIONAL VISUAL ELEMENTS
      ========================================== */
   .gradient-primary {
     background: hsl(var(--primary));
   }
 
   .gradient-primary-subtle {
-    background: hsl(var(--muted) / 0.3);
+    background: hsl(var(--muted) / 0.5);
   }
 
   .gradient-hero {
-    background: hsl(var(--muted) / 0.5);
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border) / 0.5);
   }
 
   .gradient-subtle {
     background: hsl(var(--background));
+  }
+
+  /* Focus highlight - subtle accent glow */
+  .focus-glow {
+    box-shadow: 0 0 0 2px hsl(var(--accent-signature) / 0.2);
   }
 
   .btn-glow {
@@ -416,62 +451,76 @@
   }
 
   .btn-glow:hover {
-    filter: brightness(1.03);
+    filter: brightness(1.05);
+    box-shadow: 0 2px 8px hsl(var(--primary) / 0.15);
   }
 
   /* ==========================================
-     GLASS - Subtle backdrop
+     GLASS - Neutral backdrop
      ========================================== */
   .glass {
-    @apply bg-card/50 border border-border/20;
+    @apply border;
+    background: hsl(var(--card) / 0.7);
+    border-color: hsl(var(--border) / 0.4);
     backdrop-filter: blur(8px);
   }
 
   .glass-strong {
-    @apply bg-card/70 border border-border/25;
+    @apply border;
+    background: hsl(var(--card) / 0.85);
+    border-color: hsl(var(--border) / 0.5);
     backdrop-filter: blur(12px);
   }
 
-  /* Mobile nav */
+  /* Mobile nav - clean bottom bar */
   .mobile-nav-floating {
     @apply fixed bottom-0 left-0 right-0 z-50;
-    background: hsl(var(--background) / 0.95);
+    background: hsl(var(--background) / 0.98);
     backdrop-filter: blur(12px);
-    border-top: 1px solid hsl(var(--border) / 0.2);
+    border-top: 1px solid hsl(var(--border) / 0.5);
   }
 
   /* ==========================================
-     CARD SYSTEM - Breathing, not boxed
+     CARD SYSTEM - Clean depth, crisp shadows
      ========================================== */
   .card-elevated {
     @apply transition-all duration-150 ease-out;
+    box-shadow: 0 1px 3px hsl(0 0% 0% / 0.15);
   }
 
   .card-interactive {
-    @apply transition-colors duration-150 ease-out cursor-pointer;
-    @apply hover:bg-muted/10;
+    @apply transition-all duration-150 ease-out cursor-pointer;
+  }
+
+  .card-interactive:hover {
+    background: hsl(var(--accent) / 0.3);
+    border-color: hsl(var(--border) / 0.6);
   }
 
   .card-hover-glow {
-    @apply transition-colors duration-150;
+    @apply transition-all duration-150;
   }
 
-  /* Stat icon - nearly invisible */
+  .card-hover-glow:hover {
+    box-shadow: 0 0 0 1px hsl(var(--accent-signature) / 0.15);
+  }
+
+  /* Stat icon - accent tinted */
   .stat-icon-container {
     @apply flex items-center justify-center h-8 w-8 rounded-lg;
-    background: hsl(var(--muted) / 0.3);
-    color: hsl(var(--muted-foreground) / 0.5);
+    background: hsl(var(--accent-signature) / 0.12);
+    color: hsl(var(--accent-signature));
   }
 
   /* ==========================================
-     SECTION RHYTHM - Generous Breathing
+     SECTION RHYTHM - Clean Spacing
      ========================================== */
   .section-gap {
-    @apply space-y-12 md:space-y-16;
+    @apply space-y-10 md:space-y-14;
   }
 
   .section-gap-sm {
-    @apply space-y-8 md:space-y-10;
+    @apply space-y-6 md:space-y-8;
   }
 
   /* ==========================================

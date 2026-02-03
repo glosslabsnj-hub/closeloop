@@ -252,8 +252,8 @@ function AppLayoutContent() {
         {/* Admin Mode Switcher Banner */}
         <AdminModeSwitcher />
         
-        {/* Top Navigation - Minimal, Quiet Header */}
-        <header className="sticky top-0 z-50 border-b border-border/25 bg-background">
+        {/* Top Navigation - Warm, Calm Header */}
+        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm" style={{ borderBottom: '1px solid hsl(var(--warm-signature) / 0.08)' }}>
           <div className="flex h-14 items-center justify-between px-4 md:px-6">
             <div className="flex items-center gap-3">
               {/* Sidebar Toggle Button - Desktop Only */}
@@ -261,7 +261,7 @@ function AppLayoutContent() {
                 variant="ghost"
                 size="icon"
                 onClick={toggleSidebar}
-                className="hidden md:flex h-9 w-9"
+                className="hidden md:flex h-9 w-9 text-muted-foreground/60 hover:text-foreground/80"
                 aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
               >
                 {sidebarCollapsed ? (
@@ -271,11 +271,11 @@ function AppLayoutContent() {
                 )}
               </Button>
               
-              <Link to="/app/dashboard" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-foreground/70">
-                  <Phone className="h-4 w-4" />
+              <Link to="/app/dashboard" className="flex items-center gap-2.5 hover:opacity-85 transition-opacity">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: 'hsl(var(--warm-signature) / 0.1)' }}>
+                  <Phone className="h-4 w-4" style={{ color: 'hsl(var(--warm-signature) / 0.7)' }} />
                 </div>
-                <span className="font-medium text-sm hidden sm:inline truncate max-w-[160px] text-foreground/80">{displayTenant?.name || "CloseLoop"}</span>
+                <span className="font-medium text-sm hidden sm:inline truncate max-w-[160px] text-foreground/85">{displayTenant?.name || "CloseLoop"}</span>
               </Link>
             </div>
 
@@ -326,14 +326,15 @@ function AppLayoutContent() {
 
         {/* Main Content */}
         <div className="flex">
-          {/* Desktop Sidebar - Quiet, Fades into Background */}
+          {/* Desktop Sidebar - Warm, Calm Navigation */}
           {!hideSidebar && (
             <aside 
               className={cn(
-                "hidden md:flex flex-col fixed left-0 top-14 bottom-0 border-r border-border/20 transition-all duration-150 ease-out",
+                "hidden md:flex flex-col fixed left-0 top-14 bottom-0 transition-all duration-150 ease-out",
                 "bg-sidebar z-40",
                 sidebarCollapsed ? "w-14" : "w-52"
               )}
+              style={{ borderRight: '1px solid hsl(var(--warm-signature) / 0.06)' }}
             >
               <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto scrollbar-thin">
                 {navItems.map((item) => {
@@ -348,19 +349,23 @@ function AppLayoutContent() {
                       key={item.href}
                       to={isLocked ? "/app/go-live" : item.href}
                       className={cn(
-                        "group flex items-center gap-3 rounded-lg text-sm transition-colors duration-100",
+                        "group flex items-center gap-3 rounded-lg text-sm transition-all duration-100",
                         sidebarCollapsed ? "px-2.5 py-2.5 justify-center" : "px-3 py-2.5",
                         isActive
-                          ? "bg-muted/50 text-foreground"
+                          ? "text-foreground"
                           : isLocked
                             ? "text-muted-foreground/30 cursor-not-allowed"
-                            : "text-sidebar-foreground/60 hover:bg-muted/30 hover:text-sidebar-foreground/80"
+                            : "text-sidebar-foreground/55 hover:text-sidebar-foreground/80"
                       )}
+                      style={isActive ? { 
+                        background: 'hsl(var(--warm-signature) / 0.08)',
+                        boxShadow: 'inset 0 1px 0 hsl(var(--warm-signature) / 0.1)'
+                      } : undefined}
                     >
                       <Icon className={cn(
                         "h-[17px] w-[17px] shrink-0 transition-colors duration-100",
-                        isActive ? "text-foreground/80" : "opacity-60"
-                      )} />
+                        isActive ? "text-foreground/85" : "opacity-55"
+                      )} style={isActive ? { color: 'hsl(var(--warm-signature) / 0.75)' } : undefined} />
                       {!sidebarCollapsed && (
                         <>
                           <span className="truncate font-normal">{item.label}</span>
