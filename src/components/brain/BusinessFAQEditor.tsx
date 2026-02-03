@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { BusinessFAQ } from "@/types/database";
-import { Plus, Trash2, Save, Loader2, MessageCircle } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, MessageCircle, HelpCircle } from "lucide-react";
 import { createFAQ, updateFAQ, deleteFAQ } from "@/lib/brain/writeBrainFact";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { SuggestedFAQButtons } from "./SuggestedFAQButtons";
+import { AIPreviewCard } from "./AIPreviewCard";
 
 export function BusinessFAQEditor() {
   const { tenant } = useAuth();
@@ -103,63 +105,99 @@ export function BusinessFAQEditor() {
     );
   }
 
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-lg">FAQs</CardTitle>
-            <CardDescription>
-              Answers the AI will use when customers ask common questions
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Add new FAQ */}
-        <div className="p-4 border rounded-lg bg-secondary/30 space-y-3">
-          <p className="font-medium text-sm">Add New FAQ</p>
-          <Input
-            placeholder="Question (e.g., What are your hours?)"
-            value={newQuestion}
-            onChange={(e) => setNewQuestion(e.target.value)}
-          />
-          <Textarea
-            placeholder="Answer..."
-            value={newAnswer}
-            onChange={(e) => setNewAnswer(e.target.value)}
-            rows={2}
-          />
-          <Button
-            size="sm"
-            onClick={addFAQ}
-            disabled={saving || !newQuestion.trim() || !newAnswer.trim()}
-            className="gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Add FAQ
-          </Button>
-        </div>
+  // Build AI preview from first FAQ
+  const firstFaq = faqs[0];
+  const aiPreview = firstFaq
+    ? `When someone asks "${firstFaq.question}", I'll say: "${firstFaq.answer.slice(0, 100)}${firstFaq.answer.length > 100 ? '...' : ''}"`
+    : "Add FAQs so I can answer common customer questions.";
 
-        {/* Existing FAQs */}
-        {faqs.length === 0 ? (
-          <p className="text-center text-muted-foreground py-4">
-            No FAQs configured. Add some above!
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {faqs.map((faq) => (
-              <FAQItem
-                key={faq.id}
-                faq={faq}
-                onUpdate={handleUpdateFAQ}
-                onDelete={handleDeleteFAQ}
-              />
-            ))}
+  // Handler for suggested FAQ quick-add
+  const handleQuickAddFAQ = async (question: string, answer: string) => {
+    setNewQuestion(question);
+    setNewAnswer(answer);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* AI Preview */}
+      {faqs.length > 0 && (
+        <AIPreviewCard
+          preview={aiPreview}
+          title="How the AI uses FAQs"
+          subtitle={`${faqs.length} FAQ${faqs.length !== 1 ? 's' : ''} configured`}
+        />
+      )}
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <HelpCircle className="h-5 w-5" />
+                FAQs
+              </CardTitle>
+              <CardDescription>
+                Common questions and answers — the AI uses these to respond to customers
+              </CardDescription>
+            </div>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Suggested FAQs */}
+          <SuggestedFAQButtons 
+            onAdd={handleQuickAddFAQ}
+            existingQuestions={faqs.map(f => f.question)}
+          />
+
+          {/* Add new FAQ */}
+          <div className="p-4 border rounded-lg bg-secondary/30 space-y-3">
+            <p className="font-medium text-sm">Add New FAQ</p>
+            <Input
+              placeholder="Question (e.g., What are your hours?)"
+              value={newQuestion}
+              onChange={(e) => setNewQuestion(e.target.value)}
+            />
+            <Textarea
+              placeholder="Answer..."
+              value={newAnswer}
+              onChange={(e) => setNewAnswer(e.target.value)}
+              rows={2}
+            />
+            <Button
+              size="sm"
+              onClick={addFAQ}
+              disabled={saving || !newQuestion.trim() || !newAnswer.trim()}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add FAQ
+            </Button>
+          </div>
+
+          {/* Existing FAQs */}
+          {faqs.length === 0 ? (
+            <div className="text-center py-6">
+              <HelpCircle className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
+              <p className="font-medium">No FAQs yet</p>
+              <p className="text-sm text-muted-foreground">
+                Add common questions so your AI can answer them
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {faqs.map((faq) => (
+                <FAQItem
+                  key={faq.id}
+                  faq={faq}
+                  onUpdate={handleUpdateFAQ}
+                  onDelete={handleDeleteFAQ}
+                />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

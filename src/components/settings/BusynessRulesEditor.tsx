@@ -108,9 +108,9 @@ export function BusynessRulesEditor() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Busyness & ETA Rules</h3>
+          <h3 className="text-lg font-semibold">Busy Day Settings</h3>
           <p className="text-sm text-muted-foreground">
-            Configure how AI estimates wait times and arrival times
+            Tell the AI how long things take based on how busy you are
           </p>
         </div>
         {hasChanges && (
@@ -120,14 +120,14 @@ export function BusynessRulesEditor() {
         )}
       </div>
 
-      {/* Info Banner */}
-      <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
-        <Info className="h-5 w-5 text-blue-400 shrink-0 mt-0.5" />
+      {/* Info Banner - Simplified language */}
+      <div className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+        <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
         <div className="flex-1 text-sm">
-          <p className="font-medium text-blue-400 mb-1">How ETA Calculation Works</p>
+          <p className="font-medium text-primary mb-1">How wait times work</p>
           <p className="text-muted-foreground">
-            ETA = Base Prep Time + (Busyness % × Buffer Time). For example, if you're 50% busy,
-            the AI adds half of the buffer time to your base prep time.
+            When you're not busy, the AI uses your base time. As you get busier, it adds extra time 
+            so customers get realistic expectations.
           </p>
         </div>
       </div>
@@ -137,17 +137,17 @@ export function BusynessRulesEditor() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Clock className="h-4 w-4" />
-            Time Configuration
+            Time Settings
           </CardTitle>
           <CardDescription>
-            Set your base preparation time and busy-day buffer
+            Set how long things take when you're free vs. slammed
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Base Prep Time */}
           <div className="grid gap-3">
             <div className="flex items-center justify-between">
-              <Label htmlFor="base-prep">Base Preparation Time (minutes)</Label>
+              <Label htmlFor="base-prep">When not busy, how long do things take?</Label>
               <span className="text-sm font-medium">{config.base_prep_minutes} min</span>
             </div>
             <Input
@@ -159,15 +159,15 @@ export function BusynessRulesEditor() {
               onChange={(e) => updateConfig({ base_prep_minutes: parseInt(e.target.value) || 0 })}
             />
             <p className="text-xs text-muted-foreground">
-              Minimum time needed when you're not busy at all
+              Your typical turnaround time on a slow day
             </p>
           </div>
 
           {/* Busy Buffer */}
           <div className="grid gap-3">
             <div className="flex items-center justify-between">
-              <Label htmlFor="busy-buffer">Busy Day Buffer (minutes)</Label>
-              <span className="text-sm font-medium">{config.busy_buffer_minutes} min</span>
+              <Label htmlFor="busy-buffer">Extra time when you're slammed?</Label>
+              <span className="text-sm font-medium">+{config.busy_buffer_minutes} min</span>
             </div>
             <Input
               id="busy-buffer"
@@ -178,7 +178,7 @@ export function BusynessRulesEditor() {
               onChange={(e) => updateConfig({ busy_buffer_minutes: parseInt(e.target.value) || 0 })}
             />
             <p className="text-xs text-muted-foreground">
-              Maximum additional time added when you're 100% busy
+              How much longer things take when you're at 100% capacity
             </p>
           </div>
         </CardContent>
@@ -189,22 +189,22 @@ export function BusynessRulesEditor() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
-            Current Busyness Level
+            How Busy Are You Right Now?
           </CardTitle>
           <CardDescription>
-            Manually adjust how busy you are right now (0% = dead, 100% = slammed)
+            Adjust this as your day changes — the AI will update wait times automatically
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid gap-4">
             <div className="flex items-center justify-between">
-              <Label>Busyness</Label>
+              <Label>Current Load</Label>
               <div className="flex items-center gap-2">
                 <span className="text-2xl font-bold">{config.manual_busyness_pct}%</span>
-                {config.manual_busyness_pct === 0 && <Badge variant="outline" className="text-green-400 border-green-500/30">Not Busy</Badge>}
-                {config.manual_busyness_pct > 0 && config.manual_busyness_pct < 50 && <Badge variant="outline" className="text-blue-400 border-blue-500/30">Light</Badge>}
-                {config.manual_busyness_pct >= 50 && config.manual_busyness_pct < 80 && <Badge variant="outline" className="text-amber-400 border-amber-500/30">Busy</Badge>}
-                {config.manual_busyness_pct >= 80 && <Badge variant="outline" className="text-rose-400 border-rose-500/30">Very Busy</Badge>}
+                {config.manual_busyness_pct === 0 && <Badge variant="outline" className="text-green-500 border-green-500/30">Free</Badge>}
+                {config.manual_busyness_pct > 0 && config.manual_busyness_pct < 50 && <Badge variant="outline" className="text-blue-500 border-blue-500/30">Light</Badge>}
+                {config.manual_busyness_pct >= 50 && config.manual_busyness_pct < 80 && <Badge variant="outline" className="text-amber-500 border-amber-500/30">Busy</Badge>}
+                {config.manual_busyness_pct >= 80 && <Badge variant="outline" className="text-rose-500 border-rose-500/30">Slammed</Badge>}
               </div>
             </div>
 
@@ -218,7 +218,7 @@ export function BusynessRulesEditor() {
             />
 
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>0% (Not busy)</span>
+              <span>0% (Wide open)</span>
               <span>50% (Moderate)</span>
               <span>100% (Slammed)</span>
             </div>

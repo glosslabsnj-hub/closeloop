@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Save, MapPin, Building2, AlertTriangle } from "lucide-react";
+import { Loader2, Save, MapPin, Building2, AlertTriangle, Info } from "lucide-react";
 import { updateBusinessProfile } from "@/lib/brain/writeBrainFact";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -200,8 +200,39 @@ export function BusinessProfileEditor() {
     );
   }
 
+  // Build AI greeting preview
+  const aiGreetingPreview = (() => {
+    const parts = [`Hi, thanks for calling ${formData.name || "your business"}!`];
+    if (formData.years_in_business) {
+      parts.push(`We've been serving the ${formData.address_city || "area"} for ${formData.years_in_business} years.`);
+    }
+    if (formData.tagline) {
+      parts.push(`We're known for ${formData.tagline.toLowerCase()}.`);
+    }
+    parts.push("How can I help you today?");
+    return parts.join(" ");
+  })();
+
   return (
     <div className="space-y-6">
+      {/* AI Greeting Preview */}
+      <Card className="bg-primary/5 border-primary/20">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2 text-primary">
+            <Info className="h-4 w-4" />
+            How the AI greets callers
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <p className="text-sm italic text-foreground leading-relaxed">
+            "{aiGreetingPreview}"
+          </p>
+          <p className="text-xs text-muted-foreground mt-2">
+            This greeting is built from your name, tagline, and years in business below.
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Main Profile Card */}
       <Card>
         <CardHeader>
@@ -210,7 +241,7 @@ export function BusinessProfileEditor() {
             Business Profile
           </CardTitle>
           <CardDescription>
-            Your business identity and contact information
+            Your business identity — this is how customers and the AI will know your business
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -225,6 +256,9 @@ export function BusinessProfileEditor() {
                 placeholder="Acme Plumbing"
                 required
               />
+              <p className="text-xs text-muted-foreground">
+                This is how the AI introduces your business on calls
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -235,6 +269,9 @@ export function BusinessProfileEditor() {
                 onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
                 placeholder="Fast, reliable service"
               />
+              <p className="text-xs text-muted-foreground">
+                What you want customers to remember about your business
+              </p>
             </div>
           </div>
 
@@ -294,7 +331,7 @@ export function BusinessProfileEditor() {
                 placeholder="10"
               />
               <p className="text-xs text-muted-foreground">
-                The AI uses this to build caller trust
+                The AI mentions this to build trust: "We've been in business for X years"
               </p>
             </div>
           </div>
