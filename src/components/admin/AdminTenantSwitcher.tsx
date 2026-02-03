@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminMode } from "@/contexts/AdminModeContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +27,8 @@ export function AdminTenantSwitcher() {
   const adminModeContext = useAdminMode();
   const [isLoading, setIsLoading] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const lastAutoSwitchKeyRef = useRef<string | null>(null);
+  const autoSwitchInFlightRef = useRef(false);
   
   // Get selectedMode, default to "service" if context not available
   const selectedMode = adminModeContext?.selectedMode ?? "service";
@@ -50,14 +52,24 @@ export function AdminTenantSwitcher() {
   // Auto-switch tenant when mode changes and current tenant doesn't match
   useEffect(() => {
     if (!tenants || tenants.length === 0) return;
+    if (isLoading) return;
+    if (autoSwitchInFlightRef.current) return;
+
+    // Only run auto-switch at most once per (mode, currentTenant) combo to prevent loops.
+    const key = `${selectedMode}:${effectiveTenantId ?? "none"}`;
+    if (lastAutoSwitchKeyRef.current === key) return;
     
     const currentTenantMatchesMode = tenants.some(t => t.id === effectiveTenantId);
     
     if (!currentTenantMatchesMode) {
       // Auto-select first tenant of this mode
-      setActiveTenantId(tenants[0].id);
+      lastAutoSwitchKeyRef.current = key;
+      autoSwitchInFlightRef.current = true;
+      Promise.resolve(setActiveTenantId(tenants[0].id)).finally(() => {
+        autoSwitchInFlightRef.current = false;
+      });
     }
-  }, [selectedMode, tenants, effectiveTenantId, setActiveTenantId]);
+  }, [selectedMode, tenants, effectiveTenantId, setActiveTenantId, isLoading]);
 
   // Only render for super admins - must be after all hooks
   if (!user || !isSuperAdmin) return null;
