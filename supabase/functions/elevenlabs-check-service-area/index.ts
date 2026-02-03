@@ -15,14 +15,21 @@ const corsHeaders = {
 };
 
 interface ElevenLabsToolRequest {
-  address: string;
+  address?: string;
+  adress?: string;  // Handle common typo in tool config
+  // Tenant identification - preferred method
+  tenant_id?: string;
+  tenantId?: string;
   // ElevenLabs may pass conversation context in various formats
   conversation_id?: string;
-  call_id?: string;  // Alternative field name
+  conversationId?: string;
+  call_id?: string;
   agent_id?: string;
   // Some implementations nest params
   params?: {
     address?: string;
+    adress?: string;
+    tenant_id?: string;
   };
 }
 
@@ -45,11 +52,14 @@ serve(async (req: Request) => {
     // Log full request body to understand what ElevenLabs sends
     console.log(`[check-service-area] Full request body:`, JSON.stringify(body));
     
-    // Handle different request formats - ElevenLabs may nest parameters
-    const address = body.address || body.params?.address || "";
-    const conversationId = body.conversation_id || body.call_id || "";
+    // Handle different request formats - ElevenLabs may nest parameters or have typos
+    // Note: ElevenLabs tool config may have "adress" typo - handle both spellings
+    const address = body.address || body.adress || body.params?.address || body.params?.adress || "";
+    const conversationId = body.conversation_id || body.call_id || body.conversationId || "";
+    // Direct tenant_id is the most reliable method
+    const directTenantId = body.tenant_id || body.tenantId || body.params?.tenant_id || "";
 
-    console.log(`[check-service-area] Parsed: conversation_id=${conversationId || 'NONE'}, address="${(address || '').substring(0, 30)}..."`);
+    console.log(`[check-service-area] Parsed: tenant_id=${directTenantId || 'NONE'}, conversation_id=${conversationId || 'NONE'}, address="${(address || '').substring(0, 40)}..."`);
 
     if (!address) {
       return new Response(
@@ -68,12 +78,12 @@ serve(async (req: Request) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Get tenant_id from active conversation
-    let tenantId: string | null = null;
-    let resolutionMethod = "none";
+    // Get tenant_id - prefer direct parameter, then conversation lookup
+    let tenantId: string | null = directTenantId || null;
+    let resolutionMethod = directTenantId ? "direct_param" : "none";
     
-    if (conversationId) {
-      // Try ai_call_sessions first (current table name)
+    // Fallback to conversation lookup if no direct tenant_id
+    if (!tenantId && conversationId) {
       const { data: session } = await supabase
         .from("ai_call_sessions")
         .select("tenant_id")
