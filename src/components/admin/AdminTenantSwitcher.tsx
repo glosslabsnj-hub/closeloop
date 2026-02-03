@@ -146,6 +146,12 @@ export function AdminTenantSwitcher() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-64 max-h-80 overflow-y-auto">
+            {/* Test line indicator */}
+            <div className="px-2 py-1.5 text-xs text-muted-foreground border-b mb-1">
+              <span className="font-medium">Test Line:</span>{" "}
+              <span className="font-mono">+1 (855) 329-7357</span>
+            </div>
+            
             {tenants?.map((tenant) => (
               <DropdownMenuItem
                 key={tenant.id}
