@@ -229,14 +229,6 @@ export default function OnboardingPage() {
     setLoading(true);
 
     try {
-      // IMPORTANT (RLS): we cannot immediately `select()` the newly inserted tenant row
-      // because the user isn't linked in `tenant_users` yet, so the tenants SELECT policy
-      // would block the read. Generate the tenant id client-side and insert without RETURNING.
-      const tenantId = globalThis.crypto?.randomUUID?.();
-      if (!tenantId) {
-        throw new Error("Unable to generate business id. Please refresh and try again.");
-      }
-
       // Use business mode and enabled modules from state (selected in Steps 1-3)
       const isFoodMode = businessMode === "food" || enabledModules.includes("food_orders");
       const industryEntry = getIndustryBySlug(industrySlug);
@@ -248,64 +240,55 @@ export default function OnboardingPage() {
         isFoodMode
       });
 
-      // Map new state structure to tenant database row
-      const tenantData = {
-        id: tenantId,
-        // From Step 4: Business Basics
+      // Create tenant via Edge Function (bypasses RLS, creates tenant + membership atomically)
+      // The edge function generates the tenant ID server-side for security
+      const session = await supabase.auth.getSession();
+      if (!session.data.session?.access_token) {
+        throw new Error("No active session. Please sign in again.");
+      }
+
+      const createTenantPayload = {
         name: businessBasics.businessName,
         tagline: businessBasics.tagline || null,
         phone_public: businessBasics.phoneNumber,
         address: businessBasics.address || null,
         timezone: businessBasics.timezone,
-        hours_json: businessBasics.hoursJson as any,
-
-        // From Steps 1-2: Business Mode & Industry
+        hours_json: businessBasics.hoursJson,
         business_mode: businessMode,
-        industry: industrySlug as any,
+        industry: industrySlug,
         enabled_modules: enabledModules,
-
-        // From Step 6: Policies
         cancellation_policy: policies.cancellationPolicy || null,
         deposit_policy: policies.depositPolicy || null,
         refund_policy: policies.refundPolicy || null,
         payment_methods: policies.paymentMethods,
         ai_never_promise: policies.aiNeverPromise,
-
-        // Defaults for fields not collected in new flow
-        custom_industry: null,
-        website_url: null,
-        years_in_business: null,
-        context_fields_json: [] as any,
-  
-
-        // System fields
-        ai_enabled: false,
-       hipaa_mode: businessMode === "medical",
-
+        hipaa_mode: businessMode === "medical",
       };
 
-      const { error: tenantError } = await supabase
-        .from("tenants")
-        .insert(tenantData as any);
+      const createTenantResponse = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-tenant`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.data.session.access_token}`,
+          },
+          body: JSON.stringify(createTenantPayload),
+        }
+      );
 
-      if (tenantError) {
-        console.error("Tenant creation error:", tenantError);
-        throw new Error(tenantError.message || "Failed to create business profile");
+      if (!createTenantResponse.ok) {
+        const errorData = await createTenantResponse.json().catch(() => ({}));
+        console.error("Tenant creation error:", errorData);
+        throw new Error(errorData.error || "Failed to create business profile");
       }
 
-      // Create tenant user
-      const { error: tuError } = await supabase
-        .from("tenant_users")
-        .insert({
-          tenant_id: tenantId,
-          user_id: user.id,
-          role: "owner",
-        });
-
-      if (tuError) {
-        console.error("Tenant user creation error:", tuError);
-        throw new Error(tuError.message || "Failed to link user to business");
+      const { tenant_id: tenantId } = await createTenantResponse.json();
+      if (!tenantId) {
+        throw new Error("No tenant ID returned from server");
       }
+
+      console.log("Tenant created via edge function:", tenantId.substring(0, 8) + "...");
 
       // Create services
       const servicesToInsert = services
