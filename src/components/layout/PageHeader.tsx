@@ -26,10 +26,10 @@ export function PageHeader({
   if (editorial) {
     return (
       <div className={cn("editorial-header relative", className)}>
-        {/* Warm signature accent line */}
+        {/* Clean accent line */}
         <div 
           className="absolute -left-4 top-0 bottom-0 w-0.5 rounded-full hidden md:block"
-          style={{ background: 'linear-gradient(to bottom, hsl(var(--warm-signature) / 0.25), transparent)' }}
+          style={{ background: 'linear-gradient(to bottom, hsl(var(--accent-signature) / 0.3), transparent)' }}
         />
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
           <div className="flex-1 min-w-0">
