@@ -302,7 +302,20 @@ export function DispatchServiceCatalog() {
                       {group.services.map((service) => (
                         <div
                           key={service.id}
-                          className={`flex items-center justify-between py-3 gap-4 ${
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => {
+                            setEditingService(service);
+                            setEditorOpen(true);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              setEditingService(service);
+                              setEditorOpen(true);
+                            }
+                          }}
+                          className={`w-full flex items-center justify-between py-3 gap-4 text-left cursor-pointer hover:bg-muted/30 transition-colors rounded-md px-2 -mx-2 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background ${
                             !service.is_active ? "opacity-50" : ""
                           }`}
                         >
@@ -330,14 +343,21 @@ export function DispatchServiceCatalog() {
                               <span>{formatDuration(service.duration_minutes)}</span>
                             </div>
 
-                            <Switch
-                              checked={service.is_active}
-                              onCheckedChange={() => handleToggleActive(service)}
-                            />
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <Switch
+                                checked={service.is_active}
+                                onCheckedChange={() => handleToggleActive(service)}
+                              />
+                            </div>
 
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>

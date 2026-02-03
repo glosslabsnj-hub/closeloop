@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useServices } from "@/hooks/useServices";
 import { useQueryClient } from "@tanstack/react-query";
@@ -108,10 +108,15 @@ export function DispatchServiceEditor({
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<DispatchServiceFormData>(defaultFormData);
 
-  // Reset form when dialog opens/closes
-  const handleOpenChange = (newOpen: boolean) => {
-    if (newOpen && editingService) {
-      // Load existing service data
+  // IMPORTANT: This editor is controlled by the parent (open prop).
+  // Radix Dialog does not always fire onOpenChange when parent toggles `open`,
+  // so we must hydrate/reset the form in an effect.
+  useLayoutEffect(() => {
+    if (!open) return;
+
+    setIsSaving(false);
+
+    if (editingService) {
       const pricingConfig = editingService.pricing_config_json as DispatchPricingConfig | null;
       setFormData({
         name: editingService.name || "",
@@ -123,8 +128,17 @@ export function DispatchServiceEditor({
         price_amount: editingService.price_amount,
         price_type: editingService.price_type || "starting_at",
       });
-      setStep(2); // Skip preset selection for editing
-    } else if (newOpen) {
+      setStep(2);
+    } else {
+      setFormData(defaultFormData);
+      setStep(1);
+    }
+  }, [open, editingService]);
+
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      // Reset so the next open is always clean/hydrated by the effect above.
+      setIsSaving(false);
       setFormData(defaultFormData);
       setStep(1);
     }
