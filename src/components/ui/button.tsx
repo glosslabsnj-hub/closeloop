@@ -5,20 +5,20 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-colors duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-semibold ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        // Primary: slightly lighter than background, confident but not aggressive
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive: "bg-destructive/80 text-destructive-foreground hover:bg-destructive/70",
-        // Outline: almost blends in
-        outline: "border border-border/50 bg-transparent hover:bg-muted/30 text-foreground/80",
-        // Secondary: nearly invisible
-        secondary: "bg-muted/50 text-muted-foreground hover:bg-muted/70 hover:text-foreground/80",
-        // Ghost: invisible until hover
-        ghost: "text-muted-foreground hover:bg-muted/30 hover:text-foreground/80",
-        link: "text-foreground/70 underline-offset-4 hover:underline hover:text-foreground",
+        // Primary: Warm amber gradient, inviting and premium
+        default: "bg-gradient-to-r from-primary to-[hsl(38,80%,48%)] text-primary-foreground hover:brightness-110 hover:shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 active:translate-y-0",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:shadow-lg hover:shadow-destructive/20",
+        // Outline: Clean with subtle amber hover
+        outline: "border border-border/60 bg-transparent hover:bg-accent/50 hover:border-accent-foreground/20 text-foreground",
+        // Secondary: Subtle navy panel
+        secondary: "bg-secondary text-secondary-foreground hover:bg-accent hover:text-foreground",
+        // Ghost: Invisible until hover
+        ghost: "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+        link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
         default: "h-10 px-5 py-2",
