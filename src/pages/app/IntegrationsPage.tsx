@@ -2,7 +2,7 @@ import { useState } from "react";
 import { 
   Link2, Zap, History, Settings2, Headset, ChevronDown, ChevronUp,
   Calendar, FileSpreadsheet, Printer, Webhook, MessageSquare, ExternalLink,
-  CheckCircle, AlertCircle, Play, Loader2, Check
+  CheckCircle, AlertCircle, Play, Loader2, Check, ArrowRight, HelpCircle
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,9 @@ import { useToast } from "@/hooks/use-toast";
 import { AutomationRunHistorySection } from "@/components/automations/AutomationRunHistorySection";
 import { ConciergeRequestDialog } from "@/components/integrations/ConciergeRequestDialog";
 import { IntegrationConnectDialog } from "@/components/integrations/IntegrationConnectDialog";
+import { IntegrationCard } from "@/components/integrations/IntegrationCard";
+import { MoreIntegrationsDialog } from "@/components/integrations/MoreIntegrationsDialog";
+import { SELF_SETUP_INTEGRATIONS, FEATURED_EXPERT_INTEGRATIONS } from "@/data/popularIntegrations";
 
 // Quick automation presets that create real automation_rules
 interface QuickPreset {
@@ -131,19 +134,13 @@ const QUICK_PRESETS: QuickPreset[] = [
   },
 ];
 
-// Tool connections
+// Tool connections (used for status checking)
 const CONNECT_TOOLS = [
   { id: "google_calendar", name: "Google Calendar", icon: "📅", description: "Sync bookings to your calendar" },
   { id: "google_sheets", name: "Google Sheets", icon: "📊", description: "Log data to spreadsheets" },
   { id: "webhook", name: "Webhook", icon: "🔗", description: "Send data to any URL" },
   { id: "printer", name: "Printer", icon: "🖨️", description: "Print kitchen tickets" },
-  { id: "square", name: "Square", icon: "⬛", description: "Sync with Square POS", conciergeOnly: true },
-  { id: "calendly", name: "Calendly", icon: "📆", description: "Connect Calendly booking", conciergeOnly: true },
-  { id: "jobber", name: "Jobber", icon: "🔧", description: "Sync with Jobber CRM", conciergeOnly: true },
 ] as const;
-
-// Tools that require concierge setup (complex OAuth or proprietary APIs)
-const CONCIERGE_ONLY_IDS = ["square", "calendly", "jobber"];
 
 export default function IntegrationsPage() {
   const { tenant } = useAuth();
@@ -158,6 +155,8 @@ export default function IntegrationsPage() {
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [webhookConfigDialog, setWebhookConfigDialog] = useState<QuickPreset | null>(null);
   const [webhookUrl, setWebhookUrl] = useState("");
+  const [moreIntegrationsOpen, setMoreIntegrationsOpen] = useState(false);
+  const [conciergePrefilledSystem, setConciergePrefilledSystem] = useState<string | null>(null);
 
   // Data hooks
   const { data: integrations, isLoading: integrationsLoading } = useIntegrations(tenantId);
@@ -449,84 +448,127 @@ export default function IntegrationsPage() {
           </Collapsible>
         </TabsContent>
 
-        {/* Connect Tools Tab */}
-        <TabsContent value="connect" className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {CONNECT_TOOLS.map((tool) => {
-              const integration = integrations?.find(i => i.provider === tool.id);
-              const isConnected = integration?.status === "connected";
-              const provider = PROVIDERS.find(p => p.id === tool.id);
+        {/* Connect Tools Tab - Redesigned */}
+        <TabsContent value="connect" className="space-y-8">
+          {/* Intro Section */}
+          <Card className="bg-muted/30 border-dashed">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <HelpCircle className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-medium mb-1">How Integrations Work</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Connect CloseLoop to your existing tools. Some integrations you can set up yourself in minutes — others our team will configure for you (usually within 24 hours).
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-              return (
-                <Card key={tool.id} className={isConnected ? "border-green-500/30" : ""}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 rounded-lg bg-muted text-2xl">
-                          {tool.icon}
-                        </div>
-                        <div>
-                          <h3 className="font-medium">{tool.name}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {tool.description}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-3 flex items-center justify-between">
-                      {isConnected ? (
-                        <div className="flex items-center gap-2">
-                          <Badge variant="default" className="gap-1">
-                            <CheckCircle className="h-3 w-3" />
-                            Connected
-                          </Badge>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => integration && testIntegration.mutate(integration.id)}
-                            disabled={testIntegration.isPending}
-                          >
-                            Test
-                          </Button>
-                        </div>
-                      ) : CONCIERGE_ONLY_IDS.includes(tool.id) ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setConciergeOpen(true)}
-                          className="gap-1"
-                        >
-                          Request Setup
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedProvider(tool.id);
-                            setConnectDialogOpen(true);
-                          }}
-                        >
-                          Connect
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+          {/* Section A: Self-Setup Integrations */}
+          <section className="space-y-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              <h2 className="text-lg font-semibold">Set Up Yourself</h2>
+              <Badge variant="secondary" className="text-xs">Free</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground -mt-2">
+              These are quick to connect — just click and follow the steps
+            </p>
 
-          {/* Can't find your tool */}
-          <Card className="border-dashed">
-            <CardContent className="p-6 text-center">
-              <h3 className="font-medium mb-2">Don't see your tool?</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                We can connect FieldEdge, ServiceTitan, Towbook, Toast, and many more.
-              </p>
-              <Button variant="outline" onClick={() => setConciergeOpen(true)}>
-                Request integration setup
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {SELF_SETUP_INTEGRATIONS.map((tool) => {
+                const integration = integrations?.find(i => i.provider === tool.id);
+                const isConnected = integration?.status === "connected";
+
+                return (
+                  <IntegrationCard
+                    key={tool.id}
+                    id={tool.id}
+                    name={tool.name}
+                    icon={tool.icon}
+                    description={tool.description}
+                    isConnected={isConnected}
+                    isSelfSetup={true}
+                    isLoading={testIntegration.isPending}
+                    onConnect={() => {
+                      setSelectedProvider(tool.id);
+                      setConnectDialogOpen(true);
+                    }}
+                    onTest={isConnected ? () => integration && testIntegration.mutate(integration.id) : undefined}
+                  />
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Section B: Expert-Setup Integrations */}
+          <section className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Headset className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold">We'll Set These Up For You</h2>
+            </div>
+            <p className="text-sm text-muted-foreground -mt-2">
+              Need Square, ServiceTitan, or Toast? Our team will configure these for you — usually within 24 hours.
+            </p>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {FEATURED_EXPERT_INTEGRATIONS.map((tool) => (
+                <IntegrationCard
+                  key={tool.id}
+                  id={tool.id}
+                  name={tool.name}
+                  icon={tool.icon}
+                  description={tool.description}
+                  isConnected={false}
+                  isSelfSetup={false}
+                  onRequestSetup={() => {
+                    setConciergePrefilledSystem(tool.name);
+                    setConciergeOpen(true);
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* More Integrations Button */}
+            <div className="flex justify-center pt-2">
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => setMoreIntegrationsOpen(true)}
+              >
+                More Integrations
+                <ArrowRight className="h-4 w-4" />
               </Button>
+            </div>
+          </section>
+
+          {/* Section C: Don't See Your Tool */}
+          <Card className="border-dashed bg-muted/20">
+            <CardContent className="p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h3 className="font-medium mb-1 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                    Don't see your tool?
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    We can connect to almost any system — FieldEdge, Towbook, AthenaHealth, GoHighLevel, and more.
+                  </p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setConciergePrefilledSystem(null);
+                    setConciergeOpen(true);
+                  }}
+                  className="shrink-0"
+                >
+                  Request Custom Integration
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -541,6 +583,15 @@ export default function IntegrationsPage() {
       <ConciergeRequestDialog
         open={conciergeOpen}
         onOpenChange={setConciergeOpen}
+      />
+
+      <MoreIntegrationsDialog
+        open={moreIntegrationsOpen}
+        onOpenChange={setMoreIntegrationsOpen}
+        onRequestSetup={(systemName) => {
+          setConciergePrefilledSystem(systemName);
+          setConciergeOpen(true);
+        }}
       />
 
       {selectedProvider && (
