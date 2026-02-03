@@ -20,6 +20,7 @@ export const entityTypeLabels: Record<string, string> = {
   menu_item: "Menu Item",
   faq: "FAQ",
   policy: "Policy",
+  hours: "Hours",
 };
 
 export interface KnowledgeConflict {
@@ -147,6 +148,17 @@ export function useKnowledgeConflicts() {
               })
               .eq("id", existing_entity_id);
             break;
+
+          case "hours":
+            await supabase
+              .from("availability_slots")
+              .update({
+                start_time: proposed_data.start_time,
+                end_time: proposed_data.end_time,
+                is_available: proposed_data.is_available,
+              })
+              .eq("id", existing_entity_id);
+            break;
         }
       }
 
@@ -200,6 +212,13 @@ export function useKnowledgeConflicts() {
               .update(params.mergedData)
               .eq("id", existing_entity_id);
             break;
+
+          case "hours":
+            await supabase
+              .from("availability_slots")
+              .update(params.mergedData)
+              .eq("id", existing_entity_id);
+            break;
         }
       }
 
@@ -221,6 +240,104 @@ export function useKnowledgeConflicts() {
     },
   });
 
+  // Batch: Keep all existing
+  const keepAllExistingMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("knowledge_conflicts")
+        .update({
+          status: "keep_existing",
+          resolved_at: new Date().toISOString(),
+        })
+        .eq("tenant_id", tenant?.id)
+        .eq("status", "unresolved");
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["knowledge-conflicts", tenant?.id] });
+    },
+  });
+
+  // Batch: Accept all uploads
+  const acceptAllUploadsMutation = useMutation({
+    mutationFn: async () => {
+      const unresolved = conflicts.filter((c) => c.status === "unresolved");
+      
+      for (const conflict of unresolved) {
+        const { entity_type, existing_entity_id, proposed_data } = conflict;
+
+        if (existing_entity_id) {
+          switch (entity_type) {
+            case "service":
+              await supabase
+                .from("services")
+                .update({
+                  name: proposed_data.name,
+                  description: proposed_data.description,
+                  price_amount: proposed_data.price_amount,
+                  duration_minutes: proposed_data.duration_minutes,
+                })
+                .eq("id", existing_entity_id);
+              break;
+
+            case "menu_item":
+              await supabase
+                .from("menu_items")
+                .update({
+                  name: proposed_data.name,
+                  description: proposed_data.description,
+                  price_cents: proposed_data.price_cents,
+                  category: proposed_data.category,
+                })
+                .eq("id", existing_entity_id);
+              break;
+
+            case "faq":
+              await supabase
+                .from("business_faqs")
+                .update({
+                  question: proposed_data.question,
+                  answer: proposed_data.answer,
+                })
+                .eq("id", existing_entity_id);
+              break;
+
+            case "hours":
+              await supabase
+                .from("availability_slots")
+                .update({
+                  start_time: proposed_data.start_time,
+                  end_time: proposed_data.end_time,
+                  is_available: proposed_data.is_available,
+                })
+                .eq("id", existing_entity_id);
+              break;
+          }
+        }
+      }
+
+      // Mark all as resolved
+      const { error } = await supabase
+        .from("knowledge_conflicts")
+        .update({
+          status: "accept_upload",
+          resolved_at: new Date().toISOString(),
+        })
+        .eq("tenant_id", tenant?.id)
+        .eq("status", "unresolved");
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["knowledge-conflicts", tenant?.id] });
+      queryClient.invalidateQueries({ queryKey: ["services"] });
+      queryClient.invalidateQueries({ queryKey: ["menu-items"] });
+      queryClient.invalidateQueries({ queryKey: ["faqs"] });
+      queryClient.invalidateQueries({ queryKey: ["knowledge-stats"] });
+    },
+  });
+
   // Computed values
   const unresolvedCount = conflicts.filter((c) => c.status === "unresolved").length;
   const resolvedCount = conflicts.filter((c) => c.status !== "unresolved").length;
@@ -237,9 +354,13 @@ export function useKnowledgeConflicts() {
     keepExisting: keepExistingMutation.mutateAsync,
     acceptUpload: acceptUploadMutation.mutateAsync,
     customMerge: customMergeMutation.mutateAsync,
+    keepAllExisting: keepAllExistingMutation.mutateAsync,
+    acceptAllUploads: acceptAllUploadsMutation.mutateAsync,
     isResolving:
       keepExistingMutation.isPending ||
       acceptUploadMutation.isPending ||
-      customMergeMutation.isPending,
+      customMergeMutation.isPending ||
+      keepAllExistingMutation.isPending ||
+      acceptAllUploadsMutation.isPending,
   };
 }
