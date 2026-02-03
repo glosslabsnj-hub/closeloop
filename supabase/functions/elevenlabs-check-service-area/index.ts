@@ -154,14 +154,22 @@ serve(async (req: Request) => {
       );
     }
 
-    // Get tenant settings
-    const [tenantResult, distanceSettingsResult] = await Promise.all([
+    // Get tenant settings and towing services with pricing config
+    const [tenantResult, distanceSettingsResult, towingServicesResult] = await Promise.all([
       supabase.from("tenants").select("service_area_json").eq("id", tenantId).single(),
-      supabase.from("tenant_distance_settings").select("*").eq("tenant_id", tenantId).maybeSingle()
+      supabase.from("tenant_distance_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
+      // Fetch towing services that may have distance-tiered pricing
+      supabase.from("services")
+        .select("id, name, pricing_config_json")
+        .eq("tenant_id", tenantId)
+        .eq("is_active", true)
+        .ilike("name", "%tow%")
+        .limit(5)
     ]);
 
     const serviceArea = tenantResult.data?.service_area_json as Record<string, unknown> | null;
     const distanceSettings = distanceSettingsResult.data;
+    const towingServices = towingServicesResult.data || [];
 
     // If no distance settings or provider disabled, use fallback
     if (!distanceSettings?.distance_provider_enabled) {
@@ -226,9 +234,70 @@ serve(async (req: Request) => {
       pricingNote = `Within ${localRadiusMiles} miles. Quote Local Tow pricing ($85).`;
     } else {
       serviceTier = "long_distance";
-      pricingNote = distanceMiles 
-        ? `${distanceMiles.toFixed(0)} miles - this is a Long Distance Tow. Quote varies by distance - collect details and confirm pricing.`
-        : "Distance unknown - treat as Long Distance Tow. Collect details for pricing.";
+      
+      // Find Long Distance Tow service and build dynamic pricing note
+      const longDistanceService = towingServices.find(s => 
+        s.name.toLowerCase().includes("long distance") || 
+        s.name.toLowerCase().includes("long-distance")
+      );
+      
+      if (longDistanceService?.pricing_config_json) {
+        const config = longDistanceService.pricing_config_json as Record<string, unknown>;
+        // Note: DB stores "pricing_model" field, normalize to "model"
+        const pricingModel = (config.model || config.pricing_model) as string;
+        
+        if (pricingModel === "distance_tiered" && Array.isArray(config.distance_tiers)) {
+          const tiers = config.distance_tiers as Array<Record<string, unknown>>;
+          
+          // Build a comprehensive pricing note based on actual tiers
+          const tierDescriptions: string[] = [];
+          let applicableTierNote = "";
+          
+          for (const tier of tiers) {
+            const minMiles = Number(tier.min_miles) || 0;
+            const maxMiles = tier.max_miles != null ? Number(tier.max_miles) : null;
+            const basePrice = Number(tier.base_price) || 0;
+            const perMilePrice = tier.per_mile_price != null ? Number(tier.per_mile_price) : null;
+            
+            // Check if this tier applies to the current distance
+            if (distanceMiles !== null) {
+              const withinMin = distanceMiles >= minMiles;
+              const withinMax = maxMiles === null || distanceMiles <= maxMiles;
+              
+              if (withinMin && withinMax) {
+                if (perMilePrice && maxMiles === null) {
+                  // Calculate total for over-threshold distances
+                  const extraMiles = Math.max(0, distanceMiles - minMiles);
+                  const extraCharge = extraMiles * perMilePrice;
+                  const total = basePrice + extraCharge;
+                  applicableTierNote = `At ${distanceMiles.toFixed(0)} miles: $${basePrice} base + $${perMilePrice}/mile for ${extraMiles.toFixed(0)} miles over ${minMiles} = approximately $${total.toFixed(2)}`;
+                } else {
+                  applicableTierNote = `At ${distanceMiles.toFixed(0)} miles: $${basePrice} base rate`;
+                }
+              }
+            }
+            
+            // Build tier description for reference
+            const rangeText = maxMiles != null ? `${minMiles}-${maxMiles} miles` : `Over ${minMiles} miles`;
+            if (perMilePrice) {
+              tierDescriptions.push(`${rangeText}: $${basePrice} + $${perMilePrice}/mile beyond ${minMiles}`);
+            } else {
+              tierDescriptions.push(`${rangeText}: $${basePrice}`);
+            }
+          }
+          
+          // Combine applicable tier + full tier reference
+          pricingNote = applicableTierNote || `Long Distance Tow pricing tiers: ${tierDescriptions.join("; ")}`;
+        } else {
+          pricingNote = distanceMiles 
+            ? `${distanceMiles.toFixed(0)} miles - Long Distance Tow applies. Collect details for pricing.`
+            : "Distance unknown - treat as Long Distance Tow. Collect details for pricing.";
+        }
+      } else {
+        pricingNote = distanceMiles 
+          ? `${distanceMiles.toFixed(0)} miles - this is a Long Distance Tow. Quote varies by distance - collect details and confirm pricing.`
+          : "Distance unknown - treat as Long Distance Tow. Collect details for pricing.";
+      }
     }
     
     // Build message
