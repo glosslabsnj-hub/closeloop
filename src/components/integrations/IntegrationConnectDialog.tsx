@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIntegrationMutations, PROVIDERS } from "@/hooks/useIntegrations";
-import { CheckCircle2, Loader2, ExternalLink } from "lucide-react";
+import { CheckCircle2, Loader2, ExternalLink, AlertCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface IntegrationConnectDialogProps {
   open: boolean;
@@ -29,25 +31,127 @@ export function IntegrationConnectDialog({
 }: IntegrationConnectDialogProps) {
   const { tenant } = useAuth();
   const { createIntegration, testIntegration } = useIntegrationMutations(tenant?.id ?? null);
-  const [step, setStep] = useState<"connect" | "test" | "success">("connect");
+  const { toast } = useToast();
+  const [step, setStep] = useState<"connect" | "waiting" | "test" | "success" | "error">("connect");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState("");
-  const [sheetId, setSheetId] = useState("");
-  const [calendarId, setCalendarId] = useState("");
+  const [webhookUrl, setWebhookUrl] = useState("");
+  const [printerApiKey, setPrinterApiKey] = useState("");
   const [testing, setTesting] = useState(false);
 
   const provider = PROVIDERS.find((p) => p.id === providerId);
+
+  // Listen for OAuth callback messages
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === "calendar-oauth-success") {
+        setStep("success");
+        toast({
+          title: "Calendar connected!",
+          description: `Found ${event.data.calendars?.length || 0} calendars`,
+        });
+      } else if (event.data?.type === "calendar-oauth-error") {
+        setStep("error");
+        setErrorMessage(event.data.error || "OAuth failed");
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [toast]);
+
   if (!provider) return null;
 
   const handleConnect = async () => {
-    const config: Record<string, unknown> = {};
-    
-    if (providerId === "google_sheets" && sheetId) {
-      config.sheet_id = sheetId;
-    }
-    if (providerId === "google_calendar" && calendarId) {
-      config.calendar_id = calendarId;
+    setErrorMessage(null);
+
+    if (providerId === "google_calendar") {
+      // Start real OAuth flow
+      setStep("waiting");
+      try {
+        const { data, error } = await supabase.functions.invoke("calendar-oauth-start", {
+          body: { provider: "google" },
+        });
+        
+        if (error) throw error;
+        if (!data?.auth_url) throw new Error("No auth URL returned");
+
+        // Open OAuth popup
+        const popup = window.open(
+          data.auth_url,
+          "oauth",
+          "width=500,height=700,left=100,top=100"
+        );
+
+        // Monitor popup close
+        const checkClosed = setInterval(() => {
+          if (popup?.closed) {
+            clearInterval(checkClosed);
+            // If still on waiting step, user closed without completing
+            if (step === "waiting") {
+              setStep("connect");
+            }
+          }
+        }, 500);
+      } catch (error) {
+        console.error("OAuth start error:", error);
+        setStep("error");
+        setErrorMessage(error instanceof Error ? error.message : "Failed to start OAuth");
+      }
+      return;
     }
 
+    if (providerId === "google_sheets") {
+      // Google Sheets uses same OAuth as Calendar for now
+      setStep("waiting");
+      try {
+        const { data, error } = await supabase.functions.invoke("calendar-oauth-start", {
+          body: { provider: "google" },
+        });
+        
+        if (error) throw error;
+        if (!data?.auth_url) throw new Error("No auth URL returned");
+
+        // Open OAuth popup (with Sheets scopes, we'd need separate function)
+        // For now, use calendar OAuth which grants basic access
+        window.open(data.auth_url, "oauth", "width=500,height=700,left=100,top=100");
+      } catch (error) {
+        console.error("OAuth start error:", error);
+        setStep("error");
+        setErrorMessage(error instanceof Error ? error.message : "Failed to start OAuth");
+      }
+      return;
+    }
+
+    if (providerId === "webhook") {
+      // Just save webhook URL config
+      await createIntegration.mutateAsync({
+        provider: providerId,
+        display_name: provider.name,
+        auth_type: "api_key",
+        config_json: { webhook_url: webhookUrl },
+      });
+      setStep("success");
+      return;
+    }
+
+    if (providerId === "printer") {
+      // Save PrintNode API key
+      await createIntegration.mutateAsync({
+        provider: providerId,
+        display_name: provider.name,
+        auth_type: "api_key",
+        config_json: { 
+          printer_type: printerApiKey ? "printnode" : "local",
+          printnode_api_key: printerApiKey || undefined,
+        },
+      });
+      setStep("success");
+      return;
+    }
+
+    // Default: create integration record
+    const config: Record<string, unknown> = {};
     await createIntegration.mutateAsync({
       provider: providerId,
       display_name: provider.name,
@@ -69,25 +173,15 @@ export function IntegrationConnectDialog({
   const handleClose = () => {
     setStep("connect");
     setApiKey("");
-    setSheetId("");
-    setCalendarId("");
+    setWebhookUrl("");
+    setPrinterApiKey("");
+    setErrorMessage(null);
     onOpenChange(false);
   };
 
   const handleDone = () => {
     handleClose();
     onConnected();
-  };
-
-  const getOAuthUrl = (provider: string): string | null => {
-    // These would be real OAuth URLs in production
-    switch (provider) {
-      case "google_calendar":
-      case "google_sheets":
-        return "https://accounts.google.com/o/oauth2/auth"; // placeholder
-      default:
-        return null;
-    }
   };
 
   const isOAuth = ["google_calendar", "google_sheets"].includes(providerId);
@@ -123,38 +217,47 @@ export function IntegrationConnectDialog({
                     )}
                     Connect with Google
                   </Button>
-                  
-                  {providerId === "google_sheets" && (
-                    <div className="mt-4 text-left">
-                      <Label htmlFor="sheetId">Sheet ID (optional)</Label>
-                      <Input
-                        id="sheetId"
-                        placeholder="From your sheet URL"
-                        value={sheetId}
-                        onChange={(e) => setSheetId(e.target.value)}
-                        className="mt-1"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Leave blank to create a new sheet
-                      </p>
-                    </div>
-                  )}
-                  
-                  {providerId === "google_calendar" && (
-                    <div className="mt-4 text-left">
-                      <Label htmlFor="calendarId">Calendar ID (optional)</Label>
-                      <Input
-                        id="calendarId"
-                        placeholder="primary"
-                        value={calendarId}
-                        onChange={(e) => setCalendarId(e.target.value)}
-                        className="mt-1"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Leave blank to use your primary calendar
-                      </p>
-                    </div>
-                  )}
+                </div>
+              ) : providerId === "webhook" ? (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="webhookUrl">Webhook URL</Label>
+                    <Input
+                      id="webhookUrl"
+                      type="url"
+                      placeholder="https://your-system.com/webhook"
+                      value={webhookUrl}
+                      onChange={(e) => setWebhookUrl(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      We'll POST event data to this URL
+                    </p>
+                  </div>
+                </div>
+              ) : providerId === "printer" ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="printerApiKey">PrintNode API Key (optional)</Label>
+                    <Input
+                      id="printerApiKey"
+                      type="password"
+                      placeholder="Enter PrintNode API key for cloud printing"
+                      value={printerApiKey}
+                      onChange={(e) => setPrinterApiKey(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Leave blank to use browser-based printing
+                    </p>
+                  </div>
+                  <a
+                    href="https://www.printnode.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+                  >
+                    Get a PrintNode account
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -188,7 +291,11 @@ export function IntegrationConnectDialog({
               {!isOAuth && (
                 <Button
                   onClick={handleConnect}
-                  disabled={!apiKey || createIntegration.isPending}
+                  disabled={
+                    (providerId === "webhook" && !webhookUrl) ||
+                    (providerId !== "webhook" && providerId !== "printer" && !apiKey) ||
+                    createIntegration.isPending
+                  }
                 >
                   {createIntegration.isPending ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -196,6 +303,49 @@ export function IntegrationConnectDialog({
                   Connect
                 </Button>
               )}
+            </DialogFooter>
+          </>
+        )}
+
+        {step === "waiting" && (
+          <>
+            <DialogHeader>
+              <DialogTitle>Waiting for authorization...</DialogTitle>
+              <DialogDescription>
+                Complete the authorization in the popup window that just opened.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-8 text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary mb-4" />
+              <p className="text-sm text-muted-foreground">
+                Don't see the popup? Check if it was blocked by your browser.
+              </p>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={handleClose}>
+                Cancel
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+
+        {step === "error" && (
+          <>
+            <div className="py-8 text-center">
+              <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+                <AlertCircle className="h-6 w-6 text-destructive" />
+              </div>
+              <DialogTitle className="mb-2">Connection Failed</DialogTitle>
+              <DialogDescription>
+                {errorMessage || "Something went wrong. Please try again."}
+              </DialogDescription>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setStep("connect")}>
+                Try Again
+              </Button>
             </DialogFooter>
           </>
         )}
@@ -238,7 +388,7 @@ export function IntegrationConnectDialog({
               </div>
               <DialogTitle className="mb-2">{provider.name} Connected!</DialogTitle>
               <DialogDescription>
-                You can now enable routing rules that use this integration.
+                You can now enable automation rules that use this integration.
               </DialogDescription>
             </div>
             <DialogFooter>

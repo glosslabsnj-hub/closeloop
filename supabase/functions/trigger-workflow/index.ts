@@ -904,19 +904,22 @@ async function executeAutomationAction(
         break;
 
       case "create_event":
-        result = await executeCalendarAction(config, context, fieldMapping, isDryRun);
+      case "create_calendar_event":
+        result = await executeCalendarAction(supabase, rule.tenant_id, config, context, fieldMapping, isDryRun);
         break;
 
       case "append_row":
-        result = await executeSheetsAction(config, context, fieldMapping, isDryRun);
+      case "append_sheet_row":
+        result = await executeSheetsAction(supabase, rule.tenant_id, config, context, fieldMapping, isDryRun);
         break;
 
       case "print_receipt":
-        result = await executePrintAction(supabase, supabaseUrl, context, isDryRun, rule.tenant_id);
+        result = await executePrintAction(supabase, supabaseUrl, config, context, isDryRun, rule.tenant_id);
         break;
 
       case "send_sms":
-        result = await executeSmsAction(supabase, context, isDryRun, rule.tenant_id);
+      case "send_sms_to_owner":
+        result = await executeSmsAction(supabase, config, context, rule.tenant_id, isDryRun);
         break;
 
       default:
@@ -1021,20 +1024,59 @@ async function executeWebhookAction(
   };
 }
 
-// Google Calendar action (placeholder - requires OAuth integration)
+// Helper: Refresh Google OAuth token
+async function refreshGoogleToken(
+  refreshToken: string,
+  clientId: string,
+  clientSecret: string
+): Promise<{ access_token: string; expires_in: number } | null> {
+  try {
+    const response = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        refresh_token: refreshToken,
+        grant_type: "refresh_token",
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("Token refresh failed:", await response.text());
+      return null;
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Token refresh error:", error);
+    return null;
+  }
+}
+
+// Google Calendar action - NOW WITH REAL API CALLS
 async function executeCalendarAction(
+  supabase: any,
+  tenantId: string,
   config: any,
   context: Record<string, any>,
   fieldMapping: any,
   isDryRun: boolean
 ): Promise<{ success: boolean; response?: any; error?: string }> {
-  // For now, return simulated success
-  // Full implementation requires Google OAuth token refresh
+  const googleClientId = Deno.env.get("GOOGLE_CALENDAR_CLIENT_ID");
+  const googleClientSecret = Deno.env.get("GOOGLE_CALENDAR_CLIENT_SECRET");
+
+  // Build event details from context
   const eventDetails = {
     summary: context.service_name || context.job_type || "CloseLoop Event",
     start: context.start_time || context.scheduled_at,
     end: context.end_time,
-    description: context.notes || context.description || "",
+    description: [
+      "Booked via CloseLoop AI",
+      context.customer_phone ? `Phone: ${context.customer_phone}` : "",
+      context.customer_email ? `Email: ${context.customer_email}` : "",
+      context.notes || context.description || "",
+    ].filter(Boolean).join("\n"),
     attendees: context.customer_email ? [context.customer_email] : [],
   };
 
@@ -1045,16 +1087,136 @@ async function executeCalendarAction(
     };
   }
 
-  // TODO: Implement actual Google Calendar API call
-  console.log("[executeCalendarAction] Calendar integration not fully implemented, simulating success");
+  // Get calendar connection
+  const { data: connection } = await supabase
+    .from("calendar_connections")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .eq("provider", "google")
+    .eq("status", "connected")
+    .single();
+
+  if (!connection) {
+    return { success: false, error: "No Google Calendar connected" };
+  }
+
+  // Get OAuth tokens
+  const { data: tokenData } = await supabase
+    .from("calendar_tokens")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .eq("provider", "google")
+    .single();
+
+  if (!tokenData) {
+    return { success: false, error: "No OAuth tokens found" };
+  }
+
+  // Check if token needs refresh
+  let accessToken = tokenData.access_token;
+  const expiresAt = tokenData.expires_at ? new Date(tokenData.expires_at) : null;
+  const now = new Date();
+
+  if (expiresAt && expiresAt <= now) {
+    if (!googleClientId || !googleClientSecret || !tokenData.refresh_token) {
+      return { success: false, error: "Token expired and cannot refresh" };
+    }
+
+    const refreshed = await refreshGoogleToken(
+      tokenData.refresh_token,
+      googleClientId,
+      googleClientSecret
+    );
+
+    if (!refreshed) {
+      return { success: false, error: "Token refresh failed" };
+    }
+
+    accessToken = refreshed.access_token;
+
+    // Update stored token
+    await supabase
+      .from("calendar_tokens")
+      .update({
+        access_token: accessToken,
+        expires_at: new Date(Date.now() + refreshed.expires_in * 1000).toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", tokenData.id);
+  }
+
+  // Get tenant timezone
+  const { data: tenantData } = await supabase
+    .from("tenants")
+    .select("timezone")
+    .eq("id", tenantId)
+    .single();
+  
+  const timezone = tenantData?.timezone || "America/New_York";
+
+  // Get calendar ID
+  const connConfig = connection.config_json as { calendar_ids?: string[]; primary_calendar_id?: string } | null;
+  const calendarId = connConfig?.primary_calendar_id || connConfig?.calendar_ids?.[0] || "primary";
+
+  // Build Google Calendar event payload
+  const googleEventPayload: any = {
+    summary: eventDetails.summary,
+    description: eventDetails.description,
+  };
+
+  if (eventDetails.start) {
+    googleEventPayload.start = {
+      dateTime: eventDetails.start,
+      timeZone: timezone,
+    };
+  }
+
+  if (eventDetails.end) {
+    googleEventPayload.end = {
+      dateTime: eventDetails.end,
+      timeZone: timezone,
+    };
+  } else if (eventDetails.start) {
+    // Default to 1 hour if no end time
+    const endTime = new Date(new Date(eventDetails.start).getTime() + 60 * 60 * 1000).toISOString();
+    googleEventPayload.end = {
+      dateTime: endTime,
+      timeZone: timezone,
+    };
+  }
+
+  // Create event in Google Calendar
+  const createResponse = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
+    {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(googleEventPayload),
+    }
+  );
+
+  if (!createResponse.ok) {
+    const errorText = await createResponse.text();
+    console.error("Google Calendar API error:", createResponse.status, errorText);
+    return { success: false, error: `Calendar API error: ${createResponse.status}` };
+  }
+
+  const createdEvent = await createResponse.json();
+  console.log("Calendar event created:", createdEvent.id);
+
   return {
     success: true,
-    response: { simulated: true, event: eventDetails },
+    response: { event_id: createdEvent.id, html_link: createdEvent.htmlLink },
   };
 }
 
-// Google Sheets action (placeholder)
+// Google Sheets action - NOW WITH REAL API CALLS
 async function executeSheetsAction(
+  supabase: any,
+  tenantId: string,
   config: any,
   context: Record<string, any>,
   fieldMapping: any,
@@ -1091,11 +1253,82 @@ async function executeSheetsAction(
     };
   }
 
-  // TODO: Implement actual Google Sheets API call
-  console.log("[executeSheetsAction] Sheets integration not fully implemented, simulating success");
+  if (!sheetId) {
+    return { success: false, error: "No sheet_id configured" };
+  }
+
+  // Get OAuth tokens (reuse calendar tokens for now - same Google OAuth)
+  const { data: tokenData } = await supabase
+    .from("calendar_tokens")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .eq("provider", "google")
+    .single();
+
+  if (!tokenData) {
+    return { success: false, error: "No Google OAuth tokens found. Connect Google Calendar first." };
+  }
+
+  const googleClientId = Deno.env.get("GOOGLE_CALENDAR_CLIENT_ID");
+  const googleClientSecret = Deno.env.get("GOOGLE_CALENDAR_CLIENT_SECRET");
+
+  // Check if token needs refresh
+  let accessToken = tokenData.access_token;
+  const expiresAt = tokenData.expires_at ? new Date(tokenData.expires_at) : null;
+  const now = new Date();
+
+  if (expiresAt && expiresAt <= now && googleClientId && googleClientSecret && tokenData.refresh_token) {
+    const refreshed = await refreshGoogleToken(
+      tokenData.refresh_token,
+      googleClientId,
+      googleClientSecret
+    );
+
+    if (refreshed) {
+      accessToken = refreshed.access_token;
+      await supabase
+        .from("calendar_tokens")
+        .update({
+          access_token: accessToken,
+          expires_at: new Date(Date.now() + refreshed.expires_in * 1000).toISOString(),
+        })
+        .eq("id", tokenData.id);
+    }
+  }
+
+  // Append row to Google Sheets
+  const range = `${sheetName}!A:Z`;
+  const appendResponse = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+    {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        values: [rowData],
+      }),
+    }
+  );
+
+  if (!appendResponse.ok) {
+    const errorText = await appendResponse.text();
+    console.error("Google Sheets API error:", appendResponse.status, errorText);
+    return { success: false, error: `Sheets API error: ${appendResponse.status}` };
+  }
+
+  const result = await appendResponse.json();
+  console.log("Row appended to sheet:", result.updates?.updatedRange);
+
   return {
     success: true,
-    response: { simulated: true, sheet_id: sheetId, row_appended: true, row_data: rowData },
+    response: { 
+      sheet_id: sheetId, 
+      row_appended: true, 
+      updated_range: result.updates?.updatedRange,
+      row_data: rowData 
+    },
   };
 }
 
@@ -1103,6 +1336,7 @@ async function executeSheetsAction(
 async function executePrintAction(
   supabase: any,
   supabaseUrl: string,
+  config: any,
   context: Record<string, any>,
   isDryRun: boolean,
   tenantId: string
@@ -1124,7 +1358,48 @@ async function executePrintAction(
     };
   }
 
-  // Insert confirmation receipt
+  // Check if PrintNode is configured
+  const { data: integration } = await supabase
+    .from("integrations")
+    .select("config_json")
+    .eq("tenant_id", tenantId)
+    .eq("provider", "printer")
+    .eq("status", "connected")
+    .single();
+
+  const printerConfig = integration?.config_json as { printnode_api_key?: string; printer_id?: number } | null;
+
+  if (printerConfig?.printnode_api_key && printerConfig?.printer_id) {
+    // Use PrintNode
+    const printJobResponse = await fetch("https://api.printnode.com/printjobs", {
+      method: "POST",
+      headers: {
+        "Authorization": `Basic ${btoa(printerConfig.printnode_api_key + ":")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        printerId: printerConfig.printer_id,
+        title: `Receipt - ${confirmationSummary}`,
+        contentType: "raw_base64",
+        content: btoa(receiptHtml),
+        source: "CloseLoop",
+        qty: 1,
+      }),
+    });
+
+    if (!printJobResponse.ok) {
+      console.error("PrintNode error:", await printJobResponse.text());
+      return { success: false, error: "PrintNode API error" };
+    }
+
+    const printJobId = await printJobResponse.json();
+    return {
+      success: true,
+      response: { method: "printnode", job_id: printJobId },
+    };
+  }
+
+  // Fallback: Insert confirmation receipt
   await supabase.from("confirmation_receipts").insert({
     tenant_id: tenantId,
     entity_type: entityType,
@@ -1147,25 +1422,25 @@ async function executePrintAction(
       .eq("id", entityId);
   }
 
-  // TODO: Call PrintNode or similar if configured
   console.log("[executePrintAction] Print requested for", entityType, entityId);
 
   return {
     success: true,
-    response: { print_queued: true, entity_type: entityType, entity_id: entityId },
+    response: { print_queued: true, method: "browser", entity_type: entityType, entity_id: entityId },
   };
 }
 
 // SMS action
 async function executeSmsAction(
   supabase: any,
+  config: any,
   context: Record<string, any>,
-  isDryRun: boolean,
-  tenantId: string
+  tenantId: string,
+  isDryRun: boolean
 ): Promise<{ success: boolean; response?: any; error?: string }> {
-  const to = context.customer_phone;
+  const to = config?.to || context.customer_phone;
   if (!to) {
-    return { success: false, error: "No customer phone for SMS" };
+    return { success: false, error: "No recipient phone for SMS" };
   }
 
   // Build message based on entity type

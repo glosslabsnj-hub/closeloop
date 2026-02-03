@@ -137,10 +137,13 @@ const CONNECT_TOOLS = [
   { id: "google_sheets", name: "Google Sheets", icon: "📊", description: "Log data to spreadsheets" },
   { id: "webhook", name: "Webhook", icon: "🔗", description: "Send data to any URL" },
   { id: "printer", name: "Printer", icon: "🖨️", description: "Print kitchen tickets" },
-  { id: "square", name: "Square", icon: "⬛", description: "Sync with Square POS" },
-  { id: "calendly", name: "Calendly", icon: "📆", description: "Connect Calendly booking" },
-  { id: "jobber", name: "Jobber", icon: "🔧", description: "Sync with Jobber CRM" },
-];
+  { id: "square", name: "Square", icon: "⬛", description: "Sync with Square POS", conciergeOnly: true },
+  { id: "calendly", name: "Calendly", icon: "📆", description: "Connect Calendly booking", conciergeOnly: true },
+  { id: "jobber", name: "Jobber", icon: "🔧", description: "Sync with Jobber CRM", conciergeOnly: true },
+] as const;
+
+// Tools that require concierge setup (complex OAuth or proprietary APIs)
+const CONCIERGE_ONLY_IDS = ["square", "calendly", "jobber"];
 
 export default function IntegrationsPage() {
   const { tenant } = useAuth();
@@ -486,6 +489,15 @@ export default function IntegrationsPage() {
                             Test
                           </Button>
                         </div>
+                      ) : CONCIERGE_ONLY_IDS.includes(tool.id) ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setConciergeOpen(true)}
+                          className="gap-1"
+                        >
+                          Request Setup
+                        </Button>
                       ) : (
                         <Button
                           size="sm"
