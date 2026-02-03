@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Save, FileText } from "lucide-react";
+import { Loader2, Save, FileText, Info, Lightbulb } from "lucide-react";
 import { updateBusinessPolicies } from "@/lib/brain/writeBrainFact";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PolicyTemplateButtons } from "./PolicyTemplateButtons";
 import { AIPreviewCard } from "./AIPreviewCard";
+import { InlineUploadButton } from "./InlineUploadButton";
 
 const PAYMENT_METHODS = [
   { id: "cash", label: "Cash" },
@@ -117,6 +118,26 @@ export function BusinessPoliciesEditor() {
 
   return (
     <div className="space-y-6">
+      {/* Explanation Card */}
+      <div className="rounded-lg border bg-muted/30 p-4">
+        <div className="flex items-start gap-3">
+          <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+          <div className="space-y-2">
+            <p className="text-sm font-medium">What are policies?</p>
+            <p className="text-sm text-muted-foreground">
+              Your business policies help the AI answer questions about cancellations, deposits, refunds, and payment options. 
+              Customers often ask about these before booking.
+            </p>
+            <div className="flex items-center gap-2 pt-1">
+              <Lightbulb className="h-4 w-4 text-amber-500" />
+              <p className="text-xs text-muted-foreground">
+                <strong>Tip:</strong> Have a policies document? Upload it and we'll extract the relevant information.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* AI Preview */}
       <AIPreviewCard
         preview={buildPolicyPreview()}
@@ -125,13 +146,21 @@ export function BusinessPoliciesEditor() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Core Business Policies
-          </CardTitle>
-          <CardDescription>
-            Define your cancellation, deposit, and refund policies — the AI will explain these to customers when relevant
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Core Business Policies
+              </CardTitle>
+              <CardDescription>
+                Define your cancellation, deposit, and refund policies — the AI will explain these to customers when relevant
+              </CardDescription>
+            </div>
+            <InlineUploadButton 
+              contentType="policies" 
+              variant="compact"
+            />
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Cancellation Policy */}
