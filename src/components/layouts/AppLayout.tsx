@@ -252,16 +252,16 @@ function AppLayoutContent() {
         {/* Admin Mode Switcher Banner */}
         <AdminModeSwitcher />
         
-        {/* Top Navigation - Mobile First */}
-        <header className="sticky top-0 z-50 border-b border-border/40 bg-background/85 backdrop-blur-xl">
-          <div className="flex h-14 items-center justify-between px-3 md:px-5">
-            <div className="flex items-center gap-2">
+        {/* Top Navigation - Clean, Minimal Header */}
+        <header className="sticky top-0 z-50 border-b border-border/50 bg-background/90 backdrop-blur-md">
+          <div className="flex h-14 items-center justify-between px-4 md:px-6">
+            <div className="flex items-center gap-3">
               {/* Sidebar Toggle Button - Desktop Only */}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={toggleSidebar}
-                className="hidden md:flex h-8 w-8 hover:bg-muted/50"
+                className="hidden md:flex h-9 w-9 hover:bg-muted"
                 aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
               >
                 {sidebarCollapsed ? (
@@ -272,26 +272,26 @@ function AppLayoutContent() {
               </Button>
               
               <Link to="/app/dashboard" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-primary shadow-soft">
-                  <Phone className="h-4 w-4 text-primary-foreground" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                  <Phone className="h-4 w-4" />
                 </div>
-                <span className="font-semibold text-sm hidden sm:inline truncate max-w-[140px]">{displayTenant?.name || "CloseLoop"}</span>
+                <span className="font-semibold text-sm hidden sm:inline truncate max-w-[160px]">{displayTenant?.name || "CloseLoop"}</span>
               </Link>
             </div>
 
-            {/* Right side controls - ensure no overflow clipping */}
-            <div className="flex items-center gap-1.5 relative z-50">
+            {/* Right side controls */}
+            <div className="flex items-center gap-2">
               {/* Admin Mode Selector and Tenant Switcher - only visible to super admins */}
               {isSuperAdmin && <AdminModeSelector />}
               <AdminTenantSwitcher />
               <NotificationBell />
               
-              {/* Profile Dropdown - FIX: Use Portal with proper collision handling */}
+              {/* Profile Dropdown - Fixed: Portal with high z-index */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 hover:ring-2 hover:ring-primary/20 transition-all">
+                  <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 hover:bg-muted">
                     <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold">
+                      <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
                         {user.email?.[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
@@ -301,22 +301,22 @@ function AppLayoutContent() {
                   align="end" 
                   side="bottom"
                   sideOffset={8}
-                  collisionPadding={12}
+                  collisionPadding={16}
                   avoidCollisions={true}
-                  className="w-52 z-[100]"
+                  className="w-56 z-[100]"
                 >
-                  <div className="px-3 py-2.5 border-b border-border/30">
+                  <div className="px-3 py-2.5 border-b border-border/40">
                     <p className="text-sm font-medium truncate">{user.email}</p>
                     <p className="text-xs text-muted-foreground truncate mt-0.5">{displayTenant?.name}</p>
                   </div>
                   <DropdownMenuItem onClick={() => navigate("/app/settings")} className="cursor-pointer py-2.5">
-                    <Settings className="mr-2 h-4 w-4 opacity-60" />
+                    <Settings className="mr-2.5 h-4 w-4 opacity-60" />
                     Settings
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-border/30" />
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer py-2.5">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Log out
+                    <LogOut className="mr-2.5 h-4 w-4" />
+                    Sign out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -325,93 +325,93 @@ function AppLayoutContent() {
         </header>
 
         {/* Main Content */}
-        <div className="flex relative z-10">
-          {/* Desktop Sidebar - Collapsible, hidden in focus mode */}
+        <div className="flex">
+          {/* Desktop Sidebar - Clean, Calm Design */}
           {!hideSidebar && (
             <aside 
               className={cn(
-                "hidden md:flex flex-col fixed left-0 top-14 bottom-0 border-r border-border/40 transition-all duration-300 ease-out",
-                "bg-sidebar/98 z-40",
-                sidebarCollapsed ? "w-14" : "w-60"
+                "hidden md:flex flex-col fixed left-0 top-14 bottom-0 border-r border-border/50 transition-all duration-200 ease-out",
+                "bg-sidebar z-40",
+                sidebarCollapsed ? "w-14" : "w-56"
               )}
             >
-            <nav className="flex-1 p-2 space-y-1 overflow-y-auto relative z-10">
-              {navItems.map((item, index) => {
-                const Icon = item.icon;
-                const isActive = location.pathname === item.href;
-                const isLocked = !effectiveHasSubscription && 
-                  !alwaysAccessibleRoutes.some(route => item.href.startsWith(route));
-                const showBadge = item.href === "/app/business-brain" && conflictsCount > 0;
-                
-                const navLink = (
-                  <Link
-                    key={item.href}
-                    to={isLocked ? "/app/go-live" : item.href}
-                    className={cn(
-                      "group flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-200 relative",
-                      sidebarCollapsed ? "px-2.5 py-2.5 justify-center" : "px-3 py-2.5",
-                      isActive
-                        ? "bg-primary/10 text-primary border-l-2 border-l-primary ml-[-1px]"
-                        : isLocked
-                          ? "text-muted-foreground/40 cursor-not-allowed"
-                          : "text-sidebar-foreground/70 hover:bg-muted/40 hover:text-sidebar-foreground"
-                    )}
-                  >
-                    <Icon className={cn(
-                      "h-[18px] w-[18px] shrink-0 transition-transform duration-200",
-                      !isActive && !isLocked && "group-hover:scale-105"
-                    )} />
-                    {!sidebarCollapsed && (
-                      <>
-                        <span className="truncate">{item.label}</span>
-                        {showBadge && (
-                          <Badge variant="destructive" size="sm" className="ml-auto">
-                            <AlertTriangle className="h-3 w-3" />
-                          </Badge>
-                        )}
-                        {isLocked && <Lock className="h-3.5 w-3.5 ml-auto opacity-40" />}
-                      </>
-                    )}
-                    {sidebarCollapsed && showBadge && (
-                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-destructive animate-pulse-soft" />
-                    )}
-                  </Link>
-                );
-
-                // Wrap in tooltip when collapsed
-                if (sidebarCollapsed) {
-                  return (
-                    <Tooltip key={item.href}>
-                      <TooltipTrigger asChild>
-                        <div className="relative">
-                          {navLink}
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="right" sideOffset={8} className="font-medium">
-                        {item.label}
-                        {isLocked && " (Locked)"}
-                      </TooltipContent>
-                    </Tooltip>
+              <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto scrollbar-thin">
+                {navItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location.pathname === item.href;
+                  const isLocked = !effectiveHasSubscription && 
+                    !alwaysAccessibleRoutes.some(route => item.href.startsWith(route));
+                  const showBadge = item.href === "/app/business-brain" && conflictsCount > 0;
+                  
+                  const navLink = (
+                    <Link
+                      key={item.href}
+                      to={isLocked ? "/app/go-live" : item.href}
+                      className={cn(
+                        "group flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-150",
+                        sidebarCollapsed ? "px-2.5 py-2.5 justify-center" : "px-3 py-2.5",
+                        isActive
+                          ? "bg-primary/10 text-primary"
+                          : isLocked
+                            ? "text-muted-foreground/40 cursor-not-allowed"
+                            : "text-sidebar-foreground/80 hover:bg-muted hover:text-sidebar-foreground"
+                      )}
+                    >
+                      <Icon className={cn(
+                        "h-[18px] w-[18px] shrink-0 transition-colors duration-150",
+                        isActive && "text-primary"
+                      )} />
+                      {!sidebarCollapsed && (
+                        <>
+                          <span className="truncate">{item.label}</span>
+                          {showBadge && (
+                            <Badge variant="destructive" size="sm" className="ml-auto">
+                              <AlertTriangle className="h-3 w-3" />
+                            </Badge>
+                          )}
+                          {isLocked && <Lock className="h-3.5 w-3.5 ml-auto opacity-40" />}
+                        </>
+                      )}
+                      {sidebarCollapsed && showBadge && (
+                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-destructive animate-pulse-soft" />
+                      )}
+                    </Link>
                   );
-                }
 
-                return navLink;
-              })}
-            </nav>
-            
-            {/* Keyboard shortcut hint when expanded */}
-            {!sidebarCollapsed && (
-              <div className="p-3 border-t border-sidebar-border/30">
-                <p className="text-[11px] text-muted-foreground/50 text-center">
-                  <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted/30 rounded border border-border/20">⌘B</kbd> to collapse
-                </p>
-              </div>
-            )}
-          </aside>
+                  // Wrap in tooltip when collapsed
+                  if (sidebarCollapsed) {
+                    return (
+                      <Tooltip key={item.href}>
+                        <TooltipTrigger asChild>
+                          <div className="relative">
+                            {navLink}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" sideOffset={8} className="font-medium">
+                          {item.label}
+                          {isLocked && " (Locked)"}
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  }
+
+                  return navLink;
+                })}
+              </nav>
+              
+              {/* Keyboard shortcut hint when expanded */}
+              {!sidebarCollapsed && (
+                <div className="p-3 border-t border-sidebar-border/40">
+                  <p className="text-[11px] text-muted-foreground/50 text-center">
+                    <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted/50 rounded border border-border/30">⌘B</kbd> to collapse
+                  </p>
+                </div>
+              )}
+            </aside>
           )}
 
-          {/* Mobile Bottom Nav - Higher z-index than content */}
-          <nav className="md:hidden mobile-nav-floating safe-area-pb z-40">
+          {/* Mobile Bottom Nav */}
+          <nav className="md:hidden mobile-nav-floating safe-area-pb">
             <div className="grid grid-cols-5 h-14">
               {mobileNavItems.map((item) => {
                 const Icon = item.icon;
@@ -425,7 +425,7 @@ function AppLayoutContent() {
                     key={item.href}
                     to={isLocked ? "/app/go-live" : item.href}
                     className={cn(
-                      "flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-all duration-200 relative min-h-[44px] active:scale-95",
+                      "flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors duration-150 relative min-h-[44px] active:scale-95",
                       isActive 
                         ? "text-primary" 
                         : isLocked 
@@ -434,10 +434,10 @@ function AppLayoutContent() {
                     )}
                   >
                     {isActive && (
-                      <span className="absolute top-0 w-10 h-0.5 rounded-full bg-primary shadow-glow" />
+                      <span className="absolute top-0 w-8 h-0.5 rounded-full bg-primary" />
                     )}
                     <div className="relative">
-                      <Icon className={cn("h-5 w-5 transition-transform", isActive && "scale-110")} />
+                      <Icon className={cn("h-5 w-5 transition-transform", isActive && "scale-105")} />
                       {showBadge && (
                         <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-destructive animate-pulse-soft" />
                       )}
@@ -449,29 +449,29 @@ function AppLayoutContent() {
             </div>
           </nav>
 
-          {/* Page Content - z-index lower than nav */}
+          {/* Page Content */}
           <main 
             className={cn(
-              "flex-1 pb-20 md:pb-0 min-h-[calc(100vh-4rem)] transition-all duration-200 ease-in-out relative z-10",
-              hideSidebar ? "md:ml-0" : sidebarCollapsed ? "md:ml-14" : "md:ml-60"
+              "flex-1 pb-20 md:pb-0 min-h-[calc(100vh-3.5rem)] transition-all duration-200 ease-out",
+              hideSidebar ? "md:ml-0" : sidebarCollapsed ? "md:ml-14" : "md:ml-56"
             )}
           >
             {isRouteAccessible ? (
               <Outlet />
             ) : (
               <div className="p-6 flex items-center justify-center min-h-[60vh]">
-                <Card className="max-w-md text-center shadow-soft-lg">
+                <Card className="max-w-md text-center">
                   <CardHeader className="pb-4">
-                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-muted mb-3">
-                      <Lock className="h-7 w-7 text-muted-foreground" />
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-muted mb-3">
+                      <Lock className="h-6 w-6 text-muted-foreground" />
                     </div>
-                    <CardTitle className="text-xl">Subscription Required</CardTitle>
-                    <CardDescription className="text-base">
+                    <CardTitle className="text-lg">Subscription Required</CardTitle>
+                    <CardDescription>
                       Choose a plan to unlock all features and start using CloseLoop.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3 pt-2">
-                    <Button onClick={() => navigate("/app/go-live")} className="w-full" size="lg">
+                    <Button onClick={() => navigate("/app/go-live")} className="w-full">
                       <CreditCard className="mr-2 h-4 w-4" />
                       Choose a Plan
                     </Button>

@@ -17,12 +17,11 @@ import {
   Zap,
   Copy,
   Play,
-  Settings2,
-  Calendar,
-  TrendingUp,
   Brain,
   Gauge,
-  HelpCircle
+  HelpCircle,
+  Calendar,
+  TrendingUp
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { startOfDay, endOfDay, startOfWeek, endOfWeek } from "date-fns";
@@ -261,14 +260,14 @@ export function DashboardHeroCard() {
 
   if (!planCode) {
     return (
-      <Card className="border-border/50">
-        <CardContent className="p-6">
+      <Card>
+        <CardContent className="p-5">
           <div className="flex items-center gap-4">
-            <div className="flex items-center justify-center h-14 w-14 rounded-2xl bg-muted text-muted-foreground">
-              <Zap className="h-7 w-7" />
+            <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-muted text-muted-foreground">
+              <Zap className="h-6 w-6" />
             </div>
             <div>
-              <h2 className="font-semibold text-lg">AI Agent</h2>
+              <h2 className="font-semibold">AI Agent</h2>
               <p className="text-sm text-muted-foreground">
                 Complete setup to activate your AI agent
               </p>
@@ -284,48 +283,38 @@ export function DashboardHeroCard() {
       label: "Calls Today",
       value: stats?.callsToday || 0,
       icon: Phone,
-      iconBg: "bg-emerald-500/12",
-      iconColor: "text-emerald-400",
     },
     {
       label: "Bookings",
       value: stats?.bookingsThisWeek || 0,
       icon: Calendar,
       sublabel: "this week",
-      iconBg: "bg-blue-500/12",
-      iconColor: "text-blue-400",
     },
     {
       label: "Revenue",
       value: `$${(stats?.revenueRecovered || 0).toLocaleString()}`,
       icon: TrendingUp,
       sublabel: "recovered",
-      iconBg: "bg-amber-500/12",
-      iconColor: "text-amber-400",
     },
     {
       label: "AI Ready",
       value: `${readinessScore}%`,
       icon: Brain,
-      iconBg: "bg-purple-500/12",
-      iconColor: "text-purple-400",
     },
   ];
 
   return (
     <Card className={cn(
-      "overflow-hidden transition-all duration-300 animate-fade-in",
-      isAnyActive 
-        ? "border-primary/25 bg-primary/[0.03]" 
-        : "border-border/50"
+      "overflow-hidden transition-all duration-200 animate-fade-in",
+      isAnyActive && "border-primary/30"
     )}>
       <CardContent className="p-0">
         {/* Top Section: Agent Status */}
-        <div className="p-4 md:p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-3">
+        <div className="p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-4">
               <div className={cn(
-                "relative flex items-center justify-center h-12 w-12 rounded-xl transition-all duration-300",
+                "relative flex items-center justify-center h-12 w-12 rounded-xl transition-colors duration-200",
                 isAnyActive 
                   ? "bg-primary text-primary-foreground" 
                   : "bg-muted text-muted-foreground"
@@ -339,12 +328,11 @@ export function DashboardHeroCard() {
                 )}
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2.5 flex-wrap">
                   <h2 className="font-semibold text-base">AI Agent</h2>
                   <Badge 
                     variant={isAnyActive ? "success" : "muted"} 
                     size="sm"
-                    className={cn(isAnyActive && "status-dot-live")}
                   >
                     {isAnyActive ? "Live" : "Paused"}
                   </Badge>
@@ -352,7 +340,7 @@ export function DashboardHeroCard() {
                     <Badge variant="outline" size="sm" className="hidden sm:inline-flex">Voice + SMS</Badge>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[240px]">
+                <p className="text-sm text-muted-foreground mt-0.5 truncate max-w-[280px]">
                   {isAnyActive 
                     ? hasVoice && hasSms
                       ? `Handling calls & texts for ${tenant?.name || "your business"}`
@@ -366,15 +354,15 @@ export function DashboardHeroCard() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {closeloopNumber && (
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  className="h-9 w-9 text-muted-foreground hover:text-foreground"
                   onClick={copyPhoneNumber}
                 >
-                  <Copy className="h-3.5 w-3.5" />
+                  <Copy className="h-4 w-4" />
                 </Button>
               )}
               <Switch
@@ -385,32 +373,32 @@ export function DashboardHeroCard() {
           </div>
 
           {/* Quick Actions */}
-          <div className="flex flex-wrap gap-2 mt-4">
+          <div className="flex flex-wrap gap-2 mt-5">
             <Button
               variant="outline"
               size="sm"
-              className="h-8 gap-1.5 text-xs"
+              className="h-9 gap-2"
               onClick={() => navigate("/app/simulator")}
             >
-              <Play className="h-3.5 w-3.5" />
+              <Play className="h-4 w-4" />
               Test
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="h-8 gap-1.5 text-xs"
+              className="h-9 gap-2"
               onClick={() => navigate("/app/business-brain")}
             >
-              <Brain className="h-3.5 w-3.5" />
+              <Brain className="h-4 w-4" />
               Knowledge
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="h-8 gap-1.5 text-xs"
+              className="h-9 gap-2"
               onClick={() => navigate("/app/inbox?tab=calls")}
             >
-              <Phone className="h-3.5 w-3.5" />
+              <Phone className="h-4 w-4" />
               Calls
             </Button>
           </div>
@@ -418,21 +406,21 @@ export function DashboardHeroCard() {
 
         {/* Middle Section: Busyness Slider */}
         <TooltipProvider>
-          <div className="border-t border-border/40 bg-muted/20 px-4 md:px-5 py-3">
-            <div className="flex items-center gap-2 mb-2">
-              <Gauge className="h-3.5 w-3.5 text-muted-foreground/70" />
-              <Label className="text-xs font-medium flex items-center gap-1">
+          <div className="border-t border-border/50 bg-muted/30 px-5 py-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Gauge className="h-4 w-4 text-muted-foreground" />
+              <Label className="text-sm font-medium flex items-center gap-1.5">
                 Busyness
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <HelpCircle className="h-3 w-3 text-muted-foreground/50 cursor-help" />
+                    <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs text-xs">
                     <p>Higher values make AI prioritize urgent requests and offer callbacks.</p>
                   </TooltipContent>
                 </Tooltip>
               </Label>
-              <span className="text-xs font-semibold tabular-nums ml-auto text-muted-foreground">
+              <span className="text-sm font-medium tabular-nums ml-auto text-muted-foreground">
                 {busynessLevel}%
               </span>
               {busynessSaving && (
@@ -448,26 +436,23 @@ export function DashboardHeroCard() {
               className="w-full"
               disabled={busynessSaving}
             />
-            <p className="text-[11px] text-muted-foreground/60 mt-1.5">
+            <p className="text-xs text-muted-foreground mt-2">
               {getBusynessHelperText(busynessLevel)}
             </p>
           </div>
         </TooltipProvider>
 
         {/* Bottom Section: Metrics Strip */}
-        <div className="border-t border-border/40 bg-muted/30 px-4 md:px-5 py-3">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <div className="border-t border-border/50 bg-muted/20 px-5 py-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {metrics.map((metric) => (
-              <div key={metric.label} className="flex items-center gap-2.5 group">
-                <div className={cn(
-                  "flex items-center justify-center h-8 w-8 rounded-lg transition-transform duration-200 group-hover:scale-105",
-                  metric.iconBg
-                )}>
-                  <metric.icon className={cn("h-4 w-4", metric.iconColor)} />
+              <div key={metric.label} className="flex items-center gap-3">
+                <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-primary/8">
+                  <metric.icon className="h-4 w-4 text-primary" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-base font-bold leading-none tabular-nums">{metric.value}</p>
-                  <p className="text-[10px] text-muted-foreground/70 mt-0.5 truncate">{metric.label}</p>
+                  <p className="text-base font-semibold leading-none tabular-nums">{metric.value}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 truncate">{metric.label}</p>
                 </div>
               </div>
             ))}

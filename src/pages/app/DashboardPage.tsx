@@ -20,14 +20,14 @@ export default function DashboardPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh] p-6">
         <div className="text-center space-y-5 max-w-md animate-fade-in">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-hero shadow-glow mb-4">
-            <span className="text-3xl">👋</span>
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 mb-4">
+            <span className="text-2xl">👋</span>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">Welcome to CloseLoop</h1>
-          <p className="text-muted-foreground text-base">
+          <h1 className="text-2xl font-semibold tracking-tight">Welcome to CloseLoop</h1>
+          <p className="text-muted-foreground">
             Please complete your subscription to start using your AI assistant.
           </p>
-          <Button asChild size="lg" className="shadow-soft">
+          <Button asChild size="lg">
             <a href="/app/go-live">
               <CreditCard className="mr-2 h-4 w-4" />
               Choose Your Plan
@@ -45,8 +45,8 @@ export default function DashboardPage() {
         description={setupComplete ? "Your AI agent overview" : "Complete setup to get started"}
         badge={
           setupComplete && (
-            <Badge variant="outline" className="gap-1.5">
-              <span className="status-dot status-dot-live" />
+            <Badge variant="success" size="sm">
+              <span className="status-dot status-dot-live mr-1.5" />
               Live
             </Badge>
           )
