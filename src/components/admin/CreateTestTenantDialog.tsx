@@ -64,46 +64,40 @@ export function CreateTestTenantDialog({
 
     setIsCreating(true);
     try {
-      // Get current session for auth token
-      const session = await supabase.auth.getSession();
-      if (!session.data.session?.access_token) {
-        throw new Error("No active session. Please sign in again.");
+      // Create the new tenant (RLS INSERT policy allows authenticated users)
+      const { data: newTenant, error: tenantError } = await supabase
+        .from("tenants")
+        .insert({
+          name: businessName.trim(),
+          business_mode: businessMode,
+          timezone,
+          enabled_modules: getDefaultModules(businessMode),
+          hipaa_mode: businessMode === "medical",
+        })
+        .select("id")
+        .single();
+
+      if (tenantError) throw tenantError;
+
+      // Create a tenant_user record linking the user to this tenant
+      const { error: userError } = await supabase
+        .from("tenant_users")
+        .insert({
+          tenant_id: newTenant.id,
+          user_id: user.id,
+          role: "owner",
+        });
+
+      if (userError) {
+        console.warn("Failed to create tenant_user record:", userError);
+        // Don't throw - tenant was still created
       }
 
-      // Create tenant via Edge Function (bypasses RLS, creates tenant + membership atomically)
-      const createTenantResponse = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-tenant`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${session.data.session.access_token}`,
-          },
-          body: JSON.stringify({
-            name: businessName.trim(),
-            business_mode: businessMode,
-            timezone,
-            enabled_modules: getDefaultModules(businessMode),
-            hipaa_mode: businessMode === "medical",
-          }),
-        }
-      );
-
-      if (!createTenantResponse.ok) {
-        const errorData = await createTenantResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to create tenant");
-      }
-
-      const { tenant_id: tenantId } = await createTenantResponse.json();
-      if (!tenantId) {
-        throw new Error("No tenant ID returned from server");
-      }
-
-      // Create assistant_settings for the tenant (use service client via RLS)
+      // Create assistant_settings for the tenant
       const { error: settingsError } = await supabase
         .from("assistant_settings")
         .insert({
-          tenant_id: tenantId,
+          tenant_id: newTenant.id,
           voice_ai_enabled: true,
           instant_text_enabled: true,
         });
@@ -113,7 +107,7 @@ export function CreateTestTenantDialog({
       }
 
       toast.success(`Created test tenant: ${businessName}`);
-      onTenantCreated(tenantId);
+      onTenantCreated(newTenant.id);
 
       // Reset form
       setBusinessName("");
