@@ -1,260 +1,241 @@
 
+# UX Audit & Micro-Tweaks Plan
 
-## Business Brain UX Improvement Plan
+## Executive Summary
 
-### Executive Summary
+This plan delivers UI/UX polish across all major areas of CloseLoop without modifying any functional behavior, business logic, database schema, edge functions, readiness evaluator logic, or ElevenLabs dynamic variables.
 
-After a thorough audit of all 8 tabs in Business Brain, I've identified multiple opportunities to improve clarity and usability for business owners while preserving all AI functionality. The core issues are:
-
-1. **Technical jargon** in labels and descriptions that confuse non-technical users
-2. **Missing context** - users don't understand *why* information matters or *how* the AI uses it
-3. **Inconsistent "AI Preview" patterns** - some sections show what AI says, others don't
-4. **Dense forms** without progressive disclosure - overwhelming first-time users
-5. **Missing guidance** for empty states and first-time setup
+**Scope**: Copy/microcopy, labels, helper text, tooltips, empty states, visual hierarchy, spacing, and a UI-only setup checklist.
 
 ---
 
-### Tab-by-Tab Analysis & Improvements
+## Methodology
 
-#### TAB 1: Profile & Identity
-
-**Current Issues:**
-- "Tagline" field lacks context - users don't know the AI uses it
-- "Years in Business" explanation is brief
-- Service Area Preview card links to itself (broken UX)
-
-**Improvements:**
-| Change | Rationale |
-|--------|-----------|
-| Add AI Preview card showing: *"Hi, thanks for calling [Business Name]! We've been serving Springfield for over 10 years..."* | Shows how name, tagline, and years combine in AI greeting |
-| Change "Tagline" placeholder to *"What you want customers to remember"* | More actionable guidance |
-| Remove self-referencing "Configure" button on Service Area Preview | Confusing - it's already a preview |
-| Add helper text: *"The AI uses this to build trust and answer 'Who are you?'"* under Years in Business | Explain the WHY |
+I audited these 7 key areas:
+1. **Dashboard** (LiveDashboard, DashboardHeroCard, TodaySnapshot, QuickActionsCard)
+2. **Business Brain** (all 8 tabs)
+3. **Unified Inbox** (Inbox, Calls, Leads tabs)
+4. **Integrations** (Quick Automations, Connect, History)
+5. **Simulator** (Call Simulator, SMS Simulator, AI Brain Debugger)
+6. **Settings** (Team, Plan, Alerts, Integrations, Developer)
+7. **AI Readiness UI** (AIReadinessPanel, GoLiveChecklist, ReadinessFixCenterPage)
 
 ---
 
-#### TAB 2: Operating Hours
+## Findings & Micro-Tweaks by Area
 
-**Current Issues:**
-- Good structure with AI preview, but no guidance on 24/7 or variable hours
-- Missing link to Availability tab for exceptions
+### 1. Dashboard
 
-**Improvements:**
-| Change | Rationale |
-|--------|-----------|
-| Add info banner: *"Need different hours seasonally? Set your regular hours here, then use the Availability tab to block specific dates."* | Clear guidance for edge cases |
-| Add "24/7" quick toggle button | Common use case that's tedious with current UI |
-| Improve AI preview to show both today AND a sample "Are you open Sunday?" response | Users see how AI answers different queries |
+**Friction Points Identified:**
+- "Today's Snapshot" metric labels are technical ("AI Ready" percentage without context)
+- "Needs Attention" banner has a generic button label ("View [type]")
+- Quick Actions lack guidance text for new users
+- LiveActivityFeed empty state is sparse
 
----
+**Micro-Tweaks:**
+| Component | Change | Rationale |
+|-----------|--------|-----------|
+| `TodaySnapshot.tsx` | Change "AI Ready" label to "Knowledge Score" with tooltip explaining what it means | More intuitive for non-technical users |
+| `NeedsAttentionBanner.tsx` | Add helper text: "These items need your attention to keep your business running smoothly" | Clarifies urgency |
+| `QuickActionsCard.tsx` | Add section subtitle: "Common tasks you can do right now" | Reduces cognitive load |
+| `LiveActivityFeed.tsx` | Improve empty state: "Your AI hasn't handled any calls or bookings yet. Test it in the Simulator to see it in action." with a link to `/app/simulator` | Actionable guidance |
+| `DashboardHeroCard.tsx` | Add tooltip on "Today's Busyness" slider explaining how it affects AI behavior | Demystifies the control |
 
-#### TAB 3: Services & Menu
+### 2. Business Brain
 
-**Current Issues:**
-- QuoteReadinessCard shows technical "score" language
-- PricingRulesEditor uses jargon like "conditional rules", "priority"
-- ServiceCatalogEditor is clear but lacks AI preview
-- Food mode shows a redirect to Menu Center (breaks single-source-of-truth principle)
+**Friction Points Identified:**
+- Some section descriptions use technical language
+- Empty states on ServiceCatalogEditor could be more helpful
+- Policies tab has many components without clear separation
+- "Knowledge & Training" tab description mentions "objection responses" (sales jargon)
 
-**Improvements:**
-| Change | Rationale |
-|--------|-----------|
-| Rename "Quote Readiness" to "AI Quoting Health" with friendlier language: *"Your AI is ready to give price quotes!"* vs technical score | Less intimidating |
-| Add AI Preview under services: *"Our haircut service starts at $35 and takes about 45 minutes."* | Show how service details translate to spoken word |
-| Simplify PricingRulesEditor labels: "Fixed Price" → "Exact Price", "Conditional" → "If-Then Price" | Plain English |
-| Hide "Priority" field behind "Advanced" toggle - most users don't need it | Progressive disclosure |
-| Add empty-state guidance: *"Add your most common services first. You can always add more later."* | Reduce overwhelm |
-| For food mode: Embed menu editor inline OR add clearer explanation of why Menu Center is separate | Reduce confusion |
+**Micro-Tweaks:**
+| Component | Change | Rationale |
+|-----------|--------|-----------|
+| `BusinessBrainPage.tsx` | Update "Policies & Rules" description to: "Your business policies and what questions the AI must ask" | Plain English |
+| `BusinessBrainPage.tsx` | Update "Knowledge & Training" description to: "FAQs, customer concerns, uploaded documents, and items to review" | Removes "objection responses" jargon |
+| `BusinessBrainPage.tsx` | Add visual section dividers between component groups in Policies tab | Better visual organization |
+| `AvailabilityHub.tsx` (if exists) | Add helper card: "Connect your calendar so the AI knows when you're busy" | Clear call to action |
+| `BrainReviewQueue` section | Add helper text when count=0: "When you upload documents or add knowledge, items that need approval will appear here" | Explains the feature |
 
----
+### 3. Unified Inbox (Inbox, Calls, Leads)
 
-#### TAB 4: Service Area & ETA
+**Friction Points Identified:**
+- Tab labels on mobile only show icons (no text)
+- InboxPage empty state is good but lacks next-step guidance
+- CallsPage info banner for pending calls is helpful but could be clearer
+- LeadsPage has a non-functional "Add Lead" button with no action
 
-**Current Status:** Good! ServiceAreaPreview pattern is excellent - shows "What the AI will say" clearly.
+**Micro-Tweaks:**
+| Component | Change | Rationale |
+|-----------|--------|-----------|
+| `UnifiedInboxPage.tsx` | Ensure tab labels are always visible (remove `hidden sm:inline` class) | Better mobile UX |
+| `InboxPage.tsx` | Add actionable CTA to empty state: "Make a test call to see it appear here" linking to simulator | Reduces confusion |
+| `CallsPage.tsx` | Update info banner text from "Some calls are awaiting AI summary" to "Some recent calls are still being processed. Summaries appear after calls end." | Clearer language |
+| `LeadsPage.tsx` | Disable the "Add Lead" button with tooltip: "Leads are automatically captured from calls and messages" or wire up a simple manual add modal | Prevents dead-end clicks |
+| All three pages | Add consistent header helper text explaining what each tab shows | Improves discoverability |
 
-**Minor Improvements:**
-| Change | Rationale |
-|--------|-----------|
-| Add helper examples in ChipInput: *"Type a ZIP code and press Enter"* as placeholder | First-time guidance |
-| Simplify mode selector descriptions: "Hybrid (Multiple Criteria)" → "Mix of methods" | Plain English |
-| Add AI Preview for ETA: *"We can usually get there within 2-4 hours during business hours."* | Consistency with other sections |
+### 4. Integrations
 
----
+**Friction Points Identified:**
+- Quick Automations section subtitle is helpful but tab descriptions are sparse
+- "Connect" tab tool descriptions could be more actionable
+- "History" tab lacks explanation of what it shows
 
-#### TAB 5: Availability & Scheduling
+**Micro-Tweaks:**
+| Component | Change | Rationale |
+|-----------|--------|-----------|
+| `IntegrationsPage.tsx` | Add header helper for "Connect" tab: "Link your existing tools so data flows automatically" | Context setting |
+| `IntegrationsPage.tsx` | Add header helper for "History" tab: "See a log of every automation that ran and whether it succeeded" | Explains the tab |
+| Automation preset cards | Add subtle tooltip on each explaining the trigger: "Runs when a booking is created" | Helps users understand automation triggers |
+| Advanced webhook section | Add helper text: "Most users don't need this. Scroll up for one-click automations." | Prevents overwhelm |
 
-**Current Issues:**
-- BusynessRulesEditor uses technical language ("busyness threshold")
-- AvailabilityHub is well-designed but calendar connection status could be clearer
+### 5. Simulator
 
-**Improvements:**
-| Change | Rationale |
-|--------|-----------|
-| Rename "Busyness Rules" to "Busy Day Settings" | Friendlier |
-| Change threshold language: *"When your calendar is 80% full, the AI will..."* → *"When you're getting busy, the AI will suggest later times"* | Action-focused |
-| Add AI Preview: *"We're pretty booked up tomorrow. Would the day after work for you?"* | Show AI behavior |
-| Add info card: *"Connect your Google/Outlook calendar above so the AI automatically knows when you have meetings"* | Clear CTA |
+**Friction Points Identified:**
+- Page header is brief; users may not understand the relationship between tabs
+- Tab guidance box is helpful but dense
+- "Customer Conflicts" tab name is confusing
 
----
+**Micro-Tweaks:**
+| Component | Change | Rationale |
+|-----------|--------|-----------|
+| `SimulatorPage.tsx` | Rename "Customer Conflicts" tab to "Duplicate Contacts" | More understandable |
+| `SimulatorPage.tsx` | Simplify tab guidance: Split into two lines for readability | Less overwhelming |
+| `SimulatorPage.tsx` | Add "Debug Pages" helper: "Advanced tools for technical troubleshooting" | Sets expectations |
+| Each simulator tab | Add a one-line description below the tab content area if empty | Reduces confusion |
 
-#### TAB 6: Policies & Rules
+### 6. Settings
 
-**Current Issues:**
-- This is the most complex tab - 4-5 components stacked
-- BusinessPoliciesEditor has three large textareas with minimal guidance
-- AINeverPromiseEditor is clear but could use better examples
-- RequiredQuestionsEditor is powerful but overwhelming
+**Friction Points Identified:**
+- Section descriptions are helpful but some are technical
+- "Developer Tools" section could scare non-technical users
+- "Danger Zone" could use softer language
 
-**Improvements:**
-| Change | Rationale |
-|--------|-----------|
-| Add section headers with collapsible groups: "Core Policies", "AI Guardrails", "Intake Questions", "Delivery Settings" | Visual organization |
-| Add AI Preview for policies: *"We require 24 hours notice for cancellations. Cancellations with less notice may incur a $50 fee."* | Show how text becomes speech |
-| Add suggested policy templates as one-click buttons: "24hr notice", "48hr notice", "No refunds" | Reduce typing for common cases |
-| Simplify RequiredQuestionsEditor intro: *"These are the questions your AI must ask before completing a booking"* | Plain English |
-| Add visual indicator showing which questions are required vs optional (checkmark badges) | Clearer at-a-glance |
-| Group mode-specific settings with collapsible headers that auto-expand only the relevant one | Less visual clutter |
+**Micro-Tweaks:**
+| Component | Change | Rationale |
+|-----------|--------|-----------|
+| `SettingsPage.tsx` | Update "Developer Tools" description to: "Advanced debugging tools. Most users won't need this." | Reduces intimidation |
+| `SettingsPage.tsx` | Add "(Optional)" label to Developer nav item | Signals it's not required |
+| `SettingsPage.tsx` | Soften "Danger Zone" heading to "Account Access" or add helper: "These actions are reversible" | Less scary |
+| BusinessBrainCTA banner | Ensure the banner is prominent and explains: "Looking to update what your AI knows? Go to Business Brain" | Reduces Settings/Brain confusion |
 
----
+### 7. AI Readiness UI
 
-#### TAB 7: AI Behavior
+**Friction Points Identified:**
+- "P0" and "P1" terminology is internal jargon
+- ReadinessFixCenterPage is well-structured but could use more encouragement
+- GoLiveChecklist "Fix X Issues First" button feels negative
 
-**Current Issues:**
-- AIScriptsEditor is clear
-- AIBusinessPolicies uses terms like "threshold" and "min_order_value"
-- IntelligenceSettingsForm has technical labels like "Min. Observations", "Min. Confidence"
-
-**Improvements:**
-| Change | Rationale |
-|--------|-----------|
-| Add AI Script preview that speaks the greeting: *"Listen to how this sounds"* (text preview) | Help users hear their words |
-| Rename AIBusinessPolicies thresholds: "Min order value to suggest" → "Only suggest add-ons when order is over $X" | Action-oriented |
-| Simplify Intelligence settings: "Min. Observations before pattern is created" → "AI learns after seeing this X times" | Plain English |
-| Add explainer for each policy type: *"Upselling means suggesting complementary items like 'Would you like a drink with that?'"* | Education for non-business users |
-| Add "Reset to defaults" button for each policy section | Easy recovery from mistakes |
-
----
-
-#### TAB 8: Knowledge & Training
-
-**Current Status:** Good structure with FAQs, Objections, Assets, and Review Queue.
-
-**Improvements:**
-| Change | Rationale |
-|--------|-----------|
-| Add AI Preview for FAQs: *When someone asks "What are your hours?", the AI will say: "We're open Monday through Friday, 9 AM to 5 PM."* | Consistency |
-| Add suggested FAQ questions as quick-add buttons: "What are your hours?", "Do you take insurance?", "What's your address?" | Reduce effort |
-| Rename "Objection Responses" to "Handling Concerns" with explainer: *"When customers have doubts, here's how your AI responds"* | Less sales-y language |
-| Add empty-state for Assets: *"Upload your menu, price list, or brochure and the AI will learn from it automatically"* | Clear value prop |
-| Make Review Queue badge more prominent when items pending | Ensure attention |
-
----
-
-### Cross-Cutting Improvements
-
-#### 1. Consistent AI Preview Pattern
-
-Add a standardized `AIPreviewCard` component with the pattern:
-```
-What the AI will say:
-"[Spoken preview based on current data]"
-```
-
-Apply this to:
-- Profile (greeting)
-- Hours (today's hours response)
-- Services (price quote)
-- Service Area (already has this)
-- Availability (busy response)
-- Policies (cancellation response)
-- AI Scripts (greeting/fallback)
-- FAQs (sample Q&A)
-
-#### 2. Progressive Disclosure
-
-- Hide advanced options by default (priority, thresholds, conditions)
-- Add "Show advanced settings" toggles
-- Use collapsible sections for complex forms
-
-#### 3. First-Time User Guidance
-
-Add contextual help for first-time or empty states:
-- Empty service list: *"Start by adding your 3 most popular services"*
-- Empty FAQs: *"Common questions include: hours, location, pricing"*
-- Empty policies: *"Most businesses set a cancellation policy first"*
-
-#### 4. Consistent Terminology
-
-Replace technical terms across all components:
-| Technical Term | User-Friendly Term |
-|----------------|-------------------|
-| Threshold | Limit / When to trigger |
-| Conditional | If-then / When this happens |
-| Priority | Order of importance |
-| Fallback | Backup response |
-| Handoff | Send to / Notify |
-| JSONB | (hide entirely) |
+**Micro-Tweaks:**
+| Component | Change | Rationale |
+|-----------|--------|-----------|
+| `AIReadinessPanel.tsx` | Change "Must Fix to Go Live" heading to "Required to Go Live" | Softer language |
+| `AIReadinessPanel.tsx` | Change "Recommended Improvements" to "Optional Improvements" | Clearer priority |
+| `GoLiveChecklist.tsx` | Change disabled button text from "Fix X Issues First" to "Complete X Steps to Go Live" | More encouraging |
+| `ReadinessFixCenterPage.tsx` | Add encouragement message at top: "You're almost there! Complete these items to launch your AI." | Positive framing |
+| All readiness components | Replace any remaining "P0/P1" visible text with user-friendly labels | No internal jargon exposed |
 
 ---
 
-### Implementation Order
+## UI-Only Setup Checklist Addition
 
-**Phase 1: High-Impact, Low-Risk (Quick Wins)**
-1. Add AI Preview cards to Profile, Hours, Services, Policies tabs
-2. Update placeholder text and helper descriptions
-3. Rename technical labels to plain English
+Add a lightweight visual checklist component to the Dashboard that summarizes key setup milestones with links to existing routes. This does NOT add new logic; it visually maps existing completion states.
 
-**Phase 2: Structural Improvements**
-4. Add collapsible sections to Policies tab
-5. Hide advanced options behind toggles
-6. Create `AIPreviewCard` reusable component
+**New Component: `SetupProgressChecklist.tsx`**
 
-**Phase 3: Enhanced Guidance**
-7. Add empty-state guidance messages
-8. Add suggested templates/quick-add buttons
-9. Improve first-time user onboarding within tabs
+| Step | Route Link | Completion Check (existing state) |
+|------|------------|-----------------------------------|
+| Add your services | `/app/business-brain` | services count > 0 |
+| Set your hours | `/app/business-brain?section=hours` | hours_json not empty |
+| Add FAQs | `/app/business-brain?section=knowledge` | faqs count > 0 |
+| Connect phone | `/app/settings` | phone_connected flag |
+| Test AI | `/app/simulator` | setup_step_tested flag |
+| Go live | `/app/go-live` | go_live_enabled flag |
 
----
-
-### Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/components/brain/BusinessProfileEditor.tsx` | Add AI greeting preview, improve helper text |
-| `src/components/brain/BusinessHoursManager.tsx` | Add 24/7 toggle, improve AI preview with example queries |
-| `src/components/brain/ServiceCatalogEditor.tsx` | Add AI quote preview, improve empty state |
-| `src/components/settings/PricingRulesEditor.tsx` | Rename labels, hide Priority by default |
-| `src/components/brain/ServiceAreaManager.tsx` | Improve input placeholders, simplify mode labels |
-| `src/components/settings/BusynessRulesEditor.tsx` | Rename to "Busy Day Settings", add AI preview |
-| `src/components/availability/AvailabilityHub.tsx` | Add calendar connection guidance |
-| `src/components/brain/BusinessPoliciesEditor.tsx` | Add AI preview, add template buttons |
-| `src/components/brain/AINeverPromiseEditor.tsx` | Minor label improvements |
-| `src/components/settings/RequiredQuestionsEditor.tsx` | Simplify intro, improve visual hierarchy |
-| `src/components/settings/AIBusinessPolicies.tsx` | Rename thresholds, add explainers |
-| `src/components/settings/IntelligenceSettingsForm.tsx` | Simplify labels, add reset button |
-| `src/components/brain/BusinessFAQEditor.tsx` | Add AI preview, add suggested questions |
-| `src/components/brain/BusinessObjectionEditor.tsx` | Rename to "Handling Concerns" |
-| `src/pages/app/BusinessBrainPage.tsx` | Add section headers, improve tab descriptions |
+This reads existing state from AuthContext and displays a progress checklist with links. No new DB fields, no new edge functions.
 
 ---
 
-### New Components to Create
+## Files to Modify
 
-| Component | Purpose |
-|-----------|---------|
-| `src/components/brain/AIPreviewCard.tsx` | Reusable component showing "What the AI will say" |
-| `src/components/brain/PolicyTemplateButtons.tsx` | Quick-add buttons for common policy templates |
-| `src/components/brain/SuggestedFAQButtons.tsx` | Quick-add buttons for common FAQ questions |
+| File | Type of Changes |
+|------|-----------------|
+| `src/components/dashboard/TodaySnapshot.tsx` | Label/tooltip improvements |
+| `src/components/dashboard/NeedsAttentionBanner.tsx` | Helper text |
+| `src/components/dashboard/QuickActionsCard.tsx` | Section subtitle |
+| `src/components/dashboard/LiveActivityFeed.tsx` | Empty state enhancement |
+| `src/components/dashboard/DashboardHeroCard.tsx` | Tooltip on slider |
+| `src/components/dashboard/GoLiveChecklist.tsx` | Button text improvement |
+| `src/components/dashboard/AIReadinessPanel.tsx` | Heading text updates |
+| `src/pages/app/BusinessBrainPage.tsx` | Description text updates, section dividers |
+| `src/pages/app/UnifiedInboxPage.tsx` | Tab label visibility |
+| `src/pages/app/InboxPage.tsx` | Empty state CTA |
+| `src/pages/app/CallsPage.tsx` | Banner text clarity |
+| `src/pages/app/LeadsPage.tsx` | Button state/tooltip |
+| `src/pages/app/IntegrationsPage.tsx` | Tab header helpers |
+| `src/pages/app/SimulatorPage.tsx` | Tab renaming, helper text |
+| `src/pages/app/SettingsPage.tsx` | Description softening |
+| `src/pages/app/ReadinessFixCenterPage.tsx` | Encouragement message |
+
+**New File:**
+| `src/components/dashboard/SetupProgressChecklist.tsx` | UI-only checklist with links |
 
 ---
 
-### Summary
+## 5-Minute Manual Test Checklist
 
-This plan focuses on making Business Brain feel like it's written for business owners, not developers. Every section will clearly show:
+After implementation, verify the following:
 
-1. **What to enter** (clear labels and examples)
-2. **Why it matters** (how the AI uses it)
-3. **What it sounds like** (AI Preview showing spoken output)
+1. **Dashboard Functionality Unchanged**
+   - Toggle AI Agent on/off - works as before
+   - Busyness slider saves correctly
+   - All metric cards navigate to correct pages
+   - Needs Attention banner items link correctly
 
-No AI functionality is removed - we're only improving the presentation layer to make it more accessible and understandable.
+2. **Business Brain Data Flow Unchanged**
+   - Edit and save a service - persists correctly
+   - Edit and save FAQs - persists correctly
+   - All tabs load their respective editors
+   - Review queue shows correct counts
 
+3. **Unified Inbox Tabs Work**
+   - Switch between Inbox/Calls/Leads - content loads
+   - URL query param updates correctly
+   - Empty states display (if no data)
+
+4. **Integrations Automations Work**
+   - Toggle an automation on/off - saves
+   - Test button fires correctly (if connected)
+
+5. **Simulator Functions**
+   - All tabs render without error
+   - Simulator can be used to test AI
+
+6. **Settings Pages Load**
+   - All sections render correctly
+   - Sign out works
+
+7. **Readiness/Go-Live Flow**
+   - AIReadinessPanel shows correct score
+   - GoLiveChecklist links navigate to fix pages
+   - ReadinessFixCenterPage displays issues
+
+8. **ElevenLabs Payload Unchanged**
+   - No changes to `buildBusinessContext.ts`
+   - No changes to edge functions
+   - No changes to dynamic variable registry
+   - AI context debugger in Simulator shows identical payload before/after
+
+---
+
+## Summary
+
+This plan delivers 30+ micro-improvements across 16 files that:
+- Clarify "what to do next" at every step
+- Add helpful empty states with actionable CTAs
+- Replace technical jargon with plain English
+- Improve visual hierarchy without changing layout structure
+- Add a UI-only setup checklist for guidance
+
+**Zero functional changes. Zero database changes. Zero ElevenLabs payload changes.**
