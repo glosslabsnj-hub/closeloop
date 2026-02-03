@@ -21,7 +21,7 @@ import OnboardingPage from "@/pages/app/OnboardingPage";
 import DashboardPage from "@/pages/app/DashboardPage";
 import UnifiedInboxPage from "@/pages/app/UnifiedInboxPage";
 import BookingsPage from "@/pages/app/BookingsPage";
-import ServicesPage from "@/pages/app/ServicesPage";
+// ServicesPage removed - now redirects to Business Brain
 import IntegrationsPage from "@/pages/app/IntegrationsPage";
 import AIAssistantPage from "@/pages/app/AIAssistantPage";
 import SettingsPage from "@/pages/app/SettingsPage";
@@ -93,7 +93,7 @@ const App = () => (
               <Route path="/app/calls" element={<Navigate to="/app/inbox?tab=calls" replace />} />
               <Route path="/app/leads" element={<Navigate to="/app/inbox?tab=leads" replace />} />
               <Route path="/app/bookings" element={<BookingsPage />} />
-              <Route path="/app/services" element={<ServicesPage />} />
+              <Route path="/app/services" element={<Navigate to="/app/business-brain?section=services" replace />} />
               <Route path="/app/integrations" element={<IntegrationsPage />} />
               <Route path="/app/integrations/schedule" element={<ScheduleConnectionPage />} />
               <Route path="/app/ai-assistant" element={<AIAssistantPage />} />

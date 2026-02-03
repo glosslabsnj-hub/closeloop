@@ -36,7 +36,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   missing_business_name: {
     title: "Missing business name",
     reason: "AI needs to know your business name to introduce itself properly",
-    fixLink: "/app/business-brain#profile",
+    fixLink: "/app/business-brain?section=profile",
     fixType: "brain",
     fixLabel: "Add Name",
     priority: "p0",
@@ -44,7 +44,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   missing_timezone: {
     title: "Missing timezone",
     reason: "AI needs timezone to communicate accurate scheduling",
-    fixLink: "/app/business-brain#profile",
+    fixLink: "/app/business-brain?section=profile",
     fixType: "brain",
     fixLabel: "Set Timezone",
     priority: "p0",
@@ -52,7 +52,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   missing_hours: {
     title: "Business hours not configured",
     reason: "AI needs to know when you're open to schedule correctly",
-    fixLink: "/app/business-brain#scheduling",
+    fixLink: "/app/business-brain?section=hours",
     fixType: "brain",
     fixLabel: "Set Hours",
     priority: "p0",
@@ -60,7 +60,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   missing_policies: {
     title: "No business policies",
     reason: "AI needs policies to answer questions about cancellation, deposits, etc.",
-    fixLink: "/app/business-brain#policies",
+    fixLink: "/app/business-brain?section=policies",
     fixType: "brain",
     fixLabel: "Add Policies",
     priority: "p1",
@@ -68,7 +68,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   missing_faqs: {
     title: "Need at least 5 FAQs",
     reason: "FAQs help AI answer common questions accurately",
-    fixLink: "/app/business-brain#faqs",
+    fixLink: "/app/business-brain?section=knowledge",
     fixType: "brain",
     fixLabel: "Add FAQs",
     priority: "p1",
@@ -76,7 +76,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   few_faqs: {
     title: "Need more FAQs (5+)",
     reason: "More FAQs improve AI's ability to answer customer questions",
-    fixLink: "/app/business-brain#faqs",
+    fixLink: "/app/business-brain?section=knowledge",
     fixType: "brain",
     fixLabel: "Add FAQs",
     priority: "p1",
@@ -88,7 +88,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   no_services: {
     title: "No services added",
     reason: "AI needs to know what services you offer to help customers",
-    fixLink: "/app/business-brain#services",
+    fixLink: "/app/business-brain?section=services",
     fixType: "brain",
     fixLabel: "Add Services",
     priority: "p0",
@@ -96,7 +96,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   few_services: {
     title: "Need at least 3 services",
     reason: "Add more services for AI to recommend to customers",
-    fixLink: "/app/business-brain#services",
+    fixLink: "/app/business-brain?section=services",
     fixType: "brain",
     fixLabel: "Add Services",
     priority: "p1",
@@ -104,7 +104,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   missing_pricing: {
     title: "Services missing pricing",
     reason: "AI cannot quote prices without pricing information",
-    fixLink: "/app/business-brain#services",
+    fixLink: "/app/business-brain?section=services",
     fixType: "brain",
     fixLabel: "Set Pricing",
     priority: "p0",
@@ -112,7 +112,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   missing_booking_mode: {
     title: "Booking mode not configured",
     reason: "Configure how AI should handle booking requests",
-    fixLink: "/app/business-brain#policies",
+    fixLink: "/app/business-brain?section=policies",
     fixType: "brain",
     fixLabel: "Configure",
     priority: "p1",
@@ -120,7 +120,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   missing_name_intake: {
     title: "Intake missing customer name",
     reason: "AI needs to collect customer name for bookings",
-    fixLink: "/app/business-brain#policies",
+    fixLink: "/app/business-brain?section=policies",
     fixType: "brain",
     fixLabel: "Add Field",
     priority: "p0",
@@ -128,7 +128,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   missing_phone_intake: {
     title: "Intake missing phone number",
     reason: "AI needs customer phone for follow-up and booking confirmation",
-    fixLink: "/app/business-brain#policies",
+    fixLink: "/app/business-brain?section=policies",
     fixType: "brain",
     fixLabel: "Add Field",
     priority: "p0",
@@ -136,7 +136,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   missing_service_area: {
     title: "Service area not defined",
     reason: "AI needs to know your service area to filter out-of-area requests",
-    fixLink: "/app/business-brain#service-area",
+    fixLink: "/app/business-brain?section=service-area",
     fixType: "brain",
     fixLabel: "Set Area",
     priority: "p1",
@@ -148,7 +148,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   no_menu_items: {
     title: "No menu items added",
     reason: "AI needs your menu to take orders",
-    fixLink: "/app/business-brain#services",
+    fixLink: "/app/business-brain?section=services",
     fixType: "brain",
     fixLabel: "Add Menu",
     priority: "p0",
@@ -156,7 +156,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   few_menu_items: {
     title: "Need at least 10 menu items",
     reason: "Add more items for a complete menu experience",
-    fixLink: "/app/business-brain#services",
+    fixLink: "/app/business-brain?section=services",
     fixType: "brain",
     fixLabel: "Add Items",
     priority: "p1",
@@ -164,7 +164,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   ordering_disabled: {
     title: "Ordering not enabled",
     reason: "Enable ordering for AI to take food orders",
-    fixLink: "/app/business-brain#policies",
+    fixLink: "/app/business-brain?section=policies",
     fixType: "brain",
     fixLabel: "Enable",
     priority: "p0",
@@ -172,7 +172,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   ordering_not_configured: {
     title: "Ordering settings incomplete",
     reason: "Configure pickup, delivery, and payment options",
-    fixLink: "/app/business-brain#policies",
+    fixLink: "/app/business-brain?section=policies",
     fixType: "brain",
     fixLabel: "Configure",
     priority: "p0",
@@ -180,7 +180,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   missing_menu_prices: {
     title: "Menu items missing prices",
     reason: "AI cannot process orders without prices",
-    fixLink: "/app/business-brain#services",
+    fixLink: "/app/business-brain?section=services",
     fixType: "brain",
     fixLabel: "Set Prices",
     priority: "p0",
@@ -192,7 +192,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   missing_pickup_intake: {
     title: "Intake missing pickup address",
     reason: "AI needs pickup location for dispatch jobs",
-    fixLink: "/app/business-brain#policies",
+    fixLink: "/app/business-brain?section=policies",
     fixType: "brain",
     fixLabel: "Add Field",
     priority: "p0",
@@ -200,7 +200,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   missing_vehicle_intake: {
     title: "Intake missing vehicle type",
     reason: "AI needs vehicle info for accurate dispatch",
-    fixLink: "/app/business-brain#policies",
+    fixLink: "/app/business-brain?section=policies",
     fixType: "brain",
     fixLabel: "Add Field",
     priority: "p1",
@@ -208,7 +208,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   missing_urgency_intake: {
     title: "Intake missing urgency/priority",
     reason: "AI needs to assess job urgency for dispatch prioritization",
-    fixLink: "/app/business-brain#policies",
+    fixLink: "/app/business-brain?section=policies",
     fixType: "brain",
     fixLabel: "Add Field",
     priority: "p1",
@@ -216,7 +216,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   no_dispatch_services: {
     title: "No dispatch services defined",
     reason: "AI needs to know what dispatch services you offer",
-    fixLink: "/app/business-brain#services",
+    fixLink: "/app/business-brain?section=services",
     fixType: "brain",
     fixLabel: "Add Services",
     priority: "p0",
@@ -228,7 +228,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   hipaa_disabled: {
     title: "HIPAA compliance mode disabled",
     reason: "Medical practices require HIPAA-compliant call handling",
-    fixLink: "/app/business-brain#policies",
+    fixLink: "/app/business-brain?section=policies",
     fixType: "brain",
     fixLabel: "Enable HIPAA",
     priority: "p0",
@@ -236,7 +236,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   missing_data_retention: {
     title: "Data retention not configured",
     reason: "HIPAA requires defined data retention policies",
-    fixLink: "/app/business-brain#policies",
+    fixLink: "/app/business-brain?section=policies",
     fixType: "brain",
     fixLabel: "Configure",
     priority: "p0",
@@ -244,7 +244,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   hipaa_storage_warning: {
     title: "Review HIPAA storage settings",
     reason: "Ensure PHI storage meets compliance requirements",
-    fixLink: "/app/business-brain#policies",
+    fixLink: "/app/business-brain?section=policies",
     fixType: "brain",
     fixLabel: "Review",
     priority: "p1",
@@ -252,7 +252,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   no_medical_services: {
     title: "No appointment types added",
     reason: "AI needs to know what appointment types you offer",
-    fixLink: "/app/business-brain#services",
+    fixLink: "/app/business-brain?section=services",
     fixType: "brain",
     fixLabel: "Add Types",
     priority: "p0",
@@ -332,12 +332,12 @@ export function getIssueDetails(code: string): ReadinessIssue {
     return { code, ...mapping };
   }
 
-  // Fallback for unknown codes - route to Business Brain
+  // Fallback for unknown codes - route to Business Brain with generic section
   return {
     code,
     title: formatUnknownCode(code),
     reason: "This item needs attention before going live",
-    fixLink: "/app/business-brain",
+    fixLink: "/app/business-brain?section=profile",
     fixType: "brain",
     fixLabel: "Fix",
     priority: "p1",

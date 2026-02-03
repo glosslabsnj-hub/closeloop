@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -114,12 +115,37 @@ const navigationItems: BrainNavItem[] = [
   }
 ];
 
+const VALID_SECTIONS = ["profile", "hours", "services", "service-area", "availability", "policies", "ai-behavior", "knowledge"] as const;
+type SectionId = typeof VALID_SECTIONS[number];
+
 export default function BusinessBrainPage() {
   const { tenant } = useAuth();
-  const [activeSection, setActiveSection] = useState("profile");
+  const [searchParams, setSearchParams] = useSearchParams();
   const reviewCount = useBrainReviewCount();
   const { businessMode } = useTenantConfig();
   const { isFoodMode, hasFoodOrders, hasMenuKnowledge } = useFoodMode();
+  
+  // Get section from URL or default to profile
+  const sectionParam = searchParams.get("section");
+  const initialSection = VALID_SECTIONS.includes(sectionParam as SectionId) 
+    ? (sectionParam as SectionId) 
+    : "profile";
+  
+  const [activeSection, setActiveSection] = useState<SectionId>(initialSection);
+  
+  // Sync URL with active section
+  useEffect(() => {
+    if (activeSection !== sectionParam) {
+      setSearchParams({ section: activeSection }, { replace: true });
+    }
+  }, [activeSection, sectionParam, setSearchParams]);
+  
+  // Handle URL changes (back/forward navigation)
+  useEffect(() => {
+    if (VALID_SECTIONS.includes(sectionParam as SectionId) && sectionParam !== activeSection) {
+      setActiveSection(sectionParam as SectionId);
+    }
+  }, [sectionParam]);
   
   // Focus mode state - persisted to localStorage
   const [focusMode, setFocusMode] = useState(() => {
@@ -178,7 +204,7 @@ export default function BusinessBrainPage() {
                 return (
                   <button
                     key={item.id}
-                    onClick={() => setActiveSection(item.id)}
+                    onClick={() => setActiveSection(item.id as SectionId)}
                     className={`
                       w-full flex items-start gap-3 px-3 py-2 rounded-md text-sm transition-colors relative
                       ${isActive
