@@ -29,7 +29,7 @@ export function SettingsNavItem({
           : "text-foreground/70 hover:bg-muted hover:text-foreground"
       )}
     >
-      <Icon className="h-4 w-4 shrink-0" />
+      <Icon className={cn("h-4 w-4 shrink-0", isActive ? "" : "text-foreground/90")} />
       <span className="flex-1 truncate">{label}</span>
       {status === "attention" && (
         <span className="h-2 w-2 rounded-full bg-warning" />
