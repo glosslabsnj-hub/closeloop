@@ -15,19 +15,21 @@ export default function DashboardPage() {
     assistantSettings?.go_live_enabled === true ||
     !!(assistantSettings as any)?.setup_completed_at;
 
-  // If no subscription, show basic welcome
+  // If no subscription, show calm welcome
   if (!subscription) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh] p-6">
-        <div className="text-center space-y-5 max-w-md animate-fade-in">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 mb-4">
-            <span className="text-2xl">👋</span>
+      <div className="flex items-center justify-center min-h-[60vh] p-8">
+        <div className="text-center space-y-6 max-w-md animate-fade-in">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-muted/40 mb-6">
+            <span className="text-xl">👋</span>
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">Welcome to CloseLoop</h1>
-          <p className="text-muted-foreground">
-            Please complete your subscription to start using your AI assistant.
+          <h1 className="text-xl font-normal tracking-tight text-foreground/90">
+            Welcome to CloseLoop
+          </h1>
+          <p className="text-muted-foreground/60 text-sm leading-relaxed">
+            Complete your subscription to start using your AI assistant.
           </p>
-          <Button asChild size="lg">
+          <Button asChild size="lg" className="mt-2">
             <a href="/app/go-live">
               <CreditCard className="mr-2 h-4 w-4" />
               Choose Your Plan
@@ -42,7 +44,8 @@ export default function DashboardPage() {
     <PageContainer maxWidth="wide">
       <PageHeader
         title="Dashboard"
-        description={setupComplete ? "Your AI agent overview" : "Complete setup to get started"}
+        description={setupComplete ? "Your AI agent at a glance" : "Complete setup to get started"}
+        editorial
         badge={
           setupComplete && (
             <Badge variant="success" size="sm">
