@@ -1,249 +1,206 @@
 
 
-# Mode-Aware Admin Tenant Switcher
+## Settings Page Cleanup Plan
 
-## Overview
-Add business mode filtering to the admin dashboard so super admins can:
-1. Select a mode (service, dispatch, food, medical, general) 
-2. Only see tenants matching that mode in the dropdown
-3. Auto-populate that mode when creating new test tenants
+### Current State Analysis
 
-## Architecture
-
-### Current State
-```text
-AdminTenantSwitcher
-├── Fetches ALL tenants (no mode filter)
-├── Shows all in dropdown
-└── CreateTestTenantDialog (mode is user-selected)
-```
-
-### Target State
-```text
-AdminLayout (header)
-├── AdminModeSelector [NEW] - Tabs/buttons for mode selection
-│   ├── Persists to admin_settings.admin_active_mode
-│   └── Updates React context
-└── AdminTenantSwitcher (refactored)
-    ├── Fetches tenants WHERE business_mode = selectedMode
-    ├── Shows filtered list
-    └── CreateTestTenantDialog (mode is pre-set from selector)
-```
+After reviewing the Settings page (`SettingsPage.tsx`) and comparing it with Business Brain (`BusinessBrainPage.tsx`), I found significant confusion and duplication that's making the user experience unclear.
 
 ---
 
-## Implementation Plan
+### What's Currently in Settings (11 sections)
 
-### 1. Database Migration
-Add `admin_active_mode` column to `admin_settings`:
-
-```sql
-ALTER TABLE public.admin_settings 
-ADD COLUMN admin_active_mode text DEFAULT 'service';
-```
-
-### 2. Create AdminModeContext (New Context)
-Create a lightweight context to manage the selected admin mode across the admin dashboard.
-
-**File:** `src/contexts/AdminModeContext.tsx`
-
-```typescript
-interface AdminModeContextType {
-  selectedMode: BusinessMode;
-  setSelectedMode: (mode: BusinessMode) => Promise<void>;
-  isLoading: boolean;
-}
-```
-
-- On mount: fetch `admin_active_mode` from `admin_settings`
-- On change: upsert to `admin_settings` and update state
-- Only active for super admins on admin routes
-
-### 3. Create AdminModeSelector Component (New)
-A horizontal tab bar or segmented control showing the 5 modes.
-
-**File:** `src/components/admin/AdminModeSelector.tsx`
-
-```text
-┌─────────┬──────────┬──────┬─────────┬─────────┐
-│ Service │ Dispatch │ Food │ Medical │ General │
-└─────────┴──────────┴──────┴─────────┴─────────┘
-     ↑ selected
-```
-
-- Uses icons from existing BUSINESS_MODES config
-- Calls `setSelectedMode()` on click
-- Shows loading spinner during mode switch
-- Placed in AdminLayout header
-
-### 4. Refactor AdminTenantSwitcher
-Modify to filter tenants by selected mode:
-
-```typescript
-// Before
-const { data: tenants } = await supabase
-  .from("tenants")
-  .select("id, name, business_mode, industry")
-  .order("name");
-
-// After  
-const { data: tenants } = await supabase
-  .from("tenants")
-  .select("id, name, business_mode, industry")
-  .eq("business_mode", selectedMode)  // Filter by mode
-  .order("name");
-```
-
-- When mode changes, reset active tenant to first in filtered list (if current is no longer visible)
-- Query key includes `selectedMode` for proper cache invalidation
-
-### 5. Update CreateTestTenantDialog
-Remove the mode selector and use the pre-selected mode:
-
-```typescript
-// Before
-const [businessMode, setBusinessMode] = useState<BusinessMode>("service");
-
-// After
-interface Props {
-  // ...existing props
-  defaultMode: BusinessMode; // Passed from parent based on AdminModeContext
-}
-
-const businessMode = defaultMode; // No longer selectable
-```
-
-- Hide or disable the mode dropdown (or show as read-only)
-- Mode is already determined by the current tab selection
-
-### 6. Update AdminLayout
-Wrap admin routes with `AdminModeProvider` and add the mode selector:
-
-```tsx
-<AdminModeProvider>
-  <header>
-    <AdminModeSelector />   {/* NEW - mode tabs */}
-    <AdminTenantSwitcher /> {/* Existing - now filtered */}
-  </header>
-  <Outlet />
-</AdminModeProvider>
-```
+| Section | What It Does | Problem |
+|---------|-------------|---------|
+| **Profile** | Business name, tagline, phone, timezone | Editable here, but also in Business Brain |
+| **Hours** | Read-only card pointing to Business Brain | Correct - already a redirect |
+| **Pricing** | PricingRulesEditor + BusynessRulesEditor | Duplicate - same components in Business Brain |
+| **Team** | Team members, invite button | Legitimate Settings item |
+| **AI Learning** | IntelligenceSettingsForm (memory toggles, thresholds) | Confusing - mixes AI config with Settings |
+| **AI Rules** | Read-only card pointing to Business Brain | Correct - already a redirect |
+| **Pricing Estimates** | Read-only card pointing to Business Brain | Correct - already a redirect |
+| **Data Privacy** | DataControlsPanel (recording storage, retention) | Legitimate Settings item |
+| **HIPAA** | Read-only card pointing to Business Brain | Correct - already a redirect |
+| **Alerts** | Notification toggles (non-functional, just switches) | Placeholder - not wired to DB |
+| **Integrations** | DeliveryIntegrationsSettings + redirect card | Partially duplicate |
+| **Automation** | AutomationRulesSettings | Legitimate Settings item |
+| **Plan** | PlanUpgradeCard + MultiLocationManager | Legitimate Settings item |
+| **Developer** | CallContextDebugger | Legitimate Settings item (advanced) |
 
 ---
 
-## Data Flow
+### Core Problem
 
-```text
-1. Admin opens /admin/*
-   ↓
-2. AdminModeProvider fetches admin_settings.admin_active_mode
-   ↓
-3. AdminModeSelector renders with selectedMode highlighted
-   ↓
-4. AdminTenantSwitcher queries tenants WHERE business_mode = selectedMode
-   ↓
-5. Admin clicks "Dispatch" tab
-   ↓
-6. setSelectedMode("dispatch") → upsert to admin_settings
-   ↓
-7. AdminTenantSwitcher refetches with .eq("business_mode", "dispatch")
-   ↓
-8. Only dispatch tenants shown (e.g., "City Roadside Rescue")
-   ↓
-9. If current tenant is not dispatch, auto-select first dispatch tenant
-   ↓
-10. Admin clicks "Create Test Tenant" → mode is pre-set to "dispatch"
-```
+The confusion stems from mixing two concepts:
+
+1. **What the AI knows** (Business Brain) - business identity, services, hours, policies, FAQs
+2. **How the system behaves** (Settings) - notifications, integrations, billing, team access, data retention
+
+Several sections are duplicated or misplaced:
+- **Profile** is editable in BOTH places
+- **Pricing** appears in BOTH places with identical components
+- **AI Learning** is about AI behavior but lives in Settings
+- **Alerts** is just placeholder switches with no real functionality
+- Some sections are just redirect cards, cluttering the nav
 
 ---
 
-## Files to Create/Modify
+### Recommended Structure
 
-| File | Action |
+#### Keep in Settings (operational/system config):
+
+```
+YOUR ACCOUNT
+├── Profile (REMOVE - move to Business Brain exclusively)
+├── Team Members ✓ Keep
+├── Plan & Billing ✓ Keep (plan, multi-location)
+
+DATA & PRIVACY
+├── Data Controls ✓ Keep (recording storage, retention, consent)
+├── HIPAA (only show for medical) - REMOVE redirect card, link from Data Controls instead
+
+NOTIFICATIONS & DELIVERY
+├── How You Get Notified ✓ Keep (but needs real DB wiring)
+├── Integrations ✓ Keep (webhooks, email, SMS delivery)
+├── Automation Rules ✓ Keep (auto-confirm, review queue)
+
+ADVANCED
+└── Developer Tools ✓ Keep (collapsed by default)
+```
+
+#### Move to Business Brain (AI knowledge):
+
+- **Profile** (business name, tagline, phone) → Already exists there as BusinessProfileEditor
+- **Pricing** → Already exists there as PricingRulesEditor
+- **AI Learning** → Already exists there as part of AI config
+- **Hours** → Already redirects there
+- **AI Rules** → Already redirects there
+
+---
+
+### Implementation Plan
+
+#### Step 1: Remove duplicate sections from Settings sidebar
+
+Remove these from the sidebar nav:
+- `profile` (Business Brain handles this)
+- `hours` (already just a redirect card)
+- `pricing` (Business Brain handles this, duplicate component)
+- `ai-learning` (AI config belongs in Business Brain)
+- `ai-rules` (already just a redirect card)
+- `pricing-estimates` (already just a redirect card)
+- `hipaa` (already just a redirect card)
+
+#### Step 2: Reorganize remaining sections into cleaner groups
+
+New sidebar structure:
+
+```
+ACCOUNT
+├── Team Members
+├── Plan & Billing
+
+DATA & PRIVACY
+├── Data Controls (includes HIPAA info if medical mode)
+
+NOTIFICATIONS
+├── Alerts
+├── Integrations
+├── Automation
+
+ADVANCED (collapsible)
+└── Developer Tools
+```
+
+#### Step 3: Add prominent Business Brain CTA
+
+At the top of Settings, add a clear callout:
+
+```
+"Looking to update what your AI knows? 
+Services, hours, pricing, and policies are managed in Business Brain."
+[Go to Business Brain →]
+```
+
+This makes it obvious where to go for AI knowledge vs system config.
+
+#### Step 4: Merge HIPAA into Data Controls
+
+Instead of a separate HIPAA section, show HIPAA-specific options within the Data Controls panel when `hipaaMode` is true. This is already partially done in DataControlsPanel.
+
+#### Step 5: Move AI Learning to Business Brain
+
+Add an "AI Intelligence" section to Business Brain that contains the IntelligenceSettingsForm (memory toggles, thresholds, copilot suggestions).
+
+---
+
+### Files to Change
+
+| File | Change |
 |------|--------|
-| `src/contexts/AdminModeContext.tsx` | **CREATE** - Mode state management |
-| `src/components/admin/AdminModeSelector.tsx` | **CREATE** - Mode tab bar UI |
-| `src/components/admin/AdminTenantSwitcher.tsx` | **MODIFY** - Add mode filter to query |
-| `src/components/admin/CreateTestTenantDialog.tsx` | **MODIFY** - Accept defaultMode prop, hide selector |
-| `src/components/layouts/AdminLayout.tsx` | **MODIFY** - Add provider and mode selector |
+| `src/components/settings/SettingsSidebar.tsx` | Remove: profile, hours, pricing, ai-learning, ai-rules, pricing-estimates, hipaa. Reorganize groups. |
+| `src/components/settings/MobileSettingsNav.tsx` | Same changes for mobile nav |
+| `src/pages/app/SettingsPage.tsx` | Remove render cases for deleted sections. Add Business Brain CTA banner. Simplify sectionMeta. |
+| `src/pages/app/BusinessBrainPage.tsx` | Add AI Learning/Intelligence section using existing IntelligenceSettingsForm |
 
 ---
 
-## Technical Details
+### Before/After Comparison
 
-### Context Provider Structure
-```tsx
-// AdminModeContext.tsx
-export function AdminModeProvider({ children }) {
-  const { user, isSuperAdmin } = useAuth();
-  const [selectedMode, setSelectedModeState] = useState<BusinessMode>("service");
-  const [isLoading, setIsLoading] = useState(true);
+**Before (Settings Sidebar):**
+```
+Your Business
+├── Profile
+├── Business Hours
+├── Pricing & Estimates
+├── Team Members
 
-  // Fetch on mount
-  useEffect(() => {
-    if (!user || !isSuperAdmin) return;
-    supabase
-      .from("admin_settings")
-      .select("admin_active_mode")
-      .eq("user_id", user.id)
-      .single()
-      .then(({ data }) => {
-        if (data?.admin_active_mode) {
-          setSelectedModeState(data.admin_active_mode as BusinessMode);
-        }
-        setIsLoading(false);
-      });
-  }, [user, isSuperAdmin]);
+AI & Privacy
+├── AI Learning
+├── Required Questions
+├── Pricing & Estimates (duplicate!)
+├── Data & Privacy
+├── HIPAA Compliance
 
-  // Persist on change
-  const setSelectedMode = async (mode: BusinessMode) => {
-    setSelectedModeState(mode);
-    await supabase.from("admin_settings").upsert({
-      user_id: user.id,
-      admin_active_mode: mode,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: "user_id" });
-  };
+Notifications & Delivery
+├── How You Get Notified
+├── Where Things Go
+├── Automation Rules
 
-  return (
-    <AdminModeContext.Provider value={{ selectedMode, setSelectedMode, isLoading }}>
-      {children}
-    </AdminModeContext.Provider>
-  );
-}
+Plan & Billing
+├── Your Plan
+
+Advanced
+└── Developer Tools
 ```
 
-### Auto-Switch Tenant Logic
-When mode changes and current tenant doesn't match:
-```typescript
-// In AdminTenantSwitcher
-useEffect(() => {
-  const currentTenantMatchesMode = tenants?.find(
-    t => t.id === effectiveTenantId && t.business_mode === selectedMode
-  );
-  
-  if (!currentTenantMatchesMode && tenants?.length > 0) {
-    // Auto-select first tenant of this mode
-    const firstMatch = tenants.find(t => t.business_mode === selectedMode);
-    if (firstMatch) {
-      setActiveTenantId(firstMatch.id);
-    }
-  }
-}, [selectedMode, tenants, effectiveTenantId]);
+**After (Settings Sidebar):**
+```
+[Banner: Edit AI knowledge in Business Brain →]
+
+Account
+├── Team Members
+├── Plan & Billing
+
+Data & Privacy
+├── Data Controls
+
+Notifications
+├── Alerts
+├── Integrations
+├── Automation
+
+Advanced
+└── Developer Tools
 ```
 
 ---
 
-## User Experience
+### Summary
 
-**Before:**
-- See all tenants mixed together
-- Manually check which mode each tenant is
-- Manually select mode when creating test tenant
-
-**After:**
-- Click "Dispatch" tab → only see dispatch tenants
-- Active tenant auto-switches to a dispatch tenant
-- Click "Create Test Tenant" → mode is already "Dispatch"
-- Click "Service" tab → switch back to service tenants
+This cleanup:
+- Removes 7 confusing/duplicate sections from Settings
+- Creates a clear separation: Settings = system config, Business Brain = AI knowledge
+- Adds a prominent CTA so users know where to edit AI stuff
+- Reduces cognitive load for non-technical users
 
