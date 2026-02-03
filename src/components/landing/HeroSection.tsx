@@ -71,7 +71,7 @@ export function HeroSection() {
           
           {/* Micro-copy */}
           <p className="text-sm text-muted-foreground mt-10">
-            Setup in 10 min • 7-day free trial • Plans from ${TIERS[0].startingPrice}/mo
+            Setup in 10 min • Plans from ${TIERS[0].startingPrice}/mo
           </p>
         </div>
       </div>

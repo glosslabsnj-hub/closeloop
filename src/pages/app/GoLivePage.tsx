@@ -118,7 +118,7 @@ export default function GoLivePage() {
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             {step === "tier"
-              ? "Select your plan and start your 7-day free trial. You won't be charged until the trial ends."
+              ? "Select your plan to get started."
               : `Choose how much usage you need for ${tierInfo?.displayName}.`}
           </p>
         </div>
@@ -157,14 +157,6 @@ export default function GoLivePage() {
           <div className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
             <span>Cancel anytime</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            <span>7-day free trial</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Bot className="h-4 w-4" />
-            <span>No charge until trial ends</span>
           </div>
         </div>
 
@@ -335,14 +327,14 @@ export default function GoLivePage() {
                     </>
                   ) : (
                     <>
-                      Start 7-Day Free Trial
+                      Activate Plan
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </>
                   )}
                 </Button>
                 {selectedStep && !goLiveBlocked && (
                   <p className="text-xs text-center text-muted-foreground">
-                    Then {formatPrice(selectedStep.price)}/mo after trial ends
+                    {formatPrice(selectedStep.price)}/month
                   </p>
                 )}
                 {goLiveBlocked && (
@@ -357,9 +349,9 @@ export default function GoLivePage() {
 
         {/* Footer note */}
         <p className="text-center text-sm text-muted-foreground mt-8">
-          Your card will be securely saved and charged only after your 7-day trial ends.
+          Your payment will be processed securely. Cancel anytime.
           <br />
-          Cancel anytime during the trial — no charges. By continuing, you agree to our Terms of Service.
+          By continuing, you agree to our Terms of Service.
         </p>
       </div>
     </div>

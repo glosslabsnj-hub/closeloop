@@ -90,7 +90,7 @@ export default function LoginPage() {
           <div className="mt-8 text-center text-sm text-muted-foreground">
             Don't have an account?{" "}
             <Link to="/signup" className="text-primary font-medium hover:underline underline-offset-4">
-              Start free trial
+              Get started
             </Link>
           </div>
         </CardContent>

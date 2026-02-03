@@ -71,7 +71,7 @@ export function useSubscription(tenantId: string | null): UseSubscriptionResult 
     fetchData();
   }, [fetchData]);
 
-  const hasActiveSubscription = subscription?.status === "active" || subscription?.status === "trialing";
+  const hasActiveSubscription = subscription?.status === "active";
   
   // Users can access app if they have active subscription
   const canAccessApp = hasActiveSubscription;
@@ -88,15 +88,14 @@ export function useSubscription(tenantId: string | null): UseSubscriptionResult 
     const step = getLadderStep(sku);
     if (!step) throw new Error("Invalid plan SKU");
 
-    // Create subscription with trialing status (mock mode - no Stripe yet)
-    // When Stripe is added: create customer, attach payment method, create subscription with trial_period_days=7
+    // Create subscription with active status (requires payment)
     const { error: subError } = await supabase
       .from("subscriptions")
       .insert({
         tenant_id: tenantId,
         plan_code: sku,
-        status: "trialing",
-        current_period_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 day trial
+        status: "active",
+        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
         included_minutes: step.includedMinutes,
         included_sms_segments: step.includedSmsSegments,
         overage_minute_rate_cents: step.overageMinuteRate ? Math.round(step.overageMinuteRate * 100) : null,

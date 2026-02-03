@@ -7,22 +7,18 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Phone, Loader2, CheckCircle2, CreditCard, Lock, ArrowLeft, MessageSquare, Sparkles } from "lucide-react";
+import { Phone, Loader2, CheckCircle2, CreditCard, Lock, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   getLadderStep,
   getTierInfo,
-  getDefaultStepForTier,
   formatPrice,
   type PlanSku,
-  type PlanTier,
 } from "@/config/pricing";
 
 export default function SignupPage() {
   const [searchParams] = useSearchParams();
   const skuParam = searchParams.get("sku") as PlanSku | null;
-  // Also support legacy ?plan= parameter
-  const legacyPlan = searchParams.get("plan");
   // Industry pre-selection from demo player
   const industryParam = searchParams.get("industry");
   
@@ -33,16 +29,11 @@ export default function SignupPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Determine the selected SKU
-  let selectedSku: PlanSku = "voice-200"; // default
+  // Determine the selected SKU - default to voice-200
+  let selectedSku: PlanSku = "voice-200";
   if (skuParam) {
     const step = getLadderStep(skuParam);
     if (step) selectedSku = skuParam;
-  } else if (legacyPlan) {
-    // Map legacy plan codes to new SKUs
-    if (legacyPlan === "text") selectedSku = "sms-500";
-    else if (legacyPlan === "voice") selectedSku = "voice-200";
-    else if (legacyPlan === "both") selectedSku = "both-200-500";
   }
 
   const selectedStep = getLadderStep(selectedSku);
@@ -87,22 +78,9 @@ export default function SignupPage() {
     }
   };
 
-  const getPlanIcon = (tier: PlanTier) => {
-    switch (tier) {
-      case "sms":
-        return MessageSquare;
-      case "voice":
-        return Phone;
-      case "both":
-        return Sparkles;
-    }
-  };
-
   if (!selectedStep || !tierInfo) {
     return null; // Will redirect
   }
-
-  const PlanIcon = getPlanIcon(selectedStep.tier);
 
   return (
     <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center py-12 px-4">
@@ -119,18 +97,16 @@ export default function SignupPage() {
         <Card>
           <CardHeader className="text-center pb-2">
             <div className="flex justify-center mb-4">
-              <div className={`flex h-14 w-14 items-center justify-center rounded-xl ${
-                tierInfo.highlight ? 'bg-primary' : 'bg-primary/10'
-              }`}>
-                <PlanIcon className={`h-7 w-7 ${tierInfo.highlight ? 'text-primary-foreground' : 'text-primary'}`} />
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary">
+                <Phone className="h-7 w-7 text-primary-foreground" />
               </div>
             </div>
             <Badge variant="secondary" className="mx-auto mb-2">
               {tierInfo.displayName}
             </Badge>
-            <CardTitle className="text-2xl">Start your 7-day free trial</CardTitle>
+            <CardTitle className="text-2xl">Get started with {selectedStep.name}</CardTitle>
             <CardDescription>
-              {formatPrice(selectedStep.price)}/month after trial ends. Cancel anytime.
+              {formatPrice(selectedStep.price)}/month. Cancel anytime.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -138,10 +114,7 @@ export default function SignupPage() {
             <div className="bg-muted/50 rounded-lg p-3 text-sm">
               <div className="font-medium mb-1">{selectedStep.name}</div>
               <div className="text-muted-foreground">
-                {selectedStep.includedMinutes && `${selectedStep.includedMinutes.toLocaleString()} minutes`}
-                {selectedStep.includedMinutes && selectedStep.includedSmsSegments && " + "}
-                {selectedStep.includedSmsSegments && `${selectedStep.includedSmsSegments.toLocaleString()} SMS segments`}
-                {" included"}
+                {selectedStep.includedMinutes && `${selectedStep.includedMinutes.toLocaleString()} minutes included`}
               </div>
             </div>
 
@@ -186,7 +159,7 @@ export default function SignupPage() {
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Your card will be saved securely. You won't be charged until your 7-day trial ends.
+                  Your card will be saved securely and charged upon account activation.
                 </p>
                 <div className="space-y-3">
                   <div className="space-y-2">
@@ -220,7 +193,7 @@ export default function SignupPage() {
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground bg-muted p-2 rounded border">
-                  💳 Stripe payment coming soon — currently running in trial mode
+                  💳 Stripe payment coming soon — currently running in demo mode
                 </p>
               </div>
 
@@ -232,7 +205,7 @@ export default function SignupPage() {
                   </>
                 ) : (
                   <>
-                    Start 7-Day Free Trial
+                    Create Account & Continue
                   </>
                 )}
               </Button>
@@ -240,9 +213,9 @@ export default function SignupPage() {
 
             <div className="space-y-2">
               {[
-                "No charge for 7 days",
-                "Cancel anytime before trial ends",
-                `Then ${formatPrice(selectedStep.price)}/month`,
+                "Cancel anytime",
+                `${formatPrice(selectedStep.price)}/month`,
+                `${selectedStep.includedMinutes?.toLocaleString()} minutes included`,
               ].map((item) => (
                 <div key={item} className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CheckCircle2 className="h-4 w-4 text-primary" />

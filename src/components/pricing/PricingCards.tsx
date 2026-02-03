@@ -6,12 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Check, MessageSquare, Phone, Sparkles, ArrowRight, ChevronDown } from "lucide-react";
+import { Check, Phone, ArrowRight, ChevronDown } from "lucide-react";
 import {
   TIERS,
   LADDER_STEPS,
   INCLUDED_IN_ALL_PLANS,
-  getTierInfo,
   getLadderStepsForTier,
   getDefaultStepForTier,
   formatPrice,
@@ -20,17 +19,6 @@ import {
   type TierInfo,
   type PlanLadderStep,
 } from "@/config/pricing";
-
-const getIcon = (iconName: TierInfo["icon"]) => {
-  switch (iconName) {
-    case "MessageSquare":
-      return MessageSquare;
-    case "Phone":
-      return Phone;
-    case "Sparkles":
-      return Sparkles;
-  }
-};
 
 interface PricingCardsProps {
   onSelectPlan?: (sku: PlanSku) => void;
@@ -66,9 +54,8 @@ export function PricingCards({ onSelectPlan, linkToSignup = false, compact = fal
 
   return (
     <div className="space-y-10">
-      <div className={`grid gap-6 lg:gap-8 ${compact ? "md:grid-cols-3" : "md:grid-cols-3"}`}>
+      <div className={`max-w-lg mx-auto`}>
         {TIERS.map((tierInfo) => {
-          const Icon = getIcon(tierInfo.icon);
           const isExpanded = expandedTier === tierInfo.tier;
           const ladderSteps = getLadderStepsForTier(tierInfo.tier);
           const selectedSku = selectedSkus[tierInfo.tier];
@@ -77,27 +64,15 @@ export function PricingCards({ onSelectPlan, linkToSignup = false, compact = fal
 
           const cardContent = (
             <Card
-              className={`relative transition-all duration-300 hover:shadow-xl ${
-                tierInfo.highlight
-                  ? "border-primary shadow-lg scale-[1.02] bg-gradient-to-b from-card to-primary/5"
-                  : "hover:border-primary/40"
-              }`}
+              className="relative transition-all duration-300 hover:shadow-xl border-primary shadow-lg bg-gradient-to-b from-card to-primary/5"
             >
-              {tierInfo.highlight && (
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                  <Badge className="bg-primary text-primary-foreground px-4 py-1 shadow-md">Most Popular</Badge>
-                </div>
-              )}
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                <Badge className="bg-primary text-primary-foreground px-4 py-1 shadow-md">AI Receptionist</Badge>
+              </div>
 
               <CardHeader className={compact ? "pb-2" : "pb-4"}>
-                <div
-                  className={`flex h-14 w-14 items-center justify-center rounded-xl mb-4 transition-colors ${
-                    tierInfo.highlight
-                      ? "bg-primary text-primary-foreground shadow-md"
-                      : "bg-primary/10 text-primary"
-                  }`}
-                >
-                  <Icon className="h-7 w-7" />
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl mb-4 transition-colors bg-primary text-primary-foreground shadow-md">
+                  <Phone className="h-7 w-7" />
                 </div>
                 <CardTitle className="text-2xl">{tierInfo.displayName}</CardTitle>
                 <CardDescription className="text-base">{tierInfo.description}</CardDescription>
@@ -155,10 +130,7 @@ export function PricingCards({ onSelectPlan, linkToSignup = false, compact = fal
                             <Label htmlFor={step.sku} className="cursor-pointer">
                               <div className="font-medium">{step.shortName}</div>
                               <div className="text-xs text-muted-foreground">
-                                {step.includedMinutes && `${step.includedMinutes.toLocaleString()} min`}
-                                {step.includedMinutes && step.includedSmsSegments && " + "}
-                                {step.includedSmsSegments &&
-                                  `${step.includedSmsSegments.toLocaleString()} SMS`}
+                                {step.includedMinutes && `${step.includedMinutes.toLocaleString()} min included`}
                               </div>
                             </Label>
                           </div>
@@ -171,10 +143,7 @@ export function PricingCards({ onSelectPlan, linkToSignup = false, compact = fal
                     </RadioGroup>
                     {selectedStep && (
                       <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
-                        Overage rates:{" "}
-                        {selectedStep.overageMinuteRate && `$${selectedStep.overageMinuteRate}/min`}
-                        {selectedStep.overageMinuteRate && selectedStep.overageSmsRate && " • "}
-                        {selectedStep.overageSmsRate && `$${selectedStep.overageSmsRate}/SMS`}
+                        Overage rate: ${selectedStep.overageMinuteRate}/min
                       </div>
                     )}
                   </CollapsibleContent>
@@ -184,26 +153,23 @@ export function PricingCards({ onSelectPlan, linkToSignup = false, compact = fal
                 <div>
                   {linkToSignup ? (
                     <Link to={`/signup?sku=${selectedSku}`}>
-                      <Button
-                        className="w-full"
-                        variant={tierInfo.highlight ? "default" : "outline"}
-                      >
-                        Start 7-Day Free Trial
+                      <Button className="w-full" variant="default">
+                        Get Started
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </Link>
                   ) : (
                     <Button
                       className="w-full"
-                      variant={tierInfo.highlight ? "default" : "outline"}
+                      variant="default"
                       onClick={onSelectPlan ? () => onSelectPlan(selectedSku) : undefined}
                     >
-                      Start 7-Day Free Trial
+                      Get Started
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   )}
                   <p className="text-xs text-center text-muted-foreground mt-2">
-                    Then {formatPrice(selectedStep?.price ?? tierInfo.startingPrice)}/mo after trial
+                    {formatPrice(selectedStep?.price ?? tierInfo.startingPrice)}/month
                   </p>
                 </div>
               </CardContent>
