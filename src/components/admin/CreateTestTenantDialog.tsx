@@ -27,6 +27,7 @@ interface CreateTestTenantDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onTenantCreated: (tenantId: string) => void;
+  defaultMode: BusinessMode;
 }
 
 const BUSINESS_MODES: { value: BusinessMode; label: string; description: string }[] = [
@@ -48,13 +49,16 @@ const TIMEZONES = [
 export function CreateTestTenantDialog({ 
   open, 
   onOpenChange, 
-  onTenantCreated 
+  onTenantCreated,
+  defaultMode
 }: CreateTestTenantDialogProps) {
   const { user } = useAuth();
   const [isCreating, setIsCreating] = useState(false);
   const [businessName, setBusinessName] = useState("");
-  const [businessMode, setBusinessMode] = useState<BusinessMode>("service");
   const [timezone, setTimezone] = useState("America/New_York");
+  
+  // Use the defaultMode prop directly - mode is determined by admin mode selector
+  const businessMode = defaultMode;
 
   const handleCreate = async () => {
     if (!user || !businessName.trim()) {
@@ -113,7 +117,6 @@ export function CreateTestTenantDialog({
 
       // Reset form
       setBusinessName("");
-      setBusinessMode("service");
       setTimezone("America/New_York");
     } catch (error: any) {
       console.error("Failed to create test tenant:", error);
@@ -164,22 +167,18 @@ export function CreateTestTenantDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="business-mode">Business Mode</Label>
-            <Select value={businessMode} onValueChange={(v) => setBusinessMode(v as BusinessMode)}>
-              <SelectTrigger id="business-mode">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {BUSINESS_MODES.map((mode) => (
-                  <SelectItem key={mode.value} value={mode.value}>
-                    <div className="flex flex-col">
-                      <span>{mode.label}</span>
-                      <span className="text-xs text-muted-foreground">{mode.description}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Business Mode</Label>
+            <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-muted/50 text-sm">
+              <span className="font-medium">
+                {BUSINESS_MODES.find(m => m.value === businessMode)?.label}
+              </span>
+              <span className="text-muted-foreground">
+                ({BUSINESS_MODES.find(m => m.value === businessMode)?.description})
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Mode is set by the current admin mode selection
+            </p>
           </div>
 
           <div className="space-y-2">

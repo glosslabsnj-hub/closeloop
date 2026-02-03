@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdminMode } from "@/contexts/AdminModeContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,26 +24,40 @@ import type { Tenant } from "@/types/database";
 
 export function AdminTenantSwitcher() {
   const { user, isSuperAdmin, effectiveTenantId, setActiveTenantId } = useAuth();
+  const { selectedMode } = useAdminMode();
   const [isLoading, setIsLoading] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  // Only render for super admins
-  if (!user || !isSuperAdmin) return null;
-
-  // Fetch all tenants for super admin
+  // Fetch tenants filtered by selected mode
   const { data: tenants, refetch: refetchTenants } = useQuery({
-    queryKey: ["admin-all-tenants"],
+    queryKey: ["admin-tenants-by-mode", selectedMode],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tenants")
         .select("id, name, business_mode, industry")
+        .eq("business_mode", selectedMode)
         .order("name");
       
       if (error) throw error;
       return data as Pick<Tenant, "id" | "name" | "business_mode" | "industry">[];
     },
-    enabled: isSuperAdmin,
+    enabled: isSuperAdmin && !!user,
   });
+
+  // Auto-switch tenant when mode changes and current tenant doesn't match
+  useEffect(() => {
+    if (!tenants || tenants.length === 0) return;
+    
+    const currentTenantMatchesMode = tenants.some(t => t.id === effectiveTenantId);
+    
+    if (!currentTenantMatchesMode) {
+      // Auto-select first tenant of this mode
+      setActiveTenantId(tenants[0].id);
+    }
+  }, [selectedMode, tenants, effectiveTenantId, setActiveTenantId]);
+
+  // Only render for super admins - must be after all hooks
+  if (!user || !isSuperAdmin) return null;
 
   const activeTenant = tenants?.find(t => t.id === effectiveTenantId);
 
@@ -144,6 +159,7 @@ export function AdminTenantSwitcher() {
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         onTenantCreated={handleTenantCreated}
+        defaultMode={selectedMode}
       />
     </>
   );
