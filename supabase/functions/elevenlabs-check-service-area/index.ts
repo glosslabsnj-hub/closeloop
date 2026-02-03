@@ -39,6 +39,10 @@ interface ServiceAreaResponse {
   eta_minutes: number | null;
   eta_range: string;
   message: string;
+  // Pricing guidance based on distance
+  service_tier: "local" | "long_distance" | "out_of_area";
+  pricing_note: string;
+  local_radius_miles: number;
 }
 
 serve(async (req: Request) => {
@@ -68,7 +72,10 @@ serve(async (req: Request) => {
           distance_miles: null,
           eta_minutes: null,
           eta_range: "",
-          message: "No address provided"
+          message: "No address provided",
+          service_tier: "out_of_area",
+          pricing_note: "No address provided - cannot determine pricing tier.",
+          local_radius_miles: 10
         } as ServiceAreaResponse),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -138,7 +145,10 @@ serve(async (req: Request) => {
           distance_miles: null,
           eta_minutes: null,
           eta_range: "30-60 minutes",
-          message: "Unable to verify - defaulting to in-area"
+          message: "Unable to verify - defaulting to in-area",
+          service_tier: "long_distance",
+          pricing_note: "Unable to verify tenant - treat as long distance, collect details for pricing.",
+          local_radius_miles: 10
         } as ServiceAreaResponse),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -162,7 +172,10 @@ serve(async (req: Request) => {
           distance_miles: null,
           eta_minutes: distanceSettings?.eta_base_minutes || 45,
           eta_range: `${distanceSettings?.eta_min_minutes || 30}-${distanceSettings?.eta_max_minutes || 60} minutes`,
-          message: `Within our ${radiusMiles}-mile service area`
+          message: `Within our ${radiusMiles}-mile service area`,
+          service_tier: "long_distance",
+          pricing_note: "Distance calculation unavailable - treat as long distance, collect details for pricing.",
+          local_radius_miles: 10
         } as ServiceAreaResponse),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -198,6 +211,26 @@ serve(async (req: Request) => {
     const distanceMiles = etaData.route_distance_miles as number | null;
     const inArea = distanceMiles !== null ? distanceMiles <= radiusMiles : true;
     
+    // Local radius for pricing tiers (matches "Local Tow (0-10 miles)" service)
+    const localRadiusMiles = 10;
+    
+    // Determine service tier and pricing note based on distance
+    let serviceTier: "local" | "long_distance" | "out_of_area";
+    let pricingNote: string;
+    
+    if (!inArea) {
+      serviceTier = "out_of_area";
+      pricingNote = "Customer is outside service area. Use out_of_area_message.";
+    } else if (distanceMiles !== null && distanceMiles <= localRadiusMiles) {
+      serviceTier = "local";
+      pricingNote = `Within ${localRadiusMiles} miles. Quote Local Tow pricing ($85).`;
+    } else {
+      serviceTier = "long_distance";
+      pricingNote = distanceMiles 
+        ? `${distanceMiles.toFixed(0)} miles - this is a Long Distance Tow. Quote varies by distance - collect details and confirm pricing.`
+        : "Distance unknown - treat as Long Distance Tow. Collect details for pricing.";
+    }
+    
     // Build message
     let message = "";
     if (inArea) {
@@ -211,7 +244,10 @@ serve(async (req: Request) => {
       distance_miles: distanceMiles,
       eta_minutes: etaData.eta_minutes_estimate,
       eta_range: etaData.eta_range_minutes || `${distanceSettings.eta_min_minutes || 30}-${distanceSettings.eta_max_minutes || 60} minutes`,
-      message
+      message,
+      service_tier: serviceTier,
+      pricing_note: pricingNote,
+      local_radius_miles: localRadiusMiles
     };
 
     // Log for debugging (no PII - truncate address)
@@ -230,7 +266,10 @@ serve(async (req: Request) => {
         distance_miles: null,
         eta_minutes: 45,
         eta_range: "30-60 minutes",
-        message: "Verification unavailable - proceeding with dispatch"
+        message: "Verification unavailable - proceeding with dispatch",
+        service_tier: "long_distance",
+        pricing_note: "Verification failed - treat as long distance, collect details for pricing.",
+        local_radius_miles: 10
       } as ServiceAreaResponse),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
