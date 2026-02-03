@@ -46,19 +46,17 @@ export default function SimulatorPage() {
         <SuggestedTestsBanner onDismiss={() => setShowBanner(false)} />
       )}
 
-      {/* Tab guidance */}
+      {/* Tab guidance - simplified */}
       <div className="mb-4 p-4 rounded-lg bg-muted/50 border">
-        <p className="text-sm text-muted-foreground">
-          <strong>Choose a testing tool:</strong>
-          {" "}
-          <span className="text-foreground">Call Simulator</span> - Test full phone conversations with your AI
-          {" • "}
-          <span className="text-foreground">SMS Simulator</span> - Test text message responses
-          {" • "}
-          <span className="text-foreground">AI Brain Debugger</span> - See how your AI retrieves knowledge
-          {" • "}
-          <span className="text-foreground">Quick Setup</span> - Configure your testing environment
+        <p className="text-sm text-muted-foreground mb-1">
+          <strong>Testing tools available:</strong>
         </p>
+        <div className="text-sm text-muted-foreground grid grid-cols-1 sm:grid-cols-2 gap-1">
+          <span><span className="text-foreground font-medium">Call Simulator</span> — Test full phone conversations</span>
+          <span><span className="text-foreground font-medium">SMS Simulator</span> — Test text message responses</span>
+          <span><span className="text-foreground font-medium">AI Brain Debugger</span> — See how your AI retrieves knowledge</span>
+          <span><span className="text-foreground font-medium">Quick Setup</span> — Configure your testing environment</span>
+        </div>
       </div>
 
       <Tabs defaultValue={defaultTab} className="w-full">
@@ -81,9 +79,9 @@ export default function SimulatorPage() {
           </TabsTrigger>
           <TabsTrigger value="conflicts" className="gap-2">
             <Users className="h-4 w-4" />
-            Customer Conflicts
+            Duplicate Contacts
           </TabsTrigger>
-          <TabsTrigger value="debug" className="gap-2">
+          <TabsTrigger value="debug" className="gap-2" title="Advanced tools for technical troubleshooting">
             <Bug className="h-4 w-4" />
             Debug Pages
           </TabsTrigger>

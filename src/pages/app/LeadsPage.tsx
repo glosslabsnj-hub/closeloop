@@ -61,9 +61,9 @@ export default function LeadsPage() {
     <PageContainer>
       <PageHeader
         title="Leads"
-        description="Manage and track all your leads"
+        description="Leads are automatically captured from calls and messages"
         action={
-          <Button className="gap-2">
+          <Button className="gap-2" variant="outline" disabled title="Leads are automatically captured from calls and messages">
             <Plus className="h-4 w-4" />
             Add Lead
           </Button>

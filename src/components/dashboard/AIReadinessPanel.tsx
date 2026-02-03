@@ -164,13 +164,13 @@ export function AIReadinessPanel({ compact = false, alwaysShow = false }: AIRead
       </CardHeader>
       
       <CardContent className="space-y-6">
-        {/* P0 Issues - Must Fix */}
+        {/* P0 Issues - Required to Go Live */}
         {p0Flags.length > 0 && (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <XCircle className="h-4 w-4 text-rose-500" />
               <h4 className="font-medium text-rose-600 dark:text-rose-400">
-                Must Fix to Go Live ({p0Flags.length})
+                Required to Go Live ({p0Flags.length})
               </h4>
             </div>
             <div className="space-y-2">
@@ -204,13 +204,13 @@ export function AIReadinessPanel({ compact = false, alwaysShow = false }: AIRead
         
         {p0Flags.length > 0 && p1Flags.length > 0 && <Separator />}
         
-        {/* P1 Issues - Recommended */}
+        {/* P1 Issues - Optional Improvements */}
         {p1Flags.length > 0 && (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Info className="h-4 w-4 text-amber-500" />
               <h4 className="font-medium text-amber-600 dark:text-amber-400">
-                Recommended Improvements ({p1Flags.length})
+                Optional Improvements ({p1Flags.length})
               </h4>
             </div>
             <div className="space-y-2">

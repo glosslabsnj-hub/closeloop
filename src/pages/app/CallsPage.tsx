@@ -258,9 +258,9 @@ export default function CallsPage() {
         <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 flex items-start gap-3">
           <Phone className="h-5 w-5 text-blue-500 mt-0.5 shrink-0" />
           <div className="text-sm">
-            <p className="font-medium text-blue-700 dark:text-blue-300">Some calls are awaiting AI summary</p>
+            <p className="font-medium text-blue-700 dark:text-blue-300">Some recent calls are still being processed</p>
             <p className="text-muted-foreground">
-              Call data (summary, service requested) is populated when calls end. You can also click the edit icon to add details manually.
+              Summaries and extracted details appear automatically after calls end. You can also click the edit icon to add details manually.
             </p>
           </div>
         </div>

@@ -63,8 +63,8 @@ export default function SettingsPage() {
       description: "Auto-confirm bookings, send follow-ups, and route leads automatically.",
     },
     developer: {
-      title: "Developer Tools",
-      description: "Debug and inspect AI behavior. For advanced users only.",
+      title: "Developer Tools (Optional)",
+      description: "Advanced debugging tools. Most users won't need this.",
     },
   };
 
@@ -195,17 +195,17 @@ export default function SettingsPage() {
           {renderSectionContent()}
         </SettingsSection>
 
-        {/* Danger Zone - Always visible at bottom */}
-        <Card className="border-destructive/50">
+        {/* Account Access - Always visible at bottom */}
+        <Card className="border-muted">
           <CardHeader>
-            <CardTitle className="text-destructive">Danger Zone</CardTitle>
+            <CardTitle className="text-foreground">Account Access</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center justify-between">
             <div>
               <p className="font-medium">Sign out of your account</p>
-              <p className="text-sm text-muted-foreground">You'll need to sign in again</p>
+              <p className="text-sm text-muted-foreground">You can sign back in anytime</p>
             </div>
-            <Button variant="destructive" onClick={signOut}>
+            <Button variant="outline" onClick={signOut}>
               <Lock className="h-4 w-4 mr-2" />
               Sign Out
             </Button>

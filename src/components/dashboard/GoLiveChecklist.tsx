@@ -229,8 +229,8 @@ export function GoLiveChecklist() {
               </Link>
             ) : (
               <>
-                <XCircle className="h-4 w-4" />
-                Fix {p0Flags.length} Issue{p0Flags.length !== 1 ? 's' : ''} First
+                <Sparkles className="h-4 w-4" />
+                Complete {p0Flags.length} Step{p0Flags.length !== 1 ? 's' : ''} to Go Live
               </>
             )}
           </Button>

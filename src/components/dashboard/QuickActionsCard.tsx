@@ -60,11 +60,14 @@ export function QuickActionsCard() {
 
   return (
     <Card>
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2">
         <CardTitle className="text-base font-medium flex items-center gap-2">
           <Zap className="h-4 w-4 text-primary" />
           Quick Actions
         </CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Common tasks you can do right now
+        </p>
       </CardHeader>
       <CardContent className="space-y-2">
         {actions.map((action) => {
