@@ -1,4 +1,4 @@
-// DEPLOYMENT TIMESTAMP: 2026-02-02T12:00:00Z - CONTRACT-WIREUP
+// DEPLOYMENT TIMESTAMP: 2026-02-03T12:00:00Z - MULTI-AGENT-ROUTING
 // If you see this comment, the new version is deployed
 import { serve } from "https://deno.land/std@0.191.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -8,6 +8,7 @@ import {
   buildDynamicVariables
 } from "../_shared/buildBusinessContext.ts";
 import { getAllVariableKeys } from "../_shared/voiceContextContract.ts";
+import { getAgentIdForMode } from "../_shared/agentResolver.ts";
 
 // Convert all dynamic variable values to strings (ElevenLabs requires string-only)
 function toStringOnlyVars(vars: Record<string, string | number | boolean>): Record<string, string> {
@@ -41,19 +42,10 @@ serve(async (req) => {
   }
 
   try {
-    // Use global agent ID from environment - shared across all tenants
-    const ELEVENLABS_AGENT_ID = Deno.env.get("ELEVENLABS_AGENT_ID");
+    // Note: Agent ID is now resolved dynamically per business_mode via getAgentIdForMode()
     const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY_2") || Deno.env.get("ELEVENLABS_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    
-    if (!ELEVENLABS_AGENT_ID) {
-      console.error("ELEVENLABS_AGENT_ID not configured");
-      return new Response(
-        JSON.stringify({ error: "ElevenLabs Agent ID not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
     
     if (!ELEVENLABS_API_KEY) {
       console.error("ELEVENLABS_API_KEY not configured");
@@ -308,23 +300,42 @@ serve(async (req) => {
       console.log("No tenantId provided for browser test - using minimal defaults");
     }
 
-    const DEPLOYED_VERSION = "2026-02-02T12:00:00Z";
+    // ===== RESOLVE MODE-SPECIFIC AGENT ID =====
+    const businessMode = String(dynamicVariables.business_mode || "general");
+    const { agentId, source: agentSource } = getAgentIdForMode(businessMode);
+    
+    if (!agentId) {
+      console.error(`No ElevenLabs agent configured for mode: ${businessMode}`);
+      return new Response(
+        JSON.stringify({ 
+          error: `No agent configured for business mode: ${businessMode}`,
+          _debug: { business_mode: businessMode, source: agentSource }
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`Using ElevenLabs agent: ${agentId.slice(0, 12)}... (source: ${agentSource}, mode: ${businessMode})`);
+
+    const DEPLOYED_VERSION = "2026-02-03T12:00:00Z";
 
     // Log deployment version for verification
-    console.log(`✅ ELEV_TOKEN_VERSION=${DEPLOYED_VERSION} | MODE=${connectionType} | VARS=${Object.keys(dynamicVariables).length}`);
+    console.log(`✅ ELEV_TOKEN_VERSION=${DEPLOYED_VERSION} | MODE=${connectionType} | VARS=${Object.keys(dynamicVariables).length} | AGENT_SOURCE=${agentSource}`);
 
     // DUAL PATH: WebRTC (default) or WebSocket
     if (connectionType === "webrtc") {
       // WebRTC PATH: fetch a short-lived conversation token.
       // IMPORTANT: Do NOT POST to the WebSocket conversation endpoint.
       console.log("Getting WebRTC conversation token for agent:", {
-        agent_id: ELEVENLABS_AGENT_ID,
+        agent_id: agentId.slice(0, 12) + "...",
         tenantId,
+        businessMode,
+        agentSource,
         flow: "webrtc-token",
       });
 
       const tokenResponse = await fetch(
-        `https://api.elevenlabs.io/v1/convai/conversation/token?agent_id=${ELEVENLABS_AGENT_ID}`,
+        `https://api.elevenlabs.io/v1/convai/conversation/token?agent_id=${agentId}`,
         {
           method: "GET",
           headers: {
@@ -368,7 +379,9 @@ serve(async (req) => {
           _debug: {
             deployedVersion: DEPLOYED_VERSION,
             flow: "webrtc-token",
-            agentId: ELEVENLABS_AGENT_ID,
+            agentId: agentId.slice(0, 12) + "...",
+            agentSource,
+            businessMode,
             tokenPrefix: token.slice(0, 12),
             denoStdVersion: "0.191.0",
             dynamicVarsCount: Object.keys(stringOnlyVars).length,
@@ -380,13 +393,15 @@ serve(async (req) => {
     } else {
       // WEBSOCKET PATH: Get signed URL directly (original flow)
       console.log("Getting WebSocket signed URL directly for agent:", {
-        agent_id: ELEVENLABS_AGENT_ID,
+        agent_id: agentId.slice(0, 12) + "...",
         tenantId,
+        businessMode,
+        agentSource,
         flow: "websocket-signed-url",
       });
 
       const signedUrlResponse = await fetch(
-        `https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=${ELEVENLABS_AGENT_ID}`,
+        `https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=${agentId}`,
         {
           method: "GET",
           headers: {
@@ -419,7 +434,9 @@ serve(async (req) => {
           _debug: {
             deployedVersion: DEPLOYED_VERSION,
             flow: "websocket-signed-url",
-            agentId: ELEVENLABS_AGENT_ID,
+            agentId: agentId.slice(0, 12) + "...",
+            agentSource,
+            businessMode,
             denoStdVersion: "0.191.0",
             dynamicVarsCount: Object.keys(stringOnlyVarsWs).length,
             hasContractFields: Boolean(stringOnlyVarsWs.dynamic_variables_keys && stringOnlyVarsWs.business_brain_json_hash),
