@@ -4,71 +4,74 @@
 
 /* =====================================================
    CloseLoop Design System - 2026/2027
-   Theme: "Quiet Charcoal" - Emotionally Calm, Near-Monochrome
+   Theme: "Warm Stone" - Calm, Human, Quietly Premium
    ===================================================== */
 
 @layer base {
   :root {
     /* =====================================================
-       "Quiet Charcoal" Theme - Near-Monochrome, Business Tool
-       One muted accent, warm grays, invisible UI
+       "Warm Stone" Theme - Layered warmth, subtle depth
+       One warm accent, tonal grays, softly lit
        ===================================================== */
 
-    /* Core Background - Slightly lifted warm charcoal for comfort */
-    --background: 220 6% 11%;
-    --foreground: 220 8% 88%;
+    /* Core Background - Warm graphite, slightly lifted */
+    --background: 30 8% 7%;
+    --foreground: 30 6% 88%;
 
-    /* Cards - Minimal contrast, spacing does the work */
-    --card: 220 5% 13%;
-    --card-foreground: 220 6% 86%;
+    /* Cards - Gentle tonal lift, warm layers */
+    --card: 28 6% 10%;
+    --card-foreground: 30 5% 86%;
 
-    --popover: 220 5% 14%;
-    --popover-foreground: 220 6% 88%;
+    --popover: 28 7% 11%;
+    --popover-foreground: 30 6% 88%;
 
-    /* Primary - Muted warm neutral (NOT blue, NOT green) */
-    /* Desaturated slate with warm undertone */
-    --primary: 220 8% 52%;
-    --primary-foreground: 220 6% 98%;
+    /* Primary - Warm stone / olive sage accent */
+    /* Low saturation, almost neutral but with soul */
+    --primary: 150 25% 45%;
+    --primary-foreground: 30 5% 98%;
 
-    /* Secondary - Nearly invisible panel */
-    --secondary: 220 5% 15%;
-    --secondary-foreground: 220 6% 72%;
+    /* Secondary - Warm neutral panel */
+    --secondary: 30 5% 12%;
+    --secondary-foreground: 30 5% 70%;
 
-    /* Muted - Soft, readable, never harsh */
-    --muted: 220 5% 16%;
-    --muted-foreground: 220 5% 55%;
+    /* Muted - Soft warm gray */
+    --muted: 28 5% 14%;
+    --muted-foreground: 30 4% 52%;
 
-    /* Accent - Barely visible tint for active states */
-    --accent: 220 6% 18%;
-    --accent-foreground: 220 6% 75%;
+    /* Accent - Warm stone tint for emphasis moments */
+    --accent: 35 12% 18%;
+    --accent-foreground: 35 8% 78%;
+
+    /* Warm signature - for editorial emphasis (NOT for fills) */
+    --warm-signature: 38 18% 55%;
 
     /* Status Colors - Informational only, muted */
-    --destructive: 0 45% 50%;
+    --destructive: 0 40% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 150 35% 42%;
+    --success: 145 30% 40%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 60% 50%;
+    --warning: 38 55% 48%;
     --warning-foreground: 38 80% 10%;
 
-    /* Borders & Inputs - Very soft, minimal */
-    --border: 220 5% 20%;
-    --input: 220 5% 15%;
-    --ring: 220 8% 52%;
+    /* Borders & Inputs - Soft, warm */
+    --border: 30 6% 18%;
+    --input: 28 5% 12%;
+    --ring: 150 25% 45%;
 
     /* Radius - Comfortable, not too round */
     --radius: 0.5rem;
 
-    /* Sidebar - Blends with background */
-    --sidebar-background: 220 6% 10%;
-    --sidebar-foreground: 220 5% 60%;
-    --sidebar-primary: 220 8% 52%;
-    --sidebar-primary-foreground: 220 6% 98%;
-    --sidebar-accent: 220 5% 16%;
-    --sidebar-accent-foreground: 220 5% 75%;
-    --sidebar-border: 220 5% 18%;
-    --sidebar-ring: 220 8% 52%;
+    /* Sidebar - Warmer, blends softly */
+    --sidebar-background: 30 7% 6%;
+    --sidebar-foreground: 30 5% 58%;
+    --sidebar-primary: 150 25% 45%;
+    --sidebar-primary-foreground: 30 5% 98%;
+    --sidebar-accent: 35 8% 14%;
+    --sidebar-accent-foreground: 35 6% 72%;
+    --sidebar-border: 30 5% 15%;
+    --sidebar-ring: 150 25% 45%;
   }
 }
 
@@ -123,15 +126,28 @@
 @layer utilities {
   /* ==========================================
      EXECUTIVE WORKSPACE BACKGROUND
-     Warm, stable, non-technical
+     Warm, softly lit, human
      ========================================== */
   .app-bg {
     position: relative;
     background: hsl(var(--background));
   }
   
+  /* Subtle warm ambient glow - very faint */
   .app-bg::before {
-    display: none;
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40vh;
+    background: radial-gradient(
+      ellipse 80% 50% at 50% 0%,
+      hsl(35 15% 12% / 0.3),
+      transparent 70%
+    );
+    pointer-events: none;
+    z-index: 0;
   }
 
   .app-shell-bg {
@@ -140,22 +156,22 @@
 
   /* ==========================================
      EXECUTIVE WORKSPACE FRAME
-     Signature structural element - the "desk" feeling
+     Signature structural element with warm accent
      ========================================== */
   .workspace-frame {
     @apply relative;
-    /* Subtle left emphasis strip - signature element */
-    border-left: 2px solid hsl(var(--border) / 0.3);
+    /* Warm signature left strip */
+    border-left: 2px solid hsl(var(--warm-signature) / 0.2);
     padding-left: 1.5rem;
   }
 
   .workspace-frame-subtle {
     @apply relative;
-    border-left: 1px solid hsl(var(--border) / 0.15);
+    border-left: 1px solid hsl(var(--warm-signature) / 0.12);
     padding-left: 1rem;
   }
 
-  /* Focus rail - inset content column with calm framing */
+  /* Focus rail - inset content with warm edge */
   .focus-rail {
     @apply relative mx-auto;
     max-width: 960px;
@@ -167,53 +183,64 @@
     background: linear-gradient(
       to bottom,
       transparent,
-      hsl(var(--border) / 0.2) 10%,
-      hsl(var(--border) / 0.2) 90%,
+      hsl(var(--warm-signature) / 0.15) 15%,
+      hsl(var(--warm-signature) / 0.15) 85%,
       transparent
     );
   }
 
-  /* Work area - framed content zone */
+  /* Work area - warm framed content zone */
   .work-area {
     @apply relative rounded-xl;
-    background: hsl(var(--card) / 0.5);
-    border: 1px solid hsl(var(--border) / 0.2);
+    background: hsl(var(--card) / 0.7);
+    border: 1px solid hsl(var(--border) / 0.25);
+    box-shadow: 
+      0 1px 3px hsl(0 0% 0% / 0.1),
+      0 4px 12px hsl(0 0% 0% / 0.05),
+      inset 0 1px 0 hsl(var(--warm-signature) / 0.03);
     padding: 2rem;
   }
 
   .work-area-compact {
     @apply relative rounded-lg;
-    background: hsl(var(--card) / 0.4);
-    border: 1px solid hsl(var(--border) / 0.15);
+    background: hsl(var(--card) / 0.6);
+    border: 1px solid hsl(var(--border) / 0.2);
+    box-shadow: 0 2px 8px hsl(0 0% 0% / 0.06);
     padding: 1.25rem;
   }
 
   /* ==========================================
-     SURFACE SYSTEM - Minimal, Breathing
-     Spacing > Contrast, borders barely visible
+     SURFACE SYSTEM - Tonal Layers, Warm Depth
+     Micro-shadows, soft borders, subtle warmth
      ========================================== */
   .surface-1 {
     @apply relative rounded-xl;
-    background: hsl(var(--card) / 0.6);
-    border: 1px solid hsl(var(--border) / 0.2);
+    background: hsl(var(--card) / 0.8);
+    border: 1px solid hsl(var(--border) / 0.25);
+    box-shadow: 
+      0 1px 2px hsl(0 0% 0% / 0.08),
+      0 4px 16px hsl(0 0% 0% / 0.04);
   }
 
   .surface-2 {
     @apply relative rounded-lg;
-    background: hsl(var(--card) / 0.4);
-    border: 1px solid hsl(var(--border) / 0.15);
+    background: hsl(var(--card) / 0.6);
+    border: 1px solid hsl(var(--border) / 0.2);
+    box-shadow: 0 2px 8px hsl(0 0% 0% / 0.05);
   }
 
   .surface-3 {
     @apply relative rounded-xl;
     background: hsl(var(--popover));
-    border: 1px solid hsl(var(--border) / 0.25);
-    box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.3);
+    border: 1px solid hsl(var(--border) / 0.3);
+    box-shadow: 
+      0 8px 32px -8px hsl(0 0% 0% / 0.35),
+      0 0 0 1px hsl(var(--warm-signature) / 0.05);
     z-index: 100;
   }
 
   /* ==========================================
-     EDITORIAL HEADERS - Not technical, purposeful
+     EDITORIAL HEADERS - Warm signature emphasis
      ========================================== */
   .editorial-header {
     @apply relative pb-8 mb-10;
@@ -223,7 +250,11 @@
     content: '';
     @apply absolute bottom-0 left-0 h-px;
     width: 4rem;
-    background: hsl(var(--border) / 0.4);
+    background: linear-gradient(
+      90deg,
+      hsl(var(--warm-signature) / 0.4),
+      hsl(var(--warm-signature) / 0.1)
+    );
   }
 
   .editorial-title {
@@ -234,14 +265,25 @@
 
   .editorial-subtitle {
     @apply text-sm mt-3 leading-relaxed;
-    color: hsl(var(--muted-foreground) / 0.7);
+    color: hsl(var(--muted-foreground) / 0.75);
     max-width: 32rem;
   }
 
-  /* Section label - editorial style */
+  /* Section label - warm editorial style */
   .section-label {
     @apply text-[10px] font-medium uppercase tracking-[0.15em] mb-4;
-    color: hsl(var(--muted-foreground) / 0.5);
+    color: hsl(var(--warm-signature) / 0.5);
+  }
+
+  /* Section divider - warm accent */
+  .section-divider {
+    @apply h-px my-8;
+    background: linear-gradient(
+      90deg,
+      hsl(var(--warm-signature) / 0.15),
+      hsl(var(--border) / 0.15) 30%,
+      transparent
+    );
   }
 
   /* ==========================================
@@ -276,24 +318,25 @@
   }
 
   /* ==========================================
-     TAB STYLING - Minimal, editorial
+     TAB STYLING - Warm active state
      ========================================== */
   .tab-pill {
-    @apply relative inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors duration-150;
+    @apply relative inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-150;
     @apply text-muted-foreground/60 hover:text-foreground/70;
   }
 
   .tab-pill[data-state="active"] {
     @apply text-foreground;
-    background: hsl(var(--muted) / 0.4);
+    background: hsl(var(--muted) / 0.5);
+    box-shadow: inset 0 1px 0 hsl(var(--warm-signature) / 0.08);
   }
 
   /* ==========================================
-     TABLE TOOLBAR - Quiet, functional
+     TABLE TOOLBAR - Warm divider
      ========================================== */
   .table-toolbar {
     @apply flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-8 py-3;
-    border-bottom: 1px solid hsl(var(--border) / 0.15);
+    border-bottom: 1px solid hsl(var(--warm-signature) / 0.1);
   }
 
   .table-toolbar-search {
@@ -309,26 +352,33 @@
   }
 
   /* ==========================================
-     STATUS - Informational only, very muted
+     STATUS - Informational only, warm-tinted
      ========================================== */
   .status-soft-success {
-    @apply bg-success/6 text-success/80 border-success/10;
+    @apply bg-success/8 text-success/85 border-success/12;
   }
 
   .status-soft-warning {
-    @apply bg-warning/6 text-warning/80 border-warning/10;
+    @apply bg-warning/8 text-warning/85 border-warning/12;
   }
 
   .status-soft-destructive {
-    @apply bg-destructive/6 text-destructive/80 border-destructive/10;
+    @apply bg-destructive/8 text-destructive/85 border-destructive/12;
   }
 
   .status-soft-primary {
-    @apply bg-muted/40 text-foreground/70 border-border/20;
+    @apply bg-muted/50 text-foreground/75 border-border/25;
+    box-shadow: inset 0 1px 0 hsl(var(--warm-signature) / 0.05);
   }
 
   .status-soft-muted {
-    @apply bg-muted/30 text-muted-foreground/60 border-border/15;
+    @apply bg-muted/35 text-muted-foreground/65 border-border/18;
+  }
+
+  /* Warm emphasis - for important but not urgent elements */
+  .warm-emphasis {
+    background: hsl(var(--warm-signature) / 0.08);
+    border: 1px solid hsl(var(--warm-signature) / 0.12);
   }
 
   /* Priority accent - very subtle */
@@ -392,22 +442,38 @@
   }
 
   /* ==========================================
-     CALM VISUAL ELEMENTS
+     WARM VISUAL ELEMENTS
      ========================================== */
   .gradient-primary {
     background: hsl(var(--primary));
   }
 
   .gradient-primary-subtle {
-    background: hsl(var(--muted) / 0.3);
+    background: linear-gradient(
+      135deg,
+      hsl(var(--muted) / 0.4),
+      hsl(var(--muted) / 0.25)
+    );
   }
 
   .gradient-hero {
-    background: hsl(var(--muted) / 0.5);
+    background: linear-gradient(
+      180deg,
+      hsl(var(--muted) / 0.6),
+      hsl(var(--muted) / 0.35)
+    );
+    box-shadow: inset 0 1px 0 hsl(var(--warm-signature) / 0.06);
   }
 
   .gradient-subtle {
     background: hsl(var(--background));
+  }
+
+  /* Warm highlight - for focus areas */
+  .warm-glow {
+    box-shadow: 
+      0 0 24px hsl(var(--warm-signature) / 0.06),
+      0 0 48px hsl(var(--warm-signature) / 0.03);
   }
 
   .btn-glow {
@@ -416,51 +482,74 @@
   }
 
   .btn-glow:hover {
-    filter: brightness(1.03);
+    filter: brightness(1.04);
+    box-shadow: 0 2px 12px hsl(var(--warm-signature) / 0.1);
   }
 
   /* ==========================================
-     GLASS - Subtle backdrop
+     GLASS - Warm tinted backdrop
      ========================================== */
   .glass {
-    @apply bg-card/50 border border-border/20;
+    @apply border;
+    background: hsl(var(--card) / 0.55);
+    border-color: hsl(var(--border) / 0.22);
     backdrop-filter: blur(8px);
+    box-shadow: inset 0 1px 0 hsl(var(--warm-signature) / 0.04);
   }
 
   .glass-strong {
-    @apply bg-card/70 border border-border/25;
+    @apply border;
+    background: hsl(var(--card) / 0.72);
+    border-color: hsl(var(--border) / 0.28);
     backdrop-filter: blur(12px);
+    box-shadow: inset 0 1px 0 hsl(var(--warm-signature) / 0.06);
   }
 
-  /* Mobile nav */
+  /* Mobile nav - warm top edge */
   .mobile-nav-floating {
     @apply fixed bottom-0 left-0 right-0 z-50;
-    background: hsl(var(--background) / 0.95);
+    background: hsl(var(--background) / 0.96);
     backdrop-filter: blur(12px);
-    border-top: 1px solid hsl(var(--border) / 0.2);
+    border-top: 1px solid hsl(var(--warm-signature) / 0.12);
   }
 
   /* ==========================================
-     CARD SYSTEM - Breathing, not boxed
+     CARD SYSTEM - Warm depth, soft shadows
      ========================================== */
   .card-elevated {
     @apply transition-all duration-150 ease-out;
+    box-shadow: 
+      0 1px 3px hsl(0 0% 0% / 0.08),
+      0 4px 12px hsl(0 0% 0% / 0.04);
   }
 
   .card-interactive {
-    @apply transition-colors duration-150 ease-out cursor-pointer;
-    @apply hover:bg-muted/10;
+    @apply transition-all duration-150 ease-out cursor-pointer;
+  }
+
+  .card-interactive:hover {
+    background: hsl(var(--muted) / 0.12);
+  }
+
+  .card-interactive:hover {
+    box-shadow: 
+      0 2px 8px hsl(0 0% 0% / 0.1),
+      inset 0 1px 0 hsl(var(--warm-signature) / 0.05);
   }
 
   .card-hover-glow {
-    @apply transition-colors duration-150;
+    @apply transition-all duration-150;
   }
 
-  /* Stat icon - nearly invisible */
+  .card-hover-glow:hover {
+    box-shadow: 0 0 20px hsl(var(--warm-signature) / 0.08);
+  }
+
+  /* Stat icon - warm tinted */
   .stat-icon-container {
     @apply flex items-center justify-center h-8 w-8 rounded-lg;
-    background: hsl(var(--muted) / 0.3);
-    color: hsl(var(--muted-foreground) / 0.5);
+    background: hsl(var(--warm-signature) / 0.08);
+    color: hsl(var(--warm-signature) / 0.6);
   }
 
   /* ==========================================
