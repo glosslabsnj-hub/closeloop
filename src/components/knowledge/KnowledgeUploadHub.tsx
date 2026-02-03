@@ -1,18 +1,10 @@
 import { useState, useRef, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTenantConfig } from "@/hooks/useTenantConfig";
-import { useKnowledgeUploads, KnowledgeSourceType } from "@/hooks/useKnowledgeUploads";
+import { useKnowledgeUploads } from "@/hooks/useKnowledgeUploads";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { 
@@ -23,75 +15,32 @@ import {
   CheckCircle2,
   XCircle,
   Loader2,
-  UtensilsCrossed,
-  Briefcase,
-  HelpCircle,
-  FileCheck,
-  File
+  Sparkles,
+  File,
+  Wand2
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
-interface DocumentTypeOption {
-  value: KnowledgeSourceType;
-  label: string;
-  description: string;
-  icon: React.ElementType;
-  modes?: string[];
-}
-
-const documentTypes: DocumentTypeOption[] = [
-  {
-    value: "menu_pdf",
-    label: "Menu",
-    description: "Price list, menu PDF, or photos of your menu boards",
-    icon: UtensilsCrossed,
-    modes: ["food"]
-  },
-  {
-    value: "services_doc",
-    label: "Services & Pricing",
-    description: "Service catalogs, pricing sheets, or rate cards",
-    icon: Briefcase,
-    modes: ["service", "dispatch", "medical", "general"]
-  },
-  {
-    value: "pricing",
-    label: "Price List",
-    description: "General pricing document for any business type",
-    icon: FileSpreadsheet
-  },
-  {
-    value: "faq_doc",
-    label: "FAQs",
-    description: "Frequently asked questions document or knowledge base export",
-    icon: HelpCircle
-  },
-  {
-    value: "general",
-    label: "Photos / Images",
-    description: "Menu boards, storefront signs, or any business photos with text",
-    icon: Image
-  }
-];
-
 const acceptedFormats = ".pdf,.png,.jpg,.jpeg,.docx,.xlsx";
 const formatLabels = ["PDF", "PNG", "JPG", "DOCX", "XLSX"];
 
+interface UploadResult {
+  detected_type: string;
+  confidence: number;
+  new_items: number;
+  conflicts: number;
+  matched: number;
+}
+
 export function KnowledgeUploadHub() {
   const { tenant } = useAuth();
-  const { businessMode } = useTenantConfig();
-  const { uploads, processingCount, createUpload, isCreating } = useKnowledgeUploads();
-  const [selectedType, setSelectedType] = useState<KnowledgeSourceType>("general");
+  const { uploads, processingCount, createUpload } = useKnowledgeUploads();
   const [isDragging, setIsDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [lastResult, setLastResult] = useState<UploadResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Filter document types based on business mode
-  const availableTypes = documentTypes.filter(dt => 
-    !dt.modes || dt.modes.includes(businessMode)
-  );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -110,7 +59,7 @@ export function KnowledgeUploadHub() {
     if (files.length > 0) {
       handleFileUpload(files[0]);
     }
-  }, [selectedType]);
+  }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -157,12 +106,13 @@ export function KnowledgeUploadHub() {
 
     setIsUploading(true);
     setUploadProgress(10);
+    setLastResult(null);
 
     try {
-      // 1. Create knowledge_sources record
+      // 1. Create knowledge_sources record with "auto" type (AI will detect)
       const source = await createUpload({
         fileName: file.name,
-        sourceType: selectedType
+        sourceType: "general" // Will be auto-detected
       });
       setUploadProgress(20);
 
@@ -175,7 +125,7 @@ export function KnowledgeUploadHub() {
       if (uploadError) {
         throw new Error(`Upload failed: ${uploadError.message}`);
       }
-      setUploadProgress(60);
+      setUploadProgress(50);
 
       // 3. Get public URL
       const { data: urlData } = supabase.storage
@@ -187,28 +137,54 @@ export function KnowledgeUploadHub() {
         .from("knowledge_sources")
         .update({ file_url: urlData.publicUrl, status: "processing" })
         .eq("id", source.id);
-      setUploadProgress(80);
+      setUploadProgress(60);
 
-      // 5. Trigger processing edge function
-      const { error: fnError } = await supabase.functions.invoke("process-knowledge-upload", {
+      // 5. Trigger processing edge function with auto-detect enabled
+      const { data: fnData, error: fnError } = await supabase.functions.invoke("process-knowledge-upload", {
         body: {
           sourceId: source.id,
           tenantId: tenant.id,
           fileUrl: urlData.publicUrl,
-          sourceType: selectedType
+          sourceType: "auto", // Auto-detect mode
+          autoDetect: true
         }
       });
 
       if (fnError) {
         console.error("Processing error:", fnError);
-        // Don't throw - the file is uploaded, processing will show in updates tab
+        toast({
+          title: "Processing started",
+          description: "Your document is being analyzed. Check the Review Queue for results."
+        });
+      } else if (fnData?.success) {
+        setLastResult({
+          detected_type: fnData.detected_type,
+          confidence: fnData.confidence,
+          new_items: fnData.new_items,
+          conflicts: fnData.conflicts,
+          matched: fnData.matched
+        });
+        
+        const totalItems = fnData.new_items + fnData.conflicts;
+        if (totalItems > 0) {
+          toast({
+            title: `${getTypeLabel(fnData.detected_type)} detected!`,
+            description: `Found ${fnData.new_items} new items and ${fnData.conflicts} updates to review.`
+          });
+        } else if (fnData.matched > 0) {
+          toast({
+            title: "All items matched",
+            description: `${fnData.matched} items already exist in your knowledge base.`
+          });
+        } else {
+          toast({
+            title: "Document processed",
+            description: "No extractable items found in this document."
+          });
+        }
       }
 
       setUploadProgress(100);
-      toast({
-        title: "Upload started",
-        description: "Your document is being processed. Check the Updates tab for progress."
-      });
 
     } catch (error) {
       console.error("Upload error:", error);
@@ -219,7 +195,7 @@ export function KnowledgeUploadHub() {
       });
     } finally {
       setIsUploading(false);
-      setUploadProgress(0);
+      setTimeout(() => setUploadProgress(0), 1000);
     }
   };
 
@@ -229,50 +205,21 @@ export function KnowledgeUploadHub() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Upload className="h-5 w-5" />
-          Upload Documents
+          <Wand2 className="h-5 w-5 text-primary" />
+          Smart Upload
         </CardTitle>
         <CardDescription>
-          Speed up AI setup by uploading existing business documents. Your Business Brain is the source of truth — uploads are reviewed before updating your AI.
+          Drop any document or photo — menus, price lists, hours signs, FAQs — and we'll automatically extract the information.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Document Type Selector */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Select 
-            value={selectedType} 
-            onValueChange={(v) => setSelectedType(v as KnowledgeSourceType)}
-          >
-            <SelectTrigger className="w-full sm:w-[200px]">
-              <SelectValue placeholder="Document type" />
-            </SelectTrigger>
-            <SelectContent>
-              {availableTypes.map((type) => {
-                const Icon = type.icon;
-                return (
-                  <SelectItem key={type.value} value={type.value}>
-                    <div className="flex items-center gap-2">
-                      <Icon className="h-4 w-4" />
-                      {type.label}
-                    </div>
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-          
-          <p className="text-sm text-muted-foreground flex-1">
-            {availableTypes.find(t => t.value === selectedType)?.description}
-          </p>
-        </div>
-
         {/* Drop Zone */}
         <div
           className={cn(
-            "border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer",
+            "border-2 border-dashed rounded-lg p-8 text-center transition-all cursor-pointer",
             isDragging 
-              ? "border-primary bg-primary/5" 
-              : "border-muted-foreground/25 hover:border-muted-foreground/50",
+              ? "border-primary bg-primary/5 scale-[1.02]" 
+              : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30",
             isUploading && "pointer-events-none opacity-50"
           )}
           onDragOver={handleDragOver}
@@ -289,33 +236,87 @@ export function KnowledgeUploadHub() {
           />
           
           {isUploading ? (
-            <div className="space-y-3">
-              <Loader2 className="h-8 w-8 mx-auto animate-spin text-primary" />
-              <p className="text-sm font-medium">Uploading...</p>
+            <div className="space-y-4">
+              <div className="h-14 w-14 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                <Sparkles className="h-7 w-7 text-primary animate-pulse" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Analyzing your document...</p>
+                <p className="text-xs text-muted-foreground mt-1">AI is detecting the document type and extracting data</p>
+              </div>
               <Progress value={uploadProgress} className="max-w-xs mx-auto" />
             </div>
           ) : (
             <>
-              <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-              <p className="text-sm font-medium">
-                Drop your file here, or click to browse
+              <div className="h-14 w-14 mx-auto rounded-full bg-muted flex items-center justify-center mb-3">
+                <Upload className="h-7 w-7 text-muted-foreground" />
+              </div>
+              <p className="text-sm font-medium mb-1">
+                Drop your menu, price list, or business photo here
               </p>
-              <div className="flex items-center justify-center gap-2 mt-2">
+              <p className="text-xs text-muted-foreground mb-3">
+                We'll automatically figure out what it is and extract the information
+              </p>
+              <div className="flex items-center justify-center gap-2">
                 {formatLabels.map((format) => (
                   <Badge key={format} variant="secondary" className="text-xs">
                     {format}
                   </Badge>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-muted-foreground mt-3">
                 Max file size: 10MB
               </p>
             </>
           )}
         </div>
 
+        {/* Last Upload Result */}
+        {lastResult && (
+          <Card className="bg-muted/30 border-primary/20">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant="outline" className="bg-primary/10">
+                      {getTypeLabel(lastResult.detected_type)}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {Math.round(lastResult.confidence * 100)}% confidence
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <p className="text-lg font-semibold text-primary">{lastResult.new_items}</p>
+                      <p className="text-xs text-muted-foreground">New items</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-semibold text-amber-500">{lastResult.conflicts}</p>
+                      <p className="text-xs text-muted-foreground">Updates</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-semibold text-emerald-500">{lastResult.matched}</p>
+                      <p className="text-xs text-muted-foreground">Matched</p>
+                    </div>
+                  </div>
+                  {(lastResult.new_items > 0 || lastResult.conflicts > 0) && (
+                    <Button variant="link" size="sm" className="p-0 h-auto mt-2" asChild>
+                      <Link to="/app/business-brain?tab=review">
+                        Review extracted items →
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Recent Uploads */}
-        {recentUploads.length > 0 && (
+        {recentUploads.length > 0 && !lastResult && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium">Recent Uploads</p>
@@ -341,7 +342,7 @@ export function KnowledgeUploadHub() {
               ))}
             </div>
             <Button variant="link" size="sm" className="p-0 h-auto" asChild>
-              <Link to="/app/business-brain?tab=updates">
+              <Link to="/app/business-brain?tab=assets">
                 View all uploads →
               </Link>
             </Button>
@@ -350,6 +351,22 @@ export function KnowledgeUploadHub() {
       </CardContent>
     </Card>
   );
+}
+
+function getTypeLabel(type: string): string {
+  const labels: Record<string, string> = {
+    menu_pdf: "Menu",
+    menu: "Menu",
+    services_doc: "Services",
+    services: "Services",
+    pricing: "Price List",
+    hours: "Operating Hours",
+    policies: "Policies",
+    faq_doc: "FAQs",
+    faq: "FAQs",
+    general: "Document"
+  };
+  return labels[type] || "Document";
 }
 
 function FileIcon({ fileName }: { fileName: string }) {
