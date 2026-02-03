@@ -19,7 +19,12 @@ const MODES: { value: BusinessMode; label: string; icon: React.ElementType }[] =
 ];
 
 export function AdminModeSelector() {
-  const { selectedMode, setSelectedMode, isLoading } = useAdminMode();
+  const adminModeContext = useAdminMode();
+
+  // If context not available, don't render
+  if (!adminModeContext) return null;
+
+  const { selectedMode, setSelectedMode, isLoading } = adminModeContext;
 
   if (isLoading) {
     return (
