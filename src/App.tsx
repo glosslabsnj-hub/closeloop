@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 
 // Layouts
@@ -19,8 +19,7 @@ import SignupPage from "@/pages/public/SignupPage";
 // App Pages
 import OnboardingPage from "@/pages/app/OnboardingPage";
 import DashboardPage from "@/pages/app/DashboardPage";
-import InboxPage from "@/pages/app/InboxPage";
-import LeadsPage from "@/pages/app/LeadsPage";
+import UnifiedInboxPage from "@/pages/app/UnifiedInboxPage";
 import BookingsPage from "@/pages/app/BookingsPage";
 import ServicesPage from "@/pages/app/ServicesPage";
 import IntegrationsPage from "@/pages/app/IntegrationsPage";
@@ -28,7 +27,6 @@ import AIAssistantPage from "@/pages/app/AIAssistantPage";
 import SettingsPage from "@/pages/app/SettingsPage";
 import SimulatorPage from "@/pages/app/SimulatorPage";
 import GoLivePage from "@/pages/app/GoLivePage";
-import CallsPage from "@/pages/app/CallsPage";
 import BusinessBrainPage from "@/pages/app/BusinessBrainPage";
 import BusinessBrainGapsPage from "@/pages/app/BusinessBrainGapsPage";
 import ReadinessFixCenterPage from "@/pages/app/ReadinessFixCenterPage";
@@ -91,9 +89,10 @@ const App = () => (
             {/* App Routes */}
             <Route element={<AppLayout />}>
               <Route path="/app/dashboard" element={<DashboardPage />} />
-              <Route path="/app/inbox" element={<InboxPage />} />
-              <Route path="/app/calls" element={<CallsPage />} />
-              <Route path="/app/leads" element={<LeadsPage />} />
+              <Route path="/app/inbox" element={<UnifiedInboxPage />} />
+              {/* Legacy routes - redirect to unified inbox tabs */}
+              <Route path="/app/calls" element={<Navigate to="/app/inbox?tab=calls" replace />} />
+              <Route path="/app/leads" element={<Navigate to="/app/inbox?tab=leads" replace />} />
               <Route path="/app/bookings" element={<BookingsPage />} />
               <Route path="/app/services" element={<ServicesPage />} />
               <Route path="/app/integrations" element={<IntegrationsPage />} />

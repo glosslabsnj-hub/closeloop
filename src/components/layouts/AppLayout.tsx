@@ -55,8 +55,6 @@ interface NavItem {
 const allNavItems: NavItem[] = [
   { href: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/app/inbox", label: "Inbox", icon: MessageSquare },
-  { href: "/app/calls", label: "Calls", icon: PhoneCall, requiredModules: ["ai_voice"] },
-  { href: "/app/leads", label: "Leads", icon: Users },
   { href: "/app/bookings", label: "Bookings", icon: Calendar, requiredModules: ["booking"] },
   { href: "/app/dispatch", label: "Dispatch", icon: Truck, requiredModules: ["dispatch_queue"] },
   { href: "/app/orders", label: "Orders", icon: UtensilsCrossed, requiredModules: ["food_orders"] },
@@ -64,7 +62,6 @@ const allNavItems: NavItem[] = [
   { href: "/app/reservations", label: "Reservations", icon: Clock, requiredModules: ["reservations"] },
   { href: "/app/catering", label: "Catering", icon: Cake, requiredModules: ["catering"] },
   { href: "/app/medical-intake", label: "Medical Intake", icon: Stethoscope, requiredModules: ["medical_intake"] },
-  { href: "/app/services", label: "Services", icon: Briefcase },
   { href: "/app/business-brain", label: "Business Brain", icon: Bot },
   { href: "/app/integrations", label: "Integrations", icon: Route },
   { href: "/app/simulator", label: "Simulator", icon: FlaskConical },
@@ -116,12 +113,8 @@ function AppLayoutContent() {
       prioritized.push({ href: "/app/bookings", label: "Bookings", icon: Calendar });
     }
 
-    // Always include Inbox and Calls if voice enabled
+    // Always include Inbox (unified: messages, calls, leads)
     prioritized.push({ href: "/app/inbox", label: "Inbox", icon: MessageSquare });
-    
-    if (enabledModules.includes("ai_voice")) {
-      prioritized.push({ href: "/app/calls", label: "Calls", icon: PhoneCall });
-    }
 
     // Add settings as last item
     prioritized.push({ href: "/app/settings", label: "Settings", icon: Settings });
