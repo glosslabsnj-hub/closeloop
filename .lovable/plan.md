@@ -1,242 +1,260 @@
 
 
-## Business Brain Complete Audit & Reorganization Plan
+## Business Brain UX Improvement Plan
 
 ### Executive Summary
 
-After a thorough audit of the Business Brain page and comparing it to the `buildBusinessContext.ts` / `getBusinessBrainSnapshot.ts` data contract (what the AI actually receives), I've identified several usability issues and missing capabilities that prevent businesses from inputting all the information their AI needs.
+After a thorough audit of all 8 tabs in Business Brain, I've identified multiple opportunities to improve clarity and usability for business owners while preserving all AI functionality. The core issues are:
+
+1. **Technical jargon** in labels and descriptions that confuse non-technical users
+2. **Missing context** - users don't understand *why* information matters or *how* the AI uses it
+3. **Inconsistent "AI Preview" patterns** - some sections show what AI says, others don't
+4. **Dense forms** without progressive disclosure - overwhelming first-time users
+5. **Missing guidance** for empty states and first-time setup
 
 ---
 
-### Current State Analysis
+### Tab-by-Tab Analysis & Improvements
 
-The Business Brain currently has **9 tabs**:
+#### TAB 1: Profile & Identity
 
-| Tab | Current Components | Issues |
-|-----|-------------------|--------|
-| **Profile** | BusinessProfileEditor, IndustryTemplateCard | Missing: Business Hours editor, AI Never Promise, Website URL, Years in Business |
-| **Services & Pricing** | QuoteReadinessCard, PricingRulesEditor, ServiceCatalogEditor | Good for service-mode; Missing: Menu Items for food-mode (redirects to separate page) |
-| **Service Area** | ServiceAreaPreview, ServiceAreaManager, DistanceEtaSection | Good structure |
-| **Scheduling** | BusynessRulesEditor, AvailabilityHub | Missing: Hours editor! Only shows availability/blocks, not actual operating hours |
-| **Policies** | RequiredQuestionsEditor, AIBusinessPolicies, 4x mode-specific delivery settings, BusinessPoliciesEditor | Overcrowded - 7 components in one tab, confusing |
-| **FAQs** | BusinessFAQEditor, BusinessObjectionEditor | Good structure |
-| **Assets** | BrainAssetsManager | Good structure |
-| **AI Intelligence** | IntelligenceSettingsForm | Good structure |
-| **Review Queue** | BrainReviewQueue | Good structure |
+**Current Issues:**
+- "Tagline" field lacks context - users don't know the AI uses it
+- "Years in Business" explanation is brief
+- Service Area Preview card links to itself (broken UX)
 
----
-
-### Critical Gaps Identified
-
-#### 1. **Missing Business Hours Editor in Business Brain**
-The `hours_json` field is critical for the AI (used for "Are you open?", scheduling, etc.) but there's no way to edit it in Business Brain! The only hours editor exists in the onboarding flow. The Scheduling tab shows AvailabilityHub (calendar blocks) but not actual business hours.
-
-#### 2. **Missing "AI Never Promise" Editor**
-The `ai_never_promise` field (things the AI should never promise) exists in the database and is read by the context builder, but there's no UI to edit it in Business Brain. It's only captured during onboarding.
-
-#### 3. **Missing Website URL Field**
-`website_url` is part of the Business Brain snapshot but not editable in BusinessProfileEditor.
-
-#### 4. **Missing Years in Business Field**
-`years_in_business` is in the context but not editable.
-
-#### 5. **Menu Items Not in Business Brain**
-For food-mode businesses, menu items are managed in a completely separate page (`/app/menu-center`) instead of being integrated into Business Brain's "Services & Pricing" tab.
-
-#### 6. **Policies Tab is Overloaded**
-The Policies tab has 7 different components crammed together:
-- RequiredQuestionsEditor (intake questions)
-- AIBusinessPolicies (upsell, pricing, capacity rules)
-- BookingDeliverySettings
-- FoodOrderSettings
-- DispatchDeliverySettings
-- MedicalHIPAASettings
-- BusinessPoliciesEditor (cancellation, deposit, refund)
-
-Many of these are mode-specific but all show regardless of mode, creating confusion.
-
-#### 7. **Greeting/Fallback Scripts Not Editable**
-The AI has `greeting_script` and `fallback_script` fields in `assistant_settings` but there's no UI to customize what the AI says when greeting callers or when it doesn't understand.
+**Improvements:**
+| Change | Rationale |
+|--------|-----------|
+| Add AI Preview card showing: *"Hi, thanks for calling [Business Name]! We've been serving Springfield for over 10 years..."* | Shows how name, tagline, and years combine in AI greeting |
+| Change "Tagline" placeholder to *"What you want customers to remember"* | More actionable guidance |
+| Remove self-referencing "Configure" button on Service Area Preview | Confusing - it's already a preview |
+| Add helper text: *"The AI uses this to build trust and answer 'Who are you?'"* under Years in Business | Explain the WHY |
 
 ---
 
-### Proposed Reorganization
+#### TAB 2: Operating Hours
 
-#### New Tab Structure (8 tabs, better organized)
+**Current Issues:**
+- Good structure with AI preview, but no guidance on 24/7 or variable hours
+- Missing link to Availability tab for exceptions
 
+**Improvements:**
+| Change | Rationale |
+|--------|-----------|
+| Add info banner: *"Need different hours seasonally? Set your regular hours here, then use the Availability tab to block specific dates."* | Clear guidance for edge cases |
+| Add "24/7" quick toggle button | Common use case that's tedious with current UI |
+| Improve AI preview to show both today AND a sample "Are you open Sunday?" response | Users see how AI answers different queries |
+
+---
+
+#### TAB 3: Services & Menu
+
+**Current Issues:**
+- QuoteReadinessCard shows technical "score" language
+- PricingRulesEditor uses jargon like "conditional rules", "priority"
+- ServiceCatalogEditor is clear but lacks AI preview
+- Food mode shows a redirect to Menu Center (breaks single-source-of-truth principle)
+
+**Improvements:**
+| Change | Rationale |
+|--------|-----------|
+| Rename "Quote Readiness" to "AI Quoting Health" with friendlier language: *"Your AI is ready to give price quotes!"* vs technical score | Less intimidating |
+| Add AI Preview under services: *"Our haircut service starts at $35 and takes about 45 minutes."* | Show how service details translate to spoken word |
+| Simplify PricingRulesEditor labels: "Fixed Price" → "Exact Price", "Conditional" → "If-Then Price" | Plain English |
+| Hide "Priority" field behind "Advanced" toggle - most users don't need it | Progressive disclosure |
+| Add empty-state guidance: *"Add your most common services first. You can always add more later."* | Reduce overwhelm |
+| For food mode: Embed menu editor inline OR add clearer explanation of why Menu Center is separate | Reduce confusion |
+
+---
+
+#### TAB 4: Service Area & ETA
+
+**Current Status:** Good! ServiceAreaPreview pattern is excellent - shows "What the AI will say" clearly.
+
+**Minor Improvements:**
+| Change | Rationale |
+|--------|-----------|
+| Add helper examples in ChipInput: *"Type a ZIP code and press Enter"* as placeholder | First-time guidance |
+| Simplify mode selector descriptions: "Hybrid (Multiple Criteria)" → "Mix of methods" | Plain English |
+| Add AI Preview for ETA: *"We can usually get there within 2-4 hours during business hours."* | Consistency with other sections |
+
+---
+
+#### TAB 5: Availability & Scheduling
+
+**Current Issues:**
+- BusynessRulesEditor uses technical language ("busyness threshold")
+- AvailabilityHub is well-designed but calendar connection status could be clearer
+
+**Improvements:**
+| Change | Rationale |
+|--------|-----------|
+| Rename "Busyness Rules" to "Busy Day Settings" | Friendlier |
+| Change threshold language: *"When your calendar is 80% full, the AI will..."* → *"When you're getting busy, the AI will suggest later times"* | Action-focused |
+| Add AI Preview: *"We're pretty booked up tomorrow. Would the day after work for you?"* | Show AI behavior |
+| Add info card: *"Connect your Google/Outlook calendar above so the AI automatically knows when you have meetings"* | Clear CTA |
+
+---
+
+#### TAB 6: Policies & Rules
+
+**Current Issues:**
+- This is the most complex tab - 4-5 components stacked
+- BusinessPoliciesEditor has three large textareas with minimal guidance
+- AINeverPromiseEditor is clear but could use better examples
+- RequiredQuestionsEditor is powerful but overwhelming
+
+**Improvements:**
+| Change | Rationale |
+|--------|-----------|
+| Add section headers with collapsible groups: "Core Policies", "AI Guardrails", "Intake Questions", "Delivery Settings" | Visual organization |
+| Add AI Preview for policies: *"We require 24 hours notice for cancellations. Cancellations with less notice may incur a $50 fee."* | Show how text becomes speech |
+| Add suggested policy templates as one-click buttons: "24hr notice", "48hr notice", "No refunds" | Reduce typing for common cases |
+| Simplify RequiredQuestionsEditor intro: *"These are the questions your AI must ask before completing a booking"* | Plain English |
+| Add visual indicator showing which questions are required vs optional (checkmark badges) | Clearer at-a-glance |
+| Group mode-specific settings with collapsible headers that auto-expand only the relevant one | Less visual clutter |
+
+---
+
+#### TAB 7: AI Behavior
+
+**Current Issues:**
+- AIScriptsEditor is clear
+- AIBusinessPolicies uses terms like "threshold" and "min_order_value"
+- IntelligenceSettingsForm has technical labels like "Min. Observations", "Min. Confidence"
+
+**Improvements:**
+| Change | Rationale |
+|--------|-----------|
+| Add AI Script preview that speaks the greeting: *"Listen to how this sounds"* (text preview) | Help users hear their words |
+| Rename AIBusinessPolicies thresholds: "Min order value to suggest" → "Only suggest add-ons when order is over $X" | Action-oriented |
+| Simplify Intelligence settings: "Min. Observations before pattern is created" → "AI learns after seeing this X times" | Plain English |
+| Add explainer for each policy type: *"Upselling means suggesting complementary items like 'Would you like a drink with that?'"* | Education for non-business users |
+| Add "Reset to defaults" button for each policy section | Easy recovery from mistakes |
+
+---
+
+#### TAB 8: Knowledge & Training
+
+**Current Status:** Good structure with FAQs, Objections, Assets, and Review Queue.
+
+**Improvements:**
+| Change | Rationale |
+|--------|-----------|
+| Add AI Preview for FAQs: *When someone asks "What are your hours?", the AI will say: "We're open Monday through Friday, 9 AM to 5 PM."* | Consistency |
+| Add suggested FAQ questions as quick-add buttons: "What are your hours?", "Do you take insurance?", "What's your address?" | Reduce effort |
+| Rename "Objection Responses" to "Handling Concerns" with explainer: *"When customers have doubts, here's how your AI responds"* | Less sales-y language |
+| Add empty-state for Assets: *"Upload your menu, price list, or brochure and the AI will learn from it automatically"* | Clear value prop |
+| Make Review Queue badge more prominent when items pending | Ensure attention |
+
+---
+
+### Cross-Cutting Improvements
+
+#### 1. Consistent AI Preview Pattern
+
+Add a standardized `AIPreviewCard` component with the pattern:
 ```
-BUSINESS BRAIN TABS (Reorganized)
-
-1. PROFILE & IDENTITY
-   - Business name, tagline, public phone
-   - Address (street, city, state, zip)
-   - Website URL (NEW)
-   - Years in Business (NEW)
-   - Timezone
-   - Industry Template Card
-   - Service Area Preview (quick glance)
-
-2. OPERATING HOURS
-   - Full BusinessHoursEditor (MOVED from onboarding)
-   - AI preview: "What the AI tells callers about your hours"
-   - Link to Availability/Blocks for exceptions
-
-3. SERVICES & MENU (Mode-aware)
-   - For service/dispatch/medical/general: ServiceCatalogEditor
-   - For food mode: Integrated MenuItemEditor (MOVED from /menu-center)
-   - PricingRulesEditor (for all modes)
-   - QuoteReadinessCard
-
-4. SERVICE AREA & ETA
-   - ServiceAreaManager
-   - DistanceEtaSection
-   - ServiceAreaPreview
-   (Unchanged - good structure)
-
-5. AVAILABILITY & SCHEDULING
-   - AvailabilityHub (calendar connections, blocks)
-   - BusynessRulesEditor
-   - Note: "Operating hours are set in the Hours tab"
-
-6. POLICIES & RULES
-   - BusinessPoliciesEditor (cancellation, deposit, refund, payment methods)
-   - AI Never Promise Editor (NEW)
-   - RequiredQuestionsEditor (what AI must collect)
-   - Mode-specific settings (only show relevant ones):
-     - BookingDeliverySettings (service, medical, general)
-     - FoodOrderSettings (food only)
-     - DispatchDeliverySettings (dispatch only)
-     - MedicalHIPAASettings (medical only)
-
-7. AI BEHAVIOR
-   - AIBusinessPolicies (upsell, pricing, capacity, recognition, escalation)
-   - Greeting/Fallback Scripts (NEW)
-   - IntelligenceSettingsForm (memory, thresholds)
-
-8. KNOWLEDGE & TRAINING
-   - BusinessFAQEditor
-   - BusinessObjectionEditor
-   - BrainAssetsManager (uploads)
-   - BrainReviewQueue (with badge count)
+What the AI will say:
+"[Spoken preview based on current data]"
 ```
 
----
+Apply this to:
+- Profile (greeting)
+- Hours (today's hours response)
+- Services (price quote)
+- Service Area (already has this)
+- Availability (busy response)
+- Policies (cancellation response)
+- AI Scripts (greeting/fallback)
+- FAQs (sample Q&A)
 
-### Implementation Steps
+#### 2. Progressive Disclosure
 
-#### Phase 1: Add Missing Editors
+- Hide advanced options by default (priority, thresholds, conditions)
+- Add "Show advanced settings" toggles
+- Use collapsible sections for complex forms
 
-**Step 1.1: Add Hours Editor to Business Brain**
-- Create `src/components/brain/BusinessHoursManager.tsx`
-- Reuse the existing `BusinessHoursEditor` component from onboarding
-- Add preview card showing "What AI will say about hours today"
-- Save to `tenants.hours_json`
+#### 3. First-Time User Guidance
 
-**Step 1.2: Add AI Never Promise Editor**
-- Create `src/components/brain/AINeverPromiseEditor.tsx`
-- Simple textarea with line-by-line entries
-- Save to `tenants.ai_never_promise` array
+Add contextual help for first-time or empty states:
+- Empty service list: *"Start by adding your 3 most popular services"*
+- Empty FAQs: *"Common questions include: hours, location, pricing"*
+- Empty policies: *"Most businesses set a cancellation policy first"*
 
-**Step 1.3: Add Website URL & Years in Business to Profile**
-- Update `BusinessProfileEditor.tsx` to include:
-  - Website URL field
-  - Years in Business (number input)
+#### 4. Consistent Terminology
 
-**Step 1.4: Add Greeting/Fallback Script Editor**
-- Create `src/components/brain/AIScriptsEditor.tsx`
-- Fields for:
-  - Custom greeting (what AI says first)
-  - Fallback script (when AI doesn't understand)
-- Save to `assistant_settings` table
-
-#### Phase 2: Reorganize Tabs
-
-**Step 2.1: Create new tab structure in BusinessBrainPage.tsx**
-- Rename "Scheduling & Availability" to just "Availability"
-- Create new "Operating Hours" tab
-- Create new "AI Behavior" tab
-- Merge FAQs/Objections/Assets into "Knowledge & Training"
-
-**Step 2.2: Make Policies tab mode-aware**
-- Only show BookingDeliverySettings for service/medical/general modes
-- Only show FoodOrderSettings for food mode
-- Only show DispatchDeliverySettings for dispatch mode
-- Only show MedicalHIPAASettings for medical mode
-
-**Step 2.3: Integrate Menu Editor for food mode**
-- In "Services & Menu" tab, conditionally render:
-  - ServiceCatalogEditor for non-food modes
-  - Embedded MenuItemEditor for food mode (inline, not separate page)
-
-#### Phase 3: UX Improvements
-
-**Step 3.1: Add AI Preview Cards**
-- Each section should show "What the AI will say" preview
-- Hours: "We're open today from 9 AM to 5 PM"
-- Service Area: "We serve within 25 miles of Springfield"
-- Policies: "Our cancellation policy requires 24 hours notice"
-
-**Step 3.2: Add Progress/Readiness Indicators**
-- Show completion status for each section
-- Highlight missing critical fields
-- Link to the canonical readiness score
+Replace technical terms across all components:
+| Technical Term | User-Friendly Term |
+|----------------|-------------------|
+| Threshold | Limit / When to trigger |
+| Conditional | If-then / When this happens |
+| Priority | Order of importance |
+| Fallback | Backup response |
+| Handoff | Send to / Notify |
+| JSONB | (hide entirely) |
 
 ---
 
-### Files to Create
+### Implementation Order
 
-| File | Purpose |
-|------|---------|
-| `src/components/brain/BusinessHoursManager.tsx` | Hours editing with AI preview |
-| `src/components/brain/AINeverPromiseEditor.tsx` | Things AI should never promise |
-| `src/components/brain/AIScriptsEditor.tsx` | Greeting and fallback scripts |
-| `src/components/brain/MenuCatalogEditor.tsx` | Inline menu editor for food mode |
+**Phase 1: High-Impact, Low-Risk (Quick Wins)**
+1. Add AI Preview cards to Profile, Hours, Services, Policies tabs
+2. Update placeholder text and helper descriptions
+3. Rename technical labels to plain English
+
+**Phase 2: Structural Improvements**
+4. Add collapsible sections to Policies tab
+5. Hide advanced options behind toggles
+6. Create `AIPreviewCard` reusable component
+
+**Phase 3: Enhanced Guidance**
+7. Add empty-state guidance messages
+8. Add suggested templates/quick-add buttons
+9. Improve first-time user onboarding within tabs
+
+---
 
 ### Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/pages/app/BusinessBrainPage.tsx` | New tab structure, mode-aware rendering |
-| `src/components/brain/BusinessProfileEditor.tsx` | Add website URL, years in business |
-| `src/lib/brain/writeBrainFact.ts` | Add update functions for new fields |
+| `src/components/brain/BusinessProfileEditor.tsx` | Add AI greeting preview, improve helper text |
+| `src/components/brain/BusinessHoursManager.tsx` | Add 24/7 toggle, improve AI preview with example queries |
+| `src/components/brain/ServiceCatalogEditor.tsx` | Add AI quote preview, improve empty state |
+| `src/components/settings/PricingRulesEditor.tsx` | Rename labels, hide Priority by default |
+| `src/components/brain/ServiceAreaManager.tsx` | Improve input placeholders, simplify mode labels |
+| `src/components/settings/BusynessRulesEditor.tsx` | Rename to "Busy Day Settings", add AI preview |
+| `src/components/availability/AvailabilityHub.tsx` | Add calendar connection guidance |
+| `src/components/brain/BusinessPoliciesEditor.tsx` | Add AI preview, add template buttons |
+| `src/components/brain/AINeverPromiseEditor.tsx` | Minor label improvements |
+| `src/components/settings/RequiredQuestionsEditor.tsx` | Simplify intro, improve visual hierarchy |
+| `src/components/settings/AIBusinessPolicies.tsx` | Rename thresholds, add explainers |
+| `src/components/settings/IntelligenceSettingsForm.tsx` | Simplify labels, add reset button |
+| `src/components/brain/BusinessFAQEditor.tsx` | Add AI preview, add suggested questions |
+| `src/components/brain/BusinessObjectionEditor.tsx` | Rename to "Handling Concerns" |
+| `src/pages/app/BusinessBrainPage.tsx` | Add section headers, improve tab descriptions |
 
 ---
 
-### Technical Notes
+### New Components to Create
 
-1. **No DB changes required** - All fields already exist in the schema
-2. **No new ElevenLabs variables** - All fields are already part of the existing context contract
-3. **Mode-aware rendering** - Use `useTenantConfig().businessMode` to conditionally show components
-4. **AI Preview Pattern** - Reuse `ServiceAreaPreview` pattern for other sections
+| Component | Purpose |
+|-----------|---------|
+| `src/components/brain/AIPreviewCard.tsx` | Reusable component showing "What the AI will say" |
+| `src/components/brain/PolicyTemplateButtons.tsx` | Quick-add buttons for common policy templates |
+| `src/components/brain/SuggestedFAQButtons.tsx` | Quick-add buttons for common FAQ questions |
 
 ---
 
-### Before/After Comparison
+### Summary
 
-**Before (Current State):**
-```
-Profile → Missing: hours, website, years, never-promise
-Services → OK for service mode, food mode uses separate page
-Service Area → Good
-Scheduling → Missing actual hours editor!
-Policies → 7 components crammed together, not mode-aware
-FAQs → Good
-Assets → Good
-AI Intelligence → Missing greeting/fallback scripts
-Review Queue → Good
-```
+This plan focuses on making Business Brain feel like it's written for business owners, not developers. Every section will clearly show:
 
-**After (Proposed):**
-```
-Profile & Identity → Complete business identity
-Operating Hours → Dedicated hours management with AI preview
-Services & Menu → Mode-aware (services OR menu)
-Service Area & ETA → Unchanged
-Availability → Calendar blocks and busyness (hours moved out)
-Policies & Rules → Organized, mode-aware delivery settings
-AI Behavior → All AI customization in one place
-Knowledge & Training → FAQs + Objections + Uploads + Review Queue
-```
+1. **What to enter** (clear labels and examples)
+2. **Why it matters** (how the AI uses it)
+3. **What it sounds like** (AI Preview showing spoken output)
 
-This reorganization ensures every piece of information the AI needs has a clear, intuitive place to be entered, with visual feedback showing what the AI will actually say.
+No AI functionality is removed - we're only improving the presentation layer to make it more accessible and understandable.
 
