@@ -531,6 +531,57 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     category: "pricing",
   },
 
+  // ===== ETA / RESPONSE TIME (NEW - for dispatch mode) =====
+  {
+    key: "response_time_spoken",
+    description: "Spoken ETA for customer (e.g., '45 to 55 minutes')",
+    type: "string",
+    source: "eta.spoken",
+    defaultValue: "30 to 45 minutes",
+    category: "pricing",
+    includeInCompactJson: true,
+  },
+  {
+    key: "response_time_min",
+    description: "Minimum ETA in minutes",
+    type: "number",
+    source: "eta.min_minutes",
+    defaultValue: 30,
+    category: "pricing",
+  },
+  {
+    key: "response_time_max",
+    description: "Maximum ETA in minutes",
+    type: "number",
+    source: "eta.max_minutes",
+    defaultValue: 60,
+    category: "pricing",
+  },
+  {
+    key: "eta_source",
+    description: "Source of ETA calculation (tenant_distance_settings, mode_default, etc.)",
+    type: "string",
+    source: "eta.source",
+    defaultValue: "mode_default",
+    category: "pricing",
+  },
+  {
+    key: "eta_policy_summary",
+    description: "Summary of ETA/response time configuration",
+    type: "string",
+    source: "eta.eta_policy_summary",
+    defaultValue: "",
+    category: "pricing",
+  },
+  {
+    key: "distance_provider_enabled",
+    description: "Whether Mapbox distance routing is enabled",
+    type: "boolean",
+    source: "eta.distance_provider_enabled",
+    defaultValue: false,
+    category: "pricing",
+  },
+
   // ===== POLICIES =====
   {
     key: "policies_summary",
