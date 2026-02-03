@@ -314,9 +314,9 @@ export function DashboardHeroCard() {
 
   return (
     <Card className={cn(
-      "overflow-hidden transition-all duration-300 animate-fade-in relative z-10",
+      "overflow-hidden transition-all duration-300 animate-fade-in",
       isAnyActive 
-        ? "border-primary/30 bg-gradient-to-br from-primary/[0.06] via-transparent to-primary/[0.08]" 
+        ? "border-primary/25 bg-primary/[0.03]" 
         : "border-border/50"
     )}>
       <CardContent className="p-0">
@@ -327,7 +327,7 @@ export function DashboardHeroCard() {
               <div className={cn(
                 "relative flex items-center justify-center h-12 w-12 rounded-xl transition-all duration-300",
                 isAnyActive 
-                  ? "bg-primary text-primary-foreground shadow-glow" 
+                  ? "bg-primary text-primary-foreground" 
                   : "bg-muted text-muted-foreground"
               )}>
                 {hasVoice ? <Phone className="h-5 w-5" /> : <MessageSquare className="h-5 w-5" />}
