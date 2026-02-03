@@ -15,6 +15,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   LayoutDashboard,
   MessageSquare,
   Users,
@@ -37,9 +43,11 @@ import {
   Stethoscope,
   HelpCircle,
   AlertTriangle,
+  PanelLeft,
+  PanelLeftClose,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { AdminModeSwitcher } from "@/components/admin/AdminModeSwitcher";
 import { AdminTenantSwitcher } from "@/components/admin/AdminTenantSwitcher";
 import { AdminModeSelector } from "@/components/admin/AdminModeSelector";
@@ -81,6 +89,29 @@ function AppLayoutContent() {
   const { unresolvedCount: conflictsCount } = useKnowledgeConflicts();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Sidebar collapse state with localStorage persistence
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('sidebar-collapsed') === 'true';
+  });
+
+  const toggleSidebar = useCallback(() => {
+    const newState = !sidebarCollapsed;
+    setSidebarCollapsed(newState);
+    localStorage.setItem('sidebar-collapsed', String(newState));
+  }, [sidebarCollapsed]);
+
+  // Keyboard shortcut: Ctrl/Cmd + B to toggle sidebar
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
+        e.preventDefault();
+        toggleSidebar();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggleSidebar]);
 
   // Super admins bypass subscription gating for testing
   const effectiveHasSubscription = isSuperAdmin || hasActiveSubscription;
@@ -181,169 +212,234 @@ function AppLayoutContent() {
     alwaysAccessibleRoutes.some(route => location.pathname.startsWith(route));
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Admin Mode Switcher Banner */}
-      <AdminModeSwitcher />
-      
-      {/* Top Navigation - Mobile First */}
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">
-        <div className="flex h-16 items-center justify-between px-4 md:px-6">
-          <Link to="/app/dashboard" className="flex items-center gap-3 hover-lift">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-sm">
-              <Phone className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="font-bold text-lg hidden sm:inline">{displayTenant?.name || "CloseLoop"}</span>
-          </Link>
-
-          <div className="flex items-center gap-2">
-            {/* Admin Mode Selector and Tenant Switcher - only visible to super admins */}
-            {isSuperAdmin && <AdminModeSelector />}
-            <AdminTenantSwitcher />
-            <NotificationBell />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full hover:ring-2 hover:ring-primary/20 transition-all">
-                  <Avatar className="h-9 w-9">
-                    <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
-                      {user.email?.[0].toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <div className="px-3 py-2">
-                  <p className="text-sm font-medium truncate">{user.email}</p>
-                  <p className="text-xs text-muted-foreground truncate">{displayTenant?.name}</p>
+    <TooltipProvider delayDuration={0}>
+      <div className="min-h-screen bg-background">
+        {/* Admin Mode Switcher Banner */}
+        <AdminModeSwitcher />
+        
+        {/* Top Navigation - Mobile First */}
+        <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">
+          <div className="flex h-16 items-center justify-between px-4 md:px-6">
+            <div className="flex items-center gap-2">
+              {/* Sidebar Toggle Button - Desktop Only */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleSidebar}
+                className="hidden md:flex h-9 w-9"
+                aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                {sidebarCollapsed ? (
+                  <PanelLeft className="h-5 w-5" />
+                ) : (
+                  <PanelLeftClose className="h-5 w-5" />
+                )}
+              </Button>
+              
+              <Link to="/app/dashboard" className="flex items-center gap-3 hover-lift">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-sm">
+                  <Phone className="h-5 w-5 text-primary-foreground" />
                 </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate("/app/settings")} className="cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Log out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                <span className="font-bold text-lg hidden sm:inline">{displayTenant?.name || "CloseLoop"}</span>
+              </Link>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* Admin Mode Selector and Tenant Switcher - only visible to super admins */}
+              {isSuperAdmin && <AdminModeSelector />}
+              <AdminTenantSwitcher />
+              <NotificationBell />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full hover:ring-2 hover:ring-primary/20 transition-all">
+                    <Avatar className="h-9 w-9">
+                      <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
+                        {user.email?.[0].toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="px-3 py-2">
+                    <p className="text-sm font-medium truncate">{user.email}</p>
+                    <p className="text-xs text-muted-foreground truncate">{displayTenant?.name}</p>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate("/app/settings")} className="cursor-pointer">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Content */}
-      <div className="flex">
-        {/* Desktop Sidebar */}
-        <aside className="hidden md:flex w-64 flex-col fixed left-0 top-16 bottom-0 border-r bg-background">
-          <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.href;
-              const isLocked = !effectiveHasSubscription && 
-                !alwaysAccessibleRoutes.some(route => item.href.startsWith(route));
-              const showBadge = item.href === "/app/business-brain" && conflictsCount > 0;
-              
-              return (
-                <Link
-                  key={item.href}
-                  to={isLocked ? "/app/go-live" : item.href}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                    isActive
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : isLocked
-                        ? "text-muted-foreground/50 cursor-not-allowed"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}
-                >
-                  <Icon className="h-5 w-5" />
-                  {item.label}
-                  {showBadge && (
-                    <Badge variant="destructive" className="ml-auto h-5 px-1.5 text-xs">
-                      <AlertTriangle className="h-3 w-3" />
-                    </Badge>
-                  )}
-                  {isLocked && <Lock className="h-3.5 w-3.5 ml-auto opacity-50" />}
-                </Link>
-              );
-            })}
-          </nav>
-        </aside>
-
-        {/* Mobile Bottom Nav */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 safe-area-pb">
-          <div className="grid grid-cols-5 h-16">
-            {mobileNavItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.href;
-              const isLocked = !effectiveHasSubscription && 
-                !alwaysAccessibleRoutes.some(route => item.href.startsWith(route));
-              const showBadge = item.href === "/app/dashboard" && conflictsCount > 0;
-              
-              return (
-                <Link
-                  key={item.href}
-                  to={isLocked ? "/app/go-live" : item.href}
-                  className={cn(
-                    "flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors relative min-h-[44px]",
-                    isActive 
-                      ? "text-primary" 
-                      : isLocked 
-                        ? "text-muted-foreground/50" 
-                        : "text-muted-foreground"
-                  )}
-                >
-                  {isActive && (
-                    <span className="absolute top-1 w-1 h-1 rounded-full bg-primary" />
-                  )}
-                  <div className="relative">
-                    <Icon className="h-5 w-5" />
-                    {showBadge && (
+        {/* Main Content */}
+        <div className="flex">
+          {/* Desktop Sidebar - Collapsible */}
+          <aside 
+            className={cn(
+              "hidden md:flex flex-col fixed left-0 top-16 bottom-0 border-r bg-background transition-all duration-200 ease-in-out",
+              sidebarCollapsed ? "w-14" : "w-64"
+            )}
+          >
+            <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.href;
+                const isLocked = !effectiveHasSubscription && 
+                  !alwaysAccessibleRoutes.some(route => item.href.startsWith(route));
+                const showBadge = item.href === "/app/business-brain" && conflictsCount > 0;
+                
+                const navLink = (
+                  <Link
+                    key={item.href}
+                    to={isLocked ? "/app/go-live" : item.href}
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-200",
+                      sidebarCollapsed ? "px-2.5 py-2.5 justify-center" : "px-3 py-2.5",
+                      isActive
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : isLocked
+                          ? "text-muted-foreground/50 cursor-not-allowed"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    )}
+                  >
+                    <Icon className="h-5 w-5 shrink-0" />
+                    {!sidebarCollapsed && (
+                      <>
+                        <span className="truncate">{item.label}</span>
+                        {showBadge && (
+                          <Badge variant="destructive" className="ml-auto h-5 px-1.5 text-xs">
+                            <AlertTriangle className="h-3 w-3" />
+                          </Badge>
+                        )}
+                        {isLocked && <Lock className="h-3.5 w-3.5 ml-auto opacity-50" />}
+                      </>
+                    )}
+                    {sidebarCollapsed && showBadge && (
                       <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-destructive" />
                     )}
-                  </div>
-                  <span className="truncate text-[10px]">{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
+                  </Link>
+                );
 
-        {/* Page Content */}
-        <main className="flex-1 md:ml-64 pb-20 md:pb-0 min-h-[calc(100vh-4rem)]">
-          {isRouteAccessible ? (
-            <Outlet />
-          ) : (
-            <div className="p-6 flex items-center justify-center min-h-[60vh]">
-              <Card className="max-w-md text-center shadow-soft-lg">
-                <CardHeader className="pb-4">
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-muted mb-3">
-                    <Lock className="h-7 w-7 text-muted-foreground" />
-                  </div>
-                  <CardTitle className="text-xl">Subscription Required</CardTitle>
-                  <CardDescription className="text-base">
-                    Choose a plan to unlock all features and start using CloseLoop.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3 pt-2">
-                  <Button onClick={() => navigate("/app/go-live")} className="w-full" size="lg">
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Choose a Plan
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => navigate("/app/settings")}
-                    className="w-full"
+                // Wrap in tooltip when collapsed
+                if (sidebarCollapsed) {
+                  return (
+                    <Tooltip key={item.href}>
+                      <TooltipTrigger asChild>
+                        <div className="relative">
+                          {navLink}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="font-medium">
+                        {item.label}
+                        {isLocked && " (Locked)"}
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                }
+
+                return navLink;
+              })}
+            </nav>
+            
+            {/* Keyboard shortcut hint when expanded */}
+            {!sidebarCollapsed && (
+              <div className="p-3 border-t">
+                <p className="text-xs text-muted-foreground text-center">
+                  Press <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted rounded">⌘B</kbd> to collapse
+                </p>
+              </div>
+            )}
+          </aside>
+
+          {/* Mobile Bottom Nav */}
+          <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 safe-area-pb">
+            <div className="grid grid-cols-5 h-16">
+              {mobileNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.href;
+                const isLocked = !effectiveHasSubscription && 
+                  !alwaysAccessibleRoutes.some(route => item.href.startsWith(route));
+                const showBadge = item.href === "/app/dashboard" && conflictsCount > 0;
+                
+                return (
+                  <Link
+                    key={item.href}
+                    to={isLocked ? "/app/go-live" : item.href}
+                    className={cn(
+                      "flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors relative min-h-[44px]",
+                      isActive 
+                        ? "text-primary" 
+                        : isLocked 
+                          ? "text-muted-foreground/50" 
+                          : "text-muted-foreground"
+                    )}
                   >
-                    Billing Settings
-                  </Button>
-                </CardContent>
-              </Card>
+                    {isActive && (
+                      <span className="absolute top-1 w-1 h-1 rounded-full bg-primary" />
+                    )}
+                    <div className="relative">
+                      <Icon className="h-5 w-5" />
+                      {showBadge && (
+                        <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-destructive" />
+                      )}
+                    </div>
+                    <span className="truncate text-[10px]">{item.label}</span>
+                  </Link>
+                );
+              })}
             </div>
-          )}
-        </main>
+          </nav>
+
+          {/* Page Content */}
+          <main 
+            className={cn(
+              "flex-1 pb-20 md:pb-0 min-h-[calc(100vh-4rem)] transition-all duration-200 ease-in-out",
+              sidebarCollapsed ? "md:ml-14" : "md:ml-64"
+            )}
+          >
+            {isRouteAccessible ? (
+              <Outlet />
+            ) : (
+              <div className="p-6 flex items-center justify-center min-h-[60vh]">
+                <Card className="max-w-md text-center shadow-soft-lg">
+                  <CardHeader className="pb-4">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-muted mb-3">
+                      <Lock className="h-7 w-7 text-muted-foreground" />
+                    </div>
+                    <CardTitle className="text-xl">Subscription Required</CardTitle>
+                    <CardDescription className="text-base">
+                      Choose a plan to unlock all features and start using CloseLoop.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3 pt-2">
+                    <Button onClick={() => navigate("/app/go-live")} className="w-full" size="lg">
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      Choose a Plan
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => navigate("/app/settings")}
+                      className="w-full"
+                    >
+                      Billing Settings
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </main>
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
 

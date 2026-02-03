@@ -6,6 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -133,6 +134,9 @@ export function CreateBookingDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Create Booking</DialogTitle>
+          <DialogDescription>
+            Add a new appointment to your schedule
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -162,6 +166,9 @@ export function CreateBookingDialog({
               onChange={(e) => setCustomerPhone(e.target.value)}
               placeholder="+1 (555) 123-4567"
             />
+            <p className="text-xs text-muted-foreground">
+              We'll use this to link the booking to the customer's record
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -178,6 +185,9 @@ export function CreateBookingDialog({
                 ))}
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              Leave blank if unsure — you can update this later
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -186,7 +196,7 @@ export function CreateBookingDialog({
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Any special requests..."
+              placeholder="Any special requests or notes..."
               rows={2}
             />
           </div>
