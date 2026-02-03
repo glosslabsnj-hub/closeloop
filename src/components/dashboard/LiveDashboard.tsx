@@ -25,47 +25,74 @@ export function LiveDashboard() {
   const hasVoice = hasVoiceFeature(subscription?.plan_code);
 
   return (
-    <div className="space-y-6 max-w-[1280px] mx-auto animate-fade-in">
+    <div className="animate-fade-in">
       {/* Audio notification manager */}
       <SoundManager />
 
-      {/* Critical Banners - Minimal, Clear */}
-      <div className="space-y-4">
+      {/* ==========================================
+          ENTRY ZONE - Welcoming, breathing space
+          ========================================== */}
+      <div className="entry-zone space-y-5">
+        {/* Critical Banners - Minimal, only when needed */}
         <AIReadinessPanel compact />
         <KnowledgeConflictBanner />
         <KnowledgeUploadBanner />
         <UsageThresholdBanner threshold={80} />
       </div>
 
-      {/* HERO: Agent Status + Toggle - Main Focus */}
-      <DashboardHeroCard />
-
-      {/* Phone Number Card - Prominent for Voice plans */}
-      {hasVoice && <PhoneNumberCard />}
-
-      {/* Schedule Connection Card - Show if not connected */}
-      <ScheduleConnectionCard variant="compact" showIfConnected={false} />
-
-      {/* Today's Snapshot - Mode-adaptive metrics */}
-      <TodaySnapshot />
-
-      {/* Needs Attention Banner - Consolidated urgent items */}
-      <NeedsAttentionBanner />
-
-      {/* Two Column: Live Activity + Quick Actions + Setup Progress */}
-      <div className="grid lg:grid-cols-5 gap-6">
-        <div className="lg:col-span-3">
-          <LiveActivityFeed />
+      {/* ==========================================
+          FOCUS ZONE - Primary content, the "desk"
+          ========================================== */}
+      <div className="focus-zone">
+        {/* HERO: Agent Status - Main focus of attention */}
+        <div className="work-area mb-10">
+          <DashboardHeroCard />
         </div>
-        <div className="lg:col-span-2 space-y-4">
-          <QuickActionsCard />
-          {/* Setup Progress Checklist - only shows if not live */}
-          <SetupProgressChecklist />
+
+        {/* Phone & Schedule - Important but secondary */}
+        <div className="space-y-6 mb-12">
+          {hasVoice && <PhoneNumberCard />}
+          <ScheduleConnectionCard variant="compact" showIfConnected={false} />
         </div>
+
+        {/* Today's Metrics - Clean, scannable */}
+        <div className="mb-12">
+          <p className="section-label">Today's Activity</p>
+          <TodaySnapshot />
+        </div>
+
+        {/* Needs Attention - Consolidated urgent items */}
+        <NeedsAttentionBanner />
       </div>
 
-      {/* Go-Live Checklist - Only show when not live */}
-      {!isLive && <GoLiveChecklist />}
+      {/* ==========================================
+          SUPPORTING ZONE - Secondary content
+          ========================================== */}
+      <div className="supporting-zone">
+        <div className="grid lg:grid-cols-5 gap-8">
+          {/* Live Activity - Primary supporting content */}
+          <div className="lg:col-span-3">
+            <p className="section-label">Recent Activity</p>
+            <LiveActivityFeed />
+          </div>
+          
+          {/* Quick Actions & Setup - Secondary */}
+          <div className="lg:col-span-2 space-y-6">
+            <div>
+              <p className="section-label">Quick Actions</p>
+              <QuickActionsCard />
+            </div>
+            <SetupProgressChecklist />
+          </div>
+        </div>
+
+        {/* Go-Live Checklist - Only show when not live */}
+        {!isLive && (
+          <div className="mt-12">
+            <GoLiveChecklist />
+          </div>
+        )}
+      </div>
 
       {/* Copilot FAB */}
       <div className="relative z-30">

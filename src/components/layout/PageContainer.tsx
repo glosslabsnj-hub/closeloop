@@ -4,26 +4,30 @@ import { ReactNode } from "react";
 interface PageContainerProps {
   children: ReactNode;
   className?: string;
-  maxWidth?: "default" | "wide" | "full";
+  maxWidth?: "default" | "wide" | "focus" | "full";
   animate?: boolean;
+  /** Use focus rail for centered, framed content */
+  focusRail?: boolean;
 }
 
 /**
- * Standardized page container with consistent padding and max-width.
- * Generous padding for breathing room.
+ * Executive workspace page container.
+ * Focus rail creates the signature "calm desk" feeling.
  */
 export function PageContainer({ 
   children, 
   className, 
   maxWidth = "default",
   animate = true,
+  focusRail = false,
 }: PageContainerProps) {
-  return (
+  const content = (
     <div
       className={cn(
-        "p-6 md:p-8 lg:p-10",
-        maxWidth === "wide" && "max-w-[1280px] mx-auto",
-        maxWidth === "default" && "max-w-[1100px] mx-auto",
+        "p-6 md:p-10 lg:p-12",
+        maxWidth === "wide" && "max-w-[1200px] mx-auto",
+        maxWidth === "default" && "max-w-[1000px] mx-auto",
+        maxWidth === "focus" && "max-w-[880px] mx-auto",
         maxWidth === "full" && "w-full",
         animate && "animate-fade-in",
         className
@@ -32,4 +36,14 @@ export function PageContainer({
       {children}
     </div>
   );
+
+  if (focusRail) {
+    return (
+      <div className="focus-rail">
+        {content}
+      </div>
+    );
+  }
+
+  return content;
 }

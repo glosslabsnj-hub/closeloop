@@ -122,8 +122,8 @@
 
 @layer utilities {
   /* ==========================================
-     APP BACKGROUND - Flat, Calm, Eye-Comfortable
-     No gradients, no vignettes - just stable charcoal
+     EXECUTIVE WORKSPACE BACKGROUND
+     Warm, stable, non-technical
      ========================================== */
   .app-bg {
     position: relative;
@@ -139,87 +139,161 @@
   }
 
   /* ==========================================
-     SURFACE SYSTEM - Minimal Elevation
-     Spacing > Contrast, borders are optional
+     EXECUTIVE WORKSPACE FRAME
+     Signature structural element - the "desk" feeling
+     ========================================== */
+  .workspace-frame {
+    @apply relative;
+    /* Subtle left emphasis strip - signature element */
+    border-left: 2px solid hsl(var(--border) / 0.3);
+    padding-left: 1.5rem;
+  }
+
+  .workspace-frame-subtle {
+    @apply relative;
+    border-left: 1px solid hsl(var(--border) / 0.15);
+    padding-left: 1rem;
+  }
+
+  /* Focus rail - inset content column with calm framing */
+  .focus-rail {
+    @apply relative mx-auto;
+    max-width: 960px;
+  }
+
+  .focus-rail::before {
+    content: '';
+    @apply absolute -left-6 top-0 bottom-0 w-px;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      hsl(var(--border) / 0.2) 10%,
+      hsl(var(--border) / 0.2) 90%,
+      transparent
+    );
+  }
+
+  /* Work area - framed content zone */
+  .work-area {
+    @apply relative rounded-xl;
+    background: hsl(var(--card) / 0.5);
+    border: 1px solid hsl(var(--border) / 0.2);
+    padding: 2rem;
+  }
+
+  .work-area-compact {
+    @apply relative rounded-lg;
+    background: hsl(var(--card) / 0.4);
+    border: 1px solid hsl(var(--border) / 0.15);
+    padding: 1.25rem;
+  }
+
+  /* ==========================================
+     SURFACE SYSTEM - Minimal, Breathing
+     Spacing > Contrast, borders barely visible
      ========================================== */
   .surface-1 {
-    @apply relative rounded-lg;
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border) / 0.35);
-    z-index: 1;
+    @apply relative rounded-xl;
+    background: hsl(var(--card) / 0.6);
+    border: 1px solid hsl(var(--border) / 0.2);
   }
 
   .surface-2 {
     @apply relative rounded-lg;
-    background: hsl(var(--card) / 0.7);
-    border: 1px solid hsl(var(--border) / 0.25);
-    z-index: 2;
+    background: hsl(var(--card) / 0.4);
+    border: 1px solid hsl(var(--border) / 0.15);
   }
 
   .surface-3 {
-    @apply relative rounded-lg;
+    @apply relative rounded-xl;
     background: hsl(var(--popover));
-    border: 1px solid hsl(var(--border) / 0.4);
-    box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.25);
+    border: 1px solid hsl(var(--border) / 0.25);
+    box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.3);
     z-index: 100;
   }
 
   /* ==========================================
-     TYPOGRAPHY UTILITIES - Hierarchy through text only
+     EDITORIAL HEADERS - Not technical, purposeful
+     ========================================== */
+  .editorial-header {
+    @apply relative pb-8 mb-10;
+  }
+
+  .editorial-header::after {
+    content: '';
+    @apply absolute bottom-0 left-0 h-px;
+    width: 4rem;
+    background: hsl(var(--border) / 0.4);
+  }
+
+  .editorial-title {
+    @apply text-xl md:text-2xl font-normal tracking-tight;
+    color: hsl(var(--foreground) / 0.95);
+    letter-spacing: -0.02em;
+  }
+
+  .editorial-subtitle {
+    @apply text-sm mt-3 leading-relaxed;
+    color: hsl(var(--muted-foreground) / 0.7);
+    max-width: 32rem;
+  }
+
+  /* Section label - editorial style */
+  .section-label {
+    @apply text-[10px] font-medium uppercase tracking-[0.15em] mb-4;
+    color: hsl(var(--muted-foreground) / 0.5);
+  }
+
+  /* ==========================================
+     TYPOGRAPHY UTILITIES
      ========================================== */
   .micro-label {
     @apply text-xs font-medium;
-    color: hsl(var(--muted-foreground) / 0.8);
-  }
-
-  .section-label {
-    @apply text-[11px] font-medium uppercase tracking-wider;
-    color: hsl(var(--muted-foreground) / 0.6);
+    color: hsl(var(--muted-foreground) / 0.7);
   }
 
   .text-content {
     @apply leading-relaxed;
   }
 
-  /* Metadata styling - smaller and lighter */
   .text-meta {
-    @apply text-xs text-muted-foreground/70;
+    @apply text-xs;
+    color: hsl(var(--muted-foreground) / 0.5);
   }
 
   /* ==========================================
-     FIELD / INPUT STYLING - Safe, Clear
+     FIELD / INPUT STYLING
      ========================================== */
   .field-inset {
     @apply relative rounded-lg;
     background: hsl(var(--input));
-    border: 1px solid hsl(var(--border) / 0.5);
+    border: 1px solid hsl(var(--border) / 0.3);
   }
 
   .field-inset:focus-within {
-    border-color: hsl(var(--primary) / 0.5);
-    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.08);
+    border-color: hsl(var(--primary) / 0.4);
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.05);
   }
 
   /* ==========================================
-     TAB PILL STYLING - Subtle active state
+     TAB STYLING - Minimal, editorial
      ========================================== */
   .tab-pill {
     @apply relative inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors duration-150;
-    @apply text-muted-foreground hover:text-foreground/80;
+    @apply text-muted-foreground/60 hover:text-foreground/70;
   }
 
   .tab-pill[data-state="active"] {
     @apply text-foreground;
-    background: hsl(var(--muted) / 0.6);
+    background: hsl(var(--muted) / 0.4);
   }
 
   /* ==========================================
-     TABLE TOOLBAR PATTERN - Quiet background
+     TABLE TOOLBAR - Quiet, functional
      ========================================== */
   .table-toolbar {
-    @apply flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6 p-3 rounded-lg;
-    background: hsl(var(--muted) / 0.25);
-    border: 1px solid hsl(var(--border) / 0.25);
+    @apply flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-8 py-3;
+    border-bottom: 1px solid hsl(var(--border) / 0.15);
   }
 
   .table-toolbar-search {
@@ -235,172 +309,193 @@
   }
 
   /* ==========================================
-     STATUS BADGES - Informational only, muted
+     STATUS - Informational only, very muted
      ========================================== */
   .status-soft-success {
-    @apply bg-success/8 text-success/90 border-success/15;
+    @apply bg-success/6 text-success/80 border-success/10;
   }
 
   .status-soft-warning {
-    @apply bg-warning/8 text-warning/90 border-warning/15;
+    @apply bg-warning/6 text-warning/80 border-warning/10;
   }
 
   .status-soft-destructive {
-    @apply bg-destructive/8 text-destructive/90 border-destructive/15;
+    @apply bg-destructive/6 text-destructive/80 border-destructive/10;
   }
 
   .status-soft-primary {
-    @apply bg-muted text-foreground/80 border-border/30;
+    @apply bg-muted/40 text-foreground/70 border-border/20;
   }
 
   .status-soft-muted {
-    @apply bg-muted/50 text-muted-foreground border-border/25;
+    @apply bg-muted/30 text-muted-foreground/60 border-border/15;
   }
 
-  /* Priority accent bar - subtle */
+  /* Priority accent - very subtle */
   .priority-accent-urgent {
-    @apply border-l-2 border-l-destructive/60;
+    @apply border-l-2 border-l-destructive/40;
   }
 
   .priority-accent-high {
-    @apply border-l-2 border-l-warning/60;
+    @apply border-l-2 border-l-warning/40;
   }
 
   .priority-accent-normal {
-    @apply border-l-2 border-l-border;
+    @apply border-l-2 border-l-border/30;
   }
 
   /* ==========================================
-     PAGE LAYOUT PATTERNS - Generous Breathing Room
+     PAGE LAYOUT - Executive Rhythm
+     Entry → Focus → Supporting zones
      ========================================== */
   .page-header {
-    @apply mb-12;
+    @apply mb-16;
   }
   
   .page-title {
-    @apply text-lg md:text-xl font-medium tracking-tight;
-    color: hsl(var(--foreground));
+    @apply text-lg md:text-xl font-normal tracking-tight;
+    color: hsl(var(--foreground) / 0.9);
+    letter-spacing: -0.01em;
   }
   
   .page-subtitle {
-    @apply mt-2 text-sm leading-relaxed;
-    color: hsl(var(--muted-foreground) / 0.8);
+    @apply mt-3 text-sm leading-relaxed;
+    color: hsl(var(--muted-foreground) / 0.6);
   }
 
   .page-max-width {
-    @apply max-w-[1100px] mx-auto;
+    @apply max-w-[1000px] mx-auto;
+  }
+
+  /* Entry zone - welcoming, breathing */
+  .entry-zone {
+    @apply mb-12;
+  }
+
+  /* Focus zone - primary content area */
+  .focus-zone {
+    @apply relative;
+  }
+
+  /* Supporting zone - quieter, secondary */
+  .supporting-zone {
+    @apply mt-12 pt-8;
+    border-top: 1px solid hsl(var(--border) / 0.1);
   }
 
   /* Sticky header - minimal */
   .sticky-header {
     @apply sticky top-0 z-30 py-4 -mx-4 px-4 md:-mx-6 md:px-6;
-    background: hsl(var(--background) / 0.98);
-    border-bottom: 1px solid hsl(var(--border) / 0.15);
+    background: hsl(var(--background) / 0.95);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid hsl(var(--border) / 0.1);
   }
 
   /* ==========================================
-     GRADIENTS - All flat, no gradients
+     CALM VISUAL ELEMENTS
      ========================================== */
   .gradient-primary {
     background: hsl(var(--primary));
   }
 
   .gradient-primary-subtle {
-    background: hsl(var(--muted) / 0.5);
+    background: hsl(var(--muted) / 0.3);
   }
 
   .gradient-hero {
-    background: hsl(var(--muted));
+    background: hsl(var(--muted) / 0.5);
   }
 
   .gradient-subtle {
     background: hsl(var(--background));
   }
 
-  /* Button hover - barely visible */
   .btn-glow {
     position: relative;
-    transition: all 0.1s ease;
+    transition: all 0.15s ease;
   }
 
   .btn-glow:hover {
-    filter: brightness(1.02);
+    filter: brightness(1.03);
   }
 
   /* ==========================================
-     GLASS EFFECTS - Removed, use surfaces instead
+     GLASS - Subtle backdrop
      ========================================== */
   .glass {
-    @apply bg-card border border-border/30;
+    @apply bg-card/50 border border-border/20;
+    backdrop-filter: blur(8px);
   }
 
   .glass-strong {
-    @apply bg-card border border-border/40;
+    @apply bg-card/70 border border-border/25;
+    backdrop-filter: blur(12px);
   }
 
-  /* Mobile nav - blends in */
+  /* Mobile nav */
   .mobile-nav-floating {
     @apply fixed bottom-0 left-0 right-0 z-50;
-    background: hsl(var(--background));
-    border-top: 1px solid hsl(var(--border) / 0.3);
+    background: hsl(var(--background) / 0.95);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid hsl(var(--border) / 0.2);
   }
 
   /* ==========================================
-     CARD SYSTEM - Quiet, Spacious
+     CARD SYSTEM - Breathing, not boxed
      ========================================== */
   .card-elevated {
-    @apply transition-all duration-100 ease-out;
+    @apply transition-all duration-150 ease-out;
   }
 
   .card-interactive {
-    @apply transition-colors duration-100 ease-out cursor-pointer;
-    @apply hover:bg-muted/20;
+    @apply transition-colors duration-150 ease-out cursor-pointer;
+    @apply hover:bg-muted/10;
   }
 
   .card-hover-glow {
-    @apply transition-colors duration-100;
+    @apply transition-colors duration-150;
   }
 
-  /* Stat icon container - invisible */
+  /* Stat icon - nearly invisible */
   .stat-icon-container {
-    @apply flex items-center justify-center h-9 w-9 rounded-lg;
-    background: hsl(var(--muted) / 0.5);
-    color: hsl(var(--muted-foreground) / 0.7);
+    @apply flex items-center justify-center h-8 w-8 rounded-lg;
+    background: hsl(var(--muted) / 0.3);
+    color: hsl(var(--muted-foreground) / 0.5);
   }
 
   /* ==========================================
-     SECTION SPACING - Maximum Breathing Room
+     SECTION RHYTHM - Generous Breathing
      ========================================== */
   .section-gap {
-    @apply space-y-10 md:space-y-12;
+    @apply space-y-12 md:space-y-16;
   }
 
   .section-gap-sm {
-    @apply space-y-6 md:space-y-8;
+    @apply space-y-8 md:space-y-10;
   }
 
   /* ==========================================
-     SAFE AREA FOR MOBILE
+     SAFE AREA
      ========================================== */
   .safe-area-pb {
-    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
 
   /* ==========================================
-     ANIMATIONS - Calm, Not Flashy
+     ANIMATIONS - Calm, intentional
      ========================================== */
   @keyframes fade-in {
-    from { opacity: 0; transform: translateY(6px); }
+    from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
   @keyframes slide-up-fade {
-    from { opacity: 0; transform: translateY(10px); }
+    from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
   @keyframes scale-fade-in {
-    from { opacity: 0; transform: scale(0.97); }
+    from { opacity: 0; transform: scale(0.98); }
     to { opacity: 1; transform: scale(1); }
   }
 
@@ -411,34 +506,34 @@
 
   @keyframes pulse-soft {
     0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    50% { opacity: 0.6; }
   }
 
   .animate-fade-in {
-    animation: fade-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .animate-slide-up-fade {
-    animation: slide-up-fade 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: slide-up-fade 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .animate-scale-fade-in {
-    animation: scale-fade-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: scale-fade-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .animate-shimmer {
-    animation: shimmer 2s infinite;
+    animation: shimmer 2.5s infinite;
   }
 
   .animate-pulse-soft {
-    animation: pulse-soft 2s ease-in-out infinite;
+    animation: pulse-soft 2.5s ease-in-out infinite;
   }
 
-  /* Stagger */
-  .stagger-1 { animation-delay: 50ms; }
-  .stagger-2 { animation-delay: 100ms; }
-  .stagger-3 { animation-delay: 150ms; }
-  .stagger-4 { animation-delay: 200ms; }
+  /* Stagger - slower, more intentional */
+  .stagger-1 { animation-delay: 75ms; }
+  .stagger-2 { animation-delay: 150ms; }
+  .stagger-3 { animation-delay: 225ms; }
+  .stagger-4 { animation-delay: 300ms; }
 
   /* ==========================================
      HOVER EFFECTS - Subtle
@@ -448,45 +543,45 @@
   }
 
   .hover-scale {
-    @apply transition-transform duration-200 ease-out hover:scale-[1.01];
+    @apply transition-transform duration-200 ease-out hover:scale-[1.005];
   }
 
   /* ==========================================
      STATUS DOT - Live Indicator
      ========================================== */
   .status-dot {
-    @apply relative inline-flex h-2 w-2 rounded-full;
+    @apply relative inline-flex h-1.5 w-1.5 rounded-full;
   }
 
   .status-dot::before {
     content: '';
-    @apply absolute inset-0 rounded-full animate-ping opacity-75;
+    @apply absolute inset-0 rounded-full animate-ping opacity-60;
     background-color: inherit;
   }
 
   .status-dot-live {
-    @apply bg-success;
+    @apply bg-success/80;
   }
 
   .status-dot-offline {
-    @apply bg-muted-foreground;
+    @apply bg-muted-foreground/50;
   }
 
   .status-dot-warning {
-    @apply bg-warning;
+    @apply bg-warning/80;
   }
 
   /* ==========================================
-     SCROLLBAR STYLING
+     SCROLLBAR - Nearly invisible
      ========================================== */
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: hsl(var(--border)) transparent;
+    scrollbar-color: hsl(var(--border) / 0.5) transparent;
   }
 
   .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-track {
@@ -494,19 +589,19 @@
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--border));
+    background-color: hsl(var(--border) / 0.4);
     border-radius: 3px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background-color: hsl(var(--muted-foreground) / 0.4);
+    background-color: hsl(var(--muted-foreground) / 0.3);
   }
 
   /* ==========================================
      SKELETON LOADING
      ========================================== */
   .skeleton {
-    @apply relative overflow-hidden bg-muted/60 rounded;
+    @apply relative overflow-hidden bg-muted/40 rounded;
   }
 
   .skeleton::after {
@@ -515,9 +610,9 @@
     background: linear-gradient(
       90deg,
       transparent,
-      hsl(var(--foreground) / 0.03),
+      hsl(var(--foreground) / 0.02),
       transparent
     );
-    animation: shimmer 2s infinite;
+    animation: shimmer 2.5s infinite;
   }
 }
