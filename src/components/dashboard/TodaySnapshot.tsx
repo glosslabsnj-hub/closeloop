@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useTerminology } from "@/hooks/useTerminology";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -38,6 +39,7 @@ export function TodaySnapshot() {
   const navigate = useNavigate();
   const { tenant } = useAuth();
   const { businessMode } = useTenantConfig();
+  const terms = useTerminology();
 
   const todayStart = startOfDay(new Date()).toISOString();
   const todayEnd = endOfDay(new Date()).toISOString();
@@ -182,7 +184,7 @@ export function TodaySnapshot() {
       case "medical":
         return [
           { label: "Intakes Today", value: intakesToday, icon: Stethoscope, href: "/app/medical-intake", color: "text-rose-400", bgColor: "bg-rose-500/15" },
-          { label: "Appointments", value: bookingsWeek, icon: Calendar, href: "/app/bookings", color: "text-blue-400", bgColor: "bg-blue-500/15" },
+          { label: terms.bookingsMetricLabel, value: bookingsWeek, icon: Calendar, href: "/app/bookings", color: "text-blue-400", bgColor: "bg-blue-500/15" },
           { label: "Calls Today", value: callsToday, icon: Phone, href: "/app/inbox?tab=calls", color: "text-emerald-400", bgColor: "bg-emerald-500/15" },
           { label: "Knowledge Score", value: `${aiScore}%`, icon: Bot, href: "/app/business-brain", color: "text-primary", bgColor: "bg-primary/15", tooltip: "How much your AI knows about your business. Add FAQs, services, and policies to improve." },
         ];
@@ -191,7 +193,7 @@ export function TodaySnapshot() {
       default:
         return [
           { label: "Calls Today", value: callsToday, icon: Phone, href: "/app/inbox?tab=calls", color: "text-emerald-400", bgColor: "bg-emerald-500/15" },
-          { label: "Bookings", value: bookingsWeek, icon: Calendar, href: "/app/bookings", color: "text-blue-400", bgColor: "bg-blue-500/15" },
+          { label: terms.bookingsMetricLabel, value: bookingsWeek, icon: Calendar, href: "/app/bookings", color: "text-blue-400", bgColor: "bg-blue-500/15" },
           { label: "This Week", value: bookingsWeek > 0 ? `+${bookingsWeek}` : "0", icon: TrendingUp, href: "/app/inbox?tab=leads", color: "text-purple-400", bgColor: "bg-purple-500/15" },
           { label: "Knowledge Score", value: `${aiScore}%`, icon: Bot, href: "/app/business-brain", color: "text-primary", bgColor: "bg-primary/15", tooltip: "How much your AI knows about your business. Add FAQs, services, and policies to improve." },
         ];

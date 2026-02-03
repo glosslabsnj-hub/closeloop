@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
+import { useTerminology } from "@/hooks/useTerminology";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -78,6 +79,7 @@ function BookingListItem({ booking }: { booking: BookingWithDetails }) {
 export default function BookingsPage() {
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["booking"]);
   const { bookings, isLoading, stats } = useBookings();
+  const terms = useTerminology();
   
   const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -119,8 +121,8 @@ export default function BookingsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="page-header mb-0">
-            <h1 className="page-title">Schedule</h1>
-            <p className="page-subtitle">Your calendar and upcoming appointments. Click any time slot to create a booking.</p>
+            <h1 className="page-title">{terms.bookingsPageTitle}</h1>
+            <p className="page-subtitle">{terms.bookingsPageSubtitle}. Click any time slot to create a {terms.booking}.</p>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
@@ -153,7 +155,7 @@ export default function BookingsPage() {
             </div>
             <Button className="gap-2" onClick={() => setCreateDialogOpen(true)}>
               <Plus className="h-4 w-4" />
-              New Booking
+              {terms.newBooking}
             </Button>
           </div>
         </div>

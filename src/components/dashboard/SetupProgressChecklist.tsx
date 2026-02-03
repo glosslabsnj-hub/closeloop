@@ -4,6 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useTerminology } from "@/hooks/useTerminology";
 import {
   CheckCircle2,
   Circle,
@@ -32,6 +33,7 @@ interface SetupStep {
  */
 export function SetupProgressChecklist() {
   const { tenant, assistantSettings } = useAuth();
+  const terms = useTerminology();
 
   // Fetch counts for completion checks
   const { data: counts } = useQuery({
@@ -66,8 +68,8 @@ export function SetupProgressChecklist() {
   const steps: SetupStep[] = [
     {
       id: "services",
-      label: "Add your services",
-      description: "What you offer and pricing",
+      label: terms.addServicesStep,
+      description: terms.addServicesDescription,
       href: "/app/business-brain?section=services",
       icon: Package,
       completed: (counts?.services || 0) > 0,

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useServices } from "@/hooks/useServices";
+import { useTerminology } from "@/hooks/useTerminology";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +15,7 @@ import { Brain, DollarSign, Clock, Briefcase, Loader2 } from "lucide-react";
  */
 export default function ServicesPage() {
   const { services, isLoading } = useServices();
+  const terms = useTerminology();
 
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -46,9 +48,9 @@ export default function ServicesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Services</h1>
+          <h1 className="text-3xl font-bold">{terms.servicesPageTitle}</h1>
           <p className="text-muted-foreground mt-1">
-            View your services catalog
+            {terms.servicesPageSubtitle}
           </p>
         </div>
         <Button asChild size="lg">
