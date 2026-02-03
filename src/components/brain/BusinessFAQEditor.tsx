@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { BusinessFAQ } from "@/types/database";
-import { Plus, Trash2, Save, Loader2, MessageCircle, HelpCircle } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, MessageCircle, HelpCircle, Info, Lightbulb } from "lucide-react";
 import { createFAQ, updateFAQ, deleteFAQ } from "@/lib/brain/writeBrainFact";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { SuggestedFAQButtons } from "./SuggestedFAQButtons";
 import { AIPreviewCard } from "./AIPreviewCard";
+import { InlineUploadButton } from "./InlineUploadButton";
 
 export function BusinessFAQEditor() {
   const { tenant } = useAuth();
@@ -128,6 +129,26 @@ export function BusinessFAQEditor() {
         />
       )}
 
+      {/* Explanation Card */}
+      <div className="rounded-lg border bg-muted/30 p-4">
+        <div className="flex items-start gap-3">
+          <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+          <div className="space-y-2">
+            <p className="text-sm font-medium">What are FAQs?</p>
+            <p className="text-sm text-muted-foreground">
+              Add common questions your customers ask, along with your preferred answers. 
+              The AI will use these to respond accurately and consistently.
+            </p>
+            <div className="flex items-center gap-2 pt-1">
+              <Lightbulb className="h-4 w-4 text-amber-500" />
+              <p className="text-xs text-muted-foreground">
+                <strong>Tip:</strong> Have an FAQ document or website? Upload it and we'll extract the Q&As automatically.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -140,6 +161,11 @@ export function BusinessFAQEditor() {
                 Common questions and answers — the AI uses these to respond to customers
               </CardDescription>
             </div>
+            <InlineUploadButton 
+              contentType="faqs" 
+              variant="compact"
+              onUploadComplete={() => fetchFAQs()}
+            />
           </div>
         </CardHeader>
         <CardContent className="space-y-4">

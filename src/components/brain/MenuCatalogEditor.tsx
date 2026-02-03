@@ -10,6 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -27,8 +32,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Clock, DollarSign, Loader2, Utensils } from "lucide-react";
+import { 
+  Plus, 
+  Pencil, 
+  Trash2, 
+  Clock, 
+  DollarSign, 
+  Loader2, 
+  Utensils, 
+  ChevronDown,
+  ChevronRight,
+  Info,
+  Lightbulb
+} from "lucide-react";
 import { toast } from "sonner";
+import { InlineUploadButton } from "./InlineUploadButton";
 
 interface MenuItemFormData {
   name: string;
@@ -53,8 +71,10 @@ const defaultFormData: MenuItemFormData = {
 /**
  * MenuCatalogEditor - Inline menu management for food mode
  * 
- * This component lives in Business Brain and is the ONLY place to edit menu items.
- * Follows the same pattern as ServiceCatalogEditor.
+ * Features:
+ * - Collapsible category sections for large menus
+ * - Inline upload button to quickly import menus
+ * - Clear explanations of what each section does
  */
 export function MenuCatalogEditor() {
   const { tenant } = useAuth();
@@ -65,6 +85,7 @@ export function MenuCatalogEditor() {
   const [editingItem, setEditingItem] = useState<any | null>(null);
   const [deletingItem, setDeletingItem] = useState<any | null>(null);
   const [formData, setFormData] = useState<MenuItemFormData>(defaultFormData);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   // Fetch menu items
   const { data: menuItems, isLoading } = useQuery({
@@ -187,10 +208,34 @@ export function MenuCatalogEditor() {
     });
   };
 
+  const toggleCategory = (category: string) => {
+    setExpandedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(category)) {
+        next.delete(category);
+      } else {
+        next.add(category);
+      }
+      return next;
+    });
+  };
+
+  const expandAllCategories = () => {
+    setExpandedCategories(new Set(categories));
+  };
+
+  const collapseAllCategories = () => {
+    setExpandedCategories(new Set());
+  };
+
   const isSaving = createMutation.isPending || updateMutation.isPending;
 
   // Group items by category
   const categories = [...new Set(menuItems?.map(item => item.category || "Uncategorized") || [])];
+  const itemsByCategory = categories.reduce((acc, category) => {
+    acc[category] = menuItems?.filter(item => (item.category || "Uncategorized") === category) || [];
+    return acc;
+  }, {} as Record<string, any[]>);
 
   if (isLoading) {
     return (
@@ -211,8 +256,32 @@ export function MenuCatalogEditor() {
     ? `Our ${firstItem.name} is $${((firstItem.price_cents || 0) / 100).toFixed(2)}${firstItem.prep_time_minutes ? ` and takes about ${firstItem.prep_time_minutes} minutes to prepare` : ""}.`
     : "I can tell you about our menu items and pricing.";
 
+  const totalItems = menuItems?.length || 0;
+  const availableItems = menuItems?.filter(i => i.is_available).length || 0;
+
   return (
     <div className="space-y-6">
+      {/* Explanation Card */}
+      <div className="rounded-lg border bg-muted/30 p-4">
+        <div className="flex items-start gap-3">
+          <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+          <div className="space-y-2">
+            <p className="text-sm font-medium">What is this?</p>
+            <p className="text-sm text-muted-foreground">
+              Your menu items are what your AI assistant uses to answer pricing questions and take orders. 
+              Each item needs a <strong>name</strong>, <strong>category</strong> (like "Appetizers" or "Drinks"), 
+              and <strong>price</strong>. The AI will use this to help customers.
+            </p>
+            <div className="flex items-center gap-2 pt-1">
+              <Lightbulb className="h-4 w-4 text-amber-500" />
+              <p className="text-xs text-muted-foreground">
+                <strong>Tip:</strong> Have a menu PDF or photo? Upload it and we'll extract all the items automatically.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* AI Preview */}
       {menuItems && menuItems.length > 0 && (
         <div className="rounded-lg border bg-primary/5 border-primary/20 p-4">
@@ -229,115 +298,169 @@ export function MenuCatalogEditor() {
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Header with stats and actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold">Menu Items</h3>
           <p className="text-sm text-muted-foreground">
-            Add your menu items so the AI can answer questions and take orders
+            {totalItems === 0 
+              ? "Add your menu items so the AI can answer questions and take orders"
+              : `${totalItems} items across ${categories.length} ${categories.length === 1 ? 'category' : 'categories'} • ${availableItems} available`
+            }
           </p>
         </div>
-        <Button onClick={openCreateDialog}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Item
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <InlineUploadButton 
+            contentType="menu" 
+            variant="compact"
+            onUploadComplete={() => queryClient.invalidateQueries({ queryKey: ["menu-items"] })}
+          />
+          <Button onClick={openCreateDialog}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Item
+          </Button>
+        </div>
       </div>
 
-      {/* Menu Items Grid by Category */}
+      {/* Menu Items by Category */}
       {menuItems && menuItems.length > 0 ? (
-        <div className="space-y-6">
-          {categories.map((category) => (
-            <div key={category}>
-              <h4 className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wide">
-                {category}
-              </h4>
-              <div className="grid gap-4 md:grid-cols-2">
-                {menuItems
-                  .filter(item => (item.category || "Uncategorized") === category)
-                  .map((item) => (
-                    <Card key={item.id}>
-                      <CardHeader className="pb-2">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <CardTitle className="text-base">{item.name}</CardTitle>
-                            {item.description && (
-                              <CardDescription className="mt-1 line-clamp-2">
-                                {item.description}
-                              </CardDescription>
-                            )}
-                          </div>
-                          {!item.is_available && (
-                            <Badge variant="outline" className="ml-2">Unavailable</Badge>
-                          )}
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-4 text-sm">
-                            <div className="flex items-center gap-1.5">
-                              <DollarSign className="h-4 w-4 text-muted-foreground" />
-                              <span className="font-medium">
-                                ${((item.price_cents || 0) / 100).toFixed(2)}
-                              </span>
-                            </div>
-                            {item.prep_time_minutes && (
-                              <div className="flex items-center gap-1.5 text-muted-foreground">
-                                <Clock className="h-4 w-4" />
-                                <span>{item.prep_time_minutes} min</span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 pt-1">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => openEditDialog(item)}
-                            >
-                              <Pencil className="h-3 w-3 mr-1" />
-                              Edit
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleToggleAvailable(item)}
-                            >
-                              {item.is_available ? "Mark Unavailable" : "Mark Available"}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => {
-                                setDeletingItem(item);
-                                setDeleteDialogOpen(true);
-                              }}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-              </div>
+        <div className="space-y-2">
+          {/* Expand/Collapse All */}
+          {categories.length > 1 && (
+            <div className="flex items-center justify-end gap-2 mb-2">
+              <Button variant="ghost" size="sm" onClick={expandAllCategories}>
+                Expand All
+              </Button>
+              <Button variant="ghost" size="sm" onClick={collapseAllCategories}>
+                Collapse All
+              </Button>
             </div>
-          ))}
+          )}
+
+          {categories.map((category) => {
+            const items = itemsByCategory[category];
+            const isExpanded = expandedCategories.has(category);
+            const categoryAvailable = items.filter(i => i.is_available).length;
+
+            return (
+              <Collapsible 
+                key={category} 
+                open={isExpanded}
+                onOpenChange={() => toggleCategory(category)}
+              >
+                <Card>
+                  <CollapsibleTrigger asChild>
+                    <button className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors rounded-t-lg">
+                      <div className="flex items-center gap-3">
+                        {isExpanded ? (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        )}
+                        <h4 className="font-medium">{category}</h4>
+                        <Badge variant="secondary" className="text-xs">
+                          {items.length} {items.length === 1 ? 'item' : 'items'}
+                        </Badge>
+                        {categoryAvailable < items.length && (
+                          <Badge variant="outline" className="text-xs text-muted-foreground">
+                            {items.length - categoryAvailable} unavailable
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        ${((items.reduce((sum, i) => sum + (i.price_cents || 0), 0) / items.length / 100) || 0).toFixed(2)} avg
+                      </div>
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="border-t">
+                      <div className="divide-y">
+                        {items.map((item) => (
+                          <div 
+                            key={item.id} 
+                            className="px-4 py-3 flex items-center justify-between gap-4 hover:bg-muted/30"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-sm truncate">{item.name}</span>
+                                {!item.is_available && (
+                                  <Badge variant="outline" className="text-xs shrink-0">Unavailable</Badge>
+                                )}
+                              </div>
+                              {item.description && (
+                                <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                  {item.description}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-4 shrink-0">
+                              <div className="flex items-center gap-3 text-sm">
+                                <span className="font-medium">
+                                  ${((item.price_cents || 0) / 100).toFixed(2)}
+                                </span>
+                                {item.prep_time_minutes && (
+                                  <span className="flex items-center gap-1 text-muted-foreground text-xs">
+                                    <Clock className="h-3 w-3" />
+                                    {item.prep_time_minutes}m
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7"
+                                  onClick={() => openEditDialog(item)}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7 text-destructive hover:text-destructive"
+                                  onClick={() => {
+                                    setDeletingItem(item);
+                                    setDeleteDialogOpen(true);
+                                  }}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
+            );
+          })}
         </div>
       ) : (
         <Card>
-          <CardContent className="p-12 text-center">
-            <div className="flex flex-col items-center gap-3">
+          <CardContent className="p-8 text-center">
+            <div className="flex flex-col items-center gap-4 max-w-md mx-auto">
               <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
                 <Utensils className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="font-semibold text-lg">No menu items yet</h3>
-              <p className="text-sm text-muted-foreground max-w-sm">
-                Add your menu items so the AI can answer pricing questions and take orders from customers.
-              </p>
-              <Button onClick={openCreateDialog} className="mt-2">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Your First Item
-              </Button>
+              <div>
+                <h3 className="font-semibold text-lg mb-1">No menu items yet</h3>
+                <p className="text-sm text-muted-foreground">
+                  Add your menu items so the AI can answer pricing questions and take orders from customers.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+                <InlineUploadButton 
+                  contentType="menu"
+                  onUploadComplete={() => queryClient.invalidateQueries({ queryKey: ["menu-items"] })}
+                />
+                <span className="text-xs text-muted-foreground">or</span>
+                <Button onClick={openCreateDialog}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Item Manually
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -366,6 +489,9 @@ export function MenuCatalogEditor() {
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 placeholder="Burgers, Appetizers, Drinks..."
               />
+              <p className="text-xs text-muted-foreground">
+                Group similar items together (e.g., "Burgers", "Sides", "Drinks")
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Description</Label>
@@ -406,7 +532,10 @@ export function MenuCatalogEditor() {
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <Label>Available</Label>
+              <div>
+                <Label>Available</Label>
+                <p className="text-xs text-muted-foreground">Turn off to hide from AI</p>
+              </div>
               <Switch
                 checked={formData.is_available}
                 onCheckedChange={(checked) =>

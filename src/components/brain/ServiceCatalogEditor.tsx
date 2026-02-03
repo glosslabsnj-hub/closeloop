@@ -32,7 +32,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Clock, DollarSign, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Clock, DollarSign, Loader2, Info, Lightbulb } from "lucide-react";
+import { InlineUploadButton } from "./InlineUploadButton";
 import { createService, updateService, deleteService } from "@/lib/brain/writeBrainFact";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -205,6 +206,27 @@ export function ServiceCatalogEditor() {
 
   return (
     <div className="space-y-6">
+      {/* Explanation Card */}
+      <div className="rounded-lg border bg-muted/30 p-4">
+        <div className="flex items-start gap-3">
+          <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+          <div className="space-y-2">
+            <p className="text-sm font-medium">What is this?</p>
+            <p className="text-sm text-muted-foreground">
+              Your services are what your AI assistant uses to answer pricing questions and book appointments. 
+              Each service needs a <strong>name</strong>, <strong>duration</strong>, and <strong>price</strong>. 
+              The AI will use this to help customers understand what you offer.
+            </p>
+            <div className="flex items-center gap-2 pt-1">
+              <Lightbulb className="h-4 w-4 text-amber-500" />
+              <p className="text-xs text-muted-foreground">
+                <strong>Tip:</strong> Have a service list or pricing sheet? Upload it and we'll extract all the services automatically.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* AI Preview */}
       {services && services.length > 0 && (
         <div className="rounded-lg border bg-primary/5 border-primary/20 p-4">
@@ -222,17 +244,24 @@ export function ServiceCatalogEditor() {
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold">Service Catalog</h3>
           <p className="text-sm text-muted-foreground">
             Add your services so the AI can quote prices and book appointments
           </p>
         </div>
-        <Button onClick={openCreateDialog}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Service
-        </Button>
+        <div className="flex items-center gap-2">
+          <InlineUploadButton 
+            contentType="services" 
+            variant="compact"
+            onUploadComplete={() => queryClient.invalidateQueries({ queryKey: ["services"] })}
+          />
+          <Button onClick={openCreateDialog}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Service
+          </Button>
+        </div>
       </div>
 
       {/* Services Grid */}
@@ -305,19 +334,28 @@ export function ServiceCatalogEditor() {
         </div>
       ) : (
         <Card>
-          <CardContent className="p-12 text-center">
-            <div className="flex flex-col items-center gap-3">
+          <CardContent className="p-8 text-center">
+            <div className="flex flex-col items-center gap-4 max-w-md mx-auto">
               <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
                 <DollarSign className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="font-semibold text-lg">No services yet</h3>
-              <p className="text-sm text-muted-foreground max-w-sm">
-                Start by adding your most popular services. The AI will use these to answer pricing questions and help customers book.
-              </p>
-              <Button onClick={openCreateDialog} className="mt-2">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Your First Service
-              </Button>
+              <div>
+                <h3 className="font-semibold text-lg mb-1">No services yet</h3>
+                <p className="text-sm text-muted-foreground">
+                  Start by adding your most popular services. The AI will use these to answer pricing questions and help customers book.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+                <InlineUploadButton 
+                  contentType="services"
+                  onUploadComplete={() => queryClient.invalidateQueries({ queryKey: ["services"] })}
+                />
+                <span className="text-xs text-muted-foreground">or</span>
+                <Button onClick={openCreateDialog}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Service Manually
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
