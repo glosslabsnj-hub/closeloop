@@ -4,78 +4,78 @@
 
 /* =====================================================
    CloseLoop Design System - 2026/2027
-   Theme: "Aurora" - Premium, Electric, World-Class
-   Inspired by Linear, Raycast, Vercel
+   Theme: "Paper & Ink" - Light, Warm, Sophisticated
+   Inspired by premium print, quality stationery
    ===================================================== */
 
 @layer base {
   :root {
     /* =====================================================
-       "Aurora" Theme
-       Deep space backgrounds, electric cyan accent,
-       violet undertones, premium glassmorphism
+       "Paper & Ink" Theme
+       Warm cream backgrounds, rich ink, cobalt accent
+       Clean, airy, professional light mode
        ===================================================== */
 
-    /* Core Background - Deep space, rich and immersive */
-    --background: 240 15% 6%;
-    --foreground: 210 40% 96%;
+    /* Core Background - Warm cream paper */
+    --background: 40 30% 97%;
+    --foreground: 220 25% 12%;
 
-    /* Cards - Elevated glass surfaces */
-    --card: 240 12% 10%;
-    --card-foreground: 210 35% 94%;
+    /* Cards - Pure white with subtle warmth */
+    --card: 0 0% 100%;
+    --card-foreground: 220 25% 12%;
 
-    --popover: 240 14% 12%;
-    --popover-foreground: 210 40% 96%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 25% 12%;
 
-    /* Primary - Electric cyan (premium tech feel) */
-    --primary: 185 85% 50%;
-    --primary-foreground: 240 15% 6%;
+    /* Primary - Rich cobalt blue (sophisticated, trustworthy) */
+    --primary: 220 75% 45%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Soft violet undertone */
-    --secondary: 260 20% 14%;
-    --secondary-foreground: 260 15% 75%;
+    /* Secondary - Soft warm gray */
+    --secondary: 40 15% 94%;
+    --secondary-foreground: 220 15% 35%;
 
-    /* Muted - Deep space gray with violet hint */
-    --muted: 250 12% 14%;
-    --muted-foreground: 240 10% 55%;
+    /* Muted - Light warm gray */
+    --muted: 40 20% 96%;
+    --muted-foreground: 220 10% 45%;
 
-    /* Accent - Violet glow */
-    --accent: 260 30% 18%;
-    --accent-foreground: 260 20% 85%;
+    /* Accent - Subtle blue tint */
+    --accent: 220 30% 95%;
+    --accent-foreground: 220 75% 40%;
 
-    /* Signature - Electric cyan for emphasis */
-    --accent-signature: 185 85% 55%;
+    /* Signature - Cobalt for emphasis */
+    --accent-signature: 220 75% 50%;
     
-    /* Secondary signature - Soft violet */
-    --accent-violet: 270 60% 60%;
+    /* Secondary signature - Warm terracotta */
+    --accent-warm: 15 70% 55%;
 
-    /* Status Colors - Vibrant, modern */
-    --destructive: 0 75% 55%;
+    /* Status Colors - Clear and confident */
+    --destructive: 0 72% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 160 75% 45%;
+    --success: 155 70% 35%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 45 95% 55%;
-    --warning-foreground: 45 100% 10%;
+    --warning: 38 95% 50%;
+    --warning-foreground: 38 100% 15%;
 
     /* Borders & Inputs */
-    --border: 250 15% 18%;
-    --input: 240 12% 11%;
-    --ring: 185 85% 50%;
+    --border: 220 15% 88%;
+    --input: 0 0% 100%;
+    --ring: 220 75% 45%;
 
-    /* Radius - Smooth, modern */
-    --radius: 0.75rem;
+    /* Radius - Refined, not too round */
+    --radius: 0.625rem;
 
-    /* Sidebar */
-    --sidebar-background: 240 18% 5%;
-    --sidebar-foreground: 240 10% 60%;
-    --sidebar-primary: 185 85% 50%;
-    --sidebar-primary-foreground: 240 15% 6%;
-    --sidebar-accent: 260 25% 15%;
-    --sidebar-accent-foreground: 260 15% 80%;
-    --sidebar-border: 250 15% 14%;
-    --sidebar-ring: 185 85% 50%;
+    /* Sidebar - Slightly darker warm */
+    --sidebar-background: 40 25% 95%;
+    --sidebar-foreground: 220 15% 40%;
+    --sidebar-primary: 220 75% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 30% 92%;
+    --sidebar-accent-foreground: 220 75% 40%;
+    --sidebar-border: 220 15% 90%;
+    --sidebar-ring: 220 75% 45%;
   }
 }
 
@@ -92,19 +92,18 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Typography - Premium, Confident */
+  /* Typography - Elegant, Editorial */
   h1 {
     @apply text-2xl md:text-3xl font-bold tracking-tight leading-tight;
     text-wrap: balance;
-    background: linear-gradient(135deg, hsl(var(--foreground)) 0%, hsl(var(--foreground) / 0.8) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: hsl(var(--foreground));
+    letter-spacing: -0.03em;
   }
 
   h2 {
     @apply text-xl md:text-2xl font-bold tracking-tight leading-tight;
     text-wrap: balance;
+    color: hsl(var(--foreground));
   }
 
   h3 {
@@ -116,14 +115,14 @@
     @apply text-base font-semibold leading-snug;
   }
 
-  /* Focus states - Electric cyan ring */
+  /* Focus states - Cobalt ring */
   *:focus-visible {
-    @apply outline-none ring-2 ring-primary/50 ring-offset-2 ring-offset-background;
+    @apply outline-none ring-2 ring-primary/30 ring-offset-2 ring-offset-background;
   }
 
   /* Selection */
   ::selection {
-    background: hsl(var(--primary) / 0.3);
+    background: hsl(var(--primary) / 0.15);
     color: hsl(var(--foreground));
   }
 
@@ -139,29 +138,27 @@
 
 @layer utilities {
   /* ==========================================
-     AURORA WORKSPACE BACKGROUND
-     Deep space with electric glow accents
+     PAPER & INK WORKSPACE
+     Clean, warm, airy light mode
      ========================================== */
   .app-bg {
     position: relative;
-    background: 
-      radial-gradient(ellipse 120% 80% at 50% -30%, hsl(260 40% 15% / 0.7), transparent 55%),
-      radial-gradient(ellipse 80% 60% at 90% 20%, hsl(185 60% 20% / 0.15), transparent 50%),
-      radial-gradient(ellipse 60% 50% at 10% 80%, hsl(270 50% 15% / 0.2), transparent 50%),
-      hsl(var(--background));
+    background: hsl(var(--background));
   }
   
-  /* Aurora ambient glow */
+  /* Subtle warm gradient at top */
   .app-bg::before {
     content: '';
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
-    height: 60vh;
-    background: 
-      radial-gradient(ellipse 60% 35% at 30% 0%, hsl(270 50% 25% / 0.2), transparent 60%),
-      radial-gradient(ellipse 50% 30% at 70% 0%, hsl(185 70% 30% / 0.15), transparent 55%);
+    height: 400px;
+    background: linear-gradient(
+      180deg,
+      hsl(40 40% 96%),
+      hsl(var(--background)) 100%
+    );
     pointer-events: none;
     z-index: 0;
   }
@@ -171,158 +168,115 @@
   }
 
   /* ==========================================
-     AURORA WORKSPACE FRAME
-     Electric cyan accent strips
+     WORKSPACE FRAME - Ink accent
      ========================================== */
   .workspace-frame {
     @apply relative;
-    border-left: 2px solid hsl(var(--accent-signature) / 0.5);
+    border-left: 3px solid hsl(var(--primary));
     padding-left: 1.5rem;
   }
 
   .workspace-frame-subtle {
     @apply relative;
-    border-left: 1px solid hsl(var(--accent-signature) / 0.3);
+    border-left: 2px solid hsl(var(--border));
     padding-left: 1rem;
   }
 
-  /* Focus rail - electric cyan edge */
+  /* Focus rail - clean centered content */
   .focus-rail {
     @apply relative mx-auto;
     max-width: 1000px;
   }
 
   .focus-rail::before {
-    content: '';
-    @apply absolute -left-6 top-0 bottom-0 w-px;
-    background: linear-gradient(
-      to bottom,
-      transparent,
-      hsl(var(--accent-signature) / 0.4) 20%,
-      hsl(var(--accent-violet) / 0.3) 50%,
-      hsl(var(--accent-signature) / 0.4) 80%,
-      transparent
-    );
+    display: none;
   }
 
-  /* Work area - glass surface with aurora glow */
+  /* Work area - white card with subtle shadow */
   .work-area {
-    @apply relative rounded-2xl overflow-hidden;
-    background: linear-gradient(
-      160deg,
-      hsl(var(--card)) 0%,
-      hsl(240 15% 9%) 100%
-    );
-    border: 1px solid hsl(var(--border) / 0.6);
+    @apply relative rounded-xl;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
     box-shadow: 
-      0 8px 32px -8px hsl(0 0% 0% / 0.5),
-      0 0 0 1px hsl(var(--accent-signature) / 0.08),
-      inset 0 1px 0 hsl(210 40% 98% / 0.05),
-      0 0 80px -20px hsl(var(--accent-signature) / 0.1);
+      0 1px 3px hsl(220 20% 10% / 0.04),
+      0 8px 24px hsl(220 20% 10% / 0.06);
     padding: 2rem;
   }
 
   .work-area-compact {
-    @apply relative rounded-xl;
+    @apply relative rounded-lg;
     background: hsl(var(--card));
-    border: 1px solid hsl(var(--border) / 0.5);
-    box-shadow: 
-      0 4px 16px hsl(0 0% 0% / 0.25),
-      inset 0 1px 0 hsl(210 40% 98% / 0.03);
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 1px 3px hsl(220 20% 10% / 0.04);
     padding: 1.5rem;
   }
 
   /* ==========================================
-     SURFACE SYSTEM - Aurora Glass Layers
-     Subtle gradients, premium depth, electric edges
+     SURFACE SYSTEM - Paper Layers
+     Clean whites, subtle shadows
      ========================================== */
   .surface-1 {
-    @apply relative rounded-2xl overflow-hidden;
-    background: linear-gradient(
-      160deg,
-      hsl(var(--card)) 0%,
-      hsl(250 15% 9%) 100%
-    );
-    border: 1px solid hsl(var(--border) / 0.5);
+    @apply relative rounded-xl;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
     box-shadow: 
-      0 8px 32px -8px hsl(0 0% 0% / 0.4),
-      inset 0 1px 0 hsl(210 40% 98% / 0.05);
+      0 1px 3px hsl(220 20% 10% / 0.04),
+      0 4px 16px hsl(220 20% 10% / 0.06);
   }
 
   .surface-2 {
-    @apply relative rounded-xl;
+    @apply relative rounded-lg;
     background: hsl(var(--card));
-    border: 1px solid hsl(var(--border) / 0.4);
-    box-shadow: 0 4px 16px hsl(0 0% 0% / 0.25);
+    border: 1px solid hsl(var(--border) / 0.7);
+    box-shadow: 0 1px 2px hsl(220 20% 10% / 0.03);
   }
 
   .surface-3 {
-    @apply relative rounded-2xl overflow-hidden;
-    background: linear-gradient(
-      160deg,
-      hsl(var(--popover)) 0%,
-      hsl(250 18% 10%) 100%
-    );
-    border: 1px solid hsl(var(--border) / 0.6);
+    @apply relative rounded-xl;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
     box-shadow: 
-      0 16px 48px -12px hsl(0 0% 0% / 0.6),
-      0 0 0 1px hsl(var(--accent-signature) / 0.1),
-      0 0 60px -15px hsl(var(--accent-signature) / 0.15);
+      0 4px 12px hsl(220 20% 10% / 0.08),
+      0 16px 32px hsl(220 20% 10% / 0.1);
     z-index: 100;
   }
 
   /* ==========================================
-     EDITORIAL HEADERS - Electric cyan emphasis
+     EDITORIAL HEADERS - Ink emphasis
      ========================================== */
   .editorial-header {
-    @apply relative pb-10 mb-12;
+    @apply relative pb-8 mb-10;
   }
 
   .editorial-header::after {
     content: '';
     @apply absolute bottom-0 left-0 h-0.5 rounded-full;
-    width: 6rem;
-    background: linear-gradient(
-      90deg,
-      hsl(var(--accent-signature)),
-      hsl(var(--accent-violet) / 0.6) 60%,
-      transparent
-    );
-    box-shadow: 0 0 20px hsl(var(--accent-signature) / 0.4);
+    width: 4rem;
+    background: hsl(var(--primary));
   }
 
   .editorial-title {
     @apply text-2xl md:text-3xl font-bold tracking-tight;
-    background: linear-gradient(135deg, hsl(var(--foreground)) 0%, hsl(var(--foreground) / 0.85) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: hsl(var(--foreground));
     letter-spacing: -0.03em;
   }
 
   .editorial-subtitle {
-    @apply text-base mt-4 leading-relaxed;
+    @apply text-base mt-3 leading-relaxed;
     color: hsl(var(--muted-foreground));
     max-width: 36rem;
   }
 
-  /* Section label - electric cyan */
+  /* Section label - cobalt ink */
   .section-label {
-    @apply text-[11px] font-bold uppercase tracking-[0.2em] mb-5;
-    color: hsl(var(--accent-signature));
-    text-shadow: 0 0 20px hsl(var(--accent-signature) / 0.3);
+    @apply text-[11px] font-bold uppercase tracking-[0.15em] mb-4;
+    color: hsl(var(--primary));
   }
 
-  /* Section divider - aurora gradient */
+  /* Section divider - subtle line */
   .section-divider {
-    @apply h-px my-10;
-    background: linear-gradient(
-      90deg,
-      hsl(var(--accent-signature) / 0.5),
-      hsl(var(--accent-violet) / 0.3) 30%,
-      hsl(var(--border) / 0.2) 60%,
-      transparent
-    );
+    @apply h-px my-8;
+    background: hsl(var(--border));
   }
 
   /* ==========================================
@@ -357,30 +311,24 @@
   }
 
   /* ==========================================
-     TAB STYLING - Warm amber active state
+     TAB STYLING - Clean active state
      ========================================== */
   .tab-pill {
     @apply relative inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200;
-    @apply text-muted-foreground hover:text-foreground hover:bg-accent/50;
+    @apply text-muted-foreground hover:text-foreground hover:bg-secondary;
   }
 
   .tab-pill[data-state="active"] {
-    @apply text-foreground;
-    background: linear-gradient(
-      145deg,
-      hsl(var(--accent) / 0.8),
-      hsl(var(--accent) / 0.5)
-    );
-    border: 1px solid hsl(var(--accent-signature) / 0.2);
-    box-shadow: 0 2px 8px hsl(0 0% 0% / 0.15);
+    @apply text-primary-foreground bg-primary;
+    box-shadow: 0 1px 3px hsl(var(--primary) / 0.3);
   }
 
   /* ==========================================
-     TABLE TOOLBAR - Premium divider
+     TABLE TOOLBAR - Clean divider
      ========================================== */
   .table-toolbar {
     @apply flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-8 py-3;
-    border-bottom: 1px solid hsl(var(--accent-signature) / 0.15);
+    border-bottom: 1px solid hsl(var(--border));
   }
 
   .table-toolbar-search {
@@ -396,68 +344,59 @@
   }
 
   /* ==========================================
-     STATUS - Vibrant with glow effects
+     STATUS - Clear, professional
      ========================================== */
   .status-soft-success {
-    @apply border rounded-lg px-2.5 py-1;
-    background: linear-gradient(145deg, hsl(160 75% 45% / 0.18), hsl(160 75% 45% / 0.08));
-    color: hsl(160 70% 55%);
-    border-color: hsl(160 75% 45% / 0.3);
-    box-shadow: 0 0 12px hsl(160 75% 45% / 0.15);
+    @apply border rounded-md px-2.5 py-1;
+    background: hsl(155 70% 95%);
+    color: hsl(155 70% 30%);
+    border-color: hsl(155 70% 85%);
   }
 
   .status-soft-warning {
-    @apply border rounded-lg px-2.5 py-1;
-    background: linear-gradient(145deg, hsl(45 95% 55% / 0.18), hsl(45 95% 55% / 0.08));
-    color: hsl(45 90% 55%);
-    border-color: hsl(45 95% 55% / 0.3);
-    box-shadow: 0 0 12px hsl(45 95% 55% / 0.15);
+    @apply border rounded-md px-2.5 py-1;
+    background: hsl(38 95% 94%);
+    color: hsl(38 90% 30%);
+    border-color: hsl(38 95% 80%);
   }
 
   .status-soft-destructive {
-    @apply border rounded-lg px-2.5 py-1;
-    background: linear-gradient(145deg, hsl(0 75% 55% / 0.18), hsl(0 75% 55% / 0.08));
-    color: hsl(0 70% 60%);
-    border-color: hsl(0 75% 55% / 0.3);
-    box-shadow: 0 0 12px hsl(0 75% 55% / 0.15);
+    @apply border rounded-md px-2.5 py-1;
+    background: hsl(0 72% 95%);
+    color: hsl(0 72% 40%);
+    border-color: hsl(0 72% 88%);
   }
 
   .status-soft-primary {
-    @apply border rounded-lg px-2.5 py-1;
-    background: linear-gradient(145deg, hsl(var(--primary) / 0.18), hsl(var(--primary) / 0.08));
+    @apply border rounded-md px-2.5 py-1;
+    background: hsl(220 75% 96%);
     color: hsl(var(--primary));
-    border-color: hsl(var(--primary) / 0.35);
-    box-shadow: 0 0 12px hsl(var(--primary) / 0.2);
+    border-color: hsl(220 75% 88%);
   }
 
   .status-soft-muted {
-    @apply bg-muted/70 text-muted-foreground border border-border/50 rounded-lg px-2.5 py-1;
+    @apply bg-secondary text-muted-foreground border border-border rounded-md px-2.5 py-1;
   }
 
-  /* Aurora emphasis - cyan/violet glow */
+  /* Accent emphasis - subtle blue tint */
   .accent-emphasis {
-    background: linear-gradient(145deg, hsl(var(--accent-signature) / 0.15), hsl(var(--accent-violet) / 0.08));
-    border: 1px solid hsl(var(--accent-signature) / 0.3);
-    box-shadow: 
-      0 0 24px hsl(var(--accent-signature) / 0.12),
-      0 0 48px hsl(var(--accent-violet) / 0.08);
+    background: hsl(220 75% 97%);
+    border: 1px solid hsl(220 75% 90%);
   }
 
-  /* Priority accent - glowing edges */
+  /* Priority accent - clean left border */
   .priority-accent-urgent {
-    @apply border-l-2;
-    border-left-color: hsl(0 75% 55%);
-    box-shadow: -4px 0 12px -4px hsl(0 75% 55% / 0.3);
+    @apply border-l-3;
+    border-left-color: hsl(0 72% 50%);
   }
 
   .priority-accent-high {
-    @apply border-l-2;
-    border-left-color: hsl(45 95% 55%);
-    box-shadow: -4px 0 12px -4px hsl(45 95% 55% / 0.3);
+    @apply border-l-3;
+    border-left-color: hsl(38 95% 50%);
   }
 
   .priority-accent-normal {
-    @apply border-l-2 border-l-border/50;
+    @apply border-l-3 border-l-border;
   }
 
   /* ==========================================
@@ -508,172 +447,108 @@
   }
 
   /* ==========================================
-     AURORA VISUAL ELEMENTS
+     PAPER & INK VISUAL ELEMENTS
      ========================================== */
   .gradient-primary {
-    background: linear-gradient(
-      135deg,
-      hsl(var(--primary)),
-      hsl(var(--accent-violet))
-    );
+    background: hsl(var(--primary));
   }
 
   .gradient-primary-subtle {
-    background: linear-gradient(
-      145deg,
-      hsl(var(--muted)),
-      hsl(250 15% 12%)
-    );
+    background: hsl(var(--secondary));
   }
 
   .gradient-hero {
-    background: linear-gradient(
-      160deg,
-      hsl(var(--card)) 0%,
-      hsl(250 18% 8%) 50%,
-      hsl(240 20% 6%) 100%
-    );
-    border: 1px solid hsl(var(--border) / 0.5);
-    box-shadow: 
-      0 12px 40px -10px hsl(0 0% 0% / 0.5),
-      inset 0 1px 0 hsl(210 40% 98% / 0.05),
-      0 0 80px -20px hsl(var(--accent-signature) / 0.12);
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 4px 16px hsl(220 20% 10% / 0.08);
   }
 
   .gradient-subtle {
-    background: linear-gradient(
-      180deg,
-      hsl(var(--background)),
-      hsl(250 18% 5%)
-    );
+    background: hsl(var(--background));
   }
 
-  /* Aurora glow effects */
-  .aurora-glow {
-    box-shadow: 
-      0 0 40px hsl(var(--accent-signature) / 0.15),
-      0 0 80px hsl(var(--accent-violet) / 0.1);
-  }
-
-  .cyan-glow {
-    box-shadow: 
-      0 0 30px hsl(var(--accent-signature) / 0.2),
-      0 0 60px hsl(var(--accent-signature) / 0.1);
-  }
-
+  /* Clean hover/focus effects */
   .focus-glow {
-    box-shadow: 
-      0 0 0 3px hsl(var(--accent-signature) / 0.3),
-      0 0 20px hsl(var(--accent-signature) / 0.15);
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15);
   }
 
   .btn-glow {
     position: relative;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s ease;
   }
 
   .btn-glow:hover {
-    transform: translateY(-2px);
-    box-shadow: 
-      0 8px 24px hsl(var(--primary) / 0.35),
-      0 0 0 1px hsl(var(--primary) / 0.3),
-      0 0 40px hsl(var(--primary) / 0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px hsl(var(--primary) / 0.2);
   }
 
   /* ==========================================
-     GLASS - Aurora frosted glass
+     GLASS - Light frosted glass
      ========================================== */
   .glass {
-    @apply border rounded-2xl;
-    background: hsl(var(--card) / 0.65);
-    border-color: hsl(var(--border) / 0.4);
-    backdrop-filter: blur(16px) saturate(150%);
-    box-shadow: 
-      inset 0 1px 0 hsl(210 40% 98% / 0.05),
-      0 4px 24px hsl(0 0% 0% / 0.2);
+    @apply border rounded-xl;
+    background: hsl(var(--card) / 0.8);
+    border-color: hsl(var(--border));
+    backdrop-filter: blur(8px);
   }
 
   .glass-strong {
-    @apply border rounded-2xl;
-    background: hsl(var(--card) / 0.85);
-    border-color: hsl(var(--border) / 0.5);
-    backdrop-filter: blur(20px) saturate(150%);
-    box-shadow: 
-      inset 0 1px 0 hsl(210 40% 98% / 0.08),
-      0 8px 32px hsl(0 0% 0% / 0.3),
-      0 0 0 1px hsl(var(--accent-signature) / 0.05);
+    @apply border rounded-xl;
+    background: hsl(var(--card) / 0.95);
+    border-color: hsl(var(--border));
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 16px hsl(220 20% 10% / 0.08);
   }
 
-  /* Mobile nav - aurora bottom bar */
+  /* Mobile nav - clean bottom bar */
   .mobile-nav-floating {
     @apply fixed bottom-0 left-0 right-0 z-50;
-    background: linear-gradient(
-      180deg,
-      hsl(var(--background) / 0.9),
-      hsl(var(--background))
-    );
-    backdrop-filter: blur(20px) saturate(150%);
-    border-top: 1px solid hsl(var(--accent-signature) / 0.2);
-    box-shadow: 
-      0 -8px 32px hsl(0 0% 0% / 0.4),
-      0 0 40px hsl(var(--accent-signature) / 0.08);
+    background: hsl(var(--card));
+    backdrop-filter: blur(12px);
+    border-top: 1px solid hsl(var(--border));
+    box-shadow: 0 -2px 16px hsl(220 20% 10% / 0.06);
   }
 
   /* ==========================================
-     CARD SYSTEM - Aurora glass cards
+     CARD SYSTEM - Paper cards
      ========================================== */
   .card-elevated {
-    @apply transition-all duration-300 ease-out;
+    @apply transition-all duration-200 ease-out;
     box-shadow: 
-      0 8px 24px -6px hsl(0 0% 0% / 0.4),
-      0 0 0 1px hsl(var(--border) / 0.3),
-      inset 0 1px 0 hsl(210 40% 98% / 0.04);
+      0 1px 3px hsl(220 20% 10% / 0.04),
+      0 4px 12px hsl(220 20% 10% / 0.06);
   }
 
   .card-elevated:hover {
     box-shadow: 
-      0 12px 36px -8px hsl(0 0% 0% / 0.5),
-      0 0 0 1px hsl(var(--accent-signature) / 0.2),
-      0 0 40px -10px hsl(var(--accent-signature) / 0.15);
+      0 2px 8px hsl(220 20% 10% / 0.06),
+      0 8px 24px hsl(220 20% 10% / 0.1);
   }
 
   .card-interactive {
-    @apply transition-all duration-300 ease-out cursor-pointer;
+    @apply transition-all duration-200 ease-out cursor-pointer;
   }
 
   .card-interactive:hover {
-    background: linear-gradient(
-      160deg,
-      hsl(var(--accent) / 0.6),
-      hsl(var(--accent) / 0.3)
-    );
-    border-color: hsl(var(--accent-signature) / 0.25);
-    transform: translateY(-3px);
-    box-shadow: 
-      0 12px 32px -8px hsl(0 0% 0% / 0.45),
-      0 0 0 1px hsl(var(--accent-signature) / 0.2),
-      0 0 48px -12px hsl(var(--accent-signature) / 0.12);
+    background: hsl(var(--secondary));
+    border-color: hsl(var(--primary) / 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px hsl(220 20% 10% / 0.08);
   }
 
   .card-hover-glow {
-    @apply transition-all duration-300;
+    @apply transition-all duration-200;
   }
 
   .card-hover-glow:hover {
-    box-shadow: 
-      0 0 32px hsl(var(--accent-signature) / 0.15),
-      0 0 64px hsl(var(--accent-violet) / 0.08),
-      0 0 0 1px hsl(var(--accent-signature) / 0.2);
+    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.1);
   }
 
-  /* Stat icon - aurora accented */
+  /* Stat icon - cobalt accent */
   .stat-icon-container {
-    @apply flex items-center justify-center h-10 w-10 rounded-xl;
-    background: linear-gradient(145deg, hsl(var(--accent-signature) / 0.2), hsl(var(--accent-violet) / 0.1));
-    color: hsl(var(--accent-signature));
-    box-shadow: 
-      0 4px 12px hsl(var(--accent-signature) / 0.15),
-      inset 0 1px 0 hsl(210 40% 98% / 0.1);
+    @apply flex items-center justify-center h-10 w-10 rounded-lg;
+    background: hsl(220 75% 95%);
+    color: hsl(var(--primary));
   }
 
   /* ==========================================
@@ -760,10 +635,10 @@
   }
 
   /* ==========================================
-     STATUS DOT - Live Indicator with aurora glow
+     STATUS DOT - Clean indicator
      ========================================== */
   .status-dot {
-    @apply relative inline-flex h-2.5 w-2.5 rounded-full;
+    @apply relative inline-flex h-2 w-2 rounded-full;
   }
 
   .status-dot::before {
@@ -774,7 +649,6 @@
 
   .status-dot-live {
     @apply bg-success;
-    box-shadow: 0 0 12px hsl(160 75% 45% / 0.6);
   }
 
   .status-dot-offline {
@@ -783,20 +657,18 @@
 
   .status-dot-warning {
     @apply bg-warning;
-    box-shadow: 0 0 12px hsl(45 95% 55% / 0.6);
   }
 
   .status-dot-primary {
     background: hsl(var(--primary));
-    box-shadow: 0 0 12px hsl(var(--primary) / 0.6);
   }
 
   /* ==========================================
-     SCROLLBAR - Subtle aurora tint
+     SCROLLBAR - Subtle gray
      ========================================== */
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: hsl(var(--accent-signature) / 0.3) transparent;
+    scrollbar-color: hsl(var(--border)) transparent;
   }
 
   .scrollbar-thin::-webkit-scrollbar {
@@ -809,20 +681,20 @@
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, hsl(var(--accent-signature) / 0.3), hsl(var(--accent-violet) / 0.2));
+    background: hsl(var(--border));
     border-radius: 4px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, hsl(var(--accent-signature) / 0.5), hsl(var(--accent-violet) / 0.3));
+    background: hsl(var(--muted-foreground) / 0.4);
   }
 
   /* ==========================================
-     SKELETON LOADING - Aurora shimmer
+     SKELETON LOADING - Subtle shimmer
      ========================================== */
   .skeleton {
     @apply relative overflow-hidden rounded-lg;
-    background: linear-gradient(90deg, hsl(var(--muted) / 0.5), hsl(var(--muted) / 0.3));
+    background: hsl(var(--muted));
   }
 
   .skeleton::after {
@@ -831,7 +703,7 @@
     background: linear-gradient(
       90deg,
       transparent,
-      hsl(var(--accent-signature) / 0.05),
+      hsl(var(--card) / 0.6),
       transparent
     );
     animation: shimmer 2s infinite;
