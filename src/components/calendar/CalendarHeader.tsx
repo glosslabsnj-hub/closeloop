@@ -1,4 +1,9 @@
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { format, addWeeks, subWeeks, startOfWeek, addDays } from "date-fns";
 
@@ -58,12 +63,22 @@ export function CalendarHeader({
   return (
     <div className="flex items-center justify-between pb-4">
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="icon" onClick={handlePrev}>
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" size="icon" onClick={handleNext}>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="outline" size="icon" onClick={handlePrev}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Previous {view}</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="outline" size="icon" onClick={handleNext}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Next {view}</TooltipContent>
+        </Tooltip>
         <Button variant="outline" size="sm" onClick={handleToday}>
           Today
         </Button>
@@ -71,20 +86,30 @@ export function CalendarHeader({
       </div>
 
       <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-        <Button
-          variant={view === "week" ? "secondary" : "ghost"}
-          size="sm"
-          onClick={() => onViewChange("week")}
-        >
-          Week
-        </Button>
-        <Button
-          variant={view === "day" ? "secondary" : "ghost"}
-          size="sm"
-          onClick={() => onViewChange("day")}
-        >
-          Day
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={view === "week" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => onViewChange("week")}
+            >
+              Week
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>See all 7 days at once</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={view === "day" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => onViewChange("day")}
+            >
+              Day
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Focus on a single day with more detail</TooltipContent>
+        </Tooltip>
       </div>
     </div>
   );

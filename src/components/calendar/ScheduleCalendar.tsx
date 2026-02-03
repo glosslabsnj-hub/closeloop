@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { startOfWeek, addDays } from "date-fns";
+import { startOfWeek, addDays, isSameDay } from "date-fns";
 import { CalendarHeader } from "./CalendarHeader";
 import { TimeGrid } from "./TimeGrid";
 import { DayColumn } from "./DayColumn";
 import { useScheduleData, type ScheduleEvent } from "@/hooks/useScheduleData";
-import { Loader2 } from "lucide-react";
+import { Loader2, Calendar } from "lucide-react";
 
 interface ScheduleCalendarProps {
   onEventClick?: (event: ScheduleEvent) => void;
@@ -30,6 +30,9 @@ export function ScheduleCalendar({ onEventClick, onSlotClick }: ScheduleCalendar
 
   const days = getDaysToShow();
 
+  // Check if there are any events this week
+  const hasEventsThisWeek = events.length > 0;
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -46,6 +49,32 @@ export function ScheduleCalendar({ onEventClick, onSlotClick }: ScheduleCalendar
         onDateChange={setCurrentDate}
         onViewChange={setView}
       />
+
+      {/* Legend - Moved above calendar for visibility */}
+      <div className="flex flex-wrap items-center gap-4 pb-4 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded bg-primary/20 border border-primary/50" />
+          <span>Confirmed</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded bg-warning/20 border border-warning/50" />
+          <span>Pending</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded bg-muted border border-muted-foreground/30" />
+          <span>Busy (External)</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded bg-accent/20 border border-accent/50 border-dashed" />
+          <span>Hold</span>
+        </div>
+        <div className="ml-auto text-muted-foreground/70">
+          <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted rounded">←</kbd>
+          {" "}
+          <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted rounded">→</kbd>
+          {" "}to navigate
+        </div>
+      </div>
 
       <div className="flex-1 overflow-auto border rounded-lg bg-background">
         <div className="flex min-w-[600px]">
@@ -69,25 +98,13 @@ export function ScheduleCalendar({ onEventClick, onSlotClick }: ScheduleCalendar
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="flex items-center gap-4 mt-4 text-xs text-muted-foreground">
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded bg-primary/20 border border-primary/50" />
-          <span>Confirmed</span>
+      {/* Empty week message */}
+      {!hasEventsThisWeek && (
+        <div className="flex items-center justify-center py-6 text-sm text-muted-foreground border-t mt-4">
+          <Calendar className="h-4 w-4 mr-2 opacity-50" />
+          <span>No bookings this week. Click any time slot to create one!</span>
         </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded bg-warning/20 border border-warning/50" />
-          <span>Pending</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded bg-muted border border-muted-foreground/30" />
-          <span>Busy (External)</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded bg-accent/20 border border-accent/50 border-dashed" />
-          <span>Hold</span>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
