@@ -24,7 +24,7 @@ export function FinalCTASection() {
               variant="secondary" 
               className="w-full sm:w-auto gap-2 h-14 px-10 text-base font-semibold shadow-xl hover:scale-[1.02] transition-all"
             >
-              Get Started Free
+              Get Started
               <ArrowRight className="h-5 w-5" />
             </Button>
           </Link>
