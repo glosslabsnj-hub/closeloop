@@ -68,6 +68,7 @@ import { AIScriptsEditor } from "@/components/brain/AIScriptsEditor";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useFoodMode } from "@/hooks/useFoodMode";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CollapsibleSection } from "@/components/brain/CollapsibleSection";
 
 // Explainability layer components
 import {
@@ -108,7 +109,7 @@ const navigationItems: BrainNavItem[] = [
     id: "service-area",
     label: "Service Area & ETA",
     icon: MapPin,
-    description: "Where you serve and travel times"
+    description: "Coverage, travel times, and busyness"
   },
   {
     id: "availability",
@@ -321,7 +322,7 @@ export default function BusinessBrainPage() {
 
           {/* Profile & Identity Section */}
           {activeSection === "profile" && (
-            <div>
+            <div className="space-y-4">
               <BrainTabHeader
                 title="Profile & Identity"
                 icon={CurrentIcon && <CurrentIcon className="h-5 w-5" />}
@@ -329,16 +330,29 @@ export default function BusinessBrainPage() {
                 businessMode={businessMode}
                 onPreviewSection={() => setPreviewOpen(true)}
               />
-              <BusinessProfileEditor />
-              <div className="mt-6">
+              
+              <CollapsibleSection
+                title="Business Information"
+                icon={<Building2 className="h-4 w-4" />}
+                description="Name, contact info, timezone, and location"
+                defaultCollapsed={false}
+              >
+                <BusinessProfileEditor />
+              </CollapsibleSection>
+              
+              <CollapsibleSection
+                title="Industry Templates"
+                icon={<Package className="h-4 w-4" />}
+                description="Quick setup using pre-built templates"
+              >
                 <IndustryTemplateCard />
-              </div>
+              </CollapsibleSection>
             </div>
           )}
 
           {/* Operating Hours Section */}
           {activeSection === "hours" && (
-            <div>
+            <div className="space-y-4">
               <BrainTabHeader
                 title="Operating Hours"
                 icon={<Clock className="h-5 w-5" />}
@@ -346,13 +360,21 @@ export default function BusinessBrainPage() {
                 businessMode={businessMode}
                 onPreviewSection={() => setPreviewOpen(true)}
               />
-              <BusinessHoursManager />
+              
+              <CollapsibleSection
+                title="Weekly Schedule"
+                icon={<Clock className="h-4 w-4" />}
+                description="Your regular business hours"
+                defaultCollapsed={false}
+              >
+                <BusinessHoursManager />
+              </CollapsibleSection>
             </div>
           )}
 
           {/* Services & Menu Section */}
           {activeSection === "services" && (
-            <div>
+            <div className="space-y-4">
               <BrainTabHeader
                 title={isFoodMode ? "Menu & Pricing" : isDispatchMode ? "Dispatch Services & Rates" : "Services & Pricing"}
                 icon={<Package className="h-5 w-5" />}
@@ -360,17 +382,35 @@ export default function BusinessBrainPage() {
                 businessMode={businessMode}
                 onPreviewSection={() => setPreviewOpen(true)}
               />
-              <QuoteReadinessCard />
+              
+              {/* Readiness check - always visible at top */}
+              <CollapsibleSection
+                title="Pricing Readiness"
+                icon={<Package className="h-4 w-4" />}
+                description="Check if your AI can quote prices"
+                defaultCollapsed={false}
+              >
+                <QuoteReadinessCard />
+              </CollapsibleSection>
 
               {/* Only show pricing rules for non-dispatch modes */}
               {!isDispatchMode && (
-                <div className="mt-6">
+                <CollapsibleSection
+                  title="Pricing Rules"
+                  icon={<Package className="h-4 w-4" />}
+                  description="How your AI quotes prices"
+                >
                   <PricingRulesEditor />
-                </div>
+                </CollapsibleSection>
               )}
 
               {/* Mode-aware service catalog */}
-              <div className="mt-6">
+              <CollapsibleSection
+                title={isFoodMode ? "Menu Items" : isDispatchMode ? "Dispatch Services" : "Your Services"}
+                icon={<Package className="h-4 w-4" />}
+                description={isFoodMode ? "All your menu items and pricing" : "All your services and pricing"}
+                defaultCollapsed={false}
+              >
                 {isFoodMode ? (
                   <MenuCatalogEditor />
                 ) : isDispatchMode ? (
@@ -378,34 +418,62 @@ export default function BusinessBrainPage() {
                 ) : (
                   <ServiceCatalogEditor />
                 )}
-              </div>
+              </CollapsibleSection>
             </div>
           )}
 
           {/* Service Area & ETA Section */}
           {activeSection === "service-area" && (
-            <div>
+            <div className="space-y-4">
               <BrainTabHeader
-                title="Where You Serve"
+                title="Where You Serve & Travel Times"
                 icon={<MapPin className="h-5 w-5" />}
                 guidance={TAB_GUIDANCE["service-area"](businessMode)}
                 businessMode={businessMode}
                 onPreviewSection={() => setPreviewOpen(true)}
               />
-              <div className="mb-6">
+              
+              {/* Service Area Preview - always visible */}
+              <CollapsibleSection
+                title="Current Coverage Summary"
+                icon={<MapPin className="h-4 w-4" />}
+                defaultCollapsed={false}
+              >
                 <ServiceAreaPreview />
-              </div>
-              <ServiceAreaManager />
-              <div className="mt-6">
-                {/* Use simplified dispatch ETA for dispatch mode, standard for others */}
+              </CollapsibleSection>
+              
+              {/* Service Area Configuration */}
+              <CollapsibleSection
+                title="Service Area Settings"
+                icon={<MapPin className="h-4 w-4" />}
+                description="Define where your business provides services"
+              >
+                <ServiceAreaManager />
+              </CollapsibleSection>
+              
+              {/* ETA Settings */}
+              <CollapsibleSection
+                title="ETA & Travel Time Settings"
+                icon={<Clock className="h-4 w-4" />}
+                description="How long it takes to reach customers"
+              >
                 {isDispatchMode ? <DispatchEtaSection /> : <DistanceEtaSection />}
-              </div>
+              </CollapsibleSection>
+              
+              {/* Busyness / Wait Time Settings */}
+              <CollapsibleSection
+                title="Current Workload & Wait Times"
+                icon={<Clock className="h-4 w-4" />}
+                description="Adjust based on how busy you are right now"
+              >
+                <BusynessRulesEditor />
+              </CollapsibleSection>
             </div>
           )}
 
           {/* Availability Section - Calendar Sync Only */}
           {activeSection === "availability" && (
-            <div>
+            <div className="space-y-4">
               <BrainTabHeader
                 title="Calendar & Availability"
                 icon={<Calendar className="h-5 w-5" />}
@@ -413,14 +481,21 @@ export default function BusinessBrainPage() {
                 businessMode={businessMode}
                 onPreviewSection={() => setPreviewOpen(true)}
               />
-              {/* Calendar sync and blocked times only - no busyness slider */}
-              <AvailabilityHub />
+              
+              <CollapsibleSection
+                title="Calendar Connections & Blocked Times"
+                icon={<Calendar className="h-4 w-4" />}
+                description="Sync your calendar to avoid double-booking"
+                defaultCollapsed={false}
+              >
+                <AvailabilityHub />
+              </CollapsibleSection>
             </div>
           )}
 
           {/* Policies & Rules Section */}
           {activeSection === "policies" && (
-            <div>
+            <div className="space-y-4">
               <BrainTabHeader
                 title="Policies & What to Collect"
                 icon={<Shield className="h-5 w-5" />}
@@ -428,47 +503,79 @@ export default function BusinessBrainPage() {
                 businessMode={businessMode}
                 onPreviewSection={() => setPreviewOpen(true)}
               />
-              {/* Core Policies */}
-              <BusinessPoliciesEditor />
+              
+              <CollapsibleSection
+                title="Business Policies"
+                icon={<Shield className="h-4 w-4" />}
+                description="Cancellations, deposits, and payment terms"
+                defaultCollapsed={false}
+              >
+                <BusinessPoliciesEditor />
+              </CollapsibleSection>
 
-              <div className="mt-6">
+              <CollapsibleSection
+                title="What the AI Should Never Promise"
+                icon={<AlertCircle className="h-4 w-4" />}
+                description="Set hard limits on what your AI can say"
+              >
                 <AINeverPromiseEditor />
-              </div>
+              </CollapsibleSection>
 
-              <div className="mt-6">
+              <CollapsibleSection
+                title="Required Questions"
+                icon={<Shield className="h-4 w-4" />}
+                description="What info your AI must collect from every caller"
+              >
                 <RequiredQuestionsEditor />
-              </div>
+              </CollapsibleSection>
 
               {/* Mode-specific Delivery Settings */}
               {showBookingDelivery && (
-                <div className="mt-6">
+                <CollapsibleSection
+                  title="Booking Delivery"
+                  icon={<Shield className="h-4 w-4" />}
+                  description="Where to send new bookings"
+                >
                   <BookingDeliverySettings />
-                </div>
+                </CollapsibleSection>
               )}
 
               {showFoodDelivery && (
-                <div className="mt-6">
+                <CollapsibleSection
+                  title="Order Settings"
+                  icon={<Shield className="h-4 w-4" />}
+                  description="Pickup, delivery, and order handling"
+                >
                   <FoodOrderSettings />
-                </div>
+                </CollapsibleSection>
               )}
 
               {showDispatchDelivery && (
-                <div className="mt-6">
+                <CollapsibleSection
+                  title="Dispatch Delivery"
+                  icon={<Shield className="h-4 w-4" />}
+                  description="Where to send new dispatch jobs"
+                >
                   <DispatchDeliverySettings />
-                </div>
+                </CollapsibleSection>
               )}
 
               {showMedicalSettings && (
-                <div className="mt-6">
+                <CollapsibleSection
+                  title="HIPAA & Compliance"
+                  icon={<Shield className="h-4 w-4" />}
+                  description="Medical practice compliance settings"
+                  priority="warning"
+                >
                   <MedicalHIPAASettings />
-                </div>
+                </CollapsibleSection>
               )}
             </div>
           )}
 
           {/* AI Behavior Section */}
           {activeSection === "ai-behavior" && (
-            <div>
+            <div className="space-y-4">
               <BrainTabHeader
                 title="How Your AI Speaks & Acts"
                 icon={<Sparkles className="h-5 w-5" />}
@@ -476,21 +583,37 @@ export default function BusinessBrainPage() {
                 businessMode={businessMode}
                 onPreviewSection={() => setPreviewOpen(true)}
               />
-              <AIScriptsEditor />
+              
+              <CollapsibleSection
+                title="Greeting & Scripts"
+                icon={<Sparkles className="h-4 w-4" />}
+                description="How your AI starts and ends calls"
+                defaultCollapsed={false}
+              >
+                <AIScriptsEditor />
+              </CollapsibleSection>
 
-              <div className="mt-6">
+              <CollapsibleSection
+                title="Business Rules & Guidelines"
+                icon={<Sparkles className="h-4 w-4" />}
+                description="High-level instructions for your AI"
+              >
                 <AIBusinessPolicies />
-              </div>
+              </CollapsibleSection>
 
-              <div className="mt-6">
+              <CollapsibleSection
+                title="Intelligence Settings"
+                icon={<Sparkles className="h-4 w-4" />}
+                description="Advanced AI behavior tuning"
+              >
                 <IntelligenceSettingsForm />
-              </div>
+              </CollapsibleSection>
             </div>
           )}
 
           {/* Knowledge & Training Section */}
           {activeSection === "knowledge" && (
-            <div>
+            <div className="space-y-4">
               <BrainTabHeader
                 title="FAQs & Knowledge"
                 icon={<BookOpen className="h-5 w-5" />}
@@ -498,57 +621,64 @@ export default function BusinessBrainPage() {
                 businessMode={businessMode}
                 onPreviewSection={() => setPreviewOpen(true)}
               />
+              
+              {/* Review Queue - show prominently if items need review */}
               {reviewCount > 0 && (
-                <div className="mb-6">
-                  <Card className="border-destructive/50 bg-destructive/5">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <AlertCircle className="h-5 w-5 text-destructive" />
-                        Review Queue
-                        <Badge variant="destructive">{reviewCount}</Badge>
-                      </CardTitle>
-                      <CardDescription>
-                        Items need your review before the AI can use them
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <BrainReviewQueue />
-                    </CardContent>
-                  </Card>
-                </div>
+                <CollapsibleSection
+                  title="Review Queue"
+                  icon={<AlertCircle className="h-4 w-4" />}
+                  badge={<Badge variant="destructive">{reviewCount}</Badge>}
+                  description="Items need your review before the AI can use them"
+                  defaultCollapsed={false}
+                  priority="error"
+                >
+                  <BrainReviewQueue />
+                </CollapsibleSection>
               )}
 
-              <BusinessFAQEditor />
+              <CollapsibleSection
+                title="Frequently Asked Questions"
+                icon={<BookOpen className="h-4 w-4" />}
+                description="Common questions and their answers"
+                defaultCollapsed={false}
+              >
+                <BusinessFAQEditor />
+              </CollapsibleSection>
 
-              <div className="mt-6">
+              <CollapsibleSection
+                title="Handling Objections & Concerns"
+                icon={<BookOpen className="h-4 w-4" />}
+                description="How to respond when customers push back"
+              >
                 <BusinessObjectionEditor />
-              </div>
+              </CollapsibleSection>
 
-              <div className="mt-6">
+              <CollapsibleSection
+                title="Custom Knowledge"
+                icon={<BookOpen className="h-4 w-4" />}
+                description="Additional facts and information"
+              >
                 <CustomKnowledgeEditor />
-              </div>
+              </CollapsibleSection>
 
-              <div className="mt-6">
+              <CollapsibleSection
+                title="Uploaded Documents"
+                icon={<BookOpen className="h-4 w-4" />}
+                description="PDFs, menus, and other files"
+              >
                 <BrainAssetsManager />
-              </div>
+              </CollapsibleSection>
 
               {reviewCount === 0 && (
-                <div className="mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <AlertCircle className="h-5 w-5 text-muted-foreground" />
-                        Review Queue
-                      </CardTitle>
-                      <CardDescription>
-                        No items pending review. When you upload documents or add knowledge, items that need approval will appear here.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <BrainReviewQueue />
-                    </CardContent>
-                  </Card>
-                </div>
+                <CollapsibleSection
+                  title="Review Queue"
+                  icon={<AlertCircle className="h-4 w-4" />}
+                  description="No items pending review"
+                >
+                  <p className="text-sm text-muted-foreground">
+                    When you upload documents or add knowledge, items that need approval will appear here.
+                  </p>
+                </CollapsibleSection>
               )}
             </div>
           )}
