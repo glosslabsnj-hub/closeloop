@@ -125,44 +125,45 @@ export function useAIReadinessV2(): UseAIReadinessV2 {
 
 /**
  * Helper to format P0/P1 flag keys into human-readable labels
+ * Uses plain English that matches the issue mapping
  */
 export function formatReadinessFlag(flag: string): string {
   const flagLabels: Record<string, string> = {
     // Global
-    missing_business_name: "Missing business name",
-    missing_timezone: "Missing timezone",
-    missing_hours: "Business hours not configured",
-    missing_policies: "No business policies",
-    missing_faqs: "Need at least 5 FAQs",
-    few_faqs: "Need more FAQs (5+)",
+    missing_business_name: "Add your business name",
+    missing_timezone: "Set your timezone",
+    missing_hours: "Set your business hours",
+    missing_policies: "Add payment & cancellation info",
+    missing_faqs: "Add at least 5 FAQs",
+    few_faqs: "Add more FAQs (need 5+)",
     
     // Service mode
-    no_services: "No services added",
-    few_services: "Need at least 3 services",
-    missing_pricing: "Services missing pricing",
-    missing_booking_mode: "Booking mode not configured",
-    missing_name_intake: "Intake missing customer name",
-    missing_phone_intake: "Intake missing phone number",
-    missing_service_area: "Service area not defined",
+    no_services: "Add your services",
+    few_services: "Add at least 3 services",
+    missing_pricing: "Add prices to your services",
+    missing_booking_mode: "Set how bookings work",
+    missing_name_intake: "Require customer name",
+    missing_phone_intake: "Require phone number",
+    missing_service_area: "Define where you serve",
     
     // Food mode
-    no_menu_items: "No menu items added",
-    few_menu_items: "Need at least 10 menu items",
-    ordering_disabled: "Ordering not enabled",
-    ordering_not_configured: "Ordering settings incomplete",
-    missing_menu_prices: "Menu items missing prices",
+    no_menu_items: "Add your menu",
+    few_menu_items: "Add more menu items (need 10+)",
+    ordering_disabled: "Turn on ordering",
+    ordering_not_configured: "Finish ordering setup",
+    missing_menu_prices: "Add prices to menu items",
     
     // Dispatch mode
-    missing_pickup_intake: "Intake missing pickup address",
-    missing_vehicle_intake: "Intake missing vehicle type",
-    missing_urgency_intake: "Intake missing urgency/priority",
-    no_dispatch_services: "No dispatch services defined",
+    missing_pickup_intake: "Require pickup address",
+    missing_vehicle_intake: "Ask for vehicle type",
+    missing_urgency_intake: "Ask about urgency",
+    no_dispatch_services: "Add your dispatch services",
     
     // Medical mode
-    hipaa_disabled: "HIPAA compliance mode disabled",
-    missing_data_retention: "Data retention not configured",
-    hipaa_storage_warning: "Review HIPAA storage settings",
-    no_medical_services: "No appointment types added",
+    hipaa_disabled: "Enable HIPAA mode",
+    missing_data_retention: "Set data retention rules",
+    hipaa_storage_warning: "Review HIPAA storage",
+    no_medical_services: "Add appointment types",
   };
   
   return flagLabels[flag] || flag.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
