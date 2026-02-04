@@ -59,8 +59,12 @@ import {
   HIPAAWarning,
   BRAIN_CATEGORIES,
 } from "@/components/brain/layout";
-import { usePoliciesSummaries } from "@/hooks/usePoliciesSummaries";
-import { FileText, Shield, MessageSquareText, Send, Truck, UtensilsCrossed, HeartPulse } from "lucide-react";
+import { useBrainSummaries } from "@/hooks/useBrainSummaries";
+import { 
+  FileText, Shield, MessageSquareText, Send, Truck, UtensilsCrossed, HeartPulse,
+  Building2, Palette, Clock, DollarSign, Tag, MapPin, Navigation, Gauge,
+  Calendar, Mic, BookOpen, Brain, HelpCircle, MessageCircle, Lightbulb, FileUp, AlertCircle
+} from "lucide-react";
 
 const VALID_SECTIONS = ["profile", "hours", "services", "service-area", "availability", "policies", "ai-behavior", "knowledge"] as const;
 type SectionId = typeof VALID_SECTIONS[number];
@@ -85,7 +89,7 @@ export default function BusinessBrainPage() {
   const reviewCount = useBrainReviewCount();
   const { businessMode, hipaaMode } = useTenantConfig();
   const { isFoodMode, hasFoodOrders } = useFoodMode();
-  const policiesSummaries = usePoliciesSummaries();
+  const summaries = useBrainSummaries();
 
   const sectionParamRaw = searchParams.get("section");
   const legacyTab = searchParams.get("tab");
@@ -203,83 +207,69 @@ export default function BusinessBrainPage() {
             
             {/* PROFILE */}
             {activeSection === "profile" && (
-              <>
-                <BusinessBrainSectionCard
-                  config={{
-                    id: "business-info",
-                    title: "Business Information",
-                    purpose: "How your AI introduces your business",
-                    usedByAI: [],
-                    defaultCollapsed: false,
-                  }}
+              <div className="space-y-3">
+                <CollapsibleBrainSection
+                  id="business-info"
+                  title="Business Information"
+                  icon={Building2}
+                  preview={summaries.businessInfo}
                 >
                   <BusinessProfileEditor />
-                </BusinessBrainSectionCard>
+                </CollapsibleBrainSection>
 
-                <BusinessBrainSectionCard
-                  config={{
-                    id: "templates",
-                    title: "Quick Start Templates",
-                    purpose: "Pre-built setups for common business types",
-                    usedByAI: [],
-                  }}
+                <CollapsibleBrainSection
+                  id="templates"
+                  title="Quick Start Templates"
+                  icon={Palette}
+                  preview={summaries.templates}
                 >
                   <IndustryTemplateCard />
-                </BusinessBrainSectionCard>
-              </>
+                </CollapsibleBrainSection>
+              </div>
             )}
 
             {/* HOURS */}
             {activeSection === "hours" && (
-              <BusinessBrainSectionCard
-                config={{
-                  id: "hours",
-                  title: "Operating Hours",
-                  purpose: "When your business is open",
-                  usedByAI: [],
-                  defaultCollapsed: false,
-                }}
-              >
-                <BusinessHoursManager />
-              </BusinessBrainSectionCard>
+              <div className="space-y-3">
+                <CollapsibleBrainSection
+                  id="hours"
+                  title="Operating Hours"
+                  icon={Clock}
+                  preview={summaries.hours}
+                >
+                  <BusinessHoursManager />
+                </CollapsibleBrainSection>
+              </div>
             )}
 
             {/* SERVICES */}
             {activeSection === "services" && (
-              <>
-                <BusinessBrainSectionCard
-                  config={{
-                    id: "pricing",
-                    title: "Pricing Readiness",
-                    purpose: "Check if your AI can quote prices",
-                    usedByAI: [],
-                    defaultCollapsed: false,
-                  }}
+              <div className="space-y-3">
+                <CollapsibleBrainSection
+                  id="pricing"
+                  title="Pricing Readiness"
+                  icon={DollarSign}
+                  preview={summaries.pricingReadiness}
                 >
                   <QuoteReadinessCard />
-                </BusinessBrainSectionCard>
+                </CollapsibleBrainSection>
 
                 {!isDispatchMode && (
-                  <BusinessBrainSectionCard
-                    config={{
-                      id: "pricing-rules",
-                      title: "Pricing Rules",
-                      purpose: "How your AI quotes prices",
-                      usedByAI: [],
-                    }}
+                  <CollapsibleBrainSection
+                    id="pricing-rules"
+                    title="Pricing Rules"
+                    icon={DollarSign}
+                    preview={summaries.pricingRules}
                   >
                     <PricingRulesEditor />
-                  </BusinessBrainSectionCard>
+                  </CollapsibleBrainSection>
                 )}
 
-                <BusinessBrainSectionCard
-                  config={{
-                    id: "catalog",
-                    title: isFoodMode ? "Menu" : isDispatchMode ? "Services" : "Services",
-                    purpose: isFoodMode ? "Your menu items and pricing" : "Your services and pricing",
-                    usedByAI: [],
-                    defaultCollapsed: false,
-                  }}
+                <CollapsibleBrainSection
+                  id="catalog"
+                  title={isFoodMode ? "Menu" : "Services"}
+                  icon={Tag}
+                  preview={summaries.catalog}
                 >
                   {isFoodMode ? (
                     <MenuCatalogEditor />
@@ -288,61 +278,57 @@ export default function BusinessBrainPage() {
                   ) : (
                     <ServiceCatalogEditor />
                   )}
-                </BusinessBrainSectionCard>
-              </>
+                </CollapsibleBrainSection>
+              </div>
             )}
 
-            {/* SERVICE AREA - SIMPLIFIED */}
+            {/* SERVICE AREA */}
             {activeSection === "service-area" && (
-              <div className="space-y-6">
-                {/* Coverage Area - single expanded card */}
-                <div className="rounded-lg border bg-card p-5">
-                  <h2 className="text-base font-semibold mb-1">Where You Serve</h2>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Define your service area so your AI knows which customers you can help.
-                  </p>
+              <div className="space-y-3">
+                <CollapsibleBrainSection
+                  id="coverage"
+                  title="Where You Serve"
+                  icon={MapPin}
+                  preview={summaries.coverage}
+                >
                   <ServiceAreaPreview />
                   <div className="mt-4">
                     <ServiceAreaManager />
                   </div>
-                </div>
+                </CollapsibleBrainSection>
 
-                {/* ETA & Travel - simplified */}
-                <div className="rounded-lg border bg-card p-5">
-                  <h2 className="text-base font-semibold mb-1">Travel & Wait Times</h2>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {isDispatchMode 
-                      ? "How long until you can reach customers, based on distance from your base."
-                      : "Estimated arrival times your AI quotes to callers."
-                    }
-                  </p>
+                <CollapsibleBrainSection
+                  id="travel-times"
+                  title="Travel & Wait Times"
+                  icon={Navigation}
+                  preview={summaries.travelTimes}
+                >
                   {isDispatchMode ? <DispatchEtaSection /> : <DistanceEtaSection />}
-                </div>
+                </CollapsibleBrainSection>
 
-                {/* Busyness - only show if relevant */}
-                <div className="rounded-lg border bg-card p-5">
-                  <h2 className="text-base font-semibold mb-1">Current Workload</h2>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    When you're busy, your AI adds extra wait time to ETAs.
-                  </p>
+                <CollapsibleBrainSection
+                  id="workload"
+                  title="Current Workload"
+                  icon={Gauge}
+                  preview={summaries.workload}
+                >
                   <BusynessRulesEditor />
-                </div>
+                </CollapsibleBrainSection>
               </div>
             )}
 
             {/* AVAILABILITY */}
             {activeSection === "availability" && (
-              <BusinessBrainSectionCard
-                config={{
-                  id: "calendar",
-                  title: "Calendar & Availability",
-                  purpose: "Connect calendars for real-time availability",
-                  usedByAI: [],
-                  defaultCollapsed: false,
-                }}
-              >
-                <AvailabilityHub />
-              </BusinessBrainSectionCard>
+              <div className="space-y-3">
+                <CollapsibleBrainSection
+                  id="calendar"
+                  title="Calendar & Availability"
+                  icon={Calendar}
+                  preview={summaries.calendar}
+                >
+                  <AvailabilityHub />
+                </CollapsibleBrainSection>
+              </div>
             )}
 
             {/* POLICIES - Compact accordion view */}
@@ -352,7 +338,7 @@ export default function BusinessBrainPage() {
                   id="policies"
                   title="Business Policies"
                   icon={FileText}
-                  preview={policiesSummaries.policies}
+                  preview={summaries.policies}
                 >
                   <BusinessPoliciesEditor />
                 </CollapsibleBrainSection>
@@ -361,7 +347,7 @@ export default function BusinessBrainPage() {
                   id="never-promise"
                   title="AI Guardrails"
                   icon={Shield}
-                  preview={policiesSummaries.guardrails}
+                  preview={summaries.guardrails}
                 >
                   <AINeverPromiseEditor />
                 </CollapsibleBrainSection>
@@ -370,7 +356,7 @@ export default function BusinessBrainPage() {
                   id="required-questions"
                   title="Required Questions"
                   icon={MessageSquareText}
-                  preview={policiesSummaries.requiredQuestions}
+                  preview={summaries.requiredQuestions}
                 >
                   <RequiredQuestionsEditor />
                 </CollapsibleBrainSection>
@@ -380,7 +366,7 @@ export default function BusinessBrainPage() {
                     id="booking-delivery"
                     title="Booking Delivery"
                     icon={Send}
-                    preview={policiesSummaries.bookingDelivery}
+                    preview={summaries.bookingDelivery}
                   >
                     <BookingDeliverySettings />
                   </CollapsibleBrainSection>
@@ -391,7 +377,7 @@ export default function BusinessBrainPage() {
                     id="food-settings"
                     title="Order Settings"
                     icon={UtensilsCrossed}
-                    preview={policiesSummaries.foodSettings}
+                    preview={summaries.foodSettings}
                   >
                     <FoodOrderSettings />
                   </CollapsibleBrainSection>
@@ -402,7 +388,7 @@ export default function BusinessBrainPage() {
                     id="dispatch-settings"
                     title="Dispatch Settings"
                     icon={Truck}
-                    preview={policiesSummaries.dispatchSettings}
+                    preview={summaries.dispatchSettings}
                   >
                     <DispatchDeliverySettings />
                   </CollapsibleBrainSection>
@@ -413,7 +399,7 @@ export default function BusinessBrainPage() {
                     id="hipaa"
                     title="HIPAA Settings"
                     icon={HeartPulse}
-                    preview={policiesSummaries.hipaa}
+                    preview={summaries.hipaa}
                   >
                     <MedicalHIPAASettings />
                   </CollapsibleBrainSection>
@@ -423,111 +409,87 @@ export default function BusinessBrainPage() {
 
             {/* AI BEHAVIOR */}
             {activeSection === "ai-behavior" && (
-              <>
-                <BusinessBrainSectionCard
-                  config={{
-                    id: "scripts",
-                    title: "Greeting & Scripts",
-                    purpose: "How your AI starts calls",
-                    usedByAI: [],
-                    speechReadyFields: ["greeting_script"],
-                    defaultCollapsed: false,
-                  }}
+              <div className="space-y-3">
+                <CollapsibleBrainSection
+                  id="scripts"
+                  title="Greeting & Scripts"
+                  icon={Mic}
+                  preview={summaries.scripts}
                 >
                   <AIScriptsEditor />
-                </BusinessBrainSectionCard>
+                </CollapsibleBrainSection>
 
-                <BusinessBrainSectionCard
-                  config={{
-                    id: "guidelines",
-                    title: "Business Guidelines",
-                    purpose: "High-level instructions",
-                    usedByAI: [],
-                  }}
+                <CollapsibleBrainSection
+                  id="guidelines"
+                  title="Business Guidelines"
+                  icon={BookOpen}
+                  preview={summaries.guidelines}
                 >
                   <AIBusinessPolicies />
-                </BusinessBrainSectionCard>
+                </CollapsibleBrainSection>
 
-                <BusinessBrainSectionCard
-                  config={{
-                    id: "intelligence",
-                    title: "Intelligence Settings",
-                    purpose: "Advanced AI behavior",
-                    usedByAI: [],
-                  }}
+                <CollapsibleBrainSection
+                  id="intelligence"
+                  title="Intelligence Settings"
+                  icon={Brain}
+                  preview={summaries.intelligence}
                 >
                   <IntelligenceSettingsForm />
-                </BusinessBrainSectionCard>
-              </>
+                </CollapsibleBrainSection>
+              </div>
             )}
 
             {/* KNOWLEDGE */}
             {activeSection === "knowledge" && (
-              <>
+              <div className="space-y-3">
                 {reviewCount > 0 && (
-                  <BusinessBrainSectionCard
-                    config={{
-                      id: "review",
-                      title: "Review Queue",
-                      purpose: "Items needing approval",
-                      usedByAI: [],
-                      defaultCollapsed: false,
-                    }}
-                    headerActions={
-                      <Badge variant="destructive" className="text-xs">
-                        {reviewCount}
-                      </Badge>
-                    }
+                  <CollapsibleBrainSection
+                    id="review"
+                    title="Review Queue"
+                    icon={AlertCircle}
+                    preview={`${reviewCount} item${reviewCount === 1 ? "" : "s"} need${reviewCount === 1 ? "s" : ""} review`}
+                    defaultExpanded
                   >
                     <BrainReviewQueue />
-                  </BusinessBrainSectionCard>
+                  </CollapsibleBrainSection>
                 )}
 
-                <BusinessBrainSectionCard
-                  config={{
-                    id: "faqs",
-                    title: "FAQs",
-                    purpose: "Common questions and answers",
-                    usedByAI: [],
-                    defaultCollapsed: false,
-                  }}
+                <CollapsibleBrainSection
+                  id="faqs"
+                  title="FAQs"
+                  icon={HelpCircle}
+                  preview={summaries.faqs}
                 >
                   <BusinessFAQEditor />
-                </BusinessBrainSectionCard>
+                </CollapsibleBrainSection>
 
-                <BusinessBrainSectionCard
-                  config={{
-                    id: "objections",
-                    title: "Objection Handling",
-                    purpose: "Responses when customers push back",
-                    usedByAI: [],
-                  }}
+                <CollapsibleBrainSection
+                  id="objections"
+                  title="Objection Handling"
+                  icon={MessageCircle}
+                  preview={summaries.objections}
                 >
                   <BusinessObjectionEditor />
-                </BusinessBrainSectionCard>
+                </CollapsibleBrainSection>
 
-                <BusinessBrainSectionCard
-                  config={{
-                    id: "custom",
-                    title: "Custom Knowledge",
-                    purpose: "Additional facts and info",
-                    usedByAI: [],
-                  }}
+                <CollapsibleBrainSection
+                  id="custom"
+                  title="Custom Knowledge"
+                  icon={Lightbulb}
+                  preview={summaries.custom}
                 >
                   <CustomKnowledgeEditor />
-                </BusinessBrainSectionCard>
+                </CollapsibleBrainSection>
 
-                <BusinessBrainSectionCard
-                  config={{
-                    id: "documents",
-                    title: "Documents",
-                    purpose: "Uploaded files and references",
-                    usedByAI: [],
-                  }}
+                <CollapsibleBrainSection
+                  id="documents"
+                  title="Documents"
+                  icon={FileUp}
+                  preview={summaries.documents}
                 >
                   <BrainAssetsManager />
-                </BusinessBrainSectionCard>
-              </>
+                </CollapsibleBrainSection>
+              </div>
             )}
           </div>
         </div>

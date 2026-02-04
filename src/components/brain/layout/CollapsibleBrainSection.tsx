@@ -5,11 +5,36 @@
  * - Icon + Title
  * - 1-line preview of content
  * - Expand/collapse on click
+ * - State persisted to localStorage
  */
 
-import { useState, ReactNode } from "react";
+import { useState, useEffect, ReactNode, useCallback } from "react";
 import { ChevronDown, ChevronRight, LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const STORAGE_KEY = "brain-sections-expanded";
+
+// Get expanded sections from localStorage
+function getExpandedSections(): Set<string> {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      return new Set(JSON.parse(stored));
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return new Set();
+}
+
+// Save expanded sections to localStorage
+function saveExpandedSections(sections: Set<string>) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([...sections]));
+  } catch {
+    // Ignore storage errors
+  }
+}
 
 interface CollapsibleBrainSectionProps {
   id: string;
@@ -30,7 +55,45 @@ export function CollapsibleBrainSection({
   defaultExpanded = false,
   className,
 }: CollapsibleBrainSectionProps) {
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  // Initialize from localStorage, fallback to defaultExpanded
+  const [isExpanded, setIsExpanded] = useState(() => {
+    const stored = getExpandedSections();
+    return stored.has(id) || defaultExpanded;
+  });
+
+  // Persist state changes to localStorage
+  const toggleExpanded = useCallback(() => {
+    setIsExpanded(prev => {
+      const newValue = !prev;
+      const sections = getExpandedSections();
+      if (newValue) {
+        sections.add(id);
+      } else {
+        sections.delete(id);
+      }
+      saveExpandedSections(sections);
+      return newValue;
+    });
+  }, [id]);
+
+  // Sync with URL hash for deep linking (e.g., #required-questions)
+  useEffect(() => {
+    const hash = window.location.hash.replace("#", "");
+    if (hash === id && !isExpanded) {
+      setIsExpanded(true);
+      const sections = getExpandedSections();
+      sections.add(id);
+      saveExpandedSections(sections);
+      
+      // Scroll into view after a brief delay
+      setTimeout(() => {
+        const element = document.getElementById(id);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 100);
+    }
+  }, [id, isExpanded]);
 
   return (
     <div
@@ -44,7 +107,7 @@ export function CollapsibleBrainSection({
       {/* Header - always visible */}
       <button
         type="button"
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={toggleExpanded}
         className="w-full flex items-center gap-3 p-4 text-left hover:bg-muted/50 transition-colors rounded-lg"
       >
         <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-muted shrink-0">
