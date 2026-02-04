@@ -17,6 +17,14 @@ import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // ============= TYPE DEFINITIONS =============
 
+export interface AiPoliciesJson {
+  upselling?: string;
+  pricing_negotiation?: string;
+  capacity?: string;
+  escalation?: string;
+  [key: string]: string | undefined;
+}
+
 export interface TenantSnapshot {
   id: string;
   name: string;
@@ -40,6 +48,7 @@ export interface TenantSnapshot {
   refund_policy: string;
   payment_methods: string[];
   ai_never_promise: string[];
+  ai_policies_json: AiPoliciesJson | null;
   enabled_modules: string[];
   hipaa_mode: boolean;
   pricing_rules_jsonb: any;
@@ -274,6 +283,7 @@ function getDefaultTenantSnapshot(): TenantSnapshot {
     refund_policy: "",
     payment_methods: [],
     ai_never_promise: [],
+    ai_policies_json: null,
     enabled_modules: [],
     hipaa_mode: false,
     pricing_rules_jsonb: null,
@@ -349,7 +359,7 @@ export async function getBusinessBrainSnapshot(
       phone_public, website_url, address, years_in_business,
       hours_json, service_area_json,
       cancellation_policy, deposit_policy, refund_policy, payment_methods,
-      ai_never_promise, enabled_modules, hipaa_mode,
+      ai_never_promise, ai_policies_json, enabled_modules, hipaa_mode,
       pricing_rules_jsonb, busyness_rules_jsonb, context_fields_json
     `)
     .eq("id", tenantId)
@@ -484,6 +494,7 @@ export async function getBusinessBrainSnapshot(
     refund_policy: safeString(tenantData.refund_policy),
     payment_methods: safeArray(tenantData.payment_methods),
     ai_never_promise: safeArray(tenantData.ai_never_promise),
+    ai_policies_json: tenantData.ai_policies_json || null,
     enabled_modules: safeArray(tenantData.enabled_modules),
     hipaa_mode: safeBoolean(tenantData.hipaa_mode),
     pricing_rules_jsonb: tenantData.pricing_rules_jsonb || null,
