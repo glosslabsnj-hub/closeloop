@@ -289,43 +289,6 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
     ],
   },
   {
-    id: "ai-setup",
-    title: "AI Setup",
-    description: "Voice & behavior",
-    icon: Sparkles,
-    section: "ai-behavior",
-    cards: [
-      {
-        id: "scripts",
-        title: "Greeting & Scripts",
-        purpose: "How your AI starts and ends calls",
-        usedByAI: [
-          "Delivers your custom greeting on every call",
-          "Uses your fallback script when uncertain",
-        ],
-        speechReadyFields: ["greeting_script", "fallback_script"],
-        defaultCollapsed: false,
-      },
-      {
-        id: "business-rules",
-        title: "Business Guidelines",
-        purpose: "High-level instructions for your AI",
-        usedByAI: [
-          "Follows your rules about when to offer vs. require callbacks",
-          "Adjusts tone and approach per your preferences",
-        ],
-      },
-      {
-        id: "intelligence",
-        title: "Intelligence Settings",
-        purpose: "Advanced AI behavior tuning",
-        usedByAI: [
-          "Controls memory, learning, and adaptation features",
-        ],
-      },
-    ],
-  },
-  {
     id: "knowledge",
     title: "Knowledge",
     description: "FAQs & training",
@@ -379,21 +342,51 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
       },
     ],
   },
+  {
+    id: "ai-setup",
+    title: "AI Setup",
+    description: "Voice & behavior",
+    icon: Sparkles,
+    section: "ai-behavior",
+    cards: [
+      {
+        id: "scripts",
+        title: "Greeting & Scripts",
+        purpose: "How your AI starts and ends calls",
+        usedByAI: [
+          "Delivers your custom greeting on every call",
+          "Uses your fallback script when uncertain",
+        ],
+        speechReadyFields: ["greeting_script", "fallback_script"],
+        defaultCollapsed: false,
+      },
+      {
+        id: "business-rules",
+        title: "Business Guidelines",
+        purpose: "High-level instructions for your AI",
+        usedByAI: [
+          "Follows your rules about when to offer vs. require callbacks",
+          "Adjusts tone and approach per your preferences",
+        ],
+      },
+      {
+        id: "intelligence",
+        title: "Intelligence Settings",
+        purpose: "Advanced AI behavior tuning",
+        usedByAI: [
+          "Controls memory, learning, and adaptation features",
+        ],
+      },
+    ],
+  },
 ];
 
 /**
  * Get categories ordered by relevance for a given mode
  */
-export function getOrderedCategories(mode: BusinessMode): CategoryConfig[] {
-  // Create a copy to avoid mutating the original
-  const categories = [...BRAIN_CATEGORIES];
-  
-  // Sort so emphasized categories for this mode come first
-  return categories.sort((a, b) => {
-    const aEmphasis = a.emphasis?.includes(mode) ? 1 : 0;
-    const bEmphasis = b.emphasis?.includes(mode) ? 1 : 0;
-    return bEmphasis - aEmphasis;
-  });
+export function getOrderedCategories(_mode: BusinessMode): CategoryConfig[] {
+  // Return categories in their defined order (no reordering by emphasis)
+  return [...BRAIN_CATEGORIES];
 }
 
 /**
