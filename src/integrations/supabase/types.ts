@@ -4846,26 +4846,118 @@ export type Database = {
         | "completed"
         | "cancelled"
       industry_type:
+        // Legacy values (kept for backwards compatibility)
         | "detailing"
         | "hvac"
         | "plumber"
-        | "medspa"
-        | "dental"
-        | "other"
-        | "tire_shop"
+        | "fitness"
+        // Home Services
+        | "plumbing"
+        | "electrical"
+        | "roofing"
+        | "painting"
+        | "flooring"
         | "cleaning"
         | "landscaping"
         | "pest_control"
-        | "roofing"
-        | "electrical"
         | "pool_service"
-        | "moving"
-        | "salon"
-        | "fitness"
-        | "photography"
-        | "pet_grooming"
-        | "towing"
+        | "pressure_washing"
+        | "garage_door"
+        | "appliance_repair"
+        | "handyman"
         | "locksmith"
+        | "moving"
+        | "junk_removal"
+        | "tree_service"
+        | "fencing"
+        | "window_cleaning"
+        | "chimney_service"
+        | "insulation"
+        | "solar"
+        | "concrete"
+        | "siding"
+        | "gutter"
+        | "irrigation"
+        | "masonry"
+        | "drywall"
+        | "carpet_cleaning"
+        // Auto Services
+        | "auto_detailing"
+        | "tire_shop"
+        | "auto_repair"
+        | "auto_glass"
+        | "body_shop"
+        | "car_wash"
+        | "window_tinting"
+        | "mobile_mechanic"
+        // Dispatch & Logistics
+        | "towing"
+        | "roadside_assistance"
+        | "courier"
+        | "medical_transport"
+        | "delivery_service"
+        | "field_service"
+        // Beauty & Wellness
+        | "salon"
+        | "nail_salon"
+        | "spa"
+        | "massage"
+        | "medspa"
+        | "tattoo"
+        | "esthetics"
+        | "brow_lash"
+        // Health & Medical
+        | "primary_care"
+        | "urgent_care"
+        | "dental"
+        | "orthodontics"
+        | "optometry"
+        | "chiropractic"
+        | "physical_therapy"
+        | "dermatology"
+        | "mental_health"
+        | "pediatrics"
+        | "veterinary"
+        // Food & Hospitality
+        | "restaurant"
+        | "pizzeria"
+        | "fast_casual"
+        | "bakery"
+        | "coffee_shop"
+        | "food_truck"
+        | "catering_service"
+        | "bar"
+        // Pet Services
+        | "pet_grooming"
+        | "pet_boarding"
+        | "dog_training"
+        | "dog_walking"
+        // Fitness & Recreation
+        | "personal_training"
+        | "yoga"
+        | "pilates"
+        | "martial_arts"
+        | "dance_studio"
+        | "golf"
+        // Events & Entertainment
+        | "photography"
+        | "videography"
+        | "dj"
+        | "event_venue"
+        | "wedding_planner"
+        | "music_lessons"
+        // Professional Services
+        | "accounting"
+        | "legal"
+        | "insurance"
+        | "financial_advisor"
+        | "tutoring"
+        // Property & Real Estate
+        | "real_estate"
+        | "property_management"
+        | "home_inspection"
+        // Other
+        | "other"
       intent_rule_type:
         | "time_preference"
         | "upsell_rule"
@@ -5173,26 +5265,44 @@ export const Constants = {
         "cancelled",
       ],
       industry_type: [
-        "detailing",
-        "hvac",
-        "plumber",
-        "medspa",
-        "dental",
+        // Legacy values
+        "detailing", "hvac", "plumber", "fitness",
+        // Home Services
+        "plumbing", "electrical", "roofing", "painting", "flooring", "cleaning",
+        "landscaping", "pest_control", "pool_service", "pressure_washing",
+        "garage_door", "appliance_repair", "handyman", "locksmith", "moving",
+        "junk_removal", "tree_service", "fencing", "window_cleaning",
+        "chimney_service", "insulation", "solar", "concrete", "siding",
+        "gutter", "irrigation", "masonry", "drywall", "carpet_cleaning",
+        // Auto Services
+        "auto_detailing", "tire_shop", "auto_repair", "auto_glass",
+        "body_shop", "car_wash", "window_tinting", "mobile_mechanic",
+        // Dispatch & Logistics
+        "towing", "roadside_assistance", "courier", "medical_transport",
+        "delivery_service", "field_service", "landscaping_dispatch",
+        "cleaning_dispatch", "mobile_detailing", "pest_control_dispatch", "locksmith",
+        // Beauty & Wellness
+        "salon", "nail_salon", "spa", "massage", "medspa", "tattoo",
+        "esthetics", "brow_lash",
+        // Health & Medical
+        "primary_care", "urgent_care", "dental", "orthodontics", "optometry",
+        "chiropractic", "physical_therapy", "dermatology", "mental_health",
+        "pediatrics", "veterinary",
+        // Food & Hospitality
+        "restaurant", "pizzeria", "fast_casual", "bakery", "coffee_shop",
+        "food_truck", "catering_service", "bar",
+        // Pet Services
+        "pet_grooming", "pet_boarding", "dog_training", "dog_walking",
+        // Fitness & Recreation
+        "personal_training", "yoga", "pilates", "martial_arts", "dance_studio", "golf",
+        // Events & Entertainment
+        "photography", "videography", "dj", "event_venue", "wedding_planner", "music_lessons",
+        // Professional Services
+        "accounting", "legal", "insurance", "financial_advisor", "tutoring",
+        // Property & Real Estate
+        "real_estate", "property_management", "home_inspection",
+        // Other
         "other",
-        "tire_shop",
-        "cleaning",
-        "landscaping",
-        "pest_control",
-        "roofing",
-        "electrical",
-        "pool_service",
-        "moving",
-        "salon",
-        "fitness",
-        "photography",
-        "pet_grooming",
-        "towing",
-        "locksmith",
       ],
       intent_rule_type: [
         "time_preference",

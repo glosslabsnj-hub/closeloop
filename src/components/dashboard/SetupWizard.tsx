@@ -85,9 +85,13 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
     <div className="max-w-2xl mx-auto space-y-8 p-4 md:p-6">
       {/* Header */}
       <div className="text-center space-y-2">
-        <h1 className="text-2xl md:text-3xl font-bold">Get Your AI Running</h1>
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-2">
+          <Check className="h-4 w-4" />
+          Business knowledge ready
+        </div>
+        <h1 className="text-2xl md:text-3xl font-bold">Go Live Checklist</h1>
         <p className="text-muted-foreground">
-          Complete these steps to start answering calls with AI
+          Connect your phone and you're ready to answer calls with AI
         </p>
       </div>
 

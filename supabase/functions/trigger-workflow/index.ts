@@ -12,6 +12,7 @@ interface TriggerWorkflowRequest {
   entity_type: string;
   entity_id: string;
   location_id?: string;
+  session_id?: string; // AI call session that triggered this workflow
   details?: Record<string, any>;
   customer?: Record<string, any>;
   summary?: string;
@@ -754,7 +755,8 @@ async function executeAutomationRules(
   entityType: string,
   entityId: string,
   context: Record<string, any>,
-  isDryRun: boolean
+  isDryRun: boolean,
+  sessionId?: string
 ): Promise<{ executed: number; results: any[] }> {
   // Query enabled automation rules for this trigger
   const { data: rules, error: rulesError } = await supabase
@@ -804,6 +806,7 @@ async function executeAutomationRules(
         trigger_event: trigger,
         entity_type: entityType,
         entity_id: entityId,
+        session_id: sessionId || null, // Link to originating AI call session
         status: "running",
         payload_snapshot: context,
       })
@@ -1554,7 +1557,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body: TriggerWorkflowRequest = await req.json();
-    const { tenant_id, trigger, entity_type, entity_id, location_id, details, customer, summary, dry_run, retry_run_id } = body;
+    const { tenant_id, trigger, entity_type, entity_id, location_id, session_id, details, customer, summary, dry_run, retry_run_id } = body;
 
     const isDryRun = dry_run === true;
 
@@ -1614,7 +1617,8 @@ serve(async (req) => {
       entity_type,
       entity_id,
       context,
-      isDryRun
+      isDryRun,
+      session_id
     );
 
     console.log(`[trigger-workflow] Executed ${automationResults.executed} automation rules`);
@@ -1640,6 +1644,16 @@ serve(async (req) => {
     // Load workflow graph
     const graph = await loadGraph(supabase, workflow.id);
 
+    // Determine if this is a critical trigger that needs alerting on failure
+    const criticalTriggers = [
+      "order.created", "order.confirmed",
+      "booking.created", "booking.confirmed",
+      "dispatch.created", "dispatch.confirmed",
+      "lead.captured"
+    ];
+    const isCritical = criticalTriggers.includes(trigger);
+    const maxRetries = isCritical ? 5 : 3; // More retries for critical triggers
+
     // Create workflow run
     const { data: run, error: createRunError } = await supabase
       .from("workflow_runs")
@@ -1649,11 +1663,14 @@ serve(async (req) => {
         trigger,
         entity_type,
         entity_id,
+        session_id: session_id || null, // Link to originating AI call session
         status: "running",
         context,
         is_dry_run: isDryRun,
         retry_count: retryCount,
         parent_run_id: retry_run_id || null,
+        is_critical: isCritical,
+        max_retries: maxRetries,
       })
       .select()
       .single();
@@ -1727,16 +1744,52 @@ serve(async (req) => {
 
     // Update run status
     const finalStatus = executionError ? "failed" : "success";
+
+    // Calculate retry settings if failed
+    const needsRetry = executionError && retryCount < maxRetries && !isDryRun;
+    const backoffMinutes = Math.pow(2, retryCount) * 5; // 5, 10, 20, 40, 80 minutes
+    const nextRetryAt = needsRetry
+      ? new Date(Date.now() + backoffMinutes * 60 * 1000).toISOString()
+      : null;
+
     await supabase
       .from("workflow_runs")
       .update({
         status: finalStatus,
         finished_at: nowIso(),
         error: executionError,
+        needs_retry: needsRetry,
+        next_retry_at: nextRetryAt,
       })
       .eq("id", run.id);
 
-    console.log(`[trigger-workflow] Completed with status: ${finalStatus}, steps: ${stepsExecuted}`);
+    // Alert on critical failures that have exhausted retries
+    if (executionError && isCritical && retryCount >= maxRetries) {
+      console.error(`[trigger-workflow] CRITICAL FAILURE: ${trigger} for ${entity_type}/${entity_id} exhausted ${maxRetries} retries`);
+
+      // Log alert event for notification system to pick up
+      await supabase.from("ai_event_logs").insert({
+        tenant_id,
+        stage: "workflow_critical_failure",
+        event_data: {
+          run_id: run.id,
+          trigger,
+          entity_type,
+          entity_id,
+          error: executionError,
+          retry_count: retryCount,
+          requires_manual_intervention: true,
+        },
+      });
+
+      // Mark as alerted
+      await supabase
+        .from("workflow_runs")
+        .update({ alerted_at: nowIso() })
+        .eq("id", run.id);
+    }
+
+    console.log(`[trigger-workflow] Completed with status: ${finalStatus}, steps: ${stepsExecuted}${needsRetry ? `, retry scheduled in ${backoffMinutes}min` : ""}`);
 
     return json(200, {
       ok: !executionError,

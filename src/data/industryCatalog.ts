@@ -1,15 +1,33 @@
 /**
  * Industry Catalog for CloseLoop
- * 
+ *
  * This file defines 100+ industries using a template family approach:
  * - Base templates define shared configurations per business mode
  * - Each industry inherits from a base and overrides specific fields
  * - This allows scaling to hundreds of industries without duplication
- * 
+ *
  * Structure:
  * - IndustryCatalogEntry: Full definition of an industry
  * - businessMode: service | dispatch | food | medical | general
  * - enabledModules: Which dashboard modules appear for this industry
+ *
+ * DATA MODEL NOTES:
+ *
+ * For SERVICE businesses (businessMode: 'service'):
+ *   - `services` = actual services offered (e.g., "Haircut", "Oil Change")
+ *   - These are stored in the `services` database table
+ *   - Each has a duration and price
+ *
+ * For FOOD businesses (businessMode: 'food'):
+ *   - `services` = service TYPES, not menu items (e.g., "Delivery Order", "Dine-In")
+ *   - These represent how the business serves customers, not what they sell
+ *   - Actual menu items (Pizza, Burgers, etc.) are stored in `menu_items` table
+ *   - Menu items are managed through Menu Center UI, not in this catalog
+ *   - The catalog `services` help the AI understand what order types are available
+ *
+ * For DISPATCH businesses (businessMode: 'dispatch'):
+ *   - `services` = dispatch job types (e.g., "Tow Service", "Rush Delivery")
+ *   - These create dispatch_jobs in the database
  */
 
 import type { ServiceTemplate, ContextField, FAQ, ObjectionResponse } from './industryTemplates';
@@ -181,6 +199,11 @@ const medicalBase: Partial<IndustryCatalogEntry> = {
   defaultPolicies: medicalPolicies,
 };
 
+/**
+ * Food business base template.
+ * NOTE: `services` here are ORDER TYPES (pickup, delivery, dine-in), not menu items.
+ * Actual menu items are stored in the `menu_items` table and managed via Menu Center.
+ */
 const foodBase: Partial<IndustryCatalogEntry> = {
   businessMode: 'food',
   category: 'food_hospitality',
@@ -915,6 +938,126 @@ export const industryCatalog: IndustryCatalogEntry[] = [
       { name: 'Emergency Call', duration: 60, price: 200, priceType: 'starting_at' },
       { name: 'Equipment Install', duration: 180, price: 0, priceType: 'quote_only' },
       { name: 'Maintenance Visit', duration: 90, price: 150, priceType: 'fixed' },
+    ],
+  },
+  {
+    ...dispatchBase as IndustryCatalogEntry,
+    slug: 'landscaping_dispatch',
+    name: 'Landscaping (Mobile)',
+    icon: '🌿',
+    tags: ['landscaping', 'lawn care', 'yard', 'mobile lawn', 'lawn service'],
+    services: [
+      { name: 'Lawn Mowing', duration: 60, price: 50, priceType: 'starting_at' },
+      { name: 'Hedge Trimming', duration: 60, price: 75, priceType: 'starting_at' },
+      { name: 'Leaf Removal', duration: 90, price: 100, priceType: 'starting_at' },
+      { name: 'Mulching', duration: 120, price: 150, priceType: 'starting_at' },
+      { name: 'Spring/Fall Cleanup', duration: 180, price: 200, priceType: 'starting_at' },
+      { name: 'Emergency Tree Work', duration: 120, price: 300, priceType: 'starting_at' },
+    ],
+    contextFields: [
+      { key: 'property_address', label: 'Property Address', type: 'text', required: true },
+      { key: 'property_size', label: 'Lot Size', type: 'select', options: ['Small (<1/4 acre)', 'Medium (1/4-1/2 acre)', 'Large (1/2+ acre)'], required: true },
+      { key: 'frequency', label: 'Service Frequency', type: 'select', options: ['One-time', 'Weekly', 'Bi-weekly', 'Monthly'], required: false },
+    ],
+  },
+  {
+    ...dispatchBase as IndustryCatalogEntry,
+    slug: 'cleaning_dispatch',
+    name: 'Cleaning (Mobile)',
+    icon: '🧹',
+    tags: ['cleaning', 'house cleaning', 'mobile cleaning', 'maid service', 'janitorial'],
+    services: [
+      { name: 'Standard Cleaning', duration: 120, price: 120, priceType: 'starting_at' },
+      { name: 'Deep Cleaning', duration: 180, price: 200, priceType: 'starting_at' },
+      { name: 'Move-In/Move-Out', duration: 240, price: 300, priceType: 'starting_at' },
+      { name: 'Post-Construction', duration: 240, price: 400, priceType: 'starting_at' },
+      { name: 'Office Cleaning', duration: 120, price: 150, priceType: 'starting_at' },
+    ],
+    contextFields: [
+      { key: 'property_address', label: 'Property Address', type: 'text', required: true },
+      { key: 'property_type', label: 'Property Type', type: 'select', options: ['House', 'Apartment', 'Condo', 'Office', 'Commercial'], required: true },
+      { key: 'square_footage', label: 'Square Footage', type: 'number', required: false },
+      { key: 'bedrooms', label: 'Bedrooms', type: 'number', required: false },
+    ],
+  },
+  {
+    ...dispatchBase as IndustryCatalogEntry,
+    slug: 'mobile_detailing',
+    name: 'Mobile Auto Detailing',
+    icon: '🚙',
+    tags: ['detailing', 'car wash', 'auto detail', 'mobile wash', 'car cleaning'],
+    services: [
+      { name: 'Exterior Wash', duration: 45, price: 40, priceType: 'fixed' },
+      { name: 'Interior Detail', duration: 90, price: 80, priceType: 'fixed' },
+      { name: 'Full Detail', duration: 180, price: 150, priceType: 'starting_at' },
+      { name: 'Premium Detail', duration: 240, price: 250, priceType: 'starting_at' },
+      { name: 'Ceramic Coating', duration: 480, price: 500, priceType: 'starting_at' },
+      { name: 'Paint Correction', duration: 360, price: 400, priceType: 'starting_at' },
+    ],
+    contextFields: [
+      { key: 'vehicle_type', label: 'Vehicle Type', type: 'select', options: ['Sedan', 'SUV', 'Truck', 'Van', 'Motorcycle', 'Boat'], required: true },
+      { key: 'service_location', label: 'Service Location', type: 'text', required: true },
+      { key: 'vehicle_condition', label: 'Condition', type: 'select', options: ['Light dirt', 'Moderate', 'Heavy soiling', 'Neglected'], required: false },
+    ],
+  },
+  {
+    ...dispatchBase as IndustryCatalogEntry,
+    slug: 'pest_control_dispatch',
+    name: 'Pest Control',
+    icon: '🐜',
+    tags: ['pest control', 'exterminator', 'bugs', 'rodents', 'termites'],
+    services: [
+      { name: 'Initial Inspection', duration: 60, price: 0, priceType: 'free' },
+      { name: 'General Pest Treatment', duration: 60, price: 125, priceType: 'starting_at' },
+      { name: 'Rodent Control', duration: 90, price: 175, priceType: 'starting_at' },
+      { name: 'Termite Treatment', duration: 180, price: 0, priceType: 'quote_only' },
+      { name: 'Bed Bug Treatment', duration: 180, price: 400, priceType: 'starting_at' },
+      { name: 'Quarterly Service', duration: 45, price: 100, priceType: 'fixed' },
+    ],
+    contextFields: [
+      { key: 'property_address', label: 'Property Address', type: 'text', required: true },
+      { key: 'pest_type', label: 'Pest Type', type: 'select', options: ['Ants', 'Roaches', 'Rodents', 'Termites', 'Bed Bugs', 'Spiders', 'Other'], required: true },
+      { key: 'property_type', label: 'Property Type', type: 'select', options: ['House', 'Apartment', 'Condo', 'Commercial'], required: true },
+    ],
+  },
+  {
+    ...dispatchBase as IndustryCatalogEntry,
+    slug: 'junk_removal',
+    name: 'Junk Removal',
+    icon: '🗑️',
+    tags: ['junk removal', 'hauling', 'trash', 'debris', 'cleanout'],
+    services: [
+      { name: 'Single Item Pickup', duration: 30, price: 75, priceType: 'starting_at' },
+      { name: '1/8 Truck Load', duration: 60, price: 150, priceType: 'fixed' },
+      { name: '1/4 Truck Load', duration: 60, price: 250, priceType: 'fixed' },
+      { name: '1/2 Truck Load', duration: 90, price: 400, priceType: 'fixed' },
+      { name: 'Full Truck Load', duration: 120, price: 600, priceType: 'fixed' },
+      { name: 'Estate Cleanout', duration: 480, price: 0, priceType: 'quote_only' },
+    ],
+    contextFields: [
+      { key: 'pickup_address', label: 'Pickup Address', type: 'text', required: true },
+      { key: 'item_description', label: 'What are we removing?', type: 'text', required: true },
+      { key: 'location_type', label: 'Location', type: 'select', options: ['Ground floor', 'Upper floor', 'Basement', 'Outdoor'], required: false },
+    ],
+  },
+  {
+    ...dispatchBase as IndustryCatalogEntry,
+    slug: 'locksmith',
+    name: 'Locksmith',
+    icon: '🔐',
+    tags: ['locksmith', 'locks', 'keys', 'lockout', 'security'],
+    services: [
+      { name: 'Car Lockout', duration: 30, price: 75, priceType: 'starting_at' },
+      { name: 'House Lockout', duration: 30, price: 85, priceType: 'starting_at' },
+      { name: 'Lock Rekey', duration: 30, price: 50, priceType: 'per_lock' },
+      { name: 'Lock Change', duration: 45, price: 100, priceType: 'starting_at' },
+      { name: 'Key Duplication', duration: 15, price: 5, priceType: 'starting_at' },
+      { name: 'Commercial Service', duration: 60, price: 150, priceType: 'starting_at' },
+    ],
+    contextFields: [
+      { key: 'service_address', label: 'Service Address', type: 'text', required: true },
+      { key: 'lockout_type', label: 'Type', type: 'select', options: ['Car', 'House', 'Business', 'Safe'], required: true },
+      { key: 'urgency', label: 'Urgency', type: 'select', options: ['Standard', 'Urgent', 'Emergency'], required: true },
     ],
   },
 

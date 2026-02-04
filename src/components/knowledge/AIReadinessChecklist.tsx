@@ -95,9 +95,13 @@ export function AIReadinessChecklist({ compact = false }: AIReadinessChecklistPr
     );
   }
 
-  // Group items by category
-  const knowledgeItems = items.filter(i => i.category === 'knowledge');
-  const connectionItems = items.filter(i => i.category === 'connection');
+  // Group items by priority (required vs recommended)
+  const requiredItems = items.filter(i => i.priority === 'required');
+  const recommendedItems = items.filter(i => i.priority === 'recommended');
+
+  // Count incomplete by priority
+  const incompleteRequired = requiredItems.filter(i => !i.complete).length;
+  const incompleteRecommended = recommendedItems.filter(i => !i.complete).length;
 
   return (
     <Card className="border-primary/20 bg-gradient-to-br from-card to-primary/5">
@@ -170,27 +174,51 @@ export function AIReadinessChecklist({ compact = false }: AIReadinessChecklistPr
           </div>
         )}
         
-        {/* Knowledge Section */}
+        {/* Required Section - Must complete to go live */}
         <div>
-          <h4 className="text-sm font-medium mb-3 flex items-center gap-2 text-muted-foreground">
-            <Brain className="h-4 w-4" />
-            Knowledge Setup
-          </h4>
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-medium flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-amber-500" />
+              <span>Required for Launch</span>
+            </h4>
+            {incompleteRequired > 0 ? (
+              <Badge variant="destructive" className="text-xs">
+                {incompleteRequired} blocking
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-xs text-emerald-500 border-emerald-500/30">
+                All complete
+              </Badge>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            These items must be completed before going live. Your AI cannot function properly without them.
+          </p>
           <div className="grid gap-2">
-            {knowledgeItems.map(item => (
+            {requiredItems.map(item => (
               <ReadinessItemRow key={item.id} item={item} />
             ))}
           </div>
         </div>
-        
-        {/* Connections Section */}
+
+        {/* Recommended Section - Improve AI quality */}
         <div>
-          <h4 className="text-sm font-medium mb-3 flex items-center gap-2 text-muted-foreground">
-            <Webhook className="h-4 w-4" />
-            Connections & Verification
-          </h4>
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+              <CheckCircle2 className="h-4 w-4" />
+              <span>Recommended</span>
+            </h4>
+            {incompleteRecommended > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                {incompleteRecommended} remaining
+              </Badge>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            These items improve your AI's performance but aren't required to go live.
+          </p>
           <div className="grid gap-2">
-            {connectionItems.map(item => (
+            {recommendedItems.map(item => (
               <ReadinessItemRow key={item.id} item={item} />
             ))}
           </div>
@@ -202,28 +230,49 @@ export function AIReadinessChecklist({ compact = false }: AIReadinessChecklistPr
 
 function ReadinessItemRow({ item }: { item: ReadinessItem }) {
   const Icon = iconMap[item.id] || HelpCircle;
-  
+
   return (
     <Link to={item.href}>
       <div className={`flex items-center justify-between p-3 rounded-lg border transition-colors hover:bg-muted/50 ${
-        item.complete 
-          ? 'bg-emerald-500/5 border-emerald-500/20' 
-          : 'bg-muted/30 border-border'
+        item.complete
+          ? 'bg-emerald-500/5 border-emerald-500/20'
+          : item.priority === 'required'
+            ? 'bg-amber-500/5 border-amber-500/20'
+            : 'bg-muted/30 border-border'
       }`}>
         <div className="flex items-center gap-3">
           <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
-            item.complete ? 'bg-emerald-500/15' : 'bg-muted'
+            item.complete
+              ? 'bg-emerald-500/15'
+              : item.priority === 'required'
+                ? 'bg-amber-500/15'
+                : 'bg-muted'
           }`}>
             <Icon className={`h-4 w-4 ${
-              item.complete ? 'text-emerald-400' : 'text-muted-foreground'
+              item.complete
+                ? 'text-emerald-400'
+                : item.priority === 'required'
+                  ? 'text-amber-500'
+                  : 'text-muted-foreground'
             }`} />
           </div>
-          <div>
-            <p className="font-medium text-sm">{item.label}</p>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="font-medium text-sm">{item.label}</p>
+              {item.priority === 'required' && !item.complete && (
+                <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-amber-600 border-amber-500/30">
+                  Required
+                </Badge>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground">{item.description}</p>
+            {/* Show impact explanation for incomplete items */}
+            {!item.complete && item.impact && (
+              <p className="text-xs text-amber-600/80 mt-0.5 italic">{item.impact}</p>
+            )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <Badge variant="outline" className={`text-xs ${item.complete ? 'text-emerald-400 border-emerald-500/30' : ''}`}>
             +{item.weight} pts
           </Badge>

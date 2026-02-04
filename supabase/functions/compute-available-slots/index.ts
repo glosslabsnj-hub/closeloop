@@ -54,6 +54,9 @@ serve(async (req: Request) => {
       end_date,
       duration_minutes = 60,
       buffer_minutes = 0,
+      session_id, // Optional: if provided, locks slots for this session
+      lock_slots = false, // Whether to lock returned slots for the session
+      lock_ttl_minutes = 10, // How long to hold the locks
     } = await req.json();
 
     // Get tenant settings for business hours
@@ -65,18 +68,35 @@ serve(async (req: Request) => {
 
     const businessHours = tenant?.hours_json || null;
 
-    // Call the database function
-    const { data: slots, error: slotsError } = await supabase.rpc(
-      "fn_compute_available_slots",
-      {
+    let slots;
+    let slotsError;
+
+    // Use session-aware slot computation if session_id provided
+    if (session_id) {
+      const result = await supabase.rpc("fn_refresh_session_slots", {
+        _tenant_id: tenantUser.tenant_id,
+        _session_id: session_id,
+        _start_date: start_date,
+        _end_date: end_date,
+        _duration_minutes: duration_minutes,
+        _buffer_minutes: buffer_minutes,
+        _business_hours: businessHours,
+      });
+      slots = result.data;
+      slotsError = result.error;
+    } else {
+      // Standard computation without session awareness
+      const result = await supabase.rpc("fn_compute_available_slots", {
         _tenant_id: tenantUser.tenant_id,
         _start_date: start_date,
         _end_date: end_date,
         _duration_minutes: duration_minutes,
         _buffer_minutes: buffer_minutes,
         _business_hours: businessHours,
-      }
-    );
+      });
+      slots = result.data;
+      slotsError = result.error;
+    }
 
     if (slotsError) {
       console.error("Slots error:", slotsError);
@@ -84,6 +104,34 @@ serve(async (req: Request) => {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Lock the offered slots if requested
+    let lockResult = null;
+    if (lock_slots && session_id && slots && slots.length > 0) {
+      const slotsToLock = slots.map((s: { slot_start: string; slot_end: string }) => ({
+        start_at: s.slot_start,
+        end_at: s.slot_end,
+      }));
+
+      const { data: lockData, error: lockError } = await supabase.rpc(
+        "fn_lock_offered_slots",
+        {
+          _tenant_id: tenantUser.tenant_id,
+          _session_id: session_id,
+          _slots: slotsToLock,
+          _ttl_minutes: lock_ttl_minutes,
+        }
+      );
+
+      if (lockError) {
+        console.warn("Failed to lock slots:", lockError);
+      } else if (lockData && lockData.length > 0) {
+        lockResult = {
+          locked_count: lockData[0].locked_count,
+          failed_slots: lockData[0].failed_slots,
+        };
+      }
     }
 
     return new Response(
@@ -97,6 +145,8 @@ serve(async (req: Request) => {
           min_lead_hours: tenant?.min_lead_hours,
           max_advance_days: tenant?.max_advance_days,
         },
+        session_id: session_id || null,
+        lock_result: lockResult,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

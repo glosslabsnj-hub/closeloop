@@ -12,6 +12,10 @@ export interface ReadinessItem {
   complete: boolean;
   href: string;
   category: 'knowledge' | 'connection' | 'verification';
+  /** Priority level for display grouping */
+  priority: 'required' | 'recommended';
+  /** User-friendly explanation of why this matters */
+  impact: string;
 }
 
 export interface AIReadinessScore {
@@ -24,7 +28,7 @@ export interface AIReadinessScore {
 
 /**
  * Comprehensive AI Readiness Score with weighted checklist
- * 
+ *
  * Weights (total 100):
  * - Hours set: 10
  * - Services/menu with prices: 20
@@ -38,12 +42,12 @@ export interface AIReadinessScore {
 export function useAIReadiness(): AIReadinessScore {
   const { tenant, assistantSettings } = useAuth();
   const { businessMode } = useTenantConfig();
-  
+
   const query = useQuery({
     queryKey: ["ai-readiness-score", tenant?.id],
     queryFn: async () => {
       if (!tenant?.id) return null;
-      
+
       const [
         { count: servicesCount },
         { count: menuItemsCount },
@@ -61,10 +65,10 @@ export function useAIReadiness(): AIReadinessScore {
         supabase.from("calendar_connections").select("id, status").eq("tenant_id", tenant.id),
         supabase.from("booking_delivery_settings").select("*").eq("tenant_id", tenant.id).maybeSingle(),
       ]);
-      
+
       // Check intake fields from tenant (raw query to avoid type issues)
       const intakeFields = (tenant as any)?.intake_fields_json || (tenant as any)?.context_fields_json || [];
-      
+
       return {
         servicesCount: servicesCount || 0,
         menuItemsCount: menuItemsCount || 0,
@@ -79,49 +83,41 @@ export function useAIReadiness(): AIReadinessScore {
     enabled: !!tenant?.id,
     staleTime: 30_000,
   });
-  
+
   const items = useMemo<ReadinessItem[]>(() => {
     const data = query.data;
     const settings = assistantSettings;
-    
+
     // Hours set (10 points)
     const hoursComplete = data?.hasHours || false;
-    
+
     // Services/menu with prices (20 points)
     const isFood = businessMode === 'food';
     const itemCount = isFood ? (data?.menuItemsCount || 0) : (data?.servicesCount || 0);
     const itemsComplete = isFood ? itemCount >= 5 : itemCount >= 3;
-    
+
     // Policies set (10 points)
     const policiesComplete = (data?.policiesCount || 0) >= 1;
-    
-    // Intake fields set (10 points) 
+
+    // Intake fields set (10 points)
     const intakeComplete = Array.isArray(data?.intakeFields) && data.intakeFields.length >= 2;
-    
+
     // Webhook connected (15 points)
     const webhookComplete = data?.hasWebhook || false;
-    
+
     // Phone connected + test (10 points)
     const phoneComplete = settings?.phone_connected && settings?.setup_step_tested;
-    
+
     // Calendar OR pending_approval (15 points)
-    const calendarOrApprovalComplete = 
-      data?.calendarConnected || 
+    const calendarOrApprovalComplete =
+      data?.calendarConnected ||
       settings?.ai_booking_mode === 'pending_approval';
-    
+
     // FAQs (10 points)
     const faqsComplete = (data?.faqsCount || 0) >= 5;
-    
+
     return [
-      {
-        id: 'hours',
-        label: 'Business Hours',
-        description: 'Set when you are open',
-        weight: 10,
-        complete: hoursComplete,
-        href: '/app/business-brain?section=hours',
-        category: 'knowledge',
-      },
+      // Required items first (higher weight)
       {
         id: 'services',
         label: isFood ? 'Menu Items' : 'Services & Pricing',
@@ -130,33 +126,8 @@ export function useAIReadiness(): AIReadinessScore {
         complete: itemsComplete,
         href: '/app/business-brain?section=services',
         category: 'knowledge',
-      },
-      {
-        id: 'policies',
-        label: 'Business Policies',
-        description: 'Set cancellation, deposit, or payment policies',
-        weight: 10,
-        complete: policiesComplete,
-        href: '/app/business-brain?section=policies',
-        category: 'knowledge',
-      },
-      {
-        id: 'intake',
-        label: 'Intake Questions',
-        description: 'Define what info to collect from callers',
-        weight: 10,
-        complete: intakeComplete,
-        href: '/app/business-brain?section=policies',
-        category: 'knowledge',
-      },
-      {
-        id: 'faqs',
-        label: 'FAQs (5+)',
-        description: 'Add frequently asked questions',
-        weight: 10,
-        complete: faqsComplete,
-        href: '/app/business-brain?section=knowledge',
-        category: 'knowledge',
+        priority: 'required',
+        impact: isFood ? 'Without menu items, your AI cannot take orders' : 'Without services, your AI cannot book appointments',
       },
       {
         id: 'calendar',
@@ -166,15 +137,8 @@ export function useAIReadiness(): AIReadinessScore {
         complete: calendarOrApprovalComplete,
         href: '/app/integrations/schedule',
         category: 'connection',
-      },
-      {
-        id: 'phone',
-        label: 'Phone Connected & Tested',
-        description: 'Connect phone and complete test call',
-        weight: 10,
-        complete: phoneComplete,
-        href: '/app/integrations',
-        category: 'connection',
+        priority: 'required',
+        impact: 'Without this, bookings cannot be confirmed or scheduled',
       },
       {
         id: 'webhook',
@@ -184,16 +148,74 @@ export function useAIReadiness(): AIReadinessScore {
         complete: webhookComplete,
         href: '/app/business-brain?section=policies',
         category: 'connection',
+        priority: 'required',
+        impact: 'Without this, you won\'t receive booking notifications',
+      },
+      // Recommended items (lower weight)
+      {
+        id: 'hours',
+        label: 'Business Hours',
+        description: 'Set when you are open',
+        weight: 10,
+        complete: hoursComplete,
+        href: '/app/business-brain?section=hours',
+        category: 'knowledge',
+        priority: 'recommended',
+        impact: 'Helps your AI tell callers when you\'re available',
+      },
+      {
+        id: 'policies',
+        label: 'Business Policies',
+        description: 'Set cancellation, deposit, or payment policies',
+        weight: 10,
+        complete: policiesComplete,
+        href: '/app/business-brain?section=policies',
+        category: 'knowledge',
+        priority: 'recommended',
+        impact: 'Enables your AI to answer policy questions accurately',
+      },
+      {
+        id: 'intake',
+        label: 'Intake Questions',
+        description: 'Define what info to collect from callers',
+        weight: 10,
+        complete: intakeComplete,
+        href: '/app/business-brain?section=policies',
+        category: 'knowledge',
+        priority: 'recommended',
+        impact: 'Ensures your AI collects the right information',
+      },
+      {
+        id: 'faqs',
+        label: 'FAQs (5+)',
+        description: 'Add frequently asked questions',
+        weight: 10,
+        complete: faqsComplete,
+        href: '/app/business-brain?section=knowledge',
+        category: 'knowledge',
+        priority: 'recommended',
+        impact: 'Helps your AI handle common questions smoothly',
+      },
+      {
+        id: 'phone',
+        label: 'Phone Connected & Tested',
+        description: 'Connect phone and complete test call',
+        weight: 10,
+        complete: phoneComplete,
+        href: '/app/integrations',
+        category: 'connection',
+        priority: 'recommended',
+        impact: 'Verifies your AI is working correctly before going live',
       },
     ];
   }, [query.data, assistantSettings, businessMode]);
-  
+
   const score = useMemo(() => {
     return items.reduce((acc, item) => {
       return acc + (item.complete ? item.weight : 0);
     }, 0);
   }, [items]);
-  
+
   return {
     score,
     items,

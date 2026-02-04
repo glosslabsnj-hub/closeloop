@@ -26,7 +26,7 @@ export default function SettingsPage() {
   const isBookingEnabled = useModuleEnabled("booking");
   const isDispatchEnabled = useModuleEnabled("dispatch_queue");
   const isMedicalMode = useModuleEnabled("medical_intake");
-  
+
   // Default to first available section
   const [activeSection, setActiveSection] = useState("team");
 

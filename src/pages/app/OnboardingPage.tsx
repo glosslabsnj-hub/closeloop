@@ -26,6 +26,7 @@ import PoliciesEditor, { BusinessPolicies } from "@/components/onboarding/Polici
 import { BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
 import { AIKnowledgePreview } from "@/components/onboarding/AIKnowledgePreview";
 import { FoodSetupEditor, FoodSetupData } from "@/components/onboarding/FoodSetupEditor";
+import { formatErrorForToast } from "@/lib/errorMessages";
 import type { PlanCode } from "@/types/database";
 
 const defaultBusinessHours: BusinessHours = {
@@ -480,9 +481,9 @@ export default function OnboardingPage() {
           if (provisionError) {
             console.error("TwilioProvision: error", { message: provisionError.message });
           } else if (provisionData?.success) {
-            console.log("TwilioProvision: success", { 
+            console.log("TwilioProvision: success", {
               phone_e164: provisionData.phone_number,
-              twilio_sid: provisionData.phone_sid 
+              twilio_sid: provisionData.phone_sid
             });
           } else {
             console.error("TwilioProvision: failed", { error: provisionData?.error });
@@ -505,7 +506,7 @@ export default function OnboardingPage() {
           tenantId,
           workflowBusinessMode as any
         );
-        
+
         if (success) {
           console.log("WorkflowsAutoCreate: success", { workflowCount: workflowIds.length });
         } else {
@@ -527,23 +528,25 @@ export default function OnboardingPage() {
 
       // Wait for tenant data refresh to complete before navigating
       await refreshTenant();
-      
+
       // Small delay to ensure auth context has updated state
       await new Promise(resolve => setTimeout(resolve, 100));
 
       toast({
-        title: "You're all set! 🎉",
-        description: "Your account is ready. Try your AI with suggested tests!",
+        title: "Business knowledge saved!",
+        description: "Now test your AI, then connect your phone to go live.",
       });
 
       // Redirect to simulator with suggested tests
+      // After testing, they'll see SetupWizard on dashboard to connect phone and go live
       navigate("/app/simulator?suggested=true");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Onboarding error:", error);
+      const errorInfo = formatErrorForToast(error);
       toast({
         variant: "destructive",
-        title: "Error setting up business",
-        description: error.message || "Something went wrong. Please try again.",
+        title: errorInfo.title,
+        description: errorInfo.description,
       });
     } finally {
       setLoading(false);
@@ -566,7 +569,7 @@ export default function OnboardingPage() {
             <span className="text-muted-foreground">{Math.round(progress)}% complete</span>
           </div>
           <Progress value={progress} className="h-2" />
-          
+
           {/* Step indicators */}
           <div className="flex justify-between mt-3">
             {stepInfo.map((info, index) => {
@@ -583,10 +586,10 @@ export default function OnboardingPage() {
                   }`}
                 >
                   <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs ${
-                    isActive 
-                      ? 'bg-primary text-primary-foreground' 
-                      : isComplete 
-                        ? 'bg-primary/20 text-primary' 
+                    isActive
+                      ? 'bg-primary text-primary-foreground'
+                      : isComplete
+                        ? 'bg-primary/20 text-primary'
                         : 'bg-muted text-muted-foreground'
                   }`}>
                     {isComplete ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
@@ -753,14 +756,14 @@ export default function OnboardingPage() {
                     />
                   </div>
 
-                  {/* AI Readiness Note */}
+                  {/* What's Next Note */}
                   <div className="p-4 rounded-lg border bg-primary/5">
                     <div className="flex items-start gap-3">
                       <Brain className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                       <div>
                         <p className="text-sm font-medium">Your AI is trained on all of this!</p>
-                        <p className="text-xs text-muted-foreground">
-                          After setup, test your AI in the simulator with suggested prompts.
+                        <p className="text-xs text-muted-foreground mt-1">
+                          <strong>Next steps:</strong> Test your AI in the simulator, then connect your phone number to go live.
                         </p>
                       </div>
                     </div>
@@ -794,4 +797,3 @@ export default function OnboardingPage() {
     </div>
   );
 }
-

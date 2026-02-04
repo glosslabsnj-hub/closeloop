@@ -601,13 +601,16 @@ async function processCallData(
 
   // ===== NORMALIZE VALUES =====
   const normalizedPayload = normalizePayloadValues(canonicalPayload, effectiveTimezone);
-  
+
+  // ===== VALIDATE PAYLOAD (ensure no nulls for required fields) =====
+  const validatedPayload = validateCanonicalPayload(normalizedPayload);
+
   await logEventStage(supabase, tenantId, sessionId, session.twilio_call_sid, payload.conversation_id, "normalization_applied", {
-    reservation_date: normalizedPayload.reservation.date,
-    reservation_time: normalizedPayload.reservation.time,
-    party_size: normalizedPayload.reservation.party_size,
-    original_date_phrase: normalizedPayload.reservation.original_date_phrase,
-    original_time_phrase: normalizedPayload.reservation.original_time_phrase,
+    reservation_date: validatedPayload.reservation.date,
+    reservation_time: validatedPayload.reservation.time,
+    party_size: validatedPayload.reservation.party_size,
+    original_date_phrase: validatedPayload.reservation.original_date_phrase,
+    original_time_phrase: validatedPayload.reservation.original_time_phrase,
     tenant_timezone: effectiveTimezone,
   });
 
@@ -622,9 +625,9 @@ async function processCallData(
 
     // Build inputs from normalized payload
     const inputs: Record<string, any> = {
-      service_requested: normalizedPayload.booking.service_requested,
-      party_size: normalizedPayload.reservation.party_size,
-      order_type: normalizedPayload.order.type,
+      service_requested: validatedPayload.booking.service_requested,
+      party_size: validatedPayload.reservation.party_size,
+      order_type: validatedPayload.order.type,
       distance_miles: null, // Could extract from dispatch later
     };
 
@@ -636,8 +639,8 @@ async function processCallData(
           rules: pricingRules,
           businessMode: tenantBusinessMode,
           offering: {
-            name: normalizedPayload.booking.service_requested || "",
-            type: normalizedPayload.order.type || "service",
+            name: validatedPayload.booking.service_requested || "",
+            type: validatedPayload.order.type || "service",
           },
           inputs,
         });
@@ -666,7 +669,7 @@ async function processCallData(
 
     // Add quote results to normalized payload
     if (priceQuote || etaQuote) {
-      normalizedPayload.quote = {
+      validatedPayload.quote = {
         price: priceQuote,
         eta: etaQuote,
       };
@@ -703,7 +706,7 @@ async function processCallData(
   }
 
   // ===== DETERMINE OUTCOME =====
-  const outcome = determineOutcomeFromIntent(normalizedPayload.intent, tenantBusinessMode);
+  const outcome = determineOutcomeFromIntent(validatedPayload.intent, tenantBusinessMode);
 
   // ===== CUSTOMER RESOLUTION =====
   let customerId = session.customer_id;
@@ -718,8 +721,8 @@ async function processCallData(
 
     if (existingCustomer) {
       customerId = existingCustomer.id;
-      if (normalizedPayload.customer.name && (!existingCustomer.full_name || existingCustomer.full_name === "Unknown" || normalizedPayload.customer.name.length > existingCustomer.full_name.length)) {
-        await supabase.from("customers").update({ full_name: normalizedPayload.customer.name, updated_at: new Date().toISOString() }).eq("id", customerId);
+      if (validatedPayload.customer.name && (!existingCustomer.full_name || existingCustomer.full_name === "Unknown" || validatedPayload.customer.name.length > existingCustomer.full_name.length)) {
+        await supabase.from("customers").update({ full_name: validatedPayload.customer.name, updated_at: new Date().toISOString() }).eq("id", customerId);
       } else {
         await supabase.from("customers").update({ updated_at: new Date().toISOString() }).eq("id", customerId);
       }
@@ -728,7 +731,7 @@ async function processCallData(
         .from("customers")
         .insert({
           tenant_id: tenantId,
-          full_name: normalizedPayload.customer.name || "Unknown",
+          full_name: validatedPayload.customer.name || "Unknown",
           phone_e164: callerPhoneE164,
           phone_raw: callerPhone,
           source: "ai_call",
@@ -745,8 +748,8 @@ async function processCallData(
   // Update context
   const updatedContext = {
     ...existingContext,
-    customer_name: normalizedPayload.customer.name || existingContext.customer_name,
-    service_requested: normalizedPayload.booking.service_requested || existingContext.service_requested,
+    customer_name: validatedPayload.customer.name || existingContext.customer_name,
+    service_requested: validatedPayload.booking.service_requested || existingContext.service_requested,
     booking_confirmed: outcome === "booked",
     call_duration_secs: payload.metadata?.call_duration_secs,
     customer_id: customerId,
@@ -764,7 +767,7 @@ async function processCallData(
       context_json: updatedContext,
       elevenlabs_conversation_id: payload.conversation_id,
       customer_id: customerId,
-      extracted_payload: normalizedPayload as unknown as Record<string, unknown>,
+      extracted_payload: validatedPayload as unknown as Record<string, unknown>,
     })
     .eq("id", sessionId);
 
@@ -779,20 +782,73 @@ async function processCallData(
     has_transcript: !!transcriptText,
     has_summary: !!summaryText,
     customer_id: customerId,
-    customer_name: normalizedPayload.customer.name,
-    intent: normalizedPayload.intent,
+    customer_name: validatedPayload.customer.name,
+    intent: validatedPayload.intent,
   });
 
   if (customerId) {
     await logEventStage(supabase, tenantId, sessionId, session.twilio_call_sid, payload.conversation_id, "customer_resolved", {
       customer_id: customerId,
-      customer_name: normalizedPayload.customer.name,
+      customer_name: validatedPayload.customer.name,
       phone_e164: callerPhoneE164,
       was_existing: session.customer_id === customerId,
     });
   }
 
-  console.log("Updated session:", sessionId, { outcome, hasTranscript: !!transcriptText, hasSummary: !!summaryText, customerId, intent: normalizedPayload.intent });
+  console.log("Updated session:", sessionId, { outcome, hasTranscript: !!transcriptText, hasSummary: !!summaryText, customerId, intent: validatedPayload.intent });
+
+  // ===== TRACK VOICE USAGE =====
+  const callDurationSecs = payload.metadata?.call_duration_secs || 0;
+  if (callDurationSecs > 0) {
+    // Round UP to nearest minute for billing
+    const voiceMinutes = Math.ceil(callDurationSecs / 60);
+    try {
+      const usageRes = await fetch(`${supabaseUrl}/functions/v1/track-usage`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${supabaseKey}`
+        },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          event_type: "voice_minute",
+          quantity: voiceMinutes,
+        }),
+      });
+      if (usageRes.ok) {
+        console.log(`[usage] Tracked ${voiceMinutes} minutes for tenant ${tenantId.substring(0, 8)}...`);
+      } else {
+        const errText = await usageRes.text();
+        console.error(`[usage] Failed to track usage: ${errText}`);
+      }
+    } catch (e) {
+      console.error("[usage] Error tracking voice usage:", e);
+    }
+  }
+
+  // ===== RELEASE SESSION LOCKS =====
+  // If the call didn't result in a booking, release any slot locks held for this session
+  if (outcome !== "booked") {
+    try {
+      const releaseRes = await fetch(`${supabaseUrl}/functions/v1/manage-session-locks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseKey}` },
+        body: JSON.stringify({
+          action: "release",
+          session_id: sessionId,
+        }),
+      });
+      if (releaseRes.ok) {
+        const releaseData = await releaseRes.json();
+        if (releaseData.released_count > 0) {
+          console.log(`[slots] Released ${releaseData.released_count} slot locks for session ${sessionId.substring(0, 8)}...`);
+        }
+      }
+    } catch (e) {
+      // Non-critical - locks will expire anyway
+      console.warn("[slots] Failed to release session locks:", e);
+    }
+  }
 
   // ===== TRIGGER EVENTS =====
   try {
@@ -809,8 +865,8 @@ async function processCallData(
         payload: {
           outcome,
           duration_secs: payload.metadata?.call_duration_secs,
-          customer_name: normalizedPayload.customer.name,
-          intent: normalizedPayload.intent,
+          customer_name: validatedPayload.customer.name,
+          intent: validatedPayload.intent,
           customer_id: customerId,
         },
       }),
@@ -829,10 +885,11 @@ async function processCallData(
           trigger: eventName,
           entity_type: "call",
           entity_id: sessionId,
+          session_id: sessionId, // Link workflow to originating call session
           location_id: locationId,
-          customer: customerId ? { id: customerId, name: normalizedPayload.customer.name, phone: callerPhoneE164 } : undefined,
+          customer: customerId ? { id: customerId, name: validatedPayload.customer.name, phone: callerPhoneE164 } : undefined,
           summary: summaryText,
-          details: { outcome, duration_secs: payload.metadata?.call_duration_secs, intent: normalizedPayload.intent, extracted_payload: normalizedPayload },
+          details: { outcome, duration_secs: payload.metadata?.call_duration_secs, intent: validatedPayload.intent, extracted_payload: validatedPayload },
         }),
       });
     } catch (e) {
@@ -850,9 +907,10 @@ async function processCallData(
           trigger: "lead.captured",
           entity_type: "lead",
           entity_id: customerId,
+          session_id: sessionId, // Link workflow to originating call session
           location_id: locationId,
-          customer: { id: customerId, name: normalizedPayload.customer.name, phone: callerPhoneE164 },
-          details: { source: "ai_call", outcome, service_requested: normalizedPayload.booking.service_requested },
+          customer: { id: customerId, name: validatedPayload.customer.name, phone: callerPhoneE164 },
+          details: { source: "ai_call", outcome, service_requested: validatedPayload.booking.service_requested },
         }),
       });
     } catch (e) {
@@ -863,18 +921,18 @@ async function processCallData(
   // ===== OBSERVATIONS =====
   if (memoryEnabled && outcome !== "lost") {
     const observations = [];
-    if (normalizedPayload.booking.service_requested) {
-      const serviceKey = `service_${normalizedPayload.booking.service_requested.toLowerCase().replace(/[^a-z0-9]+/g, "_").substring(0, 30)}`;
-      observations.push({ type: "service_pattern", subjectKey: serviceKey, observation: `Customer inquired about ${normalizedPayload.booking.service_requested}`, confidence: outcome === "booked" ? 0.8 : 0.6 });
+    if (validatedPayload.booking.service_requested) {
+      const serviceKey = `service_${validatedPayload.booking.service_requested.toLowerCase().replace(/[^a-z0-9]+/g, "_").substring(0, 30)}`;
+      observations.push({ type: "service_pattern", subjectKey: serviceKey, observation: `Customer inquired about ${validatedPayload.booking.service_requested}`, confidence: outcome === "booked" ? 0.8 : 0.6 });
     }
     const callHour = new Date().getHours();
     const callDay = new Date().getDay();
     if (outcome === "booked" || outcome === "lead_captured" || outcome === "order") {
       observations.push({ type: "time_pattern", subjectKey: `day_${callDay}_hour_${callHour}`, observation: `Successful engagement at ${callHour}:00 on day ${callDay}`, confidence: 0.7 });
     }
-    if (allowCustomerMemory && callerPhoneE164 && normalizedPayload.customer.name && (outcome === "booked" || outcome === "order")) {
+    if (allowCustomerMemory && callerPhoneE164 && validatedPayload.customer.name && (outcome === "booked" || outcome === "order")) {
       const customerKey = `customer_${callerPhoneE164.replace(/\D/g, "").slice(-10)}`;
-      observations.push({ type: "customer_preference", subjectKey: customerKey, observation: `${normalizedPayload.customer.name} booked ${normalizedPayload.booking.service_requested || "service"} successfully`, confidence: 0.85 });
+      observations.push({ type: "customer_preference", subjectKey: customerKey, observation: `${validatedPayload.customer.name} booked ${validatedPayload.booking.service_requested || "service"} successfully`, confidence: 0.85 });
     }
     const duration = payload.metadata?.call_duration_secs || 0;
     if (duration > 600) {
@@ -897,7 +955,7 @@ async function processCallData(
 
   await logEventStage(supabase, tenantId, sessionId, session.twilio_call_sid, payload.conversation_id, "extraction_saved", {
     business_mode: tenantBusinessMode,
-    intent: normalizedPayload.intent,
+    intent: validatedPayload.intent,
   });
 
   // Get enabled_modules from tenant for routing decisions
@@ -906,7 +964,7 @@ async function processCallData(
     : [];
 
   // ===== PERSIST DERIVED ENTITY =====
-  await persistDerivedEntity(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, tenantBusinessMode, enabledModules, normalizedPayload, normalizedPayload.customer.name, customerId, callerPhoneE164, payload);
+  await persistDerivedEntity(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, tenantBusinessMode, enabledModules, validatedPayload, validatedPayload.customer.name, customerId, callerPhoneE164, payload);
 }
 
 // ===== EXTRACT RAW DATA FROM SOURCES =====
@@ -1099,11 +1157,56 @@ function buildCanonicalPayload(
 
   // ===== DETERMINE INTENT =====
   // Use explicit intent if provided, otherwise infer from payload
-  if (explicitIntent && ["booking", "order", "reservation", "dispatch", "callback", "faq"].includes(explicitIntent)) {
-    payload.intent = explicitIntent as CanonicalPayload["intent"];
+  // Normalize explicit intent aliases to canonical values
+  const intentAliases: Record<string, CanonicalPayload["intent"]> = {
+    // Order aliases
+    "order": "order",
+    "food_order": "order",
+    "place_order": "order",
+    "takeout": "order",
+    "delivery": "order",
+    "pickup": "order",
+    // Reservation aliases
+    "reservation": "reservation",
+    "reserve": "reservation",
+    "table": "reservation",
+    "dine_in": "reservation",
+    // Booking aliases
+    "booking": "booking",
+    "appointment": "booking",
+    "schedule": "booking",
+    "book_service": "booking",
+    // Dispatch aliases
+    "dispatch": "dispatch",
+    "service_call": "dispatch",
+    "job": "dispatch",
+    "tow": "dispatch",
+    // Callback aliases
+    "callback": "callback",
+    "call_back": "callback",
+    "follow_up": "callback",
+    // FAQ aliases
+    "faq": "faq",
+    "question": "faq",
+    "inquiry": "faq",
+    "info": "faq",
+    // Other
+    "other": "other",
+    "general": "other",
+  };
+
+  const normalizedExplicitIntent = explicitIntent ? intentAliases[explicitIntent] : null;
+  const intentSource = normalizedExplicitIntent ? "explicit" : "heuristic";
+
+  if (normalizedExplicitIntent) {
+    payload.intent = normalizedExplicitIntent;
   } else {
     payload.intent = determineIntentFromPayload(businessMode, payload, dataCollection, rawExtracted);
   }
+
+  // Store intent source in meta for debugging
+  (payload._meta as any).intent_source = intentSource;
+  (payload._meta as any).raw_intent_value = explicitIntent || null;
 
   return payload;
 }
@@ -1240,6 +1343,8 @@ function fillGeneralSection(
 }
 
 // ===== DETERMINE INTENT FROM PAYLOAD =====
+// Heuristic-based intent detection when explicit intent is not provided
+// Uses a scoring system to handle ambiguous cases
 function determineIntentFromPayload(
   businessMode: string,
   payload: CanonicalPayload,
@@ -1247,43 +1352,103 @@ function determineIntentFromPayload(
   rawExtracted: Record<string, unknown>
 ): "order" | "reservation" | "booking" | "dispatch" | "callback" | "faq" | "other" {
   const getVal = (key: string): string | null => extractDataCollectionValue(dataCollection[key]) || rawExtracted[key] as string || null;
-  
-  // Check explicit confirmation flags
-  const orderConfirmed = getVal("order_confirmed");
-  if (orderConfirmed === "true" || orderConfirmed === "yes") return "order";
-  
-  const reservationConfirmed = getVal("reservation_confirmed");
-  if (reservationConfirmed === "true" || reservationConfirmed === "yes") return "reservation";
-  
-  const bookingConfirmed = getVal("booking_confirmed");
-  if (bookingConfirmed === "true" || bookingConfirmed === "yes") return "booking";
-  
-  const dispatchConfirmed = getVal("dispatch_confirmed") || getVal("job_created");
-  if (dispatchConfirmed === "true" || dispatchConfirmed === "yes") return "dispatch";
-  
-  // Infer from payload content
-  if (businessMode === "food") {
-    // Reservation if party_size present or _reservation_detected
-    if (payload.reservation.party_size || rawExtracted._reservation_detected) {
-      return "reservation";
+
+  // Helper to check for "truthy" confirmation values
+  const isConfirmed = (val: string | null): boolean =>
+    val === "true" || val === "yes" || val === "1" || val === "confirmed";
+
+  // === STEP 1: Check explicit confirmation flags (highest confidence) ===
+  const orderConfirmed = getVal("order_confirmed") || getVal("order_placed");
+  if (isConfirmed(orderConfirmed)) return "order";
+
+  const reservationConfirmed = getVal("reservation_confirmed") || getVal("reservation_made");
+  if (isConfirmed(reservationConfirmed)) return "reservation";
+
+  const bookingConfirmed = getVal("booking_confirmed") || getVal("appointment_booked");
+  if (isConfirmed(bookingConfirmed)) return "booking";
+
+  const dispatchConfirmed = getVal("dispatch_confirmed") || getVal("job_created") || getVal("service_requested");
+  if (isConfirmed(dispatchConfirmed)) return "dispatch";
+
+  const callbackRequested = getVal("callback_requested") || getVal("wants_callback");
+  if (isConfirmed(callbackRequested)) return "callback";
+
+  // === STEP 2: Score-based detection for ambiguous cases ===
+  const scores: Record<string, number> = {
+    order: 0,
+    reservation: 0,
+    booking: 0,
+    dispatch: 0,
+    callback: 0,
+    faq: 0,
+    other: 0,
+  };
+
+  // Order signals
+  if (payload.order.items.length > 0) scores.order += 3;
+  if (rawExtracted.items_raw || getVal("order_items")) scores.order += 2;
+  if (payload.order.type) scores.order += 1;
+  if (payload.order.delivery_address) scores.order += 1;
+
+  // Reservation signals
+  if (payload.reservation.party_size) scores.reservation += 3;
+  if (rawExtracted._reservation_detected) scores.reservation += 2;
+  if (payload.reservation.date && payload.reservation.time) scores.reservation += 2;
+  if (getVal("guests") || getVal("number_of_guests")) scores.reservation += 1;
+
+  // Booking signals
+  if (payload.booking.service_requested) scores.booking += 3;
+  if (payload.booking.preferred_date || payload.booking.preferred_time) scores.booking += 2;
+  if (payload.booking.address) scores.booking += 1;
+
+  // Dispatch signals
+  if (payload.dispatch.pickup_address) scores.dispatch += 3;
+  if (payload.dispatch.dropoff_address) scores.dispatch += 2;
+  if (payload.dispatch.vehicle_type) scores.dispatch += 1;
+  if (payload.dispatch.urgency !== "normal") scores.dispatch += 1;
+
+  // Callback signals
+  if (payload.callback.requested) scores.callback += 3;
+  if (payload.callback.best_time) scores.callback += 1;
+  if (payload.callback.message) scores.callback += 1;
+
+  // === STEP 3: Apply business mode weighting ===
+  // Give bonus to intents that match the business mode
+  switch (businessMode) {
+    case "food":
+      scores.order += 1;
+      scores.reservation += 1;
+      break;
+    case "dispatch":
+      scores.dispatch += 2;
+      break;
+    case "service":
+    case "medical":
+      scores.booking += 2;
+      break;
+    case "general":
+      scores.faq += 1;
+      break;
+  }
+
+  // === STEP 4: Find highest scoring intent ===
+  let maxScore = 0;
+  let bestIntent: "order" | "reservation" | "booking" | "dispatch" | "callback" | "faq" | "other" = "other";
+
+  for (const [intent, score] of Object.entries(scores)) {
+    if (score > maxScore) {
+      maxScore = score;
+      bestIntent = intent as typeof bestIntent;
     }
-    // Order if items present
-    if (payload.order.items.length > 0 || rawExtracted.items_raw || getVal("order_items")) {
-      return "order";
-    }
   }
-  
-  if (businessMode === "dispatch") {
-    if (payload.dispatch.pickup_address) return "dispatch";
+
+  // Only return a specific intent if we have meaningful signals (score >= 2)
+  // Otherwise fall back to "other" to avoid misclassification
+  if (maxScore < 2) {
+    return "other";
   }
-  
-  if (businessMode === "service" || businessMode === "medical") {
-    if (payload.booking.service_requested || payload.booking.preferred_date) return "booking";
-  }
-  
-  if (payload.callback.requested) return "callback";
-  
-  return "other";
+
+  return bestIntent;
 }
 
 // ===== QUOTE DETECTION HELPERS =====
@@ -1320,6 +1485,70 @@ function detectEtaQuestion(transcript: string): boolean {
   ];
 
   return etaKeywords.some(keyword => lower.includes(keyword));
+}
+
+// ===== VALIDATE CANONICAL PAYLOAD =====
+// Ensures all required fields have safe defaults and no nulls slip through
+function validateCanonicalPayload(payload: CanonicalPayload): CanonicalPayload {
+  // Ensure customer has safe defaults
+  payload.customer.name = payload.customer.name ?? null;
+  payload.customer.phone_e164 = payload.customer.phone_e164 ?? null;
+  payload.customer.email = payload.customer.email ?? null;
+
+  // Ensure order has safe defaults
+  payload.order.type = payload.order.type ?? null;
+  payload.order.items = payload.order.items ?? [];
+  payload.order.special_instructions = payload.order.special_instructions ?? null;
+  payload.order.delivery_address = payload.order.delivery_address ?? null;
+  payload.order.requested_time = payload.order.requested_time ?? null;
+  payload.order.total_cents = payload.order.total_cents ?? null;
+
+  // Ensure each order item has required fields
+  payload.order.items = payload.order.items.map(item => ({
+    name: item.name ?? "Unknown Item",
+    quantity: item.quantity ?? 1,
+    price_cents: item.price_cents ?? null,
+    modifiers: item.modifiers ?? null,
+  }));
+
+  // Ensure reservation has safe defaults
+  payload.reservation.date = payload.reservation.date ?? null;
+  payload.reservation.time = payload.reservation.time ?? null;
+  payload.reservation.party_size = payload.reservation.party_size ?? null;
+  payload.reservation.notes = payload.reservation.notes ?? null;
+  payload.reservation.original_date_phrase = payload.reservation.original_date_phrase ?? null;
+  payload.reservation.original_time_phrase = payload.reservation.original_time_phrase ?? null;
+
+  // Ensure booking has safe defaults
+  payload.booking.service_requested = payload.booking.service_requested ?? null;
+  payload.booking.service_id = payload.booking.service_id ?? null;
+  payload.booking.preferred_date = payload.booking.preferred_date ?? null;
+  payload.booking.preferred_time = payload.booking.preferred_time ?? null;
+  payload.booking.address = payload.booking.address ?? null;
+  payload.booking.notes = payload.booking.notes ?? null;
+  payload.booking.confirmed = payload.booking.confirmed ?? null;
+
+  // Ensure dispatch has safe defaults
+  payload.dispatch.pickup_address = payload.dispatch.pickup_address ?? null;
+  payload.dispatch.dropoff_address = payload.dispatch.dropoff_address ?? null;
+  payload.dispatch.vehicle_type = payload.dispatch.vehicle_type ?? null;
+  payload.dispatch.drivable = payload.dispatch.drivable ?? null;
+  payload.dispatch.urgency = payload.dispatch.urgency ?? "normal";
+  payload.dispatch.job_type = payload.dispatch.job_type ?? null;
+  payload.dispatch.notes = payload.dispatch.notes ?? null;
+
+  // Ensure callback has safe defaults
+  payload.callback.requested = payload.callback.requested ?? null;
+  payload.callback.best_time = payload.callback.best_time ?? null;
+  payload.callback.message = payload.callback.message ?? null;
+
+  // Ensure meta has required fields
+  payload._meta.extraction_source = payload._meta.extraction_source ?? "server_side";
+  payload._meta.normalized_at = payload._meta.normalized_at ?? new Date().toISOString();
+  payload._meta.tenant_timezone = payload._meta.tenant_timezone ?? "America/New_York";
+  payload._meta.raw_data_collection_keys = payload._meta.raw_data_collection_keys ?? [];
+
+  return payload;
 }
 
 // ===== NORMALIZE PAYLOAD VALUES =====
@@ -1745,6 +1974,7 @@ async function persistFoodOrder(
         trigger: "order.created",
         entity_type: "order",
         entity_id: newOrder.id,
+        session_id: sessionId, // Link workflow to originating call session
         customer: customerId ? { id: customerId, name: customerName, phone: callerPhoneE164 } : undefined,
         details: { order_number: orderNumber, order_type: payload.order.type, item_count: pricedItems.length },
       }),
@@ -1831,6 +2061,7 @@ async function persistReservation(
         trigger: "reservation.created",
         entity_type: "reservation",
         entity_id: reservation.id,
+        session_id: sessionId, // Link workflow to originating call session
         customer: customerId ? { id: customerId, name: customerName, phone: callerPhoneE164 } : undefined,
         details: { party_size: partySize, date: reservationDate, time: reservationTime },
       }),
@@ -1914,9 +2145,12 @@ async function persistBooking(
   const endAt = new Date(startAt.getTime() + 60 * 60 * 1000);
   
   const notes = payload.booking.notes || (payload.booking.service_requested ? `Service requested: ${payload.booking.service_requested}` : null);
-  
-  console.log(`[persistBooking] Creating: ${payload.booking.service_requested || "Service"} on ${preferredDate} at ${preferredTime}`);
-  
+
+  // Determine booking status: if confirmed on call, set to "confirmed" so calendar sync triggers
+  const bookingStatus = payload.booking.confirmed === true ? "confirmed" : "pending_deposit";
+
+  console.log(`[persistBooking] Creating: ${payload.booking.service_requested || "Service"} on ${preferredDate} at ${preferredTime}, status: ${bookingStatus}`);
+
   const { data: booking, error } = await supabase
     .from("bookings")
     .insert({
@@ -1926,7 +2160,7 @@ async function persistBooking(
       service_id: serviceId,
       start_at: startAt.toISOString(),
       end_at: endAt.toISOString(),
-      status: "pending_deposit",
+      status: bookingStatus,
       deposit_required: false,
       deposit_paid: false,
       notes,
@@ -1939,25 +2173,43 @@ async function persistBooking(
     return null;
   }
   
-  console.log(`[persistBooking] Created booking: ${booking.id}`);
-  
+  console.log(`[persistBooking] Created booking: ${booking.id}, status: ${bookingStatus}`);
+
+  // Trigger appropriate workflow based on booking status
+  const workflowTrigger = bookingStatus === "confirmed" ? "booking.confirmed" : "booking.created";
   try {
     await fetch(`${supabaseUrl}/functions/v1/trigger-workflow`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseKey}` },
       body: JSON.stringify({
         tenant_id: tenantId,
-        trigger: "booking.created",
+        trigger: workflowTrigger,
         entity_type: "booking",
         entity_id: booking.id,
+        session_id: sessionId, // Link workflow to originating call session
         customer: customerId ? { id: customerId, name: customerName, phone: callerPhoneE164 } : undefined,
-        details: { service: payload.booking.service_requested, date: preferredDate, time: preferredTime },
+        details: { service: payload.booking.service_requested, date: preferredDate, time: preferredTime, confirmed: bookingStatus === "confirmed" },
       }),
     });
   } catch (e) {
     console.error("[persistBooking] Failed to trigger workflow:", e);
   }
-  
+
+  // Trigger booking handoff (handles calendar sync, notifications, etc.)
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/booking-handoff`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-closeloop-secret": Deno.env.get("CLOSELOOP_INTERNAL_SECRET") || supabaseKey
+      },
+      body: JSON.stringify({ booking_id: booking.id, tenant_id: tenantId }),
+    });
+    console.log(`[persistBooking] Triggered booking handoff for: ${booking.id}`);
+  } catch (e) {
+    console.error("[persistBooking] Failed to trigger booking handoff:", e);
+  }
+
   return booking;
 }
 
@@ -2031,6 +2283,7 @@ async function persistDispatchJob(
         trigger: "dispatch.created",
         entity_type: "dispatch_job",
         entity_id: job.id,
+        session_id: sessionId, // Link workflow to originating call session
         customer: customerId ? { id: customerId, name: customerName, phone: callerPhoneE164 } : undefined,
         details: { job_type: payload.dispatch.job_type, pickup: payload.dispatch.pickup_address, priority },
       }),

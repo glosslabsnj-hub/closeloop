@@ -7,11 +7,8 @@ import { NeedsAttentionBanner } from "./NeedsAttentionBanner";
 import { LiveActivityFeed } from "./LiveActivityFeed";
 import { QuickActionsCard } from "./QuickActionsCard";
 import { GoLiveChecklist } from "./GoLiveChecklist";
-import { UsageThresholdBanner } from "./UsageThresholdBanner";
+import { UnifiedAlertBanner } from "./UnifiedAlertBanner";
 import { Copilot, CopilotTrigger } from "./Copilot";
-import { KnowledgeConflictBanner } from "./KnowledgeConflictBanner";
-import { KnowledgeUploadBanner } from "./KnowledgeUploadBanner";
-import { AIReadinessPanel } from "./AIReadinessPanel";
 import { SetupProgressChecklist } from "./SetupProgressChecklist";
 import { ScheduleConnectionCard } from "@/components/schedule/ScheduleConnectionCard";
 import { SoundManager } from "@/components/notifications/SoundManager";
@@ -20,7 +17,7 @@ import { hasVoiceFeature } from "@/config/pricing";
 export function LiveDashboard() {
   const { tenant, assistantSettings, subscription } = useAuth();
   const [copilotOpen, setCopilotOpen] = useState(false);
-  
+
   const isLive = assistantSettings?.go_live_enabled;
   const hasVoice = hasVoiceFeature(subscription?.plan_code);
 
@@ -33,11 +30,8 @@ export function LiveDashboard() {
           ENTRY ZONE - Welcoming, breathing space
           ========================================== */}
       <div className="entry-zone space-y-5">
-        {/* Critical Banners - Minimal, only when needed */}
-        <AIReadinessPanel compact />
-        <KnowledgeConflictBanner />
-        <KnowledgeUploadBanner />
-        <UsageThresholdBanner threshold={80} />
+        {/* Unified Alert Banner - consolidates usage, readiness, conflicts, uploads */}
+        <UnifiedAlertBanner />
       </div>
 
       {/* ==========================================
@@ -75,7 +69,7 @@ export function LiveDashboard() {
             <p className="section-label">Recent Activity</p>
             <LiveActivityFeed />
           </div>
-          
+
           {/* Quick Actions & Setup - Secondary */}
           <div className="lg:col-span-2 space-y-6">
             <div>
