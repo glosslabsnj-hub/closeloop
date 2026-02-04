@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +13,8 @@ import { toast } from "sonner";
 import { PolicyTemplateButtons } from "./PolicyTemplateButtons";
 import { AIPreviewCard } from "./AIPreviewCard";
 import { InlineUploadButton } from "./InlineUploadButton";
+import { PoliciesGuidance } from "./guidance";
+import { FieldHelper } from "./guidance/SectionGuidanceCard";
 
 const PAYMENT_METHODS = [
   { id: "cash", label: "Cash" },
@@ -25,6 +28,7 @@ const PAYMENT_METHODS = [
 
 export function BusinessPoliciesEditor() {
   const { tenant } = useAuth();
+  const { businessMode } = useTenantConfig();
   const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState({
@@ -116,27 +120,26 @@ export function BusinessPoliciesEditor() {
     );
   }
 
+  // Build policies summary for guidance preview
+  const buildPoliciesSummary = () => {
+    const parts: string[] = [];
+    if (formData.cancellation_policy) {
+      const firstSentence = formData.cancellation_policy.split('.')[0] + '.';
+      parts.push(firstSentence);
+    }
+    if (formData.deposit_policy) {
+      parts.push(formData.deposit_policy.split('.')[0] + '.');
+    }
+    return parts.length > 0 ? parts.join(' ') : null;
+  };
+
   return (
     <div className="space-y-6">
-      {/* Explanation Card */}
-      <div className="rounded-lg border bg-muted/30 p-4">
-        <div className="flex items-start gap-3">
-          <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-          <div className="space-y-2">
-            <p className="text-sm font-medium">What are policies?</p>
-            <p className="text-sm text-muted-foreground">
-              Your business policies help the AI answer questions about cancellations, deposits, refunds, and payment options. 
-              Customers often ask about these before booking.
-            </p>
-            <div className="flex items-center gap-2 pt-1">
-              <Lightbulb className="h-4 w-4 text-amber-500" />
-              <p className="text-xs text-muted-foreground">
-                <strong>Tip:</strong> Have a policies document? Upload it and we'll extract the relevant information.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Policies Guidance */}
+      <PoliciesGuidance
+        businessMode={businessMode}
+        policiesSummary={buildPoliciesSummary()}
+      />
 
       {/* AI Preview */}
       <AIPreviewCard
@@ -164,7 +167,7 @@ export function BusinessPoliciesEditor() {
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Cancellation Policy */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="cancellation">Cancellation Policy</Label>
               <PolicyTemplateButtons 
@@ -179,10 +182,15 @@ export function BusinessPoliciesEditor() {
               placeholder="e.g., Free cancellation up to 24 hours before appointment. Cancellations within 24 hours incur a $50 fee."
               rows={3}
             />
+            <FieldHelper
+              usedWhen="A caller asks about changing or canceling their booking"
+              characterCount={formData.cancellation_policy.length}
+              characterWarning={400}
+            />
           </div>
 
           {/* Deposit Policy */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="deposit">Deposit Policy</Label>
               <PolicyTemplateButtons 
@@ -197,10 +205,15 @@ export function BusinessPoliciesEditor() {
               placeholder="e.g., $100 deposit required to secure booking. Deposit is non-refundable but applies toward final bill."
               rows={3}
             />
+            <FieldHelper
+              usedWhen="A caller asks if payment is needed upfront"
+              characterCount={formData.deposit_policy.length}
+              characterWarning={400}
+            />
           </div>
 
           {/* Refund Policy */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="refund">Refund Policy</Label>
               <PolicyTemplateButtons 
@@ -214,6 +227,11 @@ export function BusinessPoliciesEditor() {
               onChange={(e) => setFormData({ ...formData, refund_policy: e.target.value })}
               placeholder="e.g., Full refund if cancelled 48+ hours in advance. No refunds for same-day cancellations."
               rows={3}
+            />
+            <FieldHelper
+              usedWhen="A caller asks about getting money back"
+              characterCount={formData.refund_policy.length}
+              characterWarning={400}
             />
           </div>
 
