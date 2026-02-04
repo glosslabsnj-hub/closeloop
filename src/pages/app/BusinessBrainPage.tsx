@@ -55,9 +55,12 @@ import {
   BusinessBrainTabs,
   BusinessBrainNav,
   BusinessBrainSectionCard,
+  CollapsibleBrainSection,
   HIPAAWarning,
   BRAIN_CATEGORIES,
 } from "@/components/brain/layout";
+import { usePoliciesSummaries } from "@/hooks/usePoliciesSummaries";
+import { FileText, Shield, MessageSquareText, Send, Truck, UtensilsCrossed, HeartPulse } from "lucide-react";
 
 const VALID_SECTIONS = ["profile", "hours", "services", "service-area", "availability", "policies", "ai-behavior", "knowledge"] as const;
 type SectionId = typeof VALID_SECTIONS[number];
@@ -82,6 +85,7 @@ export default function BusinessBrainPage() {
   const reviewCount = useBrainReviewCount();
   const { businessMode, hipaaMode } = useTenantConfig();
   const { isFoodMode, hasFoodOrders } = useFoodMode();
+  const policiesSummaries = usePoliciesSummaries();
 
   const sectionParamRaw = searchParams.get("section");
   const legacyTab = searchParams.get("tab");
@@ -341,95 +345,80 @@ export default function BusinessBrainPage() {
               </BusinessBrainSectionCard>
             )}
 
-            {/* POLICIES */}
+            {/* POLICIES - Compact accordion view */}
             {activeSection === "policies" && (
-              <>
-                <BusinessBrainSectionCard
-                  config={{
-                    id: "policies",
-                    title: "Business Policies",
-                    purpose: "Cancellation, deposits, and payments",
-                    usedByAI: [],
-                    defaultCollapsed: false,
-                  }}
+              <div className="space-y-3">
+                <CollapsibleBrainSection
+                  id="policies"
+                  title="Business Policies"
+                  icon={FileText}
+                  preview={policiesSummaries.policies}
                 >
                   <BusinessPoliciesEditor />
-                </BusinessBrainSectionCard>
+                </CollapsibleBrainSection>
 
-                <BusinessBrainSectionCard
-                  config={{
-                    id: "never-promise",
-                    title: "AI Guardrails",
-                    purpose: "Things your AI should never promise",
-                    usedByAI: [],
-                  }}
+                <CollapsibleBrainSection
+                  id="never-promise"
+                  title="AI Guardrails"
+                  icon={Shield}
+                  preview={policiesSummaries.guardrails}
                 >
                   <AINeverPromiseEditor />
-                </BusinessBrainSectionCard>
+                </CollapsibleBrainSection>
 
-                <BusinessBrainSectionCard
-                  config={{
-                    id: "required-questions",
-                    title: "Required Questions",
-                    purpose: "Info your AI must collect from callers",
-                    usedByAI: [],
-                  }}
+                <CollapsibleBrainSection
+                  id="required-questions"
+                  title="Required Questions"
+                  icon={MessageSquareText}
+                  preview={policiesSummaries.requiredQuestions}
                 >
                   <RequiredQuestionsEditor />
-                </BusinessBrainSectionCard>
+                </CollapsibleBrainSection>
 
                 {showBookingDelivery && (
-                  <BusinessBrainSectionCard
-                    config={{
-                      id: "booking-delivery",
-                      title: "Booking Delivery",
-                      purpose: "Where bookings get sent",
-                      usedByAI: [],
-                    }}
+                  <CollapsibleBrainSection
+                    id="booking-delivery"
+                    title="Booking Delivery"
+                    icon={Send}
+                    preview={policiesSummaries.bookingDelivery}
                   >
                     <BookingDeliverySettings />
-                  </BusinessBrainSectionCard>
+                  </CollapsibleBrainSection>
                 )}
 
                 {showFoodDelivery && (
-                  <BusinessBrainSectionCard
-                    config={{
-                      id: "food-settings",
-                      title: "Order Settings",
-                      purpose: "Pickup, delivery, and orders",
-                      usedByAI: [],
-                    }}
+                  <CollapsibleBrainSection
+                    id="food-settings"
+                    title="Order Settings"
+                    icon={UtensilsCrossed}
+                    preview={policiesSummaries.foodSettings}
                   >
                     <FoodOrderSettings />
-                  </BusinessBrainSectionCard>
+                  </CollapsibleBrainSection>
                 )}
 
                 {showDispatchDelivery && (
-                  <BusinessBrainSectionCard
-                    config={{
-                      id: "dispatch-settings",
-                      title: "Dispatch Settings",
-                      purpose: "Where jobs get routed",
-                      usedByAI: [],
-                    }}
+                  <CollapsibleBrainSection
+                    id="dispatch-settings"
+                    title="Dispatch Settings"
+                    icon={Truck}
+                    preview={policiesSummaries.dispatchSettings}
                   >
                     <DispatchDeliverySettings />
-                  </BusinessBrainSectionCard>
+                  </CollapsibleBrainSection>
                 )}
 
                 {showMedicalSettings && (
-                  <BusinessBrainSectionCard
-                    config={{
-                      id: "hipaa",
-                      title: "HIPAA Settings",
-                      purpose: "Compliance configuration",
-                      usedByAI: [],
-                    }}
+                  <CollapsibleBrainSection
+                    id="hipaa"
+                    title="HIPAA Settings"
+                    icon={HeartPulse}
+                    preview={policiesSummaries.hipaa}
                   >
                     <MedicalHIPAASettings />
-                  </BusinessBrainSectionCard>
+                  </CollapsibleBrainSection>
                 )}
-              </>
+              </div>
             )}
 
             {/* AI BEHAVIOR */}

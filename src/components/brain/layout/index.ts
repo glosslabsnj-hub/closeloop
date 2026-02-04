@@ -7,6 +7,7 @@
 export { BusinessBrainNav } from "./BusinessBrainNav";
 export { BusinessBrainTabs } from "./BusinessBrainTabs";
 export { BusinessBrainSectionCard, SpeechReadyBadge, PreviewSentence, HIPAAWarning } from "./BusinessBrainSectionCard";
+export { CollapsibleBrainSection } from "./CollapsibleBrainSection";
 export { SetupProgressBar } from "./SetupProgressBar";
 export { SummaryHeader } from "./SummaryHeader";
 export {
