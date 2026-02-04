@@ -94,7 +94,10 @@ export function DistanceEtaSection() {
               )}
             </CardTitle>
             <CardDescription className="mt-1">
-              Configure distance-based travel time estimates for dispatch and delivery
+              Configure distance-based travel time estimates for dispatch and delivery.
+              <span className="block text-xs mt-1 text-muted-foreground/70 italic">
+                ETAs are always spoken as ranges (e.g., "about 25 to 35 minutes")—never exact times.
+              </span>
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">

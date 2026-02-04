@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -27,6 +28,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Plus, Trash2, DollarSign, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { PricingEtaGuidance } from "@/components/brain/guidance";
 
 interface PricingRule {
   id: string;
@@ -49,6 +51,7 @@ const RULE_TYPE_OPTIONS = [
 
 export function PricingRulesEditor() {
   const { tenant } = useAuth();
+  const { businessMode } = useTenantConfig();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -419,6 +422,9 @@ export function PricingRulesEditor() {
 
   return (
     <div className="space-y-6">
+      {/* Pricing & ETA Guidance */}
+      <PricingEtaGuidance businessMode={businessMode} />
+      
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">

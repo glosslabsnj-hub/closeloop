@@ -133,7 +133,10 @@ export function DispatchEtaSection() {
               )}
             </CardTitle>
             <CardDescription className="mt-1">
-              Configure how the AI calculates and communicates arrival times
+              Configure how the AI calculates and communicates arrival times.
+              <span className="block text-xs mt-1 text-muted-foreground/70 italic">
+                ETAs are always spoken as ranges—never exact guarantees.
+              </span>
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">

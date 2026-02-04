@@ -1,5 +1,6 @@
 import { useState, useEffect, KeyboardEvent } from "react";
 import { useServiceArea, ServiceAreaConfig, CoverageMode, County, getServiceAreaSummary } from "@/hooks/useServiceArea";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,8 @@ import {
   CheckCircle2,
   Ban,
 } from "lucide-react";
+import { ServiceAreaGuidance } from "./guidance";
+import { FieldHelper, SpeechReadyBadge } from "./guidance/SectionGuidanceCard";
 
 interface ChipInputProps {
   label: string;
@@ -195,6 +198,7 @@ const modeLabels: Record<CoverageMode, string> = {
 
 export function ServiceAreaManager() {
   const { serviceArea, isLoading, isSaving, saveServiceArea } = useServiceArea();
+  const { businessMode } = useTenantConfig();
   const [formData, setFormData] = useState<ServiceAreaConfig>(serviceArea);
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -263,6 +267,13 @@ export function ServiceAreaManager() {
 
   return (
     <div className="space-y-6">
+      {/* Guidance Card */}
+      <ServiceAreaGuidance
+        businessMode={businessMode}
+        outOfAreaMessage={formData.notes}
+        serviceAreaSummary={summary}
+      />
+
       {/* Summary Card */}
       <Card className="border-primary/20 bg-primary/5">
         <CardHeader className="pb-3">
@@ -530,19 +541,26 @@ export function ServiceAreaManager() {
 
           <Separator />
 
-          {/* Notes */}
+          {/* Out-of-Area Message / Notes */}
           <div className="space-y-2">
-            <Label htmlFor="notes">Service Area Notes</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="notes">Out-of-Area Message</Label>
+              <SpeechReadyBadge />
+            </div>
             <Textarea
               id="notes"
               value={formData.notes}
               onChange={(e) => updateForm({ notes: e.target.value })}
-              placeholder="e.g., We serve all of Metro Detroit except downtown during rush hour"
-              rows={2}
+              placeholder="e.g., It looks like you're outside our normal service area. I can take your details and have someone call you back with options—what's your ZIP code?"
+              rows={3}
             />
-            <p className="text-xs text-muted-foreground">
-              Additional context for your AI assistant
-            </p>
+            <FieldHelper
+              usedWhen="A caller's location is outside your service area"
+              sayItLike="It looks like you're outside our normal service area. I can take your details and have someone call you back."
+              avoid="Error: radius limit exceeded (sounds robotic)"
+              characterCount={formData.notes.length}
+              characterWarning={240}
+            />
           </div>
 
           {/* Save Button */}

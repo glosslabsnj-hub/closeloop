@@ -24,6 +24,7 @@ import {
   UtensilsCrossed,
   Phone
 } from "lucide-react";
+import { RequiredQuestionsGuidance } from "@/components/brain/guidance";
 
 // Intent types that support required questions
 type Intent = "booking" | "dispatch" | "order" | "reservation" | "callback";
@@ -455,6 +456,12 @@ export function RequiredQuestionsEditor() {
 
   return (
     <div className="space-y-6">
+      {/* Guidance Card */}
+      <RequiredQuestionsGuidance
+        businessMode={businessMode}
+        requiredCount={currentConfig?.required_inputs?.length || 0}
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -468,19 +475,6 @@ export function RequiredQuestionsEditor() {
             {saving ? "Saving..." : "Save Changes"}
           </Button>
         )}
-      </div>
-
-      {/* Info Banner */}
-      <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
-        <Info className="h-5 w-5 text-blue-400 shrink-0 mt-0.5" />
-        <div className="flex-1 text-sm">
-          <p className="font-medium text-blue-400 mb-1">How Required Questions Work</p>
-          <p className="text-muted-foreground">
-            Your AI will ask these questions before completing a {activeIntent}. Required fields
-            must be collected; optional fields are asked when relevant. Custom questions let you
-            collect business-specific information.
-          </p>
-        </div>
       </div>
 
       {/* Intent Tabs */}

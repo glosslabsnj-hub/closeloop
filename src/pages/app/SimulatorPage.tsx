@@ -5,7 +5,7 @@ import CallSimulator from "@/components/simulator/CallSimulator";
 import SMSSimulator from "@/components/simulator/SMSSimulator";
 import AIBrainDebugger from "@/components/simulator/AIBrainDebugger";
 import CustomerMergeQueue from "@/components/customers/CustomerMergeQueue";
-import { AIReadinessChecklist } from "@/components/knowledge/AIReadinessChecklist";
+import { ReadinessQuickFix } from "@/components/simulator/ReadinessQuickFix";
 import QuickSetupWizard from "@/components/setup/QuickSetupWizard";
 import { DebugPagesNav } from "@/components/admin/DebugPagesNav";
 import { SuggestedTestsBanner } from "@/components/simulator/SuggestedTestsBanner";
@@ -38,8 +38,8 @@ export default function SimulatorPage() {
         </p>
       </div>
 
-      {/* AI Readiness Banner */}
-      <AIReadinessChecklist compact />
+      {/* AI Readiness Quick Fix - Shows next recommended action */}
+      <ReadinessQuickFix />
 
       {/* Suggested Tests Banner (shown after onboarding) */}
       {showBanner && (
