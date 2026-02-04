@@ -31,7 +31,7 @@ export function FinalCTASection() {
         </div>
         
         <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-6 sm:gap-8 text-sm opacity-90">
-          {["7-day free trial", "No charge until trial ends", "Cancel anytime"].map((text) => (
+          {["Setup in minutes", "No commitment", "Cancel anytime"].map((text) => (
             <div key={text} className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5" />
               <span className="font-medium">{text}</span>

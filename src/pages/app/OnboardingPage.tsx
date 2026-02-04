@@ -533,7 +533,7 @@ export default function OnboardingPage() {
 
       toast({
         title: "You're all set! 🎉",
-        description: "Your 7-day free trial has started. Try your AI with suggested tests!",
+        description: "Your account is ready. Try your AI with suggested tests!",
       });
 
       // Redirect to simulator with suggested tests
