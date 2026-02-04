@@ -57,6 +57,7 @@ import {
   BusinessBrainSectionCard,
   CollapsibleBrainSection,
   HIPAAWarning,
+  SectionHelper,
   BRAIN_CATEGORIES,
 } from "@/components/brain/layout";
 import { useBrainSummaries } from "@/hooks/useBrainSummaries";
@@ -208,6 +209,8 @@ export default function BusinessBrainPage() {
             {/* PROFILE */}
             {activeSection === "profile" && (
               <div className="space-y-3">
+                <SectionHelper sectionId="profile" businessMode={businessMode} className="mb-4" />
+                
                 <CollapsibleBrainSection
                   id="business-info"
                   title="Business Information"
@@ -230,23 +233,29 @@ export default function BusinessBrainPage() {
 
             {/* HOURS - Single section, always expanded */}
             {activeSection === "hours" && (
-              <div className="rounded-lg border bg-card p-5">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-muted">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
+              <div className="space-y-3">
+                <SectionHelper sectionId="hours" businessMode={businessMode} />
+                
+                <div className="rounded-lg border bg-card p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-muted">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-sm">Operating Hours</h3>
+                      <p className="text-xs text-muted-foreground">{summaries.hours}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-medium text-sm">Operating Hours</h3>
-                    <p className="text-xs text-muted-foreground">{summaries.hours}</p>
-                  </div>
+                  <BusinessHoursManager />
                 </div>
-                <BusinessHoursManager />
               </div>
             )}
 
             {/* SERVICES */}
             {activeSection === "services" && (
               <div className="space-y-3">
+                <SectionHelper sectionId="services" businessMode={businessMode} />
+                
                 {/* Pricing Readiness - inline, not collapsible */}
                 <QuoteReadinessCard />
 
@@ -281,6 +290,8 @@ export default function BusinessBrainPage() {
             {/* SERVICE AREA */}
             {activeSection === "service-area" && (
               <div className="space-y-3">
+                <SectionHelper sectionId="service-area" businessMode={businessMode} />
+                
                 <CollapsibleBrainSection
                   id="coverage"
                   title="Where You Serve"
@@ -315,23 +326,29 @@ export default function BusinessBrainPage() {
 
             {/* AVAILABILITY - Single section, always expanded */}
             {activeSection === "availability" && (
-              <div className="rounded-lg border bg-card p-5">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-muted">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
+              <div className="space-y-3">
+                <SectionHelper sectionId="availability" businessMode={businessMode} />
+                
+                <div className="rounded-lg border bg-card p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-muted">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-sm">Calendar & Availability</h3>
+                      <p className="text-xs text-muted-foreground">{summaries.calendar}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-medium text-sm">Calendar & Availability</h3>
-                    <p className="text-xs text-muted-foreground">{summaries.calendar}</p>
-                  </div>
+                  <AvailabilityHub />
                 </div>
-                <AvailabilityHub />
               </div>
             )}
 
             {/* POLICIES - Compact accordion view */}
             {activeSection === "policies" && (
               <div className="space-y-3">
+                <SectionHelper sectionId="policies" businessMode={businessMode} />
+                
                 <CollapsibleBrainSection
                   id="policies"
                   title="Business Policies"
@@ -408,6 +425,8 @@ export default function BusinessBrainPage() {
             {/* AI BEHAVIOR */}
             {activeSection === "ai-behavior" && (
               <div className="space-y-3">
+                <SectionHelper sectionId="ai-behavior" businessMode={businessMode} />
+                
                 <CollapsibleBrainSection
                   id="scripts"
                   title="Greeting & Scripts"
@@ -440,6 +459,8 @@ export default function BusinessBrainPage() {
             {/* KNOWLEDGE */}
             {activeSection === "knowledge" && (
               <div className="space-y-3">
+                <SectionHelper sectionId="knowledge" businessMode={businessMode} />
+                
                 {reviewCount > 0 && (
                   <CollapsibleBrainSection
                     id="review"

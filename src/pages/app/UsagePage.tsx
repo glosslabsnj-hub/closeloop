@@ -33,7 +33,7 @@ export default function UsagePage() {
       <div className="p-4 md:p-6 space-y-6">
         <div>
           <h1 className="text-2xl font-bold">Usage</h1>
-          <p className="text-muted-foreground">Track your voice minutes and SMS usage</p>
+          <p className="text-muted-foreground">Track your voice minutes</p>
         </div>
         <div className="grid gap-6 md:grid-cols-2">
           <Skeleton className="h-64" />
@@ -48,7 +48,7 @@ export default function UsagePage() {
       <div className="p-4 md:p-6 space-y-6">
         <div>
           <h1 className="text-2xl font-bold">Usage</h1>
-          <p className="text-muted-foreground">Track your voice minutes and SMS usage</p>
+          <p className="text-muted-foreground">Track your voice minutes</p>
         </div>
         <Card>
           <CardContent className="py-8 text-center">
@@ -73,7 +73,7 @@ export default function UsagePage() {
     <div className="p-4 md:p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Usage</h1>
-        <p className="text-muted-foreground">Track your voice minutes and SMS usage</p>
+        <p className="text-muted-foreground">Track your voice minutes</p>
       </div>
 
       {/* Current Plan Overview */}

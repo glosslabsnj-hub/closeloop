@@ -336,7 +336,7 @@ export function SalesAIAgent() {
                           </Link>
                           
                           <p className="text-xs text-center text-muted-foreground">
-                            7-day free trial • Setup in ~10 min
+                            Setup in ~10 min • Cancel anytime
                           </p>
                         </CardContent>
                       </Card>

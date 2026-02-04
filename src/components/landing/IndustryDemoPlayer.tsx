@@ -248,7 +248,7 @@ export function IndustryDemoPlayer() {
                 </Button>
               </Link>
               <p className="text-sm text-muted-foreground mt-4">
-                Setup takes ~10 minutes • 7-day free trial
+                Setup takes ~10 minutes • Cancel anytime
               </p>
             </div>
           </div>

@@ -163,12 +163,12 @@ export function IndustryDemoSelector() {
             </p>
             <Button size="lg" className="gap-2" asChild>
               <a href="#pricing">
-                Start Your Free Trial
+                Get Started
                 <ArrowRight className="h-4 w-4" />
               </a>
             </Button>
             <p className="text-sm text-muted-foreground mt-2">
-              Setup takes about 10 minutes • 7-day free trial
+              Setup takes about 10 minutes • Cancel anytime
             </p>
           </div>
         </div>
