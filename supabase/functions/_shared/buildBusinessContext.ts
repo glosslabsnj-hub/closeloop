@@ -178,6 +178,13 @@ export interface BusinessContext {
     refund: string;
     payment_methods: string[];
     ai_never_promise: string[];
+    ai_guidelines: {
+      upselling: string;
+      pricing_negotiation: string;
+      capacity: string;
+      escalation: string;
+    };
+    ai_guidelines_summary: string;
   };
   food_settings: {
     estimated_prep_minutes: number;
@@ -1139,6 +1146,53 @@ function buildOutOfAreaMessage(
   return "I'm sorry, that location may be outside our normal service area. Would you like me to take your information and have someone follow up?";
 }
 
+// ============= AI GUIDELINES HELPER FUNCTIONS =============
+
+interface AiPoliciesJson {
+  upselling?: string;
+  pricing_negotiation?: string;
+  capacity?: string;
+  escalation?: string;
+  [key: string]: string | undefined;
+}
+
+/**
+ * Build a speech-ready summary of AI guidelines/policies.
+ * These are high-level strategic instructions for the AI (upselling, pricing flexibility, etc.)
+ */
+function buildAiGuidelinesSummary(aiPolicies: AiPoliciesJson | null | undefined): string {
+  if (!aiPolicies) return "";
+
+  const parts: string[] = [];
+
+  if (aiPolicies.upselling) {
+    parts.push(`Upselling: ${aiPolicies.upselling}`);
+  }
+  if (aiPolicies.pricing_negotiation) {
+    parts.push(`Pricing flexibility: ${aiPolicies.pricing_negotiation}`);
+  }
+  if (aiPolicies.capacity) {
+    parts.push(`Capacity/availability: ${aiPolicies.capacity}`);
+  }
+  if (aiPolicies.escalation) {
+    parts.push(`Escalation: ${aiPolicies.escalation}`);
+  }
+
+  // Check for any other custom keys
+  for (const key of Object.keys(aiPolicies)) {
+    if (!["upselling", "pricing_negotiation", "capacity", "escalation"].includes(key)) {
+      const value = aiPolicies[key];
+      if (value) {
+        parts.push(`${key}: ${value}`);
+      }
+    }
+  }
+
+  if (parts.length === 0) return "";
+
+  return parts.join(". ") + ".";
+}
+
 // ============= PRICING HELPER FUNCTIONS =============
 
 /**
@@ -1463,6 +1517,13 @@ export async function buildBusinessContext(
       refund: tenant.refund_policy || "",
       payment_methods: tenant.payment_methods || [],
       ai_never_promise: tenant.ai_never_promise || [],
+      ai_guidelines: {
+        upselling: tenant.ai_policies_json?.upselling || "",
+        pricing_negotiation: tenant.ai_policies_json?.pricing_negotiation || "",
+        capacity: tenant.ai_policies_json?.capacity || "",
+        escalation: tenant.ai_policies_json?.escalation || "",
+      },
+      ai_guidelines_summary: buildAiGuidelinesSummary(tenant.ai_policies_json),
     },
     food_settings: foodSettings ? {
       estimated_prep_minutes: foodSettings.estimated_prep_minutes || 15,

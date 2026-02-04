@@ -608,6 +608,47 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     category: "policies",
     includeInCompactJson: true,
   },
+  {
+    key: "ai_guidelines_summary",
+    description: "Owner-defined AI behavior guidelines (upselling, pricing, capacity, escalation)",
+    type: "string",
+    source: "policies.ai_guidelines_summary",
+    defaultValue: "",
+    category: "policies",
+    includeInCompactJson: true,
+  },
+  {
+    key: "ai_upselling_guidance",
+    description: "Guidance for when/how to suggest upsells",
+    type: "string",
+    source: "policies.ai_guidelines.upselling",
+    defaultValue: "",
+    category: "policies",
+  },
+  {
+    key: "ai_pricing_negotiation",
+    description: "Guidance for pricing flexibility and negotiation",
+    type: "string",
+    source: "policies.ai_guidelines.pricing_negotiation",
+    defaultValue: "",
+    category: "policies",
+  },
+  {
+    key: "ai_capacity_guidance",
+    description: "Guidance for handling capacity and availability",
+    type: "string",
+    source: "policies.ai_guidelines.capacity",
+    defaultValue: "",
+    category: "policies",
+  },
+  {
+    key: "ai_escalation_guidance",
+    description: "Guidance for when to escalate to human",
+    type: "string",
+    source: "policies.ai_guidelines.escalation",
+    defaultValue: "",
+    category: "policies",
+  },
 
   // ===== AI SETTINGS =====
   {
