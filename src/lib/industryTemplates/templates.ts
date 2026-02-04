@@ -1499,11 +1499,466 @@ const chiropracticTemplate: IndustryTemplate = {
 };
 
 // ============================================================================
+// ADDITIONAL DISPATCH TEMPLATES
+// ============================================================================
+
+const locksmithTemplate: IndustryTemplate = {
+  industry_key: "locksmith",
+  name: "Locksmith",
+  icon: "🔐",
+  business_mode: "dispatch",
+  defaults: {
+    services: [
+      { name: "Car Lockout", description: "Unlock vehicle when keys are locked inside", base_price_model: "fixed", fixed_price_cents: 7500, duration_minutes: 30, tags: ["automotive", "lockout"] },
+      { name: "House Lockout", description: "Unlock residential door", base_price_model: "fixed", fixed_price_cents: 8500, duration_minutes: 30, tags: ["residential", "lockout"] },
+      { name: "Lock Rekey", description: "Change lock pins to work with new key", base_price_model: "starting_at", starting_price_cents: 6500, duration_minutes: 30, tags: ["rekey", "residential"] },
+      { name: "Lock Change", description: "Replace existing lock with new hardware", base_price_model: "starting_at", starting_price_cents: 12000, duration_minutes: 45, tags: ["installation", "residential"] },
+      { name: "Key Duplication", description: "Make copy of existing key", base_price_model: "fixed", fixed_price_cents: 2500, duration_minutes: 15, tags: ["key", "duplication"] },
+      { name: "Broken Key Extraction", description: "Remove broken key from lock", base_price_model: "fixed", fixed_price_cents: 8500, duration_minutes: 30, tags: ["extraction", "repair"] },
+      { name: "Commercial Lockout", description: "Unlock business or office door", base_price_model: "starting_at", starting_price_cents: 9500, duration_minutes: 45, tags: ["commercial", "lockout"] },
+      { name: "Safe Lockout", description: "Open locked safe", base_price_model: "starting_at", starting_price_cents: 15000, duration_minutes: 60, tags: ["safe", "lockout"] },
+    ],
+    required_questions: [
+      { intent: "dispatch", key: "service_type", label: "Service Type", ask_prompt: "What do you need help with - car lockout, house lockout, or something else?", why_needed: "Determines service and pricing", required: true },
+      { intent: "dispatch", key: "location", label: "Location", ask_prompt: "What's the address where you need service?", why_needed: "Dispatch location", required: true },
+      { intent: "dispatch", key: "lock_type", label: "Lock Type", ask_prompt: "Do you know what type of lock it is - standard deadbolt, smart lock, or something else?", why_needed: "Determines tools needed", required: false },
+      { intent: "dispatch", key: "urgency", label: "Urgency", ask_prompt: "Is this an emergency or can it wait?", why_needed: "Prioritizes dispatch", required: true },
+    ],
+    policies: [
+      { type: "cancellation", text: "If you cancel after our technician has been dispatched, there's a $35 trip fee." },
+      { type: "payment", text: "Payment is due upon completion. We accept cash, credit cards, and mobile payments." },
+      { type: "refund", text: "We guarantee our workmanship. If there's an issue, we'll make it right." },
+    ],
+    faqs: [
+      ...commonFAQs,
+      { question: "How fast can you get here?", answer: "Our average response time is 15-30 minutes for emergencies." },
+      { question: "Will you damage my lock?", answer: "We use professional techniques that don't damage your lock in most cases." },
+      { question: "Do I need to show ID?", answer: "Yes, we require proof of residency or vehicle ownership for security." },
+      { question: "Are you available 24/7?", answer: "Yes, we offer 24-hour emergency locksmith services." },
+    ],
+    objections: [
+      ...commonObjections,
+      { objection: "Can't I just call a tow truck?", response: "A locksmith is usually faster and cheaper for lockouts. We specialize in getting you into your vehicle quickly without damage." },
+    ],
+    service_area_defaults: { mode: "radius", radius_miles: 25, restrictions: { no_cross_state_lines: false }, notes: "24/7 mobile locksmith service." },
+    scheduling_defaults: { lead_time_hours: 0, buffer_minutes: 10, default_slot_duration_minutes: 30 },
+  },
+};
+
+const courierTemplate: IndustryTemplate = {
+  industry_key: "courier",
+  name: "Courier & Delivery",
+  icon: "📦",
+  business_mode: "dispatch",
+  defaults: {
+    services: [
+      { name: "Same-Day Local Delivery", description: "Delivery within city limits same day", base_price_model: "starting_at", starting_price_cents: 2500, duration_minutes: 60, tags: ["local", "same-day"] },
+      { name: "Rush Delivery (2 Hour)", description: "Priority delivery within 2 hours", base_price_model: "starting_at", starting_price_cents: 4500, duration_minutes: 120, tags: ["rush", "priority"] },
+      { name: "Scheduled Delivery", description: "Delivery at a specific date and time", base_price_model: "starting_at", starting_price_cents: 2000, duration_minutes: 60, tags: ["scheduled"] },
+      { name: "Medical/Lab Specimen", description: "Temperature-controlled medical delivery", base_price_model: "starting_at", starting_price_cents: 5000, duration_minutes: 60, tags: ["medical", "specimen"] },
+      { name: "Legal Document Delivery", description: "Secure legal document courier", base_price_model: "fixed", fixed_price_cents: 3500, duration_minutes: 60, tags: ["legal", "documents"] },
+      { name: "Fragile Item Delivery", description: "Special handling for delicate items", base_price_model: "starting_at", starting_price_cents: 3500, duration_minutes: 60, tags: ["fragile", "special"] },
+    ],
+    required_questions: [
+      { intent: "dispatch", key: "pickup_address", label: "Pickup Address", ask_prompt: "What's the pickup address?", why_needed: "Dispatch location", required: true },
+      { intent: "dispatch", key: "delivery_address", label: "Delivery Address", ask_prompt: "What's the delivery address?", why_needed: "Calculates route and pricing", required: true },
+      { intent: "dispatch", key: "package_size", label: "Package Size", ask_prompt: "How big is the package - envelope, small box, or larger?", why_needed: "Determines vehicle needed", required: true },
+      { intent: "dispatch", key: "delivery_timeframe", label: "Timeframe", ask_prompt: "When does this need to be delivered by?", why_needed: "Determines service level", required: true },
+    ],
+    policies: [
+      { type: "cancellation", text: "Cancellations made after pickup will be charged the full delivery fee." },
+      { type: "payment", text: "Payment is due at time of booking. Business accounts can be invoiced monthly." },
+      { type: "refund", text: "If we miss the delivery window, we'll refund the rush fee." },
+    ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Do you deliver outside the city?", answer: "Yes, we offer regional delivery. Pricing varies by distance." },
+      { question: "Can I track my delivery?", answer: "Yes, you'll receive real-time tracking updates via text." },
+      { question: "What if no one's there to receive it?", answer: "We'll contact you for instructions - we can leave it in a safe place or attempt redelivery." },
+      { question: "Do you deliver on weekends?", answer: "Yes, we offer 7-day delivery service with slightly higher weekend rates." },
+    ],
+    objections: commonObjections,
+    service_area_defaults: { mode: "radius", radius_miles: 50, restrictions: { no_cross_state_lines: false }, notes: "Same-day and scheduled delivery services." },
+    scheduling_defaults: { lead_time_hours: 1, buffer_minutes: 15, default_slot_duration_minutes: 60 },
+  },
+};
+
+const mobileMechanicTemplate: IndustryTemplate = {
+  industry_key: "mobile_mechanic",
+  name: "Mobile Mechanic",
+  icon: "🔧",
+  business_mode: "dispatch",
+  defaults: {
+    services: [
+      { name: "Battery Jump/Replacement", description: "Jump start or replace dead battery", base_price_model: "starting_at", starting_price_cents: 5000, duration_minutes: 30, tags: ["battery", "electrical"] },
+      { name: "Flat Tire Change", description: "Replace flat with spare tire", base_price_model: "fixed", fixed_price_cents: 6500, duration_minutes: 30, tags: ["tire", "emergency"] },
+      { name: "Oil Change", description: "Full synthetic or conventional oil change", base_price_model: "starting_at", starting_price_cents: 6500, duration_minutes: 45, tags: ["oil", "maintenance"] },
+      { name: "Brake Pad Replacement", description: "Replace front or rear brake pads", base_price_model: "starting_at", starting_price_cents: 15000, duration_minutes: 90, tags: ["brakes", "safety"] },
+      { name: "Diagnostic Scan", description: "Computer diagnostic to identify issues", base_price_model: "fixed", fixed_price_cents: 7500, duration_minutes: 30, tags: ["diagnostic", "electrical"] },
+      { name: "Alternator Replacement", description: "Replace faulty alternator", base_price_model: "starting_at", starting_price_cents: 35000, duration_minutes: 120, tags: ["alternator", "electrical"] },
+      { name: "Starter Replacement", description: "Replace faulty starter motor", base_price_model: "starting_at", starting_price_cents: 30000, duration_minutes: 90, tags: ["starter", "electrical"] },
+      { name: "Belt Replacement", description: "Replace serpentine or timing belt", base_price_model: "starting_at", starting_price_cents: 15000, duration_minutes: 60, tags: ["belt", "engine"] },
+    ],
+    required_questions: [
+      { intent: "dispatch", key: "vehicle_info", label: "Vehicle", ask_prompt: "What's the year, make, and model of your vehicle?", why_needed: "Determines parts needed", required: true },
+      { intent: "dispatch", key: "issue_description", label: "Issue", ask_prompt: "What's going on with your vehicle?", why_needed: "Diagnoses problem", required: true },
+      { intent: "dispatch", key: "location", label: "Location", ask_prompt: "Where is your vehicle located?", why_needed: "Dispatch location", required: true },
+      { intent: "dispatch", key: "vehicle_condition", label: "Drivable", ask_prompt: "Is your vehicle currently running or stranded?", why_needed: "Determines urgency", required: true },
+    ],
+    policies: [
+      { type: "cancellation", text: "Please provide at least 2 hours notice for cancellations to avoid a trip fee." },
+      { type: "payment", text: "Payment is due upon completion. Parts are charged at cost plus labor." },
+      { type: "refund", text: "We warranty our labor for 30 days and parts per manufacturer warranty." },
+    ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Do you bring the parts?", answer: "For common repairs, yes. For specific parts, we may need to order or you can provide them." },
+      { question: "How fast can you get here?", answer: "Usually within 1-2 hours depending on location and availability." },
+      { question: "Do you work on all vehicles?", answer: "We work on most domestic and foreign vehicles. Some specialty vehicles may require a shop." },
+      { question: "Is mobile repair as good as shop repair?", answer: "For many repairs, yes! We have professional tools and parts. Complex repairs may need a shop." },
+    ],
+    objections: [
+      ...commonObjections,
+      { objection: "I should just go to a shop", response: "Mobile service saves you time and towing costs. We come to you at your convenience - at home, work, or wherever you are." },
+    ],
+    service_area_defaults: { mode: "radius", radius_miles: 30, restrictions: { no_cross_state_lines: false }, notes: "Mobile automotive repair service." },
+    scheduling_defaults: { lead_time_hours: 2, buffer_minutes: 30, default_slot_duration_minutes: 90 },
+  },
+};
+
+const limoTemplate: IndustryTemplate = {
+  industry_key: "limo",
+  name: "Limo & Black Car",
+  icon: "🚘",
+  business_mode: "dispatch",
+  defaults: {
+    services: [
+      { name: "Airport Transfer", description: "One-way airport pickup or drop-off", base_price_model: "starting_at", starting_price_cents: 7500, duration_minutes: 60, tags: ["airport", "transfer"] },
+      { name: "Hourly Charter", description: "Vehicle and driver for hourly use", base_price_model: "starting_at", starting_price_cents: 9500, duration_minutes: 60, tags: ["hourly", "charter"] },
+      { name: "Point-to-Point", description: "Direct transportation between two locations", base_price_model: "starting_at", starting_price_cents: 6500, duration_minutes: 45, tags: ["transfer", "direct"] },
+      { name: "Wedding Package", description: "Luxury transportation for your wedding day", base_price_model: "starting_at", starting_price_cents: 50000, duration_minutes: 480, tags: ["wedding", "special event"] },
+      { name: "Prom/Special Event", description: "Transportation for special occasions", base_price_model: "starting_at", starting_price_cents: 35000, duration_minutes: 300, tags: ["prom", "special event"] },
+      { name: "Corporate Account", description: "Business travel and executive transportation", base_price_model: "quote_only", duration_minutes: 60, tags: ["corporate", "business"] },
+      { name: "Wine Tour", description: "Chauffeured wine country tour", base_price_model: "starting_at", starting_price_cents: 45000, duration_minutes: 360, tags: ["tour", "wine"] },
+    ],
+    required_questions: [
+      { intent: "dispatch", key: "service_type", label: "Service Type", ask_prompt: "What type of service do you need - airport transfer, hourly, or a special event?", why_needed: "Determines service and pricing", required: true },
+      { intent: "dispatch", key: "pickup_location", label: "Pickup Location", ask_prompt: "Where would you like to be picked up?", why_needed: "Route planning", required: true },
+      { intent: "dispatch", key: "destination", label: "Destination", ask_prompt: "Where are you heading?", why_needed: "Route and pricing", required: true },
+      { intent: "dispatch", key: "date_time", label: "Date & Time", ask_prompt: "When do you need the pickup?", why_needed: "Scheduling", required: true },
+      { intent: "dispatch", key: "passengers", label: "Passengers", ask_prompt: "How many passengers will there be?", why_needed: "Vehicle selection", required: true },
+    ],
+    policies: [
+      { type: "cancellation", text: "Cancellations within 24 hours of pickup are charged 50%. No-shows are charged in full." },
+      { type: "deposit", text: "Special events require a 50% deposit at booking." },
+      { type: "payment", text: "We accept all major credit cards. Corporate accounts can be invoiced." },
+    ],
+    faqs: [
+      ...commonFAQs,
+      { question: "What vehicles do you have?", answer: "We have sedans, SUVs, stretch limos, and party buses. We'll recommend based on your group size." },
+      { question: "Do you track flights?", answer: "Yes, we monitor flight arrivals and adjust pickup time if your flight is delayed." },
+      { question: "Is gratuity included?", answer: "A 20% gratuity is standard but not included in quotes. It can be added at booking." },
+      { question: "Can we make stops?", answer: "Hourly charters include stops. Point-to-point can include stops for an additional fee." },
+    ],
+    objections: [
+      ...commonObjections,
+      { objection: "Uber is cheaper", response: "For premium events like weddings or executive travel, you get a professional chauffeur, guaranteed vehicle, and no surge pricing. Peace of mind is worth it." },
+    ],
+    service_area_defaults: { mode: "radius", radius_miles: 100, restrictions: { no_cross_state_lines: false }, notes: "Luxury transportation services." },
+    scheduling_defaults: { lead_time_hours: 24, buffer_minutes: 15, default_slot_duration_minutes: 60 },
+  },
+};
+
+const medicalTransportTemplate: IndustryTemplate = {
+  industry_key: "medical_transport",
+  name: "Medical Transport",
+  icon: "🚑",
+  business_mode: "dispatch",
+  defaults: {
+    services: [
+      { name: "Wheelchair Transport", description: "Non-emergency wheelchair-accessible transport", base_price_model: "starting_at", starting_price_cents: 7500, duration_minutes: 60, tags: ["wheelchair", "non-emergency"] },
+      { name: "Stretcher Transport", description: "Non-emergency stretcher/gurney transport", base_price_model: "starting_at", starting_price_cents: 15000, duration_minutes: 90, tags: ["stretcher", "non-emergency"] },
+      { name: "Ambulatory Transport", description: "Transport for patients who can walk with assistance", base_price_model: "starting_at", starting_price_cents: 5000, duration_minutes: 45, tags: ["ambulatory", "basic"] },
+      { name: "Dialysis Transport", description: "Regular transport to/from dialysis appointments", base_price_model: "fixed", fixed_price_cents: 6500, duration_minutes: 60, tags: ["dialysis", "recurring"] },
+      { name: "Hospital Discharge", description: "Safe transport home after hospital stay", base_price_model: "starting_at", starting_price_cents: 8500, duration_minutes: 60, tags: ["discharge", "hospital"] },
+      { name: "Long Distance Medical", description: "Medical transport over 50 miles", base_price_model: "quote_only", duration_minutes: 180, tags: ["long-distance", "medical"] },
+    ],
+    required_questions: [
+      { intent: "dispatch", key: "patient_mobility", label: "Mobility", ask_prompt: "Can the patient walk, or do they need a wheelchair or stretcher?", why_needed: "Determines vehicle type", required: true },
+      { intent: "dispatch", key: "pickup_location", label: "Pickup Location", ask_prompt: "What's the pickup address?", why_needed: "Dispatch planning", required: true },
+      { intent: "dispatch", key: "destination", label: "Destination", ask_prompt: "Where does the patient need to go?", why_needed: "Route planning", required: true },
+      { intent: "dispatch", key: "appointment_time", label: "Appointment Time", ask_prompt: "What time is the appointment?", why_needed: "Scheduling pickup", required: true },
+      { intent: "dispatch", key: "special_needs", label: "Special Needs", ask_prompt: "Does the patient have any special needs - oxygen, bariatric equipment, etc.?", why_needed: "Equipment preparation", required: false },
+    ],
+    policies: [
+      { type: "cancellation", text: "Please provide 24 hours notice for cancellations. Same-day cancellations may incur a fee." },
+      { type: "payment", text: "We work with Medicare, Medicaid, and most insurance. Private pay is also accepted." },
+      { type: "refund", text: "Billing disputes can be resolved through our patient services department." },
+    ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Do you accept insurance?", answer: "Yes, we work with Medicare, Medicaid, and many private insurance plans." },
+      { question: "Is this an ambulance?", answer: "We provide non-emergency medical transport. For emergencies, please call 911." },
+      { question: "Can a family member ride along?", answer: "Yes, one family member or caregiver can ride along at no extra charge." },
+      { question: "How far in advance should I book?", answer: "We recommend booking 48-72 hours in advance, but we can often accommodate same-day requests." },
+    ],
+    objections: commonObjections,
+    service_area_defaults: { mode: "radius", radius_miles: 75, restrictions: { no_cross_state_lines: true }, notes: "Non-emergency medical transportation." },
+    scheduling_defaults: { lead_time_hours: 24, buffer_minutes: 30, default_slot_duration_minutes: 90 },
+  },
+};
+
+// ============================================================================
+// ADDITIONAL MEDICAL TEMPLATES
+// ============================================================================
+
+const optometryTemplate: IndustryTemplate = {
+  industry_key: "optometry",
+  name: "Optometry & Eye Care",
+  icon: "👁️",
+  business_mode: "medical",
+  defaults: {
+    services: [
+      { name: "Comprehensive Eye Exam", description: "Full vision and eye health examination", base_price_model: "fixed", fixed_price_cents: 15000, duration_minutes: 60, tags: ["exam", "comprehensive"] },
+      { name: "Contact Lens Fitting", description: "Exam and fitting for contact lenses", base_price_model: "fixed", fixed_price_cents: 12000, duration_minutes: 45, tags: ["contacts", "fitting"] },
+      { name: "Glasses Prescription", description: "Vision test for glasses prescription", base_price_model: "fixed", fixed_price_cents: 10000, duration_minutes: 30, tags: ["glasses", "prescription"] },
+      { name: "Pediatric Eye Exam", description: "Eye exam for children", base_price_model: "fixed", fixed_price_cents: 12500, duration_minutes: 45, tags: ["pediatric", "exam"] },
+      { name: "Dry Eye Consultation", description: "Evaluation and treatment for dry eyes", base_price_model: "fixed", fixed_price_cents: 15000, duration_minutes: 45, tags: ["dry eye", "treatment"] },
+      { name: "Emergency Eye Care", description: "Same-day care for eye emergencies", base_price_model: "starting_at", starting_price_cents: 17500, duration_minutes: 45, tags: ["emergency", "urgent"] },
+      { name: "Glaucoma Screening", description: "Specialized testing for glaucoma", base_price_model: "fixed", fixed_price_cents: 7500, duration_minutes: 30, tags: ["glaucoma", "screening"] },
+    ],
+    required_questions: [
+      { intent: "booking", key: "visit_reason", label: "Visit Reason", ask_prompt: "What brings you in - routine exam, new glasses, contacts, or an eye problem?", why_needed: "Determines appointment type", required: true },
+      { intent: "booking", key: "current_prescription", label: "Current Glasses/Contacts", ask_prompt: "Do you currently wear glasses or contacts?", why_needed: "Prepares for exam", required: true },
+      { intent: "booking", key: "new_patient", label: "New Patient", ask_prompt: "Have you been to our office before?", why_needed: "Determines appointment length", required: true },
+      { intent: "booking", key: "insurance", label: "Insurance", ask_prompt: "Do you have vision insurance?", why_needed: "Billing preparation", required: false },
+    ],
+    policies: [
+      { type: "cancellation", text: "Please provide 24 hours notice for cancellations." },
+      { type: "deposit", text: "No deposit required. Payment is due at time of service." },
+      { type: "refund", text: "Prescription adjustments within 60 days are included at no charge." },
+    ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Do you take vision insurance?", answer: "Yes, we accept most vision plans including VSP, EyeMed, and Davis Vision." },
+      { question: "How often should I get an eye exam?", answer: "Adults should get a comprehensive exam every 1-2 years, more often if you have vision problems." },
+      { question: "Do you sell glasses and contacts?", answer: "Yes, we have a full optical shop with frames, lenses, and contact lenses." },
+      { question: "Can I use my HSA/FSA?", answer: "Yes, eye exams and eyewear are eligible HSA/FSA expenses." },
+    ],
+    objections: commonObjections,
+    service_area_defaults: { mode: "zips", radius_miles: null, restrictions: { no_cross_state_lines: false }, notes: "Visit our eye care center." },
+    scheduling_defaults: { lead_time_hours: 24, buffer_minutes: 15, default_slot_duration_minutes: 60 },
+  },
+};
+
+const physicalTherapyTemplate: IndustryTemplate = {
+  industry_key: "physical_therapy",
+  name: "Physical Therapy",
+  icon: "🏃",
+  business_mode: "medical",
+  defaults: {
+    services: [
+      { name: "Initial Evaluation", description: "Comprehensive assessment and treatment plan", base_price_model: "fixed", fixed_price_cents: 17500, duration_minutes: 60, tags: ["evaluation", "new patient"] },
+      { name: "Follow-Up Session", description: "Ongoing therapy session", base_price_model: "fixed", fixed_price_cents: 12500, duration_minutes: 45, tags: ["follow-up", "treatment"] },
+      { name: "Post-Surgery Rehab", description: "Rehabilitation after surgical procedure", base_price_model: "starting_at", starting_price_cents: 15000, duration_minutes: 60, tags: ["post-op", "rehab"] },
+      { name: "Sports Injury Treatment", description: "Treatment for athletic injuries", base_price_model: "fixed", fixed_price_cents: 12500, duration_minutes: 45, tags: ["sports", "injury"] },
+      { name: "Back Pain Program", description: "Specialized program for back and spine issues", base_price_model: "fixed", fixed_price_cents: 12500, duration_minutes: 45, tags: ["back", "spine"] },
+      { name: "Balance & Fall Prevention", description: "Training to improve balance and prevent falls", base_price_model: "fixed", fixed_price_cents: 12500, duration_minutes: 45, tags: ["balance", "geriatric"] },
+      { name: "Manual Therapy", description: "Hands-on treatment techniques", base_price_model: "fixed", fixed_price_cents: 12500, duration_minutes: 45, tags: ["manual", "hands-on"] },
+      { name: "Dry Needling", description: "Trigger point dry needling therapy", base_price_model: "fixed", fixed_price_cents: 7500, duration_minutes: 30, tags: ["dry needling", "trigger point"] },
+    ],
+    required_questions: [
+      { intent: "booking", key: "condition", label: "Condition", ask_prompt: "What condition or injury are you seeking treatment for?", why_needed: "Prepares treatment plan", required: true },
+      { intent: "booking", key: "referral", label: "Referral", ask_prompt: "Do you have a referral or prescription from a doctor?", why_needed: "Insurance requirement", required: true },
+      { intent: "booking", key: "new_patient", label: "New Patient", ask_prompt: "Have you been to our clinic before?", why_needed: "Determines appointment type", required: true },
+      { intent: "booking", key: "insurance", label: "Insurance", ask_prompt: "What insurance do you have?", why_needed: "Verifies coverage", required: true },
+    ],
+    policies: [
+      { type: "cancellation", text: "Please provide 24 hours notice. Late cancellations may result in a $50 fee." },
+      { type: "payment", text: "Co-pays are due at time of service. We verify insurance benefits before your first visit." },
+      { type: "refund", text: "We work with you and your insurance to maximize your benefits." },
+    ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Do I need a referral?", answer: "In most states you can come directly to us, but some insurance plans require a referral." },
+      { question: "How many sessions will I need?", answer: "It varies by condition. After your evaluation, we'll give you an estimated treatment timeline." },
+      { question: "Does insurance cover physical therapy?", answer: "Most insurance plans cover PT. We verify your benefits before your first visit." },
+      { question: "What should I wear?", answer: "Comfortable, loose-fitting clothes that allow you to move freely." },
+    ],
+    objections: commonObjections,
+    service_area_defaults: { mode: "zips", radius_miles: null, restrictions: { no_cross_state_lines: false }, notes: "Visit our physical therapy clinic." },
+    scheduling_defaults: { lead_time_hours: 24, buffer_minutes: 15, default_slot_duration_minutes: 45 },
+  },
+};
+
+const veterinaryTemplate: IndustryTemplate = {
+  industry_key: "veterinary",
+  name: "Veterinary Clinic",
+  icon: "🐾",
+  business_mode: "medical",
+  defaults: {
+    services: [
+      { name: "Wellness Exam", description: "Annual checkup for your pet", base_price_model: "fixed", fixed_price_cents: 6500, duration_minutes: 30, tags: ["exam", "wellness"] },
+      { name: "Vaccinations", description: "Core and lifestyle vaccines", base_price_model: "starting_at", starting_price_cents: 2500, duration_minutes: 15, tags: ["vaccines", "preventive"] },
+      { name: "Sick Visit", description: "Exam for illness or injury", base_price_model: "starting_at", starting_price_cents: 7500, duration_minutes: 30, tags: ["sick", "illness"] },
+      { name: "Dental Cleaning", description: "Professional teeth cleaning under anesthesia", base_price_model: "starting_at", starting_price_cents: 35000, duration_minutes: 120, tags: ["dental", "cleaning"] },
+      { name: "Spay/Neuter", description: "Surgical sterilization procedure", base_price_model: "starting_at", starting_price_cents: 25000, duration_minutes: 60, tags: ["surgery", "spay", "neuter"] },
+      { name: "X-Ray/Diagnostics", description: "Diagnostic imaging", base_price_model: "starting_at", starting_price_cents: 15000, duration_minutes: 30, tags: ["x-ray", "diagnostic"] },
+      { name: "Emergency Visit", description: "Urgent care for pet emergencies", base_price_model: "starting_at", starting_price_cents: 12500, duration_minutes: 45, tags: ["emergency", "urgent"] },
+      { name: "Microchipping", description: "Permanent ID microchip implant", base_price_model: "fixed", fixed_price_cents: 5000, duration_minutes: 15, tags: ["microchip", "id"] },
+    ],
+    required_questions: [
+      { intent: "booking", key: "pet_type", label: "Pet Type", ask_prompt: "What kind of pet is this for - dog, cat, or other?", why_needed: "Prepares for visit", required: true },
+      { intent: "booking", key: "pet_name", label: "Pet Name", ask_prompt: "What's your pet's name?", why_needed: "Patient identification", required: true },
+      { intent: "booking", key: "visit_reason", label: "Visit Reason", ask_prompt: "What brings you in today - routine checkup, vaccinations, or is something wrong?", why_needed: "Determines appointment type", required: true },
+      { intent: "booking", key: "new_patient", label: "New Patient", ask_prompt: "Have you been to our clinic before?", why_needed: "Prepares medical records", required: true },
+    ],
+    policies: [
+      { type: "cancellation", text: "Please provide 24 hours notice for cancellations, especially for surgical appointments." },
+      { type: "deposit", text: "Surgeries and dental procedures require a deposit at booking." },
+      { type: "payment", text: "Payment is due at time of service. We accept CareCredit and Scratchpay financing." },
+    ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Do you see exotic pets?", answer: "We primarily see dogs and cats. For exotic pets, we can provide referrals." },
+      { question: "Do you offer payment plans?", answer: "Yes, we accept CareCredit and Scratchpay for financing options." },
+      { question: "What vaccines does my pet need?", answer: "Core vaccines are recommended for all pets. We'll discuss lifestyle vaccines based on your pet's activities." },
+      { question: "Do you offer boarding?", answer: "We offer medical boarding for pets with health conditions. Ask about our partner facilities for regular boarding." },
+    ],
+    objections: commonObjections,
+    service_area_defaults: { mode: "zips", radius_miles: null, restrictions: { no_cross_state_lines: false }, notes: "Visit our veterinary clinic." },
+    scheduling_defaults: { lead_time_hours: 4, buffer_minutes: 10, default_slot_duration_minutes: 30 },
+  },
+};
+
+const mentalHealthTemplate: IndustryTemplate = {
+  industry_key: "mental_health",
+  name: "Mental Health & Counseling",
+  icon: "🧠",
+  business_mode: "medical",
+  defaults: {
+    services: [
+      { name: "Initial Assessment", description: "Comprehensive intake and assessment session", base_price_model: "fixed", fixed_price_cents: 20000, duration_minutes: 60, tags: ["intake", "assessment"] },
+      { name: "Individual Therapy", description: "One-on-one counseling session", base_price_model: "fixed", fixed_price_cents: 15000, duration_minutes: 50, tags: ["individual", "therapy"] },
+      { name: "Couples Therapy", description: "Relationship counseling for couples", base_price_model: "fixed", fixed_price_cents: 17500, duration_minutes: 60, tags: ["couples", "relationship"] },
+      { name: "Family Therapy", description: "Counseling for family issues", base_price_model: "fixed", fixed_price_cents: 17500, duration_minutes: 60, tags: ["family", "therapy"] },
+      { name: "Teen/Adolescent Therapy", description: "Specialized therapy for teenagers", base_price_model: "fixed", fixed_price_cents: 15000, duration_minutes: 50, tags: ["teen", "adolescent"] },
+      { name: "Medication Management", description: "Psychiatric medication consultation", base_price_model: "fixed", fixed_price_cents: 20000, duration_minutes: 30, tags: ["medication", "psychiatry"] },
+      { name: "Telehealth Session", description: "Virtual therapy session", base_price_model: "fixed", fixed_price_cents: 15000, duration_minutes: 50, tags: ["telehealth", "virtual"] },
+    ],
+    required_questions: [
+      { intent: "booking", key: "concern", label: "Main Concern", ask_prompt: "What would you like to address in therapy - anxiety, depression, relationships, or something else?", why_needed: "Matches with right therapist", required: true },
+      { intent: "booking", key: "service_type", label: "Service Type", ask_prompt: "Are you looking for individual, couples, or family therapy?", why_needed: "Determines appointment type", required: true },
+      { intent: "booking", key: "new_patient", label: "New Patient", ask_prompt: "Have you been to our practice before?", why_needed: "Determines appointment length", required: true },
+      { intent: "booking", key: "insurance", label: "Insurance", ask_prompt: "Do you have insurance you'd like to use, or are you looking for private pay?", why_needed: "Billing preparation", required: true },
+    ],
+    policies: [
+      { type: "cancellation", text: "Please provide 24 hours notice. Late cancellations are charged 50% of the session fee." },
+      { type: "payment", text: "Payment is due at time of service. We accept insurance, HSA/FSA, and private pay." },
+      { type: "refund", text: "We're committed to your care. If you're not satisfied with our services, please discuss with your therapist." },
+    ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Do you take insurance?", answer: "Yes, we're in-network with many insurance plans. We'll verify your benefits before your first session." },
+      { question: "Is therapy confidential?", answer: "Absolutely. Everything discussed in therapy is confidential, with few legal exceptions we'll explain." },
+      { question: "How often should I come?", answer: "Most clients start with weekly sessions. We can adjust frequency based on your needs and progress." },
+      { question: "Do you offer telehealth?", answer: "Yes, we offer secure video sessions for clients who prefer remote therapy." },
+    ],
+    objections: [
+      ...commonObjections,
+      { objection: "I'm not sure therapy will help", response: "It's normal to feel uncertain. Research shows therapy is effective for most people. We can start with a few sessions to see if it's a good fit." },
+    ],
+    service_area_defaults: { mode: "zips", radius_miles: null, restrictions: { no_cross_state_lines: true }, notes: "Therapists are licensed by state." },
+    scheduling_defaults: { lead_time_hours: 24, buffer_minutes: 10, default_slot_duration_minutes: 50 },
+  },
+};
+
+const dermatologyTemplate: IndustryTemplate = {
+  industry_key: "dermatology",
+  name: "Dermatology",
+  icon: "✨",
+  business_mode: "medical",
+  defaults: {
+    services: [
+      { name: "New Patient Consultation", description: "Comprehensive skin evaluation", base_price_model: "fixed", fixed_price_cents: 20000, duration_minutes: 45, tags: ["consultation", "new patient"] },
+      { name: "Follow-Up Visit", description: "Follow-up skin check", base_price_model: "fixed", fixed_price_cents: 12500, duration_minutes: 20, tags: ["follow-up"] },
+      { name: "Annual Skin Check", description: "Full-body skin cancer screening", base_price_model: "fixed", fixed_price_cents: 15000, duration_minutes: 30, tags: ["screening", "skin cancer"] },
+      { name: "Acne Treatment", description: "Evaluation and treatment plan for acne", base_price_model: "fixed", fixed_price_cents: 15000, duration_minutes: 30, tags: ["acne", "treatment"] },
+      { name: "Mole Removal", description: "Surgical removal of mole or lesion", base_price_model: "starting_at", starting_price_cents: 25000, duration_minutes: 30, tags: ["mole", "surgery"] },
+      { name: "Eczema/Psoriasis Treatment", description: "Treatment for chronic skin conditions", base_price_model: "fixed", fixed_price_cents: 15000, duration_minutes: 30, tags: ["eczema", "psoriasis"] },
+      { name: "Botox", description: "Cosmetic botox injections", base_price_model: "starting_at", starting_price_cents: 30000, duration_minutes: 30, tags: ["botox", "cosmetic"] },
+      { name: "Chemical Peel", description: "Skin resurfacing treatment", base_price_model: "starting_at", starting_price_cents: 15000, duration_minutes: 45, tags: ["peel", "cosmetic"] },
+    ],
+    required_questions: [
+      { intent: "booking", key: "concern", label: "Concern", ask_prompt: "What skin concern brings you in - acne, rash, moles, aging, or something else?", why_needed: "Prepares for visit", required: true },
+      { intent: "booking", key: "new_patient", label: "New Patient", ask_prompt: "Have you been to our office before?", why_needed: "Determines appointment type", required: true },
+      { intent: "booking", key: "medical_cosmetic", label: "Visit Type", ask_prompt: "Is this for a medical concern or cosmetic treatment?", why_needed: "Routes to correct provider", required: true },
+      { intent: "booking", key: "insurance", label: "Insurance", ask_prompt: "Do you have health insurance? Note: cosmetic treatments aren't covered.", why_needed: "Billing preparation", required: false },
+    ],
+    policies: [
+      { type: "cancellation", text: "Please provide 24 hours notice for cancellations." },
+      { type: "deposit", text: "Cosmetic procedures may require a deposit." },
+      { type: "payment", text: "Medical visits may be covered by insurance. Cosmetic services are due at time of service." },
+    ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Do you accept insurance?", answer: "Yes for medical dermatology. Cosmetic treatments like Botox are not covered by insurance." },
+      { question: "How often should I get a skin check?", answer: "We recommend annual skin cancer screenings, more often if you have risk factors." },
+      { question: "What's the difference between medical and cosmetic?", answer: "Medical treats skin conditions and diseases. Cosmetic focuses on appearance improvements." },
+      { question: "Do you treat all ages?", answer: "Yes, we see patients of all ages for skin concerns." },
+    ],
+    objections: commonObjections,
+    service_area_defaults: { mode: "zips", radius_miles: null, restrictions: { no_cross_state_lines: false }, notes: "Visit our dermatology practice." },
+    scheduling_defaults: { lead_time_hours: 24, buffer_minutes: 10, default_slot_duration_minutes: 30 },
+  },
+};
+
+const massageTherapyTemplate: IndustryTemplate = {
+  industry_key: "massage",
+  name: "Massage Therapy",
+  icon: "💆",
+  business_mode: "medical",
+  defaults: {
+    services: [
+      { name: "Swedish Massage (60 min)", description: "Relaxation massage with light to medium pressure", base_price_model: "fixed", fixed_price_cents: 9500, duration_minutes: 60, tags: ["swedish", "relaxation"] },
+      { name: "Swedish Massage (90 min)", description: "Extended relaxation massage", base_price_model: "fixed", fixed_price_cents: 13000, duration_minutes: 90, tags: ["swedish", "relaxation"] },
+      { name: "Deep Tissue (60 min)", description: "Therapeutic massage for muscle tension", base_price_model: "fixed", fixed_price_cents: 11000, duration_minutes: 60, tags: ["deep tissue", "therapeutic"] },
+      { name: "Deep Tissue (90 min)", description: "Extended therapeutic massage", base_price_model: "fixed", fixed_price_cents: 15000, duration_minutes: 90, tags: ["deep tissue", "therapeutic"] },
+      { name: "Sports Massage", description: "Focused on athletic performance and recovery", base_price_model: "fixed", fixed_price_cents: 11000, duration_minutes: 60, tags: ["sports", "athletic"] },
+      { name: "Prenatal Massage", description: "Safe, gentle massage for expecting mothers", base_price_model: "fixed", fixed_price_cents: 10000, duration_minutes: 60, tags: ["prenatal", "pregnancy"] },
+      { name: "Hot Stone Massage", description: "Heated stones for deep relaxation", base_price_model: "fixed", fixed_price_cents: 12500, duration_minutes: 75, tags: ["hot stone", "relaxation"] },
+      { name: "Couples Massage", description: "Side-by-side massage for two", base_price_model: "fixed", fixed_price_cents: 19000, duration_minutes: 60, tags: ["couples"] },
+    ],
+    required_questions: [
+      { intent: "booking", key: "massage_type", label: "Massage Type", ask_prompt: "What type of massage are you looking for - relaxation, deep tissue, or something specific?", why_needed: "Matches with right therapist", required: true },
+      { intent: "booking", key: "duration", label: "Duration", ask_prompt: "Would you like a 60-minute or 90-minute session?", why_needed: "Scheduling", required: true },
+      { intent: "booking", key: "pressure", label: "Pressure Preference", ask_prompt: "Do you prefer light, medium, or firm pressure?", why_needed: "Personalizes treatment", required: false },
+      { intent: "booking", key: "focus_areas", label: "Focus Areas", ask_prompt: "Are there any areas you'd like us to focus on - neck, back, shoulders?", why_needed: "Treatment planning", required: false },
+    ],
+    policies: [
+      { type: "cancellation", text: "Please provide 24 hours notice. Late cancellations are charged 50% of service." },
+      { type: "deposit", text: "No deposit required for individual appointments." },
+      { type: "payment", text: "Payment is due after your session. Gratuity is appreciated but not required." },
+    ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Should I undress completely?", answer: "Undress to your comfort level. You'll be draped throughout the massage for privacy." },
+      { question: "Can I request a specific therapist?", answer: "Yes! Let us know your preference when booking." },
+      { question: "How often should I get a massage?", answer: "For general wellness, monthly. For chronic pain or stress, every 2-3 weeks may help." },
+      { question: "Do you accept insurance?", answer: "Some insurance plans cover massage with a prescription. We can provide receipts for reimbursement." },
+    ],
+    objections: commonObjections,
+    service_area_defaults: { mode: "zips", radius_miles: null, restrictions: { no_cross_state_lines: false }, notes: "Visit our massage therapy studio." },
+    scheduling_defaults: { lead_time_hours: 4, buffer_minutes: 15, default_slot_duration_minutes: 60 },
+  },
+};
+
+// ============================================================================
 // TEMPLATE REGISTRY
 // ============================================================================
 
 export const industryTemplates: Record<string, IndustryTemplate> = {
-  // Service templates
+  // Service templates (10)
   detailing: detailingTemplate,
   plumbing: plumbingTemplate,
   hvac: hvacTemplate,
@@ -1514,20 +1969,31 @@ export const industryTemplates: Record<string, IndustryTemplate> = {
   roofing: roofingTemplate,
   pool_service: poolServiceTemplate,
   salon: salonTemplate,
-  // Dispatch templates
+  // Dispatch templates (6)
   towing: towingTemplate,
-  // Food templates
+  locksmith: locksmithTemplate,
+  courier: courierTemplate,
+  mobile_mechanic: mobileMechanicTemplate,
+  limo: limoTemplate,
+  medical_transport: medicalTransportTemplate,
+  // Food templates (6)
   food: foodTemplate,
   pizza: pizzaTemplate,
   bakery: bakeryTemplate,
   food_truck: foodTruckTemplate,
   bar: barTemplate,
   catering: cateringTemplate,
-  // Medical templates
+  // Medical templates (9)
   medical: medicalTemplate,
   medspa: medicalTemplate, // Alias
   dental: dentalTemplate,
   chiropractic: chiropracticTemplate,
+  optometry: optometryTemplate,
+  physical_therapy: physicalTherapyTemplate,
+  veterinary: veterinaryTemplate,
+  mental_health: mentalHealthTemplate,
+  dermatology: dermatologyTemplate,
+  massage: massageTherapyTemplate,
   // General
   other: otherTemplate,
 };
@@ -1585,18 +2051,18 @@ export function getTemplateOptionsForMode(
 ): Array<{ value: string; label: string; icon: string }> {
   const modeTemplateMap: Record<string, string[]> = {
     food: ["food", "pizza", "bakery", "food_truck", "bar", "catering"],
-    medical: ["medical", "dental", "chiropractic"],
-    dispatch: ["towing"],
+    medical: ["medical", "dental", "chiropractic", "optometry", "physical_therapy", "veterinary", "mental_health", "dermatology", "massage"],
+    dispatch: ["towing", "locksmith", "courier", "mobile_mechanic", "limo", "medical_transport"],
     service: ["detailing", "plumbing", "hvac", "electrical", "cleaning", "landscaping", "pest_control", "roofing", "pool_service", "salon"],
     general: [
-      // Service
+      // Service (10)
       "detailing", "plumbing", "hvac", "electrical", "cleaning", "landscaping", "pest_control", "roofing", "pool_service", "salon",
-      // Dispatch
-      "towing",
-      // Food
+      // Dispatch (6)
+      "towing", "locksmith", "courier", "mobile_mechanic", "limo", "medical_transport",
+      // Food (6)
       "food", "pizza", "bakery", "food_truck", "bar", "catering",
-      // Medical
-      "medical", "dental", "chiropractic",
+      // Medical (9)
+      "medical", "dental", "chiropractic", "optometry", "physical_therapy", "veterinary", "mental_health", "dermatology", "massage",
       // Fallback
       "other",
     ],
