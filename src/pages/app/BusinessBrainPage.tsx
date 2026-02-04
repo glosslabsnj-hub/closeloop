@@ -7,12 +7,12 @@
  * - All existing save logic preserved
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 // Section editors (unchanged logic)
@@ -58,11 +58,26 @@ import {
   BRAIN_CATEGORIES,
 } from "@/components/brain/layout";
 
-// Hub
-import { BusinessBrainHub } from "@/components/brain/hub";
-
 const VALID_SECTIONS = ["profile", "hours", "services", "service-area", "availability", "policies", "ai-behavior", "knowledge"] as const;
 type SectionId = typeof VALID_SECTIONS[number];
+
+const LEGACY_SECTION_ALIASES: Record<string, SectionId> = {
+  // Back-compat for older deep links mentioned across the app
+  "calendar-sync": "availability",
+  calendar: "availability",
+};
+
+const LEGACY_TAB_TO_SECTION: Record<string, { section: SectionId; hash?: string }> = {
+  // Knowledge upload/review flows
+  review: { section: "knowledge", hash: "review" },
+  updates: { section: "knowledge", hash: "review" },
+  assets: { section: "knowledge", hash: "documents" },
+  uploads: { section: "knowledge", hash: "documents" },
+  // Older “overview” landing
+  overview: { section: "profile" },
+  // Intelligence/memory deep link from settings
+  memory: { section: "ai-behavior", hash: "intelligence" },
+};
 
 export default function BusinessBrainPage() {
   const { tenant } = useAuth();
@@ -70,12 +85,30 @@ export default function BusinessBrainPage() {
   const reviewCount = useBrainReviewCount();
   const { businessMode, hipaaMode } = useTenantConfig();
   const { isFoodMode, hasFoodOrders } = useFoodMode();
-  
-  const sectionParam = searchParams.get("section");
-  const activeSection = VALID_SECTIONS.includes(sectionParam as SectionId) 
-    ? (sectionParam as SectionId) 
+
+  const sectionParamRaw = searchParams.get("section");
+  const legacyTab = searchParams.get("tab");
+
+  const normalizedSectionParam = sectionParamRaw
+    ? (LEGACY_SECTION_ALIASES[sectionParamRaw] ?? sectionParamRaw)
     : null;
-  
+
+  const { activeSection, focusHash } = useMemo(() => {
+    // Primary: ?section=
+    if (normalizedSectionParam && VALID_SECTIONS.includes(normalizedSectionParam as SectionId)) {
+      return { activeSection: normalizedSectionParam as SectionId, focusHash: null as string | null };
+    }
+
+    // Back-compat: ?tab=
+    if (legacyTab && LEGACY_TAB_TO_SECTION[legacyTab]) {
+      const mapped = LEGACY_TAB_TO_SECTION[legacyTab];
+      return { activeSection: mapped.section, focusHash: mapped.hash ?? null };
+    }
+
+    // Default: land directly in the first section (no setup hub)
+    return { activeSection: "profile" as SectionId, focusHash: null as string | null };
+  }, [legacyTab, normalizedSectionParam]);
+
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const handleSectionChange = (section: string) => {
@@ -84,10 +117,21 @@ export default function BusinessBrainPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleBackToHub = () => {
-    setSearchParams({}, { replace: true });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  // Normalize legacy links so users always see the 8 sections immediately.
+  useEffect(() => {
+    const sectionIsValid = normalizedSectionParam && VALID_SECTIONS.includes(normalizedSectionParam as SectionId);
+    const sectionNeedsAliasRewrite = !!(sectionParamRaw && LEGACY_SECTION_ALIASES[sectionParamRaw]);
+
+    // If coming from legacy ?tab= or legacy section alias, rewrite URL to canonical ?section=
+    if (!sectionIsValid || legacyTab || sectionNeedsAliasRewrite) {
+      setSearchParams({ section: activeSection }, { replace: true });
+    }
+
+    // Apply an optional focus hash for legacy deep links (review/uploads/memory)
+    if (focusHash && window.location.hash.replace(/^#/, "") !== focusHash) {
+      window.location.hash = focusHash;
+    }
+  }, [activeSection, focusHash, legacyTab, normalizedSectionParam, sectionParamRaw, setSearchParams]);
 
   if (!tenant) {
     return (
@@ -104,22 +148,8 @@ export default function BusinessBrainPage() {
   const showMedicalSettings = businessMode === "medical";
   const isDispatchMode = businessMode === "dispatch";
 
-  const currentCategory = activeSection 
-    ? BRAIN_CATEGORIES.find(c => c.section === activeSection)
-    : null;
+  const currentCategory = BRAIN_CATEGORIES.find(c => c.section === activeSection) ?? null;
 
-  // Hub view
-  if (!activeSection) {
-    return (
-      <div className="min-h-screen bg-background">
-        <main className="container max-w-3xl py-6 px-4 sm:px-6">
-          <BusinessBrainHub onNavigateToSection={handleSectionChange} />
-        </main>
-      </div>
-    );
-  }
-
-  // Section editor view - SIMPLIFIED
   return (
     <div className="flex min-h-screen bg-background">
       {/* Desktop Nav */}
@@ -136,16 +166,6 @@ export default function BusinessBrainPage() {
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleBackToHub}
-                className="gap-1"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                <span className="hidden sm:inline">Back</span>
-              </Button>
-              
               {/* Mobile nav */}
               <div className="lg:hidden">
                 <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
@@ -166,7 +186,10 @@ export default function BusinessBrainPage() {
               {currentCategory && (
                 <div className="flex items-center gap-2">
                   <currentCategory.icon className="h-5 w-5 text-primary" />
-                  <h1 className="text-lg font-semibold">{currentCategory.title}</h1>
+                  <div className="leading-tight">
+                    <h1 className="text-lg font-semibold">{currentCategory.title}</h1>
+                    <p className="text-xs text-muted-foreground mt-0.5">{currentCategory.description}</p>
+                  </div>
                 </div>
               )}
             </div>
