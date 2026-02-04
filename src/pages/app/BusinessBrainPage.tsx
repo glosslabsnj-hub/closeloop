@@ -228,31 +228,27 @@ export default function BusinessBrainPage() {
               </div>
             )}
 
-            {/* HOURS */}
+            {/* HOURS - Single section, always expanded */}
             {activeSection === "hours" && (
-              <div className="space-y-3">
-                <CollapsibleBrainSection
-                  id="hours"
-                  title="Operating Hours"
-                  icon={Clock}
-                  preview={summaries.hours}
-                >
-                  <BusinessHoursManager />
-                </CollapsibleBrainSection>
+              <div className="rounded-lg border bg-card p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-muted">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-sm">Operating Hours</h3>
+                    <p className="text-xs text-muted-foreground">{summaries.hours}</p>
+                  </div>
+                </div>
+                <BusinessHoursManager />
               </div>
             )}
 
             {/* SERVICES */}
             {activeSection === "services" && (
               <div className="space-y-3">
-                <CollapsibleBrainSection
-                  id="pricing"
-                  title="Pricing Readiness"
-                  icon={DollarSign}
-                  preview={summaries.pricingReadiness}
-                >
-                  <QuoteReadinessCard />
-                </CollapsibleBrainSection>
+                {/* Pricing Readiness - inline, not collapsible */}
+                <QuoteReadinessCard />
 
                 {!isDispatchMode && (
                   <CollapsibleBrainSection
@@ -317,17 +313,19 @@ export default function BusinessBrainPage() {
               </div>
             )}
 
-            {/* AVAILABILITY */}
+            {/* AVAILABILITY - Single section, always expanded */}
             {activeSection === "availability" && (
-              <div className="space-y-3">
-                <CollapsibleBrainSection
-                  id="calendar"
-                  title="Calendar & Availability"
-                  icon={Calendar}
-                  preview={summaries.calendar}
-                >
-                  <AvailabilityHub />
-                </CollapsibleBrainSection>
+              <div className="rounded-lg border bg-card p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-muted">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-sm">Calendar & Availability</h3>
+                    <p className="text-xs text-muted-foreground">{summaries.calendar}</p>
+                  </div>
+                </div>
+                <AvailabilityHub />
               </div>
             )}
 
