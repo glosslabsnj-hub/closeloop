@@ -55,10 +55,14 @@ export function CollapsibleBrainSection({
   defaultExpanded = false,
   className,
 }: CollapsibleBrainSectionProps) {
-  // Initialize from localStorage, fallback to defaultExpanded
+  // Initialize from localStorage - default is COLLAPSED unless explicitly set
   const [isExpanded, setIsExpanded] = useState(() => {
     const stored = getExpandedSections();
-    return stored.has(id) || defaultExpanded;
+    // Only expand if explicitly saved as expanded OR defaultExpanded is true
+    if (defaultExpanded && !localStorage.getItem(STORAGE_KEY)) {
+      return true; // First load with defaultExpanded
+    }
+    return stored.has(id);
   });
 
   // Persist state changes to localStorage
