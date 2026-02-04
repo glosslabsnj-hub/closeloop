@@ -5,25 +5,27 @@
  * AI readiness and provides quick "Fix" buttons to scroll to sections.
  */
 
-import { useState, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useState, useMemo, useCallback } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { CheckCircle2, Circle, ChevronDown, ChevronUp, AlertTriangle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useAIReadinessV2, formatReadinessFlag } from "@/hooks/useAIReadinessV2";
+import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
 import { getIssueDetails } from "@/lib/readiness/issueMapping";
 import { cn } from "@/lib/utils";
 
 interface BrainSetupChecklistProps {
   className?: string;
+  /** Callback to change the active section in BusinessBrainPage */
+  onNavigateToSection?: (section: string) => void;
 }
 
-export function BrainSetupChecklist({ className }: BrainSetupChecklistProps) {
+export function BrainSetupChecklist({ className, onNavigateToSection }: BrainSetupChecklistProps) {
   const [isOpen, setIsOpen] = useState(true);
   const navigate = useNavigate();
-  const [, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const { score, p0Flags, p1Flags, canGoLive, loading } = useAIReadinessV2();
 
   // Combine and dedupe issues
@@ -33,6 +35,7 @@ export function BrainSetupChecklist({ className }: BrainSetupChecklistProps) {
       label: string;
       isPriority: boolean;
       section: string;
+      fixLink: string;
     }> = [];
 
     // P0 issues (blockers)
@@ -44,6 +47,7 @@ export function BrainSetupChecklist({ className }: BrainSetupChecklistProps) {
         label: details.title,
         isPriority: true,
         section,
+        fixLink: details.fixLink,
       });
     });
 
@@ -56,18 +60,26 @@ export function BrainSetupChecklist({ className }: BrainSetupChecklistProps) {
         label: details.title,
         isPriority: false,
         section,
+        fixLink: details.fixLink,
       });
     });
 
     return issues;
   }, [p0Flags, p1Flags]);
 
-  const handleFix = (section: string) => {
-    // Navigate to section using URL params
-    setSearchParams({ section });
-    // Scroll to top smoothly
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  const handleFix = useCallback((issue: typeof allIssues[0]) => {
+    const isBusinessBrainLink = issue.fixLink.startsWith("/app/business-brain");
+    const isOnBusinessBrainPage = location.pathname === "/app/business-brain";
+    
+    if (isBusinessBrainLink && isOnBusinessBrainPage && onNavigateToSection) {
+      // We're already on Business Brain, just change the section via callback
+      onNavigateToSection(issue.section);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      // Navigate to the fix link
+      navigate(issue.fixLink);
+    }
+  }, [location.pathname, navigate, onNavigateToSection]);
 
   if (loading) {
     return null;
@@ -157,7 +169,7 @@ export function BrainSetupChecklist({ className }: BrainSetupChecklistProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleFix(issue.section)}
+                  onClick={() => handleFix(issue)}
                   className="gap-1 text-primary hover:text-primary"
                 >
                   Fix
