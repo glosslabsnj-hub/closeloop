@@ -2,8 +2,8 @@
  * Business Brain - Centralized hub for ALL business knowledge editing
  *
  * REDESIGNED FOR CLARITY:
- * - Hub view: Clean list of 8 setup areas with progress
- * - Section view: Focused editor with minimal chrome
+ * - Horizontal tabs showing all 8 sections at once
+ * - Focused editor per section with minimal chrome
  * - All existing save logic preserved
  */
 
@@ -52,6 +52,7 @@ import { useFoodMode } from "@/hooks/useFoodMode";
 
 // Layout components
 import {
+  BusinessBrainTabs,
   BusinessBrainNav,
   BusinessBrainSectionCard,
   HIPAAWarning,
@@ -62,20 +63,16 @@ const VALID_SECTIONS = ["profile", "hours", "services", "service-area", "availab
 type SectionId = typeof VALID_SECTIONS[number];
 
 const LEGACY_SECTION_ALIASES: Record<string, SectionId> = {
-  // Back-compat for older deep links mentioned across the app
   "calendar-sync": "availability",
   calendar: "availability",
 };
 
 const LEGACY_TAB_TO_SECTION: Record<string, { section: SectionId; hash?: string }> = {
-  // Knowledge upload/review flows
   review: { section: "knowledge", hash: "review" },
   updates: { section: "knowledge", hash: "review" },
   assets: { section: "knowledge", hash: "documents" },
   uploads: { section: "knowledge", hash: "documents" },
-  // Older “overview” landing
   overview: { section: "profile" },
-  // Intelligence/memory deep link from settings
   memory: { section: "ai-behavior", hash: "intelligence" },
 };
 
@@ -94,18 +91,13 @@ export default function BusinessBrainPage() {
     : null;
 
   const { activeSection, focusHash } = useMemo(() => {
-    // Primary: ?section=
     if (normalizedSectionParam && VALID_SECTIONS.includes(normalizedSectionParam as SectionId)) {
       return { activeSection: normalizedSectionParam as SectionId, focusHash: null as string | null };
     }
-
-    // Back-compat: ?tab=
     if (legacyTab && LEGACY_TAB_TO_SECTION[legacyTab]) {
       const mapped = LEGACY_TAB_TO_SECTION[legacyTab];
       return { activeSection: mapped.section, focusHash: mapped.hash ?? null };
     }
-
-    // Default: land directly in the first section (no setup hub)
     return { activeSection: "profile" as SectionId, focusHash: null as string | null };
   }, [legacyTab, normalizedSectionParam]);
 
@@ -117,17 +109,14 @@ export default function BusinessBrainPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Normalize legacy links so users always see the 8 sections immediately.
   useEffect(() => {
     const sectionIsValid = normalizedSectionParam && VALID_SECTIONS.includes(normalizedSectionParam as SectionId);
     const sectionNeedsAliasRewrite = !!(sectionParamRaw && LEGACY_SECTION_ALIASES[sectionParamRaw]);
 
-    // If coming from legacy ?tab= or legacy section alias, rewrite URL to canonical ?section=
     if (!sectionIsValid || legacyTab || sectionNeedsAliasRewrite) {
       setSearchParams({ section: activeSection }, { replace: true });
     }
 
-    // Apply an optional focus hash for legacy deep links (review/uploads/memory)
     if (focusHash && window.location.hash.replace(/^#/, "") !== focusHash) {
       window.location.hash = focusHash;
     }
@@ -151,50 +140,44 @@ export default function BusinessBrainPage() {
   const currentCategory = BRAIN_CATEGORIES.find(c => c.section === activeSection) ?? null;
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Desktop Nav */}
-      <div className="hidden lg:block">
-        <BusinessBrainNav
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Desktop: Horizontal Tabs */}
+      <div className="hidden md:block sticky top-0 z-30">
+        <BusinessBrainTabs
           activeSection={activeSection}
           onSectionChange={handleSectionChange}
         />
       </div>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="container max-w-3xl py-6 px-4 sm:px-6">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              {/* Mobile nav */}
-              <div className="lg:hidden">
-                <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-                  <SheetTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Menu className="h-4 w-4" />
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="left" className="w-72 p-0">
-                    <BusinessBrainNav
-                      activeSection={activeSection}
-                      onSectionChange={handleSectionChange}
-                    />
-                  </SheetContent>
-                </Sheet>
-              </div>
+      {/* Mobile: Hamburger + Sheet */}
+      <div className="md:hidden sticky top-0 z-30 border-b bg-background/95 backdrop-blur-sm">
+        <div className="flex items-center gap-3 px-4 py-3">
+          <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Menu className="h-4 w-4" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 p-0">
+              <BusinessBrainNav
+                activeSection={activeSection}
+                onSectionChange={handleSectionChange}
+              />
+            </SheetContent>
+          </Sheet>
 
-              {currentCategory && (
-                <div className="flex items-center gap-2">
-                  <currentCategory.icon className="h-5 w-5 text-primary" />
-                  <div className="leading-tight">
-                    <h1 className="text-lg font-semibold">{currentCategory.title}</h1>
-                    <p className="text-xs text-muted-foreground mt-0.5">{currentCategory.description}</p>
-                  </div>
-                </div>
-              )}
+          {currentCategory && (
+            <div className="flex items-center gap-2">
+              <currentCategory.icon className="h-5 w-5 text-primary" />
+              <h1 className="text-lg font-semibold">{currentCategory.title}</h1>
             </div>
-          </div>
+          )}
+        </div>
+      </div>
 
+      {/* Main Content */}
+      <main className="flex-1">
+        <div className="container max-w-3xl py-6 px-4 sm:px-6">
           {/* HIPAA Warning */}
           {hipaaMode && <HIPAAWarning className="mb-4" />}
 
@@ -292,46 +275,42 @@ export default function BusinessBrainPage() {
               </>
             )}
 
-            {/* SERVICE AREA */}
+            {/* SERVICE AREA - SIMPLIFIED */}
             {activeSection === "service-area" && (
-              <>
-                <BusinessBrainSectionCard
-                  config={{
-                    id: "coverage",
-                    title: "Coverage Area",
-                    purpose: "Where you provide service",
-                    usedByAI: [],
-                    defaultCollapsed: false,
-                  }}
-                >
+              <div className="space-y-6">
+                {/* Coverage Area - single expanded card */}
+                <div className="rounded-lg border bg-card p-5">
+                  <h2 className="text-base font-semibold mb-1">Where You Serve</h2>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Define your service area so your AI knows which customers you can help.
+                  </p>
                   <ServiceAreaPreview />
                   <div className="mt-4">
                     <ServiceAreaManager />
                   </div>
-                </BusinessBrainSectionCard>
+                </div>
 
-                <BusinessBrainSectionCard
-                  config={{
-                    id: "eta",
-                    title: "Travel Times",
-                    purpose: "How long it takes to reach customers",
-                    usedByAI: [],
-                  }}
-                >
+                {/* ETA & Travel - simplified */}
+                <div className="rounded-lg border bg-card p-5">
+                  <h2 className="text-base font-semibold mb-1">Travel & Wait Times</h2>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {isDispatchMode 
+                      ? "How long until you can reach customers, based on distance from your base."
+                      : "Estimated arrival times your AI quotes to callers."
+                    }
+                  </p>
                   {isDispatchMode ? <DispatchEtaSection /> : <DistanceEtaSection />}
-                </BusinessBrainSectionCard>
+                </div>
 
-                <BusinessBrainSectionCard
-                  config={{
-                    id: "busyness",
-                    title: "Current Workload",
-                    purpose: "Adjust wait times when busy",
-                    usedByAI: [],
-                  }}
-                >
+                {/* Busyness - only show if relevant */}
+                <div className="rounded-lg border bg-card p-5">
+                  <h2 className="text-base font-semibold mb-1">Current Workload</h2>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    When you're busy, your AI adds extra wait time to ETAs.
+                  </p>
                   <BusynessRulesEditor />
-                </BusinessBrainSectionCard>
-              </>
+                </div>
+              </div>
             )}
 
             {/* AVAILABILITY */}
