@@ -50,6 +50,7 @@ export {
   getTemplate,
   getAvailableTemplateKeys,
   getTemplateOptions,
+  getTemplateOptionsForMode,
 } from "./templates";
 
 // Application logic

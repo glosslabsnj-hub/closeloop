@@ -109,7 +109,8 @@ export function AIScriptsEditor() {
           rows={2}
         />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p>First thing callers hear. Leave blank to use default.</p>
+          <p className="font-medium text-foreground/80">This is the first thing your AI says when it picks up the phone.</p>
+          <p>Leave blank to use the default greeting shown above.</p>
           <p className="text-primary/70">
             Examples: "{greetingExamples.service}" or "{greetingExamples.food}"
           </p>

@@ -7,6 +7,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,23 +21,28 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Building2 } from "lucide-react";
 import { ApplyTemplateModal } from "./ApplyTemplateModal";
-import { getTemplateOptions, getTemplate } from "@/lib/industryTemplates";
-import { industryOptions, type ExtendedIndustryType } from "@/data/industryTemplates";
+import { getTemplateOptionsForMode, getTemplate } from "@/lib/industryTemplates";
+
+// Format business mode for display
+const businessModeLabels: Record<string, string> = {
+  service: "Service & Booking",
+  food: "Food & Restaurant",
+  medical: "Medical",
+  dispatch: "Dispatch & Towing",
+  general: "General",
+};
 
 export function IndustryTemplateCard() {
   const { tenant } = useAuth();
+  const { businessMode } = useTenantConfig();
   const [showTemplateModal, setShowTemplateModal] = useState(false);
-  const [selectedIndustry, setSelectedIndustry] = useState<string>(
-    tenant?.industry || ""
-  );
+  const [selectedIndustry, setSelectedIndustry] = useState<string>("");
 
-  const currentIndustry = tenant?.industry as ExtendedIndustryType | undefined;
-  const industryLabel = currentIndustry
-    ? industryOptions.find((i) => i.value === currentIndustry)?.label || currentIndustry
-    : null;
+  // Get formatted business mode label
+  const businessModeLabel = businessModeLabels[businessMode] || businessMode;
 
-  // Get available templates for the dropdown
-  const templateOptions = getTemplateOptions();
+  // Get templates filtered by the user's business mode
+  const templateOptions = getTemplateOptionsForMode(businessMode);
 
   // Check if template exists for selected industry
   const selectedTemplate = selectedIndustry ? getTemplate(selectedIndustry) : null;
@@ -53,30 +59,27 @@ export function IndustryTemplateCard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
-            Industry & Templates
+            Quick Start Templates
           </CardTitle>
           <CardDescription>
-            Select your industry to get pre-configured services, FAQs, and policies
+            Apply pre-built services, FAQs, and policies to get started quickly
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Current Industry Display */}
-          {currentIndustry && (
-            <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
-              <span className="text-sm text-muted-foreground">Current industry:</span>
-              <Badge variant="secondary">
-                {industryOptions.find((i) => i.value === currentIndustry)?.icon}{" "}
-                {industryLabel}
-              </Badge>
-            </div>
-          )}
+          {/* Current Business Type Display */}
+          <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
+            <span className="text-sm text-muted-foreground">Your business type:</span>
+            <Badge variant="secondary">
+              {businessModeLabel}
+            </Badge>
+          </div>
 
-          {/* Industry Selector */}
+          {/* Template Selector */}
           <div className="space-y-2">
-            <Label>Select Industry Template</Label>
+            <Label>Apply a business template</Label>
             <Select value={selectedIndustry} onValueChange={setSelectedIndustry}>
               <SelectTrigger>
-                <SelectValue placeholder="Choose an industry..." />
+                <SelectValue placeholder="Choose a template..." />
               </SelectTrigger>
               <SelectContent>
                 {templateOptions.map((option) => (
@@ -89,6 +92,9 @@ export function IndustryTemplateCard() {
                 ))}
               </SelectContent>
             </Select>
+            {templateOptions.length === 0 && (
+              <p className="text-xs text-muted-foreground">No templates available for your business type.</p>
+            )}
           </div>
 
           {/* Template Preview Info */}
@@ -100,6 +106,9 @@ export function IndustryTemplateCard() {
                   {selectedTemplate.icon} {selectedTemplate.name} Template
                 </span>
               </div>
+              <p className="text-xs text-muted-foreground">
+                This template includes:
+              </p>
               <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                 <div>
                   <span className="font-medium">{selectedTemplate.defaults.services.length}</span>{" "}
@@ -122,9 +131,6 @@ export function IndustryTemplateCard() {
                   policies
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground italic">
-                Mode: {selectedTemplate.business_mode}
-              </p>
             </div>
           )}
 
@@ -135,7 +141,7 @@ export function IndustryTemplateCard() {
             className="w-full"
           >
             <Sparkles className="h-4 w-4 mr-2" />
-            Apply Industry Template
+            Apply Template
           </Button>
 
           <p className="text-xs text-muted-foreground text-center">

@@ -874,3 +874,30 @@ export function getTemplateOptions(): Array<{ value: string; label: string; icon
       icon: t.icon,
     }));
 }
+
+/**
+ * Get template options filtered by business mode
+ * Only shows templates relevant to the user's business type
+ */
+export function getTemplateOptionsForMode(
+  businessMode: string
+): Array<{ value: string; label: string; icon: string }> {
+  const modeTemplateMap: Record<string, string[]> = {
+    food: ["food"],
+    medical: ["medical"],
+    dispatch: ["towing"],
+    service: ["detailing", "other"],
+    general: ["detailing", "towing", "food", "medical", "other"],
+  };
+
+  const allowedKeys = modeTemplateMap[businessMode] || modeTemplateMap.general;
+
+  return Object.values(industryTemplates)
+    .filter((t) => allowedKeys.includes(t.industry_key))
+    .filter((t, i, arr) => arr.findIndex((x) => x.industry_key === t.industry_key) === i) // Dedupe aliases
+    .map((t) => ({
+      value: t.industry_key,
+      label: t.name,
+      icon: t.icon,
+    }));
+}
