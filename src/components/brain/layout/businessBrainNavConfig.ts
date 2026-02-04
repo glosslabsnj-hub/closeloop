@@ -84,7 +84,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
   {
     id: "operations",
     title: "Operations",
-    description: "When & where you work",
+    description: "Business hours",
     icon: Clock,
     section: "hours",
     cards: [
@@ -96,6 +96,26 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
           "Tells callers if you're open or closed",
           "Suggests available booking times",
           "Explains hours when asked",
+        ],
+        defaultCollapsed: false,
+      },
+    ],
+  },
+  {
+    id: "calendar",
+    title: "Calendar",
+    description: "Availability sync",
+    icon: Calendar,
+    section: "availability",
+    cards: [
+      {
+        id: "calendar-sync",
+        title: "Calendar Connections",
+        purpose: "Connect external calendars for real-time availability",
+        usedByAI: [
+          "Checks your calendar before offering appointment times",
+          "Avoids double-booking automatically",
+          "Respects blocked times and buffers",
         ],
         defaultCollapsed: false,
       },
@@ -187,26 +207,6 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
           "Adds wait time to ETAs when you're busy",
           "Manages caller expectations realistically",
         ],
-      },
-    ],
-  },
-  {
-    id: "calendar",
-    title: "Calendar",
-    description: "Availability sync",
-    icon: Calendar,
-    section: "availability",
-    cards: [
-      {
-        id: "calendar-sync",
-        title: "Calendar Connections",
-        purpose: "Connect external calendars for real-time availability",
-        usedByAI: [
-          "Checks your calendar before offering appointment times",
-          "Avoids double-booking automatically",
-          "Respects blocked times and buffers",
-        ],
-        defaultCollapsed: false,
       },
     ],
   },
