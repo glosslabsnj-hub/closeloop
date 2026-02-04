@@ -1507,8 +1507,12 @@ function validateCanonicalPayload(payload: CanonicalPayload): CanonicalPayload {
   payload.order.items = payload.order.items.map(item => ({
     name: item.name ?? "Unknown Item",
     quantity: item.quantity ?? 1,
+    size: item.size ?? null,
+    modifiers: item.modifiers ?? [],
+    special_instructions: item.special_instructions ?? null,
     price_cents: item.price_cents ?? null,
-    modifiers: item.modifiers ?? null,
+    menu_item_id: item.menu_item_id ?? null,
+    matched: item.matched ?? false,
   }));
 
   // Ensure reservation has safe defaults
