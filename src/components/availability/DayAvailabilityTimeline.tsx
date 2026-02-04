@@ -192,12 +192,16 @@ export function DayAvailabilityTimeline({
           </div>
         )}
 
-        {/* Legend */}
-        {!isClosed && busyCount > 0 && (
+        {/* Legend - Always show so users understand the color coding */}
+        {!isClosed && (
           <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
+              <div className="h-2 w-2 rounded-full bg-primary/30 ring-1 ring-primary/50" />
+              <span>Available</span>
+            </div>
+            <div className="flex items-center gap-1">
               <div className="h-2 w-2 rounded-full bg-primary" />
-              <span>Calendar</span>
+              <span>Calendar event</span>
             </div>
             <div className="flex items-center gap-1">
               <div className="h-2 w-2 rounded-full bg-accent" />

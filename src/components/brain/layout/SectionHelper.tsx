@@ -90,13 +90,14 @@ const SECTION_CONTENT: Record<string, SectionContent> = {
     howAIUsesIt: [
       "Checks your calendar before offering appointment times",
       "Avoids double-booking automatically",
-      "Respects buffer times between appointments",
+      "Syncs when you receive new bookings",
     ],
     examples: {
       service: "\"I see we have openings tomorrow at 10 AM and 2 PM. Which works better?\"",
       medical: "\"Dr. Smith has availability next Tuesday at 3 PM. Should I book that?\"",
       general: "\"Let me check what's available... I can offer you Thursday or Friday.\"",
     },
+    speechReadyTip: "Connected calendars sync automatically — you don't need to refresh manually.",
   },
   policies: {
     whatItControls: "Business rules — cancellations, deposits, payment terms, and required questions",

@@ -66,6 +66,11 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Glass morphism colors
+        glass: {
+          DEFAULT: "hsl(var(--glass-bg) / var(--glass-opacity))",
+          border: "hsl(var(--glass-border) / var(--glass-border-opacity))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -81,6 +86,18 @@ export default {
         'glow': '0 0 12px -3px hsl(var(--primary) / 0.25)',
         'glow-lg': '0 0 24px -6px hsl(var(--primary) / 0.3)',
         'inner-soft': 'inset 0 1px 2px 0 rgba(0, 0, 0, 0.1)',
+        // Glass morphism shadows
+        'glass': '0 8px 32px hsl(var(--shadow-dark) / var(--shadow-opacity-dark))',
+        'glass-lg': '0 16px 48px hsl(var(--shadow-dark) / var(--shadow-opacity-dark))',
+        'glass-xl': '0 24px 64px hsl(var(--shadow-dark) / var(--shadow-opacity-dark))',
+        // Neumorphic shadows
+        'neu': '6px 6px 12px hsl(var(--shadow-dark) / var(--shadow-opacity-dark)), -6px -6px 12px hsl(var(--shadow-light) / var(--shadow-opacity-light))',
+        'neu-sm': '3px 3px 6px hsl(var(--shadow-dark) / var(--shadow-opacity-dark)), -3px -3px 6px hsl(var(--shadow-light) / var(--shadow-opacity-light))',
+        'neu-inset': 'inset 4px 4px 8px hsl(var(--shadow-dark) / var(--shadow-opacity-dark)), inset -4px -4px 8px hsl(var(--shadow-light) / var(--shadow-opacity-light))',
+        'neu-inset-sm': 'inset 2px 2px 4px hsl(var(--shadow-dark) / var(--shadow-opacity-dark)), inset -2px -2px 4px hsl(var(--shadow-light) / var(--shadow-opacity-light))',
+        // Inner glow for glass cards
+        'inner-glow': 'inset 0 1px 0 hsl(var(--inner-glow) / var(--inner-glow-opacity))',
+        'inner-glow-strong': 'inset 0 1px 1px hsl(var(--inner-glow) / calc(var(--inner-glow-opacity) * 1.5))',
       },
       keyframes: {
         "accordion-down": {
@@ -123,6 +140,19 @@ export default {
       },
       backdropBlur: {
         xs: '2px',
+        '3xl': '64px',
+        '4xl': '80px',
+      },
+      // Transition durations for smooth animations
+      transitionDuration: {
+        '250': '250ms',
+        '350': '350ms',
+        '400': '400ms',
+      },
+      // Custom timing functions
+      transitionTimingFunction: {
+        'bounce-in': 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+        'smooth': 'cubic-bezier(0.16, 1, 0.3, 1)',
       },
     },
   },

@@ -4,7 +4,7 @@ import { useTerminology } from "@/hooks/useTerminology";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Lock, Loader2 } from "lucide-react";
+import { Lock, Settings } from "lucide-react";
 import { CallContextDebugger } from "@/components/ai/CallContextDebugger";
 import { PlanUpgradeCard } from "@/components/settings/PlanUpgradeCard";
 import { MultiLocationManager } from "@/components/settings/MultiLocationManager";
@@ -12,7 +12,6 @@ import { DeliveryIntegrationsSettings } from "@/components/settings/DeliveryInte
 import { AutomationRulesSettings } from "@/components/settings/AutomationRulesSettings";
 import { DataControlsPanel } from "@/components/settings/DataControlsPanel";
 import { SettingsSidebar, SettingsNavConfig } from "@/components/settings/SettingsSidebar";
-import { SettingsSection } from "@/components/settings/SettingsSection";
 import { MobileSettingsNav } from "@/components/settings/MobileSettingsNav";
 import { BusinessBrainCTA } from "@/components/settings/BusinessBrainCTA";
 import { useFoodMode } from "@/hooks/useFoodMode";
@@ -181,38 +180,62 @@ export default function SettingsPage() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 p-4 md:p-6 lg:p-8 space-y-6">
-        {/* Mobile Navigation */}
-        <MobileSettingsNav
-          activeSection={activeSection}
-          onSectionChange={setActiveSection}
-          config={navConfig}
-        />
+      <main className="flex-1 min-w-0">
+        {/* Page Header - Sticky */}
+        <header className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm py-6 px-6 md:px-8 lg:px-12 border-b border-white/[0.04]">
+          {/* Mobile Navigation */}
+          <div className="md:hidden mb-4">
+            <MobileSettingsNav
+              activeSection={activeSection}
+              onSectionChange={setActiveSection}
+              config={navConfig}
+            />
+          </div>
 
-        {/* Business Brain CTA Banner */}
-        <BusinessBrainCTA />
-
-        {/* Section Header + Content */}
-        <SettingsSection title={currentMeta.title} description={currentMeta.description}>
-          {renderSectionContent()}
-        </SettingsSection>
-
-        {/* Account Access - Always visible at bottom */}
-        <Card className="border-muted">
-          <CardHeader>
-            <CardTitle className="text-foreground">Account Access</CardTitle>
-          </CardHeader>
-          <CardContent className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Sign out of your account</p>
-              <p className="text-sm text-muted-foreground">You can sign back in anytime</p>
+          <div className="flex items-center gap-2.5">
+            <div className="flex-shrink-0 text-muted-foreground">
+              <Settings className="h-5 w-5" />
             </div>
-            <Button variant="outline" onClick={signOut}>
-              <Lock className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
-          </CardContent>
-        </Card>
+            <div>
+              <h1 className="text-xl font-semibold tracking-tight text-foreground">
+                {currentMeta.title}
+              </h1>
+              {currentMeta.description && (
+                <p className="text-sm text-muted-foreground/70 mt-0.5">
+                  {currentMeta.description}
+                </p>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* Content */}
+        <div className="px-6 md:px-8 lg:px-12 py-6 space-y-6 max-w-4xl">
+          {/* Business Brain CTA Banner */}
+          <BusinessBrainCTA />
+
+          {/* Section Content */}
+          <div className="space-y-6">
+            {renderSectionContent()}
+          </div>
+
+          {/* Account Access - Always visible at bottom */}
+          <Card className="border-white/[0.06]">
+            <CardHeader>
+              <CardTitle className="text-foreground">Account Access</CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Sign out of your account</p>
+                <p className="text-sm text-muted-foreground">You can sign back in anytime</p>
+              </div>
+              <Button variant="outline" onClick={signOut}>
+                <Lock className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </main>
     </div>
   );

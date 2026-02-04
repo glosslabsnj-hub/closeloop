@@ -16,10 +16,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { 
-  Truck, 
-  MapPin, 
-  Clock, 
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
+import {
+  Truck,
+  MapPin,
+  Clock,
   User,
   Phone,
   AlertTriangle,
@@ -27,7 +29,6 @@ import {
   Navigation,
   Plus,
   Loader2,
-  Info,
   HelpCircle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -149,17 +150,18 @@ export default function DispatchPage() {
 
   return (
     <TooltipProvider>
-      <div className="p-4 md:p-6 lg:p-8 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="page-header mb-0">
-            <h1 className="page-title">Dispatch Queue</h1>
-            <p className="page-subtitle">Track and dispatch service calls to your team</p>
-          </div>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            New Job
-          </Button>
-        </div>
+      <PageContainer maxWidth="xl">
+        <PageHeader
+          icon={<Truck className="h-5 w-5" />}
+          title="Dispatch Queue"
+          description="Track and dispatch service calls to your team"
+          action={
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              New Job
+            </Button>
+          }
+        />
 
         {/* Urgent Alert with Tooltip */}
         {urgentJobs.length > 0 && (
@@ -498,7 +500,7 @@ export default function DispatchPage() {
             </Table>
           </CardContent>
         </Card>
-      </div>
+      </PageContainer>
     </TooltipProvider>
   );
 }

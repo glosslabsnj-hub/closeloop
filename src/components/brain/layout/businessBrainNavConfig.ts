@@ -201,7 +201,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
       },
       {
         id: "busyness",
-        title: "Current Workload",
+        title: "Busy Level",
         purpose: "Adjust wait times based on how busy you are right now",
         usedByAI: [
           "Adds wait time to ETAs when you're busy",
@@ -249,8 +249,8 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
       },
       {
         id: "booking-delivery",
-        title: "Booking Delivery",
-        purpose: "Where new bookings get sent",
+        title: "Where Bookings Go",
+        purpose: "Where new bookings get sent after confirmation",
         usedByAI: [
           "Routes confirmed bookings to your preferred destination",
         ],
@@ -268,8 +268,8 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
       },
       {
         id: "dispatch-delivery",
-        title: "Dispatch Delivery",
-        purpose: "Where new jobs get routed",
+        title: "Where Jobs Go",
+        purpose: "Where new jobs get routed after booking",
         usedByAI: [
           "Sends new jobs to your dispatch queue or system",
         ],
@@ -371,8 +371,8 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
       },
       {
         id: "intelligence",
-        title: "Intelligence Settings",
-        purpose: "Advanced AI behavior tuning",
+        title: "AI Memory & Learning",
+        purpose: "How your AI remembers and adapts",
         usedByAI: [
           "Controls memory, learning, and adaptation features",
         ],

@@ -8,13 +8,15 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Phone, Search, Pencil, Loader2, ExternalLink, AlertTriangle } from "lucide-react";
@@ -239,19 +241,17 @@ export default function CallsPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="page-header mb-0">
-          <h1 className="page-title">Calls</h1>
-          <p className="page-subtitle">
-            All AI-handled calls with extracted information
-          </p>
-        </div>
-        <Badge variant="muted" className="text-base px-3 py-1 w-fit">
-          {deduplicatedCalls.length} Contacts
-        </Badge>
-      </div>
+    <PageContainer maxWidth="xl">
+      <PageHeader
+        icon={<Phone className="h-5 w-5" />}
+        title="Calls"
+        description="All AI-handled calls with extracted information"
+        badge={
+          <Badge variant="muted" className="text-base px-3 py-1">
+            {deduplicatedCalls.length} Contacts
+          </Badge>
+        }
+      />
 
       {/* Info banner for calls awaiting data */}
       {deduplicatedCalls.some(c => !c.summary && !c.ended_at) && (
@@ -452,7 +452,7 @@ export default function CallsPage() {
           }}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }
 

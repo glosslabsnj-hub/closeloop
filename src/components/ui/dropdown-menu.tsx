@@ -45,10 +45,17 @@ const DropdownMenuSubContent = React.forwardRef<
   <DropdownMenuPrimitive.SubContent
     ref={ref}
     className={cn(
-      "z-[100] min-w-[8rem] overflow-hidden rounded-lg p-1.5 text-popover-foreground",
-      "bg-popover border border-border/70",
-      "shadow-soft-lg",
-      "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+      "z-[100] min-w-[8rem] overflow-hidden rounded-xl p-1.5 text-popover-foreground",
+      // Glass morphism styling
+      "bg-popover/95 backdrop-blur-2xl",
+      "border border-white/10 dark:border-white/[0.06]",
+      "shadow-[0_16px_48px_rgba(0,0,0,0.2),inset_0_1px_0_hsl(var(--inner-glow)/var(--inner-glow-opacity))]",
+      // Animations
+      "data-[state=open]:animate-in data-[state=closed]:animate-out",
+      "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+      "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2",
+      "data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
       className,
     )}
     {...props}
@@ -67,10 +74,17 @@ const DropdownMenuContent = React.forwardRef<
       collisionPadding={collisionPadding}
       avoidCollisions={true}
       className={cn(
-        "z-[100] min-w-[8rem] overflow-hidden rounded-lg p-1.5 text-popover-foreground",
-        "bg-popover border border-border/70",
-        "shadow-soft-lg",
-        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+        "z-[100] min-w-[8rem] overflow-hidden rounded-xl p-1.5 text-popover-foreground",
+        // Glass morphism styling
+        "bg-popover/95 backdrop-blur-2xl",
+        "border border-white/10 dark:border-white/[0.06]",
+        "shadow-[0_16px_48px_rgba(0,0,0,0.2),inset_0_1px_0_hsl(var(--inner-glow)/var(--inner-glow-opacity))]",
+        // Animations
+        "data-[state=open]:animate-in data-[state=closed]:animate-out",
+        "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+        "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+        "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2",
+        "data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
         className,
       )}
       {...props}
@@ -88,9 +102,9 @@ const DropdownMenuItem = React.forwardRef<
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center rounded-md px-2.5 py-2 text-sm outline-none transition-colors duration-100",
+      "relative flex cursor-default select-none items-center rounded-lg px-2.5 py-2 text-sm outline-none transition-all duration-150",
       "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-      "focus:bg-muted focus:text-foreground",
+      "focus:bg-muted/60 focus:text-foreground",
       inset && "pl-8",
       className,
     )}

@@ -6,7 +6,6 @@ import { useTerminology } from "@/hooks/useTerminology";
 import { useKnowledgeConflicts } from "@/hooks/useKnowledgeConflicts";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DropdownMenu,
@@ -24,31 +23,28 @@ import {
 import {
   LayoutDashboard,
   MessageSquare,
-  Users,
   Calendar,
   Settings,
   LogOut,
   Phone,
-  PhoneCall,
   Bot,
   Route,
-  Briefcase,
   FlaskConical,
   Lock,
   CreditCard,
   Truck,
   UtensilsCrossed,
-  BookOpen,
   Clock,
   Cake,
   Stethoscope,
   HelpCircle,
-  AlertTriangle,
-  PanelLeft,
-  PanelLeftClose,
+  Search,
+  Menu,
+  X,
+  Command,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AdminModeSwitcher } from "@/components/admin/AdminModeSwitcher";
 import { AdminTenantSwitcher } from "@/components/admin/AdminTenantSwitcher";
 import { AdminModeSelector } from "@/components/admin/AdminModeSelector";
@@ -58,31 +54,11 @@ interface NavItem {
   href: string;
   label: string;
   icon: React.ElementType;
-  requiredModules?: string[];
-  dynamicLabelKey?: "bookingsPageTitle" | "servicesPageTitle";
+  badge?: number;
 }
 
-const baseNavItems: NavItem[] = [
-  { href: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/app/inbox", label: "Inbox", icon: MessageSquare },
-  { href: "/app/bookings", label: "Bookings", icon: Calendar, requiredModules: ["booking"], dynamicLabelKey: "bookingsPageTitle" },
-  { href: "/app/dispatch", label: "Dispatch", icon: Truck, requiredModules: ["dispatch_queue"] },
-  { href: "/app/orders", label: "Orders", icon: UtensilsCrossed, requiredModules: ["food_orders"] },
-  { href: "/app/reservations", label: "Reservations", icon: Clock, requiredModules: ["reservations"] },
-  { href: "/app/catering", label: "Catering", icon: Cake, requiredModules: ["catering"] },
-  { href: "/app/medical-intake", label: "Medical Intake", icon: Stethoscope, requiredModules: ["medical_intake"] },
-  { href: "/app/business-brain", label: "Business Brain", icon: Bot },
-  { href: "/app/integrations", label: "Integrations", icon: Route },
-  { href: "/app/simulator", label: "Simulator", icon: FlaskConical },
-  { href: "/app/help", label: "Help Center", icon: HelpCircle },
-  { href: "/app/settings", label: "Settings", icon: Settings },
-];
-
 // Routes that are always accessible (even without subscription)
-const alwaysAccessibleRoutes = [
-  "/app/settings",
-  "/app/go-live",
-];
+const alwaysAccessibleRoutes = ["/app/settings", "/app/go-live"];
 
 function AppLayoutContent() {
   const { user, tenant, effectiveTenant, signOut, loading, hasActiveSubscription, isSuperAdmin } = useAuth();
@@ -92,138 +68,96 @@ function AppLayoutContent() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Sidebar collapse state with localStorage persistence
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    return localStorage.getItem('sidebar-collapsed') === 'true';
-  });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarHovered, setSidebarHovered] = useState(false);
 
-  // Focus mode state (from Business Brain)
-  const [focusMode, setFocusMode] = useState(() => {
-    return localStorage.getItem('business-brain-focus-mode') === 'true';
-  });
-
-  const toggleSidebar = useCallback(() => {
-    const newState = !sidebarCollapsed;
-    setSidebarCollapsed(newState);
-    localStorage.setItem('sidebar-collapsed', String(newState));
-  }, [sidebarCollapsed]);
-
-  // Auto-collapse sidebar when entering Business Brain
-  const isBusinessBrain = location.pathname === "/app/business-brain";
-  useEffect(() => {
-    if (isBusinessBrain && !sidebarCollapsed) {
-      setSidebarCollapsed(true);
-      localStorage.setItem('sidebar-collapsed', 'true');
-    }
-  }, [isBusinessBrain]);
-
-  // Listen for focus mode changes from Business Brain
-  useEffect(() => {
-    const handleFocusMode = (e: CustomEvent) => {
-      setFocusMode(e.detail);
-    };
-    window.addEventListener('business-brain-focus-mode', handleFocusMode as EventListener);
-    return () => window.removeEventListener('business-brain-focus-mode', handleFocusMode as EventListener);
-  }, []);
-
-  // Keyboard shortcut: Ctrl/Cmd + B to toggle sidebar
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
-        e.preventDefault();
-        toggleSidebar();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [toggleSidebar]);
-
-  // Hide sidebar completely in focus mode on Business Brain
-  const hideSidebar = isBusinessBrain && focusMode;
-
-  // Super admins bypass subscription gating for testing
   const effectiveHasSubscription = isSuperAdmin || hasActiveSubscription;
-
-  // For super-admin testing, use the effective tenant everywhere in the app shell.
   const displayTenant = isSuperAdmin ? (effectiveTenant ?? tenant) : tenant;
 
-  // Filter nav items based on enabled modules and apply dynamic labels
-  const navItems = useMemo(() => {
-    return baseNavItems
-      .filter(item => {
-        if (!item.requiredModules) return true;
-        return item.requiredModules.some(mod => enabledModules.includes(mod));
-      })
-      .map(item => ({
-        ...item,
-        label: item.dynamicLabelKey ? terms[item.dynamicLabelKey] : item.label,
-      }));
-  }, [enabledModules, terms]);
-
-  // Get priority mobile nav items based on business mode
-  const mobileNavItems = useMemo(() => {
-    const prioritized: NavItem[] = [
-      { href: "/app/dashboard", label: "Home", icon: LayoutDashboard },
+  // Flatten navigation - no groups, just a clean list
+  const navItems = useMemo<NavItem[]>(() => {
+    const items: NavItem[] = [
+      { href: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/app/inbox", label: "Inbox", icon: MessageSquare },
     ];
 
-    // Add mode-specific priority items
-    const businessMode = (displayTenant as any)?.business_mode || "service";
-    
-    if (businessMode === "food" && enabledModules.includes("food_orders")) {
-      prioritized.push({ href: "/app/orders", label: terms.bookingsPageTitle, icon: UtensilsCrossed });
-    } else if (businessMode === "dispatch" && enabledModules.includes("dispatch_queue")) {
-      prioritized.push({ href: "/app/dispatch", label: terms.bookingsPageTitle, icon: Truck });
-    } else if (businessMode === "medical" && enabledModules.includes("booking")) {
-      prioritized.push({ href: "/app/bookings", label: terms.bookingsPageTitle, icon: Calendar });
-    } else if (enabledModules.includes("booking")) {
-      prioritized.push({ href: "/app/bookings", label: terms.bookingsPageTitle, icon: Calendar });
+    // Add enabled modules
+    if (enabledModules.includes("booking")) {
+      items.push({ href: "/app/bookings", label: terms.bookingsPageTitle || "Bookings", icon: Calendar });
+    }
+    if (enabledModules.includes("dispatch_queue")) {
+      items.push({ href: "/app/dispatch", label: "Dispatch", icon: Truck });
+    }
+    if (enabledModules.includes("food_orders")) {
+      items.push({ href: "/app/orders", label: "Orders", icon: UtensilsCrossed });
+    }
+    if (enabledModules.includes("reservations")) {
+      items.push({ href: "/app/reservations", label: "Reservations", icon: Clock });
+    }
+    if (enabledModules.includes("catering")) {
+      items.push({ href: "/app/catering", label: "Catering", icon: Cake });
+    }
+    if (enabledModules.includes("medical_intake")) {
+      items.push({ href: "/app/medical-intake", label: "Patients", icon: Stethoscope });
     }
 
-    // Always include Inbox (unified: messages, calls, leads)
-    prioritized.push({ href: "/app/inbox", label: "Inbox", icon: MessageSquare });
+    // Configure items
+    items.push({ href: "/app/business-brain", label: "Business Brain", icon: Bot, badge: conflictsCount || undefined });
+    items.push({ href: "/app/integrations", label: "Integrations", icon: Route });
+    items.push({ href: "/app/simulator", label: "Test Calls", icon: FlaskConical });
 
-    // Add settings as last item
-    prioritized.push({ href: "/app/settings", label: "Settings", icon: Settings });
+    return items;
+  }, [enabledModules, terms, conflictsCount]);
 
-    return prioritized.slice(0, 5); // Max 5 items for mobile nav
+  const bottomNavItems: NavItem[] = [
+    { href: "/app/help", label: "Help", icon: HelpCircle },
+    { href: "/app/settings", label: "Settings", icon: Settings },
+  ];
+
+  // Mobile nav - simplified
+  const mobileNavItems = useMemo(() => {
+    const items: NavItem[] = [
+      { href: "/app/dashboard", label: "Home", icon: LayoutDashboard },
+      { href: "/app/inbox", label: "Inbox", icon: MessageSquare },
+    ];
+    const businessMode = (displayTenant as any)?.business_mode || "service";
+    if (businessMode === "food" && enabledModules.includes("food_orders")) {
+      items.push({ href: "/app/orders", label: "Orders", icon: UtensilsCrossed });
+    } else if (businessMode === "dispatch" && enabledModules.includes("dispatch_queue")) {
+      items.push({ href: "/app/dispatch", label: "Jobs", icon: Truck });
+    } else if (enabledModules.includes("booking")) {
+      items.push({ href: "/app/bookings", label: terms.bookingsPageTitle || "Bookings", icon: Calendar });
+    }
+    items.push({ href: "/app/business-brain", label: "Setup", icon: Bot });
+    items.push({ href: "/app/settings", label: "Settings", icon: Settings });
+    return items.slice(0, 5);
   }, [enabledModules, displayTenant, terms]);
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate("/login");
-    }
+    if (!loading && !user) navigate("/login");
   }, [user, loading, navigate]);
 
-  // Redirect users without a tenant to onboarding (skip for super_admin)
   useEffect(() => {
     if (!loading && user && !tenant && !isSuperAdmin) {
-      if (location.pathname !== "/app/onboarding") {
-        navigate("/app/onboarding");
-      }
+      if (location.pathname !== "/app/onboarding") navigate("/app/onboarding");
     }
   }, [loading, user, tenant, isSuperAdmin, location.pathname, navigate]);
 
-  // Check if user needs to go through go-live (with debounce to prevent race conditions)
-  // Super admins bypass this check entirely for testing
   useEffect(() => {
-    if (isSuperAdmin) return; // Super admins can access everything
-    
-    // Skip check if coming from onboarding (give time for subscription to be created)
+    if (isSuperAdmin) return;
     const justCompletedOnboarding = sessionStorage.getItem("selectedPlan") !== null;
-    if (justCompletedOnboarding) {
-      return; // Let onboarding handle the navigation
-    }
-    
+    if (justCompletedOnboarding) return;
     if (!loading && tenant && !hasActiveSubscription) {
-      // If no subscription and not on allowed routes, redirect to go-live
-      const isAllowedRoute = alwaysAccessibleRoutes.some(route => 
-        location.pathname.startsWith(route)
-      );
+      const isAllowedRoute = alwaysAccessibleRoutes.some(route => location.pathname.startsWith(route));
       if (!isAllowedRoute && location.pathname !== "/app/go-live") {
         navigate("/app/go-live");
       }
     }
   }, [loading, tenant, hasActiveSubscription, isSuperAdmin, location.pathname, navigate]);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -238,267 +172,359 @@ function AppLayoutContent() {
     );
   }
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
-  // Check if current route is accessible (super admins can access everything)
-  const isRouteAccessible = effectiveHasSubscription || 
-    alwaysAccessibleRoutes.some(route => location.pathname.startsWith(route));
+  const isRouteAccessible = effectiveHasSubscription || alwaysAccessibleRoutes.some(route => location.pathname.startsWith(route));
+  const sidebarExpanded = sidebarHovered;
+
+  const NavLink = ({ item }: { item: NavItem }) => {
+    const Icon = item.icon;
+    const isActive = location.pathname === item.href;
+    const isLocked = !effectiveHasSubscription && !alwaysAccessibleRoutes.some(route => item.href.startsWith(route));
+
+    return (
+      <Tooltip delayDuration={sidebarExpanded ? 1000 : 0}>
+        <TooltipTrigger asChild>
+          <Link
+            to={isLocked ? "/app/go-live" : item.href}
+            className={cn(
+              "group relative flex items-center rounded-lg transition-all duration-200",
+              sidebarExpanded ? "px-3 py-2.5 gap-3" : "p-2.5 justify-center",
+              isActive
+                ? "bg-white/[0.08] text-foreground"
+                : isLocked
+                  ? "text-muted-foreground/30 cursor-not-allowed"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]"
+            )}
+          >
+            <Icon className={cn("h-[18px] w-[18px] shrink-0", isActive && "text-primary")} />
+
+            {sidebarExpanded && (
+              <span className="text-[13px] font-medium truncate">{item.label}</span>
+            )}
+
+            {item.badge && item.badge > 0 && (
+              <span className={cn(
+                "flex items-center justify-center rounded-full bg-destructive text-destructive-foreground font-semibold",
+                sidebarExpanded
+                  ? "ml-auto h-5 min-w-5 px-1.5 text-[10px]"
+                  : "absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 text-[9px]"
+              )}>
+                {item.badge}
+              </span>
+            )}
+
+            {isLocked && sidebarExpanded && (
+              <Lock className="ml-auto h-3.5 w-3.5 opacity-40" />
+            )}
+          </Link>
+        </TooltipTrigger>
+        {!sidebarExpanded && (
+          <TooltipContent side="right" sideOffset={8}>
+            {item.label}
+          </TooltipContent>
+        )}
+      </Tooltip>
+    );
+  };
 
   return (
     <TooltipProvider delayDuration={0}>
-      <div className="min-h-screen app-bg">
-        {/* Admin Mode Switcher Banner */}
-        <AdminModeSwitcher />
-        
-        {/* Top Navigation - Warm, Calm Header */}
-        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm" style={{ borderBottom: '1px solid hsl(var(--warm-signature) / 0.08)' }}>
-          <div className="flex h-14 items-center justify-between px-4 md:px-6">
-            <div className="flex items-center gap-3">
-              {/* Sidebar Toggle Button - Desktop Only */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleSidebar}
-                className="hidden md:flex h-9 w-9 text-muted-foreground/60 hover:text-foreground/80"
-                aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-              >
-                {sidebarCollapsed ? (
-                  <PanelLeft className="h-4 w-4" />
-                ) : (
-                  <PanelLeftClose className="h-4 w-4" />
-                )}
-              </Button>
-              
-              <Link to="/app/dashboard" className="flex items-center gap-2.5 hover:opacity-85 transition-opacity">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: 'hsl(var(--warm-signature) / 0.1)' }}>
-                  <Phone className="h-4 w-4" style={{ color: 'hsl(var(--warm-signature) / 0.7)' }} />
-                </div>
-                <span className="font-medium text-sm hidden sm:inline truncate max-w-[160px] text-foreground/85">{displayTenant?.name || "CloseLoop"}</span>
-              </Link>
+      <div className="min-h-screen bg-background flex">
+        {/* Desktop Sidebar - Linear/Notion style */}
+        <aside
+          onMouseEnter={() => setSidebarHovered(true)}
+          onMouseLeave={() => setSidebarHovered(false)}
+          className={cn(
+            "hidden md:flex flex-col fixed left-0 top-0 bottom-0 z-40",
+            "bg-[hsl(222,25%,7%)] border-r border-white/[0.06]",
+            "transition-all duration-200 ease-out",
+            sidebarExpanded ? "w-56" : "w-[60px]"
+          )}
+        >
+          {/* Logo */}
+          <div className={cn(
+            "flex items-center h-14 border-b border-white/[0.06]",
+            sidebarExpanded ? "px-4 gap-3" : "justify-center"
+          )}>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary shrink-0">
+              <Phone className="h-4 w-4 text-primary-foreground" />
             </div>
+            {sidebarExpanded && (
+              <div className="min-w-0">
+                <p className="text-sm font-semibold truncate">{displayTenant?.name || "CloseLoop"}</p>
+              </div>
+            )}
+          </div>
 
-            {/* Right side controls */}
-            <div className="flex items-center gap-2">
-              {/* Admin Mode Selector and Tenant Switcher - only visible to super admins */}
-              {isSuperAdmin && <AdminModeSelector />}
-              <AdminTenantSwitcher />
-              <NotificationBell />
-              
-              {/* Profile Dropdown - Fixed: Portal with high z-index */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full h-9 w-9">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-muted text-muted-foreground text-xs font-medium">
-                        {user.email?.[0].toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent 
-                  align="end" 
-                  side="bottom"
-                  sideOffset={8}
-                  collisionPadding={16}
-                  avoidCollisions={true}
-                  className="w-56 z-[100]"
-                >
-                  <div className="px-3 py-2.5 border-b border-border/25">
-                    <p className="text-sm font-medium truncate text-foreground/90">{user.email}</p>
-                    <p className="text-xs text-muted-foreground/70 truncate mt-0.5">{displayTenant?.name}</p>
+          {/* Admin Controls - Only for super admins */}
+          {isSuperAdmin && (
+            <div className={cn(
+              "border-b border-white/[0.06]",
+              sidebarExpanded ? "p-3" : "p-2"
+            )}>
+              {sidebarExpanded ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-warning mb-2">
+                    <FlaskConical className="h-3.5 w-3.5" />
+                    <span className="text-[11px] font-semibold uppercase tracking-wider">Admin Testing</span>
                   </div>
-                  <DropdownMenuItem onClick={() => navigate("/app/settings")} className="cursor-pointer py-2.5">
-                    <Settings className="mr-2.5 h-4 w-4 opacity-50" />
-                    Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="text-destructive/80 cursor-pointer py-2.5">
-                    <LogOut className="mr-2.5 h-4 w-4" />
-                    Sign out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  <AdminModeSelector />
+                  <AdminTenantSwitcher />
+                </div>
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex justify-center p-2 rounded-lg bg-warning/10">
+                      <FlaskConical className="h-4 w-4 text-warning" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" sideOffset={8}>
+                    <span className="text-warning font-medium">Admin Mode</span>
+                    <p className="text-xs text-muted-foreground">Hover to expand controls</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
             </div>
+          )}
+
+          {/* Admin Mode Banner */}
+          <AdminModeSwitcher />
+
+          {/* Search - Cmd+K style teaser */}
+          <div className={cn("p-2", sidebarExpanded ? "px-3" : "")}>
+            <button
+              className={cn(
+                "w-full flex items-center gap-2 rounded-lg text-muted-foreground/60 hover:text-muted-foreground transition-colors",
+                sidebarExpanded
+                  ? "px-3 py-2 bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05]"
+                  : "p-2.5 justify-center hover:bg-white/[0.04]"
+              )}
+            >
+              <Search className="h-4 w-4 shrink-0" />
+              {sidebarExpanded && (
+                <>
+                  <span className="text-[13px]">Search...</span>
+                  <kbd className="ml-auto text-[10px] bg-white/[0.06] px-1.5 py-0.5 rounded font-mono">
+                    <Command className="h-2.5 w-2.5 inline mr-0.5" />K
+                  </kbd>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Main Navigation */}
+          <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
+            {navItems.map((item) => (
+              <NavLink key={item.href} item={item} />
+            ))}
+          </nav>
+
+          {/* Divider */}
+          <div className="mx-3 h-px bg-white/[0.06]" />
+
+          {/* Bottom Navigation */}
+          <nav className="p-2 space-y-0.5">
+            {bottomNavItems.map((item) => (
+              <NavLink key={item.href} item={item} />
+            ))}
+          </nav>
+
+          {/* User Section */}
+          <div className={cn(
+            "p-2 border-t border-white/[0.06]",
+            sidebarExpanded ? "px-3" : ""
+          )}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className={cn(
+                    "w-full flex items-center gap-3 rounded-lg transition-colors hover:bg-white/[0.04]",
+                    sidebarExpanded ? "px-2 py-2" : "p-2 justify-center"
+                  )}
+                >
+                  <Avatar className="h-7 w-7 shrink-0">
+                    <AvatarFallback className="bg-primary/20 text-primary text-xs font-semibold">
+                      {user.email?.[0].toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  {sidebarExpanded && (
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className="text-[13px] font-medium truncate">{user.email}</p>
+                    </div>
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="right" align="end" className="w-56 mb-2">
+                <div className="px-3 py-2.5 border-b border-border/50">
+                  <p className="text-sm font-medium truncate">{user.email}</p>
+                  <p className="text-xs text-muted-foreground truncate">{displayTenant?.name}</p>
+                </div>
+                <DropdownMenuItem onClick={() => navigate("/app/settings")} className="cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/app/help")} className="cursor-pointer">
+                  <HelpCircle className="mr-2 h-4 w-4" />
+                  Help
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </aside>
+
+        {/* Mobile Header */}
+        <header className="md:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-background/95 backdrop-blur-lg border-b border-white/[0.06] flex items-center justify-between px-4">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="h-9 w-9"
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
+            <div className="flex items-center gap-2">
+              <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center">
+                <Phone className="h-3.5 w-3.5 text-primary-foreground" />
+              </div>
+              <span className="font-semibold text-sm">{displayTenant?.name || "CloseLoop"}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <NotificationBell />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
+                  <Avatar className="h-7 w-7">
+                    <AvatarFallback className="bg-primary/20 text-primary text-xs">
+                      {user.email?.[0].toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="px-3 py-2.5">
+                  <p className="text-sm font-medium truncate">{user.email}</p>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 
-        {/* Main Content */}
-        <div className="flex">
-          {/* Desktop Sidebar - Warm, Calm Navigation */}
-          {!hideSidebar && (
-            <aside 
-              className={cn(
-                "hidden md:flex flex-col fixed left-0 top-14 bottom-0 transition-all duration-150 ease-out",
-                "bg-sidebar z-40",
-                sidebarCollapsed ? "w-14" : "w-52"
-              )}
-              style={{ borderRight: '1px solid hsl(var(--warm-signature) / 0.06)' }}
-            >
-              <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto scrollbar-thin">
+        {/* Mobile Slide Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden fixed inset-0 z-50">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
+            <aside className="absolute left-0 top-0 bottom-0 w-72 bg-background border-r border-white/[0.06] overflow-y-auto">
+              <div className="p-4 border-b border-white/[0.06] flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                    <Phone className="h-4 w-4 text-primary-foreground" />
+                  </div>
+                  <span className="font-semibold">{displayTenant?.name || "CloseLoop"}</span>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)} className="h-8 w-8">
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <nav className="p-3 space-y-1">
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.href;
-                  const isLocked = !effectiveHasSubscription && 
-                    !alwaysAccessibleRoutes.some(route => item.href.startsWith(route));
-                  const showBadge = item.href === "/app/business-brain" && conflictsCount > 0;
-                  
-                  const navLink = (
+                  return (
                     <Link
                       key={item.href}
-                      to={isLocked ? "/app/go-live" : item.href}
+                      to={item.href}
                       className={cn(
-                        "group flex items-center gap-3 rounded-lg text-sm transition-all duration-100",
-                        sidebarCollapsed ? "px-2.5 py-2.5 justify-center" : "px-3 py-2.5",
-                        isActive
-                          ? "text-foreground"
-                          : isLocked
-                            ? "text-muted-foreground/30 cursor-not-allowed"
-                            : "text-sidebar-foreground/55 hover:text-sidebar-foreground/80"
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium",
+                        isActive ? "bg-white/[0.08] text-foreground" : "text-muted-foreground hover:bg-white/[0.04]"
                       )}
-                      style={isActive ? { 
-                        background: 'hsl(var(--warm-signature) / 0.08)',
-                        boxShadow: 'inset 0 1px 0 hsl(var(--warm-signature) / 0.1)'
-                      } : undefined}
                     >
-                      <Icon className={cn(
-                        "h-[17px] w-[17px] shrink-0 transition-colors duration-100",
-                        isActive ? "text-foreground/85" : "opacity-55"
-                      )} style={isActive ? { color: 'hsl(var(--warm-signature) / 0.75)' } : undefined} />
-                      {!sidebarCollapsed && (
-                        <>
-                          <span className="truncate font-normal">{item.label}</span>
-                          {showBadge && (
-                            <Badge variant="destructive" size="sm" className="ml-auto">
-                              <AlertTriangle className="h-3 w-3" />
-                            </Badge>
-                          )}
-                          {isLocked && <Lock className="h-3.5 w-3.5 ml-auto opacity-30" />}
-                        </>
-                      )}
-                      {sidebarCollapsed && showBadge && (
-                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-destructive/70" />
+                      <Icon className={cn("h-[18px] w-[18px]", isActive && "text-primary")} />
+                      {item.label}
+                      {item.badge && item.badge > 0 && (
+                        <span className="ml-auto h-5 min-w-5 px-1.5 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-semibold">
+                          {item.badge}
+                        </span>
                       )}
                     </Link>
                   );
-
-                  // Wrap in tooltip when collapsed
-                  if (sidebarCollapsed) {
-                    return (
-                      <Tooltip key={item.href}>
-                        <TooltipTrigger asChild>
-                          <div className="relative">
-                            {navLink}
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="right" sideOffset={8}>
-                          {item.label}
-                          {isLocked && " (Locked)"}
-                        </TooltipContent>
-                      </Tooltip>
-                    );
-                  }
-
-                  return navLink;
                 })}
               </nav>
-              
-              {/* Keyboard shortcut hint when expanded */}
-              {!sidebarCollapsed && (
-                <div className="p-3 border-t border-sidebar-border/20">
-                  <p className="text-[11px] text-muted-foreground/40 text-center">
-                    <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted/30 rounded border border-border/20">⌘B</kbd> to collapse
-                  </p>
-                </div>
-              )}
             </aside>
-          )}
+          </div>
+        )}
 
-          {/* Mobile Bottom Nav */}
-          <nav className="md:hidden mobile-nav-floating safe-area-pb">
-            <div className="grid grid-cols-5 h-14">
-              {mobileNavItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = location.pathname === item.href;
-                const isLocked = !effectiveHasSubscription && 
-                  !alwaysAccessibleRoutes.some(route => item.href.startsWith(route));
-                const showBadge = item.href === "/app/dashboard" && conflictsCount > 0;
-                
-                return (
-                  <Link
-                    key={item.href}
-                    to={isLocked ? "/app/go-live" : item.href}
-                    className={cn(
-                      "flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors duration-150 relative min-h-[44px] active:scale-95",
-                      isActive 
-                        ? "text-primary" 
-                        : isLocked 
-                          ? "text-muted-foreground/40" 
-                          : "text-muted-foreground"
-                    )}
-                  >
-                    {isActive && (
-                      <span className="absolute top-0 w-8 h-0.5 rounded-full bg-primary" />
-                    )}
-                    <div className="relative">
-                      <Icon className={cn("h-5 w-5 transition-transform", isActive && "scale-105")} />
-                      {showBadge && (
-                        <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-destructive animate-pulse-soft" />
-                      )}
-                    </div>
-                    <span className="truncate text-[10px]">{item.label}</span>
-                  </Link>
-                );
-              })}
+        {/* Mobile Bottom Nav */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 h-16 bg-background/95 backdrop-blur-lg border-t border-white/[0.06] safe-area-pb">
+          <div className="grid grid-cols-5 h-full">
+            {mobileNavItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className={cn(
+                    "flex flex-col items-center justify-center gap-0.5",
+                    isActive ? "text-primary" : "text-muted-foreground"
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span className="text-[10px] font-medium">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+
+        {/* Main Content */}
+        <main className={cn(
+          "flex-1 min-h-screen",
+          "md:ml-[60px]", // Sidebar width
+          "pt-14 md:pt-0", // Mobile header
+          "pb-16 md:pb-0" // Mobile bottom nav
+        )}>
+          {isRouteAccessible ? (
+            <Outlet />
+          ) : (
+            <div className="p-6 flex items-center justify-center min-h-[60vh]">
+              <Card className="max-w-md text-center">
+                <CardHeader className="pb-4">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-muted mb-4">
+                    <Lock className="h-7 w-7 text-muted-foreground" />
+                  </div>
+                  <CardTitle>Subscription Required</CardTitle>
+                  <CardDescription className="mt-2">
+                    Choose a plan to unlock all features.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Button onClick={() => navigate("/app/go-live")} className="w-full" size="lg">
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Choose a Plan
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
-          </nav>
-
-          {/* Page Content */}
-          <main 
-            className={cn(
-              "flex-1 pb-20 md:pb-0 min-h-[calc(100vh-3.5rem)] transition-all duration-200 ease-out",
-              hideSidebar ? "md:ml-0" : sidebarCollapsed ? "md:ml-14" : "md:ml-56"
-            )}
-          >
-            {isRouteAccessible ? (
-              <Outlet />
-            ) : (
-              <div className="p-6 flex items-center justify-center min-h-[60vh]">
-                <Card className="max-w-md text-center">
-                  <CardHeader className="pb-4">
-                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-muted mb-3">
-                      <Lock className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                    <CardTitle className="text-lg">Subscription Required</CardTitle>
-                    <CardDescription>
-                      Choose a plan to unlock all features and start using CloseLoop.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3 pt-2">
-                    <Button onClick={() => navigate("/app/go-live")} className="w-full">
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      Choose a Plan
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => navigate("/app/settings")}
-                      className="w-full"
-                    >
-                      Billing Settings
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </main>
-        </div>
+          )}
+        </main>
       </div>
     </TooltipProvider>
   );
 }
 
-// Wrap with AdminModeProvider for super admin mode switching
 export function AppLayout() {
   return (
     <AdminModeProvider>

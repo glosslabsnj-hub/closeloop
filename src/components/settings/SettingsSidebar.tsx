@@ -76,8 +76,8 @@ export function SettingsSidebar({ activeSection, onSectionChange, config }: Sett
   ];
 
   return (
-    <aside className="w-64 shrink-0 border-r bg-muted/30 p-4 space-y-6 hidden md:block">
-      <div className="font-semibold text-lg px-3">Settings</div>
+    <aside className="w-64 shrink-0 border-r border-white/[0.06] bg-[hsl(222,25%,8%)] p-4 space-y-6 hidden md:block">
+      <div className="font-semibold text-lg px-3 text-foreground/90">Settings</div>
 
       <nav className="space-y-4">
         {navGroups.map((group) => {
@@ -86,7 +86,7 @@ export function SettingsSidebar({ activeSection, onSectionChange, config }: Sett
 
           return (
             <div key={group.id} className="space-y-1">
-              <div className="text-xs font-semibold px-3 py-1.5 uppercase tracking-wider text-foreground/50">
+              <div className="text-[11px] font-semibold px-3 py-1.5 uppercase tracking-wider text-muted-foreground/60">
                 {group.label}
               </div>
               {visibleItems.map((item) => (
@@ -104,7 +104,7 @@ export function SettingsSidebar({ activeSection, onSectionChange, config }: Sett
 
         {/* Advanced Section - Collapsible */}
         <Collapsible open={advancedOpen || activeSection === "developer"} onOpenChange={setAdvancedOpen}>
-          <CollapsibleTrigger className="flex items-center gap-2 w-full px-3 py-1.5 text-xs font-semibold text-foreground/50 uppercase tracking-wider hover:text-foreground transition-colors">
+          <CollapsibleTrigger className="flex items-center gap-2 w-full px-3 py-1.5 text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider hover:text-foreground transition-colors">
             {advancedOpen || activeSection === "developer" ? (
               <ChevronDown className="h-3 w-3" />
             ) : (

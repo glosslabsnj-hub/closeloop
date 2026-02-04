@@ -22,74 +22,62 @@ export function LiveDashboard() {
   const hasVoice = hasVoiceFeature(subscription?.plan_code);
 
   return (
-    <div className="animate-fade-in">
+    <div className="space-y-8">
       {/* Audio notification manager */}
       <SoundManager />
 
-      {/* ==========================================
-          ENTRY ZONE - Welcoming, breathing space
-          ========================================== */}
-      <div className="entry-zone space-y-5">
-        {/* Unified Alert Banner - consolidates usage, readiness, conflicts, uploads */}
-        <UnifiedAlertBanner />
-      </div>
+      {/* Alerts - Only show if there are issues */}
+      <UnifiedAlertBanner />
 
-      {/* ==========================================
-          FOCUS ZONE - Primary content, the "desk"
-          ========================================== */}
-      <div className="focus-zone">
-        {/* HERO: Agent Status - Main focus of attention */}
-        <div className="work-area mb-10">
-          <DashboardHeroCard />
-        </div>
+      {/* Hero Section - Agent Status */}
+      <section>
+        <DashboardHeroCard />
+      </section>
 
-        {/* Phone & Schedule - Important but secondary */}
-        <div className="space-y-6 mb-12">
+      {/* Quick Setup Items - Phone & Calendar */}
+      {(hasVoice || !isLive) && (
+        <section className="grid gap-4 md:grid-cols-2">
           {hasVoice && <PhoneNumberCard />}
           <ScheduleConnectionCard variant="compact" showIfConnected={false} />
+        </section>
+      )}
+
+      {/* Today's Metrics */}
+      <section>
+        <SectionHeader>Today</SectionHeader>
+        <TodaySnapshot />
+      </section>
+
+      {/* Attention Items */}
+      <NeedsAttentionBanner />
+
+      {/* Main Content Grid */}
+      <section className="grid gap-6 lg:grid-cols-3">
+        {/* Activity Feed - Takes 2 columns */}
+        <div className="lg:col-span-2 space-y-4">
+          <SectionHeader>Recent Activity</SectionHeader>
+          <LiveActivityFeed />
         </div>
 
-        {/* Today's Metrics - Clean, scannable */}
-        <div className="mb-12">
-          <p className="section-label">Today's Activity</p>
-          <TodaySnapshot />
+        {/* Sidebar - Quick Actions & Setup */}
+        <div className="space-y-6">
+          <div>
+            <SectionHeader>Quick Actions</SectionHeader>
+            <QuickActionsCard />
+          </div>
+          <SetupProgressChecklist />
         </div>
+      </section>
 
-        {/* Needs Attention - Consolidated urgent items */}
-        <NeedsAttentionBanner />
-      </div>
-
-      {/* ==========================================
-          SUPPORTING ZONE - Secondary content
-          ========================================== */}
-      <div className="supporting-zone">
-        <div className="grid lg:grid-cols-5 gap-8">
-          {/* Live Activity - Primary supporting content */}
-          <div className="lg:col-span-3">
-            <p className="section-label">Recent Activity</p>
-            <LiveActivityFeed />
-          </div>
-
-          {/* Quick Actions & Setup - Secondary */}
-          <div className="lg:col-span-2 space-y-6">
-            <div>
-              <p className="section-label">Quick Actions</p>
-              <QuickActionsCard />
-            </div>
-            <SetupProgressChecklist />
-          </div>
-        </div>
-
-        {/* Go-Live Checklist - Only show when not live */}
-        {!isLive && (
-          <div className="mt-12">
-            <GoLiveChecklist />
-          </div>
-        )}
-      </div>
+      {/* Go-Live Checklist - Only when not live */}
+      {!isLive && (
+        <section>
+          <GoLiveChecklist />
+        </section>
+      )}
 
       {/* Copilot FAB */}
-      <div className="relative z-30">
+      <div className="fixed bottom-6 right-6 z-30 md:bottom-8 md:right-8">
         {copilotOpen ? (
           <Copilot isOpen={copilotOpen} onClose={() => setCopilotOpen(false)} />
         ) : (
@@ -97,5 +85,14 @@ export function LiveDashboard() {
         )}
       </div>
     </div>
+  );
+}
+
+/** Clean section header */
+function SectionHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider mb-3">
+      {children}
+    </h2>
   );
 }

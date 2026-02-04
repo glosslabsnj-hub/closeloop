@@ -11,11 +11,27 @@ import {
   Loader2,
   ExternalLink,
 } from "lucide-react";
-import { formatDistanceToNow, parseISO } from "date-fns";
+import { formatDistanceToNow, parseISO, differenceInHours } from "date-fns";
 import { useState } from "react";
 import { CalendarConnectionWizard } from "@/components/settings/CalendarConnectionWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+
+// Helper to get contextual sync status messaging
+function getSyncStatus(lastSyncAt: string | null) {
+  if (!lastSyncAt) return { status: "never" as const, message: "Never synced", icon: "warning" };
+
+  const syncDate = parseISO(lastSyncAt);
+  const hoursAgo = differenceInHours(new Date(), syncDate);
+
+  if (hoursAgo < 1) {
+    return { status: "fresh" as const, message: "Up to date", icon: "success" };
+  } else if (hoursAgo < 6) {
+    return { status: "recent" as const, message: `Updated ${formatDistanceToNow(syncDate, { addSuffix: true })}`, icon: "clock" };
+  } else {
+    return { status: "stale" as const, message: `Last sync: ${formatDistanceToNow(syncDate, { addSuffix: true })}`, icon: "warning" };
+  }
+}
 
 export function CalendarConnectionStatus() {
   const { connections, hasConnectedCalendar, isLoading, refetch } = useCalendarConnections();
@@ -139,49 +155,65 @@ export function CalendarConnectionStatus() {
   }
 
   // Connected successfully
+  const syncStatus = getSyncStatus(activeConnection?.last_sync_at || null);
+  const isStale = syncStatus.status === "stale" || syncStatus.status === "never";
+
   return (
     <>
-      <Card className="border-primary/20 bg-primary/5">
+      <Card className={isStale ? "border-warning/30 bg-warning/5" : "border-primary/20 bg-primary/5"}>
         <CardContent className="p-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-4">
-              <div className="p-2 rounded-full bg-primary/10">
-                <CheckCircle2 className="h-6 w-6 text-primary" />
+              <div className={`p-2 rounded-full ${isStale ? "bg-warning/10" : "bg-primary/10"}`}>
+                {isStale ? (
+                  <AlertTriangle className="h-6 w-6 text-warning" />
+                ) : (
+                  <CheckCircle2 className="h-6 w-6 text-primary" />
+                )}
               </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-semibold">
                     Connected to {provider?.name || activeConnection?.provider}
                   </h3>
-                  <Badge variant="secondary" className="text-xs">
-                    <Clock className="h-3 w-3 mr-1" />
-                    {activeConnection?.last_sync_at
-                      ? `Synced ${formatDistanceToNow(parseISO(activeConnection.last_sync_at), { addSuffix: true })}`
-                      : "Never synced"}
+                  <Badge
+                    variant={isStale ? "outline" : "secondary"}
+                    className={`text-xs ${isStale ? "border-warning text-warning" : syncStatus.status === "fresh" ? "text-primary" : ""}`}
+                  >
+                    {syncStatus.icon === "success" && <CheckCircle2 className="h-3 w-3 mr-1" />}
+                    {syncStatus.icon === "clock" && <Clock className="h-3 w-3 mr-1" />}
+                    {syncStatus.icon === "warning" && <AlertTriangle className="h-3 w-3 mr-1" />}
+                    {syncStatus.message}
                   </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Your AI automatically sees your meetings and blocks those times.
+                  {isStale
+                    ? "Your calendar may be out of date. Click Sync Now to refresh."
+                    : "Your AI automatically sees your meetings and blocks those times."}
+                </p>
+                <p className="text-xs text-muted-foreground/70">
+                  Syncs automatically when you receive bookings
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant={isStale ? "default" : "outline"}
+                size="sm"
                 onClick={handleSyncNow}
                 disabled={isSyncing}
+                className={isStale ? "bg-warning hover:bg-warning/90 text-warning-foreground" : ""}
               >
                 {isSyncing ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <RefreshCw className="h-4 w-4" />
                 )}
-                <span className="ml-2 hidden sm:inline">Sync Now</span>
+                <span className="ml-2">Sync Now</span>
               </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setWizardOpen(true)}
               >
                 <ExternalLink className="h-4 w-4" />
