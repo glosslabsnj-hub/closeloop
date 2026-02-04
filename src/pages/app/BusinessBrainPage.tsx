@@ -1,12 +1,11 @@
 /**
  * Business Brain - Centralized hub for ALL business knowledge editing
  *
- * REDESIGN (UI/UX ONLY):
- * ======================
- * - 2-column layout: sticky left nav + right content
- * - Collapsible cards with "Used by AI for" guidance
- * - Mode-aware presentation (ordering/emphasis)
- * - Preserved all existing save handlers and data flows
+ * IMMERSIVE HUB REDESIGN:
+ * =======================
+ * - When landing without ?section=: Show immersive Hub with step cards
+ * - When ?section=X is present: Show the editor for that section
+ * - Preserves all existing save handlers and data flows
  *
  * SECTIONS (8 areas, URL controlled via ?section=):
  * - profile: BusinessProfileEditor + IndustryTemplateCard
@@ -30,20 +29,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
-  Brain, 
-  Building2, 
-  Package, 
-  MapPin, 
-  Calendar, 
-  Shield, 
-  Clock, 
-  Sparkles, 
-  BookOpen, 
-  AlertCircle, 
-  Maximize2, 
-  Minimize2,
+  ArrowLeft,
   Eye,
   Menu,
+  Maximize2, 
+  Minimize2,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
@@ -90,8 +80,10 @@ import {
   SummaryHeader,
   HIPAAWarning,
   BRAIN_CATEGORIES,
-  getVisibleCards,
 } from "@/components/brain/layout";
+
+// Hub components
+import { BusinessBrainHub } from "@/components/brain/hub";
 
 // Explainability components
 import {
@@ -107,31 +99,16 @@ export default function BusinessBrainPage() {
   const { tenant } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const reviewCount = useBrainReviewCount();
-  const { businessMode, enabledModules, hipaaMode } = useTenantConfig();
+  const { businessMode, hipaaMode } = useTenantConfig();
   const { isFoodMode, hasFoodOrders } = useFoodMode();
   
-  // Get section from URL or default to profile
+  // Get section from URL - if no section, show hub
   const sectionParam = searchParams.get("section");
-  const initialSection = VALID_SECTIONS.includes(sectionParam as SectionId) 
+  const activeSection = VALID_SECTIONS.includes(sectionParam as SectionId) 
     ? (sectionParam as SectionId) 
-    : "profile";
+    : null;
   
-  const [activeSection, setActiveSection] = useState<SectionId>(initialSection);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  
-  // Sync URL with active section
-  useEffect(() => {
-    if (activeSection !== sectionParam) {
-      setSearchParams({ section: activeSection }, { replace: true });
-    }
-  }, [activeSection, sectionParam, setSearchParams]);
-  
-  // Handle URL changes (back/forward navigation)
-  useEffect(() => {
-    if (VALID_SECTIONS.includes(sectionParam as SectionId) && sectionParam !== activeSection) {
-      setActiveSection(sectionParam as SectionId);
-    }
-  }, [sectionParam]);
   
   // Focus mode state - persisted to localStorage
   const [focusMode, setFocusMode] = useState(() => {
@@ -160,10 +137,16 @@ export default function BusinessBrainPage() {
   // Preview panel state
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  // Section change handler
+  // Section change handler - navigates to a section editor
   const handleSectionChange = (section: string) => {
-    setActiveSection(section as SectionId);
+    setSearchParams({ section }, { replace: true });
     setMobileNavOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Back to hub handler
+  const handleBackToHub = () => {
+    setSearchParams({}, { replace: true });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -183,8 +166,24 @@ export default function BusinessBrainPage() {
   const isDispatchMode = businessMode === "dispatch";
 
   // Get current category for section title
-  const currentCategory = BRAIN_CATEGORIES.find(c => c.section === activeSection);
+  const currentCategory = activeSection 
+    ? BRAIN_CATEGORIES.find(c => c.section === activeSection)
+    : null;
 
+  // If no section selected, show the hub
+  if (!activeSection) {
+    return (
+      <div className="flex min-h-screen bg-background">
+        <main className="flex-1 overflow-y-auto">
+          <div className="container max-w-4xl py-6 px-4 sm:px-6 lg:px-8">
+            <BusinessBrainHub onNavigateToSection={handleSectionChange} />
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Section editor view
   return (
     <div className="flex min-h-screen bg-background">
       {/* Preview Panel (Sheet) */}
@@ -209,20 +208,31 @@ export default function BusinessBrainPage() {
         <div className="container max-w-4xl py-6 px-4 sm:px-6 lg:px-8">
           {/* Mobile Header */}
           <div className="lg:hidden flex items-center justify-between mb-4">
-            <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Menu className="h-4 w-4" />
-                  {currentCategory?.title || "Menu"}
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-72 p-0">
-                <BusinessBrainNav
-                  activeSection={activeSection}
-                  onSectionChange={handleSectionChange}
-                />
-              </SheetContent>
-            </Sheet>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBackToHub}
+                className="gap-1"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Hub
+              </Button>
+              <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Menu className="h-4 w-4" />
+                    {currentCategory?.title || "Menu"}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-72 p-0">
+                  <BusinessBrainNav
+                    activeSection={activeSection}
+                    onSectionChange={handleSectionChange}
+                  />
+                </SheetContent>
+              </Sheet>
+            </div>
             <Button
               variant="ghost"
               size="sm"
@@ -236,18 +246,30 @@ export default function BusinessBrainPage() {
 
           {/* Desktop Header */}
           <div className="hidden lg:flex items-center justify-between mb-6">
-            <div>
-              <div className="flex items-center gap-3">
-                {currentCategory && (
-                  <>
-                    <currentCategory.icon className="h-6 w-6 text-primary" />
-                    <h1 className="text-2xl font-bold">{currentCategory.title}</h1>
-                  </>
-                )}
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBackToHub}
+                className="gap-1"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Hub
+              </Button>
+              <div className="h-6 w-px bg-border" />
+              <div>
+                <div className="flex items-center gap-3">
+                  {currentCategory && (
+                    <>
+                      <currentCategory.icon className="h-6 w-6 text-primary" />
+                      <h1 className="text-2xl font-bold">{currentCategory.title}</h1>
+                    </>
+                  )}
+                </div>
+                <p className="text-muted-foreground mt-1">
+                  {currentCategory?.description}
+                </p>
               </div>
-              <p className="text-muted-foreground mt-1">
-                {currentCategory?.description}
-              </p>
             </div>
             <div className="flex items-center gap-2">
               <Button
