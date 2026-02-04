@@ -117,8 +117,21 @@ export default function BusinessBrainPage() {
       setSearchParams({ section: activeSection }, { replace: true });
     }
 
-    if (focusHash && window.location.hash.replace(/^#/, "") !== focusHash) {
-      window.location.hash = focusHash;
+    // Handle hash scrolling - either from legacy mapping or direct URL hash
+    const hashToUse = focusHash || window.location.hash.replace(/^#/, "");
+    if (hashToUse) {
+      // Small delay to ensure elements are rendered
+      setTimeout(() => {
+        const element = document.getElementById(hashToUse);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "start" });
+          // Highlight the card briefly to draw attention
+          element.classList.add("ring-2", "ring-primary", "ring-offset-2");
+          setTimeout(() => {
+            element.classList.remove("ring-2", "ring-primary", "ring-offset-2");
+          }, 2000);
+        }
+      }, 100);
     }
   }, [activeSection, focusHash, legacyTab, normalizedSectionParam, sectionParamRaw, setSearchParams]);
 

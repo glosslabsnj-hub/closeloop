@@ -120,7 +120,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   missing_name_intake: {
     title: "Require customer name",
     reason: "Your AI needs to collect the caller's name for bookings",
-    fixLink: "/app/business-brain?section=policies",
+    fixLink: "/app/business-brain?section=policies#required-questions",
     fixType: "brain",
     fixLabel: "Add Field",
     priority: "p0",
@@ -128,7 +128,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   missing_phone_intake: {
     title: "Require phone number",
     reason: "Your AI needs a callback number to confirm bookings",
-    fixLink: "/app/business-brain?section=policies",
+    fixLink: "/app/business-brain?section=policies#required-questions",
     fixType: "brain",
     fixLabel: "Add Field",
     priority: "p0",
@@ -192,7 +192,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   missing_pickup_intake: {
     title: "Require pickup address",
     reason: "Your AI needs to collect pickup location for dispatch",
-    fixLink: "/app/business-brain?section=policies",
+    fixLink: "/app/business-brain?section=policies#required-questions",
     fixType: "brain",
     fixLabel: "Add Field",
     priority: "p0",
@@ -200,7 +200,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   missing_vehicle_intake: {
     title: "Ask for vehicle type",
     reason: "Vehicle info helps dispatch the right equipment",
-    fixLink: "/app/business-brain?section=policies",
+    fixLink: "/app/business-brain?section=policies#required-questions",
     fixType: "brain",
     fixLabel: "Add Field",
     priority: "p1",
@@ -208,7 +208,7 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   missing_urgency_intake: {
     title: "Ask about urgency",
     reason: "Urgency helps prioritize dispatch queue",
-    fixLink: "/app/business-brain?section=policies",
+    fixLink: "/app/business-brain?section=policies#required-questions",
     fixType: "brain",
     fixLabel: "Add Field",
     priority: "p1",
