@@ -1007,7 +1007,7 @@ export const industryCatalog: IndustryCatalogEntry[] = [
     icon: '🐜',
     tags: ['pest control', 'exterminator', 'bugs', 'rodents', 'termites'],
     services: [
-      { name: 'Initial Inspection', duration: 60, price: 0, priceType: 'free' },
+      { name: 'Initial Inspection', duration: 60, price: 0, priceType: 'quote_only' },
       { name: 'General Pest Treatment', duration: 60, price: 125, priceType: 'starting_at' },
       { name: 'Rodent Control', duration: 90, price: 175, priceType: 'starting_at' },
       { name: 'Termite Treatment', duration: 180, price: 0, priceType: 'quote_only' },
@@ -1049,7 +1049,7 @@ export const industryCatalog: IndustryCatalogEntry[] = [
     services: [
       { name: 'Car Lockout', duration: 30, price: 75, priceType: 'starting_at' },
       { name: 'House Lockout', duration: 30, price: 85, priceType: 'starting_at' },
-      { name: 'Lock Rekey', duration: 30, price: 50, priceType: 'per_lock' },
+      { name: 'Lock Rekey', duration: 30, price: 50, priceType: 'starting_at' },
       { name: 'Lock Change', duration: 45, price: 100, priceType: 'starting_at' },
       { name: 'Key Duplication', duration: 15, price: 5, priceType: 'starting_at' },
       { name: 'Commercial Service', duration: 60, price: 150, priceType: 'starting_at' },

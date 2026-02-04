@@ -45,7 +45,10 @@ export function UnifiedAlertBanner() {
   // Gather alerts from various sources
   const { items: readinessItems, score: readinessScore } = useAIReadiness();
   const { conflicts } = useKnowledgeConflicts();
-  const { pendingUploads } = useKnowledgeUploads();
+  const { uploads, processingCount } = useKnowledgeUploads();
+  
+  // Pending uploads are those still processing or uploading
+  const pendingUploads = uploads.filter(u => u.status === "processing" || u.status === "uploading");
 
   // Usage tracking
   const { planSku, hasVoice, hasSms } = useSubscription(tenant?.id || null);
