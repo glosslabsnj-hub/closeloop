@@ -220,16 +220,16 @@ export const TAB_GUIDANCE: Record<string, (mode: BusinessMode) => TabGuidance> =
   }),
 
   availability: () => ({
-    whatItControls: "Your real-time availability through calendar sync and blocked times.",
+    whatItControls: "Your calendar connections and time blocking for real-time availability.",
     howAIUsesIt: [
-      "Checks your calendar before suggesting times",
-      "Avoids double-booking by seeing existing appointments",
-      "Respects blocked times and buffer periods",
+      "Syncs with your calendar to see real appointments",
+      "Avoids double-booking by checking before offering times",
+      "Respects manually blocked times and buffer periods",
     ],
     commonMistakes: [
       "Not connecting your calendar (AI might double-book)",
       "Forgetting to block personal time",
-      "Not setting buffer time between appointments",
+      "Not granting correct calendar permissions",
     ],
   }),
 

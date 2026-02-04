@@ -112,9 +112,9 @@ const navigationItems: BrainNavItem[] = [
   },
   {
     id: "availability",
-    label: "Availability",
+    label: "Calendar Sync",
     icon: Calendar,
-    description: "Calendar sync and blocked times"
+    description: "Connect calendars and block times"
   },
   {
     id: "policies",
@@ -314,7 +314,10 @@ export default function BusinessBrainPage() {
           />
 
           {/* Setup Checklist */}
-          <BrainSetupChecklist className="mb-6" />
+          <BrainSetupChecklist 
+            className="mb-6" 
+            onNavigateToSection={(section) => setActiveSection(section as SectionId)}
+          />
 
           {/* Profile & Identity Section */}
           {activeSection === "profile" && (
@@ -400,20 +403,18 @@ export default function BusinessBrainPage() {
             </div>
           )}
 
-          {/* Availability Section */}
+          {/* Availability Section - Calendar Sync Only */}
           {activeSection === "availability" && (
             <div>
               <BrainTabHeader
-                title="Availability & Scheduling"
+                title="Calendar & Availability"
                 icon={<Calendar className="h-5 w-5" />}
                 guidance={TAB_GUIDANCE.availability(businessMode)}
                 businessMode={businessMode}
                 onPreviewSection={() => setPreviewOpen(true)}
               />
-              <BusynessRulesEditor />
-              <div className="mt-6">
-                <AvailabilityHub />
-              </div>
+              {/* Calendar sync and blocked times only - no busyness slider */}
+              <AvailabilityHub />
             </div>
           )}
 
