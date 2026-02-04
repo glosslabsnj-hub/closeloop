@@ -100,19 +100,58 @@ export function BusinessHoursManager() {
     }
   };
 
+  const setTypicalBusiness = () => {
+    setHours({
+      monday: { open: "09:00", close: "17:00", closed: false },
+      tuesday: { open: "09:00", close: "17:00", closed: false },
+      wednesday: { open: "09:00", close: "17:00", closed: false },
+      thursday: { open: "09:00", close: "17:00", closed: false },
+      friday: { open: "09:00", close: "17:00", closed: false },
+      saturday: { open: "09:00", close: "17:00", closed: true },
+      sunday: { open: "09:00", close: "17:00", closed: true },
+    });
+  };
+
+  const setRestaurantHours = () => {
+    setHours({
+      monday: { open: "11:00", close: "22:00", closed: false },
+      tuesday: { open: "11:00", close: "22:00", closed: false },
+      wednesday: { open: "11:00", close: "22:00", closed: false },
+      thursday: { open: "11:00", close: "22:00", closed: false },
+      friday: { open: "11:00", close: "23:00", closed: false },
+      saturday: { open: "11:00", close: "23:00", closed: false },
+      sunday: { open: "12:00", close: "21:00", closed: false },
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Preview */}
       <PreviewSentence sentence={getTodayHoursPreview(hours)} />
 
-      {/* Quick toggle */}
-      <div className="flex justify-end">
+      {/* Quick presets */}
+      <div className="flex flex-wrap gap-2">
+        <span className="text-sm text-muted-foreground self-center mr-2">Quick fill:</span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={setTypicalBusiness}
+        >
+          9-5 Weekdays
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={setRestaurantHours}
+        >
+          Restaurant Hours
+        </Button>
         <Button
           variant={is24x7 ? "secondary" : "outline"}
           size="sm"
           onClick={toggle24x7}
         >
-          {is24x7 ? "Clear 24/7" : "Set 24/7"}
+          {is24x7 ? "Clear 24/7" : "24/7 Availability"}
         </Button>
       </div>
 

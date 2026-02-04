@@ -476,9 +476,9 @@ export function RequiredQuestionsEditor() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Required Questions</h3>
+          <h3 className="text-lg font-semibold">What AI Collects</h3>
           <p className="text-sm text-muted-foreground">
-            Configure what information your AI must collect for each type of request
+            Choose what info your AI asks for on each type of call
           </p>
         </div>
         {hasChanges && (
@@ -531,13 +531,13 @@ export function RequiredQuestionsEditor() {
                     <div>
                       <CardTitle className="text-base flex items-center gap-2">
                         <AlertCircle className="h-4 w-4 text-rose-400" />
-                        Required Fields
+                        Must Have Before Booking
                         <Badge variant="outline" className="bg-rose-500/10 text-rose-400 border-rose-500/30">
                           {config.required_inputs.length} required
                         </Badge>
                       </CardTitle>
                       <CardDescription>
-                        AI must collect these before completing the {intent}
+                        AI won't complete the {intent} without these
                       </CardDescription>
                     </div>
                     <Button
@@ -579,13 +579,13 @@ export function RequiredQuestionsEditor() {
                     <div>
                       <CardTitle className="text-base flex items-center gap-2">
                         <CheckCircle2 className="h-4 w-4 text-blue-400" />
-                        Optional Fields
+                        Nice to Have
                         <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/30">
                           {config.optional_inputs.length} optional
                         </Badge>
                       </CardTitle>
                       <CardDescription>
-                        AI asks these when relevant but doesn't require them
+                        AI asks when relevant but can proceed without them
                       </CardDescription>
                     </div>
                     <Button
@@ -770,7 +770,7 @@ function FieldEditor({
 
         <div className="grid gap-2">
           <Label htmlFor={`${field.key}-ask`} className="text-xs">
-            How AI Should Ask
+            AI will ask:
           </Label>
           <Textarea
             id={`${field.key}-ask`}
@@ -783,7 +783,7 @@ function FieldEditor({
 
         <div className="grid gap-2">
           <Label htmlFor={`${field.key}-why`} className="text-xs">
-            Why It's Needed
+            You need this because:
           </Label>
           <Textarea
             id={`${field.key}-why`}

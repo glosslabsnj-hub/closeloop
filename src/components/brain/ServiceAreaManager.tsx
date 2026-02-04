@@ -319,7 +319,7 @@ export function ServiceAreaManager() {
         <CardContent className="space-y-6">
           {/* Coverage Mode */}
           <div className="space-y-2">
-            <Label>Coverage Mode</Label>
+            <Label>How do you define your service area?</Label>
             <Select
               value={formData.mode}
               onValueChange={(value) => updateForm({ mode: value as CoverageMode })}
@@ -331,25 +331,25 @@ export function ServiceAreaManager() {
                 <SelectItem value="radius">
                   <div className="flex items-center gap-2">
                     <Radius className="h-4 w-4" />
-                    Radius from Base Address
+                    Miles from my location
                   </div>
                 </SelectItem>
                 <SelectItem value="counties">
                   <div className="flex items-center gap-2">
                     <Map className="h-4 w-4" />
-                    Counties
+                    Specific counties
                   </div>
                 </SelectItem>
                 <SelectItem value="zips">
                   <div className="flex items-center gap-2">
                     <Hash className="h-4 w-4" />
-                    ZIP Codes
+                    Specific ZIP codes
                   </div>
                 </SelectItem>
                 <SelectItem value="hybrid">
                   <div className="flex items-center gap-2">
                     <Layers className="h-4 w-4" />
-                    Hybrid (Multiple Criteria)
+                    Combination of the above
                   </div>
                 </SelectItem>
               </SelectContent>
@@ -525,10 +525,10 @@ export function ServiceAreaManager() {
 
             <div className="flex items-center justify-between rounded-lg border p-4">
               <div className="space-y-0.5">
-                <Label htmlFor="no-cross-state">Do Not Cross State Lines</Label>
+                <Label htmlFor="no-cross-state">Stay within my state only</Label>
                 <p className="text-xs text-muted-foreground">
-                  Only serve locations in your base state ({formData.base_address.state || "not set"})
-                  {formData.include.states.length > 0 && " plus explicitly included states"}
+                  AI will decline jobs across state lines (currently: {formData.base_address.state || "state not set"})
+                  {formData.include.states.length > 0 && " — plus states you've explicitly included"}
                 </p>
               </div>
               <Switch
@@ -544,7 +544,7 @@ export function ServiceAreaManager() {
           {/* Out-of-Area Message / Notes */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="notes">Out-of-Area Message</Label>
+              <Label htmlFor="notes">What should AI say when someone is outside your area?</Label>
               <SpeechReadyBadge />
             </div>
             <Textarea

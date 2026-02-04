@@ -34,13 +34,14 @@ interface HandoffAttempt {
 const HANDOFF_METHODS: Array<{
   id: string;
   label: string;
+  description: string;
   icon: React.ComponentType<{ className?: string }>;
   always?: boolean;
 }> = [
-  { id: "internal", label: "CloseLoop Calendar", icon: Calendar, always: true },
-  { id: "webhook", label: "Webhook", icon: Webhook, always: false },
-  { id: "email", label: "Email", icon: Mail, always: false },
-  { id: "sms", label: "SMS", icon: Phone, always: false },
+  { id: "internal", label: "Show on CloseLoop calendar", description: "Always saved here first", icon: Calendar, always: true },
+  { id: "webhook", label: "Send to my software (API)", description: "For CRMs, scheduling tools, etc.", icon: Webhook, always: false },
+  { id: "email", label: "Email me", description: "Get an email for each booking", icon: Mail, always: false },
+  { id: "sms", label: "Text me", description: "Get a text for each booking", icon: Phone, always: false },
 ];
 
 export function BookingDeliverySettings() {
@@ -191,9 +192,9 @@ export function BookingDeliverySettings() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Booking Delivery Settings</CardTitle>
+          <CardTitle>Where Bookings Go</CardTitle>
           <CardDescription>
-            Configure how bookings are delivered to your calendar and external systems
+            Choose how you want to receive new bookings
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -226,9 +227,9 @@ export function BookingDeliverySettings() {
           {/* Master Toggle */}
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-base">Enable Booking Handoff</Label>
+              <Label className="text-base">Send bookings somewhere?</Label>
               <p className="text-sm text-muted-foreground">
-                Automatically push bookings to your chosen destinations
+                Turn on to automatically send bookings to your calendar, email, or other tools
               </p>
             </div>
             <Switch checked={enabled} onCheckedChange={setEnabled} />
@@ -236,11 +237,10 @@ export function BookingDeliverySettings() {
 
           {enabled && (
             <>
-              {/* Handoff Methods */}
+              {/* Delivery Options */}
               <div className="space-y-4">
-                <Label className="text-base">Handoff Methods</Label>
                 <div className="grid gap-3">
-                  {HANDOFF_METHODS.map(({ id, label, icon: Icon, always }) => (
+                  {HANDOFF_METHODS.map(({ id, label, description, icon: Icon, always }) => (
                     <div key={id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex items-center gap-3">
                         <Checkbox
@@ -249,9 +249,12 @@ export function BookingDeliverySettings() {
                           onCheckedChange={(checked) => handleMethodToggle(id, !!checked)}
                         />
                         <Icon className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{label}</span>
+                        <div>
+                          <span className="font-medium">{label}</span>
+                          <p className="text-xs text-muted-foreground">{description}</p>
+                        </div>
                         {always && (
-                          <span className="text-xs text-muted-foreground">(always on)</span>
+                          <Badge variant="secondary" className="text-xs">Always on</Badge>
                         )}
                       </div>
                     </div>
@@ -262,19 +265,22 @@ export function BookingDeliverySettings() {
               {/* Webhook Settings */}
               {methods.includes("webhook") && (
                 <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-                  <Label className="text-base">Webhook Configuration</Label>
+                  <Label className="text-base">Connect Your Software</Label>
                   <div className="space-y-3">
                     <div>
-                      <Label htmlFor="webhook-url">Webhook URL</Label>
+                      <Label htmlFor="webhook-url">Your software's URL</Label>
                       <Input
                         id="webhook-url"
                         value={webhookUrl}
                         onChange={(e) => setWebhookUrl(e.target.value)}
                         placeholder="https://your-crm.com/api/bookings"
                       />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Paste the webhook URL from your CRM or scheduling software
+                      </p>
                     </div>
                     <div>
-                      <Label htmlFor="webhook-secret">Webhook Secret (for HMAC signature)</Label>
+                      <Label htmlFor="webhook-secret">Secret key (optional)</Label>
                       <Input
                         id="webhook-secret"
                         type="password"
@@ -283,7 +289,7 @@ export function BookingDeliverySettings() {
                         placeholder={settings?.webhook_secret ? "••••••••" : "your-secret-key"}
                       />
                       <p className="text-xs text-muted-foreground mt-1">
-                        Leave empty to keep existing secret
+                        For secure webhooks — leave empty to keep existing
                       </p>
                     </div>
                     <Button
@@ -306,10 +312,10 @@ export function BookingDeliverySettings() {
               {/* Email Settings */}
               {methods.includes("email") && (
                 <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-                  <Label className="text-base">Email Notification</Label>
+                  <Label className="text-base">Email Notifications</Label>
                   <div className="space-y-3">
                     <div>
-                      <Label htmlFor="notify-email">Notification Email</Label>
+                      <Label htmlFor="notify-email">Send booking emails to</Label>
                       <Input
                         id="notify-email"
                         type="email"
@@ -338,10 +344,10 @@ export function BookingDeliverySettings() {
               {/* SMS Settings */}
               {methods.includes("sms") && (
                 <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-                  <Label className="text-base">SMS Notification</Label>
+                  <Label className="text-base">Text Notifications</Label>
                   <div className="space-y-3">
                     <div>
-                      <Label htmlFor="notify-phone">Notification Phone</Label>
+                      <Label htmlFor="notify-phone">Send booking texts to</Label>
                       <Input
                         id="notify-phone"
                         value={notifyPhone}

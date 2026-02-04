@@ -12,6 +12,14 @@ import { PreviewSentence } from "./layout/BusinessBrainSectionCard";
 const defaultGreeting = "Hi, thanks for calling! How can I help you today?";
 const defaultFallback = "I'm sorry, I didn't quite catch that. Could you please repeat?";
 
+// Industry-specific greeting examples for helper text
+const greetingExamples = {
+  service: "Hi, thanks for calling [Business]! How can I help you today?",
+  food: "Thanks for calling [Business], ready to take your order!",
+  dispatch: "This is [Business] dispatch, do you need a tow?",
+  medical: "Thank you for calling [Practice], how may I direct your call?",
+};
+
 export function AIScriptsEditor() {
   const { tenant } = useAuth();
   const queryClient = useQueryClient();
@@ -93,21 +101,24 @@ export function AIScriptsEditor() {
 
       {/* Greeting */}
       <div className="space-y-2">
-        <Label>Opening Greeting</Label>
+        <Label>How should your AI answer calls?</Label>
         <Textarea
           placeholder={defaultGreeting}
           value={scripts.greeting}
           onChange={(e) => setScripts({ ...scripts, greeting: e.target.value })}
           rows={2}
         />
-        <p className="text-xs text-muted-foreground">
-          First thing your AI says. Leave blank to use default.
-        </p>
+        <div className="text-xs text-muted-foreground space-y-1">
+          <p>First thing callers hear. Leave blank to use default.</p>
+          <p className="text-primary/70">
+            Examples: "{greetingExamples.service}" or "{greetingExamples.food}"
+          </p>
+        </div>
       </div>
 
       {/* Fallback */}
       <div className="space-y-2">
-        <Label>Fallback Response</Label>
+        <Label>What should AI say when confused?</Label>
         <Textarea
           placeholder={defaultFallback}
           value={scripts.fallback}
@@ -115,7 +126,7 @@ export function AIScriptsEditor() {
           rows={2}
         />
         <p className="text-xs text-muted-foreground">
-          What the AI says when it doesn't understand.
+          When AI doesn't understand something, it says this to recover gracefully.
         </p>
       </div>
 

@@ -47,8 +47,8 @@ interface KnowledgeEntry {
 type CategoryType = "policy" | "upsell";
 
 const categoryLabels: Record<CategoryType, { label: string; icon: typeof FileText }> = {
-  policy: { label: "Important Info", icon: FileText },
-  upsell: { label: "Things to Mention", icon: Lightbulb },
+  policy: { label: "Facts AI should know", icon: FileText },
+  upsell: { label: "Things AI should mention", icon: Lightbulb },
 };
 
 export function CustomKnowledgeEditor() {
@@ -223,7 +223,7 @@ export function CustomKnowledgeEditor() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Category</Label>
+                <Label>What kind of info is this?</Label>
                 <Select value={category} onValueChange={(v) => setCategory(v as CategoryType)}>
                   <SelectTrigger>
                     <SelectValue />
@@ -232,13 +232,13 @@ export function CustomKnowledgeEditor() {
                     <SelectItem value="policy">
                       <span className="flex items-center gap-2">
                         <FileText className="h-4 w-4" />
-                        Important Info
+                        Facts AI should know
                       </span>
                     </SelectItem>
                     <SelectItem value="upsell">
                       <span className="flex items-center gap-2">
                         <Lightbulb className="h-4 w-4" />
-                        Things to Mention
+                        Things AI should mention
                       </span>
                     </SelectItem>
                   </SelectContent>
@@ -246,9 +246,9 @@ export function CustomKnowledgeEditor() {
               </div>
 
               <div className="space-y-2">
-                <Label>Title</Label>
+                <Label>Topic</Label>
                 <Input
-                  placeholder="e.g., Warranty Policy"
+                  placeholder="e.g., Warranty Policy, Special Offer"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                 />
@@ -256,15 +256,15 @@ export function CustomKnowledgeEditor() {
             </div>
 
             <div className="space-y-2">
-              <Label>Details</Label>
+              <Label>What should AI know about this?</Label>
               <Textarea
-                placeholder="Tell your AI what it should know..."
+                placeholder="Write it the way you'd explain it to a new employee..."
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 rows={4}
               />
               <p className="text-xs text-muted-foreground">
-                Write naturally — this is exactly how your AI will learn and share this information.
+                Write naturally — your AI will use this info when relevant.
               </p>
             </div>
 

@@ -263,13 +263,14 @@ export function ServiceCatalogEditor() {
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-xs">Duration (minutes)</Label>
+          <Label className="text-xs">How long does this take? (minutes)</Label>
           <Input
             type="number"
             value={formData.duration_minutes}
             onChange={(e) => onChange("duration_minutes", parseInt(e.target.value) || 60)}
             placeholder="60"
           />
+          <p className="text-xs text-muted-foreground">Helps AI suggest realistic timeframes</p>
         </div>
       </div>
 
@@ -285,7 +286,7 @@ export function ServiceCatalogEditor() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="text-xs">Price Type</Label>
+          <Label className="text-xs">How should AI quote this?</Label>
           <Select
             value={formData.price_type}
             onValueChange={(v) => onChange("price_type", v)}
@@ -294,15 +295,15 @@ export function ServiceCatalogEditor() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="fixed">Exact Price</SelectItem>
-              <SelectItem value="starting_at">Starting At</SelectItem>
-              <SelectItem value="quote_only">Needs Quote</SelectItem>
+              <SelectItem value="fixed">Quote exact price</SelectItem>
+              <SelectItem value="starting_at">Quote "starting at" price</SelectItem>
+              <SelectItem value="quote_only">Don't quote - offer callback</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            {formData.price_type === "fixed" && "AI will quote this exact price"}
-            {formData.price_type === "starting_at" && "AI will say 'starting at...'"}
-            {formData.price_type === "quote_only" && "AI will offer to provide a quote"}
+            {formData.price_type === "fixed" && "AI says: \"That's $X\""}
+            {formData.price_type === "starting_at" && "AI says: \"Starting at $X, depending on...\""}
+            {formData.price_type === "quote_only" && "AI says: \"I'd need to have someone call you with a quote\""}
           </p>
         </div>
         <div className="space-y-2">
@@ -324,11 +325,11 @@ export function ServiceCatalogEditor() {
             checked={formData.deposit_required}
             onCheckedChange={(checked) => onChange("deposit_required", checked)}
           />
-          <Label className="text-sm">Require deposit</Label>
+          <Label className="text-sm">Collect deposit to confirm?</Label>
         </div>
         {formData.deposit_required && (
           <div className="flex items-center gap-2">
-            <Label className="text-xs">Amount:</Label>
+            <Label className="text-xs">Deposit ($):</Label>
             <Input
               type="number"
               step="0.01"

@@ -131,12 +131,12 @@ export function BusinessObjectionEditor() {
         <div className="p-4 border rounded-lg bg-secondary/30 space-y-3">
           <p className="font-medium text-sm">Add New Response</p>
           <Input
-            placeholder="When customer says: 'That's too expensive'"
+            placeholder="When someone says... (e.g., 'That's too expensive')"
             value={newObjection}
             onChange={(e) => setNewObjection(e.target.value)}
           />
           <Textarea
-            placeholder="AI responds with..."
+            placeholder="AI should respond... (Write it how you'd say it)"
             value={newResponse}
             onChange={(e) => setNewResponse(e.target.value)}
             rows={3}

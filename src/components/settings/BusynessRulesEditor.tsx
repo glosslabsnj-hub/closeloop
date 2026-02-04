@@ -198,13 +198,13 @@ export function BusynessRulesEditor() {
         <CardContent className="space-y-6">
           <div className="grid gap-4">
             <div className="flex items-center justify-between">
-              <Label>Current Load</Label>
+              <Label>Slide to match your current workload</Label>
               <div className="flex items-center gap-2">
                 <span className="text-2xl font-bold">{config.manual_busyness_pct}%</span>
-                {config.manual_busyness_pct === 0 && <Badge variant="outline" className="text-green-500 border-green-500/30">Free</Badge>}
-                {config.manual_busyness_pct > 0 && config.manual_busyness_pct < 50 && <Badge variant="outline" className="text-blue-500 border-blue-500/30">Light</Badge>}
-                {config.manual_busyness_pct >= 50 && config.manual_busyness_pct < 80 && <Badge variant="outline" className="text-amber-500 border-amber-500/30">Busy</Badge>}
-                {config.manual_busyness_pct >= 80 && <Badge variant="outline" className="text-rose-500 border-rose-500/30">Slammed</Badge>}
+                {config.manual_busyness_pct === 0 && <Badge variant="outline" className="text-green-500 border-green-500/30">Wide Open</Badge>}
+                {config.manual_busyness_pct > 0 && config.manual_busyness_pct < 50 && <Badge variant="outline" className="text-blue-500 border-blue-500/30">Light Day</Badge>}
+                {config.manual_busyness_pct >= 50 && config.manual_busyness_pct < 80 && <Badge variant="outline" className="text-amber-500 border-amber-500/30">Pretty Busy</Badge>}
+                {config.manual_busyness_pct >= 80 && <Badge variant="outline" className="text-rose-500 border-rose-500/30">Slammed!</Badge>}
               </div>
             </div>
 
@@ -218,9 +218,9 @@ export function BusynessRulesEditor() {
             />
 
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>0% (Wide open)</span>
-              <span>50% (Moderate)</span>
-              <span>100% (Slammed)</span>
+              <span>Wide open</span>
+              <span>Moderate</span>
+              <span>Slammed</span>
             </div>
           </div>
         </CardContent>

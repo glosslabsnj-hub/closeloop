@@ -88,12 +88,12 @@ export function BusinessFAQEditor() {
       {/* Add new */}
       <div className="p-4 rounded-lg border bg-muted/30 space-y-3">
         <Input
-          placeholder="Question (e.g., What are your hours?)"
+          placeholder="What do customers ask? (e.g., What are your hours?)"
           value={newQuestion}
           onChange={(e) => setNewQuestion(e.target.value)}
         />
         <Textarea
-          placeholder="Answer..."
+          placeholder="What should AI say? (Write it how you'd say it on the phone)"
           value={newAnswer}
           onChange={(e) => setNewAnswer(e.target.value)}
           rows={2}

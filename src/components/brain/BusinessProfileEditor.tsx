@@ -171,16 +171,18 @@ export function BusinessProfileEditor() {
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Acme Plumbing"
             />
+            <p className="text-xs text-muted-foreground">AI introduces your business by this name on every call</p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="tagline">Tagline</Label>
+            <Label htmlFor="tagline">Your One-Liner</Label>
             <Input
               id="tagline"
               value={formData.tagline}
               onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
-              placeholder="Fast, reliable service"
+              placeholder="Fast, reliable service since 2010"
             />
+            <p className="text-xs text-muted-foreground">Example: "Licensed & insured pros" or "Fresh, made-to-order food"</p>
           </div>
         </div>
 
@@ -218,7 +220,7 @@ export function BusinessProfileEditor() {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="website">Website</Label>
+            <Label htmlFor="website">Website (optional)</Label>
             <Input
               id="website"
               type="url"
@@ -238,6 +240,7 @@ export function BusinessProfileEditor() {
               onChange={(e) => setFormData({ ...formData, years_in_business: e.target.value })}
               placeholder="10"
             />
+            <p className="text-xs text-muted-foreground">AI mentions this to build trust with callers</p>
           </div>
         </div>
       </div>

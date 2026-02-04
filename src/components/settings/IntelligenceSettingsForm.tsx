@@ -60,10 +60,10 @@ export function IntelligenceSettingsForm() {
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <Label htmlFor="memory-toggle" className="text-sm font-medium">
-              Business Memory
+              Should AI learn from calls?
             </Label>
             <p className="text-xs text-muted-foreground">
-              Allow AI to learn patterns from repeated observations
+              AI notices patterns and improves over time
             </p>
           </div>
           <Switch
@@ -80,10 +80,10 @@ export function IntelligenceSettingsForm() {
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label htmlFor="share-toggle" className="text-sm font-medium">
-                  Share Across Locations
+                  Share learnings with all locations
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Apply learned patterns to all locations
+                  What AI learns at one location helps all your locations
                 </p>
               </div>
               <Switch
@@ -98,10 +98,10 @@ export function IntelligenceSettingsForm() {
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label htmlFor="copilot-toggle" className="text-sm font-medium">
-                  Copilot Rule Suggestions
+                  Suggest new rules from patterns
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Allow Copilot to suggest new rules based on patterns
+                  AI notices patterns and suggests rules for you to approve
                 </p>
               </div>
               <Switch
@@ -115,38 +115,40 @@ export function IntelligenceSettingsForm() {
             {/* Thresholds */}
             <div className="grid grid-cols-2 gap-4 pt-2">
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Min. Observations</Label>
+                <Label className="text-xs text-muted-foreground">Learn after seeing pattern...</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     type="number"
                     value={settings.min_observation_threshold}
-                    onChange={(e) => updateSettings.mutate({ 
-                      min_observation_threshold: parseInt(e.target.value) || 3 
+                    onChange={(e) => updateSettings.mutate({
+                      min_observation_threshold: parseInt(e.target.value) || 3
                     })}
                     min={1}
                     max={10}
                     className="w-20"
                     disabled={isUpdating}
                   />
-                  <span className="text-xs text-muted-foreground">before pattern is created</span>
+                  <span className="text-xs text-muted-foreground">times</span>
                 </div>
+                <p className="text-xs text-muted-foreground">Higher = more confident but slower</p>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Min. Confidence</Label>
+                <Label className="text-xs text-muted-foreground">Only use patterns AI is...</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     type="number"
                     value={Math.round(settings.min_confidence_threshold * 100)}
-                    onChange={(e) => updateSettings.mutate({ 
-                      min_confidence_threshold: (parseInt(e.target.value) || 65) / 100 
+                    onChange={(e) => updateSettings.mutate({
+                      min_confidence_threshold: (parseInt(e.target.value) || 65) / 100
                     })}
                     min={50}
                     max={100}
                     className="w-20"
                     disabled={isUpdating}
                   />
-                  <span className="text-xs text-muted-foreground">% before AI uses it</span>
+                  <span className="text-xs text-muted-foreground">% sure about</span>
                 </div>
+                <p className="text-xs text-muted-foreground">Higher = more cautious AI</p>
               </div>
             </div>
           </>

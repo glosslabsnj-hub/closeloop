@@ -193,40 +193,40 @@ export function AIBusinessPolicies() {
     {
       key: "upsell" as const,
       icon: TrendingUp,
-      title: "Upsell & Cross-sell",
-      description: "How AI suggests additional items or upgrades",
+      title: "Should AI suggest add-ons?",
+      description: "AI can recommend extras based on what they're ordering",
       color: "text-green-600",
       hasThresholds: true,
     },
     {
       key: "pricing" as const,
       icon: DollarSign,
-      title: "Pricing & Discounts",
-      description: "How AI handles discount requests and price negotiations",
+      title: "Can AI offer discounts?",
+      description: "How AI handles \"Can I get a deal?\" requests",
       color: "text-amber-600",
       hasThresholds: true,
     },
     {
       key: "capacity" as const,
       icon: Clock,
-      title: "Capacity & Scheduling",
-      description: "How AI manages busy times and availability",
+      title: "How should AI handle busy times?",
+      description: "What AI does when you're getting booked up",
       color: "text-blue-600",
       hasThresholds: true,
     },
     {
       key: "recognition" as const,
       icon: Users,
-      title: "Customer Recognition",
-      description: "How AI treats repeat vs new customers",
+      title: "Should AI remember callers?",
+      description: "Recognize repeat customers and reference past orders",
       color: "text-purple-600",
       hasThresholds: false,
     },
     {
       key: "escalation" as const,
       icon: ShieldCheck,
-      title: "Escalation Rules",
-      description: "When AI should transfer to a human",
+      title: "When should AI hand off to a human?",
+      description: "Triggers for transferring to a real person",
       color: "text-red-600",
       hasThresholds: false,
     },
@@ -312,7 +312,7 @@ export function AIBusinessPolicies() {
                   {hasThresholds && key === "upsell" && (
                     <div className="grid grid-cols-2 gap-4 pt-2">
                       <div className="space-y-2">
-                        <Label className="text-sm">Min order value to suggest</Label>
+                        <Label className="text-sm">Only suggest if order is over</Label>
                         <div className="flex items-center gap-2">
                           <span className="text-muted-foreground">$</span>
                           <Input
@@ -323,9 +323,10 @@ export function AIBusinessPolicies() {
                             className="w-24"
                           />
                         </div>
+                        <p className="text-xs text-muted-foreground">Set to $0 to always suggest</p>
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm">Max suggestions per call</Label>
+                        <Label className="text-sm">Max add-on suggestions per call</Label>
                         <Input
                           type="number"
                           min={1}
@@ -334,6 +335,7 @@ export function AIBusinessPolicies() {
                           onChange={(e) => updateThreshold(key, "max_suggestions", parseInt(e.target.value) || 2)}
                           className="w-24"
                         />
+                        <p className="text-xs text-muted-foreground">Don't overwhelm the caller</p>
                       </div>
                     </div>
                   )}
@@ -341,7 +343,7 @@ export function AIBusinessPolicies() {
                   {hasThresholds && key === "pricing" && (
                     <div className="grid grid-cols-2 gap-4 pt-2">
                       <div className="space-y-2">
-                        <Label className="text-sm">Max discount allowed</Label>
+                        <Label className="text-sm">Biggest discount AI can offer</Label>
                         <div className="flex items-center gap-2">
                           <Input
                             type="number"
@@ -353,16 +355,20 @@ export function AIBusinessPolicies() {
                           />
                           <span className="text-muted-foreground">%</span>
                         </div>
+                        <p className="text-xs text-muted-foreground">Set to 0 to disable discounts</p>
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm">Loyalty after # orders</Label>
-                        <Input
-                          type="number"
-                          min={1}
-                          value={(policy as BusinessPolicies["pricing"]).thresholds.loyalty_threshold_orders}
-                          onChange={(e) => updateThreshold(key, "loyalty_threshold_orders", parseInt(e.target.value) || 5)}
-                          className="w-24"
-                        />
+                        <Label className="text-sm">Recognize repeat customers after</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min={1}
+                            value={(policy as BusinessPolicies["pricing"]).thresholds.loyalty_threshold_orders}
+                            onChange={(e) => updateThreshold(key, "loyalty_threshold_orders", parseInt(e.target.value) || 5)}
+                            className="w-24"
+                          />
+                          <span className="text-muted-foreground">orders</span>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -370,7 +376,7 @@ export function AIBusinessPolicies() {
                   {hasThresholds && key === "capacity" && (
                     <div className="grid grid-cols-2 gap-4 pt-2">
                       <div className="space-y-2">
-                        <Label className="text-sm">Busy when capacity hits</Label>
+                        <Label className="text-sm">Consider "busy" when schedule is</Label>
                         <div className="flex items-center gap-2">
                           <Input
                             type="number"
@@ -380,11 +386,11 @@ export function AIBusinessPolicies() {
                             onChange={(e) => updateThreshold(key, "busy_threshold_percent", parseInt(e.target.value) || 80)}
                             className="w-24"
                           />
-                          <span className="text-muted-foreground">%</span>
+                          <span className="text-muted-foreground">% full</span>
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm">Suggest advance booking</Label>
+                        <Label className="text-sm">Suggest booking ahead when busy</Label>
                         <div className="flex items-center gap-2">
                           <Input
                             type="number"
@@ -393,8 +399,9 @@ export function AIBusinessPolicies() {
                             onChange={(e) => updateThreshold(key, "advance_booking_hours", parseInt(e.target.value) || 2)}
                             className="w-24"
                           />
-                          <span className="text-muted-foreground">hrs</span>
+                          <span className="text-muted-foreground">hours</span>
                         </div>
+                        <p className="text-xs text-muted-foreground">AI suggests earlier/later times</p>
                       </div>
                     </div>
                   )}
