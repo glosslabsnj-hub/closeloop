@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
 // Layouts
 import { PublicLayout } from "@/components/layouts/PublicLayout";
@@ -31,6 +32,7 @@ import BusinessBrainPage from "@/pages/app/BusinessBrainPage";
 import BusinessBrainGapsPage from "@/pages/app/BusinessBrainGapsPage";
 import ReadinessFixCenterPage from "@/pages/app/ReadinessFixCenterPage";
 import UsagePage from "@/pages/app/UsagePage";
+import ThemePreviewPage from "@/pages/app/ThemePreviewPage";
 
 // Module-specific pages
 import OrdersPage from "@/pages/app/OrdersPage";
@@ -67,11 +69,12 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+    <ThemeProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
           <Routes>
             {/* Public Routes */}
             <Route element={<PublicLayout />}>
@@ -105,6 +108,7 @@ const App = () => (
               <Route path="/app/readiness" element={<ReadinessFixCenterPage />} />
               <Route path="/app/usage" element={<UsagePage />} />
               <Route path="/app/settings" element={<SettingsPage />} />
+              <Route path="/app/theme" element={<ThemePreviewPage />} />
               {/* Module-specific routes */}
               <Route path="/app/orders" element={<OrdersPage />} />
               <Route path="/app/reservations" element={<ReservationsPage />} />
@@ -143,8 +147,9 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+        </TooltipProvider>
+      </AuthProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

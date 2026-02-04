@@ -10,7 +10,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Calendar as CalendarIcon, Plus, Clock, DollarSign, CheckCircle2, Loader2, List, Info, MousePointerClick } from "lucide-react";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Calendar as CalendarIcon, Plus, Clock, DollarSign, CheckCircle2, Loader2, List, MousePointerClick } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ScheduleCalendar } from "@/components/calendar/ScheduleCalendar";
@@ -117,51 +119,51 @@ export default function BookingsPage() {
 
   return (
     <TooltipProvider>
-      <div className="p-4 md:p-6 lg:p-8 space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="page-header mb-0">
-            <h1 className="page-title">{terms.bookingsPageTitle}</h1>
-            <p className="page-subtitle">{terms.bookingsPageSubtitle}. Click any time slot to create a {terms.booking}.</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={viewMode === "calendar" ? "secondary" : "ghost"}
-                    size="sm"
-                    onClick={() => setViewMode("calendar")}
-                  >
-                    <CalendarIcon className="h-4 w-4 mr-1" />
-                    Calendar
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>View your schedule as a weekly or daily calendar</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={viewMode === "list" ? "secondary" : "ghost"}
-                    size="sm"
-                    onClick={() => setViewMode("list")}
-                  >
-                    <List className="h-4 w-4 mr-1" />
-                    List
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>View upcoming bookings as a simple list</TooltipContent>
-              </Tooltip>
+      <PageContainer maxWidth="xl">
+        <PageHeader
+          icon={<CalendarIcon className="h-5 w-5" />}
+          title={terms.bookingsPageTitle}
+          description={`${terms.bookingsPageSubtitle}. Click any time slot to create a ${terms.booking}.`}
+          action={
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={viewMode === "calendar" ? "secondary" : "ghost"}
+                      size="sm"
+                      onClick={() => setViewMode("calendar")}
+                    >
+                      <CalendarIcon className="h-4 w-4 mr-1" />
+                      Calendar
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>View your schedule as a weekly or daily calendar</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={viewMode === "list" ? "secondary" : "ghost"}
+                      size="sm"
+                      onClick={() => setViewMode("list")}
+                    >
+                      <List className="h-4 w-4 mr-1" />
+                      List
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>View upcoming bookings as a simple list</TooltipContent>
+                </Tooltip>
+              </div>
+              <Button className="gap-2" onClick={() => setCreateDialogOpen(true)}>
+                <Plus className="h-4 w-4" />
+                {terms.newBooking}
+              </Button>
             </div>
-            <Button className="gap-2" onClick={() => setCreateDialogOpen(true)}>
-              <Plus className="h-4 w-4" />
-              {terms.newBooking}
-            </Button>
-          </div>
-        </div>
+          }
+        />
 
-        {/* Stats with Tooltips */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Stats */}
+        <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Tooltip>
             <TooltipTrigger asChild>
               <Card className="cursor-help">
@@ -229,9 +231,10 @@ export default function BookingsPage() {
             </TooltipTrigger>
             <TooltipContent>Total appointments completed this month</TooltipContent>
           </Tooltip>
-        </div>
+        </section>
 
         {/* Main Content */}
+        <section className="space-y-6">
         {viewMode === "calendar" ? (
           <Card>
             <CardContent className="p-4">
@@ -276,6 +279,8 @@ export default function BookingsPage() {
           </Card>
         )}
 
+        </section>
+
         {/* Create Booking Dialog */}
         <CreateBookingDialog
           open={createDialogOpen}
@@ -286,7 +291,7 @@ export default function BookingsPage() {
             setSelectedSlot(null);
           }}
         />
-      </div>
+      </PageContainer>
     </TooltipProvider>
   );
 }

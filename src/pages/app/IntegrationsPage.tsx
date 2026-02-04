@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { 
+import {
   Link2, Zap, History, Settings2, Headset, ChevronDown, ChevronUp,
   Calendar, FileSpreadsheet, Printer, Webhook, MessageSquare, ExternalLink,
   CheckCircle, AlertCircle, Play, Loader2, Check, ArrowRight, HelpCircle
@@ -12,6 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import {
   Dialog,
   DialogContent,
@@ -335,28 +337,22 @@ export default function IntegrationsPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="page-header">
-          <h1 className="page-title flex items-center gap-2">
-            <Link2 className="h-6 w-6 text-primary" />
-            Integrations
-          </h1>
-          <p className="page-subtitle">
-            Connect your tools and automate what happens when calls, bookings, and orders come in
-          </p>
-        </div>
-
-        <Button 
-          variant="outline" 
-          className="gap-2 shrink-0"
-          onClick={() => setConciergeOpen(true)}
-        >
-          <Headset className="h-4 w-4" />
-          Have an expert set this up
-        </Button>
-      </div>
+    <PageContainer maxWidth="xl">
+      <PageHeader
+        icon={<Link2 className="h-5 w-5" />}
+        title="Integrations"
+        description="Connect your tools and automate what happens when calls, bookings, and orders come in"
+        action={
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => setConciergeOpen(true)}
+          >
+            <Headset className="h-4 w-4" />
+            Have an expert set this up
+          </Button>
+        }
+      />
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -749,6 +745,6 @@ export default function IntegrationsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

@@ -176,7 +176,7 @@ export function useBrainSummaries(): BrainSummaries {
   // Build preview strings
   return {
     // Profile
-    businessInfo: tenant ? "Your business identity and basics" : "Not configured yet",
+    businessInfo: tenant?.name ? `${tenant.name} — Your business identity` : "Not configured yet",
     templates: "Pre-built setups for common business types",
 
     // Hours
@@ -194,14 +194,14 @@ export function useBrainSummaries(): BrainSummaries {
     // Service Area
     coverage: "Define where you can serve customers",
     travelTimes: "Set arrival time estimates",
-    workload: "Adjust ETAs based on current load",
+    workload: "Set how busy you are to adjust wait times",
 
     // Availability
     calendar: (() => {
-      if (!calendarConnections || calendarConnections.length === 0) return "No calendars connected";
-      const active = calendarConnections.filter(c => c.status === "active");
-      if (active.length === 0) return "No active calendars";
-      return `${active.length} calendar${active.length === 1 ? "" : "s"} syncing`;
+      if (!calendarConnections || calendarConnections.length === 0) return "Connect your calendar for real-time availability";
+      const connected = calendarConnections.filter(c => c.status === "connected");
+      if (connected.length === 0) return "Calendar needs reconnection";
+      return `${connected.length} calendar${connected.length === 1 ? "" : "s"} connected`;
     })(),
 
     // Policies
@@ -260,7 +260,7 @@ export function useBrainSummaries(): BrainSummaries {
       }
       return "No guidelines configured yet";
     })(),
-    intelligence: "Memory and learning settings",
+    intelligence: "How your AI remembers and improves",
 
     // Knowledge
     review: "Items needing your approval",

@@ -7,64 +7,79 @@ interface PageHeaderProps {
   action?: ReactNode;
   className?: string;
   badge?: ReactNode;
-  /** Use editorial style with decorative line */
-  editorial?: boolean;
+  /** Breadcrumb path before title */
+  breadcrumb?: string;
+  /** Icon to show before title */
+  icon?: ReactNode;
+  /** Compact variant with less spacing */
+  compact?: boolean;
 }
 
 /**
- * Executive workspace page header.
- * Editorial variant creates a signature "moment" with decorative underline.
+ * Clean, minimal page header.
+ * Linear/Notion-inspired design.
  */
-export function PageHeader({ 
-  title, 
-  description, 
-  action, 
-  className, 
+export function PageHeader({
+  title,
+  description,
+  action,
+  className,
   badge,
-  editorial = false,
+  breadcrumb,
+  icon,
+  compact = false,
 }: PageHeaderProps) {
-  if (editorial) {
-    return (
-      <div className={cn("editorial-header relative", className)}>
-        {/* Clean accent line */}
-        <div 
-          className="absolute -left-4 top-0 bottom-0 w-0.5 rounded-full hidden md:block"
-          style={{ background: 'linear-gradient(to bottom, hsl(var(--accent-signature) / 0.3), transparent)' }}
-        />
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="editorial-title">{title}</h1>
-              {badge}
-            </div>
-            {description && (
-              <p className="editorial-subtitle">{description}</p>
-            )}
-          </div>
-          {action && <div className="flex-shrink-0">{action}</div>}
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className={cn("mb-14", className)}>
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-5">
+    <header className={cn(
+      "sticky top-0 z-20 bg-background/95 backdrop-blur-sm",
+      compact ? "py-4 mb-4" : "py-6 mb-6",
+      "-mx-6 md:-mx-8 lg:-mx-12 px-6 md:px-8 lg:px-12",
+      "border-b border-white/[0.04]",
+      className
+    )}>
+      {/* Breadcrumb */}
+      {breadcrumb && (
+        <p className="text-[11px] font-medium text-muted-foreground/50 uppercase tracking-wider mb-1">
+          {breadcrumb}
+        </p>
+      )}
+
+      <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-lg md:text-xl font-normal tracking-tight text-foreground/85 -tracking-[0.01em]">
+          {/* Title row */}
+          <div className="flex items-center gap-2.5">
+            {icon && (
+              <div className="flex-shrink-0 text-muted-foreground">
+                {icon}
+              </div>
+            )}
+            <h1 className={cn(
+              "font-semibold tracking-tight text-foreground truncate",
+              compact ? "text-lg" : "text-xl"
+            )}>
               {title}
             </h1>
-            {badge}
+            {badge && <div className="flex-shrink-0">{badge}</div>}
           </div>
+
+          {/* Description */}
           {description && (
-            <p className="text-muted-foreground/55 text-sm mt-3 leading-relaxed max-w-md">
+            <p className={cn(
+              "text-muted-foreground/70 mt-1 truncate",
+              compact ? "text-xs" : "text-sm"
+            )}>
               {description}
             </p>
           )}
         </div>
-        {action && <div className="flex-shrink-0 mt-0.5">{action}</div>}
+
+        {/* Action */}
+        {action && (
+          <div className="flex-shrink-0">
+            {action}
+          </div>
+        )}
       </div>
-    </div>
+    </header>
   );
 }

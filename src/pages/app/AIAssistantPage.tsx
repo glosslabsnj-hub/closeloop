@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import AIReadinessScore from "@/components/knowledge/AIReadinessScore";
 import KnowledgeGapQueue from "@/components/knowledge/KnowledgeGapQueue";
 import VoiceSelector from "@/components/ai/VoiceSelector";
@@ -134,24 +136,24 @@ export default function AIAssistantPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">AI Assistant</h1>
-          <p className="text-muted-foreground">Configure your AI voice assistant</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" className="gap-2" onClick={handleTestCall} disabled={testing}>
-            <Play className="h-4 w-4" />
-            {testing ? "Testing..." : "Test AI Call"}
-          </Button>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">AI Enabled</span>
-            <Switch checked={aiEnabled} onCheckedChange={setAiEnabled} />
+    <PageContainer maxWidth="xl">
+      <PageHeader
+        icon={<Bot className="h-5 w-5" />}
+        title="AI Assistant"
+        description="Configure your AI voice assistant"
+        action={
+          <div className="flex items-center gap-3">
+            <Button variant="outline" className="gap-2" onClick={handleTestCall} disabled={testing}>
+              <Play className="h-4 w-4" />
+              {testing ? "Testing..." : "Test AI Call"}
+            </Button>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">AI Enabled</span>
+              <Switch checked={aiEnabled} onCheckedChange={setAiEnabled} />
+            </div>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* AI Readiness Score */}
       <AIReadinessScore compact />
@@ -320,6 +322,6 @@ export default function AIAssistantPage() {
           {saving ? "Saving..." : "Save Changes"}
         </Button>
       </div>
-    </div>
+    </PageContainer>
   );
 }

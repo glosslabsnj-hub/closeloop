@@ -8,9 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  UtensilsCrossed, 
-  Clock, 
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
+import {
+  UtensilsCrossed,
+  Clock,
   Truck,
   CheckCircle2,
   Plus,
@@ -230,28 +232,28 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="page-header mb-0">
-          <h1 className="page-title">Orders</h1>
-          <p className="page-subtitle">Manage incoming food orders</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={toggleSound} 
-            title={soundEnabled ? "Mute alerts" : "Enable alerts"}
-          >
-            {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-          </Button>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            New Order
-          </Button>
-        </div>
-      </div>
+    <PageContainer maxWidth="xl">
+      <PageHeader
+        icon={<UtensilsCrossed className="h-5 w-5" />}
+        title="Orders"
+        description="Manage incoming food orders"
+        action={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={toggleSound}
+              title={soundEnabled ? "Mute alerts" : "Enable alerts"}
+            >
+              {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            </Button>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              New Order
+            </Button>
+          </div>
+        }
+      />
 
       {/* Needs Attention Banner */}
       {needsAttention > 0 && (
@@ -398,6 +400,6 @@ export default function OrdersPage() {
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
       />
-    </div>
+    </PageContainer>
   );
 }
