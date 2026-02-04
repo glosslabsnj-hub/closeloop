@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -253,14 +253,14 @@ const intentDescriptions: Record<Intent, string> = {
 export function RequiredQuestionsEditor() {
   const { tenant } = useAuth();
   const { businessMode } = useTenantConfig();
-  const [activeIntent, setActiveIntent] = useState<Intent>("booking");
-  const [configs, setConfigs] = useState<Record<Intent, IntentRequiredInputsConfig>>({} as any);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [configs, setConfigs] = useState<Record<Intent, IntentRequiredInputsConfig>>({} as any);
+  const [activeIntent, setActiveIntent] = useState<Intent | null>(null);
 
   // Determine which intents are relevant based on business mode
-  const relevantIntents: Intent[] = (() => {
+  const relevantIntents: Intent[] = useMemo(() => {
     switch (businessMode) {
       case "food":
         return ["order", "reservation", "callback"];
@@ -275,7 +275,14 @@ export function RequiredQuestionsEditor() {
       default:
         return ["booking", "callback"];
     }
-  })();
+  }, [businessMode]);
+
+  // Set active intent to first relevant one when business mode changes
+  useEffect(() => {
+    if (!activeIntent || !relevantIntents.includes(activeIntent)) {
+      setActiveIntent(relevantIntents[0]);
+    }
+  }, [relevantIntents, activeIntent]);
 
   // Load existing configurations
   useEffect(() => {
@@ -323,9 +330,10 @@ export function RequiredQuestionsEditor() {
     loadConfigs();
   }, [tenant?.id, businessMode]);
 
-  const currentConfig = configs[activeIntent];
+  const currentConfig = activeIntent ? configs[activeIntent] : null;
 
   const toggleFieldRequired = (field: InputField, isRequired: boolean) => {
+    if (!currentConfig || !activeIntent) return;
     const newConfig = { ...currentConfig };
 
     if (isRequired) {
@@ -347,6 +355,7 @@ export function RequiredQuestionsEditor() {
     updates: Partial<InputField>,
     isRequired: boolean
   ) => {
+    if (!currentConfig || !activeIntent) return;
     const newConfig = { ...currentConfig };
     const targetArray = isRequired ? newConfig.required_inputs : newConfig.optional_inputs;
     const index = targetArray.findIndex((f) => f.key === field.key);
@@ -359,6 +368,7 @@ export function RequiredQuestionsEditor() {
   };
 
   const addCustomField = (isRequired: boolean) => {
+    if (!currentConfig || !activeIntent) return;
     const newField: InputField = {
       key: `custom_${Date.now()}`,
       label: "New Custom Question",
@@ -378,6 +388,7 @@ export function RequiredQuestionsEditor() {
   };
 
   const removeField = (field: InputField, isRequired: boolean) => {
+    if (!currentConfig || !activeIntent) return;
     const newConfig = { ...currentConfig };
     if (isRequired) {
       newConfig.required_inputs = newConfig.required_inputs.filter((f) => f.key !== field.key);
@@ -478,7 +489,7 @@ export function RequiredQuestionsEditor() {
       </div>
 
       {/* Intent Tabs */}
-      <Tabs value={activeIntent} onValueChange={(v) => setActiveIntent(v as Intent)}>
+      <Tabs value={activeIntent || relevantIntents[0]} onValueChange={(v) => setActiveIntent(v as Intent)}>
         <TabsList className="grid grid-cols-2 lg:grid-cols-5 w-full">
           {relevantIntents.map((intent) => {
             const Icon = intentIcons[intent];
