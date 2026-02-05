@@ -114,13 +114,17 @@ export type Database = {
           ended_at: string | null
           extracted_payload: Json | null
           id: string
+          is_recovery_call: boolean | null
           lead_id: string | null
           opportunity_id: string | null
           outcome: Database["public"]["Enums"]["ai_call_outcome"] | null
+          recovery_campaign_id: string | null
+          recovery_context: Json | null
           started_at: string
           summary: string | null
           tenant_id: string
           transcript: string | null
+          triggered_recovery: boolean | null
           twilio_call_sid: string | null
         }
         Insert: {
@@ -134,13 +138,17 @@ export type Database = {
           ended_at?: string | null
           extracted_payload?: Json | null
           id?: string
+          is_recovery_call?: boolean | null
           lead_id?: string | null
           opportunity_id?: string | null
           outcome?: Database["public"]["Enums"]["ai_call_outcome"] | null
+          recovery_campaign_id?: string | null
+          recovery_context?: Json | null
           started_at?: string
           summary?: string | null
           tenant_id: string
           transcript?: string | null
+          triggered_recovery?: boolean | null
           twilio_call_sid?: string | null
         }
         Update: {
@@ -154,13 +162,17 @@ export type Database = {
           ended_at?: string | null
           extracted_payload?: Json | null
           id?: string
+          is_recovery_call?: boolean | null
           lead_id?: string | null
           opportunity_id?: string | null
           outcome?: Database["public"]["Enums"]["ai_call_outcome"] | null
+          recovery_campaign_id?: string | null
+          recovery_context?: Json | null
           started_at?: string
           summary?: string | null
           tenant_id?: string
           transcript?: string | null
+          triggered_recovery?: boolean | null
           twilio_call_sid?: string | null
         }
         Relationships: [
@@ -190,6 +202,13 @@ export type Database = {
             columns: ["opportunity_id"]
             isOneToOne: false
             referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_call_sessions_recovery_campaign_id_fkey"
+            columns: ["recovery_campaign_id"]
+            isOneToOne: false
+            referencedRelation: "lead_recovery_campaigns"
             referencedColumns: ["id"]
           },
           {
@@ -1686,39 +1705,48 @@ export type Database = {
       }
       customers: {
         Row: {
+          contact_preferences: Json | null
           created_at: string
+          do_not_contact: boolean | null
           email: string | null
           full_name: string
           id: string
           notes: string | null
           phone_e164: string
           phone_raw: string | null
+          preferred_contact_method: string | null
           source: string | null
           tags: string[] | null
           tenant_id: string
           updated_at: string
         }
         Insert: {
+          contact_preferences?: Json | null
           created_at?: string
+          do_not_contact?: boolean | null
           email?: string | null
           full_name: string
           id?: string
           notes?: string | null
           phone_e164: string
           phone_raw?: string | null
+          preferred_contact_method?: string | null
           source?: string | null
           tags?: string[] | null
           tenant_id: string
           updated_at?: string
         }
         Update: {
+          contact_preferences?: Json | null
           created_at?: string
+          do_not_contact?: boolean | null
           email?: string | null
           full_name?: string
           id?: string
           notes?: string | null
           phone_e164?: string
           phone_raw?: string | null
+          preferred_contact_method?: string | null
           source?: string | null
           tags?: string[] | null
           tenant_id?: string
@@ -3468,6 +3496,486 @@ export type Database = {
           },
         ]
       }
+      lead_recovery_actions: {
+        Row: {
+          action_type: string
+          call_session_id: string | null
+          campaign_id: string
+          created_at: string | null
+          delivery_error: string | null
+          delivery_status: string | null
+          executed_at: string | null
+          external_message_id: string | null
+          id: string
+          message_sent: string | null
+          response_at: string | null
+          response_content: string | null
+          response_outcome: string | null
+          response_received: boolean | null
+          response_sentiment: string | null
+          step_id: string | null
+          task_completed: boolean | null
+          task_completed_at: string | null
+          task_completed_by: string | null
+        }
+        Insert: {
+          action_type: string
+          call_session_id?: string | null
+          campaign_id: string
+          created_at?: string | null
+          delivery_error?: string | null
+          delivery_status?: string | null
+          executed_at?: string | null
+          external_message_id?: string | null
+          id?: string
+          message_sent?: string | null
+          response_at?: string | null
+          response_content?: string | null
+          response_outcome?: string | null
+          response_received?: boolean | null
+          response_sentiment?: string | null
+          step_id?: string | null
+          task_completed?: boolean | null
+          task_completed_at?: string | null
+          task_completed_by?: string | null
+        }
+        Update: {
+          action_type?: string
+          call_session_id?: string | null
+          campaign_id?: string
+          created_at?: string | null
+          delivery_error?: string | null
+          delivery_status?: string | null
+          executed_at?: string | null
+          external_message_id?: string | null
+          id?: string
+          message_sent?: string | null
+          response_at?: string | null
+          response_content?: string | null
+          response_outcome?: string | null
+          response_received?: boolean | null
+          response_sentiment?: string | null
+          step_id?: string | null
+          task_completed?: boolean | null
+          task_completed_at?: string | null
+          task_completed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_recovery_actions_call_session_id_fkey"
+            columns: ["call_session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_call_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_recovery_actions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "lead_recovery_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_recovery_actions_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "lead_recovery_sequence_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_recovery_campaigns: {
+        Row: {
+          converted_at: string | null
+          converted_booking_id: string | null
+          converted_dispatch_job_id: string | null
+          converted_food_order_id: string | null
+          created_at: string | null
+          current_step: number | null
+          customer_id: string | null
+          id: string
+          internal_notes: string | null
+          last_attempt_at: string | null
+          last_response_at: string | null
+          lead_id: string | null
+          next_action_at: string | null
+          notes: string | null
+          original_call_id: string | null
+          original_call_outcome: string | null
+          original_intent: string | null
+          original_objection: string | null
+          original_service_interest: string | null
+          recovered_value_cents: number | null
+          sequence_id: string | null
+          status: string | null
+          stopped_at: string | null
+          stopped_reason: string | null
+          tenant_id: string
+          total_attempts: number | null
+          total_responses: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          converted_at?: string | null
+          converted_booking_id?: string | null
+          converted_dispatch_job_id?: string | null
+          converted_food_order_id?: string | null
+          created_at?: string | null
+          current_step?: number | null
+          customer_id?: string | null
+          id?: string
+          internal_notes?: string | null
+          last_attempt_at?: string | null
+          last_response_at?: string | null
+          lead_id?: string | null
+          next_action_at?: string | null
+          notes?: string | null
+          original_call_id?: string | null
+          original_call_outcome?: string | null
+          original_intent?: string | null
+          original_objection?: string | null
+          original_service_interest?: string | null
+          recovered_value_cents?: number | null
+          sequence_id?: string | null
+          status?: string | null
+          stopped_at?: string | null
+          stopped_reason?: string | null
+          tenant_id: string
+          total_attempts?: number | null
+          total_responses?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          converted_at?: string | null
+          converted_booking_id?: string | null
+          converted_dispatch_job_id?: string | null
+          converted_food_order_id?: string | null
+          created_at?: string | null
+          current_step?: number | null
+          customer_id?: string | null
+          id?: string
+          internal_notes?: string | null
+          last_attempt_at?: string | null
+          last_response_at?: string | null
+          lead_id?: string | null
+          next_action_at?: string | null
+          notes?: string | null
+          original_call_id?: string | null
+          original_call_outcome?: string | null
+          original_intent?: string | null
+          original_objection?: string | null
+          original_service_interest?: string | null
+          recovered_value_cents?: number | null
+          sequence_id?: string | null
+          status?: string | null
+          stopped_at?: string | null
+          stopped_reason?: string | null
+          tenant_id?: string
+          total_attempts?: number | null
+          total_responses?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_recovery_campaigns_converted_booking_id_fkey"
+            columns: ["converted_booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_recovery_campaigns_converted_dispatch_job_id_fkey"
+            columns: ["converted_dispatch_job_id"]
+            isOneToOne: false
+            referencedRelation: "dispatch_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_recovery_campaigns_converted_food_order_id_fkey"
+            columns: ["converted_food_order_id"]
+            isOneToOne: false
+            referencedRelation: "food_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_recovery_campaigns_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_recovery_campaigns_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_recovery_campaigns_original_call_id_fkey"
+            columns: ["original_call_id"]
+            isOneToOne: false
+            referencedRelation: "ai_call_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_recovery_campaigns_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "lead_recovery_sequences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_recovery_campaigns_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_recovery_sequence_steps: {
+        Row: {
+          action_type: string
+          ai_call_max_duration_seconds: number | null
+          ai_call_purpose: string | null
+          ai_call_script_hints: string | null
+          created_at: string | null
+          delay_minutes: number
+          id: string
+          message_template: string | null
+          respect_business_hours: boolean | null
+          sequence_id: string
+          skip_if_booked: boolean | null
+          skip_if_declined: boolean | null
+          skip_if_responded: boolean | null
+          step_order: number
+          task_description: string | null
+          task_priority: string | null
+        }
+        Insert: {
+          action_type: string
+          ai_call_max_duration_seconds?: number | null
+          ai_call_purpose?: string | null
+          ai_call_script_hints?: string | null
+          created_at?: string | null
+          delay_minutes: number
+          id?: string
+          message_template?: string | null
+          respect_business_hours?: boolean | null
+          sequence_id: string
+          skip_if_booked?: boolean | null
+          skip_if_declined?: boolean | null
+          skip_if_responded?: boolean | null
+          step_order: number
+          task_description?: string | null
+          task_priority?: string | null
+        }
+        Update: {
+          action_type?: string
+          ai_call_max_duration_seconds?: number | null
+          ai_call_purpose?: string | null
+          ai_call_script_hints?: string | null
+          created_at?: string | null
+          delay_minutes?: number
+          id?: string
+          message_template?: string | null
+          respect_business_hours?: boolean | null
+          sequence_id?: string
+          skip_if_booked?: boolean | null
+          skip_if_declined?: boolean | null
+          skip_if_responded?: boolean | null
+          step_order?: number
+          task_description?: string | null
+          task_priority?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_recovery_sequence_steps_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "lead_recovery_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_recovery_sequences: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          is_system_template: boolean | null
+          name: string
+          target_business_mode: string | null
+          tenant_id: string
+          trigger_on_outcomes: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          is_system_template?: boolean | null
+          name: string
+          target_business_mode?: string | null
+          tenant_id: string
+          trigger_on_outcomes?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          is_system_template?: boolean | null
+          name?: string
+          target_business_mode?: string | null
+          tenant_id?: string
+          trigger_on_outcomes?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_recovery_sequences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_recovery_settings: {
+        Row: {
+          ai_call_hours_end: string | null
+          ai_call_hours_start: string | null
+          ai_calls_enabled: boolean | null
+          auto_start_recovery: boolean | null
+          cooldown_days: number | null
+          default_offer_code: string | null
+          default_offer_description: string | null
+          max_attempts_per_lead: number | null
+          max_campaigns_per_day: number | null
+          notification_email: string | null
+          notification_sms: string | null
+          notify_on_conversion: boolean | null
+          notify_on_response: boolean | null
+          quiet_days: string[] | null
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          recovery_enabled: boolean | null
+          require_phone_number: boolean | null
+          respect_business_hours: boolean | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          ai_call_hours_end?: string | null
+          ai_call_hours_start?: string | null
+          ai_calls_enabled?: boolean | null
+          auto_start_recovery?: boolean | null
+          cooldown_days?: number | null
+          default_offer_code?: string | null
+          default_offer_description?: string | null
+          max_attempts_per_lead?: number | null
+          max_campaigns_per_day?: number | null
+          notification_email?: string | null
+          notification_sms?: string | null
+          notify_on_conversion?: boolean | null
+          notify_on_response?: boolean | null
+          quiet_days?: string[] | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          recovery_enabled?: boolean | null
+          require_phone_number?: boolean | null
+          respect_business_hours?: boolean | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          ai_call_hours_end?: string | null
+          ai_call_hours_start?: string | null
+          ai_calls_enabled?: boolean | null
+          auto_start_recovery?: boolean | null
+          cooldown_days?: number | null
+          default_offer_code?: string | null
+          default_offer_description?: string | null
+          max_attempts_per_lead?: number | null
+          max_campaigns_per_day?: number | null
+          notification_email?: string | null
+          notification_sms?: string | null
+          notify_on_conversion?: boolean | null
+          notify_on_response?: boolean | null
+          quiet_days?: string[] | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          recovery_enabled?: boolean | null
+          require_phone_number?: boolean | null
+          respect_business_hours?: boolean | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_recovery_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_recovery_templates: {
+        Row: {
+          category: string | null
+          channel: string
+          content: string
+          created_at: string | null
+          id: string
+          is_default: boolean | null
+          name: string
+          subject: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          channel: string
+          content: string
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          subject?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          channel?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          subject?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_recovery_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           created_at: string
@@ -3475,7 +3983,11 @@ export type Database = {
           full_name: string
           id: string
           last_message_at: string | null
+          last_recovery_at: string | null
           phone: string | null
+          recovery_attempts: number | null
+          recovery_campaign_id: string | null
+          recovery_status: string | null
           source: Database["public"]["Enums"]["lead_source"]
           status: Database["public"]["Enums"]["lead_status"]
           tags: string[] | null
@@ -3488,7 +4000,11 @@ export type Database = {
           full_name: string
           id?: string
           last_message_at?: string | null
+          last_recovery_at?: string | null
           phone?: string | null
+          recovery_attempts?: number | null
+          recovery_campaign_id?: string | null
+          recovery_status?: string | null
           source?: Database["public"]["Enums"]["lead_source"]
           status?: Database["public"]["Enums"]["lead_status"]
           tags?: string[] | null
@@ -3501,7 +4017,11 @@ export type Database = {
           full_name?: string
           id?: string
           last_message_at?: string | null
+          last_recovery_at?: string | null
           phone?: string | null
+          recovery_attempts?: number | null
+          recovery_campaign_id?: string | null
+          recovery_status?: string | null
           source?: Database["public"]["Enums"]["lead_source"]
           status?: Database["public"]["Enums"]["lead_status"]
           tags?: string[] | null
@@ -3509,6 +4029,13 @@ export type Database = {
           vehicle_or_context?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "leads_recovery_campaign_id_fkey"
+            columns: ["recovery_campaign_id"]
+            isOneToOne: false
+            referencedRelation: "lead_recovery_campaigns"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "leads_tenant_id_fkey"
             columns: ["tenant_id"]
