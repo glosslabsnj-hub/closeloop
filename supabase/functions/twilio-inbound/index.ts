@@ -1,5 +1,5 @@
-// SAFE MODE - Minimal twilio-inbound to restore service
-// v3.0.0 - Stripped imports to fix bundle timeout
+// v3.1.0 - Restored tenant resolution + dynamic variables (no heavy imports)
+// Lightweight version to avoid bundle timeout
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,36 +30,197 @@ function hangupTwiml(message: string): string {
 </Response>`;
 }
 
+function normalizeToE164(phone: string): string {
+  if (!phone) return "";
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  if (digits.length === 10) return `+1${digits}`;
+  if (phone.startsWith("+")) return phone;
+  return digits.length > 0 ? `+${digits}` : "";
+}
+
+// Inline Supabase client creation (avoid esm.sh import issues)
+async function querySupabase(url: string, key: string, table: string, query: Record<string, string>): Promise<any[]> {
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(query)) {
+    params.append(k, `eq.${v}`);
+  }
+  params.append("limit", "1");
+  
+  const response = await fetch(`${url}/rest/v1/${table}?${params.toString()}`, {
+    headers: {
+      "apikey": key,
+      "Authorization": `Bearer ${key}`,
+      "Content-Type": "application/json",
+    },
+  });
+  
+  if (!response.ok) {
+    console.error(`[querySupabase] ${table} query failed:`, response.status);
+    return [];
+  }
+  
+  return await response.json();
+}
+
+async function updateSupabase(url: string, key: string, table: string, match: Record<string, string>, data: Record<string, any>): Promise<boolean> {
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(match)) {
+    params.append(k, `eq.${v}`);
+  }
+  
+  const response = await fetch(`${url}/rest/v1/${table}?${params.toString()}`, {
+    method: "PATCH",
+    headers: {
+      "apikey": key,
+      "Authorization": `Bearer ${key}`,
+      "Content-Type": "application/json",
+      "Prefer": "return=minimal",
+    },
+    body: JSON.stringify(data),
+  });
+  
+  return response.ok;
+}
+
+// Get agent ID based on business mode
+function getAgentIdForMode(mode: string): string | null {
+  const modeEnvMap: Record<string, string> = {
+    service: "ELEVENLABS_AGENT_ID_SERVICE",
+    dispatch: "ELEVENLABS_AGENT_ID_DISPATCH",
+    food: "ELEVENLABS_AGENT_ID_FOOD",
+    medical: "ELEVENLABS_AGENT_ID_MEDICAL",
+    general: "ELEVENLABS_AGENT_ID_GENERAL",
+  };
+  
+  const envKey = modeEnvMap[mode] || modeEnvMap.general;
+  const agentId = Deno.env.get(envKey) || Deno.env.get("ELEVENLABS_AGENT_ID");
+  
+  console.log(`[getAgentIdForMode] mode=${mode}, envKey=${envKey}, found=${!!agentId}`);
+  return agentId || null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY_2") || Deno.env.get("ELEVENLABS_API_KEY");
-  const ELEVENLABS_AGENT_ID = Deno.env.get("ELEVENLABS_AGENT_ID_DISPATCH") || Deno.env.get("ELEVENLABS_AGENT_ID");
 
   // Parse Twilio form data
   let fromNumber = "";
   let toNumber = "";
+  let callSid = "";
 
   try {
     const body = await req.text();
     const formData = new URLSearchParams(body);
     toNumber = formData.get("To") || "";
     fromNumber = formData.get("From") || "";
-    console.log(`[twilio-inbound] Call from ${fromNumber} to ${toNumber}`);
+    callSid = formData.get("CallSid") || "";
+    console.log(`[twilio-inbound] Call from ${fromNumber} to ${toNumber}, CallSid=${callSid}`);
   } catch (error) {
     console.error("[twilio-inbound] Failed to parse request:", error);
     return twimlResponse(hangupTwiml("We're experiencing technical difficulties. Please try again later."));
   }
 
-  if (!ELEVENLABS_API_KEY || !ELEVENLABS_AGENT_ID) {
-    console.error("[twilio-inbound] Missing ElevenLabs config");
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    console.error("[twilio-inbound] Missing Supabase config");
+    return twimlResponse(hangupTwiml("We're experiencing technical difficulties. Please try again later."));
+  }
+
+  if (!ELEVENLABS_API_KEY) {
+    console.error("[twilio-inbound] Missing ElevenLabs API key");
     return twimlResponse(hangupTwiml("Our voice assistant is currently unavailable. Please try again later."));
   }
 
+  const callerPhoneE164 = normalizeToE164(fromNumber);
+
   try {
-    // Register call with ElevenLabs
+    // Step 1: Lookup phone number -> tenant
+    const phoneRecords = await querySupabase(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, "phone_numbers", {
+      phone_e164: toNumber,
+    });
+
+    if (!phoneRecords.length) {
+      console.error(`[twilio-inbound] No tenant for number: ${toNumber}`);
+      return twimlResponse(hangupTwiml("This number is not currently in service. Please check the number and try again."));
+    }
+
+    const phoneRecord = phoneRecords[0];
+    let tenantId = phoneRecord.tenant_id;
+    const isAdminTestLine = phoneRecord.is_admin_test_line;
+
+    // Step 2: Admin test line routing
+    if (isAdminTestLine && callerPhoneE164) {
+      console.log("[twilio-inbound] Admin test line, checking caller");
+      const adminRecords = await querySupabase(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, "admin_settings", {
+        admin_phone_e164: callerPhoneE164,
+      });
+      
+      if (adminRecords.length && adminRecords[0].admin_active_tenant_id) {
+        tenantId = adminRecords[0].admin_active_tenant_id;
+        console.log(`[twilio-inbound] Admin routing to tenant: ${tenantId}`);
+      } else if (phoneRecord.fallback_tenant_id) {
+        tenantId = phoneRecord.fallback_tenant_id;
+        console.log(`[twilio-inbound] Fallback tenant: ${tenantId}`);
+      }
+    }
+
+    // Step 3: Get tenant info
+    const tenantRecords = await querySupabase(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, "tenants", {
+      id: tenantId,
+    });
+
+    if (!tenantRecords.length) {
+      console.error(`[twilio-inbound] Tenant not found: ${tenantId}`);
+      return twimlResponse(hangupTwiml("We're experiencing technical difficulties. Please try again later."));
+    }
+
+    const tenant = tenantRecords[0];
+    const businessMode = tenant.business_mode || "general";
+    const businessName = tenant.name || "our business";
+
+    console.log(`[twilio-inbound] Tenant: ${businessName}, mode: ${businessMode}`);
+
+    // Step 4: Get assistant settings
+    const settingsRecords = await querySupabase(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, "assistant_settings", {
+      tenant_id: tenantId,
+    });
+    const settings = settingsRecords[0] || {};
+
+    // Check if voice AI is enabled
+    if (settings.voice_ai_enabled === false || settings.voice_mode === "off") {
+      console.log(`[twilio-inbound] Voice AI disabled for tenant ${tenantId}`);
+      return twimlResponse(hangupTwiml(`Thank you for calling ${escapeXml(businessName)}. We're currently unavailable. Please leave a message or try again later.`));
+    }
+
+    // Step 5: Resolve agent ID for business mode
+    const agentId = getAgentIdForMode(businessMode);
+    if (!agentId) {
+      console.error(`[twilio-inbound] No agent configured for mode: ${businessMode}`);
+      return twimlResponse(hangupTwiml("Our voice assistant is temporarily unavailable. Please try again later."));
+    }
+
+    // Step 6: Build dynamic variables for ElevenLabs
+    const dynamicVariables: Record<string, string> = {
+      tenant_id: tenantId,
+      business_name: businessName,
+      business_mode: businessMode,
+      caller_phone: callerPhoneE164,
+      hours_today: tenant.hours_json ? "See business hours" : "Contact us for hours",
+      booking_link: settings.booking_url || "",
+      service_summary: "",
+      menu_summary: "",
+      policies_summary: "",
+      hipaa_mode: businessMode === "medical" ? "true" : "false",
+    };
+
+    // Step 7: Register call with ElevenLabs
+    console.log(`[twilio-inbound] Registering with agent ${agentId.slice(0, 12)}...`);
+    
     const registerResponse = await fetch(
       "https://api.elevenlabs.io/v1/convai/twilio/register-call",
       {
@@ -69,9 +230,12 @@ Deno.serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          agent_id: ELEVENLABS_AGENT_ID,
+          agent_id: agentId,
           from_number: fromNumber,
           to_number: toNumber,
+          conversation_initiation_client_data: {
+            dynamic_variables: dynamicVariables,
+          },
         }),
       }
     );
@@ -84,7 +248,15 @@ Deno.serve(async (req) => {
 
     const twiml = await registerResponse.text();
     console.log(`[twilio-inbound] ElevenLabs returned TwiML (${twiml.length} chars)`);
-    
+
+    // Update connect_status if needed
+    if (settings.connect_status !== "forwarding_verified") {
+      await updateSupabase(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, "assistant_settings", 
+        { tenant_id: tenantId }, 
+        { connect_status: "forwarding_verified", updated_at: new Date().toISOString() }
+      );
+    }
+
     return new Response(twiml, {
       status: 200,
       headers: { "Content-Type": "text/xml" },
