@@ -2493,6 +2493,245 @@ export type Database = {
           },
         ]
       }
+      impound_lots: {
+        Row: {
+          address: string | null
+          city: string | null
+          created_at: string | null
+          hours_json: Json | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          phone: string | null
+          state: string | null
+          tenant_id: string
+          updated_at: string | null
+          zip: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          created_at?: string | null
+          hours_json?: Json | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          phone?: string | null
+          state?: string | null
+          tenant_id: string
+          updated_at?: string | null
+          zip?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          created_at?: string | null
+          hours_json?: Json | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          phone?: string | null
+          state?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+          zip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "impound_lots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      impound_settings: {
+        Row: {
+          accepted_payment: string[] | null
+          admin_fee_cents: number | null
+          base_tow_fee_cents: number | null
+          daily_storage_cents: number | null
+          default_release_requirements: string[] | null
+          gate_fee_cents: number | null
+          impound_handling_enabled: boolean | null
+          notify_on_new_impound: boolean | null
+          notify_on_release: boolean | null
+          release_hours_json: Json | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          accepted_payment?: string[] | null
+          admin_fee_cents?: number | null
+          base_tow_fee_cents?: number | null
+          daily_storage_cents?: number | null
+          default_release_requirements?: string[] | null
+          gate_fee_cents?: number | null
+          impound_handling_enabled?: boolean | null
+          notify_on_new_impound?: boolean | null
+          notify_on_release?: boolean | null
+          release_hours_json?: Json | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          accepted_payment?: string[] | null
+          admin_fee_cents?: number | null
+          base_tow_fee_cents?: number | null
+          daily_storage_cents?: number | null
+          default_release_requirements?: string[] | null
+          gate_fee_cents?: number | null
+          impound_handling_enabled?: boolean | null
+          notify_on_new_impound?: boolean | null
+          notify_on_release?: boolean | null
+          release_hours_json?: Json | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "impound_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      impound_vehicles: {
+        Row: {
+          additional_fees_cents: number | null
+          admin_fee_cents: number | null
+          base_tow_fee_cents: number | null
+          created_at: string | null
+          days_stored: number | null
+          dispatch_job_id: string | null
+          gate_fee_cents: number | null
+          id: string
+          license_plate: string | null
+          license_plate_state: string | null
+          lot_id: string | null
+          notes: string | null
+          payment_method: string | null
+          photos: Json | null
+          release_notes: string | null
+          release_requirements: string[] | null
+          released_at: string | null
+          released_to_name: string | null
+          released_to_phone: string | null
+          status: string | null
+          storage_fee_daily_cents: number | null
+          tenant_id: string
+          total_fees_cents: number | null
+          total_storage_cents: number | null
+          tow_reason: string | null
+          towed_at: string
+          towed_from_address: string | null
+          updated_at: string | null
+          vehicle_color: string | null
+          vehicle_make: string | null
+          vehicle_model: string | null
+          vehicle_year: string | null
+          vin: string | null
+        }
+        Insert: {
+          additional_fees_cents?: number | null
+          admin_fee_cents?: number | null
+          base_tow_fee_cents?: number | null
+          created_at?: string | null
+          days_stored?: number | null
+          dispatch_job_id?: string | null
+          gate_fee_cents?: number | null
+          id?: string
+          license_plate?: string | null
+          license_plate_state?: string | null
+          lot_id?: string | null
+          notes?: string | null
+          payment_method?: string | null
+          photos?: Json | null
+          release_notes?: string | null
+          release_requirements?: string[] | null
+          released_at?: string | null
+          released_to_name?: string | null
+          released_to_phone?: string | null
+          status?: string | null
+          storage_fee_daily_cents?: number | null
+          tenant_id: string
+          total_fees_cents?: number | null
+          total_storage_cents?: number | null
+          tow_reason?: string | null
+          towed_at?: string
+          towed_from_address?: string | null
+          updated_at?: string | null
+          vehicle_color?: string | null
+          vehicle_make?: string | null
+          vehicle_model?: string | null
+          vehicle_year?: string | null
+          vin?: string | null
+        }
+        Update: {
+          additional_fees_cents?: number | null
+          admin_fee_cents?: number | null
+          base_tow_fee_cents?: number | null
+          created_at?: string | null
+          days_stored?: number | null
+          dispatch_job_id?: string | null
+          gate_fee_cents?: number | null
+          id?: string
+          license_plate?: string | null
+          license_plate_state?: string | null
+          lot_id?: string | null
+          notes?: string | null
+          payment_method?: string | null
+          photos?: Json | null
+          release_notes?: string | null
+          release_requirements?: string[] | null
+          released_at?: string | null
+          released_to_name?: string | null
+          released_to_phone?: string | null
+          status?: string | null
+          storage_fee_daily_cents?: number | null
+          tenant_id?: string
+          total_fees_cents?: number | null
+          total_storage_cents?: number | null
+          tow_reason?: string | null
+          towed_at?: string
+          towed_from_address?: string | null
+          updated_at?: string | null
+          vehicle_color?: string | null
+          vehicle_make?: string | null
+          vehicle_model?: string | null
+          vehicle_year?: string | null
+          vin?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "impound_vehicles_dispatch_job_id_fkey"
+            columns: ["dispatch_job_id"]
+            isOneToOne: false
+            referencedRelation: "dispatch_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "impound_vehicles_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "impound_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "impound_vehicles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       industry_demos: {
         Row: {
           audio_url: string | null
@@ -4146,6 +4385,135 @@ export type Database = {
           },
         ]
       }
+      revenue_attributions: {
+        Row: {
+          attributed_at: string
+          completed_at: string | null
+          created_at: string
+          customer_id: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          revenue_cents: number
+          session_id: string | null
+          source_type: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          attributed_at?: string
+          completed_at?: string | null
+          created_at?: string
+          customer_id?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          revenue_cents?: number
+          session_id?: string | null
+          source_type?: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          attributed_at?: string
+          completed_at?: string | null
+          created_at?: string
+          customer_id?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          revenue_cents?: number
+          session_id?: string | null
+          source_type?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revenue_attributions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revenue_attributions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_call_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revenue_attributions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      revenue_stats_monthly: {
+        Row: {
+          ai_revenue_cents: number
+          avg_entity_value_cents: number
+          calls_answered: number
+          conversion_rate: number
+          created_at: string
+          entities_completed: number
+          entities_created: number
+          id: string
+          month: string
+          subscription_cost_cents: number
+          tenant_id: string
+          total_calls: number
+          total_revenue_cents: number
+          updated_at: string
+        }
+        Insert: {
+          ai_revenue_cents?: number
+          avg_entity_value_cents?: number
+          calls_answered?: number
+          conversion_rate?: number
+          created_at?: string
+          entities_completed?: number
+          entities_created?: number
+          id?: string
+          month: string
+          subscription_cost_cents?: number
+          tenant_id: string
+          total_calls?: number
+          total_revenue_cents?: number
+          updated_at?: string
+        }
+        Update: {
+          ai_revenue_cents?: number
+          avg_entity_value_cents?: number
+          calls_answered?: number
+          conversion_rate?: number
+          created_at?: string
+          entities_completed?: number
+          entities_created?: number
+          id?: string
+          month?: string
+          subscription_cost_cents?: number
+          tenant_id?: string
+          total_calls?: number
+          total_revenue_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revenue_stats_monthly_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       review_requests: {
         Row: {
           booking_id: string | null
@@ -4924,6 +5292,44 @@ export type Database = {
             foreignKeyName: "tenant_locations_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_revenue_settings: {
+        Row: {
+          created_at: string
+          default_service_value_cents: number
+          id: string
+          send_monthly_report: boolean
+          subscription_cost_override_cents: number | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_service_value_cents?: number
+          id?: string
+          send_monthly_report?: boolean
+          subscription_cost_override_cents?: number | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_service_value_cents?: number
+          id?: string
+          send_monthly_report?: boolean
+          subscription_cost_override_cents?: number | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_revenue_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -5857,6 +6263,10 @@ export type Database = {
       calculate_ai_readiness: { Args: { _tenant_id: string }; Returns: number }
       cleanup_expired_holds: { Args: never; Returns: number }
       fn_build_business_context: { Args: { _tenant_id: string }; Returns: Json }
+      fn_calculate_booking_revenue: {
+        Args: { p_booking_id: string; p_tenant_id: string }
+        Returns: number
+      }
       fn_cleanup_expired_holds: { Args: never; Returns: number }
       fn_compute_available_slots: {
         Args: {

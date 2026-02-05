@@ -27,7 +27,7 @@ export function useRevenueSettings() {
         .maybeSingle();
 
       if (error) throw error;
-      return data as RevenueSettings | null;
+      return data as unknown as RevenueSettings | null;
     },
     enabled: !!tenant?.id,
   });
