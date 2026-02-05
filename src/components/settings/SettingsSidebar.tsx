@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronRight,
+  DollarSign,
 } from "lucide-react";
 import { SettingsNavItem } from "./SettingsNavItem";
 import { cn } from "@/lib/utils";
@@ -54,6 +55,7 @@ export function SettingsSidebar({ activeSection, onSectionChange, config }: Sett
       items: [
         { id: "team", label: "Team Members", icon: Users },
         { id: "plan", label: "Plan & Billing", icon: CreditCard },
+        { id: "revenue", label: "Revenue Tracking", icon: DollarSign },
       ],
     },
     {

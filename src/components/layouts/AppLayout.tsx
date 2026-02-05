@@ -42,6 +42,8 @@ import {
   Menu,
   X,
   Command,
+  FileText,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useMemo, useState } from "react";
@@ -101,10 +103,14 @@ function AppLayoutContent() {
       items.push({ href: "/app/medical-intake", label: "Patients", icon: Stethoscope });
     }
 
+    // Business features
+    items.push({ href: "/app/estimates", label: "Estimates", icon: FileText });
+
     // Configure items
     items.push({ href: "/app/business-brain", label: "Business Brain", icon: Bot, badge: conflictsCount || undefined });
     items.push({ href: "/app/integrations", label: "Integrations", icon: Route });
     items.push({ href: "/app/simulator", label: "Test Calls", icon: FlaskConical });
+    items.push({ href: "/app/reports/roi", label: "Reports", icon: BarChart3 });
 
     return items;
   }, [enabledModules, terms, conflictsCount]);
