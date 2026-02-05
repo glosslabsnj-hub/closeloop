@@ -6804,6 +6804,18 @@ export type Database = {
     Functions: {
       calculate_ai_readiness: { Args: { _tenant_id: string }; Returns: number }
       cleanup_expired_holds: { Args: never; Returns: number }
+      create_default_recovery_sequence: {
+        Args: { p_business_mode: string; p_tenant_id: string }
+        Returns: string
+      }
+      create_default_recovery_templates: {
+        Args: { p_business_mode: string; p_tenant_id: string }
+        Returns: undefined
+      }
+      ensure_tenant_has_default_sequence: {
+        Args: { p_tenant_id: string }
+        Returns: string
+      }
       fn_build_business_context: { Args: { _tenant_id: string }; Returns: Json }
       fn_calculate_booking_revenue: {
         Args: { p_booking_id: string; p_tenant_id: string }
