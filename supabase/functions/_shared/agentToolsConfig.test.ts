@@ -12,8 +12,8 @@ import {
   getAgentsSummary,
   getElevenLabsToolsForMode,
   type AgentToolsConfig,
-  type BusinessMode,
 } from "./agentToolsConfig.ts";
+import type { BusinessMode } from "./agentResolver.ts";
 
 // ============= VERIFICATION TESTS =============
 

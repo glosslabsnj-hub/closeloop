@@ -16,6 +16,8 @@ import {
   serializeBusinessBrainSnapshot,
   type BusinessBrainSnapshot,
 } from "./getBusinessBrainSnapshot.ts";
+import { getBasePromptForMode } from "./agentBasePrompts.ts";
+import type { BusinessMode } from "./agentResolver.ts";
 
 // ============= TYPE DEFINITIONS =============
 
@@ -2139,6 +2141,12 @@ IMPORTANT GUIDELINES:
   if (ctx.ai_settings.fallback_script) {
     prompt += `FALLBACK (use when you can't help): "${ctx.ai_settings.fallback_script}"\\n`;
   }
+
+  // ===== APPEND MODE-SPECIFIC BASE PROMPT =====
+  // This includes: Human Phone Rules, Time/Number Speaking, Tool Documentation, Industry Scenarios
+  const businessMode = (ctx.tenant.business_mode || "general") as BusinessMode;
+  const basePrompt = getBasePromptForMode(businessMode);
+  prompt += `\n\n${basePrompt}`;
 
   return prompt;
 }
