@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildBusinessContext, storeContextSnapshot, buildDynamicVariables } from "../_shared/buildBusinessContext.ts";
 import { getAgentIdForMode } from "../_shared/agentResolver.ts";
+import { captureException, setTags } from "../_shared/sentry.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -573,6 +574,14 @@ STRICT SCHEDULING RULES (MANDATORY):
   } catch (error) {
     console.error("Error handling inbound call:", error);
     const errorMsg = error instanceof Error ? error.message : "Unknown error";
+
+    // Capture to Sentry for monitoring
+    setTags({ function: "twilio-inbound", call_sid: callSid || "unknown" });
+    await captureException(error, {
+      tags: { function: "twilio-inbound", call_sid: callSid || "unknown" },
+      extra: { to_number: toNumber, from_number: fromNumber?.slice(-4) || "unknown" },
+    });
+
     try {
       if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
         await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, null, callSid || "unknown", toNumber || "unknown", fromNumber || "unknown", "unhandled_exception", 500, errorMsg, null);

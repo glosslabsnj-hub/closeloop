@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 import { encode as encodeHex } from "https://deno.land/std@0.168.0/encoding/hex.ts";
 import { computePriceQuote, computeEtaQuote, type QuoteResult } from "../_shared/computeQuote.ts";
+import { captureException } from "../_shared/sentry.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -456,6 +457,32 @@ serve(async (req) => {
     
     console.log("Processing call end event:", eventType, "for conversation:", conversationId);
 
+    // ===== IDEMPOTENCY CHECK =====
+    // Check if we've already processed this conversation_id to prevent duplicate processing
+    const { data: existingSession } = await supabase
+      .from("ai_call_sessions")
+      .select("id, transcript, ended_at")
+      .eq("elevenlabs_conversation_id", payload.conversation_id)
+      .single();
+
+    if (existingSession?.transcript && existingSession?.ended_at) {
+      console.log(`Duplicate webhook detected for conversation ${conversationId} - already processed`);
+      await logEventStage(supabase, "unknown", existingSession.id, null, conversationId, "webhook_duplicate_skipped", {
+        existing_session_id: existingSession.id,
+        already_processed_at: existingSession.ended_at,
+      });
+      return new Response(
+        JSON.stringify({
+          status: "skipped",
+          reason: "duplicate",
+          session_id: existingSession.id,
+          message: "This conversation has already been processed",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    // ===== END IDEMPOTENCY CHECK =====
+
     const { data: session, error: sessionError } = await supabase
       .from("ai_call_sessions")
       .select("id, tenant_id, context_json, customer_id, caller_phone, twilio_call_sid")
@@ -507,6 +534,12 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("Webhook error:", error);
+
+    // Capture to Sentry for monitoring
+    await captureException(error, {
+      tags: { function: "elevenlabs-webhook" },
+    });
+
     try {
       await logEventStage(supabase, "unknown", null, null, "unknown", "webhook_error", {}, error instanceof Error ? error.message : "Unknown error");
     } catch { /* Ignore */ }

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,6 +11,79 @@ const corsHeaders = {
 function hasVoiceFeature(planCode: string | null): boolean {
   if (!planCode) return false;
   return planCode.startsWith("voice") || planCode.startsWith("both");
+}
+
+// Constant-time string comparison to prevent timing attacks
+function secureCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+// Parse Stripe signature header (format: t=timestamp,v1=signature,v1=signature2...)
+function parseStripeSignature(header: string): { timestamp: string; signatures: string[] } {
+  const parts = header.split(",");
+  let timestamp = "";
+  const signatures: string[] = [];
+
+  for (const part of parts) {
+    const [key, value] = part.split("=");
+    if (key === "t") {
+      timestamp = value;
+    } else if (key === "v1") {
+      signatures.push(value);
+    }
+  }
+
+  return { timestamp, signatures };
+}
+
+// Verify Stripe webhook signature
+async function verifyStripeSignature(
+  payload: string,
+  signatureHeader: string,
+  secret: string,
+  toleranceSeconds = 300
+): Promise<{ valid: boolean; error?: string }> {
+  const { timestamp, signatures } = parseStripeSignature(signatureHeader);
+
+  if (!timestamp || signatures.length === 0) {
+    return { valid: false, error: "Invalid signature header format" };
+  }
+
+  // Check timestamp is within tolerance (prevent replay attacks)
+  const now = Math.floor(Date.now() / 1000);
+  const webhookTimestamp = parseInt(timestamp, 10);
+  if (isNaN(webhookTimestamp) || Math.abs(now - webhookTimestamp) > toleranceSeconds) {
+    return { valid: false, error: "Webhook timestamp outside tolerance window" };
+  }
+
+  // Compute expected signature: HMAC-SHA256(timestamp + "." + payload)
+  const signedPayload = `${timestamp}.${payload}`;
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const signatureBytes = await crypto.subtle.sign("HMAC", key, encoder.encode(signedPayload));
+  const expectedSignature = Array.from(new Uint8Array(signatureBytes))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  // Check if any of the provided signatures match (Stripe may send multiple)
+  const isValid = signatures.some((sig) => secureCompare(sig, expectedSignature));
+
+  if (!isValid) {
+    return { valid: false, error: "Signature verification failed" };
+  }
+
+  return { valid: true };
 }
 
 serve(async (req) => {
@@ -35,10 +109,29 @@ serve(async (req) => {
     const body = await req.text();
     const signature = req.headers.get("stripe-signature");
 
-    // In production, verify Stripe signature
-    // For now, we'll parse the event directly
-    // TODO: Add proper Stripe signature verification when STRIPE_WEBHOOK_SECRET is set
-    
+    // Verify Stripe webhook signature when secret is configured
+    if (STRIPE_WEBHOOK_SECRET) {
+      if (!signature) {
+        console.error("Missing stripe-signature header");
+        return new Response(JSON.stringify({ error: "Missing signature" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const verification = await verifyStripeSignature(body, signature, STRIPE_WEBHOOK_SECRET);
+      if (!verification.valid) {
+        console.error("Stripe signature verification failed:", verification.error);
+        return new Response(JSON.stringify({ error: "Invalid signature" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      console.log("Stripe signature verified successfully");
+    } else {
+      console.warn("STRIPE_WEBHOOK_SECRET not set - signature verification skipped (not recommended for production)");
+    }
+
     let event;
     try {
       event = JSON.parse(body);
@@ -52,11 +145,77 @@ serve(async (req) => {
 
     console.log(`Received Stripe event: ${event.type}`);
 
-    // Handle relevant events
-    if (event.type === "checkout.session.completed" || 
+    // Handle credit top-up separately (one-time payment, not subscription)
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object;
+      const paymentType = session.metadata?.type;
+
+      if (paymentType === "credit_top_up") {
+        const tenantId = session.metadata?.tenant_id;
+        const creditAmountCents = parseInt(session.metadata?.credit_amount_cents || "0", 10);
+
+        if (tenantId && creditAmountCents > 0) {
+          console.log(`CreditTopUp: tenant=${tenantId} amount=${creditAmountCents} cents`);
+
+          // Atomically add credits to the tenant's subscription balance
+          const { data: subscription, error: fetchError } = await supabase
+            .from("subscriptions")
+            .select("credit_balance_cents")
+            .eq("tenant_id", tenantId)
+            .single();
+
+          if (fetchError) {
+            console.error(`CreditTopUp: failed to fetch subscription for tenant ${tenantId}:`, fetchError);
+          } else {
+            const currentBalance = subscription?.credit_balance_cents || 0;
+            const newBalance = currentBalance + creditAmountCents;
+
+            const { error: updateError } = await supabase
+              .from("subscriptions")
+              .update({
+                credit_balance_cents: newBalance,
+                updated_at: new Date().toISOString()
+              })
+              .eq("tenant_id", tenantId);
+
+            if (updateError) {
+              console.error(`CreditTopUp: failed to update balance for tenant ${tenantId}:`, updateError);
+            } else {
+              console.log(`CreditTopUp: success tenant=${tenantId} oldBalance=${currentBalance} newBalance=${newBalance}`);
+
+              // Log the transaction for audit purposes
+              await supabase.from("audit_events").insert({
+                tenant_id: tenantId,
+                event_type: "payment_received",
+                entity_type: "subscription",
+                actor_type: "system",
+                payload: {
+                  type: "credit_top_up",
+                  amount_cents: creditAmountCents,
+                  old_balance_cents: currentBalance,
+                  new_balance_cents: newBalance,
+                  stripe_session_id: session.id,
+                },
+              }).catch((e) => console.error("Failed to log credit top-up audit event:", e));
+            }
+          }
+        } else {
+          console.error(`CreditTopUp: invalid metadata tenant_id=${tenantId} amount=${creditAmountCents}`);
+        }
+
+        // Return early - credit top-up doesn't need subscription/provisioning logic
+        return new Response(JSON.stringify({ received: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // Handle subscription-related events
+    if (event.type === "checkout.session.completed" ||
         event.type === "customer.subscription.created" ||
         event.type === "customer.subscription.updated") {
-      
+
       let tenantId: string | null = null;
       let planCode: string | null = null;
       let subscriptionStatus: string | null = null;
@@ -65,7 +224,7 @@ serve(async (req) => {
         const session = event.data.object;
         tenantId = session.metadata?.tenant_id;
         planCode = session.metadata?.plan_code;
-        
+
         // Get subscription status if this was a subscription checkout
         if (session.subscription) {
           subscriptionStatus = "active"; // checkout.session.completed means payment succeeded
