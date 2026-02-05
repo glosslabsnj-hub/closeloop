@@ -208,6 +208,79 @@ export type ReservationStatus = "pending" | "confirmed" | "seated" | "completed"
 export type DispatchStatus = "pending" | "assigned" | "en_route" | "on_site" | "completed" | "cancelled";
 export type DispatchPriority = "low" | "normal" | "high" | "urgent";
 
+// Impound types
+export type ImpoundTowReason = "private_property" | "police_hold" | "abandoned" | "accident" | "repo";
+export type ImpoundVehicleStatus = "in_lot" | "pending_release" | "released" | "auction" | "police_hold";
+export type ImpoundReleaseRequirement = "valid_id" | "registration" | "insurance" | "lien_release" | "police_release" | "payment";
+export type ImpoundPaymentMethod = "cash" | "credit_card" | "debit_card";
+
+export interface ImpoundLot {
+  id: string;
+  tenant_id: string;
+  name: string;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  phone: string | null;
+  hours_json: Record<string, { open: string | null; close: string | null }>;
+  is_default: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ImpoundVehicle {
+  id: string;
+  tenant_id: string;
+  lot_id: string | null;
+  license_plate: string | null;
+  license_plate_state: string | null;
+  vin: string | null;
+  vehicle_year: string | null;
+  vehicle_make: string | null;
+  vehicle_model: string | null;
+  vehicle_color: string | null;
+  towed_from_address: string | null;
+  towed_at: string;
+  tow_reason: ImpoundTowReason;
+  dispatch_job_id: string | null;
+  status: ImpoundVehicleStatus;
+  base_tow_fee_cents: number;
+  storage_fee_daily_cents: number;
+  days_stored: number;
+  total_storage_cents: number;
+  admin_fee_cents: number;
+  gate_fee_cents: number;
+  additional_fees_cents: number;
+  total_fees_cents: number;
+  release_requirements: ImpoundReleaseRequirement[];
+  released_at: string | null;
+  released_to_name: string | null;
+  released_to_phone: string | null;
+  release_notes: string | null;
+  payment_method: string | null;
+  notes: string | null;
+  photos: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ImpoundSettings {
+  tenant_id: string;
+  base_tow_fee_cents: number;
+  daily_storage_cents: number;
+  gate_fee_cents: number;
+  admin_fee_cents: number;
+  accepted_payment: ImpoundPaymentMethod[];
+  default_release_requirements: ImpoundReleaseRequirement[];
+  release_hours_json: Record<string, { open: string | null; close: string | null }>;
+  notify_on_new_impound: boolean;
+  notify_on_release: boolean;
+  impound_handling_enabled: boolean;
+  updated_at: string;
+}
+
 // Dashboard metrics
 export interface DashboardMetrics {
   leadsThisWeek: number;
