@@ -1,4 +1,4 @@
-// v3.1.0 - Restored tenant resolution + dynamic variables (no heavy imports)
+// v3.2.0 - Added IVR routing for dispatch businesses
 // Lightweight version to avoid bundle timeout
 
 const corsHeaders = {
@@ -27,6 +27,17 @@ function hangupTwiml(message: string): string {
 <Response>
   <Say voice="Polly.Joanna">${escapeXml(message)}</Say>
   <Hangup/>
+</Response>`;
+}
+
+// IVR menu TwiML - asks caller to press 1 or 2
+function ivrGatherTwiml(businessName: string, webhookUrl: string): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Gather numDigits="1" action="${escapeXml(webhookUrl)}" method="POST" timeout="5">
+    <Say voice="Polly.Joanna">Thanks for calling ${escapeXml(businessName)}. Press 1 for towing and roadside assistance, or press 2 to check on an impounded vehicle.</Say>
+  </Gather>
+  <Say voice="Polly.Joanna">We didn't receive your selection. Connecting you to dispatch.</Say>
 </Response>`;
 }
 
@@ -83,8 +94,18 @@ async function updateSupabase(url: string, key: string, table: string, match: Re
   return response.ok;
 }
 
-// Get agent ID based on business mode
-function getAgentIdForMode(mode: string): string | null {
+// Get agent ID based on business mode and IVR selection
+function getAgentIdForMode(mode: string, ivrSelection?: string): string | null {
+  // Handle IVR selection for dispatch mode
+  if (ivrSelection === "2") {
+    // User pressed 2 for impound
+    const impoundAgentId = Deno.env.get("ELEVENLABS_AGENT_ID_IMPOUND");
+    if (impoundAgentId) {
+      console.log(`[getAgentIdForMode] IVR selection=2, using impound agent`);
+      return impoundAgentId;
+    }
+  }
+  
   const modeEnvMap: Record<string, string> = {
     service: "ELEVENLABS_AGENT_ID_SERVICE",
     dispatch: "ELEVENLABS_AGENT_ID_DISPATCH",
@@ -96,7 +117,7 @@ function getAgentIdForMode(mode: string): string | null {
   const envKey = modeEnvMap[mode] || modeEnvMap.general;
   const agentId = Deno.env.get(envKey) || Deno.env.get("ELEVENLABS_AGENT_ID");
   
-  console.log(`[getAgentIdForMode] mode=${mode}, envKey=${envKey}, found=${!!agentId}`);
+  console.log(`[getAgentIdForMode] mode=${mode}, ivrSelection=${ivrSelection}, envKey=${envKey}, found=${!!agentId}`);
   return agentId || null;
 }
 
@@ -113,6 +134,7 @@ Deno.serve(async (req) => {
   let fromNumber = "";
   let toNumber = "";
   let callSid = "";
+  let digits = ""; // DTMF digits from IVR selection
 
   try {
     const body = await req.text();
@@ -120,7 +142,8 @@ Deno.serve(async (req) => {
     toNumber = formData.get("To") || "";
     fromNumber = formData.get("From") || "";
     callSid = formData.get("CallSid") || "";
-    console.log(`[twilio-inbound] Call from ${fromNumber} to ${toNumber}, CallSid=${callSid}`);
+    digits = formData.get("Digits") || ""; // Capture IVR selection
+    console.log(`[twilio-inbound] Call from ${fromNumber} to ${toNumber}, CallSid=${callSid}, Digits=${digits}`);
   } catch (error) {
     console.error("[twilio-inbound] Failed to parse request:", error);
     return twimlResponse(hangupTwiml("We're experiencing technical difficulties. Please try again later."));
@@ -197,14 +220,35 @@ Deno.serve(async (req) => {
       return twimlResponse(hangupTwiml(`Thank you for calling ${escapeXml(businessName)}. We're currently unavailable. Please leave a message or try again later.`));
     }
 
-    // Step 5: Resolve agent ID for business mode
-    const agentId = getAgentIdForMode(businessMode);
+    // Step 5: Handle IVR routing for dispatch businesses
+    const dispatchIvrMode = settings.dispatch_ivr_mode || "towing_only";
+    
+    // If dispatch mode with IVR routing enabled and no digits yet, show IVR menu
+    if (businessMode === "dispatch" && dispatchIvrMode === "ivr_routing" && !digits) {
+      console.log(`[twilio-inbound] Showing IVR menu for dispatch tenant`);
+      const webhookUrl = `${SUPABASE_URL}/functions/v1/twilio-inbound`;
+      return twimlResponse(ivrGatherTwiml(businessName, webhookUrl));
+    }
+    
+    // Determine which agent to use based on IVR mode and selection
+    let ivrSelection: string | undefined;
+    if (businessMode === "dispatch") {
+      if (dispatchIvrMode === "impound_only") {
+        ivrSelection = "2"; // Force impound agent
+      } else if (dispatchIvrMode === "ivr_routing" && digits) {
+        ivrSelection = digits; // Use caller's selection
+      }
+      // towing_only or no selection defaults to dispatch agent
+    }
+
+    // Step 6: Resolve agent ID for business mode
+    const agentId = getAgentIdForMode(businessMode, ivrSelection);
     if (!agentId) {
       console.error(`[twilio-inbound] No agent configured for mode: ${businessMode}`);
       return twimlResponse(hangupTwiml("Our voice assistant is temporarily unavailable. Please try again later."));
     }
 
-    // Step 6: Build dynamic variables for ElevenLabs
+    // Step 7: Build dynamic variables for ElevenLabs
     const dynamicVariables: Record<string, string> = {
       tenant_id: tenantId,
       business_name: businessName,
@@ -218,7 +262,7 @@ Deno.serve(async (req) => {
       hipaa_mode: businessMode === "medical" ? "true" : "false",
     };
 
-    // Step 7: Register call with ElevenLabs
+    // Step 8: Register call with ElevenLabs
     console.log(`[twilio-inbound] Registering with agent ${agentId.slice(0, 12)}...`);
     
     const registerResponse = await fetch(
