@@ -4,6 +4,7 @@ import { buildBusinessContext, storeContextSnapshot, buildDynamicVariables } fro
 import { getAgentIdForMode } from "../_shared/agentResolver.ts";
 import { captureException, setTags } from "../_shared/sentry.ts";
 
+// v2.4.0 - IVR routing for dispatch + impound
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
