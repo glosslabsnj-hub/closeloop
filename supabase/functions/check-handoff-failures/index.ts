@@ -110,12 +110,12 @@ serve(async (req) => {
         if (!existing.latest_error && failure.error_message) {
           existing.latest_error = failure.error_message;
         }
-      } else {
-        const tenant = failure.tenants as { business_name: string; owner_email: string | null };
-        failuresByTenant.set(tenantId, {
-          tenant_id: tenantId,
-          tenant_name: tenant?.business_name || "Unknown",
-          owner_email: tenant?.owner_email || null,
+       } else {
+         const tenantData = failure.tenants as unknown as { business_name: string; owner_email: string | null };
+         failuresByTenant.set(tenantId, {
+           tenant_id: tenantId,
+           tenant_name: tenantData?.business_name || "Unknown",
+           owner_email: tenantData?.owner_email || null,
           failure_count: 1,
           entity_types: [failure.entity_type],
           latest_error: failure.error_message || null,
@@ -223,8 +223,8 @@ serve(async (req) => {
 });
 
 // Send alert to ops team
-async function sendOpsAlert(
-  supabase: ReturnType<typeof createClient>,
+ async function sendOpsAlert(
+   supabase: any,
   supabaseUrl: string,
   supabaseKey: string,
   slackWebhookUrl: string | undefined,
@@ -275,53 +275,63 @@ Please check the dashboard for details.
     }
   }
 
-  // Log the ops alert
-  await supabase.from("audit_events").insert({
-    tenant_id: null,
-    event_type: "system.ops_alert_sent",
-    actor_type: "system",
-    payload: {
-      alert_type: "handoff_failures",
-      total_failures: totalFailures,
-      affected_tenants: failuresByTenant.size,
-      message,
-    },
-  });
-}
+   // Log the ops alert
+   try {
+     await supabase.from("audit_events").insert({
+       tenant_id: null,
+       event_type: "system.ops_alert_sent",
+       actor_type: "system",
+       payload: {
+         alert_type: "handoff_failures",
+         total_failures: totalFailures,
+         affected_tenants: failuresByTenant.size,
+         message,
+       },
+     });
+   } catch (e) {
+     console.error("Failed to log ops alert:", e);
+   }
+ }
 
-// Send alert to tenant owner
-async function sendTenantAlert(
-  supabase: ReturnType<typeof createClient>,
+ // Send alert to tenant owner
+ async function sendTenantAlert(
+   supabase: any,
   supabaseUrl: string,
   supabaseKey: string,
   summary: FailureSummary
 ): Promise<boolean> {
   const { tenant_id, tenant_name, owner_email, failure_count, entity_types, latest_error } = summary;
 
-  // Log the alert to audit_events
-  await supabase.from("audit_events").insert({
-    tenant_id,
-    event_type: "handoff.alert_sent",
-    actor_type: "system",
-    payload: {
-      failure_count,
-      entity_types,
-      latest_error,
-      owner_email,
-    },
-  });
-
-  // Create a dashboard notification
-  await supabase.from("notifications").insert({
-    tenant_id,
-    type: "handoff_failure",
-    title: "Handoff Delivery Issues",
-    message: `${failure_count} handoff deliveries have failed in the last hour. Please check your integration settings.`,
-    severity: "warning",
-    read: false,
-  }).catch(() => {
-    // notifications table might not exist, ignore
-  });
+   // Log the alert to audit_events
+   try {
+     await supabase.from("audit_events").insert({
+       tenant_id,
+       event_type: "handoff.alert_sent",
+       actor_type: "system",
+       payload: {
+         failure_count,
+         entity_types,
+         latest_error,
+         owner_email,
+       },
+     });
+   } catch (e) {
+     console.error("Failed to log tenant alert:", e);
+   }
+ 
+   // Create a dashboard notification
+   try {
+     await supabase.from("notifications").insert({
+       tenant_id,
+       type: "handoff_failure",
+       title: "Handoff Delivery Issues",
+       message: `${failure_count} handoff deliveries have failed in the last hour. Please check your integration settings.`,
+       severity: "warning",
+       read: false,
+     });
+   } catch {
+     // notifications table might not exist, ignore
+   }
 
   // Trigger notification workflow if email is available
   if (owner_email) {
