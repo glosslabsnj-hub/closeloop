@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.check-impound]
 verify_jwt = false
+
+[functions.get-impound-release-info]
+verify_jwt = false
