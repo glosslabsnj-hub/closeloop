@@ -236,27 +236,31 @@ serve(async (req) => {
 });
 
 // Trigger an alert when max retries are exhausted
-async function triggerDeliveryFailureAlert(
-  supabase: ReturnType<typeof createClient>,
+ async function triggerDeliveryFailureAlert(
+   supabase: any,
   supabaseUrl: string,
   supabaseKey: string,
   delivery: FailedDelivery
 ): Promise<void> {
   const { tenant_id, entity_type, entity_id, error_message } = delivery;
 
-  // Log to audit_events
-  await supabase.from("audit_events").insert({
-    tenant_id,
-    event_type: "handoff.failed",
-    entity_type,
-    entity_id,
-    actor_type: "system",
-    payload: {
-      error: error_message,
-      retry_count: MAX_RETRIES,
-      permanently_failed: true,
-    },
-  });
+   // Log to audit_events
+   try {
+     await supabase.from("audit_events").insert({
+       tenant_id,
+       event_type: "handoff.failed",
+       entity_type,
+       entity_id,
+       actor_type: "system",
+       payload: {
+         error: error_message,
+         retry_count: MAX_RETRIES,
+         permanently_failed: true,
+       },
+     });
+   } catch (e) {
+     console.error("Failed to log audit event:", e);
+   }
 
   // Send to Sentry for monitoring
   await captureMessage(
@@ -278,6 +282,8 @@ async function triggerDeliveryFailureAlert(
     .select("business_name, owner_email")
     .eq("id", tenant_id)
     .single();
+   
+   const tenantData = tenant as { business_name: string; owner_email: string | null } | null;
 
   // Trigger notification workflow
   try {
@@ -296,8 +302,8 @@ async function triggerDeliveryFailureAlert(
         details: {
           error: error_message,
           retry_count: MAX_RETRIES,
-          business_name: tenant?.business_name,
-          owner_email: tenant?.owner_email,
+           business_name: tenantData?.business_name,
+           owner_email: tenantData?.owner_email,
         },
       }),
     });
