@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTerminology } from "@/hooks/useTerminology";
+import { cn } from "@/lib/utils";
 import {
   CheckCircle2,
   Circle,
@@ -124,44 +126,45 @@ export function SetupProgressChecklist() {
 
   return (
     <Card className="h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
-        <h3 className="text-sm font-semibold text-foreground">Setup Progress</h3>
-        <div className="flex items-center gap-2">
-          <Progress value={progressPercent} className="w-16 h-1.5" />
-          <span className="text-xs font-medium text-muted-foreground tabular-nums">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg font-medium">Setup Progress</CardTitle>
+          <span className="text-sm font-medium text-muted-foreground tabular-nums">
             {completedCount}/{steps.length}
           </span>
         </div>
-      </div>
+        <Progress value={progressPercent} className="h-2 mt-3" />
+      </CardHeader>
 
-      <CardContent className="px-5 py-4">
-        <div className="space-y-0.5">
+      <CardContent className="pt-0">
+        <div className="space-y-1">
           {steps.map((step) => (
             <Link
               key={step.id}
               to={step.href}
-              className={`flex items-center gap-3 p-2.5 -mx-2.5 rounded-lg transition-colors group ${
+              className={cn(
+                "flex items-center gap-3 p-3 -mx-3 rounded-lg transition-colors group",
                 step.completed
-                  ? "text-muted-foreground/70"
-                  : "hover:bg-muted/40"
-              }`}
+                  ? "opacity-60"
+                  : "hover:bg-muted/50"
+              )}
             >
               {step.completed ? (
                 <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
               ) : (
-                <Circle className="h-5 w-5 text-muted-foreground/40 shrink-0" />
+                <Circle className="h-5 w-5 text-muted-foreground shrink-0" />
               )}
               <div className="flex-1 min-w-0">
                 <p
-                  className={`text-sm font-medium ${
-                    step.completed ? "line-through text-muted-foreground" : "text-foreground/90"
-                  }`}
+                  className={cn(
+                    "text-sm font-medium",
+                    step.completed && "line-through text-muted-foreground"
+                  )}
                 >
                   {step.label}
                 </p>
                 {!step.completed && (
-                  <p className="text-xs text-muted-foreground/70 truncate">
+                  <p className="text-[13px] text-muted-foreground truncate">
                     {step.description}
                   </p>
                 )}

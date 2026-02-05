@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate, Link } from "react-router-dom";
 import { hasVoiceFeature, hasSmsFeature } from "@/config/pricing";
@@ -14,7 +13,7 @@ import {
   FlaskConical,
   Brain,
   Copy,
-  PhoneIncoming,
+  Check,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -39,6 +38,7 @@ export function AgentControlPanel() {
   const closeloopNumber = assistantSettings?.closeloop_number;
 
   const [offBehaviorModalOpen, setOffBehaviorModalOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const handleToggle = async (enabled: boolean) => {
     if (!tenant) return;
@@ -87,19 +87,21 @@ export function AgentControlPanel() {
   const copyPhoneNumber = () => {
     if (closeloopNumber) {
       navigator.clipboard.writeText(closeloopNumber);
+      setCopied(true);
       toast({ title: "Copied!", description: "Phone number copied to clipboard" });
+      setTimeout(() => setCopied(false), 2000);
     }
   };
 
   // No subscription yet
   if (!planCode) {
     return (
-      <Card className="border-dashed">
-        <CardContent className="p-6 text-center">
+      <Card className="border-dashed border-2">
+        <CardContent className="flex flex-col items-center justify-center py-12 text-center">
           <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
             <Phone className="h-6 w-6 text-muted-foreground" />
           </div>
-          <h3 className="font-semibold mb-1">AI Agent</h3>
+          <h3 className="text-lg font-medium mb-1">AI Agent</h3>
           <p className="text-sm text-muted-foreground mb-4">
             Complete setup to activate your AI receptionist.
           </p>
@@ -114,93 +116,115 @@ export function AgentControlPanel() {
   return (
     <>
       <Card className={cn(
-        "overflow-hidden transition-all duration-300",
-        isActive && "ring-1 ring-primary/20 shadow-lg shadow-primary/5"
+        "border-2 transition-all duration-200",
+        isActive 
+          ? "border-primary/20 bg-primary/[0.03]" 
+          : "border-border"
       )}>
-        <CardContent className="p-0">
-          {/* Main Control Row */}
-          <div className="p-5 md:p-6">
-            <div className="flex items-center justify-between gap-4">
-              {/* Left: Status and Description */}
-              <div className="flex items-center gap-4 min-w-0">
-                {/* Status Indicator */}
-                <div className={cn(
-                  "relative flex items-center justify-center h-14 w-14 rounded-2xl transition-all duration-300 shrink-0",
-                  isActive 
-                    ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/25" 
-                    : "bg-muted text-muted-foreground"
-                )}>
-                  {hasVoice ? <Phone className="h-6 w-6" /> : <MessageSquare className="h-6 w-6" />}
-                  {isActive && (
-                    <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-60"></span>
-                      <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-success border-2 border-card"></span>
-                    </span>
-                  )}
-                </div>
-
-                {/* Text */}
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    <h2 className="text-lg font-semibold">AI Agent</h2>
-                    <Badge 
-                      variant={isActive ? "success" : "muted"} 
-                      size="sm"
-                      className="font-medium"
-                    >
-                      {isActive ? "Live" : "Off"}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-0.5 truncate max-w-[300px]">
-                    {isActive 
-                      ? `Answering for ${tenant?.name || "your business"}`
-                      : hasVoice 
-                        ? "Turn on to start answering calls"
-                        : "Enable instant text responses"
-                    }
-                  </p>
-                </div>
-              </div>
-
-              {/* Right: Toggle */}
-              <div className="flex items-center gap-3">
-                <Switch
-                  checked={isActive}
-                  onCheckedChange={handleToggle}
-                  className="scale-110"
-                />
+        <CardContent className="p-6">
+          {/* Main Control */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4 min-w-0">
+              {/* Status Dot */}
+              <div className={cn(
+                "w-3 h-3 rounded-full shrink-0 transition-colors",
+                isActive ? "bg-success" : "bg-muted-foreground/30"
+              )} />
+              
+              {/* Status Text */}
+              <div className="min-w-0">
+                <p className="font-medium">
+                  {isActive ? "AI Receptionist Active" : "AI Receptionist Paused"}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {closeloopNumber 
+                    ? formatPhone(closeloopNumber) 
+                    : "No phone number connected"}
+                </p>
               </div>
             </div>
 
-            {/* Phone Number Pill (if assigned) */}
-            {closeloopNumber && (
-              <div className="mt-5 flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border/50 w-fit">
-                <PhoneIncoming className="h-4 w-4 text-primary shrink-0" />
-                <span className="font-mono text-sm font-medium tracking-wide">
+            {/* Toggle Switch */}
+            <Switch
+              checked={isActive}
+              onCheckedChange={handleToggle}
+            />
+          </div>
+
+          {/* Phone Number & Actions */}
+          {closeloopNumber && (
+            <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-sm text-muted-foreground">
                   {formatPhone(closeloopNumber)}
                 </span>
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                  className="h-7 w-7"
                   onClick={copyPhoneNumber}
                 >
-                  <Copy className="h-3.5 w-3.5" />
+                  {copied ? (
+                    <Check className="h-3.5 w-3.5 text-success" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
                 </Button>
               </div>
-            )}
-          </div>
+              
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-2 text-muted-foreground hover:text-foreground"
+                  onClick={() => navigate("/app/simulator")}
+                >
+                  <FlaskConical className="h-4 w-4" />
+                  Test AI
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-2 text-muted-foreground hover:text-foreground"
+                  onClick={() => navigate("/app/business-brain")}
+                >
+                  <Brain className="h-4 w-4" />
+                  Knowledge
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-2 text-muted-foreground hover:text-foreground"
+                  onClick={() => navigate("/app/settings")}
+                >
+                  <Settings2 className="h-4 w-4" />
+                  Settings
+                </Button>
+              </div>
+            </div>
+          )}
 
-          {/* Quick Actions Bar */}
-          <div className="border-t border-border/50 bg-muted/30 px-5 py-3 md:px-6">
-            <div className="flex flex-wrap gap-2">
+          {/* Actions when no phone number */}
+          {!closeloopNumber && (
+            <div className="mt-4 pt-4 border-t border-border/50 flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="gap-2"
+                asChild
+              >
+                <Link to="/app/settings">
+                  <Phone className="h-4 w-4" />
+                  Connect Phone
+                </Link>
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-8 gap-2 text-muted-foreground hover:text-foreground"
                 onClick={() => navigate("/app/simulator")}
               >
-                <FlaskConical className="h-3.5 w-3.5" />
+                <FlaskConical className="h-4 w-4" />
                 Test AI
               </Button>
               <Button
@@ -209,29 +233,11 @@ export function AgentControlPanel() {
                 className="h-8 gap-2 text-muted-foreground hover:text-foreground"
                 onClick={() => navigate("/app/business-brain")}
               >
-                <Brain className="h-3.5 w-3.5" />
+                <Brain className="h-4 w-4" />
                 Knowledge
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 gap-2 text-muted-foreground hover:text-foreground"
-                onClick={() => navigate("/app/inbox?tab=calls")}
-              >
-                <Phone className="h-3.5 w-3.5" />
-                Calls
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 gap-2 text-muted-foreground hover:text-foreground ml-auto"
-                onClick={() => navigate("/app/settings")}
-              >
-                <Settings2 className="h-3.5 w-3.5" />
-                Settings
-              </Button>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 

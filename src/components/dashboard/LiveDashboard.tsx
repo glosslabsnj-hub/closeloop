@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AgentControlPanel } from "./AgentControlPanel";
 import { MetricsGrid } from "./MetricsGrid";
@@ -8,62 +8,57 @@ import { UnifiedAlertBanner } from "./UnifiedAlertBanner";
 import { Copilot, CopilotTrigger } from "./Copilot";
 import { SetupProgressChecklist } from "./SetupProgressChecklist";
 import { SoundManager } from "@/components/notifications/SoundManager";
-import { format } from "date-fns";
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
 
 export function LiveDashboard() {
   const { tenant, assistantSettings } = useAuth();
   const [copilotOpen, setCopilotOpen] = useState(false);
 
-  // Greeting based on time of day
-  const greeting = useMemo(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 17) return "Good afternoon";
-    return "Good evening";
-  }, []);
-
-  const today = format(new Date(), "EEEE, MMMM d");
+  const businessName = tenant?.name?.split(' ')[0] || "there";
+  const greeting = getGreeting();
 
   return (
-    <div className="space-y-6 md:space-y-8 animate-fade-in">
+    <div className="space-y-6 animate-fade-in">
       {/* Audio notification manager */}
       <SoundManager />
 
-      {/* Welcome Header */}
-      <header className="space-y-1">
-        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
-          {greeting}{tenant?.name ? `, ${tenant.name.split(' ')[0]}` : ""}
+      {/* Page Header */}
+      <header>
+        <h1 className="text-3xl font-semibold tracking-tight">
+          {greeting}, {businessName}
         </h1>
-        <p className="text-muted-foreground text-sm">
-          {today} • Here's how your business is doing
+        <p className="mt-1 text-muted-foreground">
+          Here's what's happening with your AI receptionist today.
         </p>
       </header>
 
       {/* Alerts - Only show if there are issues */}
       <UnifiedAlertBanner />
 
-      {/* Agent Control */}
-      <section>
-        <AgentControlPanel />
-      </section>
-
       {/* Attention Items */}
       <NeedsAttentionBanner />
 
-      {/* Metrics */}
-      <section>
-        <MetricsGrid />
-      </section>
+      {/* Agent Control - Most prominent element */}
+      <AgentControlPanel />
 
-      {/* Main Content */}
-      <section className="grid gap-6 lg:grid-cols-5">
-        <div className="lg:col-span-3">
+      {/* Metrics */}
+      <MetricsGrid />
+
+      {/* Activity & Setup */}
+      <div className="grid gap-6 lg:grid-cols-5">
+        <div className="lg:col-span-3 min-h-0">
           <LiveActivityFeed />
         </div>
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 min-h-0">
           <SetupProgressChecklist />
         </div>
-      </section>
+      </div>
 
       {/* Copilot FAB */}
       <div className="fixed bottom-6 right-6 z-30 md:bottom-8 md:right-8">
