@@ -8,8 +8,8 @@ import { UnifiedAlertBanner } from "./UnifiedAlertBanner";
 import { Copilot, CopilotTrigger } from "./Copilot";
 import { SetupProgressChecklist } from "./SetupProgressChecklist";
 import { ROIPerformanceWidget } from "./ROIPerformanceWidget";
+import { LeadRecoveryWidget } from "./LeadRecoveryWidget";
 import { SoundManager } from "@/components/notifications/SoundManager";
-
 function getGreeting(): string {
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
@@ -48,10 +48,11 @@ export function LiveDashboard() {
       {/* Agent Control - Most prominent element */}
       <AgentControlPanel />
 
-      {/* AI Performance / ROI Widget */}
-      <section>
+      {/* Performance Widgets */}
+      <div className="grid gap-6 lg:grid-cols-2">
         <ROIPerformanceWidget />
-      </section>
+        <LeadRecoveryWidget />
+      </div>
 
       {/* Metrics */}
       <MetricsGrid />
