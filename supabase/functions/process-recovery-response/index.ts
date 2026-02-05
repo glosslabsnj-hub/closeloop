@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
       .select(`
         *,
         customer:customers(*),
-        lead:leads(*)
+        lead:leads!lead_recovery_campaigns_lead_id_fkey(*)
       `)
       .eq("tenant_id", tenant_id)
       .eq("customer_id", finalCustomerId)

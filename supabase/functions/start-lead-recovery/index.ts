@@ -189,12 +189,12 @@ Deno.serve(async (req) => {
         .from("leads")
         .insert({
           tenant_id,
-          name: customer.full_name,
+          full_name: customer.full_name,
           phone: customer.phone_e164,
           email: customer.email,
-          source: "ai_call",
+          source: "missed_call", // Valid enum value
           status: "new",
-          notes: original_intent ? `Original inquiry: ${original_intent}` : null,
+          vehicle_or_context: original_intent ? `Original inquiry: ${original_intent}` : null,
         })
         .select("id")
         .single();
