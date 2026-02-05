@@ -83,14 +83,14 @@ interface OrderDetailsDrawerProps {
 }
 
 const statusConfig: Record<string, { label: string; color: string }> = {
-  pending: { label: "Pending", color: "bg-yellow-500/15 text-yellow-400" },
-  confirmed: { label: "Confirmed", color: "bg-blue-500/15 text-blue-400" },
-  preparing: { label: "Preparing", color: "bg-orange-500/15 text-orange-400" },
-  ready: { label: "Ready", color: "bg-emerald-500/15 text-emerald-400" },
-  out_for_delivery: { label: "Out for Delivery", color: "bg-purple-500/15 text-purple-400" },
-  completed: { label: "Completed", color: "bg-emerald-500/15 text-emerald-400" },
-  cancelled: { label: "Cancelled", color: "bg-destructive/15 text-destructive" },
-  needs_followup: { label: "Needs Follow-up", color: "bg-amber-500/15 text-amber-400" },
+   pending: { label: "Pending", color: "bg-warning/10 text-warning border-warning/30" },
+   confirmed: { label: "Confirmed", color: "bg-info/10 text-info border-info/30" },
+   preparing: { label: "Preparing", color: "bg-primary/10 text-primary border-primary/30" },
+   ready: { label: "Ready", color: "bg-success/10 text-success border-success/30" },
+   out_for_delivery: { label: "Out for Delivery", color: "bg-info/10 text-info border-info/30" },
+   completed: { label: "Completed", color: "bg-muted text-muted-foreground border-border" },
+   cancelled: { label: "Cancelled", color: "bg-destructive/10 text-destructive border-destructive/30" },
+   needs_followup: { label: "Needs Follow-up", color: "bg-warning/10 text-warning border-warning/30" },
 };
 
 export function OrderDetailsDrawer({ order, open, onOpenChange }: OrderDetailsDrawerProps) {

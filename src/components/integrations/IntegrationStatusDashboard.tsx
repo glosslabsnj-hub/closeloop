@@ -33,13 +33,13 @@ function ConnectionCard({ name, icon, status, lastActivity, activityLabel, onRec
   const statusConfig = {
     connected: {
       badge: "Active",
-      badgeClass: "bg-green-500/10 text-green-600 border-green-500/20",
-      icon: <CheckCircle className="h-3 w-3 text-green-500" />,
+       badgeClass: "bg-success/10 text-success border-success/30",
+       icon: <CheckCircle className="h-3 w-3 text-success" />,
     },
     error: {
       badge: "Error",
-      badgeClass: "bg-red-500/10 text-red-600 border-red-500/20",
-      icon: <AlertCircle className="h-3 w-3 text-red-500" />,
+       badgeClass: "bg-destructive/10 text-destructive border-destructive/30",
+       icon: <AlertCircle className="h-3 w-3 text-destructive" />,
     },
     disconnected: {
       badge: "Disconnected",
@@ -51,7 +51,7 @@ function ConnectionCard({ name, icon, status, lastActivity, activityLabel, onRec
   const config = statusConfig[status];
 
   return (
-    <Card className={`transition-all hover:shadow-md ${status === "connected" ? "border-green-500/30 bg-green-500/5" : status === "error" ? "border-red-500/30 bg-red-500/5" : ""}`}>
+     <Card className={`transition-all hover:shadow-md ${status === "connected" ? "border-success/30 bg-success/5" : status === "error" ? "border-destructive/30 bg-destructive/5" : ""}`}>
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
           <div className="text-2xl shrink-0">{icon}</div>
@@ -72,7 +72,7 @@ function ConnectionCard({ name, icon, status, lastActivity, activityLabel, onRec
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="h-6 px-2 text-xs text-red-600 hover:text-red-700"
+                 className="h-6 px-2 text-xs text-destructive hover:text-destructive"
                 onClick={onReconnect}
               >
                 <RefreshCw className="h-3 w-3 mr-1" />
@@ -176,7 +176,7 @@ export function IntegrationStatusDashboard({
             )}
             {automationStats.totalRuns > 0 && (
               <div className="flex items-center gap-1.5">
-                <CheckCircle className="h-4 w-4 text-green-500" />
+                <CheckCircle className="h-4 w-4 text-success" />
                 <span>{automationStats.successCount} successful today</span>
               </div>
             )}

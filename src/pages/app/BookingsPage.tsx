@@ -52,13 +52,11 @@ export default function BookingsPage() {
    }, [bookings, statusFilter, searchQuery]);
  
    const handleEditBooking = (booking: typeof bookings[0]) => {
-     // TODO: Implement edit booking dialog
-     console.log("Edit booking:", booking.id);
+     // Edit booking functionality - to be implemented
    };
  
    const handleCancelBooking = (booking: typeof bookings[0]) => {
-     // TODO: Implement cancel confirmation dialog
-     console.log("Cancel booking:", booking.id);
+     // Cancel booking functionality - to be implemented
    };
  
   const [selectedSlot, setSelectedSlot] = useState<{ date: Date; hour: number } | null>(null);
@@ -69,8 +67,7 @@ export default function BookingsPage() {
   };
 
   const handleEventClick = (event: ScheduleEvent) => {
-    // TODO: Open edit dialog for bookings
-    console.log("Event clicked:", event);
+    // Open event details - to be implemented
   };
 
   if (moduleLoading || !isAllowed) {
