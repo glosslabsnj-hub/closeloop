@@ -1,10 +1,22 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { StatCard } from "@/components/layout/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Select,
   SelectContent,
@@ -13,12 +25,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  BarChart3,
   DollarSign,
   Phone,
   Target,
   TrendingUp,
   Award,
+  HelpCircle,
+  ChevronDown,
+  TestTube,
+  Settings,
+  BarChart3,
+  Truck,
+  Scissors,
+  UtensilsCrossed,
+  Stethoscope,
+  Building,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -30,16 +51,24 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   LineChart,
   Line,
 } from "recharts";
 import { useROIReport, type DateRangeOption } from "@/hooks/useROIReport";
+import type { HeroIconName } from "@/config/industryRevenueConfig";
 import {
   formatRevenue,
   formatROI,
   getROIExplanation,
+  buildStoryHeadline,
+  getROIBadge,
+  getWinMessage,
+  getReceptionistComparison,
+  getMonthsFreeComparison,
+  getHoursSavedEstimate,
 } from "@/lib/revenueUtils";
+import { cn } from "@/lib/utils";
 
 const DATE_RANGE_OPTIONS: { value: DateRangeOption; label: string }[] = [
   { value: "this_month", label: "This Month" },
@@ -54,9 +83,37 @@ const CHART_COLORS = {
   primary: "hsl(var(--primary))",
 };
 
+const HERO_ICONS: Record<HeroIconName, React.ElementType> = {
+  Truck,
+  Scissors,
+  UtensilsCrossed,
+  Stethoscope,
+  Building,
+};
+
+function InfoTooltip({ text }: { text: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <HelpCircle className="h-3 w-3 text-muted-foreground/50 cursor-help inline-block ml-1" />
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-[220px] text-xs">
+        {text}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 function ReportSkeleton() {
   return (
     <div className="space-y-6">
+      <Card>
+        <CardContent className="p-6 space-y-3">
+          <Skeleton className="h-5 w-80" />
+          <Skeleton className="h-4 w-full max-w-lg" />
+          <Skeleton className="h-4 w-48" />
+        </CardContent>
+      </Card>
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {Array.from({ length: 5 }).map((_, i) => (
           <Card key={i}>
@@ -68,11 +125,7 @@ function ReportSkeleton() {
           </Card>
         ))}
       </div>
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card><CardContent className="p-6"><Skeleton className="h-48" /></CardContent></Card>
-        <Card><CardContent className="p-6"><Skeleton className="h-48" /></CardContent></Card>
-      </div>
-      <Card><CardContent className="p-6"><Skeleton className="h-56" /></CardContent></Card>
+      <Card><CardContent className="p-6"><Skeleton className="h-32" /></CardContent></Card>
     </div>
   );
 }
@@ -167,7 +220,7 @@ function ConversionFunnelChart({
           axisLine={false}
           tickLine={false}
         />
-        <Tooltip
+        <RechartsTooltip
           contentStyle={{
             backgroundColor: "hsl(var(--card))",
             border: "1px solid hsl(var(--border))",
@@ -211,7 +264,7 @@ function RevenueTrendChart({ data }: { data: { monthLabel: string; aiRevenueCent
           tickLine={false}
           tickFormatter={(v) => `$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
         />
-        <Tooltip
+        <RechartsTooltip
           contentStyle={{
             backgroundColor: "hsl(var(--card))",
             border: "1px solid hsl(var(--border))",
@@ -233,183 +286,443 @@ function RevenueTrendChart({ data }: { data: { monthLabel: string; aiRevenueCent
   );
 }
 
-export default function ReportsROIPage() {
-  const [dateRange, setDateRange] = useState<DateRangeOption>("this_month");
-  const { data, isLoading } = useROIReport(dateRange);
+function ReportEmpty({
+  steps,
+  encouragement,
+  heroIcon,
+}: {
+  steps: [string, string, string];
+  encouragement: string;
+  heroIcon: HeroIconName;
+}) {
+  const navigate = useNavigate();
+  const HeroIcon = HERO_ICONS[heroIcon];
 
   return (
-    <PageContainer maxWidth="xl">
-      <PageHeader
-        icon={<BarChart3 className="h-5 w-5" />}
-        title="Revenue Report"
-        description="Track your AI-generated revenue and ROI"
-        action={
-          <Select
-            value={dateRange}
-            onValueChange={(v) => setDateRange(v as DateRangeOption)}
-          >
-            <SelectTrigger className="w-[160px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {DATE_RANGE_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        }
-      />
+    <div className="flex flex-col items-center justify-center py-16 text-center space-y-6">
+      <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+        <BarChart3 className="h-7 w-7 text-primary/60" />
+      </div>
 
-      {isLoading || !data ? (
-        <ReportSkeleton />
-      ) : (
-        <div className="space-y-6">
-          {/* Summary Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
-            <StatCard
-              label="AI Revenue"
-              value={formatRevenue(data.aiRevenueCents)}
-              icon={DollarSign}
-              variant="success"
-              trend={
-                data.trends.revenue
-                  ? {
-                      value: Math.round(data.trends.revenue),
-                      label: "vs last period",
-                      direction: data.trends.revenue >= 0 ? "up" : "down",
-                    }
-                  : undefined
-              }
-            />
-            <StatCard
-              label="Total Calls"
-              value={String(data.totalCalls)}
-              icon={Phone}
-              trend={
-                data.trends.calls
-                  ? {
-                      value: Math.round(data.trends.calls),
-                      label: "vs last period",
-                      direction: data.trends.calls >= 0 ? "up" : "down",
-                    }
-                  : undefined
-              }
-            />
-            <StatCard
-              label={data.entityName}
-              value={String(data.entitiesCreated)}
-              icon={Target}
-              trend={
-                data.trends.entities
-                  ? {
-                      value: Math.round(data.trends.entities),
-                      label: "vs last period",
-                      direction: data.trends.entities >= 0 ? "up" : "down",
-                    }
-                  : undefined
-              }
-            />
-            <StatCard
-              label="Conversion"
-              value={`${Math.round(data.conversionRate)}%`}
-              icon={TrendingUp}
-              trend={
-                data.trends.conversion
-                  ? {
-                      value: Math.round(data.trends.conversion),
-                      label: "vs last period",
-                      direction: data.trends.conversion >= 0 ? "up" : "down",
-                    }
-                  : undefined
-              }
-            />
-            <StatCard
-              label="ROI"
-              value={formatROI(data.roiMultiplier)}
-              icon={Award}
-              variant="primary"
-            />
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold text-foreground">Your Revenue Report</h2>
+        <p className="text-sm text-muted-foreground max-w-md">
+          Once your AI starts handling calls, this report will show your revenue, ROI, and trends.
+        </p>
+      </div>
+
+      {/* Step-by-step flow */}
+      <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-2 text-sm text-muted-foreground">
+        {steps.map((step, i) => (
+          <span key={i} className="flex items-center gap-2">
+            {i > 0 && <span className="hidden sm:inline text-muted-foreground/30">&rarr;</span>}
+            <span className="inline-flex items-center gap-2">
+              <span className="h-6 w-6 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center flex-shrink-0">
+                {i + 1}
+              </span>
+              {step}
+            </span>
+          </span>
+        ))}
+      </div>
+
+      {/* Two CTAs */}
+      <div className="flex items-center gap-3">
+        <Button
+          variant="outline"
+          onClick={() => navigate("/app/simulator")}
+          className="gap-2"
+        >
+          <TestTube className="h-4 w-4" />
+          Make a Test Call
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/app/settings/ai")}
+          className="gap-2"
+        >
+          <Settings className="h-4 w-4" />
+          View AI Settings
+        </Button>
+      </div>
+
+      <p className="text-xs text-muted-foreground/60 max-w-sm">
+        {encouragement}
+      </p>
+    </div>
+  );
+}
+
+export default function ReportsROIPage() {
+  const navigate = useNavigate();
+  const [dateRange, setDateRange] = useState<DateRangeOption>("this_month");
+  const [chartsOpen, setChartsOpen] = useState(false);
+  const { data, isLoading } = useROIReport(dateRange);
+
+  const HeroIcon = data ? HERO_ICONS[data.heroIcon] : BarChart3;
+
+  // Build story-driven content when we have data
+  const storyHeadline = data
+    ? buildStoryHeadline(data.storyTemplate, {
+        verb: data.actionVerbPast,
+        count: data.entitiesCreated,
+        entity: data.entityName.toLowerCase(),
+        value: formatRevenue(data.aiRevenueCents),
+      })
+    : "";
+
+  const hasData = data && (data.totalCalls > 0 || data.entitiesCreated > 0);
+
+  return (
+    <TooltipProvider>
+      <PageContainer maxWidth="xl">
+        <PageHeader
+          icon={<HeroIcon className="h-5 w-5" />}
+          title="Revenue Report"
+          description={hasData ? storyHeadline : "Track your AI-generated revenue and ROI"}
+          action={
+            <Select
+              value={dateRange}
+              onValueChange={(v) => setDateRange(v as DateRangeOption)}
+            >
+              <SelectTrigger className="w-[160px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DATE_RANGE_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          }
+        />
+
+        {isLoading || !data ? (
+          <ReportSkeleton />
+        ) : !hasData ? (
+          <ReportEmpty
+            steps={data.emptyStateSteps}
+            encouragement={data.emptyStateEncouragement}
+            heroIcon={data.heroIcon}
+          />
+        ) : (
+          <div className="space-y-6">
+            {/* Narrative Summary Card (Level 1 — Glance) */}
+            <NarrativeSummary data={data} storyHeadline={storyHeadline} />
+
+            {/* Key Metrics (Level 2 — Overview) */}
+            <KeyMetrics data={data} />
+
+            {/* ROI Breakdown */}
+            <ROIBreakdown data={data} />
+
+            {/* Deep Dive: Charts & Trends (collapsible) */}
+            <Collapsible open={chartsOpen} onOpenChange={setChartsOpen}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="w-full flex items-center justify-between py-3 px-4 text-sm font-medium text-muted-foreground hover:text-foreground"
+                >
+                  <span>Deep Dive: Charts & Trends</span>
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 transition-transform duration-200",
+                      chartsOpen && "rotate-180"
+                    )}
+                  />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-6 pt-2">
+                {/* Charts Row */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Revenue by Source</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <RevenueBySourceChart
+                        ai={data.revenueBySource.ai}
+                        manual={data.revenueBySource.manual}
+                      />
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Conversion Funnel</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ConversionFunnelChart
+                        funnel={data.conversionFunnel}
+                        entityName={data.entityName}
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Revenue Trend */}
+                {data.monthlyData.length > 1 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Revenue Trend</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <RevenueTrendChart data={data.monthlyData} />
+                    </CardContent>
+                  </Card>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
           </div>
+        )}
+      </PageContainer>
+    </TooltipProvider>
+  );
+}
 
-          {/* Charts Row */}
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Revenue by Source</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RevenueBySourceChart
-                  ai={data.revenueBySource.ai}
-                  manual={data.revenueBySource.manual}
-                />
-              </CardContent>
-            </Card>
+// --- Sub-components for the report page ---
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Conversion Funnel</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ConversionFunnelChart
-                  funnel={data.conversionFunnel}
-                  entityName={data.entityName}
-                />
-              </CardContent>
-            </Card>
+function NarrativeSummary({
+  data,
+  storyHeadline,
+}: {
+  data: NonNullable<ReturnType<typeof useROIReport>["data"]>;
+  storyHeadline: string;
+}) {
+  const HeroIcon = HERO_ICONS[data.heroIcon];
+
+  const winMessage = getWinMessage(
+    {
+      entitiesCreated: data.entitiesCreated,
+      aiRevenueCents: data.aiRevenueCents,
+      trends: { calls: data.trends.calls },
+    },
+    data.celebratoryTone
+  );
+
+  const hoursSaved = getHoursSavedEstimate(data.totalCalls);
+  const receptionistWeeks = getReceptionistComparison(data.aiRevenueCents);
+
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex gap-4">
+          <div className="flex-shrink-0 h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <HeroIcon className="h-5 w-5 text-primary" />
           </div>
-
-          {/* Revenue Trend */}
-          {data.monthlyData.length > 1 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Revenue Trend</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RevenueTrendChart data={data.monthlyData} />
-              </CardContent>
-            </Card>
-          )}
-
-          {/* ROI Breakdown */}
-          <Card>
-            <CardHeader>
-              <CardTitle>ROI Breakdown</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="max-w-md space-y-4">
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-sm text-muted-foreground">
-                    Your subscription cost
-                  </span>
-                  <span className="text-sm font-medium">
-                    {formatRevenue(data.subscriptionCostCents)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-sm text-muted-foreground">
-                    AI-generated revenue
-                  </span>
-                  <span className="text-sm font-medium text-emerald-500">
-                    {formatRevenue(data.aiRevenueCents)}
-                  </span>
-                </div>
-                <div className="border-t border-border/50" />
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-sm font-medium">Your ROI</span>
-                  <span className="text-xl font-bold text-primary">
-                    {formatROI(data.roiMultiplier)}
-                  </span>
-                </div>
-                <p className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
-                  {getROIExplanation(data.roiMultiplier)}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-2 min-w-0">
+            <h2 className="text-base font-semibold text-foreground">
+              {storyHeadline}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Your AI handled {data.totalCalls} {data.callsLabel.toLowerCase()} with a{" "}
+              {Math.round(data.conversionRate)}% conversion rate.
+              {hoursSaved && ` ${hoursSaved}.`}
+            </p>
+            {receptionistWeeks && (
+              <p className="text-sm text-muted-foreground/80">
+                {receptionistWeeks}.
+              </p>
+            )}
+            {winMessage && (
+              <p className="text-sm text-primary/80 font-medium">
+                {winMessage}
+              </p>
+            )}
+          </div>
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function KeyMetrics({
+  data,
+}: {
+  data: NonNullable<ReturnType<typeof useROIReport>["data"]>;
+}) {
+  const roiBadge = getROIBadge(data.roiMultiplier, data.celebratoryTone);
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
+      {/* AI Revenue */}
+      <Card className="card-elevated border-success/20 bg-success/5">
+        <CardContent className="p-5">
+          <div className="flex items-start justify-between mb-2">
+            <p className="text-sm font-medium text-muted-foreground">
+              AI Revenue
+              <InfoTooltip text="Revenue from bookings created by your AI agent" />
+            </p>
+            <div className="p-2 rounded-lg bg-success/10 text-success">
+              <DollarSign className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="text-3xl font-bold tracking-tight">{formatRevenue(data.aiRevenueCents)}</p>
+          {data.trends.revenue !== 0 && (
+            <TrendLine value={data.trends.revenue} />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Calls */}
+      <Card className="card-elevated">
+        <CardContent className="p-5">
+          <div className="flex items-start justify-between mb-2">
+            <p className="text-sm font-medium text-muted-foreground">{data.callsLabel}</p>
+            <div className="p-2 rounded-lg bg-muted text-muted-foreground">
+              <Phone className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="text-3xl font-bold tracking-tight">{data.totalCalls}</p>
+          {data.trends.calls !== 0 && (
+            <TrendLine value={data.trends.calls} />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Entities */}
+      <Card className="card-elevated">
+        <CardContent className="p-5">
+          <div className="flex items-start justify-between mb-2">
+            <p className="text-sm font-medium text-muted-foreground">{data.entityName}</p>
+            <div className="p-2 rounded-lg bg-muted text-muted-foreground">
+              <Target className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="text-3xl font-bold tracking-tight">{data.entitiesCreated}</p>
+          {data.trends.entities !== 0 && (
+            <TrendLine value={data.trends.entities} />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Conversion */}
+      <Card className="card-elevated">
+        <CardContent className="p-5">
+          <div className="flex items-start justify-between mb-2">
+            <p className="text-sm font-medium text-muted-foreground">
+              Conversion
+              <InfoTooltip text="Percentage of calls that resulted in a booking" />
+            </p>
+            <div className="p-2 rounded-lg bg-muted text-muted-foreground">
+              <TrendingUp className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="text-3xl font-bold tracking-tight">{Math.round(data.conversionRate)}%</p>
+          {data.trends.conversion !== 0 && (
+            <TrendLine value={data.trends.conversion} />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ROI */}
+      <Card className="card-elevated border-primary/20 bg-primary/5">
+        <CardContent className="p-5">
+          <div className="flex items-start justify-between mb-2">
+            <p className="text-sm font-medium text-muted-foreground">
+              ROI
+              <InfoTooltip text="Return on investment: AI revenue divided by subscription cost" />
+            </p>
+            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+              <Award className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="text-3xl font-bold tracking-tight text-primary">{formatROI(data.roiMultiplier)}</p>
+          {roiBadge && (
+            <Badge variant={roiBadge.variant} size="sm" className="mt-1">
+              {roiBadge.label}
+            </Badge>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function TrendLine({ value }: { value: number }) {
+  const direction = value >= 0 ? "up" : "down";
+  return (
+    <div className="flex items-center gap-1 text-xs mt-1">
+      {direction === "up" ? (
+        <TrendingUp className="h-3 w-3 text-success" />
+      ) : (
+        <TrendingUp className="h-3 w-3 text-destructive rotate-180" />
       )}
-    </PageContainer>
+      <span className={cn("font-medium", direction === "up" ? "text-success" : "text-destructive")}>
+        {Math.abs(Math.round(value))}%
+      </span>
+      <span className="text-muted-foreground">vs last period</span>
+    </div>
+  );
+}
+
+function ROIBreakdown({
+  data,
+}: {
+  data: NonNullable<ReturnType<typeof useROIReport>["data"]>;
+}) {
+  const roiBadge = getROIBadge(data.roiMultiplier, data.celebratoryTone);
+  const receptionistWeeks = getReceptionistComparison(data.aiRevenueCents);
+  const monthsFree = getMonthsFreeComparison(data.roiMultiplier);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>ROI Breakdown</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="max-w-md space-y-4">
+          <div className="flex items-center justify-between py-2">
+            <span className="text-sm text-muted-foreground">
+              Subscription cost
+            </span>
+            <span className="text-sm font-medium">
+              {formatRevenue(data.subscriptionCostCents)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between py-2">
+            <span className="text-sm text-muted-foreground">
+              AI-generated revenue
+            </span>
+            <span className="text-sm font-medium text-emerald-500">
+              {formatRevenue(data.aiRevenueCents)}
+            </span>
+          </div>
+          <div className="border-t border-border/50" />
+          <div className="flex items-center justify-between py-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">Your ROI</span>
+              {roiBadge && (
+                <Badge variant={roiBadge.variant} size="sm">
+                  {roiBadge.label}
+                </Badge>
+              )}
+            </div>
+            <span className="text-xl font-bold text-primary">
+              {formatROI(data.roiMultiplier)}
+            </span>
+          </div>
+
+          {/* ROI explanation + real-world comparisons */}
+          <div className="bg-muted/30 rounded-lg p-3 space-y-2">
+            <p className="text-sm text-muted-foreground">
+              {getROIExplanation(data.roiMultiplier)}
+            </p>
+            {receptionistWeeks && (
+              <p className="text-sm text-muted-foreground/80">
+                {receptionistWeeks}.
+              </p>
+            )}
+            {monthsFree && (
+              <p className="text-sm text-muted-foreground/80">
+                {monthsFree}.
+              </p>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
