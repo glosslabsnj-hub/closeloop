@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.create-dispatch-request]
 verify_jwt = false
+
+[functions.check-impound]
+verify_jwt = false
