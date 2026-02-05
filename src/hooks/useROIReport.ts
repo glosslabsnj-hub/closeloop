@@ -36,6 +36,12 @@ export interface ROIReportData {
   roiMultiplier: number;
   subscriptionCostCents: number;
 
+  // Lead recovery stats
+  leadsRecovered: number;
+  recoveredRevenueCents: number;
+  recoveryRate: number;
+  totalRecoveryCampaigns: number;
+
   // Trends vs previous period
   trends: {
     revenue: number;
@@ -46,7 +52,7 @@ export interface ROIReportData {
 
   // Chart data
   monthlyData: MonthlyDataPoint[];
-  revenueBySource: { ai: number; manual: number };
+  revenueBySource: { ai: number; manual: number; recovery: number };
   conversionFunnel: ConversionFunnel;
 
   // Config
@@ -122,17 +128,37 @@ export function useROIReport(dateRange: DateRangeOption = "this_month") {
       // Active (non-cancelled) attributions
       const active = items.filter((a) => a.status !== "cancelled");
       const aiItems = active.filter((a) => a.source_type === "ai_call");
-      const manualItems = active.filter((a) => a.source_type !== "ai_call");
+      const recoveryItems = active.filter((a) => a.source_type === "lead_recovery");
+      const manualItems = active.filter((a) => a.source_type !== "ai_call" && a.source_type !== "lead_recovery");
 
       const aiRevenueCents = aiItems.reduce((s: number, a: any) => s + (a.revenue_cents || 0), 0);
+      const recoveryRevenueCents = recoveryItems.reduce((s: number, a: any) => s + (a.revenue_cents || 0), 0);
       const manualRevenueCents = manualItems.reduce((s: number, a: any) => s + (a.revenue_cents || 0), 0);
-      const totalRevenueCents = aiRevenueCents + manualRevenueCents;
+      const totalRevenueCents = aiRevenueCents + recoveryRevenueCents + manualRevenueCents;
 
       const totalCalls = calls.length;
       const callsWithOutcome = calls.filter((c) => c.outcome && c.outcome !== "lost").length;
       const entitiesCreated = aiItems.length;
       const entitiesCompleted = aiItems.filter((a) => a.status === "completed").length;
       const conversionRate = totalCalls > 0 ? (entitiesCreated / totalCalls) * 100 : 0;
+
+      // Fetch lead recovery campaign stats
+      const { data: recoveryCampaigns } = await supabase
+        .from("lead_recovery_campaigns")
+        .select("id, recovered_value_cents, status")
+        .eq("tenant_id", tenant.id)
+        .gte("created_at", startStr)
+        .lte("created_at", endStr);
+
+      const allCampaigns = (recoveryCampaigns as any[]) || [];
+      const convertedCampaigns = allCampaigns.filter((c) => c.status === "converted");
+      const leadsRecovered = convertedCampaigns.length;
+      const recoveredRevenueCentsFromCampaigns = convertedCampaigns.reduce(
+        (s: number, c: any) => s + (c.recovered_value_cents || 0),
+        0
+      );
+      const totalRecoveryCampaigns = allCampaigns.length;
+      const recoveryRate = totalRecoveryCampaigns > 0 ? (leadsRecovered / totalRecoveryCampaigns) * 100 : 0;
 
       // Subscription cost
       let subscriptionCostCents = 24900;
@@ -236,9 +262,16 @@ export function useROIReport(dateRange: DateRangeOption = "this_month") {
         conversionRate,
         roiMultiplier,
         subscriptionCostCents: totalCostCents,
+
+        // Lead recovery stats
+        leadsRecovered,
+        recoveredRevenueCents: recoveredRevenueCentsFromCampaigns,
+        recoveryRate,
+        totalRecoveryCampaigns,
+
         trends,
         monthlyData,
-        revenueBySource: { ai: aiRevenueCents, manual: manualRevenueCents },
+        revenueBySource: { ai: aiRevenueCents, manual: manualRevenueCents, recovery: recoveryRevenueCents },
         conversionFunnel: {
           totalCalls,
           callsWithOutcome,
