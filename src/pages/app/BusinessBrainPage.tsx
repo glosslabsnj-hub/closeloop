@@ -45,6 +45,12 @@ import { IntelligenceSettingsForm } from "@/components/settings/IntelligenceSett
 import { BusinessHoursManager } from "@/components/brain/BusinessHoursManager";
 import { AINeverPromiseEditor } from "@/components/brain/AINeverPromiseEditor";
 import { AIScriptsEditor } from "@/components/brain/AIScriptsEditor";
+import { 
+  ImpoundLotEditor, 
+  ImpoundFeesEditor, 
+  ImpoundReleaseEditor, 
+  DispatchIvrSettings 
+} from "@/components/brain/dispatch/impound";
 
 // Hooks
 import { useTenantConfig } from "@/hooks/useTenantConfig";
@@ -64,7 +70,8 @@ import { useBrainSummaries } from "@/hooks/useBrainSummaries";
 import { 
   FileText, Shield, MessageSquareText, Send, Truck, UtensilsCrossed, HeartPulse,
   Building2, Palette, Clock, DollarSign, Tag, MapPin, Navigation, Gauge,
-  Calendar, Mic, BookOpen, Brain, HelpCircle, MessageCircle, Lightbulb, FileUp, AlertCircle
+  Calendar, Mic, BookOpen, Brain, HelpCircle, MessageCircle, Lightbulb, FileUp, AlertCircle,
+  Warehouse, Phone, FileCheck
 } from "lucide-react";
 
 const VALID_SECTIONS = ["profile", "hours", "services", "service-area", "availability", "policies", "ai-behavior", "knowledge"] as const;
@@ -406,6 +413,50 @@ export default function BusinessBrainPage() {
                     preview={summaries.dispatchSettings}
                   >
                     <DispatchDeliverySettings />
+                  </CollapsibleBrainSection>
+                )}
+
+                {showDispatchDelivery && (
+                  <CollapsibleBrainSection
+                    id="ivr-routing"
+                    title="Call Routing (IVR)"
+                    icon={Phone}
+                    preview="Configure towing vs impound call routing"
+                  >
+                    <DispatchIvrSettings />
+                  </CollapsibleBrainSection>
+                )}
+
+                {showDispatchDelivery && (
+                  <CollapsibleBrainSection
+                    id="impound-lot"
+                    title="Impound Lot Details"
+                    icon={Warehouse}
+                    preview="Lot location, hours, and directions"
+                  >
+                    <ImpoundLotEditor />
+                  </CollapsibleBrainSection>
+                )}
+
+                {showDispatchDelivery && (
+                  <CollapsibleBrainSection
+                    id="impound-fees"
+                    title="Impound Fee Structure"
+                    icon={DollarSign}
+                    preview="Tow fees, storage, and payment methods"
+                  >
+                    <ImpoundFeesEditor />
+                  </CollapsibleBrainSection>
+                )}
+
+                {showDispatchDelivery && (
+                  <CollapsibleBrainSection
+                    id="impound-release"
+                    title="Release Requirements"
+                    icon={FileCheck}
+                    preview="Documents needed to release vehicles"
+                  >
+                    <ImpoundReleaseEditor />
                   </CollapsibleBrainSection>
                 )}
 
