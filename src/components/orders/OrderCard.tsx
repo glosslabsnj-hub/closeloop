@@ -1,221 +1,168 @@
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { 
-  Phone, 
-  Printer, 
-  Clock, 
-  MapPin, 
-  ChevronRight,
-  Truck,
-  ShoppingBag,
-  AlertTriangle,
-} from "lucide-react";
-import { format } from "date-fns";
-
-interface OrderItem {
-  name: string;
-  qty: number;
-  price_cents?: number | null;
-  matched?: boolean;
-  modifiers?: string[];
-}
-
-interface OrderCardProps {
-  order: {
-    id: string;
-    order_number: string;
-    order_type: string;
-    status: string;
-    customer_name: string | null;
-    customer_phone: string | null;
-    delivery_address: string | null;
-    items_json: unknown;
-    special_instructions: string | null;
-    total_cents: number | null;
-    created_at: string;
-    requested_time: string | null;
-  };
-  onView: () => void;
-  onPrint: () => void;
-  onStatusChange: (status: string) => void;
-  isUpdating?: boolean;
-}
-
-const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "muted"; nextStatus?: string; nextLabel?: string }> = {
-  pending: { 
-    label: "Pending", 
-    variant: "warning",
-    nextStatus: "confirmed",
-    nextLabel: "Confirm"
-  },
-  confirmed: { 
-    label: "Confirmed", 
-    variant: "secondary",
-    nextStatus: "preparing",
-    nextLabel: "Start Prep"
-  },
-  preparing: { 
-    label: "Preparing", 
-    variant: "default",
-    nextStatus: "ready",
-    nextLabel: "Mark Ready"
-  },
-  ready: { 
-    label: "Ready", 
-    variant: "success",
-    nextStatus: "completed",
-    nextLabel: "Complete"
-  },
-  out_for_delivery: { 
-    label: "Out for Delivery", 
-    variant: "secondary",
-    nextStatus: "completed",
-    nextLabel: "Complete"
-  },
-  completed: { 
-    label: "Completed", 
-    variant: "success"
-  },
-  cancelled: { 
-    label: "Cancelled", 
-    variant: "destructive"
-  },
-  needs_followup: { 
-    label: "Needs Follow-up", 
-    variant: "warning"
-  },
-};
-
-export function OrderCard({ order, onView, onPrint, onStatusChange, isUpdating }: OrderCardProps) {
-  const items = Array.isArray(order.items_json) ? (order.items_json as OrderItem[]) : [];
-  const config = statusConfig[order.status] || statusConfig.pending;
-  const isDelivery = order.order_type === "delivery";
-  const isUrgent = order.status === "pending" || order.status === "confirmed";
-  
-  const formatOrderType = (type: string) => {
-    if (type === "pickup") return "Pickup";
-    if (type === "delivery") return "Delivery";
-    if (type === "dine_in") return "Dine-in";
-    return type.charAt(0).toUpperCase() + type.slice(1);
-  };
-
-  const getItemsSummary = () => {
-    if (items.length === 0) return "No items";
-    if (items.length <= 2) {
-      return items.map(i => `${i.qty}x ${i.name}`).join(", ");
-    }
-    const first = items.slice(0, 2).map(i => `${i.qty}x ${i.name}`).join(", ");
-    return `${first} +${items.length - 2} more`;
-  };
-
-  return (
-    <Card 
-      className={`group cursor-pointer transition-all hover:shadow-md hover:border-primary/30 ${
-        isUrgent ? "border-l-4 border-l-warning" : ""
-      }`}
-      onClick={onView}
-    >
-      <CardContent className="p-4">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-          {/* Left: Order Info */}
-          <div className="flex-1 min-w-0 space-y-2">
-            {/* Header Row */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-mono font-bold text-lg">{order.order_number}</span>
-              <Badge variant={config.variant}>
-                {config.label}
-              </Badge>
-              <Badge variant="outline" className="gap-1">
-                {isDelivery ? <Truck className="h-3 w-3" /> : <ShoppingBag className="h-3 w-3" />}
-                {formatOrderType(order.order_type)}
-              </Badge>
-            </div>
-
-            {/* Customer */}
-            <div className="flex items-center gap-4 text-sm">
-              <span className="font-medium">{order.customer_name || "Unknown Customer"}</span>
-              {order.customer_phone && (
-                <span className="text-muted-foreground flex items-center gap-1">
-                  <Phone className="h-3 w-3" />
-                  {order.customer_phone}
-                </span>
-              )}
-            </div>
-
-            {/* Items Summary */}
-            <p className="text-sm text-muted-foreground truncate">
-              {getItemsSummary()}
-            </p>
-
-            {/* Special Instructions Warning */}
-            {order.special_instructions && (
-              <div className="flex items-center gap-1.5 text-warning text-sm bg-warning/10 px-2 py-1 rounded-md w-fit">
-                <AlertTriangle className="h-3.5 w-3.5" />
-                <span className="font-medium truncate max-w-[200px]">{order.special_instructions}</span>
-              </div>
-            )}
-
-            {/* Footer: Time & Delivery Address */}
-            <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
-              <span className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {order.requested_time 
-                  ? format(new Date(order.requested_time), "h:mm a")
-                  : "ASAP"
-                }
-              </span>
-              {isDelivery && order.delivery_address && (
-                <span className="flex items-center gap-1 truncate">
-                  <MapPin className="h-3 w-3" />
-                  {order.delivery_address}
-                </span>
-              )}
-              <span className="ml-auto">
-                {format(new Date(order.created_at), "h:mm a")}
-              </span>
-            </div>
-          </div>
-
-          {/* Right: Price & Actions */}
-          <div className="flex flex-col items-end gap-2 shrink-0">
-            <span className="text-lg font-bold">
-              ${((order.total_cents || 0) / 100).toFixed(2)}
-            </span>
-            
-            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                className="h-8 w-8"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onPrint();
-                }}
-                title="Print ticket"
-              >
-                <Printer className="h-4 w-4" />
-              </Button>
-              
-              {config.nextStatus && (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={isUpdating}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onStatusChange(config.nextStatus!);
-                  }}
-                >
-                  {config.nextLabel}
-                </Button>
-              )}
-            </div>
-            
-            <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+ import { Badge } from "@/components/ui/badge";
+ import { Button } from "@/components/ui/button";
+ import { Card, CardContent } from "@/components/ui/card";
+ import { cn } from "@/lib/utils";
+ import { 
+   Truck,
+   ShoppingBag,
+   UtensilsCrossed,
+   Eye,
+ } from "lucide-react";
+ import { formatDistanceToNow } from "date-fns";
+ 
+ interface OrderItem {
+   name: string;
+   qty: number;
+   price_cents?: number | null;
+   matched?: boolean;
+   modifiers?: string[];
+ }
+ 
+ export const orderStatusColors: Record<string, string> = {
+   pending: "bg-warning/10 text-warning border-warning/30",
+   confirmed: "bg-info/10 text-info border-info/30",
+   preparing: "bg-primary/10 text-primary border-primary/30",
+   ready: "bg-success/10 text-success border-success/30",
+   out_for_delivery: "bg-info/10 text-info border-info/30",
+   completed: "bg-muted text-muted-foreground border-border",
+   cancelled: "bg-destructive/10 text-destructive border-destructive/30",
+   needs_followup: "bg-warning/10 text-warning border-warning/30",
+ };
+ 
+ export const orderStatusLabels: Record<string, string> = {
+   pending: "Pending",
+   confirmed: "Confirmed",
+   preparing: "Preparing",
+   ready: "Ready",
+   out_for_delivery: "Out for Delivery",
+   completed: "Completed",
+   cancelled: "Cancelled",
+   needs_followup: "Needs Follow-up",
+ };
+ 
+ interface OrderCardProps {
+   order: {
+     id: string;
+     order_number: string;
+     order_type: string;
+     status: string;
+     customer_name: string | null;
+     customer_phone: string | null;
+     delivery_address: string | null;
+     items_json: unknown;
+     special_instructions: string | null;
+     total_cents: number | null;
+     created_at: string;
+     requested_time: string | null;
+   };
+   onView?: () => void;
+   onStatusChange?: (status: string) => void;
+   isUpdating?: boolean;
+ }
+ 
+ const getNextStatus = (status: string): { next: string; label: string } | null => {
+   switch (status) {
+     case "pending": return { next: "confirmed", label: "Confirm" };
+     case "confirmed": return { next: "preparing", label: "Start Preparing" };
+     case "preparing": return { next: "ready", label: "Mark Ready" };
+     case "ready": return { next: "completed", label: "Complete" };
+     default: return null;
+   }
+ };
+ 
+ export function OrderCard({ order, onView, onStatusChange, isUpdating }: OrderCardProps) {
+   const items = Array.isArray(order.items_json) ? (order.items_json as OrderItem[]) : [];
+   const nextAction = getNextStatus(order.status);
+   
+   const getOrderTypeIcon = () => {
+     switch (order.order_type) {
+       case "delivery": return <Truck className="w-3 h-3 mr-1" />;
+       case "dine_in": return <UtensilsCrossed className="w-3 h-3 mr-1" />;
+       default: return <ShoppingBag className="w-3 h-3 mr-1" />;
+     }
+   };
+ 
+   const formatOrderType = (type: string) => {
+     if (type === "pickup") return "Pickup";
+     if (type === "delivery") return "Delivery";
+     if (type === "dine_in") return "Dine In";
+     return type.replace("_", " ");
+   };
+ 
+   const getItemsPreview = () => {
+     if (items.length === 0) return "No items";
+     return items.map(i => i.name).join(", ");
+   };
+ 
+   const formatRelativeTime = (date: string) => {
+     return formatDistanceToNow(new Date(date), { addSuffix: true });
+   };
+ 
+   return (
+     <Card className="hover:border-primary/50 transition-colors">
+       <CardContent className="p-4">
+         {/* Header */}
+         <div className="flex items-center justify-between mb-3">
+           <div className="flex items-center gap-2">
+             <span className="font-mono text-lg font-bold">#{order.order_number}</span>
+             <Badge variant="outline" className="gap-0.5">
+               {getOrderTypeIcon()}
+               {formatOrderType(order.order_type)}
+             </Badge>
+           </div>
+           <Badge className={cn("border", orderStatusColors[order.status])}>
+             {orderStatusLabels[order.status] || order.status}
+           </Badge>
+         </div>
+ 
+         {/* Customer */}
+         <div className="mb-3">
+           <p className="font-medium">{order.customer_name || "Unknown Customer"}</p>
+           <p className="text-sm text-muted-foreground">{order.customer_phone || "No phone"}</p>
+         </div>
+ 
+         {/* Items preview */}
+         <div className="mb-3 p-3 bg-muted/50 rounded-lg">
+           <p className="text-sm font-medium mb-1">
+             {items.length} item{items.length !== 1 ? "s" : ""}
+           </p>
+           <p className="text-sm text-muted-foreground line-clamp-2">
+             {getItemsPreview()}
+           </p>
+         </div>
+ 
+         {/* Total & time */}
+         <div className="flex items-center justify-between mb-3">
+           <p className="text-lg font-semibold">
+             ${((order.total_cents || 0) / 100).toFixed(2)}
+           </p>
+           <p className="text-sm text-muted-foreground">
+             {formatRelativeTime(order.created_at)}
+           </p>
+         </div>
+ 
+         {/* Status actions */}
+         <div className="flex gap-2 pt-3 border-t">
+           {nextAction && onStatusChange && (
+             <Button
+               size="sm"
+               className="flex-1"
+               disabled={isUpdating}
+               onClick={() => onStatusChange(nextAction.next)}
+             >
+               {nextAction.label}
+             </Button>
+           )}
+           {!nextAction && (
+             <Button size="sm" variant="outline" className="flex-1" disabled>
+               {order.status === "completed" ? "Done" : order.status === "cancelled" ? "Cancelled" : "No Action"}
+             </Button>
+           )}
+           <Button size="sm" variant="outline" onClick={onView}>
+             <Eye className="w-4 h-4" />
+           </Button>
+         </div>
+       </CardContent>
+     </Card>
+   );
+ }
