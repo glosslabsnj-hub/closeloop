@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.get-impound-release-info]
 verify_jwt = false
+
+[functions.get-impound-lot-info]
+verify_jwt = false
