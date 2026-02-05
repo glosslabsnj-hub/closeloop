@@ -102,14 +102,14 @@ export function NeedsAttentionBanner() {
   const primaryItem = items[0];
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl bg-warning/8 border border-warning/20 animate-fade-in backdrop-blur-sm">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl bg-warning/10 border border-warning/25 animate-fade-in">
       <div className="flex items-center gap-3 flex-1 min-w-0">
-        <div className="h-9 w-9 rounded-lg bg-warning/15 flex items-center justify-center shrink-0">
+        <div className="h-10 w-10 rounded-xl bg-warning/20 flex items-center justify-center shrink-0">
           <AlertCircle className="h-4 w-4 text-warning" />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-medium text-warning">Needs Attention</p>
-          <p className="text-xs text-warning/60 truncate">
+          <p className="text-sm font-semibold text-warning">Needs Your Attention</p>
+          <p className="text-xs text-warning/70 truncate">
             {items.map((item, i) => (
               <span key={item.href}>
                 {item.count} {item.label}
@@ -121,7 +121,7 @@ export function NeedsAttentionBanner() {
       </div>
       <Button 
         size="sm"
-        className="bg-warning hover:bg-warning/90 text-warning-foreground shrink-0 h-8 text-xs font-medium"
+        className="bg-warning hover:bg-warning/90 text-warning-foreground shrink-0 h-9 text-xs font-semibold shadow-sm"
         onClick={() => navigate(primaryItem.href)}
       >
         Review

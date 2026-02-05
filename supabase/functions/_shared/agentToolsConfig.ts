@@ -14,6 +14,9 @@
 
 import type { BusinessMode } from "./agentResolver.ts";
 
+// Re-export for consumers
+export type { BusinessMode };
+
 // ============= TYPE DEFINITIONS =============
 
 export interface ToolParameter {
