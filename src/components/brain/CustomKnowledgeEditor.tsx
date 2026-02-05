@@ -3,12 +3,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -16,19 +16,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Lightbulb, FileText, Plus, Pencil, Trash2, MessageSquare, Loader2, Save, X } from "lucide-react";
+import { Lightbulb, FileText, Loader2 } from "lucide-react";
 import { SuggestedKnowledgeButtons } from "./SuggestedKnowledgeButtons";
+import { KnowledgeSection } from "./shared/KnowledgeSection";
+import { KnowledgeItem } from "./shared/KnowledgeItem";
 import {
   createCustomKnowledge,
   updateCustomKnowledge,
@@ -57,8 +48,8 @@ export function CustomKnowledgeEditor() {
   const queryClient = useQueryClient();
 
   // Form state
-  const [isAdding, setIsAdding] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<KnowledgeEntry | null>(null);
   const [category, setCategory] = useState<CategoryType>("policy");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -128,8 +119,8 @@ export function CustomKnowledgeEditor() {
   });
 
   const resetForm = () => {
-    setIsAdding(false);
-    setEditingId(null);
+    setIsDialogOpen(false);
+    setEditingEntry(null);
     setCategory("policy");
     setTitle("");
     setContent("");
@@ -141,9 +132,9 @@ export function CustomKnowledgeEditor() {
       return;
     }
 
-    if (editingId) {
+    if (editingEntry) {
       updateMutation.mutate({
-        id: editingId,
+        id: editingEntry.id,
         updates: { title: title.trim(), content: content.trim(), type: category },
       });
     } else {
@@ -155,75 +146,88 @@ export function CustomKnowledgeEditor() {
     }
   };
 
-  const startEditing = (entry: KnowledgeEntry) => {
-    setEditingId(entry.id);
+  const openAddDialog = () => {
+    setEditingEntry(null);
+    setCategory("policy");
+    setTitle("");
+    setContent("");
+    setIsDialogOpen(true);
+  };
+
+  const openEditDialog = (entry: KnowledgeEntry) => {
+    setEditingEntry(entry);
     setCategory(entry.type as CategoryType);
     setTitle(entry.title);
     setContent(entry.content);
-    setIsAdding(true);
+    setIsDialogOpen(true);
   };
 
   const handleQuickAdd = (template: { title: string; category: CategoryType; placeholder: string }) => {
+    setEditingEntry(null);
     setCategory(template.category);
     setTitle(template.title);
     setContent(template.placeholder);
-    setIsAdding(true);
+    setIsDialogOpen(true);
   };
-
-  // AI Preview text
-  const previewText = entries.length > 0
-    ? entries.slice(0, 3).map((e) => e.content.slice(0, 60) + (e.content.length > 60 ? "..." : "")).join(" • ")
-    : "Add knowledge above to see how your AI will use it.";
 
   const isSaving = createMutation.isPending || updateMutation.isPending;
   const existingTitles = entries.map((e) => e.title);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          Custom Knowledge
-        </CardTitle>
-        <CardDescription>
-          Add any information you want your AI to know — from warranties to company history
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* AI Preview */}
-        <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-          <div className="flex items-start gap-3">
-            <MessageSquare className="h-5 w-5 text-primary mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-primary mb-1">What the AI will say:</p>
-              <p className="text-sm text-muted-foreground italic">
-                "{previewText}"
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Add Suggestions */}
-        {!isAdding && (
+    <>
+      <KnowledgeSection
+        title="Custom Knowledge"
+        description="Add any information you want your AI to know — from warranties to company history."
+        items={entries}
+        isLoading={isLoading}
+        onAdd={openAddDialog}
+        addButtonLabel="Add Knowledge"
+        emptyState={{
+          icon: Lightbulb,
+          title: "No custom knowledge yet",
+          description: "Add facts, policies, or promotions that your AI should know about.",
+        }}
+        headerActions={
           <SuggestedKnowledgeButtons
             onSelect={handleQuickAdd}
             existingTitles={existingTitles}
           />
-        )}
+        }
+        renderItem={(entry) => {
+          const CategoryIcon = categoryLabels[entry.type as CategoryType]?.icon || FileText;
+          return (
+            <KnowledgeItem
+              onEdit={() => openEditDialog(entry)}
+              onDelete={() => deleteMutation.mutate(entry.id)}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <CategoryIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="font-medium text-sm truncate">{entry.title}</span>
+                <Badge variant="outline" className="text-xs shrink-0">
+                  {categoryLabels[entry.type as CategoryType]?.label || entry.type}
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground line-clamp-2">{entry.content}</p>
+            </KnowledgeItem>
+          );
+        }}
+      />
 
-        {/* Add/Edit Form */}
-        {isAdding ? (
-          <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
-            <div className="flex items-center justify-between">
-              <h4 className="font-medium">{editingId ? "Edit Knowledge" : "Add New Knowledge"}</h4>
-              <Button variant="ghost" size="icon" onClick={resetForm}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-
+      {/* Add/Edit Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingEntry ? "Edit Knowledge" : "Add Custom Knowledge"}</DialogTitle>
+            <DialogDescription>
+              {editingEntry
+                ? "Update this knowledge entry."
+                : "Add information your AI should know about."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>What kind of info is this?</Label>
+                <Label>Type</Label>
                 <Select value={category} onValueChange={(v) => setCategory(v as CategoryType)}>
                   <SelectTrigger>
                     <SelectValue />
@@ -244,122 +248,39 @@ export function CustomKnowledgeEditor() {
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <Label>Topic</Label>
                 <Input
-                  placeholder="e.g., Warranty Policy, Special Offer"
+                  placeholder="e.g., Warranty Policy"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                 />
               </div>
             </div>
-
             <div className="space-y-2">
-              <Label>What should AI know about this?</Label>
+              <Label>Details</Label>
               <Textarea
-                placeholder="Write it the way you'd explain it to a new employee..."
+                placeholder="Write it how you'd explain it to a new employee..."
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 rows={4}
               />
               <p className="text-xs text-muted-foreground">
-                Write naturally — your AI will use this info when relevant.
+                Write naturally — your AI will use this when relevant.
               </p>
             </div>
-
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={resetForm}>
-                Cancel
-              </Button>
-              <Button onClick={handleSave} disabled={isSaving}>
-                {isSaving ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <Save className="h-4 w-4 mr-2" />
-                )}
-                {editingId ? "Update" : "Add Knowledge"}
-              </Button>
-            </div>
           </div>
-        ) : (
-          <Button variant="outline" className="w-full" onClick={() => setIsAdding(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Custom Knowledge
-          </Button>
-        )}
-
-        {/* Entries List */}
-        {isLoading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : entries.length > 0 ? (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium">Your Custom Knowledge ({entries.length})</p>
-            </div>
-            {entries.map((entry) => {
-              const CategoryIcon = categoryLabels[entry.type as CategoryType]?.icon || FileText;
-              return (
-                <div
-                  key={entry.id}
-                  className="border rounded-lg p-4 hover:bg-muted/30 transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <CategoryIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="font-medium truncate">{entry.title}</span>
-                        <Badge variant="outline" className="text-xs shrink-0">
-                          {categoryLabels[entry.type as CategoryType]?.label || entry.type}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {entry.content}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => startEditing(entry)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete this knowledge?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Your AI will no longer know "{entry.title}". This cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => deleteMutation.mutate(entry.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : null}
-      </CardContent>
-    </Card>
+          <DialogFooter>
+            <Button variant="outline" onClick={resetForm} disabled={isSaving}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={isSaving || !title.trim() || !content.trim()}>
+              {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {editingEntry ? "Save Changes" : "Add Knowledge"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
