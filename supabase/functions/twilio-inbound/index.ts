@@ -233,10 +233,10 @@ serve(async (req) => {
     // Store context snapshot for debugging
     await storeContextSnapshot(supabase, context);
 
-    // Check if voice AI is enabled
+    // Check if voice AI is enabled and get dispatch IVR settings
     const { data: settings } = await supabase
       .from("assistant_settings")
-      .select("voice_ai_enabled, voice_mode, connect_status, off_behavior, owner_forward_number, owner_forward_verified")
+      .select("voice_ai_enabled, voice_mode, connect_status, off_behavior, owner_forward_number, owner_forward_verified, dispatch_ivr_mode")
       .eq("tenant_id", tenantId)
       .maybeSingle();
 
@@ -334,8 +334,124 @@ serve(async (req) => {
       return twimlResponse(hangupTwiml("We're experiencing technical difficulties. Please try again later."));
     }
 
-    // ===== BUILD DYNAMIC VARIABLES FOR ELEVENLABS =====
+    // ===== BUILD DYNAMIC VARIABLES FOR ELEVENLABS (needed for IVR routing) =====
     const dynamicVariables = buildDynamicVariables(context, callerPhoneE164, customerId);
+
+    // ===== DISPATCH IVR ROUTING =====
+    // Only show IVR menu for dispatch businesses with ivr_routing mode enabled
+    if (context.tenant.business_mode === "dispatch" && settings?.dispatch_ivr_mode === "ivr_routing") {
+      // Check if this is a Digits callback from an IVR selection
+      const digits = formData.get("Digits");
+      
+      if (!digits) {
+        // First call - show IVR menu
+        console.log(`Dispatch IVR menu for tenant ${tenantId}`);
+        await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, tenantId, callSid, toNumber, fromNumber, "dispatch_ivr_menu", 200, null, { ivr_mode: "ivr_routing" });
+        
+        const businessName = context.tenant.business_name || "us";
+        const ivrTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Gather numDigits="1" action="${SUPABASE_URL}/functions/v1/twilio-inbound" method="POST" timeout="5">
+    <Say voice="Polly.Joanna">Thanks for calling ${escapeXml(businessName)}! Press 1 for towing and roadside assistance, or press 2 to check on an impounded vehicle.</Say>
+  </Gather>
+  <Say voice="Polly.Joanna">We didn't receive a selection. Connecting you to our towing team.</Say>
+  <Redirect>${SUPABASE_URL}/functions/v1/twilio-inbound?default_route=towing</Redirect>
+</Response>`;
+        return twimlResponse(ivrTwiml);
+      }
+      
+      // Handle IVR selection
+      console.log(`Dispatch IVR selection: ${digits} for tenant ${tenantId}`);
+      await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, tenantId, callSid, toNumber, fromNumber, "dispatch_ivr_selection", 200, null, { digits });
+      
+      if (digits === "2") {
+        // Route to impound agent
+        console.log(`Routing to impound agent for tenant ${tenantId}`);
+        
+        // Get impound-specific agent ID
+        const impoundAgentId = Deno.env.get("ELEVENLABS_AGENT_ID_IMPOUND");
+        if (!impoundAgentId) {
+          console.error("ELEVENLABS_AGENT_ID_IMPOUND not configured");
+          return twimlResponse(hangupTwiml("Our impound assistant is temporarily unavailable. Please try again later."));
+        }
+        
+        // Build impound-specific context
+        const { data: impoundSettings } = await supabase
+          .from("impound_settings")
+          .select("*")
+          .eq("tenant_id", tenantId)
+          .maybeSingle();
+          
+        const { data: impoundLot } = await supabase
+          .from("impound_lots")
+          .select("*")
+          .eq("tenant_id", tenantId)
+          .eq("is_active", true)
+          .limit(1)
+          .maybeSingle();
+        
+        // Build impound dynamic variables (extend base variables)
+        const impoundDynamicVars: Record<string, string> = {
+          ...dynamicVariables,
+          agent_type: "impound",
+          impound_lot_name: impoundLot?.name || context.tenant.business_name || "",
+          impound_address: impoundLot?.address || "",
+          impound_phone: impoundLot?.phone || "",
+          base_tow_fee: impoundSettings?.base_tow_fee_cents ? `$${(impoundSettings.base_tow_fee_cents / 100).toFixed(0)}` : "",
+          daily_storage_fee: impoundSettings?.daily_storage_fee_cents ? `$${(impoundSettings.daily_storage_fee_cents / 100).toFixed(0)}` : "",
+          admin_fee: impoundSettings?.admin_fee_cents ? `$${(impoundSettings.admin_fee_cents / 100).toFixed(0)}` : "",
+          release_requirements: impoundSettings?.release_requirements_json ? 
+            Object.entries(impoundSettings.release_requirements_json as Record<string, boolean>)
+              .filter(([_, v]) => v)
+              .map(([k]) => k.replace(/_/g, " "))
+              .join(", ") : "valid ID",
+        };
+        
+        const impoundPayload = {
+          agent_id: impoundAgentId,
+          from_number: fromNumber,
+          to_number: toNumber,
+          conversation_initiation_client_data: {
+            dynamic_variables: impoundDynamicVars,
+          },
+        };
+        
+        const impoundResponse = await fetch(
+          `https://api.elevenlabs.io/v1/convai/twilio/register-call`,
+          {
+            method: "POST",
+            headers: {
+              "xi-api-key": ELEVENLABS_API_KEY,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(impoundPayload),
+          }
+        );
+        
+        if (!impoundResponse.ok) {
+          const errorText = await impoundResponse.text();
+          console.error(`Impound agent register-call failed:`, errorText);
+          return twimlResponse(hangupTwiml("Our impound assistant is temporarily unavailable. Please try again later."));
+        }
+        
+        const impoundTwiml = await impoundResponse.text();
+        return new Response(impoundTwiml, {
+          status: 200,
+          headers: { "Content-Type": "text/xml" },
+        });
+      }
+      
+      // Digits === "1" or anything else: fall through to normal dispatch agent
+      console.log(`Routing to dispatch/towing agent for tenant ${tenantId}`);
+    }
+    
+    // Check for default_route parameter (fallback from IVR timeout)
+    const defaultRoute = new URL(req.url).searchParams.get("default_route");
+    if (defaultRoute) {
+      console.log(`IVR timeout, defaulting to route: ${defaultRoute}`);
+    }
+
+    // ===== LOG DYNAMIC VARIABLES FOR INSTRUMENTATION =====
 
     // ===== LOG DYNAMIC VARIABLES FOR INSTRUMENTATION =====
     // Redact sensitive values for storage
