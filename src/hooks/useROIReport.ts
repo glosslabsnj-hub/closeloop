@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { supabase } from "@/integrations/supabase/client";
-import { getIndustryRevenueConfig } from "@/config/industryRevenueConfig";
+import { getIndustryRevenueConfig, type HeroIconName } from "@/config/industryRevenueConfig";
 import { getLadderStep, mapLegacyToNewSku } from "@/config/pricing";
 import { startOfMonth, endOfMonth, subMonths, format } from "date-fns";
 
@@ -51,7 +51,16 @@ export interface ROIReportData {
 
   // Config
   entityName: string;
+  entityNameSingular: string;
   actionVerbPast: string;
+
+  // Story-driven UI config
+  storyTemplate: string;
+  callsLabel: string;
+  heroIcon: HeroIconName;
+  celebratoryTone: boolean;
+  emptyStateSteps: [string, string, string];
+  emptyStateEncouragement: string;
 }
 
 function getMonthRange(option: DateRangeOption): { start: Date; end: Date; months: number } {
@@ -237,7 +246,14 @@ export function useROIReport(dateRange: DateRangeOption = "this_month") {
           entitiesCompleted,
         },
         entityName: config.entityName,
+        entityNameSingular: config.entityNameSingular,
         actionVerbPast: config.actionVerbPast,
+        storyTemplate: config.storyTemplate,
+        callsLabel: config.callsLabel,
+        heroIcon: config.heroIcon,
+        celebratoryTone: config.celebratoryTone,
+        emptyStateSteps: config.emptyStateSteps,
+        emptyStateEncouragement: config.emptyStateEncouragement,
       };
     },
     enabled: !!tenant?.id,

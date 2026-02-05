@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { supabase } from "@/integrations/supabase/client";
-import { getIndustryRevenueConfig } from "@/config/industryRevenueConfig";
+import { getIndustryRevenueConfig, type HeroIconName } from "@/config/industryRevenueConfig";
 import { getLadderStep, mapLegacyToNewSku } from "@/config/pricing";
 import { calculateROI, percentChange } from "@/lib/revenueUtils";
 import { startOfMonth, endOfMonth, subMonths } from "date-fns";
@@ -39,6 +39,14 @@ export interface ROIDashboardData {
   emptyStateMessage: string;
   emptyStateCta: string;
   successMessage: string;
+
+  // Story-driven UI config
+  storyTemplate: string;
+  callsLabel: string;
+  heroIcon: HeroIconName;
+  celebratoryTone: boolean;
+  emptyStateSteps: [string, string, string];
+  emptyStateEncouragement: string;
 
   // State
   hasData: boolean;
@@ -145,6 +153,12 @@ export function useROIDashboard() {
         emptyStateMessage: config.emptyStateMessage,
         emptyStateCta: config.emptyStateCta,
         successMessage: config.successMessage,
+        storyTemplate: config.storyTemplate,
+        callsLabel: config.callsLabel,
+        heroIcon: config.heroIcon,
+        celebratoryTone: config.celebratoryTone,
+        emptyStateSteps: config.emptyStateSteps,
+        emptyStateEncouragement: config.emptyStateEncouragement,
         hasData: current.totalCalls > 0 || current.entitiesCreated > 0,
       };
     },
