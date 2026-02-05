@@ -7,6 +7,7 @@ import { Loader2, Calendar, Truck, UtensilsCrossed, Stethoscope, Users, Clipboar
 import { useDeliveryRules, type EntityType, type DeliveryRule } from "@/hooks/useUniversalDelivery";
 import { useTenantConfig, useModuleEnabled } from "@/hooks/useTenantConfig";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ReviewRequestSettings } from "./ReviewRequestSettings";
 
 interface EntityConfig {
   type: EntityType;
@@ -228,6 +229,12 @@ export function AutomationRulesSettings() {
             isUpdating={isUpdating}
           />
         ))}
+      </div>
+
+      {/* Review Request Settings */}
+      <div className="pt-6 border-t">
+        <h3 className="text-lg font-medium mb-4">Post-Service Automations</h3>
+        <ReviewRequestSettings />
       </div>
     </div>
   );

@@ -15,6 +15,8 @@ import LandingPage from "@/pages/public/LandingPage";
 import PricingPage from "@/pages/public/PricingPage";
 import LoginPage from "@/pages/public/LoginPage";
 import SignupPage from "@/pages/public/SignupPage";
+import EstimateViewPage from "@/pages/public/EstimateViewPage";
+import CustomerPortalPage from "@/pages/public/CustomerPortalPage";
 
 // App Pages
 import OnboardingPage from "@/pages/app/OnboardingPage";
@@ -31,6 +33,13 @@ import BusinessBrainPage from "@/pages/app/BusinessBrainPage";
 import BusinessBrainGapsPage from "@/pages/app/BusinessBrainGapsPage";
 import ReadinessFixCenterPage from "@/pages/app/ReadinessFixCenterPage";
 import UsagePage from "@/pages/app/UsagePage";
+import EstimatesPage from "@/pages/app/EstimatesPage";
+import AgreementsPage from "@/pages/app/AgreementsPage";
+import TimeTrackingPage from "@/pages/app/TimeTrackingPage";
+import DispatchMapPage from "@/pages/app/DispatchMapPage";
+import InventoryPage from "@/pages/app/InventoryPage";
+import KitchenDisplayPage from "@/pages/app/KitchenDisplayPage";
+import LoyaltyPage from "@/pages/app/LoyaltyPage";
 
 // Module-specific pages
 import OrdersPage from "@/pages/app/OrdersPage";
@@ -81,6 +90,12 @@ const App = () => (
               <Route path="/signup" element={<SignupPage />} />
             </Route>
 
+            {/* Public Estimate View (no layout - clean customer experience) */}
+            <Route path="/estimate/:id" element={<EstimateViewPage />} />
+
+            {/* Customer Portal (no layout - clean customer experience) */}
+            <Route path="/portal/:tenantId" element={<CustomerPortalPage />} />
+
             {/* Onboarding and Go-Live (no layout) */}
             <Route path="/app/onboarding" element={<OnboardingPage />} />
             <Route path="/app/go-live" element={<GoLivePage />} />
@@ -104,6 +119,13 @@ const App = () => (
               <Route path="/app/business-brain/gaps" element={<BusinessBrainGapsPage />} />
               <Route path="/app/readiness" element={<ReadinessFixCenterPage />} />
               <Route path="/app/usage" element={<UsagePage />} />
+              <Route path="/app/estimates" element={<EstimatesPage />} />
+              <Route path="/app/agreements" element={<AgreementsPage />} />
+              <Route path="/app/time-tracking" element={<TimeTrackingPage />} />
+              <Route path="/app/dispatch-map" element={<DispatchMapPage />} />
+              <Route path="/app/inventory" element={<InventoryPage />} />
+              <Route path="/app/kitchen" element={<KitchenDisplayPage />} />
+              <Route path="/app/loyalty" element={<LoyaltyPage />} />
               <Route path="/app/settings" element={<SettingsPage />} />
               {/* Module-specific routes */}
               <Route path="/app/orders" element={<OrdersPage />} />
