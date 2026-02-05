@@ -143,7 +143,17 @@ export function useServiceAgreements() {
           console.error("Failed to fetch service agreements:", error);
           return [];
         }
-        return (data || []) as ServiceAgreementWithCustomer[];
+      return (data || []).map((item: any) => ({
+        ...item,
+        // Provide defaults for fields that may not exist in DB yet
+        next_service_date: item.next_service_date || null,
+        visits_per_year: item.visits_per_year ?? 1,
+        visits_used: item.visits_used ?? 0,
+        priority_service: item.priority_service ?? false,
+        discount_percent: item.discount_percent ?? 0,
+        services_included: Array.isArray(item.services_included) ? item.services_included : [],
+        customer: item.customer && !item.customer.error ? item.customer : null,
+      })) as ServiceAgreementWithCustomer[];
       } catch (err) {
         console.error("Failed to fetch service agreements:", err);
         return [];
@@ -373,7 +383,21 @@ export function useServiceAgreement(agreementId: string | undefined) {
         .single();
 
       if (error) throw error;
-      return data as ServiceAgreementWithCustomer;
+      const d = data as any;
+      const result = {
+        ...d,
+        next_service_date: d.next_service_date || null,
+        visits_per_year: d.visits_per_year ?? 1,
+        visits_used: d.visits_used ?? 0,
+        priority_service: d.priority_service ?? false,
+        discount_percent: d.discount_percent ?? 0,
+        services_included: Array.isArray(d.services_included) ? d.services_included : [],
+        internal_notes: d.internal_notes || null,
+        customer_notes: d.customer_notes || null,
+        terms: d.terms || null,
+        customer: d.customer && !(d.customer as any).error ? d.customer : null,
+      };
+      return result as unknown as ServiceAgreementWithCustomer;
     },
     enabled: !!agreementId && !!tenantId,
   });

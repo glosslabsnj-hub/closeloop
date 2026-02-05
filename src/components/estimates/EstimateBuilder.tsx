@@ -16,7 +16,7 @@ import {
 import { Plus, Trash2, Save, Send, CreditCard, Loader2, Layers } from "lucide-react";
 import { useEstimates, EstimateLineItem, PricingOption, EstimateWithCustomer } from "@/hooks/useEstimates";
 import { useCustomers } from "@/hooks/useCustomers";
-import { useFinancing, formatFinancingTerms } from "@/hooks/useFinancing";
+import { useFinancing, formatFinancingAmount } from "@/hooks/useFinancing";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
@@ -477,7 +477,7 @@ export function EstimateBuilder({ estimate, onSave, onCancel }: EstimateBuilderP
                 <div>
                   <p className="font-medium text-sm">Offer Financing</p>
                   <p className="text-xs text-muted-foreground">
-                    {formatFinancingTerms(total)} with Wisetack
+                    {formatFinancingAmount(total)} with Wisetack
                   </p>
                 </div>
               </div>

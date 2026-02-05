@@ -26,7 +26,6 @@ export interface CustomerEquipmentWithCustomer extends CustomerEquipment {
     id: string;
     full_name: string | null;
     phone_e164: string | null;
-    address: string | null;
   } | null;
 }
 
@@ -103,7 +102,10 @@ export function useCustomerEquipment(customerId?: string) {
         console.error("Failed to fetch customer equipment:", error);
         return [];
       }
-      return data as CustomerEquipmentWithCustomer[];
+      return (data || []).map((item: any) => ({
+        ...item,
+        customer: item.customer && !item.customer.error ? item.customer : null,
+      })) as CustomerEquipmentWithCustomer[];
     },
     enabled: !!tenantId,
     staleTime: 30000,

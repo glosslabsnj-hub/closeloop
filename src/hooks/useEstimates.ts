@@ -153,7 +153,12 @@ export function useEstimates() {
           console.error("Failed to fetch estimates:", error);
           return [];
         }
-        return (data || []) as EstimateWithCustomer[];
+      return (data || []).map((item: any) => ({
+        ...item,
+        line_items: Array.isArray(item.line_items) ? item.line_items : [],
+        pricing_options: Array.isArray(item.pricing_options) ? item.pricing_options : null,
+        customer: item.customer && !item.customer.error ? item.customer : null,
+      })) as EstimateWithCustomer[];
       } catch (err) {
         console.error("Failed to fetch estimates:", err);
         return [];
@@ -179,15 +184,15 @@ export function useEstimates() {
       const { data, error } = await supabase
         .from("estimates")
         .insert({
-          tenant_id: tenantId,
+          tenant_id: tenantId as string,
           customer_id: input.customer_id || null,
           job_id: input.job_id || null,
           booking_id: input.booking_id || null,
           estimate_number: estimateNumber,
           title: input.title || null,
           status: "draft",
-          line_items: input.line_items,
-          pricing_options: input.pricing_options || null,
+          line_items: input.line_items as unknown as any,
+          pricing_options: (input.pricing_options || null) as unknown as any,
           subtotal_cents: subtotal,
           tax_rate_percent: input.tax_rate_percent || 0,
           tax_cents: tax,
@@ -236,7 +241,7 @@ export function useEstimates() {
       const { data, error } = await supabase
         .from("estimates")
         .update({
-          ...updates,
+          ...(updates as any),
           ...totals,
           updated_at: new Date().toISOString(),
         })
@@ -343,7 +348,13 @@ export function useEstimate(estimateId: string | undefined) {
         .single();
 
       if (error) throw error;
-      return data as EstimateWithCustomer;
+      const result = {
+        ...(data as any),
+        line_items: Array.isArray((data as any).line_items) ? (data as any).line_items : [],
+        pricing_options: Array.isArray((data as any).pricing_options) ? (data as any).pricing_options : null,
+        customer: (data as any).customer && !((data as any).customer as any).error ? (data as any).customer : null,
+      };
+      return result as unknown as EstimateWithCustomer;
     },
     enabled: !!estimateId && !!tenantId,
   });

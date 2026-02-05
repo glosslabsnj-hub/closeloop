@@ -185,9 +185,9 @@ export default function DispatchMapPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {location.speed_mps !== null && location.speed_mps > 0 && (
+                    {location.speed_mph !== null && location.speed_mph > 0 && (
                       <Badge variant="outline">
-                        {Math.round(location.speed_mps * 2.237)} mph
+                        {Math.round(location.speed_mph)} mph
                       </Badge>
                     )}
                     <Button variant="outline" size="sm" asChild>
