@@ -14,6 +14,7 @@ import { RecoveryCampaignCard } from "@/components/recovery/RecoveryCampaignCard
 import { RecoveryEmptyState } from "@/components/recovery/RecoveryEmptyState";
 import { SendSmsModal } from "@/components/recovery/SendSmsModal";
 import { MarkConvertedModal } from "@/components/recovery/MarkConvertedModal";
+import { LeadRecoveryDetailSheet } from "@/components/recovery/LeadRecoveryDetailSheet";
 import { cn } from "@/lib/utils";
 
 export default function LeadRecoveryPage() {
@@ -24,6 +25,8 @@ export default function LeadRecoveryPage() {
   const [statusFilter, setStatusFilter] = useState<CampaignStatus>("all");
   const [search, setSearch] = useState("");
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignWithDetails | null>(null);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
+  const [detailSheetOpen, setDetailSheetOpen] = useState(false);
   const [smsModalOpen, setSmsModalOpen] = useState(false);
   const [convertModalOpen, setConvertModalOpen] = useState(false);
 
@@ -103,8 +106,8 @@ export default function LeadRecoveryPage() {
   };
 
   const handleViewDetails = (campaign: CampaignWithDetails) => {
-    // For now, just show a toast. Can expand to a detail modal/page later
-    toast.info(`Campaign details for ${campaign.customer?.full_name || "Unknown"}`);
+    setSelectedCampaignId(campaign.id);
+    setDetailSheetOpen(true);
   };
 
   const handleViewBooking = (bookingId: string) => {
@@ -206,7 +209,15 @@ export default function LeadRecoveryPage() {
         </div>
       )}
 
-      {/* Modals */}
+      {/* Modals and Sheets */}
+      <LeadRecoveryDetailSheet
+        open={detailSheetOpen}
+        onOpenChange={setDetailSheetOpen}
+        campaignId={selectedCampaignId}
+        tenantId={tenantId}
+        onCampaignUpdated={() => refetch()}
+      />
+
       <SendSmsModal
         open={smsModalOpen}
         onOpenChange={setSmsModalOpen}
