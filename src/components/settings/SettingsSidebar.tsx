@@ -7,6 +7,7 @@ import {
   Webhook,
   Zap,
   Bug,
+  AlertTriangle,
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
@@ -103,9 +104,9 @@ export function SettingsSidebar({ activeSection, onSectionChange, config }: Sett
         })}
 
         {/* Advanced Section - Collapsible */}
-        <Collapsible open={advancedOpen || activeSection === "developer"} onOpenChange={setAdvancedOpen}>
+        <Collapsible open={advancedOpen || activeSection === "developer" || activeSection === "danger"} onOpenChange={setAdvancedOpen}>
           <CollapsibleTrigger className="flex items-center gap-2 w-full px-3 py-1.5 text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider hover:text-foreground transition-colors">
-            {advancedOpen || activeSection === "developer" ? (
+            {advancedOpen || activeSection === "developer" || activeSection === "danger" ? (
               <ChevronDown className="h-3 w-3" />
             ) : (
               <ChevronRight className="h-3 w-3" />
@@ -118,6 +119,12 @@ export function SettingsSidebar({ activeSection, onSectionChange, config }: Sett
               label="Developer Tools"
               isActive={activeSection === "developer"}
               onClick={() => onSectionChange("developer")}
+            />
+            <SettingsNavItem
+              icon={AlertTriangle}
+              label="Danger Zone"
+              isActive={activeSection === "danger"}
+              onClick={() => onSectionChange("danger")}
             />
           </CollapsibleContent>
         </Collapsible>
