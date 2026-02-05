@@ -12,7 +12,7 @@ export interface TechnicianLocation {
   longitude: number;
   accuracy_meters: number | null;
   heading: number | null;
-  speed_mps: number | null;
+  speed_mph: number | null;
   recorded_at: string;
 }
 
@@ -75,7 +75,18 @@ export function useTechnicianLocations() {
         const latestByUser = new Map<string, TechnicianLocation>();
         for (const loc of data || []) {
           if (!latestByUser.has(loc.user_id)) {
-            latestByUser.set(loc.user_id, loc as TechnicianLocation);
+            latestByUser.set(loc.user_id, {
+              id: loc.id,
+              tenant_id: loc.tenant_id,
+              user_id: loc.user_id,
+              job_id: loc.job_id,
+              latitude: loc.latitude,
+              longitude: loc.longitude,
+              accuracy_meters: loc.accuracy_meters,
+              heading: loc.heading,
+              speed_mph: loc.speed_mph,
+              recorded_at: loc.recorded_at,
+            } as TechnicianLocation);
           }
         }
 
@@ -176,7 +187,7 @@ export function useAutoLocationReporting(enabled: boolean = false, intervalMs: n
             longitude: position.coords.longitude,
             accuracy: position.coords.accuracy,
             heading: position.coords.heading || undefined,
-            speed: position.coords.speed || undefined,
+          speed: position.coords.speed ? position.coords.speed * 2.237 : undefined, // Convert m/s to mph
           });
         },
         (error) => {

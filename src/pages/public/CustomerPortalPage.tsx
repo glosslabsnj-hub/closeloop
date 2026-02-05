@@ -39,10 +39,10 @@ interface CustomerData {
 
 interface Booking {
   id: string;
-  service_name: string;
-  scheduled_start: string;
+  start_at: string;
   status: string;
   notes: string | null;
+  service_id: string | null;
 }
 
 interface Estimate {
@@ -189,12 +189,12 @@ export default function CustomerPortalPage() {
     try {
       const { data: bookingsData } = await supabase
         .from("bookings")
-        .select("id, service_name, scheduled_start, status, notes")
-        .eq("customer_id", customerId)
-        .order("scheduled_start", { ascending: false })
+        .select("id, start_at, status, notes, service_id")
+        .eq("lead_id", customerId)
+        .order("start_at", { ascending: false })
         .limit(20);
 
-      if (bookingsData) setBookings(bookingsData);
+      if (bookingsData) setBookings(bookingsData as Booking[]);
     } catch (err) {
       console.error("Error loading bookings:", err);
     }
@@ -383,9 +383,9 @@ export default function CustomerPortalPage() {
                                 <Calendar className="h-5 w-5 text-primary" />
                               </div>
                               <div>
-                                <p className="font-medium">{booking.service_name}</p>
+                                <p className="font-medium">Appointment</p>
                                 <p className="text-sm text-muted-foreground">
-                                  {format(new Date(booking.scheduled_start), "EEEE, MMMM d 'at' h:mm a")}
+                                  {format(new Date(booking.start_at), "EEEE, MMMM d 'at' h:mm a")}
                                 </p>
                               </div>
                             </div>

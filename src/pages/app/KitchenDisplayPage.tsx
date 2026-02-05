@@ -23,7 +23,7 @@ import { useAuth } from "@/contexts/AuthContext";
 interface KitchenOrder {
   id: string;
   order_number: string;
-  order_type: "pickup" | "delivery" | "dine_in";
+  order_type: string;
   customer_name: string | null;
   items: Array<{
     name: string;
@@ -31,9 +31,9 @@ interface KitchenOrder {
     modifications?: string[];
     notes?: string;
   }>;
-  status: "pending" | "preparing" | "ready" | "completed";
+  status: string;
   created_at: string;
-  estimated_ready_at: string | null;
+  estimated_ready_at?: string | null;
   table_number?: string;
   priority?: boolean;
 }
@@ -223,7 +223,20 @@ export default function KitchenDisplayPage() {
         // If table doesn't exist, use demo data
         setOrders(getDemoOrders());
       } else {
-        setOrders(data as KitchenOrder[] || []);
+        // Transform database rows to KitchenOrder format
+        const transformedOrders = (data || []).map((row: any) => ({
+          id: row.id,
+          order_number: row.order_number || row.id.slice(0, 8),
+          order_type: row.order_type || "pickup",
+          customer_name: row.customer_name,
+          items: Array.isArray(row.items_json) ? row.items_json : [],
+          status: row.status || "pending",
+          created_at: row.created_at,
+          estimated_ready_at: row.estimated_ready_at || null,
+          table_number: row.table_number,
+          priority: row.priority || false,
+        })) as KitchenOrder[];
+        setOrders(transformedOrders);
       }
     } catch {
       setOrders(getDemoOrders());
@@ -305,16 +318,17 @@ export default function KitchenDisplayPage() {
     }
 
     // For real orders, update database
+    const newStatus = nextStatus[order.status];
     await supabase
       .from("food_orders")
-      .update({ status: nextStatus[order.status] })
+      .update({ status: newStatus as any })
       .eq("id", order.id);
   };
 
   const handleRecall = async (order: KitchenOrder) => {
     if (order.id.startsWith("demo-")) {
       setOrders((prev) =>
-        prev.map((o) => (o.id === order.id ? { ...o, status: "preparing" } : o))
+        prev.map((o) => (o.id === order.id ? { ...o, status: "preparing" as const } : o))
       );
       return;
     }

@@ -58,7 +58,7 @@ export function ReviewRequestSettings() {
         setSettings({
           auto_send_reviews: data.auto_send_reviews ?? false,
           review_delay_hours: data.review_delay_hours ?? 24,
-          review_channel: data.review_channel ?? "both",
+          review_channel: (data.review_channel as "sms" | "email" | "both") ?? "both",
           google_review_url: data.google_review_url ?? "",
           yelp_review_url: data.yelp_review_url ?? "",
         });
