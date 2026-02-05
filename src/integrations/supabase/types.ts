@@ -6991,6 +6991,7 @@ export type Database = {
         | "handoff.failed"
         | "ai.summary.created"
         | "ai.policy.violation"
+        | "lead.recovered"
       automation_trigger:
         | "missed_call"
         | "new_lead"
@@ -7311,6 +7312,7 @@ export const Constants = {
         "handoff.failed",
         "ai.summary.created",
         "ai.policy.violation",
+        "lead.recovered",
       ],
       automation_trigger: [
         "missed_call",
