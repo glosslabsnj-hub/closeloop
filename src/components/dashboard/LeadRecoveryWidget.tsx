@@ -12,17 +12,28 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useLeadRecoveryDashboard } from "@/hooks/useLeadRecoveryDashboard";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+
+// Lead Recovery is most valuable for service/booking and medical businesses
+// Dispatch is urgent (if they didn't book now, they called someone else)
+// Food can benefit from reservation/catering follow-ups
+const RECOVERY_RELEVANT_MODES = ["service", "medical", "food", "general"];
 
 export function LeadRecoveryWidget() {
   const [period, setPeriod] = useState<"month" | "week">("month");
   const { data, isLoading } = useLeadRecoveryDashboard(period);
+  const { businessMode } = useTenantConfig();
+
+  // Don't show for dispatch - their leads are urgent and time-sensitive
+  if (businessMode === "dispatch") {
+    return null;
+  }
 
   if (isLoading) {
     return <LeadRecoveryWidgetSkeleton />;
   }
-
   // Empty state - recovery not enabled or no campaigns
   if (!data || (!data.isEnabled && data.currentMonth.campaignsStarted === 0)) {
     return (
