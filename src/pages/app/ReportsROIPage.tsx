@@ -40,7 +40,10 @@ import {
   UtensilsCrossed,
   Stethoscope,
   Building,
+  RefreshCw,
+  ArrowRight,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import {
   ResponsiveContainer,
   PieChart,
@@ -79,6 +82,7 @@ const DATE_RANGE_OPTIONS: { value: DateRangeOption; label: string }[] = [
 
 const CHART_COLORS = {
   ai: "hsl(160, 60%, 45%)",
+  recovery: "hsl(142, 70%, 45%)", // Green for recovery
   manual: "hsl(220, 15%, 50%)",
   primary: "hsl(var(--primary))",
 };
@@ -130,8 +134,8 @@ function ReportSkeleton() {
   );
 }
 
-function RevenueBySourceChart({ ai, manual }: { ai: number; manual: number }) {
-  const total = ai + manual;
+function RevenueBySourceChart({ ai, manual, recovery = 0 }: { ai: number; manual: number; recovery?: number }) {
+  const total = ai + manual + recovery;
   if (total === 0) {
     return (
       <div className="flex items-center justify-center h-48 text-sm text-muted-foreground">
@@ -142,6 +146,7 @@ function RevenueBySourceChart({ ai, manual }: { ai: number; manual: number }) {
 
   const data = [
     { name: "AI-Attributed", value: ai, color: CHART_COLORS.ai },
+    { name: "Lead Recovery", value: recovery, color: CHART_COLORS.recovery },
     { name: "Manual", value: manual, color: CHART_COLORS.manual },
   ].filter((d) => d.value > 0);
 
@@ -418,6 +423,11 @@ export default function ReportsROIPage() {
             {/* ROI Breakdown */}
             <ROIBreakdown data={data} />
 
+            {/* Lead Recovery Impact - only show if there's recovery data */}
+            {(data.leadsRecovered > 0 || data.totalRecoveryCampaigns > 0) && (
+              <LeadRecoveryImpact data={data} />
+            )}
+
             {/* Deep Dive: Charts & Trends (collapsible) */}
             <Collapsible open={chartsOpen} onOpenChange={setChartsOpen}>
               <CollapsibleTrigger asChild>
@@ -445,6 +455,7 @@ export default function ReportsROIPage() {
                       <RevenueBySourceChart
                         ai={data.revenueBySource.ai}
                         manual={data.revenueBySource.manual}
+                        recovery={data.revenueBySource.recovery}
                       />
                     </CardContent>
                   </Card>
@@ -722,6 +733,61 @@ function ROIBreakdown({
             )}
           </div>
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function LeadRecoveryImpact({
+  data,
+}: {
+  data: NonNullable<ReturnType<typeof useROIReport>["data"]>;
+}) {
+  const formatCurrency = (cents: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(cents / 100);
+  };
+
+  return (
+    <Card className="border-success/20 bg-success/5">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <RefreshCw className="h-4 w-4 text-success" />
+          Lead Recovery Impact
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-3 gap-4">
+          <div className="text-center">
+            <p className="text-2xl font-bold text-success">{data.leadsRecovered}</p>
+            <p className="text-sm text-muted-foreground">Leads Recovered</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-success">
+              {formatCurrency(data.recoveredRevenueCents)}
+            </p>
+            <p className="text-sm text-muted-foreground">Revenue Saved</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold">{data.recoveryRate.toFixed(0)}%</p>
+            <p className="text-sm text-muted-foreground">Recovery Rate</p>
+          </div>
+        </div>
+
+        <p className="text-sm text-muted-foreground">
+          These are customers who didn't book on their first call but converted
+          after automated follow-up.
+        </p>
+
+        <Button variant="link" asChild className="p-0 h-auto">
+          <Link to="/app/leads/recovery?status=converted" className="flex items-center gap-1">
+            View Recovered Leads <ArrowRight className="h-3 w-3" />
+          </Link>
+        </Button>
       </CardContent>
     </Card>
   );

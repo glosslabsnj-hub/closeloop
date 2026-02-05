@@ -682,27 +682,70 @@ async function convertCampaign(
   campaign: any,
   bookingId: string | null,
   dispatchJobId: string | null,
-  foodOrderId: string | null
+  foodOrderId: string | null,
+  recoveredValueCents?: number | null
 ): Promise<void> {
+  const now = new Date().toISOString();
+  
+  // Update campaign status
   await supabase
     .from("lead_recovery_campaigns")
     .update({
       status: "converted",
-      converted_at: new Date().toISOString(),
+      converted_at: now,
       converted_booking_id: bookingId,
       converted_dispatch_job_id: dispatchJobId,
       converted_food_order_id: foodOrderId,
+      recovered_value_cents: recoveredValueCents || null,
       next_action_at: null,
-      updated_at: new Date().toISOString(),
+      updated_at: now,
     })
     .eq("id", campaign.id);
 
+  // Update lead status
   if (campaign.lead_id) {
     await supabase
       .from("leads")
       .update({ recovery_status: "recovered" })
       .eq("id", campaign.lead_id);
   }
+
+  // Create revenue attribution for ROI tracking
+  if (recoveredValueCents && recoveredValueCents > 0) {
+    const entityType = bookingId ? "booking" : dispatchJobId ? "dispatch_job" : foodOrderId ? "food_order" : "lead_recovery";
+    const entityId = bookingId || dispatchJobId || foodOrderId || campaign.id;
+
+    await supabase.from("revenue_attributions").insert({
+      tenant_id: campaign.tenant_id,
+      session_id: campaign.original_session_id || null,
+      entity_type: entityType,
+      entity_id: entityId,
+      customer_id: campaign.customer_id,
+      revenue_cents: recoveredValueCents,
+      source_type: "lead_recovery", // New source type for recovery attribution
+      status: "pending",
+      attributed_at: now,
+    });
+  }
+
+  // Log the conversion event
+  await supabase.from("audit_events").insert({
+    tenant_id: campaign.tenant_id,
+    event_type: "lead.recovered",
+    entity_type: "lead_recovery_campaign",
+    entity_id: campaign.id,
+    actor_type: "system",
+    payload: {
+      campaign_id: campaign.id,
+      customer_id: campaign.customer_id,
+      lead_id: campaign.lead_id,
+      recovered_value_cents: recoveredValueCents,
+      booking_id: bookingId,
+      dispatch_job_id: dispatchJobId,
+      food_order_id: foodOrderId,
+      total_attempts: campaign.total_attempts,
+    },
+  });
 }
 
 function jsonResponse(data: unknown, status = 200): Response {
