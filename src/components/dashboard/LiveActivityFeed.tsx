@@ -1,7 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -18,7 +17,6 @@ import {
   ArrowRight,
   FlaskConical,
   Inbox,
-  CheckCircle2,
 } from "lucide-react";
 
 interface ActivityItem {
@@ -168,32 +166,25 @@ export function LiveActivityFeed() {
     refetchInterval: 30000,
   });
 
-  const getIcon = (type: string) => {
-    const iconClass = "h-4 w-4";
-    switch (type) {
-      case "call": return <Phone className={iconClass} />;
-      case "booking": return <Calendar className={iconClass} />;
-      case "order": return <UtensilsCrossed className={iconClass} />;
-      case "dispatch": return <Truck className={iconClass} />;
-      case "sms": return <MessageSquare className={iconClass} />;
-      default: return <CheckCircle2 className={iconClass} />;
-    }
-  };
+  const iconMap: Record<string, React.ElementType> = useMemo(() => ({
+    call: Phone,
+    booking: Calendar,
+    order: UtensilsCrossed,
+    dispatch: Truck,
+    sms: MessageSquare,
+  }), []);
 
-  const getIconStyles = (type: string) => {
-    switch (type) {
-      case "call": return { bg: "bg-emerald-500/15", color: "text-emerald-400" };
-      case "booking": return { bg: "bg-blue-500/15", color: "text-blue-400" };
-      case "order": return { bg: "bg-orange-500/15", color: "text-orange-400" };
-      case "dispatch": return { bg: "bg-sky-500/15", color: "text-sky-400" };
-      case "sms": return { bg: "bg-purple-500/15", color: "text-purple-400" };
-      default: return { bg: "bg-muted", color: "text-muted-foreground" };
-    }
-  };
+  const colorMap: Record<string, string> = useMemo(() => ({
+    call: "bg-success/10 text-success",
+    booking: "bg-info/10 text-info",
+    order: "bg-warning/10 text-warning",
+    dispatch: "bg-info/10 text-info",
+    sms: "bg-primary/10 text-primary",
+  }), []);
 
   const getNavPath = (type: string) => {
     switch (type) {
-      case "call": return "/app/calls";
+      case "call": return "/app/inbox?tab=calls";
       case "booking": return "/app/bookings";
       case "order": return "/app/orders";
       case "dispatch": return "/app/dispatch";
@@ -206,17 +197,17 @@ export function LiveActivityFeed() {
   if (isLoading) {
     return (
       <Card className="h-full">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
-          <h3 className="text-sm font-semibold text-foreground">Recent Activity</h3>
-        </div>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-medium">Recent Activity</CardTitle>
+        </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="flex items-center gap-3 py-2">
-                <Skeleton className="h-9 w-9 rounded-lg" />
+                <Skeleton className="h-10 w-10 rounded-lg" />
                 <div className="flex-1">
-                  <Skeleton className="h-4 w-28 mb-1.5" />
-                  <Skeleton className="h-3 w-40" />
+                  <Skeleton className="h-4 w-32 mb-2" />
+                  <Skeleton className="h-3 w-48" />
                 </div>
               </div>
             ))}
@@ -227,67 +218,61 @@ export function LiveActivityFeed() {
   }
 
   return (
-    <Card className="animate-fade-in h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
-        <h3 className="text-sm font-semibold text-foreground">Recent Activity</h3>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-1 text-xs h-7 text-muted-foreground hover:text-foreground"
-          onClick={() => navigate("/app/inbox")}
-        >
-          View All
-          <ArrowRight className="h-3 w-3" />
-        </Button>
-      </div>
+    <Card className="h-full">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg font-medium">Recent Activity</CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1 text-sm h-8 text-muted-foreground hover:text-foreground"
+            onClick={() => navigate("/app/inbox")}
+          >
+            View All
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </CardHeader>
 
-      {/* Content */}
-      <CardContent className="px-5 py-4">
+      <CardContent className="pt-0">
         {hasActivity ? (
-          <div className="space-y-1">
+          <div className="space-y-2">
             {activities.slice(0, 6).map((item, index) => {
-              const iconStyles = getIconStyles(item.type);
+              const Icon = iconMap[item.type] || Phone;
+              const colorClass = colorMap[item.type] || "bg-muted text-muted-foreground";
               return (
                 <div
                   key={item.id}
-                  className={cn(
-                    "flex items-center justify-between py-2.5 px-3 -mx-3 rounded-lg hover:bg-muted/40 cursor-pointer transition-all duration-200 group",
-                    `stagger-${Math.min(index + 1, 5)}`
-                  )}
+                  className="flex items-center justify-between py-2 px-3 -mx-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
                   onClick={() => navigate(getNavPath(item.type))}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className={cn(
-                      "flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-transform duration-200 group-hover:scale-105",
-                      iconStyles.bg,
-                      iconStyles.color
-                    )}>
-                      {getIcon(item.type)}
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-lg shrink-0 ${colorClass}`}>
+                      <Icon className="h-4 w-4" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate text-foreground/90">{item.title}</p>
-                      <p className="text-xs text-muted-foreground truncate max-w-[180px]">{item.subtitle}</p>
+                      <p className="text-sm font-medium truncate">{item.title}</p>
+                      <p className="text-[13px] text-muted-foreground truncate max-w-[200px]">{item.subtitle}</p>
                     </div>
                   </div>
-                  <p className="text-[11px] text-muted-foreground/60 shrink-0 ml-3">{item.time}</p>
+                  <p className="text-[13px] text-muted-foreground shrink-0 ml-3">{item.time}</p>
                 </div>
               );
             })}
           </div>
         ) : (
-          <div className="text-center py-10 text-muted-foreground">
-            <div className="h-14 w-14 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
-              <Inbox className="h-7 w-7 opacity-40" />
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="rounded-full bg-muted p-4 mb-4">
+              <Inbox className="w-8 h-8 text-muted-foreground" />
             </div>
-            <p className="text-sm font-medium text-foreground/80 mb-1">No activity yet</p>
-            <p className="text-xs text-muted-foreground/70 mb-5 max-w-[200px] mx-auto">
-              Once your AI starts handling calls, you'll see updates here.
+            <h3 className="text-lg font-medium mb-1">No activity yet</h3>
+            <p className="text-sm text-muted-foreground max-w-sm mb-4">
+              When your AI handles calls, activity will appear here.
             </p>
-            <Button variant="secondary" size="sm" asChild className="h-9">
-              <Link to="/app/simulator" className="gap-2 font-medium">
+            <Button asChild>
+              <Link to="/app/simulator" className="gap-2">
                 <FlaskConical className="h-4 w-4" />
-                Test your AI
+                Test Your AI
               </Link>
             </Button>
           </div>

@@ -1,14 +1,13 @@
 import { useNavigate } from "react-router-dom";
-import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useTerminology } from "@/hooks/useTerminology";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent } from "@/components/ui/card";
 import { 
   Phone, 
   Calendar, 
-  TrendingUp,
   Users,
   UtensilsCrossed,
   Truck,
@@ -19,11 +18,8 @@ import { startOfDay, startOfWeek, endOfDay } from "date-fns";
 interface Metric {
   label: string;
   value: number | string;
-  change?: string;
-  trend?: "up" | "down" | "neutral";
   icon: React.ElementType;
   href: string;
-  accent: string;
 }
 
 /**
@@ -136,34 +132,33 @@ export function MetricsGrid() {
         value: callsToday, 
         icon: Phone, 
         href: "/app/inbox?tab=calls",
-        accent: "text-emerald-500",
       },
     ];
 
     switch (businessMode) {
       case "food":
         return [
-          { label: "Orders Today", value: ordersToday, icon: UtensilsCrossed, href: "/app/orders", accent: "text-orange-500" },
+          { label: "Orders Today", value: ordersToday, icon: UtensilsCrossed, href: "/app/orders" },
           ...baseMetrics,
-          { label: "Customers", value: totalCustomers, icon: Users, href: "/app/customers", accent: "text-violet-500" },
+          { label: "Customers", value: totalCustomers, icon: Users, href: "/app/customers" },
         ];
       case "dispatch":
         return [
-          { label: "Jobs Pending", value: jobsPending, icon: Truck, href: "/app/dispatch", accent: "text-sky-500" },
+          { label: "Jobs Pending", value: jobsPending, icon: Truck, href: "/app/dispatch" },
           ...baseMetrics,
-          { label: "Customers", value: totalCustomers, icon: Users, href: "/app/customers", accent: "text-violet-500" },
+          { label: "Customers", value: totalCustomers, icon: Users, href: "/app/customers" },
         ];
       case "medical":
         return [
-          { label: "Intakes Today", value: intakesToday, icon: Stethoscope, href: "/app/medical-intake", accent: "text-rose-500" },
-          { label: terms.bookingsMetricLabel, value: bookingsWeek, icon: Calendar, href: "/app/bookings", accent: "text-blue-500" },
+          { label: "Intakes Today", value: intakesToday, icon: Stethoscope, href: "/app/medical-intake" },
+          { label: terms.bookingsMetricLabel, value: bookingsWeek, icon: Calendar, href: "/app/bookings" },
           ...baseMetrics,
         ];
       default:
         return [
           ...baseMetrics,
-          { label: terms.bookingsMetricLabel, value: bookingsWeek, icon: Calendar, href: "/app/bookings", accent: "text-blue-500" },
-          { label: "Customers", value: totalCustomers, icon: Users, href: "/app/customers", accent: "text-violet-500" },
+          { label: terms.bookingsMetricLabel, value: bookingsWeek, icon: Calendar, href: "/app/bookings" },
+          { label: "Customers", value: totalCustomers, icon: Users, href: "/app/customers" },
         ];
     }
   };
@@ -171,40 +166,32 @@ export function MetricsGrid() {
   const metrics = getMetrics();
 
   return (
-    <div className="grid grid-cols-3 gap-3 md:gap-4">
-      {metrics.slice(0, 3).map((metric, index) => {
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {metrics.slice(0, 3).map((metric) => {
         const Icon = metric.icon;
         return (
-          <button
+          <Card
             key={metric.label}
+            interactive
             onClick={() => navigate(metric.href)}
-            className={cn(
-              "group relative p-4 md:p-5 rounded-xl bg-card border border-border/50 text-left transition-all duration-200",
-              "hover:border-border hover:shadow-md hover:-translate-y-0.5",
-              "focus:outline-none focus:ring-2 focus:ring-primary/30",
-              "animate-fade-in",
-              index === 0 && "stagger-1",
-              index === 1 && "stagger-2",
-              index === 2 && "stagger-3"
-            )}
+            className="cursor-pointer"
           >
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-3xl md:text-4xl font-bold tracking-tight tabular-nums">
-                  {metric.value}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {metric.label}
-                </p>
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {metric.label}
+                  </p>
+                  <p className="mt-2 text-3xl font-semibold tracking-tight tabular-nums">
+                    {metric.value}
+                  </p>
+                </div>
+                <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                  <Icon className="h-5 w-5 text-muted-foreground" />
+                </div>
               </div>
-              <div className={cn(
-                "h-10 w-10 rounded-xl flex items-center justify-center bg-muted/50 transition-transform group-hover:scale-110",
-                metric.accent
-              )}>
-                <Icon className="h-5 w-5" />
-              </div>
-            </div>
-          </button>
+            </CardContent>
+          </Card>
         );
       })}
     </div>
