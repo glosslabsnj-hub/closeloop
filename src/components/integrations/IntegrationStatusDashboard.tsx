@@ -23,13 +23,14 @@ interface IntegrationStatusDashboardProps {
 interface ConnectionCardProps {
   name: string;
   icon: string;
+  logo?: string;
   status: "connected" | "error" | "disconnected";
   lastActivity?: string | null;
   activityLabel?: string;
   onReconnect?: () => void;
 }
 
-function ConnectionCard({ name, icon, status, lastActivity, activityLabel, onReconnect }: ConnectionCardProps) {
+function ConnectionCard({ name, icon, logo, status, lastActivity, activityLabel, onReconnect }: ConnectionCardProps) {
   const statusConfig = {
     connected: {
       badge: "Active",
@@ -54,7 +55,21 @@ function ConnectionCard({ name, icon, status, lastActivity, activityLabel, onRec
      <Card className={`transition-all hover:shadow-md ${status === "connected" ? "border-success/30 bg-success/5" : status === "error" ? "border-destructive/30 bg-destructive/5" : ""}`}>
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
-          <div className="text-2xl shrink-0">{icon}</div>
+          <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+            {logo ? (
+              <img 
+                src={logo} 
+                alt={name} 
+                className="w-8 h-8 object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const fallback = e.currentTarget.parentElement?.querySelector('.fallback-icon');
+                  if (fallback) fallback.classList.remove('hidden');
+                }}
+              />
+            ) : null}
+            <span className={`text-2xl fallback-icon ${logo ? 'hidden' : ''}`}>{icon}</span>
+          </div>
           <div className="flex-1 min-w-0 space-y-1">
             <div className="flex items-center gap-2">
               <h4 className="font-medium text-sm">{name}</h4>
@@ -86,9 +101,9 @@ function ConnectionCard({ name, icon, status, lastActivity, activityLabel, onRec
   );
 }
 
-const PROVIDER_DISPLAY: Record<string, { name: string; icon: string }> = {
-  google_calendar: { name: "Google Calendar", icon: "📅" },
-  google_sheets: { name: "Google Sheets", icon: "📊" },
+const PROVIDER_DISPLAY: Record<string, { name: string; icon: string; logo?: string }> = {
+  google_calendar: { name: "Google Calendar", icon: "📅", logo: "https://cdn.brandfetch.io/id7a3kYgzR/w/400/h/400/theme/dark/icon.png" },
+  google_sheets: { name: "Google Sheets", icon: "📊", logo: "https://cdn.brandfetch.io/idUqhQzFtG/w/400/h/400/theme/dark/icon.png" },
   webhook: { name: "Webhook", icon: "🔗" },
   printer: { name: "Printer", icon: "🖨️" },
   sms: { name: "SMS", icon: "💬" },
@@ -196,6 +211,7 @@ export function IntegrationStatusDashboard({
                   key={integration.id}
                   name={display.name}
                   icon={display.icon}
+                  logo={display.logo}
                   status="connected"
                   lastActivity={integration.last_tested_at || integration.updated_at}
                 />
@@ -212,6 +228,7 @@ export function IntegrationStatusDashboard({
                   key={integration.id}
                   name={display.name}
                   icon={display.icon}
+                  logo={display.logo}
                   status="error"
                   lastActivity={integration.updated_at}
                   onReconnect={() => onReconnect?.(integration.id)}

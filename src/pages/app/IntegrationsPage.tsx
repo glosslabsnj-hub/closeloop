@@ -580,6 +580,7 @@ export default function IntegrationsPage() {
                     id={tool.id}
                     name={tool.name}
                     icon={tool.icon}
+                    logo={'logo' in tool ? (tool as any).logo : undefined}
                     description={tool.description}
                     isConnected={isConnected}
                     isSelfSetup={true}
@@ -612,6 +613,7 @@ export default function IntegrationsPage() {
                   id={tool.id}
                   name={tool.name}
                   icon={tool.icon}
+                  logo={'logo' in tool ? (tool as any).logo : undefined}
                   description={tool.description}
                   isConnected={false}
                   isSelfSetup={false}

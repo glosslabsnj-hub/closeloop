@@ -88,7 +88,18 @@ export function MoreIntegrationsDialog({
                       className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="text-xl">{integration.icon}</span>
+                        {integration.logo ? (
+                          <img 
+                            src={integration.logo} 
+                            alt={integration.name} 
+                            className="w-8 h-8 rounded object-contain"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                            }}
+                          />
+                        ) : null}
+                        <span className={`text-xl ${integration.logo ? 'hidden' : ''}`}>{integration.icon}</span>
                         <div>
                           <h4 className="font-medium text-sm">{integration.name}</h4>
                           <p className="text-xs text-muted-foreground">
