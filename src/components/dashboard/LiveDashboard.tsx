@@ -7,6 +7,7 @@ import { LiveActivityFeed } from "./LiveActivityFeed";
 import { UnifiedAlertBanner } from "./UnifiedAlertBanner";
 import { Copilot, CopilotTrigger } from "./Copilot";
 import { SetupProgressChecklist } from "./SetupProgressChecklist";
+import { ROIPerformanceWidget } from "./ROIPerformanceWidget";
 import { SoundManager } from "@/components/notifications/SoundManager";
 
 function getGreeting(): string {
@@ -46,6 +47,11 @@ export function LiveDashboard() {
 
       {/* Agent Control - Most prominent element */}
       <AgentControlPanel />
+
+      {/* AI Performance / ROI Widget */}
+      <section>
+        <ROIPerformanceWidget />
+      </section>
 
       {/* Metrics */}
       <MetricsGrid />
