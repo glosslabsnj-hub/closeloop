@@ -8,6 +8,7 @@ interface IntegrationCardProps {
   id: string;
   name: string;
   icon: string;
+  logo?: string;
   description: string;
   isConnected?: boolean;
   isSelfSetup?: boolean;
@@ -21,6 +22,7 @@ export function IntegrationCard({
   id,
   name,
   icon,
+  logo,
   description,
   isConnected = false,
   isSelfSetup = false,
@@ -34,8 +36,20 @@ export function IntegrationCard({
       <CardContent className="p-4 space-y-3">
         {/* Header */}
         <div className="flex items-start gap-3">
-          <div className="p-2 rounded-lg bg-muted text-2xl shrink-0">
-            {icon}
+          <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+            {logo ? (
+              <img 
+                src={logo} 
+                alt={name} 
+                className="w-10 h-10 object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const fallback = e.currentTarget.parentElement?.querySelector('.fallback-icon');
+                  if (fallback) fallback.classList.remove('hidden');
+                }}
+              />
+            ) : null}
+            <span className={`text-2xl fallback-icon ${logo ? 'hidden' : ''}`}>{icon}</span>
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-medium">{name}</h3>
