@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTerminology } from "@/hooks/useTerminology";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Lock, Settings } from "lucide-react";
@@ -14,6 +14,8 @@ import { DataControlsPanel } from "@/components/settings/DataControlsPanel";
 import { SettingsSidebar, SettingsNavConfig } from "@/components/settings/SettingsSidebar";
 import { MobileSettingsNav } from "@/components/settings/MobileSettingsNav";
 import { BusinessBrainCTA } from "@/components/settings/BusinessBrainCTA";
+import { DangerZoneSection } from "@/components/settings/DangerZoneSection";
+import { SettingsCard } from "@/components/settings/SettingsSection";
 import { useFoodMode } from "@/hooks/useFoodMode";
 import { useModuleEnabled, useTenantConfig } from "@/hooks/useTenantConfig";
 
@@ -64,8 +66,12 @@ export default function SettingsPage() {
       description: "Auto-confirm bookings, send follow-ups, and route leads automatically.",
     },
     developer: {
-      title: "Developer Tools (Optional)",
-      description: "Advanced debugging tools. Most users won't need this.",
+      title: "Developer Tools",
+      description: "Advanced debugging tools for troubleshooting.",
+    },
+    danger: {
+      title: "Danger Zone",
+      description: "Irreversible and destructive actions. Proceed with caution.",
     },
   };
 
@@ -75,33 +81,24 @@ export default function SettingsPage() {
     switch (activeSection) {
       case "team":
         return (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
+          <SettingsCard
+            title="Team Members"
+            description="People who can access this account."
+            headerAction={<Button size="sm">Invite Member</Button>}
+          >
+            <div className="flex items-center justify-between p-4 rounded-lg border">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-medium">
+                  {user?.email?.[0].toUpperCase()}
+                </div>
                 <div>
-                  <CardTitle>Team Members</CardTitle>
-                  <CardDescription>People who can access this account</CardDescription>
-                </div>
-                <Button>Invite Member</Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-lg border">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                      {user?.email?.[0].toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="font-medium">{user?.email}</p>
-                      <p className="text-sm text-muted-foreground">Owner</p>
-                    </div>
-                  </div>
-                  <span className="text-sm text-muted-foreground">You</span>
+                  <p className="font-medium">{user?.email}</p>
+                  <p className="text-sm text-muted-foreground">Owner</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+              <span className="text-sm text-muted-foreground">You</span>
+            </div>
+          </SettingsCard>
         );
 
       case "plan":
@@ -117,28 +114,25 @@ export default function SettingsPage() {
 
       case "alerts":
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
-              <CardDescription>Choose what triggers alerts to you</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {[
-                { label: "New leads", description: "When a new lead comes in" },
-                { label: terms.bookingsMetricLabel, description: `When ${terms.bookings} are created or changed` },
-                { label: "Payments", description: "When deposits are collected" },
-                { label: "AI escalations", description: "When AI needs human help" },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{item.label}</p>
-                    <p className="text-sm text-muted-foreground">{item.description}</p>
-                  </div>
-                  <Switch defaultChecked />
+          <SettingsCard
+            title="Notification Preferences"
+            description="Choose which events trigger alerts to you."
+          >
+            {[
+              { label: "New leads", description: "When a new lead comes in" },
+              { label: terms.bookingsMetricLabel, description: `When ${terms.bookings} are created or changed` },
+              { label: "Payments", description: "When deposits are collected" },
+              { label: "AI escalations", description: "When AI needs human help" },
+            ].map((item) => (
+              <div key={item.label} className="flex items-center justify-between py-2">
+                <div>
+                  <p className="font-medium text-sm">{item.label}</p>
+                  <p className="text-sm text-muted-foreground">{item.description}</p>
                 </div>
-              ))}
-            </CardContent>
-          </Card>
+                <Switch defaultChecked />
+              </div>
+            ))}
+          </SettingsCard>
         );
 
       case "integrations":
@@ -150,20 +144,20 @@ export default function SettingsPage() {
       case "developer":
         return (
           <>
-            <Card>
-              <CardHeader>
-                <CardTitle>Debug Tools</CardTitle>
-                <CardDescription>Inspect what data is passed to the AI during calls</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  These tools help you understand and troubleshoot AI behavior. Only use if you're comfortable with technical details.
-                </p>
-              </CardContent>
-            </Card>
+            <SettingsCard
+              title="Debug Tools"
+              description="Inspect what data is passed to the AI during calls."
+            >
+              <p className="text-sm text-muted-foreground">
+                These tools help you understand and troubleshoot AI behavior. Only use if you're comfortable with technical details.
+              </p>
+            </SettingsCard>
             {tenant?.id && <CallContextDebugger tenantId={tenant.id} />}
           </>
         );
+
+      case "danger":
+        return <DangerZoneSection />;
 
       default:
         return null;
@@ -222,11 +216,11 @@ export default function SettingsPage() {
           {/* Account Access - Always visible at bottom */}
           <Card className="border-white/[0.06]">
             <CardHeader>
-              <CardTitle className="text-foreground">Account Access</CardTitle>
+              <CardTitle className="text-foreground text-base">Account Access</CardTitle>
             </CardHeader>
             <CardContent className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Sign out of your account</p>
+                <p className="font-medium text-sm">Sign out of your account</p>
                 <p className="text-sm text-muted-foreground">You can sign back in anytime</p>
               </div>
               <Button variant="outline" onClick={signOut}>

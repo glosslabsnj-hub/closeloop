@@ -7,6 +7,7 @@ import {
   Webhook,
   Zap,
   Bug,
+  AlertTriangle,
   ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -42,6 +43,7 @@ const sectionLabels: Record<string, string> = {
   integrations: "Integrations",
   automation: "Automation",
   developer: "Developer Tools",
+  danger: "Danger Zone",
 };
 
 export function MobileSettingsNav({ activeSection, onSectionChange, config }: MobileSettingsNavProps) {
@@ -79,7 +81,10 @@ export function MobileSettingsNav({ activeSection, onSectionChange, config }: Mo
       id: "advanced",
       label: "Advanced",
       colorClass: "text-muted-foreground",
-      items: [{ id: "developer", label: "Developer Tools", icon: Bug }],
+      items: [
+        { id: "developer", label: "Developer Tools", icon: Bug },
+        { id: "danger", label: "Danger Zone", icon: AlertTriangle },
+      ],
     },
   ];
 
