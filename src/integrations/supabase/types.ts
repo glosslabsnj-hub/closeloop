@@ -365,8 +365,12 @@ export type Database = {
           closeloop_number: string | null
           connect_status: string | null
           created_at: string
+          dispatch_ivr_mode: string | null
           forwarding_phone_e164: string | null
           go_live_enabled: boolean
+          impound_agent_id: string | null
+          impound_fallback_script: string | null
+          impound_greeting_script: string | null
           instant_text_enabled: boolean
           missed_call_behavior: Database["public"]["Enums"]["missed_call_behavior"]
           notification_sounds_enabled: boolean
@@ -405,8 +409,12 @@ export type Database = {
           closeloop_number?: string | null
           connect_status?: string | null
           created_at?: string
+          dispatch_ivr_mode?: string | null
           forwarding_phone_e164?: string | null
           go_live_enabled?: boolean
+          impound_agent_id?: string | null
+          impound_fallback_script?: string | null
+          impound_greeting_script?: string | null
           instant_text_enabled?: boolean
           missed_call_behavior?: Database["public"]["Enums"]["missed_call_behavior"]
           notification_sounds_enabled?: boolean
@@ -445,8 +453,12 @@ export type Database = {
           closeloop_number?: string | null
           connect_status?: string | null
           created_at?: string
+          dispatch_ivr_mode?: string | null
           forwarding_phone_e164?: string | null
           go_live_enabled?: boolean
+          impound_agent_id?: string | null
+          impound_fallback_script?: string | null
+          impound_greeting_script?: string | null
           instant_text_enabled?: boolean
           missed_call_behavior?: Database["public"]["Enums"]["missed_call_behavior"]
           notification_sounds_enabled?: boolean
@@ -2498,6 +2510,7 @@ export type Database = {
           address: string | null
           city: string | null
           created_at: string | null
+          directions: string | null
           hours_json: Json | null
           id: string
           is_active: boolean | null
@@ -2513,6 +2526,7 @@ export type Database = {
           address?: string | null
           city?: string | null
           created_at?: string | null
+          directions?: string | null
           hours_json?: Json | null
           id?: string
           is_active?: boolean | null
@@ -2528,6 +2542,7 @@ export type Database = {
           address?: string | null
           city?: string | null
           created_at?: string | null
+          directions?: string | null
           hours_json?: Json | null
           id?: string
           is_active?: boolean | null
