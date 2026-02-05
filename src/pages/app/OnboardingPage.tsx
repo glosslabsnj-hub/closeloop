@@ -1,22 +1,21 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Building2, Clock, MessageCircle, ShieldQuestion,
-  FileText, CheckCircle2, Loader2, ArrowRight, ArrowLeft,
-  Sparkles, Edit2, Brain, Wrench, Sliders
+  Building2, Clock, FileText, CheckCircle2, Loader2,
+  ChevronRight, ChevronLeft, Sparkles, Brain, Wrench, Sliders,
+  HelpCircle, ExternalLink
 } from "lucide-react";
 import { createDefaultWorkflowsForMode } from "@/lib/createDefaultWorkflows";
 import { getIndustryBySlug } from "@/data/industryCatalog";
 import { resolveIndustryTemplate } from "@/lib/templateResolver";
 import { getModeContract } from "@/lib/businessModeContract";
 import { BusinessModeSelector, type BusinessMode, getDefaultModulesForMode } from "@/components/onboarding/BusinessModeSelector";
-import IndustrySelector from "@/components/onboarding/IndustrySelector";
 import { ModuleSelector } from "@/components/onboarding/ModuleSelector";
 import BusinessBasicsForm, { BusinessBasicsData, validateBusinessBasics } from "@/components/onboarding/BusinessBasicsForm";
 import ServiceEditorAdvanced, { AdvancedService } from "@/components/onboarding/ServiceEditorAdvanced";
@@ -24,9 +23,12 @@ import FAQEditor, { FAQ } from "@/components/onboarding/FAQEditor";
 import ObjectionEditor, { ObjectionResponse } from "@/components/onboarding/ObjectionEditor";
 import PoliciesEditor, { BusinessPolicies } from "@/components/onboarding/PoliciesEditor";
 import { BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
-import { AIKnowledgePreview } from "@/components/onboarding/AIKnowledgePreview";
 import { FoodSetupEditor, FoodSetupData } from "@/components/onboarding/FoodSetupEditor";
 import { formatErrorForToast } from "@/lib/errorMessages";
+import { OnboardingProgress, type OnboardingStep } from "@/components/onboarding/OnboardingProgress";
+import { OnboardingComplete } from "@/components/onboarding/OnboardingComplete";
+import { IndustrySelectorGrid } from "@/components/onboarding/IndustrySelectorGrid";
+import { cn } from "@/lib/utils";
 import type { PlanCode } from "@/types/database";
 
 const defaultBusinessHours: BusinessHours = {
@@ -39,18 +41,19 @@ const defaultBusinessHours: BusinessHours = {
   sunday: { open: "00:00", close: "00:00", closed: true },
 };
 
-const stepInfo = [
-  { icon: Wrench, title: "Business Mode", description: "What type of business are you?" },
-  { icon: Building2, title: "Industry", description: "Choose your industry for smart defaults" },
-  { icon: Sliders, title: "Features", description: "Select which modules to enable" },
-  { icon: Clock, title: "Business Basics", description: "Name, phone, hours" },
-  { icon: Sparkles, title: "Offerings", description: "Your services or menu" },
-  { icon: FileText, title: "Policies", description: "Your business rules" },
+const steps: OnboardingStep[] = [
+  { id: "mode", icon: Wrench, title: "Business Mode", description: "What type of business are you?" },
+  { id: "industry", icon: Building2, title: "Industry", description: "Choose your industry for smart defaults" },
+  { id: "features", icon: Sliders, title: "Features", description: "Select which modules to enable" },
+  { id: "basics", icon: Clock, title: "Business Info", description: "Name, phone, and hours" },
+  { id: "offerings", icon: Sparkles, title: "Offerings", description: "Your services or menu" },
+  { id: "policies", icon: FileText, title: "Policies & FAQs", description: "Business rules and common questions" },
 ];
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [isComplete, setIsComplete] = useState(false);
 
   // Track if industry template has been initialized
   const initializedIndustryRef = useRef<string | null>(null);
@@ -109,7 +112,7 @@ export default function OnboardingPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const totalSteps = 6;
+  const totalSteps = steps.length;
   const progress = (step / totalSteps) * 100;
 
   // Load industry from sessionStorage (set from demo player or signup flow)
@@ -184,18 +187,23 @@ export default function OnboardingPage() {
     initializedIndustryRef.current = industrySlug;
   }, [industrySlug, businessMode]);
 
-  // Validation
-  const canProceedStep1 = businessMode.length > 0; // Always true
-  const canProceedStep2 = industrySlug.length > 0;
-  const canProceedStep3 = enabledModules.length > 0; // Always true
-  const canProceedStep4 = validateBusinessBasics(businessBasics);
-  const canProceedStep5 = services.length > 0 && services.every(s => s.name.trim().length > 0);
-  const canProceedStep6 = true; // Policies optional
+  // Step validation
+  const canProceed = (stepNum: number) => {
+    switch (stepNum) {
+      case 1: return businessMode.length > 0;
+      case 2: return industrySlug.length > 0;
+      case 3: return enabledModules.length > 0;
+      case 4: return validateBusinessBasics(businessBasics);
+      case 5: return services.length > 0 && services.every(s => s.name.trim().length > 0);
+      case 6: return true;
+      default: return false;
+    }
+  };
 
   // Show loading while checking auth state
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-secondary/30">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
           <p className="text-muted-foreground">Loading...</p>
@@ -207,7 +215,7 @@ export default function OnboardingPage() {
   // If tenant already exists, show redirect message (fallback while navigating)
   if (tenant) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-secondary/30">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <CheckCircle2 className="h-8 w-8 mx-auto text-success" />
           <p className="text-muted-foreground">You already have a business set up. Redirecting to dashboard...</p>
@@ -532,14 +540,8 @@ export default function OnboardingPage() {
       // Small delay to ensure auth context has updated state
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      toast({
-        title: "Business knowledge saved!",
-        description: "Now test your AI, then connect your phone to go live.",
-      });
-
-      // Redirect to simulator with suggested tests
-      // After testing, they'll see SetupWizard on dashboard to connect phone and go live
-      navigate("/app/simulator?suggested=true");
+      // Show completion screen
+      setIsComplete(true);
     } catch (error: unknown) {
       console.error("Onboarding error:", error);
       const errorInfo = formatErrorForToast(error);
@@ -553,247 +555,268 @@ export default function OnboardingPage() {
     }
   };
 
-  const goToStep = (targetStep: number) => {
-    setStep(targetStep);
+  const goNext = () => {
+    if (step < totalSteps) {
+      setStep(step + 1);
+    } else {
+      handleComplete();
+    }
   };
 
-  const StepIcon = stepInfo[step - 1].icon;
+  const goBack = () => {
+    if (step > 1) {
+      setStep(step - 1);
+    }
+  };
+
+  const currentStepInfo = steps[step - 1];
 
   return (
-    <div className="min-h-screen bg-secondary/30 py-8 px-4">
-      <div className="max-w-2xl mx-auto">
-        {/* Progress */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between text-sm mb-2">
-            <span className="font-medium">Step {step} of {totalSteps}</span>
-            <span className="text-muted-foreground">{Math.round(progress)}% complete</span>
-          </div>
-          <Progress value={progress} className="h-2" />
-
-          {/* Step indicators */}
-          <div className="flex justify-between mt-3">
-            {stepInfo.map((info, index) => {
-              const Icon = info.icon;
-              const isActive = step === index + 1;
-              const isComplete = step > index + 1;
-              return (
-                <button
-                  key={index}
-                  onClick={() => isComplete && goToStep(index + 1)}
-                  disabled={!isComplete}
-                  className={`flex flex-col items-center gap-1 transition-colors ${
-                    isComplete ? 'cursor-pointer hover:text-primary' : ''
-                  }`}
-                >
-                  <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs ${
-                    isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : isComplete
-                        ? 'bg-primary/20 text-primary'
-                        : 'bg-muted text-muted-foreground'
-                  }`}>
-                    {isComplete ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
-                  </div>
-                </button>
-              );
-            })}
+    <div className="min-h-screen bg-background flex">
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex w-80 border-r bg-card flex-col">
+        {/* Logo */}
+        <div className="p-6 border-b">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-sm">CL</span>
+            </div>
+            <span className="font-semibold text-lg">CloseLoop</span>
           </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 mb-2">
-              <StepIcon className="h-6 w-6 text-primary" />
-            </div>
-            <CardTitle>{stepInfo[step - 1].title}</CardTitle>
-            <CardDescription>{stepInfo[step - 1].description}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Step 1: Business Mode */}
-            {step === 1 && (
-              <>
-                <BusinessModeSelector value={businessMode} onChange={setBusinessMode} />
-                <Button
-                  className="w-full"
-                  onClick={() => setStep(2)}
-                  disabled={!canProceedStep1}
+        {/* Progress Nav */}
+        <nav className="flex-1 p-4 overflow-y-auto">
+          <OnboardingProgress
+            steps={steps}
+            currentStep={step}
+            onStepClick={(s) => s < step && setStep(s)}
+          />
+        </nav>
+
+        {/* Help Footer */}
+        <div className="p-6 border-t">
+          <p className="text-sm text-muted-foreground">
+            Need help?{" "}
+            <a
+              href="https://docs.lovable.dev"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline inline-flex items-center gap-1"
+            >
+              Contact support
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          </p>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col min-h-screen">
+        {/* Mobile Progress Bar */}
+        <div className="lg:hidden p-4 border-b bg-card">
+          <Progress value={progress} className="h-2" />
+          <p className="text-sm text-muted-foreground mt-2">
+            Step {step} of {totalSteps}: {currentStepInfo?.title}
+          </p>
+        </div>
+
+        {/* Step Content - Centered */}
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="w-full max-w-lg">
+            <AnimatePresence mode="wait">
+              {isComplete ? (
+                <motion.div
+                  key="complete"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
                 >
-                  Continue
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </>
-            )}
-
-            {/* Step 2: Industry */}
-            {step === 2 && (
-              <>
-                <IndustrySelector
-                  value={industrySlug}
-                  onChange={(slug) => setIndustrySlug(slug)}
-                />
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setStep(1)}>
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back
-                  </Button>
-                  <Button className="flex-1" onClick={() => setStep(3)} disabled={!canProceedStep2}>
-                    Continue
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </div>
-              </>
-            )}
-
-            {/* Step 3: Modules */}
-            {step === 3 && (
-              <>
-                <ModuleSelector
-                  businessMode={businessMode}
-                  enabledModules={enabledModules}
-                  onChange={setEnabledModules}
-                />
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setStep(2)}>
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back
-                  </Button>
-                  <Button className="flex-1" onClick={() => setStep(4)} disabled={!canProceedStep3}>
-                    Continue
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </div>
-              </>
-            )}
-
-            {/* Step 4: Business Basics */}
-            {step === 4 && (
-              <>
-                <BusinessBasicsForm data={businessBasics} onChange={setBusinessBasics} />
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setStep(3)}>
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back
-                  </Button>
-                  <Button className="flex-1" onClick={() => setStep(5)} disabled={!canProceedStep4}>
-                    Continue
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </div>
-              </>
-            )}
-
-            {/* Step 5: Offerings */}
-            {step === 5 && (
-              <>
-                {industrySlug && (
-                  <div className="text-sm text-muted-foreground mb-2">
-                    Template: <span className="font-medium text-foreground">{resolveIndustryTemplate(industrySlug).label}</span>
-                    <span className="ml-2 text-xs">(all fields are editable)</span>
-                  </div>
-                )}
-
-                {businessMode === "food" ? (
-                  <div className="space-y-6">
-                    <FoodSetupEditor data={foodSetup} onChange={setFoodSetup} />
-                  </div>
-                ) : (
-                  <ServiceEditorAdvanced
-                    services={services}
-                    onChange={setServices}
-                    modeContract={getModeContract(businessMode)}
-                  />
-                )}
-
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setStep(4)}>
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back
-                  </Button>
-                  <Button className="flex-1" onClick={() => setStep(6)} disabled={!canProceedStep5}>
-                    Continue
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </div>
-              </>
-            )}
-
-            {/* Step 6: Policies + FAQs + Objections + Review */}
-            {step === 6 && (
-              <>
-                <div className="space-y-6">
-                  {/* Policies section */}
-                  <div>
-                    <h3 className="text-sm font-medium mb-3">Business Policies</h3>
-                    <PoliciesEditor data={policies} onChange={setPolicies} />
-                  </div>
-
-                  {/* FAQs section */}
-                  <div className="border-t pt-6">
-                    <h3 className="text-sm font-medium mb-3">Common Questions (FAQs)</h3>
-                    <FAQEditor faqs={faqs} onChange={setFaqs} />
-                  </div>
-
-                  {/* Objections section */}
-                  <div className="border-t pt-6">
-                    <h3 className="text-sm font-medium mb-3">Objection Handling</h3>
-                    <ObjectionEditor objections={objections} onChange={setObjections} />
-                  </div>
-
-                  {/* AI Knowledge Preview */}
-                  <div className="border-t pt-6">
-                    <AIKnowledgePreview
-                      businessName={businessBasics.businessName}
-                      services={services.filter(s => s.name.trim())}
-                      faqs={faqs.filter(f => f.question && f.answer)}
-                      objections={objections.filter(o => o.objection && o.response)}
-                      policies={{
-                        cancellationPolicy: policies.cancellationPolicy,
-                        depositPolicy: policies.depositPolicy,
-                      }}
-                      businessHours={businessBasics.hoursJson}
-                      intakeQuestions={[]}
-                      aiNeverPromise={policies.aiNeverPromise}
-                    />
-                  </div>
-
-                  {/* What's Next Note */}
-                  <div className="p-4 rounded-lg border bg-primary/5">
-                    <div className="flex items-start gap-3">
-                      <Brain className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <OnboardingComplete businessName={businessBasics.businessName} />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key={step}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-6"
+                >
+                  {/* Step 1: Business Mode */}
+                  {step === 1 && (
+                    <div className="space-y-6">
                       <div>
-                        <p className="text-sm font-medium">Your AI is trained on all of this!</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          <strong>Next steps:</strong> Test your AI in the simulator, then connect your phone number to go live.
+                        <h2 className="text-2xl font-semibold tracking-tight">
+                          What type of business do you run?
+                        </h2>
+                        <p className="mt-2 text-muted-foreground">
+                          This helps us configure the right features for you.
                         </p>
                       </div>
+                      <BusinessModeSelector value={businessMode} onChange={setBusinessMode} />
                     </div>
-                  </div>
-                </div>
+                  )}
 
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setStep(5)}>
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back
-                  </Button>
-                  <Button className="flex-1" onClick={handleComplete} disabled={loading}>
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Setting up...
-                      </>
-                    ) : (
-                      <>
-                        Launch CloseLoop
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                  {/* Step 2: Industry */}
+                  {step === 2 && (
+                    <IndustrySelectorGrid
+                      value={industrySlug}
+                      onChange={(slug) => setIndustrySlug(slug)}
+                    />
+                  )}
+
+                  {/* Step 3: Modules */}
+                  {step === 3 && (
+                    <div className="space-y-6">
+                      <div>
+                        <h2 className="text-2xl font-semibold tracking-tight">
+                          What features do you need?
+                        </h2>
+                        <p className="mt-2 text-muted-foreground">
+                          Select the capabilities you want for your AI receptionist.
+                        </p>
+                      </div>
+                      <ModuleSelector
+                        businessMode={businessMode}
+                        enabledModules={enabledModules}
+                        onChange={setEnabledModules}
+                      />
+                    </div>
+                  )}
+
+                  {/* Step 4: Business Basics */}
+                  {step === 4 && (
+                    <div className="space-y-6">
+                      <div>
+                        <h2 className="text-2xl font-semibold tracking-tight">
+                          Tell us about your business
+                        </h2>
+                        <p className="mt-2 text-muted-foreground">
+                          This information helps your AI answer customer questions.
+                        </p>
+                      </div>
+                      <BusinessBasicsForm data={businessBasics} onChange={setBusinessBasics} />
+                    </div>
+                  )}
+
+                  {/* Step 5: Offerings */}
+                  {step === 5 && (
+                    <div className="space-y-6">
+                      <div>
+                        <h2 className="text-2xl font-semibold tracking-tight">
+                          {businessMode === "food" ? "Food & Ordering Setup" : "Your Services"}
+                        </h2>
+                        <p className="mt-2 text-muted-foreground">
+                          {businessMode === "food"
+                            ? "Configure how customers can order from you."
+                            : "Add the services you offer. These will be pre-filled from your industry template."}
+                        </p>
+                        {industrySlug && industrySlug !== "other" && (
+                          <p className="mt-1 text-sm text-primary">
+                            Template: {resolveIndustryTemplate(industrySlug).label}
+                          </p>
+                        )}
+                      </div>
+                      {businessMode === "food" ? (
+                        <FoodSetupEditor data={foodSetup} onChange={setFoodSetup} />
+                      ) : (
+                        <ServiceEditorAdvanced
+                          services={services}
+                          onChange={setServices}
+                          modeContract={getModeContract(businessMode)}
+                        />
+                      )}
+                    </div>
+                  )}
+
+                  {/* Step 6: Policies & FAQs */}
+                  {step === 6 && (
+                    <div className="space-y-6">
+                      <div>
+                        <h2 className="text-2xl font-semibold tracking-tight">
+                          Policies & Common Questions
+                        </h2>
+                        <p className="mt-2 text-muted-foreground">
+                          Help your AI answer questions about your business rules.
+                        </p>
+                      </div>
+
+                      {/* Policies */}
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-medium">Business Policies</h3>
+                        <PoliciesEditor data={policies} onChange={setPolicies} />
+                      </div>
+
+                      {/* FAQs */}
+                      <div className="space-y-4 pt-4 border-t">
+                        <h3 className="text-sm font-medium">Common Questions (FAQs)</h3>
+                        <FAQEditor faqs={faqs} onChange={setFaqs} />
+                      </div>
+
+                      {/* Objections */}
+                      <div className="space-y-4 pt-4 border-t">
+                        <h3 className="text-sm font-medium">Objection Handling</h3>
+                        <ObjectionEditor objections={objections} onChange={setObjections} />
+                      </div>
+
+                      {/* AI Note */}
+                      <div className="p-4 rounded-lg border bg-primary/5">
+                        <div className="flex items-start gap-3">
+                          <Brain className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium">Your AI is trained on all of this!</p>
+                            <p className="text-[13px] text-muted-foreground mt-1">
+                              You can always update this later from the Business Brain.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Footer Navigation */}
+        {!isComplete && (
+          <div className="border-t bg-card p-6">
+            <div className="max-w-lg mx-auto flex justify-between gap-4">
+              <Button
+                variant="ghost"
+                onClick={goBack}
+                disabled={step === 1}
+                className="gap-2"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Back
+              </Button>
+              <Button
+                onClick={step === totalSteps ? handleComplete : goNext}
+                disabled={!canProceed(step) || loading}
+                className="gap-2 min-w-[140px]"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Setting up...
+                  </>
+                ) : step === totalSteps ? (
+                  "Complete Setup"
+                ) : (
+                  <>
+                    Continue
+                    <ChevronRight className="w-4 h-4" />
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
