@@ -8,6 +8,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -17,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, MapPin, Phone, Building, Navigation } from "lucide-react";
+import { Loader2, MapPin, Phone, Building, Navigation, ExternalLink, Car } from "lucide-react";
 
 interface HoursEntry {
   open: string | null;
@@ -220,6 +221,29 @@ export function ImpoundLotEditor() {
 
   return (
     <div className="space-y-6">
+      {/* Quick Link to Inventory */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Car className="h-5 w-5 text-primary" />
+              <div>
+                <p className="font-medium">Manage Impound Inventory</p>
+                <p className="text-sm text-muted-foreground">
+                  Add vehicles, process releases, and track storage fees
+                </p>
+              </div>
+            </div>
+            <Button variant="outline" asChild>
+              <Link to="/app/impound-lot">
+                Open Impound Lot
+                <ExternalLink className="h-4 w-4 ml-2" />
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Location Details */}
       <Card>
         <CardContent className="pt-6 space-y-4">

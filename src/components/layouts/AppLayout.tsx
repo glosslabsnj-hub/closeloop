@@ -44,6 +44,7 @@ import {
   Command,
   FileText,
   BarChart3,
+  Warehouse,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useMemo, useState } from "react";
@@ -89,6 +90,7 @@ function AppLayoutContent() {
     }
     if (enabledModules.includes("dispatch_queue")) {
       items.push({ href: "/app/dispatch", label: "Dispatch", icon: Truck });
+      items.push({ href: "/app/impound-lot", label: "Impound Lot", icon: Warehouse });
     }
     if (enabledModules.includes("food_orders")) {
       items.push({ href: "/app/orders", label: "Orders", icon: UtensilsCrossed });
