@@ -101,7 +101,7 @@
    ) || [];
  
    const handleAssign = (job: NonNullable<typeof jobs>[0]) => {
-     console.log("Assign job:", job.id);
+     // TODO: Open assign dialog
    };
  
    const handleUpdateStatus = (job: NonNullable<typeof jobs>[0], newStatus: string) => {
@@ -290,7 +290,7 @@
              }
              action={
                statusFilter === "all" && priorityFilter === "all" && !searchQuery
-                 ? { label: "Create Job", onClick: () => console.log("Create job") }
+                 ? { label: "Create Job", onClick: () => {} }
                  : undefined
              }
            />

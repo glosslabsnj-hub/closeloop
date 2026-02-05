@@ -208,7 +208,7 @@
              }
              action={
                statusFilter === "all" && orderTypeFilter === "all"
-                 ? { label: "Create Order", onClick: () => console.log("Create order") }
+                 ? { label: "Create Order", onClick: () => {} }
                  : undefined
              }
            />
