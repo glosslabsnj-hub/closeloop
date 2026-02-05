@@ -4774,6 +4774,7 @@ export type Database = {
           base_lat: number | null
           base_lng: number | null
           base_place_name: string | null
+          base_state_hint: string | null
           created_at: string
           distance_provider_enabled: boolean
           eta_base_minutes: number
@@ -4783,6 +4784,7 @@ export type Database = {
           eta_rounding_minutes: number
           mapbox_route_profile: string
           provider: string
+          service_radius_miles: number | null
           tenant_id: string
           updated_at: string
         }
@@ -4790,6 +4792,7 @@ export type Database = {
           base_lat?: number | null
           base_lng?: number | null
           base_place_name?: string | null
+          base_state_hint?: string | null
           created_at?: string
           distance_provider_enabled?: boolean
           eta_base_minutes?: number
@@ -4799,6 +4802,7 @@ export type Database = {
           eta_rounding_minutes?: number
           mapbox_route_profile?: string
           provider?: string
+          service_radius_miles?: number | null
           tenant_id: string
           updated_at?: string
         }
@@ -4806,6 +4810,7 @@ export type Database = {
           base_lat?: number | null
           base_lng?: number | null
           base_place_name?: string | null
+          base_state_hint?: string | null
           created_at?: string
           distance_provider_enabled?: boolean
           eta_base_minutes?: number
@@ -4815,6 +4820,7 @@ export type Database = {
           eta_rounding_minutes?: number
           mapbox_route_profile?: string
           provider?: string
+          service_radius_miles?: number | null
           tenant_id?: string
           updated_at?: string
         }
