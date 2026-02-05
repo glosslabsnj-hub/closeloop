@@ -56,8 +56,8 @@ import ReportsROIPage from "@/pages/app/ReportsROIPage";
 import WorkflowEditPage from "@/pages/app/WorkflowEditPage";
 import WorkflowRunsPage from "@/pages/app/WorkflowRunsPage";
 import WorkflowRunDetailPage from "@/pages/app/WorkflowRunDetailPage";
+import LeadRecoveryPage from "@/pages/app/LeadRecoveryPage";
 
-// Admin Pages
 import AdminOverviewPage from "@/pages/admin/AdminOverviewPage";
 import AdminTenantsPage from "@/pages/admin/AdminTenantsPage";
 import AdminSupportPage from "@/pages/admin/AdminSupportPage";
@@ -138,6 +138,7 @@ const App = () => (
               <Route path="/app/medical-intake" element={<MedicalIntakePage />} />
               <Route path="/app/orders/:orderId/ticket" element={<OrderTicketPage />} />
               <Route path="/app/reports/roi" element={<ReportsROIPage />} />
+              <Route path="/app/leads/recovery" element={<LeadRecoveryPage />} />
               <Route path="/app/help" element={<HelpCenterPage />} />
               {/* Legacy: Menu Center now lives in Business Brain */}
               <Route path="/app/menu-center" element={<Navigate to="/app/business-brain" replace />} />
