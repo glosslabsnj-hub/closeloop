@@ -196,7 +196,7 @@ serve(async (req) => {
                   new_balance_cents: newBalance,
                   stripe_session_id: session.id,
                 },
-              }).catch((e) => console.error("Failed to log credit top-up audit event:", e));
+              }).then(() => {}).catch((e: Error) => console.error("Failed to log credit top-up audit event:", e));
             }
           }
         } else {

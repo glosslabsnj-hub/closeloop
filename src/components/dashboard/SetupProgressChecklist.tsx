@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
@@ -15,7 +15,6 @@ import {
   FlaskConical,
   Rocket,
   ChevronRight,
-  ListChecks,
 } from "lucide-react";
 
 interface SetupStep {
@@ -28,8 +27,7 @@ interface SetupStep {
 }
 
 /**
- * SetupProgressChecklist - UI-only component showing setup progress
- * Reads existing state from AuthContext and DB, no new logic
+ * SetupProgressChecklist - Clean setup progress with premium styling
  */
 export function SetupProgressChecklist() {
   const { tenant, assistantSettings } = useAuth();
@@ -125,56 +123,54 @@ export function SetupProgressChecklist() {
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base font-medium flex items-center gap-2">
-          <ListChecks className="h-4 w-4 text-primary" />
-          Setup Progress
-        </CardTitle>
-        <div className="flex items-center gap-3 mt-2">
-          <Progress value={progressPercent} className="flex-1 h-2" />
-          <span className="text-sm font-medium text-muted-foreground">
+    <Card className="h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
+        <h3 className="text-sm font-semibold text-foreground">Setup Progress</h3>
+        <div className="flex items-center gap-2">
+          <Progress value={progressPercent} className="w-16 h-1.5" />
+          <span className="text-xs font-medium text-muted-foreground tabular-nums">
             {completedCount}/{steps.length}
           </span>
         </div>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="space-y-1">
-          {steps.map((step) => {
-            const Icon = step.icon;
-            return (
-              <Link
-                key={step.id}
-                to={step.href}
-                className={`flex items-center gap-3 p-2 -mx-2 rounded-lg transition-colors group ${
-                  step.completed
-                    ? "text-muted-foreground"
-                    : "hover:bg-muted/50"
-                }`}
-              >
-                {step.completed ? (
-                  <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
-                ) : (
-                  <Circle className="h-5 w-5 text-muted-foreground/50 shrink-0" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <p
-                    className={`text-sm font-medium ${
-                      step.completed ? "line-through" : ""
-                    }`}
-                  >
-                    {step.label}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate">
+      </div>
+
+      <CardContent className="px-5 py-4">
+        <div className="space-y-0.5">
+          {steps.map((step) => (
+            <Link
+              key={step.id}
+              to={step.href}
+              className={`flex items-center gap-3 p-2.5 -mx-2.5 rounded-lg transition-colors group ${
+                step.completed
+                  ? "text-muted-foreground/70"
+                  : "hover:bg-muted/40"
+              }`}
+            >
+              {step.completed ? (
+                <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
+              ) : (
+                <Circle className="h-5 w-5 text-muted-foreground/40 shrink-0" />
+              )}
+              <div className="flex-1 min-w-0">
+                <p
+                  className={`text-sm font-medium ${
+                    step.completed ? "line-through text-muted-foreground" : "text-foreground/90"
+                  }`}
+                >
+                  {step.label}
+                </p>
+                {!step.completed && (
+                  <p className="text-xs text-muted-foreground/70 truncate">
                     {step.description}
                   </p>
-                </div>
-                {!step.completed && (
-                  <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                 )}
-              </Link>
-            );
-          })}
+              </div>
+              {!step.completed && (
+                <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+              )}
+            </Link>
+          ))}
         </div>
       </CardContent>
     </Card>

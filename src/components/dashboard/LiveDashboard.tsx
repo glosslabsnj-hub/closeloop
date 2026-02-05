@@ -1,80 +1,69 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { DashboardHeroCard } from "./DashboardHeroCard";
-import { PhoneNumberCard } from "./PhoneNumberCard";
-import { TodaySnapshot } from "./TodaySnapshot";
+import { AgentControlPanel } from "./AgentControlPanel";
+import { MetricsGrid } from "./MetricsGrid";
 import { NeedsAttentionBanner } from "./NeedsAttentionBanner";
 import { LiveActivityFeed } from "./LiveActivityFeed";
-import { QuickActionsCard } from "./QuickActionsCard";
-import { GoLiveChecklist } from "./GoLiveChecklist";
 import { UnifiedAlertBanner } from "./UnifiedAlertBanner";
 import { Copilot, CopilotTrigger } from "./Copilot";
 import { SetupProgressChecklist } from "./SetupProgressChecklist";
-import { ScheduleConnectionCard } from "@/components/schedule/ScheduleConnectionCard";
 import { SoundManager } from "@/components/notifications/SoundManager";
-import { hasVoiceFeature } from "@/config/pricing";
+import { format } from "date-fns";
 
 export function LiveDashboard() {
-  const { tenant, assistantSettings, subscription } = useAuth();
+  const { tenant, assistantSettings } = useAuth();
   const [copilotOpen, setCopilotOpen] = useState(false);
 
-  const isLive = assistantSettings?.go_live_enabled;
-  const hasVoice = hasVoiceFeature(subscription?.plan_code);
+  // Greeting based on time of day
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 17) return "Good afternoon";
+    return "Good evening";
+  }, []);
+
+  const today = format(new Date(), "EEEE, MMMM d");
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8 animate-fade-in">
       {/* Audio notification manager */}
       <SoundManager />
+
+      {/* Welcome Header */}
+      <header className="space-y-1">
+        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
+          {greeting}{tenant?.name ? `, ${tenant.name.split(' ')[0]}` : ""}
+        </h1>
+        <p className="text-muted-foreground text-sm">
+          {today} • Here's how your business is doing
+        </p>
+      </header>
 
       {/* Alerts - Only show if there are issues */}
       <UnifiedAlertBanner />
 
-      {/* Hero Section - Agent Status */}
+      {/* Agent Control */}
       <section>
-        <DashboardHeroCard />
-      </section>
-
-      {/* Quick Setup Items - Phone & Calendar */}
-      {(hasVoice || !isLive) && (
-        <section className="grid gap-4 md:grid-cols-2">
-          {hasVoice && <PhoneNumberCard />}
-          <ScheduleConnectionCard variant="compact" showIfConnected={false} />
-        </section>
-      )}
-
-      {/* Today's Metrics */}
-      <section>
-        <SectionHeader>Today</SectionHeader>
-        <TodaySnapshot />
+        <AgentControlPanel />
       </section>
 
       {/* Attention Items */}
       <NeedsAttentionBanner />
 
-      {/* Main Content Grid */}
-      <section className="grid gap-6 lg:grid-cols-3">
-        {/* Activity Feed - Takes 2 columns */}
-        <div className="lg:col-span-2 space-y-4">
-          <SectionHeader>Recent Activity</SectionHeader>
+      {/* Metrics */}
+      <section>
+        <MetricsGrid />
+      </section>
+
+      {/* Main Content */}
+      <section className="grid gap-6 lg:grid-cols-5">
+        <div className="lg:col-span-3">
           <LiveActivityFeed />
         </div>
-
-        {/* Sidebar - Quick Actions & Setup */}
-        <div className="space-y-6">
-          <div>
-            <SectionHeader>Quick Actions</SectionHeader>
-            <QuickActionsCard />
-          </div>
+        <div className="lg:col-span-2">
           <SetupProgressChecklist />
         </div>
       </section>
-
-      {/* Go-Live Checklist - Only when not live */}
-      {!isLive && (
-        <section>
-          <GoLiveChecklist />
-        </section>
-      )}
 
       {/* Copilot FAB */}
       <div className="fixed bottom-6 right-6 z-30 md:bottom-8 md:right-8">
@@ -85,14 +74,5 @@ export function LiveDashboard() {
         )}
       </div>
     </div>
-  );
-}
-
-/** Clean section header */
-function SectionHeader({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider mb-3">
-      {children}
-    </h2>
   );
 }
