@@ -45,6 +45,10 @@ interface ComputeEtaResponse {
   eta_range_minutes: string;
   profile_used: string;
   error: string | null;
+  // Geocoding quality indicators
+  geocoding_confidence: "high" | "low" | "unverified" | null;
+  needs_verification: boolean;
+  state_hint_applied: boolean;
 }
 
 interface TenantDistanceSettings {
@@ -53,12 +57,14 @@ interface TenantDistanceSettings {
   base_lat: number | null;
   base_lng: number | null;
   base_place_name: string | null;
+  base_state_hint: string | null;  // e.g., "NJ" to improve geocoding accuracy
   mapbox_route_profile: string;
   eta_base_minutes: number;
   eta_per_mile_minutes: number | null;
   eta_min_minutes: number | null;
   eta_max_minutes: number | null;
   eta_rounding_minutes: number;
+  service_radius_miles: number | null;  // For proximity validation
 }
 
 const METERS_PER_MILE = 1609.344;
@@ -78,6 +84,9 @@ serve(async (req: Request) => {
     eta_range_minutes: "",
     profile_used: "none",
     error: null,
+    geocoding_confidence: null,
+    needs_verification: false,
+    state_hint_applied: false,
   };
 
   try {
@@ -229,15 +238,31 @@ serve(async (req: Request) => {
     let destLat = dest_lat;
     let destLng = dest_lng;
     let geocodedPlaceName: string | null = null;
+    let stateHintApplied = false;
+    let geocodingConfidence: "high" | "low" | "unverified" = "high";
 
     if (address_text && (destLat === undefined || destLng === undefined)) {
-      const encodedAddress = encodeURIComponent(address_text.trim());
+      // Apply state hint if address doesn't include a state/country and we have a hint
+      let addressToGeocode = address_text.trim();
+      const stateHint = settings.base_state_hint;
+      
+      // Simple heuristic: if address lacks a state abbreviation, add the hint
+      const hasState = /,\s*[A-Z]{2}\b/.test(addressToGeocode) || 
+                       /\b(Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West Virginia|Wisconsin|Wyoming)\b/i.test(addressToGeocode);
+      
+      if (!hasState && stateHint) {
+        addressToGeocode = `${addressToGeocode}, ${stateHint}`;
+        stateHintApplied = true;
+        console.log(`[compute-distance-eta] Applied state hint: "${stateHint}" to address`);
+      }
+      
+      const encodedAddress = encodeURIComponent(addressToGeocode);
       const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodedAddress}.json?access_token=${accessToken}&limit=1`;
 
       const geocodeRes = await fetch(geocodeUrl);
       if (!geocodeRes.ok) {
         return new Response(
-          JSON.stringify({ ...disabledResult, error: "Geocoding failed" }),
+          JSON.stringify({ ...disabledResult, error: "Geocoding failed", needs_verification: true }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -245,7 +270,7 @@ serve(async (req: Request) => {
       const geocodeData = await geocodeRes.json();
       if (!geocodeData.features || geocodeData.features.length === 0) {
         return new Response(
-          JSON.stringify({ ...disabledResult, error: "Address not found" }),
+          JSON.stringify({ ...disabledResult, error: "Address not found", needs_verification: true }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -253,6 +278,13 @@ serve(async (req: Request) => {
       const feature = geocodeData.features[0];
       [destLng, destLat] = feature.center;
       geocodedPlaceName = feature.place_name;
+      
+      // Check geocoding relevance score (Mapbox returns 0-1)
+      const relevance = feature.relevance || 0;
+      if (relevance < 0.7) {
+        geocodingConfidence = "low";
+        console.log(`[compute-distance-eta] Low geocoding relevance: ${relevance}`);
+      }
     }
 
     if (destLat === undefined || destLng === undefined) {
@@ -286,6 +318,15 @@ serve(async (req: Request) => {
     const route = directionsData.routes[0];
     const distanceMiles = route.distance / METERS_PER_MILE;
     const durationMinutes = Math.ceil(route.duration / 60);
+
+    // Proximity validation: if distance is > 2x the service radius, flag as unverified
+    let needsVerification = false;
+    const serviceRadius = settings.service_radius_miles || 100;
+    if (distanceMiles > serviceRadius * 2) {
+      geocodingConfidence = "unverified";
+      needsVerification = true;
+      console.log(`[compute-distance-eta] Distance ${distanceMiles.toFixed(1)}mi exceeds 2x service radius (${serviceRadius}mi) - flagging as unverified`);
+    }
 
     // Calculate ETA - skip complex ETA settings if doing simple point-to-point
     let etaMinutes: number;
@@ -327,7 +368,7 @@ serve(async (req: Request) => {
     }
 
     // Log success (no PII)
-    console.log(`[compute-distance-eta] tenant=${tenant_id.substring(0, 8)}... intent=${intent} distance=${distanceMiles.toFixed(1)}mi eta=${etaMinutes}min`);
+    console.log(`[compute-distance-eta] tenant=${tenant_id.substring(0, 8)}... intent=${intent} distance=${distanceMiles.toFixed(1)}mi eta=${etaMinutes}min confidence=${geocodingConfidence}`);
 
     const result: ComputeEtaResponse = {
       geocoded_place_name: geocodedPlaceName,
@@ -339,6 +380,9 @@ serve(async (req: Request) => {
       eta_range_minutes: etaRangeStr,
       profile_used: settings.mapbox_route_profile,
       error: null,
+      geocoding_confidence: geocodingConfidence,
+      needs_verification: needsVerification,
+      state_hint_applied: stateHintApplied,
     };
 
     return new Response(JSON.stringify(result), {

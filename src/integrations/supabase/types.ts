@@ -5877,6 +5877,34 @@ export type Database = {
         }
         Returns: string
       }
+      fn_confirm_slot_from_session: {
+        Args: {
+          _customer_id?: string
+          _notes?: string
+          _service_id?: string
+          _session_id: string
+          _slot_end: string
+          _slot_start: string
+        }
+        Returns: {
+          booking_id: string
+          error_message: string
+          success: boolean
+        }[]
+      }
+      fn_extend_session_locks: {
+        Args: { _extend_minutes?: number; _session_id: string }
+        Returns: number
+      }
+      fn_lock_offered_slots: {
+        Args: {
+          _lock_minutes?: number
+          _session_id: string
+          _slots: Json
+          _tenant_id: string
+        }
+        Returns: number
+      }
       fn_place_hold:
         | {
             Args: {
@@ -5902,6 +5930,11 @@ export type Database = {
               success: boolean
             }[]
           }
+      fn_refresh_session_slots: { Args: never; Returns: number }
+      fn_release_session_locks: {
+        Args: { _session_id: string }
+        Returns: number
+      }
       fn_sync_busy_blocks: {
         Args: { _connection_id: string; _events: Json; _tenant_id: string }
         Returns: number
