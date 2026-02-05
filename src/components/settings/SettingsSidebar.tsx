@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ChevronRight,
   DollarSign,
+  RefreshCw,
 } from "lucide-react";
 import { SettingsNavItem } from "./SettingsNavItem";
 import { cn } from "@/lib/utils";
@@ -74,6 +75,14 @@ export function SettingsSidebar({ activeSection, onSectionChange, config }: Sett
         { id: "alerts", label: "Alerts", icon: Bell },
         { id: "integrations", label: "Integrations", icon: Webhook },
         { id: "automation", label: "Automation", icon: Zap },
+      ],
+    },
+    {
+      id: "ai-features",
+      label: "AI Features",
+      colorClass: "text-emerald-500",
+      items: [
+        { id: "recovery", label: "Lead Recovery", icon: RefreshCw },
       ],
     },
   ];

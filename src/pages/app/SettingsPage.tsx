@@ -17,6 +17,7 @@ import { BusinessBrainCTA } from "@/components/settings/BusinessBrainCTA";
 import { DangerZoneSection } from "@/components/settings/DangerZoneSection";
 import { SettingsCard } from "@/components/settings/SettingsSection";
 import { RevenueSettingsSection } from "@/components/settings/RevenueSettingsSection";
+import { RecoverySettingsSection } from "@/components/settings/recovery/RecoverySettingsSection";
 import { useFoodMode } from "@/hooks/useFoodMode";
 import { useModuleEnabled, useTenantConfig } from "@/hooks/useTenantConfig";
 
@@ -77,6 +78,10 @@ export default function SettingsPage() {
     danger: {
       title: "Danger Zone",
       description: "Irreversible and destructive actions. Proceed with caution.",
+    },
+    recovery: {
+      title: "Lead Recovery",
+      description: "Configure automatic follow-up for leads who don't book.",
     },
   };
 
@@ -166,6 +171,9 @@ export default function SettingsPage() {
 
       case "danger":
         return <DangerZoneSection />;
+
+      case "recovery":
+        return <RecoverySettingsSection />;
 
       default:
         return null;
