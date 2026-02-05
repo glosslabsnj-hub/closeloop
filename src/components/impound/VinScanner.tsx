@@ -1,12 +1,14 @@
 /**
  * VinScanner - Camera capture + OCR for VIN extraction
  * Uses Lovable AI vision to extract VIN from photos
+ * Only shows on mobile/tablet devices (hidden on desktop)
  */
 
 import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Camera, Upload, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface VinScannerProps {
   onVinDetected: (vin: string) => void;
@@ -33,20 +35,16 @@ export function VinScanner({ onVinDetected, disabled }: VinScannerProps) {
       
       setPreview(base64);
       
-      // Call edge function for OCR
-      const response = await fetch("/api/vin-ocr", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: base64 }),
+      // Call edge function for OCR using Supabase functions.invoke
+      const { data, error } = await supabase.functions.invoke("vin-ocr", {
+        body: { image: base64 },
       });
       
-      if (!response.ok) {
-        throw new Error("Failed to process image");
+      if (error) {
+        throw new Error(error.message || "Failed to process image");
       }
       
-      const data = await response.json();
-      
-      if (data.vin) {
+      if (data?.vin) {
         onVinDetected(data.vin);
         toast.success(`VIN detected: ${data.vin}`);
       } else {
@@ -73,8 +71,9 @@ export function VinScanner({ onVinDetected, disabled }: VinScannerProps) {
     if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
+  // Only render on mobile/tablet (hidden on lg+ screens)
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 lg:hidden">
       <div className="flex gap-2">
         {/* Camera capture button */}
         <Button
