@@ -9,6 +9,8 @@ import {
   Bug,
   AlertTriangle,
   ChevronDown,
+  RefreshCw,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -38,10 +40,12 @@ interface NavItem {
 const sectionLabels: Record<string, string> = {
   team: "Team Members",
   plan: "Plan & Billing",
+  revenue: "Revenue Tracking",
   "data-privacy": "Data Controls",
   alerts: "Alerts",
   integrations: "Integrations",
   automation: "Automation",
+  recovery: "Lead Recovery",
   developer: "Developer Tools",
   danger: "Danger Zone",
 };
@@ -57,6 +61,7 @@ export function MobileSettingsNav({ activeSection, onSectionChange, config }: Mo
       items: [
         { id: "team", label: "Team Members", icon: Users },
         { id: "plan", label: "Plan & Billing", icon: CreditCard },
+        { id: "revenue", label: "Revenue Tracking", icon: DollarSign },
       ],
     },
     {
@@ -75,6 +80,14 @@ export function MobileSettingsNav({ activeSection, onSectionChange, config }: Mo
         { id: "alerts", label: "Alerts", icon: Bell },
         { id: "integrations", label: "Integrations", icon: Webhook },
         { id: "automation", label: "Automation", icon: Zap },
+      ],
+    },
+    {
+      id: "ai-features",
+      label: "AI Features",
+      colorClass: "text-emerald-500",
+      items: [
+        { id: "recovery", label: "Lead Recovery", icon: RefreshCw },
       ],
     },
     {
