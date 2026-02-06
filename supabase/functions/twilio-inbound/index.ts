@@ -398,54 +398,97 @@ Deno.serve(async (req) => {
     console.log(`[twilio-inbound] ElevenLabs returned TwiML (${twiml.length} chars)`);
 
     // Step 9: Extract conversation_id from TwiML and create ai_call_sessions record
-    // ElevenLabs TwiML contains the conversation ID in the Stream URL
+    // ElevenLabs TwiML contains the conversation ID in the Stream URL or as a parameter
     let conversationId: string | null = null;
-    const streamUrlMatch = twiml.match(/wss:\/\/[^"]+/);
+    
+    // Try multiple extraction patterns (ElevenLabs may change format)
+    const streamUrlMatch = twiml.match(/wss:\/\/[^"<>\s]+/);
     if (streamUrlMatch) {
       const streamUrl = streamUrlMatch[0];
-      // Extract conversation_id from URL path like /convai/.../conversation/conv_xxx
-      const convMatch = streamUrl.match(/conversation\/(conv_[a-zA-Z0-9]+)/);
+      console.log(`[twilio-inbound] Stream URL found: ${streamUrl.substring(0, 80)}...`);
+      
+      // Pattern 1: /conversation/conv_xxx in path
+      let convMatch = streamUrl.match(/conversation\/(conv_[a-zA-Z0-9_-]+)/);
       if (convMatch) {
         conversationId = convMatch[1];
-        console.log(`[twilio-inbound] Extracted conversation_id: ${conversationId}`);
+      }
+      
+      // Pattern 2: conversation_id=xxx as query param
+      if (!conversationId) {
+        convMatch = streamUrl.match(/conversation_id=([a-zA-Z0-9_-]+)/);
+        if (convMatch) {
+          conversationId = convMatch[1];
+        }
+      }
+      
+      // Pattern 3: conv_xxx anywhere in URL
+      if (!conversationId) {
+        convMatch = streamUrl.match(/(conv_[a-zA-Z0-9_-]+)/);
+        if (convMatch) {
+          conversationId = convMatch[1];
+        }
       }
     }
-
-    // Create ai_call_sessions record so webhook can find it later
-    if (conversationId) {
-      try {
-        const insertResponse = await fetchWithTimeout(
-          `${SUPABASE_URL}/rest/v1/ai_call_sessions`,
-          {
-            method: "POST",
-            headers: {
-              apikey: SUPABASE_SERVICE_ROLE_KEY,
-              Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-              "Content-Type": "application/json",
-              Prefer: "return=minimal",
-            },
-            body: JSON.stringify({
-              tenant_id: tenantId,
-              elevenlabs_conversation_id: conversationId,
-              twilio_call_sid: callSidSafe,
-              caller_phone: callerPhoneE164,
-              call_direction: "inbound",
-              started_at: new Date().toISOString(),
-            }),
-          },
-          Math.min(2500, timeLeft())
-        );
-        
-        if (insertResponse.ok) {
-          console.log(`[twilio-inbound] Created ai_call_sessions for ${conversationId}`);
-        } else {
-          console.error(`[twilio-inbound] Failed to create session: ${insertResponse.status}`);
-        }
-      } catch (e) {
-        console.error(`[twilio-inbound] Session insert error:`, e);
+    
+    // Also try extracting from anywhere in TwiML if stream URL didn't work
+    if (!conversationId) {
+      const anyConvMatch = twiml.match(/(conv_[a-zA-Z0-9_-]+)/);
+      if (anyConvMatch) {
+        conversationId = anyConvMatch[1];
+        console.log(`[twilio-inbound] Found conversation_id in TwiML body: ${conversationId}`);
       }
+    }
+    
+    if (conversationId) {
+      console.log(`[twilio-inbound] Extracted conversation_id: ${conversationId}`);
     } else {
-      console.warn(`[twilio-inbound] Could not extract conversation_id from TwiML`);
+      // Log the TwiML to debug the format
+      console.warn(`[twilio-inbound] Could not extract conversation_id. TwiML sample: ${twiml.substring(0, 200)}`);
+    }
+
+    // Create ai_call_sessions record - ALWAYS create it, even without conversation_id
+    // The webhook can fall back to matching by twilio_call_sid
+    try {
+      const insertResponse = await fetchWithTimeout(
+        `${SUPABASE_URL}/rest/v1/ai_call_sessions`,
+        {
+          method: "POST",
+          headers: {
+            apikey: SUPABASE_SERVICE_ROLE_KEY,
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            "Content-Type": "application/json",
+            Prefer: "return=minimal",
+          },
+          body: JSON.stringify({
+            tenant_id: tenantId,
+            elevenlabs_conversation_id: conversationId, // May be null
+            twilio_call_sid: callSidSafe,
+            caller_phone: callerPhoneE164,
+            call_direction: "inbound",
+            started_at: new Date().toISOString(),
+          }),
+        },
+        Math.min(2500, timeLeft())
+      );
+      
+      if (insertResponse.ok) {
+        console.log(`[twilio-inbound] Created ai_call_sessions (conv_id=${conversationId || 'null'}, call_sid=${callSidSafe})`);
+        
+        // Log success event
+        await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+          tenant_id: tenantId,
+          twilio_call_sid: callSidSafe,
+          to_number: toPhoneE164,
+          from_number: callerPhoneE164,
+          stage: "elevenlabs_register_success",
+          http_status: 200,
+        });
+      } else {
+        const errText = await insertResponse.text().catch(() => "");
+        console.error(`[twilio-inbound] Failed to create session: ${insertResponse.status} - ${errText}`);
+      }
+    } catch (e) {
+      console.error(`[twilio-inbound] Session insert error:`, e);
     }
 
     // Update connect_status if needed
