@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setAdminSettings(data);
 
-      // If admin has an active tenant selected, fetch that tenant's data
+      // If admin has an active tenant selected, fetch that tenant's data + subscription
       if (data?.admin_active_tenant_id) {
         const { data: tenantData } = await supabase
           .from("tenants")
@@ -107,6 +107,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (tenantData) {
           setActiveTenant(tenantData as Tenant);
+
+          // Fetch subscription for the effective tenant (not the admin's own)
+          const { data: subData } = await supabase
+            .from("subscriptions")
+            .select("*")
+            .eq("tenant_id", data.admin_active_tenant_id)
+            .maybeSingle();
+          setSubscription(subData);
+
+          const { data: settingsData } = await supabase
+            .from("assistant_settings")
+            .select("*")
+            .eq("tenant_id", data.admin_active_tenant_id)
+            .maybeSingle();
+          setAssistantSettings(settingsData);
         }
       }
     } catch (error) {
@@ -147,6 +162,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (tenantData) {
         setActiveTenant(tenantData as Tenant);
+
+        // Also fetch subscription + assistant settings for the new tenant
+        const { data: subData } = await supabase
+          .from("subscriptions")
+          .select("*")
+          .eq("tenant_id", tenantId)
+          .maybeSingle();
+        setSubscription(subData);
+
+        const { data: settingsData } = await supabase
+          .from("assistant_settings")
+          .select("*")
+          .eq("tenant_id", tenantId)
+          .maybeSingle();
+        setAssistantSettings(settingsData);
+
         toast.success(`Switched to ${tenantData.name}`);
       }
     } catch (error: any) {
@@ -311,7 +342,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   };
 
-  const hasActiveSubscription = subscription?.status === "active" || subscription?.status === "trialing";
+  // Super admins always bypass subscription gating (eliminates race conditions during init)
+  const hasActiveSubscription = isSuperAdmin || subscription?.status === "active" || subscription?.status === "trialing";
 
   // For super admins, expose the *effective* tenant as `tenant` so the whole app updates
   // when switching the active test tenant.
