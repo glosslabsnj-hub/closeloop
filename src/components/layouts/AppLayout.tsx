@@ -53,6 +53,7 @@ import { AdminModeSwitcher } from "@/components/admin/AdminModeSwitcher";
 import { AdminTenantSwitcher } from "@/components/admin/AdminTenantSwitcher";
 import { AdminModeSelector } from "@/components/admin/AdminModeSelector";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { DispatchJobListener } from "@/components/notifications/DispatchJobListener";
 
 interface NavItem {
   href: string;
@@ -518,6 +519,7 @@ function AppLayoutContent() {
 export function AppLayout() {
   return (
     <AdminModeProvider>
+      <DispatchJobListener />
       <AppLayoutContent />
     </AdminModeProvider>
   );
