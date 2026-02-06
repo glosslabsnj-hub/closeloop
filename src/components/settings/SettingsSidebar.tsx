@@ -22,6 +22,7 @@ export interface SettingsNavConfig {
   showBookingDelivery: boolean;
   showDispatchDelivery: boolean;
   showFoodSettings: boolean;
+  showRecovery: boolean;
 }
 
 interface SettingsSidebarProps {
@@ -82,7 +83,7 @@ export function SettingsSidebar({ activeSection, onSectionChange, config }: Sett
       label: "AI Features",
       colorClass: "text-emerald-500",
       items: [
-        { id: "recovery", label: "Lead Recovery", icon: RefreshCw },
+        { id: "recovery", label: "Lead Recovery", icon: RefreshCw, visible: config.showRecovery },
       ],
     },
   ];

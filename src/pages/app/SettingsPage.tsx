@@ -33,12 +33,14 @@ export default function SettingsPage() {
   // Default to first available section
   const [activeSection, setActiveSection] = useState("team");
 
-  // Navigation config based on enabled modules
+  // Navigation config based on enabled modules and business mode
+  const isDispatchMode = isDispatchEnabled && !isBookingEnabled && !isFoodMode;
   const navConfig: SettingsNavConfig = {
     showHipaa: isMedicalMode || hipaaMode,
     showBookingDelivery: isBookingEnabled,
     showDispatchDelivery: isDispatchEnabled,
     showFoodSettings: isFoodMode,
+    showRecovery: !isDispatchMode, // Lead Recovery not relevant for dispatch businesses
   };
 
   // Simplified section metadata
