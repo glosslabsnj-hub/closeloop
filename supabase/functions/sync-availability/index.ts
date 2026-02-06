@@ -44,17 +44,31 @@ serve(async (req: Request) => {
       });
     }
 
-    const { data: tenantUser } = await userClient
-      .from("tenant_users")
-      .select("tenant_id")
+    // Check if user has an active tenant override (for multi-tenant users/admins)
+    const { data: adminSettings } = await userClient
+      .from("admin_settings")
+      .select("admin_active_tenant_id")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
-    if (!tenantUser) {
-      return new Response(JSON.stringify({ error: "No tenant" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    let tenantId: string | null = adminSettings?.admin_active_tenant_id || null;
+
+    // If no active tenant override, get the first tenant the user belongs to
+    if (!tenantId) {
+      const { data: tenantUser } = await userClient
+        .from("tenant_users")
+        .select("tenant_id")
+        .eq("user_id", user.id)
+        .limit(1)
+        .maybeSingle();
+
+      if (!tenantUser) {
+        return new Response(JSON.stringify({ error: "No tenant" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      tenantId = tenantUser.tenant_id;
     }
 
     const { connection_id, days = 30 } = await req.json();
@@ -67,7 +81,7 @@ serve(async (req: Request) => {
       .from("calendar_connections")
       .select("*")
       .eq("id", connection_id)
-      .eq("tenant_id", tenantUser.tenant_id)
+      .eq("tenant_id", tenantId)
       .single();
 
     if (connError || !connection) {
@@ -81,7 +95,7 @@ serve(async (req: Request) => {
     const { data: tokens, error: tokenError } = await supabase
       .from("calendar_tokens")
       .select("*")
-      .eq("tenant_id", tenantUser.tenant_id)
+      .eq("tenant_id", tenantId)
       .eq("provider", connection.provider)
       .single();
 
@@ -126,7 +140,7 @@ serve(async (req: Request) => {
     const selectedCalendarIds = (connection.config_json as any)?.selected_calendar_ids || [];
 
     console.log("=== SYNC-AVAILABILITY DEBUG ===");
-    console.log("Tenant ID:", tenantUser.tenant_id);
+    console.log("Tenant ID:", tenantId);
     console.log("Connection ID:", connection_id);
     console.log("Provider:", connection.provider);
     console.log("Selected Calendar IDs:", JSON.stringify(selectedCalendarIds));
@@ -156,7 +170,7 @@ serve(async (req: Request) => {
 
     // Sync to busy_blocks
     const { data: syncResult, error: syncError } = await supabase.rpc("fn_sync_busy_blocks", {
-      _tenant_id: tenantUser.tenant_id,
+      _tenant_id: tenantId,
       _connection_id: connection_id,
       _events: events,
     });
