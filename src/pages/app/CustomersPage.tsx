@@ -49,6 +49,7 @@ import { useCustomers, Customer } from "@/hooks/useCustomers";
 import { formatDistanceToNow, parseISO, differenceInDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { AddCustomerDialog } from "@/components/customers/AddCustomerDialog";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type StatusFilter = "all" | "active" | "new" | "vip" | "attention";
 
@@ -491,26 +492,35 @@ export default function CustomersPage() {
         </>
       ) : (
         <Card>
-          <CardContent className="py-16 text-center">
-            <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-              <Users className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <h3 className="font-medium mb-1">
-              {search || statusFilter !== "all"
-                ? "No customers found"
-                : "No customers yet"}
-            </h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              {search || statusFilter !== "all"
-                ? "Try adjusting your search or filters."
-                : "When customers interact with your AI, they'll appear here."}
-            </p>
-            {!search && statusFilter === "all" && (
-              <Button onClick={() => setAddDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Your First Customer
-              </Button>
-            )}
+          <CardContent className="py-0">
+            <EmptyState
+              icon={Users}
+              title={search || statusFilter !== "all" ? "No customers found" : "No customers yet"}
+              description={
+                search || statusFilter !== "all"
+                  ? "Try adjusting your search or filters."
+                  : "Customers are automatically added when they call. You can also import your existing customer list."
+              }
+              emojiStyle
+              action={
+                !search && statusFilter === "all"
+                  ? {
+                      label: "Import Customers",
+                      icon: Upload,
+                      onClick: () => {},
+                    }
+                  : undefined
+              }
+              secondaryAction={
+                !search && statusFilter === "all"
+                  ? {
+                      label: "Add Manually",
+                      icon: Plus,
+                      onClick: () => setAddDialogOpen(true),
+                    }
+                  : undefined
+              }
+            />
           </CardContent>
         </Card>
       )}
