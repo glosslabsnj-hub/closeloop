@@ -122,6 +122,14 @@ Deno.serve(async (req) => {
     // Build AI context addition for the agent prompt
     const aiContextAddition = buildAiContextAddition(activeCampaign);
 
+    // Handle the sequence join which returns an array
+    const sequenceData = activeCampaign.sequence as unknown;
+    const sequenceName = Array.isArray(sequenceData) && sequenceData.length > 0
+      ? (sequenceData[0] as { name?: string })?.name
+      : typeof sequenceData === 'object' && sequenceData !== null
+        ? (sequenceData as { name?: string })?.name
+        : undefined;
+
     return jsonResponse({
       has_recovery_campaign: true,
       campaign_id: activeCampaign.id,
@@ -130,7 +138,7 @@ Deno.serve(async (req) => {
         original_service_interest: activeCampaign.original_service_interest,
         original_objection: activeCampaign.original_objection,
         original_call_outcome: activeCampaign.original_call_outcome,
-        sequence_name: activeCampaign.sequence?.name,
+        sequence_name: sequenceName,
         total_attempts: activeCampaign.total_attempts,
       },
       ai_context_addition: aiContextAddition,
