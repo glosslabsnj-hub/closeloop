@@ -15,6 +15,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Update this string when you want to verify a fresh deploy is running
+const VERSION = "elevenlabs-check-service-area@2026-02-06.1";
+const DEPLOYED_AT = new Date().toISOString();
+
 interface ElevenLabsToolRequest {
   address?: string;
   adress?: string;  // Handle common typo in tool config
@@ -67,6 +71,14 @@ interface ServiceAreaResponse {
   // Geocoding quality indicators
   needs_verification: boolean;             // True if address was ambiguous
   verification_message: string | null;     // Prompt for caller if needs_verification
+
+  // Deploy verification + ETA debug
+  _meta?: {
+    version: string;
+    deployed_at: string;
+    compute_distance_eta_version?: string | null;
+  };
+  eta_components?: Record<string, unknown> | null;
 }
 
 // Distance tier interface matching the frontend type
@@ -93,7 +105,7 @@ serve(async (req: Request) => {
     const body = await req.json();
     
     // Log full request body to understand what ElevenLabs sends
-    console.log(`[check-service-area] Full request body:`, JSON.stringify(body));
+    console.log(`[${VERSION}] [check-service-area] Full request body:`, JSON.stringify(body));
     
     // Handle different request formats - ElevenLabs may nest parameters or have typos
     const address = body.address || body.adress || body.params?.address || body.params?.adress || "";
@@ -492,13 +504,17 @@ serve(async (req: Request) => {
       ? (needsVerification ? "long_distance" : serviceTier)
       : "out_of_area";
 
+    const dispatchAny = dispatchData as any;
+
     const response: ServiceAreaResponse = {
       in_area: responseInArea,
       distance_miles: dispatchDistanceMiles,
       tow_distance_miles: towDistanceMiles,
       dropoff_geocoded: dropoffGeocoded,
-      eta_minutes: dispatchData.eta_minutes_estimate,
-      eta_range: dispatchData.eta_range_minutes || `${distanceSettings.eta_min_minutes || 30}-${distanceSettings.eta_max_minutes || 60} minutes`,
+      eta_minutes: dispatchAny.eta_minutes_estimate ?? null,
+      eta_range:
+        dispatchAny.eta_range_minutes ||
+        `${distanceSettings.eta_min_minutes || 30}-${distanceSettings.eta_max_minutes || 60} minutes`,
       message,
       service_tier: responseServiceTier,
       pricing_note: !responseInArea
@@ -511,6 +527,12 @@ serve(async (req: Request) => {
       price_breakdown: needsVerification ? null : priceBreakdown,
       needs_verification: needsVerification,
       verification_message: verificationMessage,
+      _meta: {
+        version: VERSION,
+        deployed_at: DEPLOYED_AT,
+        compute_distance_eta_version: dispatchAny._version ?? null,
+      },
+      eta_components: dispatchAny.eta_components ?? null,
     };
 
     // Log for debugging (no PII - truncate addresses)

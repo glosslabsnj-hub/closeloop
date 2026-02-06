@@ -4,6 +4,10 @@ import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 import { encode as encodeHex } from "https://deno.land/std@0.168.0/encoding/hex.ts";
 import { buildBusinessContext, storeContextSnapshot, buildDynamicVariables, type BusinessContext } from "../_shared/buildBusinessContext.ts";
 
+// Update this string when you want to verify a fresh deploy is running
+const VERSION = "elevenlabs-init@2026-02-06.1";
+const DEPLOYED_AT = new Date().toISOString();
+
 /**
  * ElevenLabs Client Data Webhook
  * 
@@ -151,10 +155,12 @@ serve(async (req) => {
   // Allow GET for health checks (ElevenLabs may ping)
   if (req.method === "GET") {
     return new Response(
-      JSON.stringify({ 
-        status: "ok", 
+      JSON.stringify({
+        status: "ok",
         service: "elevenlabs-init",
-        description: "ElevenLabs Client Data Webhook for CloseLoop" 
+        description: "ElevenLabs Client Data Webhook for CloseLoop",
+        _version: VERSION,
+        _deployed_at: DEPLOYED_AT,
       }),
       { 
         status: 200, 
@@ -191,14 +197,16 @@ serve(async (req) => {
 
   // Log every endpoint hit for debugging (no PII)
   try {
-    await supabase.from("ai_event_logs").insert({
-      tenant_id: null,
-      stage: "voice_endpoint_hit",
-      event_data: {
-        endpoint: "elevenlabs-init",
-        timestamp: new Date().toISOString(),
-      },
-    });
+      await supabase.from("ai_event_logs").insert({
+        tenant_id: null,
+        stage: "voice_endpoint_hit",
+        event_data: {
+          endpoint: "elevenlabs-init",
+          version: VERSION,
+          deployed_at: DEPLOYED_AT,
+          timestamp: new Date().toISOString(),
+        },
+      });
   } catch (logError) {
     console.error("[elevenlabs-init] Failed to log endpoint hit:", logError);
   }
@@ -314,7 +322,7 @@ serve(async (req) => {
 
     sessionId = callSid || conversationId || `init_${Date.now()}`;
 
-    console.log(`[elevenlabs-init] Request received:`, {
+    console.log(`[${VERSION}] [elevenlabs-init] Request received:`, {
       to: toNumber,
       from: fromNumber?.substring(0, 8) + "...",
       callSid: callSid?.substring(0, 12),

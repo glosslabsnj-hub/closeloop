@@ -1,6 +1,7 @@
-// v3.2.0 - Added IVR routing for dispatch businesses
-// Lightweight version to avoid bundle timeout
-
+// twilio-inbound - telephony entrypoint (safe-mode)
+// Update this string when you want to verify a fresh deploy is running
+const VERSION = "twilio-inbound@2026-02-06.1";
+const DEPLOYED_AT = new Date().toISOString();
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -224,7 +225,7 @@ Deno.serve(async (req) => {
     fromNumber = formData.get("From") || "";
     callSid = formData.get("CallSid") || "";
     digits = formData.get("Digits") || ""; // Capture IVR selection
-    console.log(`[twilio-inbound] Call from ${fromNumber} to ${toNumber}, CallSid=${callSid}, Digits=${digits}`);
+    console.log(`[${VERSION}] [twilio-inbound] Call from ${fromNumber} to ${toNumber}, CallSid=${callSid}, Digits=${digits}`);
   } catch (error) {
     console.error("[twilio-inbound] Failed to parse request:", error);
     return twimlResponse(hangupTwiml("We're experiencing technical difficulties. Please try again later."));
