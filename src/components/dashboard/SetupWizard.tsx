@@ -1,12 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { Phone, Calendar, Mic, Power, Check, ChevronRight } from "lucide-react";
+import { Phone, Brain, Power, Check, ChevronRight } from "lucide-react";
 import { PhoneConnectionStep } from "./PhoneConnectionStep";
-import { CalendarConnectionStep } from "./CalendarConnectionStep";
-import { TestAIStep } from "./TestAIStep";
+import { ConfigureAIStep } from "./ConfigureAIStep";
 import { GoLiveStep } from "./GoLiveStep";
+import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
 
 interface SetupWizardProps {
   onSetupComplete: () => void;
@@ -21,19 +20,18 @@ type SetupStep = {
 
 export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
   const { tenant, assistantSettings } = useAuth();
+  const { score, p0Flags, canGoLive: aiReady } = useAIReadinessV2();
 
   // Determine completion status from assistant_settings
   const phoneComplete = (assistantSettings as any)?.setup_step_phone || assistantSettings?.phone_connected || false;
-  const calendarComplete = (assistantSettings as any)?.setup_step_calendar || !!(assistantSettings as any)?.booking_url;
-  const testComplete = (assistantSettings as any)?.setup_step_tested || false;
+  const aiKnowledgeComplete = score >= 85 && p0Flags.length === 0;
   const goLiveComplete = assistantSettings?.go_live_enabled || false;
 
   const steps: SetupStep[] = useMemo(() => [
     { id: "phone", title: "Connect Phone", icon: Phone, isComplete: phoneComplete },
-    { id: "calendar", title: "Set Availability", icon: Calendar, isComplete: calendarComplete },
-    { id: "test", title: "Test AI", icon: Mic, isComplete: testComplete },
+    { id: "ai-knowledge", title: "Configure AI", icon: Brain, isComplete: aiKnowledgeComplete },
     { id: "golive", title: "Go Live", icon: Power, isComplete: goLiveComplete },
-  ], [phoneComplete, calendarComplete, testComplete, goLiveComplete]);
+  ], [phoneComplete, aiKnowledgeComplete, goLiveComplete]);
 
   // Calculate first incomplete step
   const firstIncompleteIndex = useMemo(() => {
@@ -73,13 +71,8 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
     }
   };
 
-  const handleCalendarSkip = async () => {
-    // The CalendarConnectionStep handles saving, we just move forward
-    setUserSelectedStep(false);
-    setActiveStep(2); // Move to test step
-  };
-
-  const canActivateGoLive = phoneComplete && testComplete; // Calendar is optional
+  // For Go Live, need phone connected + AI knowledge ready
+  const canActivateGoLive = phoneComplete && aiKnowledgeComplete;
 
   return (
     <div className="max-w-2xl mx-auto space-y-8 p-4 md:p-6">
@@ -87,11 +80,11 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
       <div className="text-center space-y-2">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-2">
           <Check className="h-4 w-4" />
-          Business knowledge ready
+          Let's get you set up
         </div>
         <h1 className="text-2xl md:text-3xl font-bold">Go Live Checklist</h1>
         <p className="text-muted-foreground">
-          Connect your phone and you're ready to answer calls with AI
+          Connect your phone, configure your AI, and start answering calls
         </p>
       </div>
 
@@ -116,7 +109,7 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
               key={step.id}
               onClick={() => handleStepClick(index)}
               disabled={!isClickable}
-              className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-all min-w-[80px] ${
+              className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-all min-w-[100px] flex-1 ${
                 step.isComplete 
                   ? "bg-primary/10 text-primary" 
                   : isCurrent 
@@ -153,23 +146,15 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
         )}
         
         {activeStep === 1 && (
-          <CalendarConnectionStep 
+          <ConfigureAIStep 
             onComplete={() => handleStepComplete(1)}
-            isComplete={calendarComplete}
-            onSkip={handleCalendarSkip}
+            isComplete={aiKnowledgeComplete}
           />
         )}
         
         {activeStep === 2 && (
-          <TestAIStep 
-            onComplete={() => handleStepComplete(2)}
-            isComplete={testComplete}
-          />
-        )}
-        
-        {activeStep === 3 && (
           <GoLiveStep 
-            onComplete={() => handleStepComplete(3)}
+            onComplete={() => handleStepComplete(2)}
             isComplete={goLiveComplete}
             canActivate={canActivateGoLive}
           />

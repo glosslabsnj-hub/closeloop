@@ -94,7 +94,7 @@ export function SetupProgressChecklist() {
       id: "phone",
       label: "Connect phone",
       description: "Get your AI phone number",
-      href: "/app/settings",
+      href: "/app/go-live",
       icon: Phone,
       completed: assistantSettings?.phone_connected || false,
     },

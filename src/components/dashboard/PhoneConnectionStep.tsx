@@ -254,7 +254,7 @@ export function PhoneConnectionStep({ onComplete, isComplete }: PhoneConnectionS
           onValueChange={(v) => setPhoneMethod(v as "closeloop_number" | "forwarded")}
           className="space-y-4"
         >
-          {/* Option 1: Get new number */}
+          {/* Option 1: Get new AI number */}
           <div 
             onClick={() => setPhoneMethod("closeloop_number")}
             className={`flex items-start space-x-4 p-4 rounded-lg border-2 transition-colors cursor-pointer ${
@@ -266,16 +266,16 @@ export function PhoneConnectionStep({ onComplete, isComplete }: PhoneConnectionS
             <RadioGroupItem value="closeloop_number" id="new-number" className="mt-1" />
             <div className="flex-1">
               <Label htmlFor="new-number" className="font-medium cursor-pointer flex items-center gap-2">
-                Get a New CloseLoop Number
+                Get a New AI Number
                 <Badge variant="secondary" className="text-xs">Recommended</Badge>
               </Label>
               <p className="text-sm text-muted-foreground mt-1">
-                We'll give you a dedicated phone number for your AI. Give this number to customers or put it on your website.
+                We'll assign you a dedicated phone number. Give this to customers or add it to your website.
               </p>
             </div>
           </div>
 
-          {/* Option 2: Use existing number */}
+          {/* Option 2: Keep existing number */}
           <div 
             onClick={() => setPhoneMethod("forwarded")}
             className={`flex items-start space-x-4 p-4 rounded-lg border-2 transition-colors cursor-pointer ${
@@ -288,14 +288,19 @@ export function PhoneConnectionStep({ onComplete, isComplete }: PhoneConnectionS
             <div className="flex-1">
               <Label htmlFor="existing-number" className="font-medium cursor-pointer flex items-center gap-2">
                 <Smartphone className="h-4 w-4" />
-                Use My Existing Number
+                Keep My Current Number
               </Label>
               <p className="text-sm text-muted-foreground mt-1">
-                Keep your current business number and forward unanswered calls to your AI.
+                We'll give you an AI number behind the scenes. Forward your calls there when you can't answer.
               </p>
             </div>
           </div>
         </RadioGroup>
+        
+        {/* Clarifying note */}
+        <p className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
+          Both options give you an AI-powered number. The difference is whether customers call it directly or you forward calls to it.
+        </p>
 
         {/* Conditional content based on selection */}
         {phoneMethod === "closeloop_number" ? (

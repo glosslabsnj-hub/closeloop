@@ -34,10 +34,12 @@ export function AgentControlPanel() {
 
   const voiceEnabled = assistantSettings?.voice_ai_enabled && assistantSettings?.go_live_enabled;
   const smsEnabled = assistantSettings?.instant_text_enabled || false;
-  const isActive = voiceEnabled || smsEnabled;
   
   // Check both forwarding_phone_e164 (real Twilio number) and closeloop_number (legacy)
   const closeloopNumber = (assistantSettings as any)?.forwarding_phone_e164 || assistantSettings?.closeloop_number;
+  
+  // Only show as "Active" if phone is actually connected
+  const isActive = (voiceEnabled || smsEnabled) && !!closeloopNumber;
 
   const [offBehaviorModalOpen, setOffBehaviorModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -215,7 +217,7 @@ export function AgentControlPanel() {
                 className="gap-2"
                 asChild
               >
-                <Link to="/app/settings">
+                <Link to="/app/go-live">
                   <Phone className="h-4 w-4" />
                   Connect Phone
                 </Link>
