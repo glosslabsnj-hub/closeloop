@@ -1969,11 +1969,14 @@ export type Database = {
           dropoff_address: string | null
           dropoff_lat: number | null
           dropoff_lng: number | null
+          en_route_at: string | null
+          estimated_arrival_at: string | null
           estimated_duration_minutes: number | null
           id: string
           job_number: string
           job_type: string | null
           notes: string | null
+          on_site_at: string | null
           pickup_address: string | null
           pickup_lat: number | null
           pickup_lng: number | null
@@ -2002,11 +2005,14 @@ export type Database = {
           dropoff_address?: string | null
           dropoff_lat?: number | null
           dropoff_lng?: number | null
+          en_route_at?: string | null
+          estimated_arrival_at?: string | null
           estimated_duration_minutes?: number | null
           id?: string
           job_number: string
           job_type?: string | null
           notes?: string | null
+          on_site_at?: string | null
           pickup_address?: string | null
           pickup_lat?: number | null
           pickup_lng?: number | null
@@ -2035,11 +2041,14 @@ export type Database = {
           dropoff_address?: string | null
           dropoff_lat?: number | null
           dropoff_lng?: number | null
+          en_route_at?: string | null
+          estimated_arrival_at?: string | null
           estimated_duration_minutes?: number | null
           id?: string
           job_number?: string
           job_type?: string | null
           notes?: string | null
+          on_site_at?: string | null
           pickup_address?: string | null
           pickup_lat?: number | null
           pickup_lng?: number | null
@@ -2303,8 +2312,12 @@ export type Database = {
           email: string | null
           full_name: string
           id: string
+          last_known_lat: number | null
+          last_known_lng: number | null
           license_expiry: string | null
           license_number: string | null
+          location_enabled: boolean | null
+          location_updated_at: string | null
           phone_e164: string | null
           photo_url: string | null
           status: string
@@ -2318,8 +2331,12 @@ export type Database = {
           email?: string | null
           full_name: string
           id?: string
+          last_known_lat?: number | null
+          last_known_lng?: number | null
           license_expiry?: string | null
           license_number?: string | null
+          location_enabled?: boolean | null
+          location_updated_at?: string | null
           phone_e164?: string | null
           photo_url?: string | null
           status?: string
@@ -2333,8 +2350,12 @@ export type Database = {
           email?: string | null
           full_name?: string
           id?: string
+          last_known_lat?: number | null
+          last_known_lng?: number | null
           license_expiry?: string | null
           license_number?: string | null
+          location_enabled?: boolean | null
+          location_updated_at?: string | null
           phone_e164?: string | null
           photo_url?: string | null
           status?: string
