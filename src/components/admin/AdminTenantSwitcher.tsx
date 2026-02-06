@@ -145,7 +145,12 @@ export function AdminTenantSwitcher() {
               <ChevronDown className="h-3.5 w-3.5" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-64 max-h-80 overflow-y-auto">
+          <DropdownMenuContent 
+            align="start" 
+            className="w-64 max-h-80 overflow-y-auto z-[100] bg-popover"
+            onPointerDownOutside={(e) => e.stopPropagation()}
+            onInteractOutside={(e) => e.stopPropagation()}
+          >
             {/* Test line indicator */}
             <div className="px-2 py-1.5 text-xs text-muted-foreground border-b mb-1">
               <span className="font-medium">Test Line:</span>{" "}
@@ -155,8 +160,12 @@ export function AdminTenantSwitcher() {
             {tenants?.map((tenant) => (
               <DropdownMenuItem
                 key={tenant.id}
-                onClick={() => handleTenantSelect(tenant.id)}
-                className="flex items-center gap-2"
+                onSelect={(e) => {
+                  e.preventDefault();
+                  handleTenantSelect(tenant.id);
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+                className="flex items-center gap-2 cursor-pointer"
                 disabled={isLoading}
               >
                 {tenant.id === effectiveTenantId && (
@@ -175,8 +184,12 @@ export function AdminTenantSwitcher() {
             <DropdownMenuSeparator />
             
             <DropdownMenuItem
-              onClick={() => setShowCreateDialog(true)}
-              className="gap-2"
+              onSelect={(e) => {
+                e.preventDefault();
+                setShowCreateDialog(true);
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="gap-2 cursor-pointer"
             >
               <Plus className="h-4 w-4" />
               Create Test Tenant
