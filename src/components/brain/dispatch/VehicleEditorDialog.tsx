@@ -305,14 +305,17 @@ export function VehicleEditorDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Assigned Driver</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <Select
+                      onValueChange={(val) => field.onChange(val === "unassigned" ? "" : val)}
+                      value={field.value || ""}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select driver" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Unassigned</SelectItem>
+                        <SelectItem value="unassigned">Unassigned</SelectItem>
                         {activeDrivers.map((driver) => (
                           <SelectItem key={driver.id} value={driver.id}>
                             {driver.full_name}

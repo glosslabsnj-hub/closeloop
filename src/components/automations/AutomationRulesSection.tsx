@@ -381,13 +381,18 @@ export function AutomationRulesSection({ tenantId }: AutomationRulesSectionProps
                 <Label>Using integration (optional)</Label>
                 <Select
                   value={newRule.integration_id}
-                  onValueChange={(value) => setNewRule({ ...newRule, integration_id: value })}
+                  onValueChange={(value) =>
+                    setNewRule({
+                      ...newRule,
+                      integration_id: value === "none" ? "" : value,
+                    })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select an integration" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None (use defaults)</SelectItem>
+                    <SelectItem value="none">None (use defaults)</SelectItem>
                     {integrations
                       .filter((i) => {
                         const action = ACTIONS[newRule.action_type];
