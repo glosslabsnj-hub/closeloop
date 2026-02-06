@@ -1,216 +1,214 @@
-# Business Brain Organization Plan for Dispatch Mode
 
-## ✅ COMPLETED
+# Voice Agent Flow Overhaul: Industry-Aware Service Agent
 
-## Overview
+## Problem Summary
 
-This plan reorganizes the Business Brain to be cleaner and more logically grouped for dispatch businesses. The key changes are:
+When you called the plumbing business (Blue Boxer Plumbing), the AI agent incorrectly behaved like a dispatch service:
+1. Collected your address and name
+2. Confirmed service area
+3. Immediately offered "dispatch someone in 30-60 minutes"
 
-1. **Remove duplicate Fleet section** from Business Brain (since it's accessible from sidebar)
-2. **Reorganize the Rules tab** - currently overloaded with 10+ sections for dispatch
-3. **Create logical sub-groupings** within tabs to reduce cognitive load
-4. **Update the navigation config** to reflect the cleaner structure
+**What should have happened** for a service/booking business:
+1. Understand the service needed (drain cleaning)
+2. Ask about urgency/timing preference
+3. Check the calendar for availability
+4. Offer appointment slots
+5. Book the appointment (or mark as pending based on settings)
 
----
+## Root Cause Analysis
 
-## Current State Analysis
+The issue is in the **Service Agent base prompt** (`agentBasePrompts.ts`) which includes an "EMERGENCY/SAME-DAY FLOW" section that triggers immediate dispatch behavior. The agent is treating *every* service request as if it might be urgent, when most service businesses operate on an **appointment-first** model.
 
-### Business Brain Tabs (9 total):
-| Tab | Purpose | Dispatch-Specific Items |
-|-----|---------|------------------------|
-| Identity | Business name, contact, templates | Standard |
-| Operations | Weekly hours | Standard |
-| Calendar | Availability sync | Standard |
-| Offerings | Services/pricing | Dispatch service catalog |
-| Coverage & ETA | Service area, travel times, workload | Dispatch ETA section |
-| Rules | Policies, questions, delivery settings | **PROBLEM: 10 sections here** |
-| Fleet | Drivers & vehicles | **DUPLICATE - also in sidebar** |
-| Knowledge | FAQs, objections, documents | Standard |
-| AI Setup | Greeting, guidelines, intelligence | Standard |
-
-### The "Rules" Tab Problem (Dispatch Mode)
-Currently contains these sections in order:
-1. Business Policies
-2. AI Guardrails
-3. Required Questions
-4. Dispatch Settings
-5. How You Charge for Distance
-6. Call Routing (IVR)
-7. Impound Lot Details
-8. Impound Fee Structure
-9. Release Requirements
-10. Your Fleet (duplicate)
-
-This is overwhelming - impound settings are buried, and fleet is duplicated.
-
----
-
-## Proposed Changes
-
-### Change 1: Remove Fleet from Business Brain Tabs
-
-**What**: Remove the "Fleet" tab from the Business Brain horizontal navigation
-
-**Why**: Fleet is already accessible via the sidebar (/app/fleet). Having it in Business Brain is redundant since it doesn't affect AI behavior - it's operational data.
-
-**Files to modify**:
-- `src/components/brain/layout/businessBrainNavConfig.ts` - Remove fleet category
-- `src/pages/app/BusinessBrainPage.tsx` - Remove fleet section rendering
-- `src/components/brain/layout/SectionHelper.tsx` - Keep fleet helper (still used in standalone page)
-
-### Change 2: Remove Fleet Section from Rules Tab
-
-**What**: Remove the "Your Fleet" collapsible section from inside the Rules tab
-
-**Why**: Same reason - it's accessible from sidebar, not needed in Business Brain
-
-**File to modify**:
-- `src/pages/app/BusinessBrainPage.tsx` - Remove lines 476-485
-
-### Change 3: Add Visual Sub-Headers in Rules Tab
-
-**What**: Group related sections under visual headers within the Rules tab
-
-**Proposed groupings for Dispatch mode**:
-
+### Current Flow (Broken)
 ```text
-RULES TAB STRUCTURE (Dispatch Mode)
-------------------------------------
-
-[Core Policies]
-- Business Policies
-- AI Guardrails  
-- Required Questions
-
-[Dispatch Operations]
-- Dispatch Settings (where jobs go)
-- How You Charge for Distance
-- Call Routing (IVR)
-
-[Impound Lot Settings]
-- Impound Lot Details
-- Impound Fee Structure
-- Release Requirements
+Customer: "I need my drain cleaned"
+Agent: "What's your address?"
+Agent: "We can dispatch someone in 30-60 minutes"
 ```
 
-**Implementation approach**:
-Create a simple `SectionGroupHeader` component that renders a subtle header/divider to visually separate groups without adding navigation complexity.
-
-**Files to create/modify**:
-- `src/components/brain/layout/SectionGroupHeader.tsx` - New component
-- `src/pages/app/BusinessBrainPage.tsx` - Add group headers in policies section
-
-### Change 4: Rename "Rules" to "Policies & Settings"
-
-**What**: Change the tab label to better reflect its content
-
-**Why**: "Rules" is vague. "Policies & Settings" more accurately describes business policies, delivery settings, and operational configuration.
-
-**File to modify**:
-- `src/components/brain/layout/businessBrainNavConfig.ts` - Change title from "Rules" to "Policies"
-
----
-
-## File-by-File Changes
-
-### 1. `src/components/brain/layout/businessBrainNavConfig.ts`
-
+### Expected Flow (Correct)
 ```text
-Changes:
-- Remove the entire "fleet" category object (lines 292-322)
-- Change "rules" category title from "Rules" to "Policies"
-- Remove fleet from SECTION_TO_CATEGORY and CATEGORY_TO_SECTION mappings
-- Update VALID_SECTIONS to remove "fleet"
+Customer: "I need my drain cleaned"
+Agent: "Is this an emergency, or can it wait for a scheduled appointment?"
+  OR
+Agent: "When would you like to schedule that?"
+Agent: "Let me check our availability... We have openings at 2pm today or 10am tomorrow"
 ```
 
-### 2. `src/pages/app/BusinessBrainPage.tsx`
+## Solution Design
+
+### 1. Add New Tenant Setting: `service_default_flow`
+
+Create a new field in `assistant_settings` to control the default behavior for service businesses:
+
+| Value | Behavior |
+|-------|----------|
+| `schedule_first` | Always start with calendar availability (default for salons, auto detailing, cleaning) |
+| `urgency_check` | Ask "Is this urgent or can it wait?" before deciding path (default for HVAC, plumbing, electrical) |
+| `dispatch_first` | Immediate dispatch like a tow truck (not typical for service mode) |
+
+**Industry defaults** (auto-set during onboarding):
+- Salon/Spa/Barbershop → `schedule_first`
+- Auto Detailing/Car Wash → `schedule_first`
+- Cleaning/Maid Service → `schedule_first`
+- HVAC/Heating/Cooling → `urgency_check`
+- Plumbing → `urgency_check`
+- Electrical → `urgency_check`
+- Locksmith → `dispatch_first`
+- General Service → `schedule_first`
+
+### 2. Update Service Agent Base Prompt
+
+Rewrite the Service Agent prompt to follow this decision tree:
 
 ```text
-Changes:
-- Remove "fleet" from VALID_SECTIONS array (line 79)
-- Add import for new SectionGroupHeader component
-- Remove the Fleet section within "policies" tab (lines 476-485)
-- Remove the standalone Fleet section at bottom (lines 589-607)
-- Add SectionGroupHeader components in policies section to create visual groupings:
-  - Before Business Policies: "Core Policies"
-  - Before Dispatch Settings: "Dispatch Operations"  
-  - Before Impound Lot: "Impound Lot"
+┌─────────────────────────────────────────────┐
+│         Customer Calls Service Business      │
+└─────────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────┐
+│     Identify Service Requested              │
+│     "What can I help you with today?"       │
+└─────────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────┐
+│     Check service_default_flow setting      │
+└─────────────────────────────────────────────┘
+          │                    │                    │
+          ▼                    ▼                    ▼
+    schedule_first       urgency_check        dispatch_first
+          │                    │                    │
+          ▼                    ▼                    ▼
+┌─────────────────┐  ┌──────────────────┐  ┌────────────────┐
+│ "When works     │  │ "Is this urgent  │  │ "Where are you │
+│  for you?"      │  │  or can it wait?"│  │  located?"     │
+│ → Check calendar│  │                  │  │ → Dispatch NOW │
+└─────────────────┘  └──────────────────┘  └────────────────┘
+                            │
+              ┌─────────────┴─────────────┐
+              ▼                           ▼
+        "It's urgent!"            "I can schedule"
+              │                           │
+              ▼                           ▼
+     ┌────────────────┐          ┌────────────────┐
+     │ Check if same- │          │ Check calendar │
+     │ day available  │          │ offer slots    │
+     └────────────────┘          └────────────────┘
+              │
+     Has same-day slots?
+         │          │
+        Yes         No
+         │          │
+         ▼          ▼
+     Book today   "I can have someone
+                   call you back to
+                   expedite, or we have
+                   [next available]"
 ```
 
-### 3. `src/components/brain/layout/SectionGroupHeader.tsx` (New File)
+### 3. Dynamic Variable Injection
 
+Add a new dynamic variable `service_default_flow` to the context builder so the ElevenLabs agent knows which flow to use.
+
+### 4. Update the ElevenLabs Service Agent
+
+The prompt in ElevenLabs must be updated to read the `service_default_flow` variable and adapt behavior accordingly. This is a configuration change in the ElevenLabs dashboard.
+
+## Technical Implementation
+
+### Database Migration
+
+Add new column to `assistant_settings`:
+- `service_default_flow`: enum (`schedule_first`, `urgency_check`, `dispatch_first`) DEFAULT `schedule_first`
+
+### Files to Modify
+
+| File | Changes |
+|------|---------|
+| `supabase/migrations/new.sql` | Add `service_default_flow` column |
+| `supabase/functions/_shared/buildBusinessContext.ts` | Include `service_default_flow` in context |
+| `supabase/functions/_shared/voiceContextContract.ts` | Register new dynamic variable |
+| `supabase/functions/_shared/agentBasePrompts.ts` | Rewrite SERVICE_AGENT_BASE_PROMPT with flow logic |
+| `src/integrations/supabase/types.ts` | Auto-updated with new column |
+| `src/components/brain/sections/AISetupSection.tsx` | Add UI toggle for "Service Call Behavior" |
+
+### Prompt Changes (agentBasePrompts.ts)
+
+Replace the current EMERGENCY/SAME-DAY FLOW section with a conditional flow:
+
+```typescript
+### DETERMINING THE CALL FLOW
+
+At the start of every call, determine the appropriate flow based on the 
+business setting (service_default_flow variable):
+
+**IF service_default_flow = "schedule_first":**
+- Skip urgency questions
+- Immediately ask about scheduling: "When would work best for you?"
+- Use suggest_availability and check_availability tools
+- Book the appointment
+
+**IF service_default_flow = "urgency_check":**
+- After identifying the service, ask: "Is this something urgent, or can it wait for a scheduled appointment?"
+- Listen for urgency indicators: "emergency", "right now", "today", "ASAP", "water everywhere", "no heat", "locked out"
+- IF URGENT: Check for same-day availability first, then offer dispatch if enabled
+- IF NOT URGENT: Proceed to scheduling flow
+
+**IF service_default_flow = "dispatch_first":**
+- Treat like dispatch mode: collect address, give ETA, dispatch immediately
+- This is rare for service businesses
+
+**IMPORTANT: DO NOT assume urgency.** A customer saying "I need my drain cleaned" 
+is NOT automatically urgent. Only explicit urgency language triggers emergency flow.
+```
+
+### Business Brain UI Update
+
+Add a new setting in the AI Setup section:
+
+**Service Call Behavior** (only visible for service mode)
+- "Schedule appointments by default" (schedule_first)
+- "Ask if urgent or can be scheduled" (urgency_check)  
+- "Immediate dispatch like a tow service" (dispatch_first)
+
+## ElevenLabs Dashboard Changes Required
+
+After code deployment, you'll need to update the Service Agent prompt in ElevenLabs to use the new `service_default_flow` variable. I'll provide the exact prompt text to copy/paste.
+
+## Validation Checklist
+
+After implementation:
+1. Call Blue Boxer Plumbing and say "I need my drain cleaned"
+2. Verify agent asks about scheduling (not immediate dispatch)
+3. Verify agent checks calendar availability
+4. Verify booking is created properly
+5. Test urgent scenario: "My pipe burst, water everywhere!"
+6. Verify urgent scenario triggers expedited handling
+
+## Expected Behavior After Fix
+
+**Scenario 1: Routine Service Request**
 ```text
-Purpose: Simple visual header to group related sections
-Props: 
-- label: string (e.g., "Impound Lot Settings")
-- icon?: LucideIcon (optional)
-
-Styling:
-- Subtle text label with optional icon
-- Light top border for visual separation
-- Matches existing design system
+Customer: "I need my drain cleaned"
+Agent: "Sure, we can help with that. Is this something urgent, 
+        or would you like to schedule an appointment?"
+Customer: "I can schedule"
+Agent: "Perfect. When works best for you - morning or afternoon?"
+Customer: "Tomorrow afternoon"
+Agent: "Let me check... I have 2pm or 4pm available. Which works better?"
 ```
 
-### 4. `src/components/brain/layout/index.ts`
-
+**Scenario 2: Urgent Request**
 ```text
-Changes:
-- Add export for SectionGroupHeader
+Customer: "I have water flooding my basement!"
+Agent: "I understand - that sounds urgent. What's your address?"
+Agent: "We can have someone there within the hour. Should I dispatch now?"
 ```
 
----
-
-## Final Tab Structure After Changes
-
-| Tab | Sections |
-|-----|----------|
-| **Identity** | Business Info, Quick Start Templates |
-| **Operations** | Operating Hours |
-| **Calendar** | Calendar & Availability |
-| **Offerings** | Pricing Readiness, Services Catalog |
-| **Coverage & ETA** | Where You Serve, Travel & Wait Times, Current Workload |
-| **Policies** | (see grouped structure below) |
-| **Knowledge** | Review Queue, FAQs, Objection Handling, Custom Knowledge, Documents |
-| **AI Setup** | Greeting & Scripts, Business Guidelines, Intelligence Settings |
-
-### Policies Tab (Dispatch Mode) - After Reorganization:
-
+**Scenario 3: Salon (schedule_first - no urgency check)**
 ```text
-[Core Policies]
-  - Business Policies
-  - AI Guardrails
-  - Required Questions
-
-[Dispatch Operations]
-  - Dispatch Settings
-  - How You Charge for Distance
-  - Call Routing (IVR)
-
-[Impound Lot]
-  - Impound Lot Details
-  - Impound Fee Structure
-  - Release Requirements
+Customer: "I need a haircut"
+Agent: "Great! When would you like to come in?"
 ```
-
----
-
-## What This Plan Does NOT Change
-
-- No changes to any component logic or data flow
-- No changes to how AI uses the data
-- No changes to edge functions or database
-- No changes to the standalone Fleet page (/app/fleet)
-- No changes to any other pages
-- All existing functionality remains intact
-
----
-
-## Summary of Files Changed
-
-| File | Action |
-|------|--------|
-| `businessBrainNavConfig.ts` | Remove fleet category, rename "Rules" to "Policies" |
-| `BusinessBrainPage.tsx` | Remove fleet sections, add group headers |
-| `SectionGroupHeader.tsx` | Create new component |
-| `index.ts` (layout) | Add export |
-
