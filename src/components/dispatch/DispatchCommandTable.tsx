@@ -1,4 +1,4 @@
-import { Phone, MoreHorizontal, ChevronRight, MapPin, Navigation, Truck, DollarSign, Clock } from "lucide-react";
+import { Phone, MoreHorizontal, ChevronRight, MapPin, Navigation, Truck, Clock, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import {
   Tooltip,
@@ -254,11 +255,50 @@ export function DispatchCommandTable({
                   </Badge>
                 </TableCell>
 
-                {/* Status */}
-                <TableCell>
-                  <Badge variant="outline" className={cn("text-xs", status.className)}>
-                    {status.label}
-                  </Badge>
+                {/* Status - Clickable Dropdown */}
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          "h-7 px-2 text-xs gap-1 font-normal",
+                          status.className,
+                          "border hover:opacity-80"
+                        )}
+                      >
+                        {status.label}
+                        <ChevronDown className="h-3 w-3 opacity-60" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-36">
+                      <DropdownMenuLabel className="text-xs">Change Status</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {Object.entries(statusConfig).map(([key, config]) => (
+                        <DropdownMenuItem
+                          key={key}
+                          onClick={() => {
+                            if (key === "assigned" && job.status === "pending") {
+                              onAssign(job);
+                            } else {
+                              onUpdateStatus(job, key);
+                            }
+                          }}
+                          className={cn(
+                            "text-xs",
+                            job.status === key && "bg-muted font-medium"
+                          )}
+                        >
+                          <Badge
+                            variant="outline"
+                            className={cn("h-4 w-4 p-0 mr-2 shrink-0", config.className)}
+                          />
+                          {config.label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
 
                 {/* Time */}
