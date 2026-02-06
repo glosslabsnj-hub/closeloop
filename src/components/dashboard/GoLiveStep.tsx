@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Link } from "react-router-dom";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,19 +17,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Power, Check, Loader2, Sparkles, Phone, Calendar, MessageSquare, Shield } from "lucide-react";
+import { Power, Check, Loader2, Sparkles, Phone, Calendar, MessageSquare, Shield, AlertTriangle, Brain } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { hasVoiceFeature, hasSmsFeature } from "@/config/pricing";
+import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
 
 interface GoLiveStepProps {
   onComplete: () => void;
   isComplete: boolean;
-  canActivate: boolean;
+  canActivate: boolean; // Basic prerequisite (phone + test)
 }
 
 export function GoLiveStep({ onComplete, isComplete, canActivate }: GoLiveStepProps) {
   const { tenant, assistantSettings, refreshTenant } = useAuth();
   const { toast } = useToast();
+  const { score, canGoLive, p0Flags, loading: readinessLoading } = useAIReadinessV2();
   
   const [showConfirm, setShowConfirm] = useState(false);
   const [activating, setActivating] = useState(false);
@@ -37,6 +41,10 @@ export function GoLiveStep({ onComplete, isComplete, canActivate }: GoLiveStepPr
   const planCode = (assistantSettings as any)?.plan_code || null;
   const hasVoice = hasVoiceFeature(planCode);
   const hasSms = hasSmsFeature(planCode);
+
+  // CRITICAL: Go live requires 85%+ readiness score AND no P0 blockers
+  const meetsReadinessRequirements = canGoLive; // This checks score >= 85 AND p0Flags.length === 0
+  const fullyCanActivate = canActivate && meetsReadinessRequirements;
 
   // Filter features based on plan capabilities
   const features = useMemo(() => {
@@ -156,20 +164,68 @@ export function GoLiveStep({ onComplete, isComplete, canActivate }: GoLiveStepPr
 
   return (
     <>
-      <Card className={!canActivate ? "opacity-60" : ""}>
+      <Card className={!fullyCanActivate ? "opacity-90" : ""}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Power className="h-5 w-5 text-primary" />
             Go Live
           </CardTitle>
           <CardDescription>
-            {canActivate 
+            {fullyCanActivate 
               ? "You're ready! Activate your AI to start answering calls."
-              : "Complete the previous steps to activate your AI."
+              : "Complete your setup to activate your AI."
             }
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Readiness Score - Always show */}
+          <div className="space-y-3 p-4 rounded-lg border bg-muted/30">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Brain className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">AI Readiness</span>
+              </div>
+              <Badge variant={meetsReadinessRequirements ? "default" : "secondary"}>
+                {readinessLoading ? "..." : `${score}%`}
+              </Badge>
+            </div>
+            <Progress value={score} className="h-2" />
+            <p className="text-xs text-muted-foreground">
+              {meetsReadinessRequirements 
+                ? "Your AI is ready to go live!"
+                : "Need 85% or higher to go live. Complete your Business Brain setup."
+              }
+            </p>
+            
+            {/* P0 Blockers */}
+            {p0Flags.length > 0 && (
+              <div className="mt-3 space-y-2">
+                <p className="text-xs font-medium text-destructive flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  {p0Flags.length} blocking issue{p0Flags.length > 1 ? "s" : ""} to fix:
+                </p>
+                <ul className="text-xs text-muted-foreground space-y-1">
+                  {p0Flags.slice(0, 3).map((flag, i) => (
+                    <li key={i} className="flex items-center gap-1">
+                      • {flag}
+                    </li>
+                  ))}
+                  {p0Flags.length > 3 && (
+                    <li className="text-muted-foreground">
+                      +{p0Flags.length - 3} more...
+                    </li>
+                  )}
+                </ul>
+                <Button variant="outline" size="sm" asChild className="mt-2">
+                  <Link to="/app/business-brain">
+                    <Brain className="h-3 w-3 mr-1" />
+                    Open Business Brain
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </div>
+
           {/* What happens when you go live */}
           <div className="space-y-3">
             <p className="text-sm font-medium">When you go live, your AI will:</p>
@@ -186,17 +242,20 @@ export function GoLiveStep({ onComplete, isComplete, canActivate }: GoLiveStepPr
           {/* Go Live Button */}
           <Button 
             onClick={() => setShowConfirm(true)}
-            disabled={!canActivate}
+            disabled={!fullyCanActivate || readinessLoading}
             size="lg"
             className="w-full gap-2 h-14 text-lg"
           >
             <Power className="h-5 w-5" />
-            Go Live Now
+            {readinessLoading ? "Checking readiness..." : "Go Live Now"}
           </Button>
 
-          {!canActivate && (
+          {!fullyCanActivate && !readinessLoading && (
             <p className="text-xs text-center text-muted-foreground">
-              Complete the phone, calendar, and testing steps above first
+              {!canActivate 
+                ? "Complete the phone and testing steps above first"
+                : "Complete your Business Brain setup to reach 85% readiness"
+              }
             </p>
           )}
         </CardContent>
