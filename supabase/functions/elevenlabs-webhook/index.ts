@@ -2269,6 +2269,21 @@ async function persistDispatchJob(
   customerId: string | null,
   callerPhoneE164: string
 ): Promise<{ id: string; job_number?: string } | null> {
+  // P0 DEDUP: Check if a dispatch job already exists for this session
+  // (created by create-dispatch-request tool during the call)
+  const { data: existingJob } = await supabase
+    .from("dispatch_jobs")
+    .select("id, job_number")
+    .eq("session_id", sessionId)
+    .eq("tenant_id", tenantId)
+    .limit(1)
+    .maybeSingle();
+  
+  if (existingJob) {
+    console.log(`[persistDispatchJob] DEDUP: Job already exists for session ${sessionId}: ${existingJob.job_number}`);
+    return existingJob;
+  }
+  
   // Generate job number
   const { data: lastJob } = await supabase
     .from("dispatch_jobs")
