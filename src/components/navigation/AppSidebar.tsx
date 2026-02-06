@@ -13,7 +13,6 @@ import {
   LogOut,
   Phone,
   Bot,
-  Route,
   FlaskConical,
   Lock,
   Truck,
@@ -24,15 +23,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Users,
-  BookOpen,
-  Zap,
   BarChart3,
   TrendingUp,
   FileText,
-  Building2,
-  Mic,
-  PlugZap,
-  UserCog,
   HelpCircle,
   Warehouse,
 } from "lucide-react";
@@ -99,57 +92,45 @@ export function AppSidebar({ effectiveTenant, isSuperAdmin, hasActiveSubscriptio
   // Build navigation sections based on business mode and enabled modules
   const navSections: NavSection[] = [];
 
-  // MAIN section
-  const mainItems: NavItem[] = [
+  // OPERATIONS section - daily workflow items
+  const operationsItems: NavItem[] = [
     { href: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/app/inbox", label: "Calls & Sessions", icon: MessageSquare },
+    { href: "/app/inbox", label: "Inbox", icon: MessageSquare },
   ];
 
-  // Mode-specific items
+  // Mode-specific operational items
   if (businessMode === "dispatch" && enabledModules.includes("dispatch_queue")) {
-    mainItems.push({ href: "/app/dispatch", label: "Jobs", icon: Truck });
-    mainItems.push({ href: "/app/impound-lot", label: "Impound Lot", icon: Warehouse });
+    operationsItems.push({ href: "/app/dispatch", label: "Jobs", icon: Truck });
+    operationsItems.push({ href: "/app/impound-lot", label: "Impound Lot", icon: Warehouse });
   } else if (businessMode === "food") {
     if (enabledModules.includes("food_orders")) {
-      mainItems.push({ href: "/app/orders", label: "Orders", icon: UtensilsCrossed });
+      operationsItems.push({ href: "/app/orders", label: "Orders", icon: UtensilsCrossed });
     }
     if (enabledModules.includes("reservations")) {
-      mainItems.push({ href: "/app/reservations", label: "Reservations", icon: Clock });
+      operationsItems.push({ href: "/app/reservations", label: "Reservations", icon: Clock });
     }
     if (enabledModules.includes("catering")) {
-      mainItems.push({ href: "/app/catering", label: "Catering", icon: Cake });
+      operationsItems.push({ href: "/app/catering", label: "Catering", icon: Cake });
     }
   } else if (businessMode === "medical" && enabledModules.includes("medical_intake")) {
-    mainItems.push({ href: "/app/medical-intake", label: "Appointments", icon: Stethoscope });
+    operationsItems.push({ href: "/app/medical-intake", label: "Appointments", icon: Stethoscope });
   } else if (enabledModules.includes("booking")) {
-    mainItems.push({ href: "/app/bookings", label: terms.bookingsPageTitle || "Bookings", icon: Calendar });
+    operationsItems.push({ href: "/app/bookings", label: terms.bookingsPageTitle || "Bookings", icon: Calendar });
   }
 
-  // Add customers
-  mainItems.push({ href: "/app/customers", label: "Customers", icon: Users });
-  // Add calendar if booking enabled
+  // Add customers and calendar
+  operationsItems.push({ href: "/app/customers", label: "Customers", icon: Users });
   if (enabledModules.includes("booking")) {
-    mainItems.push({ href: "/app/calendar", label: "Calendar", icon: Calendar });
+    operationsItems.push({ href: "/app/calendar", label: "Calendar", icon: Calendar });
   }
 
-  navSections.push({ label: "Main", items: mainItems });
+  navSections.push({ label: "Operations", items: operationsItems });
 
-  // BUSINESS BRAIN section
+  // BUSINESS BRAIN section - single source of truth for all business config
   const brainItems: NavItem[] = [
-    { href: "/app/business-brain", label: "AI Assistant", icon: Bot, badge: conflictsCount || undefined },
+    { href: "/app/business-brain", label: "Business Brain", icon: Bot, badge: conflictsCount || undefined },
   ];
-  
-  // Services or Menu based on mode
-  if (businessMode === "food") {
-    brainItems.push({ href: "/app/business-brain?tab=menu", label: "Menu", icon: UtensilsCrossed });
-  } else {
-    brainItems.push({ href: "/app/business-brain?tab=services", label: "Services", icon: FileText });
-  }
-  
-  brainItems.push({ href: "/app/business-brain?tab=knowledge", label: "Knowledge Base", icon: BookOpen });
-  brainItems.push({ href: "/app/integrations", label: "Automations", icon: Zap });
-  
-  navSections.push({ label: "Business Brain", items: brainItems });
+  navSections.push({ label: "AI & Config", items: brainItems });
 
   // INSIGHTS section
   const insightsItems: NavItem[] = [
@@ -159,14 +140,11 @@ export function AppSidebar({ effectiveTenant, isSuperAdmin, hasActiveSubscriptio
   ];
   navSections.push({ label: "Insights", items: insightsItems });
 
-  // SETTINGS section
+  // SETTINGS section - account & technical only (business config is in Brain)
   const settingsItems: NavItem[] = [
-    { href: "/app/settings/business", label: "Business Profile", icon: Building2 },
-    { href: "/app/settings/voice", label: "Phone & Voice", icon: Mic },
-    { href: "/app/integrations", label: "Integrations", icon: PlugZap },
-    { href: "/app/settings/team", label: "Team", icon: UserCog },
+    { href: "/app/settings", label: "Settings", icon: Settings },
   ];
-  navSections.push({ label: "Settings", items: settingsItems });
+  navSections.push({ label: "Account", items: settingsItems });
 
   const alwaysAccessibleRoutes = ["/app/settings", "/app/go-live"];
   const effectiveHasSubscription = isSuperAdmin || hasActiveSubscription;

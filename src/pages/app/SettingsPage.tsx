@@ -8,12 +8,8 @@ import { Separator } from "@/components/ui/separator";
 import {
   Lock,
   Settings,
-  Building2,
   Users,
   MapPin,
-  Phone,
-  Mic,
-  PhoneForwarded,
   Calendar,
   CreditCard,
   Bell,
@@ -37,8 +33,6 @@ import { DangerZoneSection } from "@/components/settings/DangerZoneSection";
 import { SettingsCard } from "@/components/settings/SettingsSection";
 import { RevenueSettingsSection } from "@/components/settings/RevenueSettingsSection";
 import { RecoverySettingsSection } from "@/components/settings/recovery/RecoverySettingsSection";
-import { BusinessProfileSettings } from "@/components/settings/BusinessProfileSettings";
-import { cn } from "@/lib/utils";
 
 interface SettingsGroup {
   id: string;
@@ -55,15 +49,9 @@ interface SettingsItem {
 
 const settingsGroups: SettingsGroup[] = [
   {
-    id: "business",
-    label: "Business",
+    id: "team-locations",
+    label: "Team & Locations",
     items: [
-      {
-        id: "profile",
-        icon: Building2,
-        label: "Business Profile",
-        description: "Name, address, contact info, hours",
-      },
       {
         id: "team",
         icon: Users,
@@ -79,37 +67,13 @@ const settingsGroups: SettingsGroup[] = [
     ],
   },
   {
-    id: "phone-voice",
-    label: "Phone & Voice",
-    items: [
-      {
-        id: "phone",
-        icon: Phone,
-        label: "Phone Numbers",
-        description: "Your CloseLoop number and settings",
-      },
-      {
-        id: "voice",
-        icon: Mic,
-        label: "Voice Settings",
-        description: "AI voice, greeting, fallback behavior",
-      },
-      {
-        id: "forwarding",
-        icon: PhoneForwarded,
-        label: "Call Forwarding",
-        description: "When and where to forward calls",
-      },
-    ],
-  },
-  {
     id: "integrations",
     label: "Integrations",
     items: [
       {
         id: "calendar",
         icon: Calendar,
-        label: "Calendar",
+        label: "Calendar Sync",
         description: "Google Calendar, Outlook sync",
       },
       {
@@ -119,16 +83,16 @@ const settingsGroups: SettingsGroup[] = [
         description: "Stripe, Square integration",
       },
       {
-        id: "notifications",
-        icon: Bell,
-        label: "Notifications",
-        description: "SMS, email, push settings",
-      },
-      {
         id: "webhooks",
         icon: Webhook,
         label: "Webhooks",
         description: "Push data to external systems",
+      },
+      {
+        id: "notifications",
+        icon: Bell,
+        label: "Notifications",
+        description: "SMS, email, push settings",
       },
     ],
   },
@@ -209,9 +173,6 @@ export default function SettingsPage() {
   // Section content renderers
   const renderSectionContent = () => {
     switch (activeSection) {
-      case "profile":
-        return <BusinessProfileSettings />;
-
       case "team":
         return (
           <SettingsCard
@@ -236,23 +197,6 @@ export default function SettingsPage() {
 
       case "locations":
         return <MultiLocationManager />;
-
-      case "phone":
-      case "voice":
-      case "forwarding":
-        return (
-          <SettingsCard
-            title="Phone & Voice Settings"
-            description="These settings are configured in the Business Brain."
-          >
-            <p className="text-sm text-muted-foreground">
-              Phone, voice, and forwarding settings are managed in the Business Brain → AI Setup section.
-            </p>
-            <Button variant="outline" className="mt-4" onClick={() => window.location.href = "/app/brain"}>
-              Go to Business Brain
-            </Button>
-          </SettingsCard>
-        );
 
       case "calendar":
       case "payments":
