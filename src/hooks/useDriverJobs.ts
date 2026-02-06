@@ -25,6 +25,9 @@ export interface DriverJob {
   assigned_vehicle: string | null;
   driver_id: string | null;
   vehicle_id: string | null;
+  en_route_at: string | null;
+  on_site_at: string | null;
+  estimated_arrival_at: string | null;
   created_at: string;
   dispatched_at: string | null;
   arrived_at: string | null;
@@ -76,14 +79,46 @@ export function useDriverJobs() {
 
   const updateJobStatus = useMutation({
     mutationFn: async ({ jobId, status }: { jobId: string; status: string }) => {
+      const now = new Date().toISOString();
       const updates: Record<string, unknown> = { status };
       
       if (status === "en_route") {
-        updates.dispatched_at = new Date().toISOString();
+        updates.dispatched_at = now;
+        updates.en_route_at = now;
+        
+        // Calculate estimated arrival if we have pickup coordinates
+        // Fetch job to get pickup location for ETA calculation
+        const { data: job } = await supabase
+          .from("dispatch_jobs")
+          .select("pickup_lat, pickup_lng, tenant_id")
+          .eq("id", jobId)
+          .single();
+        
+        if (job?.pickup_lat && job?.pickup_lng) {
+          // Call check-service-area to get drive time estimate
+          try {
+            const { data: etaData } = await supabase.functions.invoke("elevenlabs-check-service-area", {
+              body: {
+                tenant_id: job.tenant_id,
+                address: "", // Not needed for ETA calc
+                pickup_lat: job.pickup_lat,
+                pickup_lng: job.pickup_lng,
+              },
+            });
+            
+            if (etaData?.eta_minutes) {
+              const etaTime = new Date(Date.now() + etaData.eta_minutes * 60000);
+              updates.estimated_arrival_at = etaTime.toISOString();
+            }
+          } catch (e) {
+            console.warn("Could not calculate ETA:", e);
+          }
+        }
       } else if (status === "on_site") {
-        updates.arrived_at = new Date().toISOString();
+        updates.arrived_at = now;
+        updates.on_site_at = now;
       } else if (status === "completed") {
-        updates.completed_at = new Date().toISOString();
+        updates.completed_at = now;
       }
 
       const { error } = await supabase

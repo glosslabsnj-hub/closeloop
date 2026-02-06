@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.get-impound-lot-info]
 verify_jwt = false
+
+[functions.elevenlabs-lookup-dispatch-status]
+verify_jwt = false
