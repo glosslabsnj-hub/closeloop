@@ -17,6 +17,7 @@ import {
   Shield, 
   Sparkles, 
   BookOpen,
+  Truck,
   type LucideIcon
 } from "lucide-react";
 import type { BusinessMode } from "@/hooks/useTenantConfig";
@@ -289,6 +290,38 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
     ],
   },
   {
+    id: "fleet",
+    title: "Fleet",
+    description: "Drivers & vehicles",
+    icon: Truck,
+    section: "fleet",
+    emphasis: ["dispatch"],
+    cards: [
+      {
+        id: "drivers",
+        title: "Crew & Drivers",
+        purpose: "Team members who can be assigned to jobs",
+        usedByAI: [
+          "Shows available drivers for dispatch assignments",
+          "Tracks driver availability and status",
+        ],
+        defaultCollapsed: false,
+        isVisible: (mode) => mode === "dispatch",
+      },
+      {
+        id: "vehicles",
+        title: "Fleet Vehicles",
+        purpose: "Trucks and equipment available for dispatch",
+        usedByAI: [
+          "Shows available vehicles for job assignments",
+          "Tracks vehicle status and assignments",
+        ],
+        defaultCollapsed: false,
+        isVisible: (mode) => mode === "dispatch",
+      },
+    ],
+  },
+  {
     id: "knowledge",
     title: "Knowledge",
     description: "FAQs & training",
@@ -415,6 +448,7 @@ export const SECTION_TO_CATEGORY: Record<string, string> = {
   policies: "rules",
   "ai-behavior": "ai-setup",
   knowledge: "knowledge",
+  fleet: "fleet",
 };
 
 /**
@@ -429,4 +463,5 @@ export const CATEGORY_TO_SECTION: Record<string, string> = {
   rules: "policies",
   "ai-setup": "ai-behavior",
   knowledge: "knowledge",
+  fleet: "fleet",
 };

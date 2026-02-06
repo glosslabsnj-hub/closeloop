@@ -32,7 +32,13 @@ export function BusinessBrainTabs({
   const reviewCount = useBrainReviewCount();
 
   // Get categories ordered by relevance for current mode
-  const categories = getOrderedCategories(businessMode);
+  // Filter out categories where ALL cards are hidden (like fleet for non-dispatch modes)
+  const categories = getOrderedCategories(businessMode).filter(category => {
+    // If category has no cards with visibility rules, show it
+    if (!category.cards.some(c => c.isVisible)) return true;
+    // Otherwise, show only if at least one card is visible
+    return category.cards.some(card => !card.isVisible || card.isVisible(businessMode, []));
+  });
 
   return (
     <div className={cn("border-b bg-card/30", className)}>
