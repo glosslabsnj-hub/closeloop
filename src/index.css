@@ -1,5 +1,3 @@
-@import './styles/themes.css';
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -12,161 +10,160 @@
 
 @layer base {
   /* =====================================================
-     DARK MODE (Default) - Premium Purple Theme
-     Near-black with vibrant purple accent
+     DARK MODE (Default)
+     Modern Glass/Neumorphic - iOS/macOS Inspired
      ===================================================== */
   :root,
   .dark {
-    /* Core Background - Near black with subtle blue tint */
-    --background: 240 10% 4%;
-    --foreground: 0 0% 98%;
+    /* Core Background - Deep, rich foundation for glass effects */
+    --background: 222 30% 8%;
+    --foreground: 210 20% 98%;
 
-    /* Cards - Elevated surfaces */
-    --card: 240 10% 8%;
-    --card-foreground: 0 0% 98%;
+    /* Cards - Semi-transparent for glass morphism */
+    --card: 222 25% 11%;
+    --card-foreground: 210 15% 95%;
 
-    --popover: 240 10% 10%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 222 25% 13%;
+    --popover-foreground: 210 20% 98%;
 
-    /* Primary - Vibrant purple accent */
-    --primary: 265 90% 65%;
+    /* Primary - Rich sapphire blue */
+    --primary: 220 75% 55%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 265 90% 65%;
 
-    /* Secondary - Subtle elevated surface */
-    --secondary: 240 10% 12%;
-    --secondary-foreground: 240 5% 70%;
+    /* Secondary - Subtle navy panel */
+    --secondary: 222 20% 14%;
+    --secondary-foreground: 210 10% 70%;
 
-    /* Muted - Subdued elements */
-    --muted: 240 10% 15%;
-    --muted-foreground: 240 5% 50%;
+    /* Muted - Soft navy gray */
+    --muted: 222 15% 16%;
+    --muted-foreground: 210 10% 55%;
 
-    /* Accent - Purple tinted */
-    --accent: 265 30% 15%;
-    --accent-foreground: 265 90% 80%;
-    --accent-signature: 265 90% 65%;
+    /* Accent - Warm gold for emphasis */
+    --accent: 42 40% 14%;
+    --accent-foreground: 42 50% 80%;
+    --accent-signature: 42 70% 55%;
 
     /* Status Colors */
-    --destructive: 0 85% 60%;
+    --destructive: 0 65% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 70% 50%;
+    --success: 160 60% 45%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 95% 55%;
+    --warning: 38 90% 55%;
     --warning-foreground: 38 95% 10%;
 
     /* Borders & Inputs */
-    --border: 240 10% 15%;
-    --input: 240 10% 6%;
-    --ring: 265 90% 65%;
+    --border: 222 15% 18%;
+    --input: 222 20% 12%;
+    --ring: 220 75% 55%;
 
-    /* Radius - Softer, modern feel */
-    --radius: 0.625rem;
+    /* Radius - Larger for softer, modern feel */
+    --radius: 0.75rem;
 
-    /* Sidebar - Deep dark */
-    --sidebar-background: 240 10% 5%;
-    --sidebar-foreground: 240 5% 55%;
-    --sidebar-primary: 265 90% 65%;
+    /* Sidebar */
+    --sidebar-background: 222 30% 6%;
+    --sidebar-foreground: 210 10% 60%;
+    --sidebar-primary: 220 75% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 10% 10%;
-    --sidebar-accent-foreground: 0 0% 90%;
-    --sidebar-border: 240 10% 12%;
-    --sidebar-ring: 265 90% 65%;
+    --sidebar-accent: 222 20% 12%;
+    --sidebar-accent-foreground: 210 15% 80%;
+    --sidebar-border: 222 20% 14%;
+    --sidebar-ring: 220 75% 55%;
 
     /* Glass Morphism Variables - Dark Mode */
-    --glass-bg: 240 10% 8%;
-    --glass-opacity: 0.85;
+    --glass-bg: 222 25% 11%;
+    --glass-opacity: 0.75;
     --glass-border: 0 0% 100%;
-    --glass-border-opacity: 0.06;
+    --glass-border-opacity: 0.08;
     --glass-blur: 20px;
 
     /* Neumorphic Shadow Variables - Dark Mode */
-    --shadow-light: 240 10% 15%;
-    --shadow-dark: 240 15% 2%;
-    --shadow-opacity-light: 0.03;
-    --shadow-opacity-dark: 0.4;
+    --shadow-light: 222 20% 18%;
+    --shadow-dark: 222 35% 4%;
+    --shadow-opacity-light: 0.05;
+    --shadow-opacity-dark: 0.25;
 
     /* Inner Glow for Depth */
     --inner-glow: 0 0% 100%;
-    --inner-glow-opacity: 0.04;
+    --inner-glow-opacity: 0.06;
   }
 
   /* =====================================================
-     LIGHT MODE - Clean Premium
+     LIGHT MODE
+     Modern Glass/Neumorphic - Clean, Bright, Premium
      ===================================================== */
   .light {
-    /* Core Background */
-    --background: 0 0% 98%;
-    --foreground: 240 10% 10%;
+    /* Core Background - Soft warm white */
+    --background: 220 20% 97%;
+    --foreground: 222 25% 15%;
 
-    /* Cards */
+    /* Cards - White with transparency for glass */
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 10%;
+    --card-foreground: 222 25% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 10%;
+    --popover-foreground: 222 25% 15%;
 
-    /* Primary - Purple accent */
-    --primary: 265 90% 55%;
+    /* Primary - Rich sapphire blue (slightly deeper for contrast) */
+    --primary: 220 75% 50%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 265 90% 55%;
 
-    /* Secondary */
-    --secondary: 240 5% 92%;
-    --secondary-foreground: 240 10% 35%;
+    /* Secondary - Soft gray */
+    --secondary: 220 15% 92%;
+    --secondary-foreground: 222 20% 40%;
 
-    /* Muted */
-    --muted: 240 5% 94%;
-    --muted-foreground: 240 5% 45%;
+    /* Muted - Subtle gray */
+    --muted: 220 15% 94%;
+    --muted-foreground: 222 15% 45%;
 
-    /* Accent */
-    --accent: 265 50% 95%;
-    --accent-foreground: 265 60% 35%;
-    --accent-signature: 265 90% 55%;
+    /* Accent - Warm gold (adjusted for light) */
+    --accent: 42 80% 95%;
+    --accent-foreground: 42 60% 30%;
+    --accent-signature: 42 70% 50%;
 
-    /* Status Colors */
-    --destructive: 0 75% 55%;
+    /* Status Colors (adjusted for light mode readability) */
+    --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 70% 42%;
+    --success: 160 65% 38%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 95% 50%;
+    --warning: 38 95% 45%;
     --warning-foreground: 38 95% 15%;
 
     /* Borders & Inputs */
-    --border: 240 5% 88%;
-    --input: 240 5% 96%;
-    --ring: 265 90% 55%;
+    --border: 220 15% 88%;
+    --input: 220 15% 96%;
+    --ring: 220 75% 50%;
 
-    /* Radius */
-    --radius: 0.625rem;
+    /* Radius - Same as dark */
+    --radius: 0.75rem;
 
-    /* Sidebar */
-    --sidebar-background: 0 0% 99%;
-    --sidebar-foreground: 240 5% 45%;
-    --sidebar-primary: 265 90% 55%;
+    /* Sidebar - Light variant */
+    --sidebar-background: 220 20% 98%;
+    --sidebar-foreground: 222 15% 45%;
+    --sidebar-primary: 220 75% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 5% 94%;
-    --sidebar-accent-foreground: 240 10% 20%;
-    --sidebar-border: 240 5% 92%;
-    --sidebar-ring: 265 90% 55%;
+    --sidebar-accent: 220 15% 94%;
+    --sidebar-accent-foreground: 222 20% 25%;
+    --sidebar-border: 220 15% 90%;
+    --sidebar-ring: 220 75% 50%;
 
-    /* Glass Morphism */
+    /* Glass Morphism Variables - Light Mode */
     --glass-bg: 0 0% 100%;
-    --glass-opacity: 0.8;
+    --glass-opacity: 0.7;
     --glass-border: 0 0% 100%;
     --glass-border-opacity: 0.5;
     --glass-blur: 20px;
 
-    /* Shadows */
+    /* Neumorphic Shadow Variables - Light Mode */
     --shadow-light: 0 0% 100%;
-    --shadow-dark: 240 10% 80%;
+    --shadow-dark: 220 20% 80%;
     --shadow-opacity-light: 0.8;
-    --shadow-opacity-dark: 0.1;
+    --shadow-opacity-dark: 0.15;
 
-    /* Inner Glow */
+    /* Inner Glow for Depth */
     --inner-glow: 0 0% 100%;
     --inner-glow-opacity: 0.8;
   }

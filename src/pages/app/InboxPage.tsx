@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useConversations, useMessages, ConversationWithDetails } from "@/hooks/useConversations";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { EmptyState } from "@/components/ui/empty-state";
 import {
   Phone,
   Send,
@@ -19,8 +17,6 @@ import {
   ArrowLeft,
   MessageSquare,
   Loader2,
-  Mic,
-  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow, format } from "date-fns";
@@ -301,7 +297,6 @@ export default function InboxPage() {
   const { conversations, isLoading } = useConversations();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const navigate = useNavigate();
 
   const selectedConvo = conversations.find((c) => c.id === selectedConversation) || null;
 
@@ -316,22 +311,19 @@ export default function InboxPage() {
   if (conversations.length === 0) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-3.5rem)]">
-        <EmptyState
-          icon={Phone}
-          title="No calls yet"
-          description="Once your AI starts taking calls, they'll appear here. Make a test call to try it out!"
-          emojiStyle
-          action={{
-            label: "Make Test Call",
-            icon: Mic,
-            onClick: () => navigate("/app/simulator"),
-          }}
-          secondaryAction={{
-            label: "How It Works",
-            icon: BookOpen,
-            onClick: () => navigate("/app/help"),
-          }}
-        />
+        <div className="text-center max-w-md p-8">
+          <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+          <h2 className="text-xl font-semibold mb-2">No conversations yet</h2>
+          <p className="text-muted-foreground mb-4">
+            When customers text or call your business, their conversations will appear here.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            <a href="/app/simulator" className="text-primary hover:underline">
+              Make a test call
+            </a>
+            {" "}to see it appear here.
+          </p>
+        </div>
       </div>
     );
   }

@@ -17,7 +17,6 @@ import {
   Shield, 
   Sparkles, 
   BookOpen,
-  LayoutDashboard,
   type LucideIcon
 } from "lucide-react";
 import type { BusinessMode } from "@/hooks/useTenantConfig";
@@ -52,14 +51,6 @@ export interface CategoryConfig {
  * Complete navigation structure with mode-aware visibility
  */
 export const BRAIN_CATEGORIES: CategoryConfig[] = [
-  {
-    id: "overview",
-    title: "Overview",
-    description: "AI health & status",
-    icon: LayoutDashboard,
-    section: "overview",
-    cards: [],
-  },
   {
     id: "identity",
     title: "Identity",
@@ -416,7 +407,6 @@ export function getVisibleCards(
  * Map old section IDs to new category IDs for deep link compatibility
  */
 export const SECTION_TO_CATEGORY: Record<string, string> = {
-  overview: "overview",
   profile: "identity",
   hours: "operations",
   services: "offerings",
@@ -431,7 +421,6 @@ export const SECTION_TO_CATEGORY: Record<string, string> = {
  * Map category IDs to section params for URL
  */
 export const CATEGORY_TO_SECTION: Record<string, string> = {
-  overview: "overview",
   identity: "profile",
   operations: "hours",
   offerings: "services",

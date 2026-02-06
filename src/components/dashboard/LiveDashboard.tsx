@@ -1,20 +1,15 @@
-import { useAuth } from "@/contexts/AuthContext";
-import { useTenantConfig } from "@/hooks/useTenantConfig";
-import { AgentControlPanel } from "./AgentControlPanel";
-import { DashboardHeroMetrics } from "./DashboardHeroMetrics";
-import { DashboardRecentActivity } from "./DashboardRecentActivity";
-import { DashboardNeedsAttention } from "./DashboardNeedsAttention";
-import { DashboardCallChart } from "./DashboardCallChart";
-import { DashboardTodaySchedule } from "./DashboardTodaySchedule";
-import { DashboardActiveWork } from "./DashboardActiveWork";
-import { DashboardAIPerformance } from "./DashboardAIPerformance";
-import { UnifiedAlertBanner } from "./UnifiedAlertBanner";
-import { SetupProgressChecklist } from "./SetupProgressChecklist";
-import { Copilot, CopilotTrigger } from "./Copilot";
-import { SoundManager } from "@/components/notifications/SoundManager";
-import { PageTransition } from "@/components/ui/page-transition";
 import { useState } from "react";
-
+import { useAuth } from "@/contexts/AuthContext";
+import { AgentControlPanel } from "./AgentControlPanel";
+import { MetricsGrid } from "./MetricsGrid";
+import { NeedsAttentionBanner } from "./NeedsAttentionBanner";
+import { LiveActivityFeed } from "./LiveActivityFeed";
+import { UnifiedAlertBanner } from "./UnifiedAlertBanner";
+import { Copilot, CopilotTrigger } from "./Copilot";
+import { SetupProgressChecklist } from "./SetupProgressChecklist";
+import { ROIPerformanceWidget } from "./ROIPerformanceWidget";
+import { LeadRecoveryWidget } from "./LeadRecoveryWidget";
+import { SoundManager } from "@/components/notifications/SoundManager";
 function getGreeting(): string {
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
@@ -23,58 +18,54 @@ function getGreeting(): string {
 }
 
 export function LiveDashboard() {
-  const { tenant } = useAuth();
-  const { enabledModules, businessMode } = useTenantConfig();
+  const { tenant, assistantSettings } = useAuth();
   const [copilotOpen, setCopilotOpen] = useState(false);
 
-  const businessName = tenant?.name || "there";
+  const businessName = tenant?.name?.split(' ')[0] || "there";
   const greeting = getGreeting();
-  const hasBooking = enabledModules.includes("booking");
-  const showActiveWork = businessMode === "food" || businessMode === "dispatch";
-  const showSchedule = hasBooking && !showActiveWork;
 
   return (
-    <PageTransition className="space-y-8">
+    <div className="space-y-6 animate-fade-in">
       {/* Audio notification manager */}
       <SoundManager />
 
-      {/* Header with greeting */}
-      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-            {greeting}, {businessName} 👋
-          </h1>
-        </div>
+      {/* Page Header */}
+      <header>
+        <h1 className="text-3xl font-semibold tracking-tight">
+          {greeting}, {businessName}
+        </h1>
+        <p className="mt-1 text-muted-foreground">
+          Here's what's happening with your AI receptionist today.
+        </p>
       </header>
 
       {/* Alerts - Only show if there are issues */}
       <UnifiedAlertBanner />
 
-      {/* Hero Metrics - 4 column grid */}
-      <DashboardHeroMetrics />
+      {/* Attention Items */}
+      <NeedsAttentionBanner />
 
-      {/* Agent Control - Quick toggle */}
+      {/* Agent Control - Most prominent element */}
       <AgentControlPanel />
 
-      {/* Activity + Attention - Side by side */}
+      {/* Performance Widgets */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <DashboardRecentActivity />
-        <DashboardNeedsAttention />
+        <ROIPerformanceWidget />
+        <LeadRecoveryWidget />
       </div>
 
-      {/* Call Volume Chart */}
-      <DashboardCallChart />
+      {/* Metrics */}
+      <MetricsGrid />
 
-      {/* Schedule / Active Work + AI Performance - Side by side */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {showActiveWork && <DashboardActiveWork />}
-        {showSchedule && <DashboardTodaySchedule />}
-        <DashboardAIPerformance />
-        {!showActiveWork && !showSchedule && <SetupProgressChecklist />}
+      {/* Activity & Setup */}
+      <div className="grid gap-6 lg:grid-cols-5">
+        <div className="lg:col-span-3 min-h-0">
+          <LiveActivityFeed />
+        </div>
+        <div className="lg:col-span-2 min-h-0">
+          <SetupProgressChecklist />
+        </div>
       </div>
-
-      {/* Setup Progress - Only if not already shown */}
-      {(showActiveWork || showSchedule) && <SetupProgressChecklist />}
 
       {/* Copilot FAB */}
       <div className="fixed bottom-6 right-6 z-30 md:bottom-8 md:right-8">
@@ -84,6 +75,6 @@ export function LiveDashboard() {
           <CopilotTrigger onClick={() => setCopilotOpen(true)} />
         )}
       </div>
-    </PageTransition>
+    </div>
   );
 }

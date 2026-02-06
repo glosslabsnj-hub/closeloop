@@ -45,10 +45,6 @@ import { IntelligenceSettingsForm } from "@/components/settings/IntelligenceSett
 import { BusinessHoursManager } from "@/components/brain/BusinessHoursManager";
 import { AINeverPromiseEditor } from "@/components/brain/AINeverPromiseEditor";
 import { AIScriptsEditor } from "@/components/brain/AIScriptsEditor";
-import { BrainOverview } from "@/components/brain/BrainOverview";
-import { AIAssistantConfigEditor } from "@/components/brain/AIAssistantConfigEditor";
-import { ServicesConfigPage } from "@/components/brain/ServicesConfigPage";
-import { FAQsKnowledgePage } from "@/components/brain/FAQsKnowledgePage";
 import { 
   ImpoundLotEditor, 
   ImpoundFeesEditor, 
@@ -78,7 +74,7 @@ import {
   Warehouse, Phone, FileCheck
 } from "lucide-react";
 
-const VALID_SECTIONS = ["overview", "profile", "hours", "services", "service-area", "availability", "policies", "ai-behavior", "knowledge"] as const;
+const VALID_SECTIONS = ["profile", "hours", "services", "service-area", "availability", "policies", "ai-behavior", "knowledge"] as const;
 type SectionId = typeof VALID_SECTIONS[number];
 
 const LEGACY_SECTION_ALIASES: Record<string, SectionId> = {
@@ -91,6 +87,7 @@ const LEGACY_TAB_TO_SECTION: Record<string, { section: SectionId; hash?: string 
   updates: { section: "knowledge", hash: "review" },
   assets: { section: "knowledge", hash: "documents" },
   uploads: { section: "knowledge", hash: "documents" },
+  overview: { section: "profile" },
   memory: { section: "ai-behavior", hash: "intelligence" },
 };
 
@@ -117,7 +114,7 @@ export default function BusinessBrainPage() {
       const mapped = LEGACY_TAB_TO_SECTION[legacyTab];
       return { activeSection: mapped.section, focusHash: mapped.hash ?? null };
     }
-    return { activeSection: "overview" as SectionId, focusHash: null as string | null };
+    return { activeSection: "profile" as SectionId, focusHash: null as string | null };
   }, [legacyTab, normalizedSectionParam]);
 
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -216,11 +213,6 @@ export default function BusinessBrainPage() {
           {/* SECTION CONTENT */}
           <div className="space-y-4">
             
-            {/* OVERVIEW */}
-            {activeSection === "overview" && (
-              <BrainOverview />
-            )}
-            
             {/* PROFILE */}
             {activeSection === "profile" && (
               <div className="space-y-3">
@@ -274,46 +266,31 @@ export default function BusinessBrainPage() {
                 {/* Pricing Readiness - inline, not collapsible */}
                 <QuoteReadinessCard />
 
-                {/* Use new comprehensive ServicesConfigPage for standard service businesses */}
-                {!isFoodMode && !isDispatchMode && (
-                  <ServicesConfigPage />
-                )}
-
-                {/* Food mode uses MenuCatalogEditor */}
-                {isFoodMode && (
-                  <>
-                    {!isDispatchMode && (
-                      <CollapsibleBrainSection
-                        id="pricing-rules"
-                        title="Pricing Rules"
-                        icon={DollarSign}
-                        preview={summaries.pricingRules}
-                      >
-                        <PricingRulesEditor />
-                      </CollapsibleBrainSection>
-                    )}
-                    <CollapsibleBrainSection
-                      id="catalog"
-                      title="Menu"
-                      icon={Tag}
-                      preview={summaries.catalog}
-                    >
-                      <MenuCatalogEditor />
-                    </CollapsibleBrainSection>
-                  </>
-                )}
-
-                {/* Dispatch mode uses DispatchServiceCatalog */}
-                {isDispatchMode && (
+                {!isDispatchMode && (
                   <CollapsibleBrainSection
-                    id="catalog"
-                    title="Services"
-                    icon={Tag}
-                    preview={summaries.catalog}
+                    id="pricing-rules"
+                    title="Pricing Rules"
+                    icon={DollarSign}
+                    preview={summaries.pricingRules}
                   >
-                    <DispatchServiceCatalog />
+                    <PricingRulesEditor />
                   </CollapsibleBrainSection>
                 )}
+
+                <CollapsibleBrainSection
+                  id="catalog"
+                  title={isFoodMode ? "Menu" : "Services"}
+                  icon={Tag}
+                  preview={summaries.catalog}
+                >
+                  {isFoodMode ? (
+                    <MenuCatalogEditor />
+                  ) : isDispatchMode ? (
+                    <DispatchServiceCatalog />
+                  ) : (
+                    <ServiceCatalogEditor />
+                  )}
+                </CollapsibleBrainSection>
               </div>
             )}
 
@@ -501,8 +478,14 @@ export default function BusinessBrainPage() {
               <div className="space-y-3">
                 <SectionHelper sectionId="ai-behavior" businessMode={businessMode} />
                 
-                {/* New AI Assistant Config Editor with tabs */}
-                <AIAssistantConfigEditor />
+                <CollapsibleBrainSection
+                  id="scripts"
+                  title="Greeting & Scripts"
+                  icon={Mic}
+                  preview={summaries.scripts}
+                >
+                  <AIScriptsEditor />
+                </CollapsibleBrainSection>
 
                 <CollapsibleBrainSection
                   id="guidelines"
@@ -541,8 +524,14 @@ export default function BusinessBrainPage() {
                   </CollapsibleBrainSection>
                 )}
 
-                {/* Use new comprehensive FAQs Knowledge Page */}
-                <FAQsKnowledgePage />
+                <CollapsibleBrainSection
+                  id="faqs"
+                  title="FAQs"
+                  icon={HelpCircle}
+                  preview={summaries.faqs}
+                >
+                  <BusinessFAQEditor />
+                </CollapsibleBrainSection>
 
                 <CollapsibleBrainSection
                   id="objections"

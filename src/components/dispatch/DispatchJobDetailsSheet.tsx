@@ -20,9 +20,6 @@ import {
   ExternalLink,
   Copy,
   ChevronRight,
-  Calendar,
-  CheckCircle2,
-  XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -63,20 +60,20 @@ interface DispatchJobDetailsSheetProps {
   onCall: (job: DispatchJob) => void;
 }
 
-const statusConfig: Record<string, { label: string; className: string; icon: React.ElementType }> = {
-  pending: { label: "Pending", className: "bg-warning/10 text-warning border-warning/30", icon: Clock },
-  assigned: { label: "Assigned", className: "bg-primary/10 text-primary border-primary/30", icon: User },
-  en_route: { label: "En Route", className: "bg-primary/10 text-primary border-primary/30", icon: Navigation },
-  on_site: { label: "On Site", className: "bg-success/10 text-success border-success/30", icon: MapPin },
-  completed: { label: "Completed", className: "bg-success/10 text-success border-success/30", icon: CheckCircle2 },
-  cancelled: { label: "Cancelled", className: "bg-destructive/10 text-destructive border-destructive/30", icon: XCircle },
+const statusConfig: Record<string, { label: string; className: string }> = {
+  pending: { label: "Pending", className: "border-warning text-warning bg-warning/10" },
+  assigned: { label: "Assigned", className: "border-info text-info bg-info/10" },
+  en_route: { label: "En Route", className: "border-primary text-primary bg-primary/10" },
+  on_site: { label: "On Site", className: "border-success text-success bg-success/10" },
+  completed: { label: "Completed", className: "border-muted-foreground text-muted-foreground bg-muted" },
+  cancelled: { label: "Cancelled", className: "border-destructive/30 text-destructive bg-destructive/10" },
 };
 
-const priorityConfig: Record<string, { label: string; className: string; dotClass: string }> = {
-  urgent: { label: "Urgent", className: "bg-destructive/10 text-destructive border-destructive/30", dotClass: "bg-destructive" },
-  high: { label: "High", className: "bg-warning/10 text-warning border-warning/30", dotClass: "bg-warning" },
-  normal: { label: "Normal", className: "bg-muted/50 text-muted-foreground border-border/50", dotClass: "bg-muted-foreground" },
-  low: { label: "Low", className: "bg-muted/30 text-muted-foreground/70 border-border/30", dotClass: "bg-muted-foreground/50" },
+const priorityConfig: Record<string, { label: string; className: string }> = {
+  urgent: { label: "Urgent", className: "bg-destructive text-destructive-foreground" },
+  high: { label: "High", className: "bg-warning/15 text-warning border-warning/30" },
+  normal: { label: "Normal", className: "bg-muted text-muted-foreground" },
+  low: { label: "Low", className: "bg-muted/50 text-muted-foreground" },
 };
 
 export function DispatchJobDetailsSheet({
@@ -93,7 +90,6 @@ export function DispatchJobDetailsSheet({
 
   const status = statusConfig[job.status] || statusConfig.pending;
   const priority = priorityConfig[job.priority] || priorityConfig.normal;
-  const StatusIcon = status.icon;
   
   const getNextStatus = (currentStatus: string): string | null => {
     const flow: Record<string, string> = {
@@ -120,7 +116,7 @@ export function DispatchJobDetailsSheet({
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: `${label} copied to clipboard` });
+    toast({ title: `${label} copied` });
   };
 
   const openInMaps = (address: string) => {
@@ -130,24 +126,17 @@ export function DispatchJobDetailsSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto bg-background border-l border-border/50">
-        <SheetHeader className="pb-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
-                Job Details
-              </p>
-              <SheetTitle className="text-xl font-semibold">
-                #{job.job_number || job.id.slice(0, 8)}
-              </SheetTitle>
-            </div>
+      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+        <SheetHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <SheetTitle className="text-lg">
+              Job #{job.job_number || job.id.slice(0, 8)}
+            </SheetTitle>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className={cn("text-xs font-medium", priority.className)}>
-                <span className={cn("h-1.5 w-1.5 rounded-full mr-1.5", priority.dotClass)} />
+              <Badge variant="outline" className={cn("text-xs", priority.className)}>
                 {priority.label}
               </Badge>
-              <Badge variant="outline" className={cn("text-xs font-medium", status.className)}>
-                <StatusIcon className="h-3 w-3 mr-1.5" />
+              <Badge variant="outline" className={cn("text-xs", status.className)}>
                 {status.label}
               </Badge>
             </div>
@@ -157,9 +146,9 @@ export function DispatchJobDetailsSheet({
         <div className="space-y-6">
           {/* Quick Actions */}
           {nextStatus && nextLabel && (
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               <Button
-                className="flex-1 h-11"
+                className="flex-1"
                 onClick={() => {
                   if (job.status === "pending") {
                     onAssign(job);
@@ -172,78 +161,75 @@ export function DispatchJobDetailsSheet({
                 {nextLabel}
               </Button>
               {job.customer_phone && (
-                <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => onCall(job)}>
+                <Button variant="outline" size="icon" onClick={() => onCall(job)}>
                   <Phone className="h-4 w-4" />
                 </Button>
               )}
             </div>
           )}
 
-          <Separator className="bg-border/50" />
+          <Separator />
 
           {/* Customer Info */}
-          <div className="space-y-4">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               Customer
             </h4>
-            <div className="space-y-3 p-4 rounded-xl bg-muted/30 border border-border/50">
+            <div className="space-y-2">
               <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10">
-                  <User className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium">
-                    {job.customer_name || job.customers?.full_name || "Unknown"}
-                  </p>
-                  {job.customer_phone && (
-                    <div className="flex items-center gap-2 mt-1">
-                      <Button
-                        variant="link"
-                        className="h-auto p-0 text-sm text-muted-foreground hover:text-primary"
-                        onClick={() => onCall(job)}
-                      >
-                        {job.customer_phone}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => copyToClipboard(job.customer_phone!, "Phone")}
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">
+                  {job.customer_name || job.customers?.full_name || "Unknown"}
+                </span>
               </div>
+              {job.customer_phone && (
+                <div className="flex items-center gap-3">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <Button
+                    variant="link"
+                    className="h-auto p-0 text-primary"
+                    onClick={() => onCall(job)}
+                  >
+                    {job.customer_phone}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => copyToClipboard(job.customer_phone!, "Phone")}
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
-          <Separator className="bg-border/50" />
+          <Separator />
 
           {/* Locations */}
-          <div className="space-y-4">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               Locations
             </h4>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {/* Pickup */}
-              <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
-                <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-2">
-                  <MapPin className="h-3.5 w-3.5" />
-                  PICKUP LOCATION
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                  <MapPin className="h-3 w-3" />
+                  PICKUP
                 </div>
                 {job.pickup_address ? (
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm text-foreground">{job.pickup_address}</p>
-                    <div className="flex gap-1 shrink-0">
+                  <div className="flex items-start gap-2">
+                    <p className="flex-1 text-sm">{job.pickup_address}</p>
+                    <div className="flex gap-1">
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
                         onClick={() => copyToClipboard(job.pickup_address!, "Address")}
                       >
-                        <Copy className="h-3.5 w-3.5" />
+                        <Copy className="h-3 w-3" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -251,7 +237,7 @@ export function DispatchJobDetailsSheet({
                         className="h-7 w-7"
                         onClick={() => openInMaps(job.pickup_address!)}
                       >
-                        <ExternalLink className="h-3.5 w-3.5" />
+                        <ExternalLink className="h-3 w-3" />
                       </Button>
                     </div>
                   </div>
@@ -262,21 +248,21 @@ export function DispatchJobDetailsSheet({
 
               {/* Dropoff */}
               {job.dropoff_address && (
-                <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
-                  <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-2">
-                    <Navigation className="h-3.5 w-3.5" />
-                    DROP-OFF LOCATION
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                    <Navigation className="h-3 w-3" />
+                    DROP-OFF
                   </div>
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm text-foreground">{job.dropoff_address}</p>
-                    <div className="flex gap-1 shrink-0">
+                  <div className="flex items-start gap-2">
+                    <p className="flex-1 text-sm">{job.dropoff_address}</p>
+                    <div className="flex gap-1">
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
                         onClick={() => copyToClipboard(job.dropoff_address!, "Address")}
                       >
-                        <Copy className="h-3.5 w-3.5" />
+                        <Copy className="h-3 w-3" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -284,7 +270,7 @@ export function DispatchJobDetailsSheet({
                         className="h-7 w-7"
                         onClick={() => openInMaps(job.dropoff_address!)}
                       >
-                        <ExternalLink className="h-3.5 w-3.5" />
+                        <ExternalLink className="h-3 w-3" />
                       </Button>
                     </div>
                   </div>
@@ -293,31 +279,31 @@ export function DispatchJobDetailsSheet({
             </div>
           </div>
 
-          <Separator className="bg-border/50" />
+          <Separator />
 
           {/* Job Details */}
-          <div className="space-y-4">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               Job Details
             </h4>
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
-                <p className="text-xs text-muted-foreground mb-1">Service Type</p>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Service Type</p>
                 <p className="text-sm font-medium">{job.job_type || "General"}</p>
               </div>
               {job.price_cents !== null && job.price_cents !== undefined && (
-                <div className="p-4 rounded-xl bg-success/5 border border-success/20">
-                  <p className="text-xs text-muted-foreground mb-1">Price</p>
-                  <div className="flex items-center gap-1.5">
-                    <DollarSign className="h-4 w-4 text-success" />
-                    <p className="text-sm font-semibold text-success">{(job.price_cents / 100).toFixed(2)}</p>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Price</p>
+                  <div className="flex items-center gap-1">
+                    <DollarSign className="h-4 w-4 text-emerald-500" />
+                    <p className="text-sm font-semibold">{(job.price_cents / 100).toFixed(2)}</p>
                   </div>
                 </div>
               )}
               {job.estimated_duration_minutes && (
-                <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
-                  <p className="text-xs text-muted-foreground mb-1">Est. Duration</p>
-                  <div className="flex items-center gap-1.5">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Est. Duration</p>
+                  <div className="flex items-center gap-1">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <p className="text-sm font-medium">{job.estimated_duration_minutes} min</p>
                   </div>
@@ -325,12 +311,12 @@ export function DispatchJobDetailsSheet({
               )}
             </div>
             {(job.description || job.notes) && (
-              <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                  <FileText className="h-3.5 w-3.5" />
-                  NOTES
+              <div className="space-y-1 pt-2">
+                <p className="text-xs text-muted-foreground">Notes</p>
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                  <FileText className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                  <p className="text-sm">{job.description || job.notes}</p>
                 </div>
-                <p className="text-sm text-foreground/80">{job.description || job.notes}</p>
               </div>
             )}
           </div>
@@ -338,24 +324,24 @@ export function DispatchJobDetailsSheet({
           {/* Assignment */}
           {(job.assigned_crew || job.assigned_vehicle) && (
             <>
-              <Separator className="bg-border/50" />
-              <div className="space-y-4">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <Separator />
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                   Assignment
                 </h4>
                 <div className="grid grid-cols-2 gap-4">
                   {job.assigned_crew && (
-                    <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
-                      <p className="text-xs text-muted-foreground mb-1">Crew / Driver</p>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Crew</p>
                       <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-primary" />
+                        <User className="h-4 w-4 text-muted-foreground" />
                         <p className="text-sm font-medium">{job.assigned_crew}</p>
                       </div>
                     </div>
                   )}
                   {job.assigned_vehicle && (
-                    <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
-                      <p className="text-xs text-muted-foreground mb-1">Vehicle</p>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Vehicle</p>
                       <div className="flex items-center gap-2">
                         <Truck className="h-4 w-4 text-muted-foreground" />
                         <p className="text-sm font-medium">{job.assigned_vehicle}</p>
@@ -367,43 +353,48 @@ export function DispatchJobDetailsSheet({
             </>
           )}
 
-          <Separator className="bg-border/50" />
+          <Separator />
 
           {/* Timeline */}
-          <div className="space-y-4">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               Timeline
             </h4>
-            <div className="space-y-3">
-              {[
-                { label: "Created", time: job.created_at, icon: Calendar },
-                { label: "Dispatched", time: job.dispatched_at, icon: Navigation },
-                { label: "Arrived", time: job.arrived_at, icon: MapPin },
-                { label: "Completed", time: job.completed_at, icon: CheckCircle2 },
-              ].filter(item => item.time).map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
-                  <div className="flex items-center gap-3">
-                    <item.icon className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">{item.label}</span>
-                  </div>
-                  <span className="text-sm font-medium">
-                    {format(new Date(item.time!), "MMM d, h:mm a")}
-                  </span>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Created</span>
+                <span>{format(new Date(job.created_at), "MMM d, h:mm a")}</span>
+              </div>
+              {job.dispatched_at && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Dispatched</span>
+                  <span>{format(new Date(job.dispatched_at), "MMM d, h:mm a")}</span>
                 </div>
-              ))}
+              )}
+              {job.arrived_at && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Arrived</span>
+                  <span>{format(new Date(job.arrived_at), "MMM d, h:mm a")}</span>
+                </div>
+              )}
+              {job.completed_at && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Completed</span>
+                  <span>{format(new Date(job.completed_at), "MMM d, h:mm a")}</span>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Cancel Button */}
           {job.status !== "cancelled" && job.status !== "completed" && (
             <>
-              <Separator className="bg-border/50" />
+              <Separator />
               <Button
                 variant="outline"
-                className="w-full text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+                className="w-full text-destructive hover:text-destructive"
                 onClick={() => onUpdateStatus(job, "cancelled")}
               >
-                <XCircle className="h-4 w-4 mr-2" />
                 Cancel Job
               </Button>
             </>

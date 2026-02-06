@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
  } from "@/components/ui/select";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Calendar as CalendarIcon, Plus, Loader2, List, Search, BookOpen } from "lucide-react";
+ import { Calendar as CalendarIcon, Plus, Loader2, List, Search } from "lucide-react";
 import { ScheduleCalendar } from "@/components/calendar/ScheduleCalendar";
 import { CreateBookingDialog } from "@/components/calendar/CreateBookingDialog";
  import { useBookings } from "@/hooks/useBookings";
@@ -142,34 +142,23 @@ export default function BookingsPage() {
  
          {/* Content */}
          {filteredBookings.length === 0 ? (
-            <EmptyState
-              icon={CalendarIcon}
-              title={statusFilter !== "all" || searchQuery ? "No bookings found" : `No ${terms.bookingsPageTitle?.toLowerCase() || "bookings"} yet`}
-              description={
-                statusFilter !== "all" || searchQuery
-                  ? "Try adjusting your filters to see more results."
-                  : "When customers book appointments through your AI or you create them manually, they'll appear here."
-              }
-              emojiStyle
-              action={
-                statusFilter === "all" && !searchQuery
-                  ? {
-                      label: terms.newBooking || "Create Booking",
-                      icon: Plus,
-                      onClick: () => setCreateDialogOpen(true),
-                    }
-                  : undefined
-              }
-              secondaryAction={
-                statusFilter === "all" && !searchQuery
-                  ? {
-                      label: "How Booking Works",
-                      icon: BookOpen,
-                      onClick: () => {},
-                    }
-                  : undefined
-              }
-            />
+           <EmptyState
+             icon={CalendarIcon}
+             title="No bookings found"
+             description={
+               statusFilter !== "all" || searchQuery
+                 ? "Try adjusting your filters to see more results."
+                 : "When customers book appointments through your AI or you create them manually, they'll appear here."
+             }
+             action={
+               statusFilter === "all" && !searchQuery
+                 ? {
+                     label: "Create Booking",
+                     onClick: () => setCreateDialogOpen(true),
+                   }
+                 : undefined
+             }
+           />
          ) : viewMode === "list" ? (
            <div className="space-y-3">
              {filteredBookings.map((booking) => (

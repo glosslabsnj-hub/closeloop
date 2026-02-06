@@ -1,230 +1,252 @@
-/**
- * Settings Page - Minimal Account Management
- * 
- * Only account-related settings, AI config lives in Business Brain
- */
-
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent } from "@/components/ui/card";
+import { useTerminology } from "@/hooks/useTerminology";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import {
-  Settings,
-  ChevronRight,
-  LogOut,
-  CreditCard,
-  User,
-  Shield,
-  Sparkles,
-  ArrowRight,
-} from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Lock, Settings } from "lucide-react";
+import { CallContextDebugger } from "@/components/ai/CallContextDebugger";
 import { PlanUpgradeCard } from "@/components/settings/PlanUpgradeCard";
+import { MultiLocationManager } from "@/components/settings/MultiLocationManager";
+import { DeliveryIntegrationsSettings } from "@/components/settings/DeliveryIntegrationsSettings";
+import { AutomationRulesSettings } from "@/components/settings/AutomationRulesSettings";
+import { DataControlsPanel } from "@/components/settings/DataControlsPanel";
+import { SettingsSidebar, SettingsNavConfig } from "@/components/settings/SettingsSidebar";
+import { MobileSettingsNav } from "@/components/settings/MobileSettingsNav";
+import { BusinessBrainCTA } from "@/components/settings/BusinessBrainCTA";
+import { DangerZoneSection } from "@/components/settings/DangerZoneSection";
+import { SettingsCard } from "@/components/settings/SettingsSection";
+import { RevenueSettingsSection } from "@/components/settings/RevenueSettingsSection";
+import { RecoverySettingsSection } from "@/components/settings/recovery/RecoverySettingsSection";
+import { useFoodMode } from "@/hooks/useFoodMode";
+import { useModuleEnabled, useTenantConfig } from "@/hooks/useTenantConfig";
 
 export default function SettingsPage() {
   const { user, signOut, tenant } = useAuth();
-  const [activeSection, setActiveSection] = useState<string | null>(null);
+  const { isFoodMode } = useFoodMode();
+  const { hipaaMode } = useTenantConfig();
+  const terms = useTerminology();
+  const isBookingEnabled = useModuleEnabled("booking");
+  const isDispatchEnabled = useModuleEnabled("dispatch_queue");
+  const isMedicalMode = useModuleEnabled("medical_intake");
 
-  // Render section content
+  // Default to first available section
+  const [activeSection, setActiveSection] = useState("team");
+
+  // Navigation config based on enabled modules
+  const navConfig: SettingsNavConfig = {
+    showHipaa: isMedicalMode || hipaaMode,
+    showBookingDelivery: isBookingEnabled,
+    showDispatchDelivery: isDispatchEnabled,
+    showFoodSettings: isFoodMode,
+  };
+
+  // Simplified section metadata
+  const sectionMeta: Record<string, { title: string; description: string }> = {
+    team: {
+      title: "Team Members",
+      description: "Manage who has access to your account and their permissions.",
+    },
+    plan: {
+      title: "Plan & Billing",
+      description: "View your current plan, usage limits, and upgrade options.",
+    },
+    revenue: {
+      title: "Revenue Tracking",
+      description: "Configure how your AI-generated revenue and ROI are calculated.",
+    },
+    "data-privacy": {
+      title: "Data Controls",
+      description: "Control what call data is saved and for how long. Manage recording and transcript storage.",
+    },
+    alerts: {
+      title: "Alerts",
+      description: "Choose which events trigger email and SMS alerts to you.",
+    },
+    integrations: {
+      title: "Integrations",
+      description: "Push bookings, orders, and leads to your existing tools via webhooks.",
+    },
+    automation: {
+      title: "Automation Rules",
+      description: "Auto-confirm bookings, send follow-ups, and route leads automatically.",
+    },
+    developer: {
+      title: "Developer Tools",
+      description: "Advanced debugging tools for troubleshooting.",
+    },
+    danger: {
+      title: "Danger Zone",
+      description: "Irreversible and destructive actions. Proceed with caution.",
+    },
+    recovery: {
+      title: "Lead Recovery",
+      description: "Configure automatic follow-up for leads who don't book.",
+    },
+  };
+
+  const currentMeta = sectionMeta[activeSection] || { title: "Settings", description: "" };
+
   const renderSectionContent = () => {
     switch (activeSection) {
-      case "account":
+      case "team":
         return (
-          <Card>
-            <CardContent className="p-6 space-y-6">
-              <div>
-                <h3 className="text-sm font-medium mb-4">Account Details</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between py-2">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Email</p>
-                      <p className="font-medium">{user?.email}</p>
-                    </div>
-                    <Button variant="outline" size="sm">Edit</Button>
-                  </div>
-                  <Separator />
-                  <div className="flex items-center justify-between py-2">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Password</p>
-                      <p className="font-medium">••••••••••</p>
-                    </div>
-                    <Button variant="outline" size="sm">Change</Button>
-                  </div>
-                  <Separator />
-                  <div className="flex items-center justify-between py-2">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Phone</p>
-                      <p className="font-medium">(555) 123-4567</p>
-                    </div>
-                    <Button variant="outline" size="sm">Edit</Button>
-                  </div>
+          <SettingsCard
+            title="Team Members"
+            description="People who can access this account."
+            headerAction={<Button size="sm">Invite Member</Button>}
+          >
+            <div className="flex items-center justify-between p-4 rounded-lg border">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-medium">
+                  {user?.email?.[0].toUpperCase()}
+                </div>
+                <div>
+                  <p className="font-medium">{user?.email}</p>
+                  <p className="text-sm text-muted-foreground">Owner</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+              <span className="text-sm text-muted-foreground">You</span>
+            </div>
+          </SettingsCard>
         );
 
-      case "billing":
-        return <PlanUpgradeCard />;
-
-      case "security":
+      case "plan":
         return (
-          <Card>
-            <CardContent className="p-6 space-y-6">
-              <div>
-                <h3 className="text-sm font-medium mb-4">Security Settings</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between py-2">
-                    <div>
-                      <p className="font-medium text-sm">Two-Factor Authentication</p>
-                      <p className="text-sm text-muted-foreground">Add an extra layer of security</p>
-                    </div>
-                    <Button variant="outline" size="sm">Enable</Button>
-                  </div>
-                  <Separator />
-                  <div className="flex items-center justify-between py-2">
-                    <div>
-                      <p className="font-medium text-sm">Active Sessions</p>
-                      <p className="text-sm text-muted-foreground">Manage your logged-in devices</p>
-                    </div>
-                    <Button variant="outline" size="sm">View</Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <>
+            <PlanUpgradeCard />
+            <MultiLocationManager />
+          </>
         );
+
+      case "revenue":
+        return <RevenueSettingsSection />;
+
+      case "data-privacy":
+        return <DataControlsPanel />;
+
+      case "alerts":
+        return (
+          <SettingsCard
+            title="Notification Preferences"
+            description="Choose which events trigger alerts to you."
+          >
+            {[
+              { label: "New leads", description: "When a new lead comes in" },
+              { label: terms.bookingsMetricLabel, description: `When ${terms.bookings} are created or changed` },
+              { label: "Payments", description: "When deposits are collected" },
+              { label: "AI escalations", description: "When AI needs human help" },
+            ].map((item) => (
+              <div key={item.label} className="flex items-center justify-between py-2">
+                <div>
+                  <p className="font-medium text-sm">{item.label}</p>
+                  <p className="text-sm text-muted-foreground">{item.description}</p>
+                </div>
+                <Switch defaultChecked />
+              </div>
+            ))}
+          </SettingsCard>
+        );
+
+      case "integrations":
+        return <DeliveryIntegrationsSettings />;
+
+      case "automation":
+        return <AutomationRulesSettings />;
+
+      case "developer":
+        return (
+          <>
+            <SettingsCard
+              title="Debug Tools"
+              description="Inspect what data is passed to the AI during calls."
+            >
+              <p className="text-sm text-muted-foreground">
+                These tools help you understand and troubleshoot AI behavior. Only use if you're comfortable with technical details.
+              </p>
+            </SettingsCard>
+            {tenant?.id && <CallContextDebugger tenantId={tenant.id} />}
+          </>
+        );
+
+      case "danger":
+        return <DangerZoneSection />;
+
+      case "recovery":
+        return <RecoverySettingsSection />;
 
       default:
         return null;
     }
   };
 
-  // Overview mode
-  if (!activeSection) {
-    return (
-      <div className="max-w-2xl mx-auto space-y-8">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-        </div>
-
-        {/* Account Section */}
-        <div>
-          <h2 className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-widest mb-3">
-            Account
-          </h2>
-          <Card>
-            <div className="divide-y divide-border/50">
-              {[
-                { id: "account", icon: User, label: "Email", value: user?.email },
-                { id: "account", icon: Shield, label: "Password", value: "••••••••••" },
-                { id: "account", icon: User, label: "Phone", value: "(555) 123-4567" },
-              ].map((item, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActiveSection(item.id)}
-                  className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors text-left"
-                >
-                  <div>
-                    <p className="text-sm text-muted-foreground">{item.label}</p>
-                    <p className="font-medium">{item.value}</p>
-                  </div>
-                  <span className="text-xs text-muted-foreground">Edit</span>
-                </button>
-              ))}
-            </div>
-          </Card>
-        </div>
-
-        {/* Billing Section */}
-        <div>
-          <h2 className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-widest mb-3">
-            Billing
-          </h2>
-          <Card>
-            <div className="divide-y divide-border/50">
-              <button
-                onClick={() => setActiveSection("billing")}
-                className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors text-left"
-              >
-                <div>
-                  <p className="text-sm text-muted-foreground">Current Plan</p>
-                  <p className="font-medium">Pro - $99/month</p>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              </button>
-              <div className="flex items-center justify-between p-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Next Billing</p>
-                  <p className="font-medium">February 15, 2025</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setActiveSection("billing")}
-                className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors text-left"
-              >
-                <div>
-                  <p className="text-sm text-muted-foreground">Payment Method</p>
-                  <p className="font-medium">•••• 4242</p>
-                </div>
-                <span className="text-xs text-muted-foreground">Update</span>
-              </button>
-            </div>
-          </Card>
-        </div>
-
-        {/* AI Settings Redirect */}
-        <Card className="bg-primary/5 border-primary/20">
-          <CardContent className="p-4">
-            <Link 
-              to="/app/business-brain" 
-              className="flex items-center justify-between group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium">Looking for AI settings?</p>
-                  <p className="text-sm text-muted-foreground">Go to Business Brain</p>
-                </div>
-              </div>
-              <ArrowRight className="h-4 w-4 text-primary group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Separator />
-
-        {/* Sign Out */}
-        <Button 
-          variant="outline" 
-          onClick={signOut}
-          className="w-full justify-start gap-2"
-        >
-          <LogOut className="h-4 w-4" />
-          Sign Out
-        </Button>
-      </div>
-    );
-  }
-
-  // Detail view
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => setActiveSection(null)}
-        className="-ml-2 gap-2 text-muted-foreground hover:text-foreground"
-      >
-        <ChevronRight className="h-4 w-4 rotate-180" />
-        Settings
-      </Button>
+    <div className="min-h-screen flex flex-col md:flex-row">
+      {/* Desktop Sidebar */}
+      <SettingsSidebar
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+        config={navConfig}
+      />
 
-      {renderSectionContent()}
+      {/* Main Content Area */}
+      <main className="flex-1 min-w-0">
+        {/* Page Header - Sticky */}
+        <header className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm py-6 px-6 md:px-8 lg:px-12 border-b border-white/[0.04]">
+          {/* Mobile Navigation */}
+          <div className="md:hidden mb-4">
+            <MobileSettingsNav
+              activeSection={activeSection}
+              onSectionChange={setActiveSection}
+              config={navConfig}
+            />
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <div className="flex-shrink-0 text-muted-foreground">
+              <Settings className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold tracking-tight text-foreground">
+                {currentMeta.title}
+              </h1>
+              {currentMeta.description && (
+                <p className="text-sm text-muted-foreground/70 mt-0.5">
+                  {currentMeta.description}
+                </p>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* Content */}
+        <div className="px-6 md:px-8 lg:px-12 py-6 space-y-6 max-w-4xl">
+          {/* Business Brain CTA Banner */}
+          <BusinessBrainCTA />
+
+          {/* Section Content */}
+          <div className="space-y-6">
+            {renderSectionContent()}
+          </div>
+
+          {/* Account Access - Always visible at bottom */}
+          <Card className="border-white/[0.06]">
+            <CardHeader>
+              <CardTitle className="text-foreground text-base">Account Access</CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-sm">Sign out of your account</p>
+                <p className="text-sm text-muted-foreground">You can sign back in anytime</p>
+              </div>
+              <Button variant="outline" onClick={signOut}>
+                <Lock className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
     </div>
   );
 }

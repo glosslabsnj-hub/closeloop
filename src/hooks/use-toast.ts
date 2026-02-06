@@ -2,17 +2,14 @@ import * as React from "react";
 
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
 
-const TOAST_LIMIT = 5;
-const TOAST_REMOVE_DELAY = 300;
-const SUCCESS_AUTO_DISMISS = 5000;
-const DEFAULT_AUTO_DISMISS = 5000;
+const TOAST_LIMIT = 1;
+const TOAST_REMOVE_DELAY = 1000000;
 
 type ToasterToast = ToastProps & {
   id: string;
   title?: React.ReactNode;
   description?: React.ReactNode;
   action?: ToastActionElement;
-  duration?: number;
 };
 
 const actionTypes = {
@@ -28,21 +25,6 @@ function genId() {
   count = (count + 1) % Number.MAX_SAFE_INTEGER;
   return count.toString();
 }
-
-const autoDismissTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
-
-const scheduleAutoDismiss = (toastId: string, duration: number) => {
-  if (autoDismissTimeouts.has(toastId)) {
-    clearTimeout(autoDismissTimeouts.get(toastId));
-  }
-  
-  const timeout = setTimeout(() => {
-    autoDismissTimeouts.delete(toastId);
-    dispatch({ type: "DISMISS_TOAST", toastId });
-  }, duration);
-  
-  autoDismissTimeouts.set(toastId, timeout);
-};
 
 type ActionType = typeof actionTypes;
 
@@ -152,7 +134,7 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">;
 
-function toast({ duration, ...props }: Toast) {
+function toast({ ...props }: Toast) {
   const id = genId();
 
   const update = (props: ToasterToast) =>
@@ -174,38 +156,12 @@ function toast({ duration, ...props }: Toast) {
     },
   });
 
-  // Auto-dismiss logic based on variant
-  // Destructive toasts don't auto-dismiss, others do
-  if (props.variant !== "destructive") {
-    const autoDismissDuration = duration ?? (props.variant === "success" ? SUCCESS_AUTO_DISMISS : DEFAULT_AUTO_DISMISS);
-    scheduleAutoDismiss(id, autoDismissDuration);
-  }
-
   return {
     id: id,
     dismiss,
     update,
   };
 }
-
-// Convenience methods for common toast types
-toast.success = (title: string, description?: string, options?: Partial<Toast>) => {
-  return toast({
-    variant: "success",
-    title,
-    description,
-    ...options,
-  });
-};
-
-toast.error = (title: string, description?: string, options?: Partial<Toast>) => {
-  return toast({
-    variant: "destructive",
-    title,
-    description,
-    ...options,
-  });
-};
 
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState);
