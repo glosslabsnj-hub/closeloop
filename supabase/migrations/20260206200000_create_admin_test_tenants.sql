@@ -59,7 +59,7 @@ BEGIN
 
       -- Ensure subscription exists and is active
       INSERT INTO subscriptions (tenant_id, plan_code, status, included_minutes, current_period_end)
-      VALUES (v_tenant_id, 'base-200', 'active', 200, NOW() + INTERVAL '1 year')
+      VALUES (v_tenant_id, 'voice-200', 'active', 200, NOW() + INTERVAL '1 year')
       ON CONFLICT (tenant_id) DO UPDATE SET
         status = 'active',
         current_period_end = GREATEST(subscriptions.current_period_end, NOW() + INTERVAL '1 year');
@@ -96,7 +96,7 @@ BEGIN
 
       -- Create active subscription
       INSERT INTO subscriptions (tenant_id, plan_code, status, included_minutes, current_period_end)
-      VALUES (v_tenant_id, 'base-200', 'active', 200, NOW() + INTERVAL '1 year')
+      VALUES (v_tenant_id, 'voice-200', 'active', 200, NOW() + INTERVAL '1 year')
       ON CONFLICT (tenant_id) DO UPDATE SET
         status = 'active',
         current_period_end = GREATEST(subscriptions.current_period_end, NOW() + INTERVAL '1 year');
