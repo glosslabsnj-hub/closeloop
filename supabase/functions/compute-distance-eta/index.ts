@@ -74,6 +74,12 @@ interface TenantDistanceSettings {
   service_radius_miles: number | null;  // For proximity validation
 }
 
+interface BusynessRules {
+  base_prep_minutes?: number;
+  busy_buffer_minutes?: number;
+  manual_busyness_pct?: number; // 0-100 slider value
+}
+
 const METERS_PER_MILE = 1609.344;
 
 serve(async (req: Request) => {
@@ -172,22 +178,30 @@ serve(async (req: Request) => {
       );
     }
 
-    // Fetch tenant distance settings
-    const { data: settingsData, error: settingsError } = await supabase
-      .from("tenant_distance_settings")
-      .select("*")
-      .eq("tenant_id", tenant_id)
-      .maybeSingle();
+    // Fetch tenant distance settings AND busyness rules
+    const [settingsResult, tenantResult] = await Promise.all([
+      supabase
+        .from("tenant_distance_settings")
+        .select("*")
+        .eq("tenant_id", tenant_id)
+        .maybeSingle(),
+      supabase
+        .from("tenants")
+        .select("busyness_rules_jsonb")
+        .eq("id", tenant_id)
+        .maybeSingle()
+    ]);
 
-    if (settingsError) {
-      console.error("[compute-distance-eta] Settings fetch error:", settingsError);
+    if (settingsResult.error) {
+      console.error("[compute-distance-eta] Settings fetch error:", settingsResult.error);
       return new Response(
         JSON.stringify({ ...disabledResult, error: "Failed to load settings" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const settings = settingsData as TenantDistanceSettings | null;
+    const settings = settingsResult.data as TenantDistanceSettings | null;
+    const busynessRules = (tenantResult.data?.busyness_rules_jsonb as BusynessRules) || null;
 
     // If no settings or disabled, return early
     if (!settings || !settings.distance_provider_enabled) {
@@ -495,9 +509,32 @@ serve(async (req: Request) => {
       etaRangeStr = `${etaRangeLow}–${etaRangeHigh}`;
     } else {
       // Full ETA calculation with tenant settings
-      etaMinutes = settings.eta_base_minutes + durationMinutes;
+      // ETA = (Base Response Time + Busyness Buffer) + Travel Time
+      //
+      // - eta_base_minutes: Average response time (how long to get out the door)
+      // - busyness buffer: Additional delay based on how busy they are
+      // - durationMinutes: Actual drive time from base to pickup (from Mapbox)
+      
+      // Start with base response time (average time to get out the door)
+      let responseTime = settings.eta_base_minutes;
+      
+      // Apply busyness buffer if configured
+      // Formula: At 100% busyness, add full busy_buffer_minutes
+      // At 0% busyness, add nothing
+      if (busynessRules) {
+        const busyPct = Math.min(100, Math.max(0, busynessRules.manual_busyness_pct ?? 0));
+        const busyBufferMax = busynessRules.busy_buffer_minutes ?? 15;
+        const busyBufferMinutes = Math.round((busyPct / 100) * busyBufferMax);
+        
+        responseTime += busyBufferMinutes;
+        
+        console.log(`[compute-distance-eta] Busyness adjustment: ${busyPct}% busyness → +${busyBufferMinutes}min buffer (max ${busyBufferMax}min)`);
+      }
+      
+      // Total ETA = busyness-adjusted response time + drive time
+      etaMinutes = responseTime + durationMinutes;
 
-      // Add per-mile buffer if configured
+      // Add per-mile buffer if configured (optional additional buffer)
       if (settings.eta_per_mile_minutes) {
         etaMinutes += Math.ceil(distanceMiles * settings.eta_per_mile_minutes);
       }
