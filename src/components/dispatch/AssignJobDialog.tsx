@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Truck, User } from "lucide-react";
+import { Truck, User, MapPin, ChevronRight } from "lucide-react";
 
 interface DispatchJob {
   id: string;
@@ -36,8 +36,16 @@ export function AssignJobDialog({
   onAssign,
   isLoading,
 }: AssignJobDialogProps) {
-  const [crew, setCrew] = useState(job?.assigned_crew || "");
-  const [vehicle, setVehicle] = useState(job?.assigned_vehicle || "");
+  const [crew, setCrew] = useState("");
+  const [vehicle, setVehicle] = useState("");
+
+  // Reset form when job changes
+  useEffect(() => {
+    if (job && open) {
+      setCrew(job.assigned_crew || "");
+      setVehicle(job.assigned_vehicle || "");
+    }
+  }, [job, open]);
 
   const handleAssign = () => {
     if (job && (crew || vehicle)) {
@@ -45,38 +53,38 @@ export function AssignJobDialog({
     }
   };
 
-  // Reset form when job changes
-  useState(() => {
-    if (job) {
-      setCrew(job.assigned_crew || "");
-      setVehicle(job.assigned_vehicle || "");
-    }
-  });
-
   if (!job) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-background border-border">
         <DialogHeader>
-          <DialogTitle>Assign Job</DialogTitle>
-          <DialogDescription>
-            Assign crew and vehicle to Job #{job.job_number || job.id.slice(0, 8)}
+          <DialogTitle className="text-lg font-semibold">Assign Job</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
+            Assign crew and vehicle to dispatch this job
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-5 py-4">
           {/* Job Summary */}
-          <div className="p-3 rounded-lg bg-muted/50 text-sm">
-            <p className="font-medium">{job.customer_name || "Unknown Customer"}</p>
+          <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Job #{job.job_number || job.id.slice(0, 8)}
+              </span>
+            </div>
+            <p className="font-medium text-foreground">{job.customer_name || "Unknown Customer"}</p>
             {job.pickup_address && (
-              <p className="text-muted-foreground mt-1 truncate">{job.pickup_address}</p>
+              <div className="flex items-start gap-2 mt-2 text-sm text-muted-foreground">
+                <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
+                <p className="line-clamp-2">{job.pickup_address}</p>
+              </div>
             )}
           </div>
 
           {/* Crew Assignment */}
           <div className="space-y-2">
-            <Label htmlFor="crew" className="flex items-center gap-2">
+            <Label htmlFor="crew" className="flex items-center gap-2 text-sm font-medium">
               <User className="h-4 w-4 text-muted-foreground" />
               Crew / Driver
             </Label>
@@ -85,12 +93,13 @@ export function AssignJobDialog({
               placeholder="e.g., John D. or Crew Alpha"
               value={crew}
               onChange={(e) => setCrew(e.target.value)}
+              className="h-11 bg-muted/30 border-border/50 focus:bg-background transition-colors"
             />
           </div>
 
           {/* Vehicle Assignment */}
           <div className="space-y-2">
-            <Label htmlFor="vehicle" className="flex items-center gap-2">
+            <Label htmlFor="vehicle" className="flex items-center gap-2 text-sm font-medium">
               <Truck className="h-4 w-4 text-muted-foreground" />
               Vehicle
             </Label>
@@ -99,16 +108,32 @@ export function AssignJobDialog({
               placeholder="e.g., Truck #3 or Flatbed-01"
               value={vehicle}
               onChange={(e) => setVehicle(e.target.value)}
+              className="h-11 bg-muted/30 border-border/50 focus:bg-background transition-colors"
             />
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="gap-3 sm:gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => onOpenChange(false)}
+            className="border-border/50"
+          >
             Cancel
           </Button>
-          <Button onClick={handleAssign} disabled={isLoading || (!crew && !vehicle)}>
-            {isLoading ? "Assigning..." : "Assign & Dispatch"}
+          <Button 
+            onClick={handleAssign} 
+            disabled={isLoading || (!crew && !vehicle)}
+            className="min-w-[140px]"
+          >
+            {isLoading ? (
+              "Dispatching..."
+            ) : (
+              <>
+                <ChevronRight className="h-4 w-4 mr-1" />
+                Assign & Dispatch
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
