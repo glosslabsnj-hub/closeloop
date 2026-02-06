@@ -228,7 +228,7 @@ export function AgentControlPanel() {
           </div>
 
           {/* Readiness indicator when not active and below threshold */}
-          {!isActive && !canGoLive && (
+          {!isActive && (
             <div className="mt-4 pt-4 border-t border-border/50 space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2 text-muted-foreground">
@@ -237,13 +237,19 @@ export function AgentControlPanel() {
                 </div>
                 <span className={cn(
                   "font-medium",
-                  readinessPercent >= 85 ? "text-success" : "text-muted-foreground"
+                  readinessPercent >= 85 ? "text-success" : "text-destructive"
                 )}>
-                  {readinessPercent}% / 85%
+                  {readinessPercent}%
                 </span>
               </div>
-              <Progress value={readinessPercent} className="h-1.5" />
-              {isSuperAdmin && (
+              <Progress 
+                value={readinessPercent} 
+                className={cn(
+                  "h-1.5",
+                  readinessPercent >= 85 ? "[&>div]:bg-success" : "[&>div]:bg-destructive"
+                )} 
+              />
+              {isSuperAdmin && !canGoLive && (
                 <p className="text-xs text-muted-foreground">
                   <Shield className="h-3 w-3 inline mr-1" />
                   Super admin: You can override readiness requirements
