@@ -105,6 +105,7 @@ serve(async (req: Request) => {
     let tenantId: string | null = null;
     let sessionId: string | null = null;
     
+    // Strategy 1: Find by conversation_id
     if (conversation_id) {
       const { data: session } = await supabase
         .from("ai_call_sessions")
@@ -114,9 +115,12 @@ serve(async (req: Request) => {
       
       tenantId = session?.tenant_id || null;
       sessionId = session?.id || null;
+      if (tenantId) {
+        console.log(`[create-dispatch] Found session by conversation_id: ${conversation_id}`);
+      }
     }
 
-    // Fallback: try to get from most recent active session
+    // Strategy 2: Find by most recent active session (no ended_at)
     if (!tenantId) {
       const { data: recentSession } = await supabase
         .from("ai_call_sessions")
@@ -128,9 +132,34 @@ serve(async (req: Request) => {
       
       tenantId = recentSession?.tenant_id || null;
       sessionId = recentSession?.id || null;
+      if (tenantId) {
+        console.log(`[create-dispatch] Found session by active (ended_at=null): ${sessionId}`);
+      }
+    }
+    
+    // Strategy 3: Find by caller phone from body (recent session in last 5 min)
+    if (!tenantId && customer_phone) {
+      const phoneE164 = normalizePhone(customer_phone);
+      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      
+      const { data: phoneSession } = await supabase
+        .from("ai_call_sessions")
+        .select("tenant_id, id")
+        .eq("caller_phone", phoneE164)
+        .gte("created_at", fiveMinAgo)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      tenantId = phoneSession?.tenant_id || null;
+      sessionId = phoneSession?.id || null;
+      if (tenantId) {
+        console.log(`[create-dispatch] Found session by phone ${phoneE164}: ${sessionId}`);
+      }
     }
 
     if (!tenantId) {
+      console.error(`[create-dispatch] No session found. conv_id=${conversation_id}, phone=${customer_phone}`);
       return new Response(
         JSON.stringify({
           success: false,
@@ -140,6 +169,8 @@ serve(async (req: Request) => {
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    
+    console.log(`[create-dispatch] Processing for tenant ${tenantId}, session ${sessionId}`);
 
     // Normalize phone
     const phoneE164 = normalizePhone(customer_phone);
