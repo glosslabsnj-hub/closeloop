@@ -39,16 +39,16 @@ function generateResponse(query: string, ctx: CopilotContext): Message {
     const links: { label: string; path: string }[] = [];
 
     if (!ctx.phone.assigned_number) {
-      steps.push("Go to Settings → Phone", "Request a phone number", "Complete the forwarding setup");
-      links.push({ label: "Go to Settings → Phone", path: "/app/settings" });
+      steps.push("Go to Go Live setup", "Request a phone number", "Complete the forwarding setup");
+      links.push({ label: "Go to Go Live", path: "/app/go-live" });
     } else if (!ctx.phone.is_connected) {
       steps.push(
-        "Go to Settings → Phone",
+        "Go to Go Live setup",
         `Your number ${ctx.phone.assigned_number} is assigned but not connected`,
         "Follow the carrier forwarding instructions",
         "Verify the forwarding is active"
       );
-      links.push({ label: "Go to Settings → Phone", path: "/app/settings" });
+      links.push({ label: "Go to Go Live", path: "/app/go-live" });
     } else {
       steps.push(
         "Your phone appears connected — run a test call in Simulator",
@@ -202,8 +202,8 @@ function generateResponse(query: string, ctx: CopilotContext): Message {
     }
     
     if (!ctx.phone.is_connected) {
-      steps.push("Connect your phone number in Settings → Phone");
-      links.push({ label: "Go to Settings → Phone", path: "/app/settings" });
+      steps.push("Connect your phone number in Go Live setup");
+      links.push({ label: "Go to Go Live", path: "/app/go-live" });
     }
     
     steps.push("Run a test call in Simulator to verify everything works");
@@ -321,8 +321,8 @@ function generateResponse(query: string, ctx: CopilotContext): Message {
       content: phoneStatus,
       steps: ctx.phone.is_connected
         ? ["Your phone is ready", "Run a test call to verify", "Check Calls page for activity"]
-        : ["Go to Settings → Phone", "Complete the connection setup", "Verify carrier forwarding if needed"],
-      links: [{ label: "Go to Settings → Phone", path: "/app/settings" }],
+        : ["Go to Go Live setup", "Complete the connection setup", "Verify carrier forwarding if needed"],
+      links: [{ label: "Go to Go Live", path: "/app/go-live" }],
       nextActions: ["Run a test call", "Check my readiness"],
     };
   }
