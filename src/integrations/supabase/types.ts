@@ -406,6 +406,7 @@ export type Database = {
           readiness_p1_flags: Json | null
           readiness_recommendations: Json | null
           readiness_score: number | null
+          service_default_flow: string | null
           setup_completed_at: string | null
           setup_step_calendar: boolean | null
           setup_step_phone: boolean | null
@@ -450,6 +451,7 @@ export type Database = {
           readiness_p1_flags?: Json | null
           readiness_recommendations?: Json | null
           readiness_score?: number | null
+          service_default_flow?: string | null
           setup_completed_at?: string | null
           setup_step_calendar?: boolean | null
           setup_step_phone?: boolean | null
@@ -494,6 +496,7 @@ export type Database = {
           readiness_p1_flags?: Json | null
           readiness_recommendations?: Json | null
           readiness_score?: number | null
+          service_default_flow?: string | null
           setup_completed_at?: string | null
           setup_step_calendar?: boolean | null
           setup_step_phone?: boolean | null

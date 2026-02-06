@@ -15,6 +15,7 @@ import KnowledgeGapQueue from "@/components/knowledge/KnowledgeGapQueue";
 import VoiceSelector from "@/components/ai/VoiceSelector";
 import VoiceAgentTest from "@/components/ai/VoiceAgentTest";
 import BookingBehaviorSettings from "@/components/ai/BookingBehaviorSettings";
+import ServiceCallFlowSettings from "@/components/ai/ServiceCallFlowSettings";
 import CalendarSyncSettings from "@/components/ai/CalendarSyncSettings";
 import ElevenLabsSetupGuide from "@/components/ai/ElevenLabsSetupGuide";
 import {
@@ -220,6 +221,7 @@ export default function AIAssistantPage() {
 
         {/* Booking Tab */}
         <TabsContent value="booking" className="space-y-6">
+          <ServiceCallFlowSettings />
           <div className="grid lg:grid-cols-2 gap-6">
             <BookingBehaviorSettings />
             <CalendarSyncSettings />

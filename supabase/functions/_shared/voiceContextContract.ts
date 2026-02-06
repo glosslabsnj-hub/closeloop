@@ -652,6 +652,15 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
 
   // ===== AI SETTINGS =====
   {
+    key: "service_default_flow",
+    description: "Service call flow: schedule_first, urgency_check, or dispatch_first",
+    type: "string",
+    source: "ai_settings.service_default_flow",
+    defaultValue: "schedule_first",
+    category: "ai_settings",
+    includeInCompactJson: true,
+  },
+  {
     key: "greeting_script",
     description: "Custom greeting script",
     type: "string",

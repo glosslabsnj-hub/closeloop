@@ -175,39 +175,67 @@ Add a new setting in the AI Setup section:
 
 ## ElevenLabs Dashboard Changes Required
 
-After code deployment, you'll need to update the Service Agent prompt in ElevenLabs to use the new `service_default_flow` variable. I'll provide the exact prompt text to copy/paste.
+After code deployment, update the Service Agent prompt in ElevenLabs dashboard:
 
-## Validation Checklist
+1. Go to your ElevenLabs Service Agent configuration
+2. In the System Prompt, add this section AFTER the opening greeting logic:
 
-After implementation:
-1. Call Blue Boxer Plumbing and say "I need my drain cleaned"
-2. Verify agent asks about scheduling (not immediate dispatch)
-3. Verify agent checks calendar availability
-4. Verify booking is created properly
-5. Test urgent scenario: "My pipe burst, water everywhere!"
-6. Verify urgent scenario triggers expedited handling
+```text
+### CALL FLOW BEHAVIOR
 
-## Expected Behavior After Fix
+Check the {{service_default_flow}} variable to determine how to handle calls:
 
-**Scenario 1: Routine Service Request**
+**IF {{service_default_flow}} = "schedule_first":**
+- Skip urgency questions
+- Immediately ask: "When would work best for you?"
+- Use suggest_availability and check_availability tools
+- Book the appointment
+
+**IF {{service_default_flow}} = "urgency_check":**
+- After identifying service, ask: "Is this urgent, or would you like to schedule an appointment?"
+- URGENT triggers: "emergency", "right now", "flooding", "burst", "locked out"
+- IF URGENT: Check same-day availability, offer expedited service
+- IF CAN SCHEDULE: Normal booking flow
+
+**IF {{service_default_flow}} = "dispatch_first":**
+- Treat as immediate dispatch: collect address, give ETA, dispatch now
+
+IMPORTANT: "I need my drain cleaned" is NOT urgent. Only explicit emergency language triggers urgent handling.
+```
+
+## Implementation Complete
+
+### Database
+- ✅ Added `service_default_flow` column to `assistant_settings` (text, default: "schedule_first")
+
+### Edge Functions
+- ✅ Updated `buildBusinessContext.ts` to include `service_default_flow` in ai_settings
+- ✅ Updated `voiceContextContract.ts` to register new dynamic variable
+- ✅ Rewrote `SERVICE_AGENT_BASE_PROMPT` with industry-aware flow logic
+
+### Frontend
+- ✅ Created `ServiceCallFlowSettings.tsx` component with 3 options
+- ✅ Added to AI Assistant page booking tab
+- ✅ Added to Business Brain AI behavior section
+
+### Expected Behavior After Fix
+
+**Scenario 1: Plumber with urgency_check (routine request)**
 ```text
 Customer: "I need my drain cleaned"
-Agent: "Sure, we can help with that. Is this something urgent, 
-        or would you like to schedule an appointment?"
+Agent: "Sure, I can help with that. Is this urgent, or can you schedule?"
 Customer: "I can schedule"
-Agent: "Perfect. When works best for you - morning or afternoon?"
-Customer: "Tomorrow afternoon"
-Agent: "Let me check... I have 2pm or 4pm available. Which works better?"
+Agent: "Perfect! When works best for you?"
 ```
 
-**Scenario 2: Urgent Request**
+**Scenario 2: Plumber with urgency_check (urgent request)**
 ```text
 Customer: "I have water flooding my basement!"
-Agent: "I understand - that sounds urgent. What's your address?"
-Agent: "We can have someone there within the hour. Should I dispatch now?"
+Agent: "Oh no - let me see what we can do. What's your address?"
+Agent: "We can have someone there in 45 minutes. Should I send them?"
 ```
 
-**Scenario 3: Salon (schedule_first - no urgency check)**
+**Scenario 3: Salon with schedule_first**
 ```text
 Customer: "I need a haircut"
 Agent: "Great! When would you like to come in?"

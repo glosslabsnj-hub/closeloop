@@ -249,6 +249,7 @@ export interface BusinessContext {
     tone: string;
     greeting_script: string;
     fallback_script: string;
+    service_default_flow: "schedule_first" | "urgency_check" | "dispatch_first";
   };
   // Business Brain snapshot (full structured data)
   business_brain?: BusinessBrainSnapshot;
@@ -1588,6 +1589,7 @@ export async function buildBusinessContext(
       tone: assistant?.tone || "friendly",
       greeting_script: assistant?.greeting_script || "",
       fallback_script: assistant?.fallback_script || "",
+      service_default_flow: (assistantSettings?.service_default_flow as "schedule_first" | "urgency_check" | "dispatch_first") || "schedule_first",
     },
     // Business Brain fields - initialized with defaults, populated below
     business_brain_summary: "",
