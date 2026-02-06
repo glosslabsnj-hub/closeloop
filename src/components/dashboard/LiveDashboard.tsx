@@ -39,8 +39,8 @@ export function LiveDashboard() {
       {/* Audio notification manager */}
       <SoundManager />
 
-      {/* Page Header */}
-      <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+      {/* Page Header - Hidden on mobile since mobile has its own greeting style */}
+      <header className="hidden md:flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
             {greeting}, {businessName}!
@@ -53,6 +53,16 @@ export function LiveDashboard() {
           <CalendarDays className="h-4 w-4" />
           <span>{format(new Date(), "EEEE, MMMM d, yyyy")}</span>
         </div>
+      </header>
+
+      {/* Mobile Header */}
+      <header className="md:hidden">
+        <h1 className="text-xl font-semibold tracking-tight">
+          {greeting}, {businessName}!
+        </h1>
+        <p className="mt-0.5 text-muted-foreground text-sm">
+          Here's how {tenant?.name || "your business"} is doing
+        </p>
       </header>
 
       {/* Alerts - Only show if there are issues */}
