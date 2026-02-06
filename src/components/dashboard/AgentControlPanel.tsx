@@ -210,6 +210,15 @@ export function AgentControlPanel() {
                       Admin
                     </Badge>
                   )}
+                  {/* Always-visible compact readiness indicator */}
+                  <span className={cn(
+                    "text-xs font-medium px-1.5 py-0.5 rounded",
+                    readinessPercent >= 85 
+                      ? "bg-success/10 text-success" 
+                      : "bg-destructive/10 text-destructive"
+                  )}>
+                    {readinessPercent}%
+                  </span>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {hasPhoneConnected 
