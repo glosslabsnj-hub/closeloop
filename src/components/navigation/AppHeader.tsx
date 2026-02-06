@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { GlobalSearchDialog } from "@/components/search/GlobalSearchDialog";
+import { ThemeSwitcher } from "@/components/theme/ThemeSwitcher";
 
 interface Breadcrumb {
   label: string;
@@ -132,6 +133,9 @@ export function AppHeader() {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2">
+          {/* Theme Switcher */}
+          <ThemeSwitcher />
+
           {/* Global Search */}
           <Button
             variant="outline"
