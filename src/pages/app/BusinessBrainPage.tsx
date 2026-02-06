@@ -76,7 +76,7 @@ import {
   Warehouse, Phone, FileCheck, Users
 } from "lucide-react";
 
-const VALID_SECTIONS = ["profile", "hours", "services", "service-area", "availability", "policies", "ai-behavior", "knowledge"] as const;
+const VALID_SECTIONS = ["profile", "hours", "services", "service-area", "availability", "policies", "ai-behavior", "knowledge", "fleet"] as const;
 type SectionId = typeof VALID_SECTIONS[number];
 
 const LEGACY_SECTION_ALIASES: Record<string, SectionId> = {
@@ -583,6 +583,26 @@ export default function BusinessBrainPage() {
                 >
                   <BrainAssetsManager />
                 </CollapsibleBrainSection>
+              </div>
+            )}
+
+            {/* FLEET (dispatch only) */}
+            {activeSection === "fleet" && isDispatchMode && (
+              <div className="space-y-3">
+                <SectionHelper sectionId="fleet" businessMode={businessMode} />
+                
+                <div className="rounded-lg border bg-card p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-muted">
+                      <Truck className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-sm">Fleet Management</h3>
+                      <p className="text-xs text-muted-foreground">Manage your crew members and vehicles</p>
+                    </div>
+                  </div>
+                  <FleetManagementSection />
+                </div>
               </div>
             )}
           </div>

@@ -144,6 +144,18 @@ const SECTION_CONTENT: Record<string, SectionContent> = {
     },
     speechReadyTip: "The more FAQs you add, the fewer 'I don't know' responses your AI will give.",
   },
+  fleet: {
+    whatItControls: "Your crew members, drivers, and fleet vehicles that can be assigned to dispatch jobs",
+    howAIUsesIt: [
+      "Shows available drivers when assigning jobs",
+      "Links drivers to their default vehicles",
+      "Tracks vehicle status and assignments",
+    ],
+    examples: {
+      dispatch: "\"John is currently available with Truck #1. I'll assign him to this job.\"",
+    },
+    speechReadyTip: "Drivers can log in to their own portal to view assigned jobs and update status.",
+  },
 };
 
 export function SectionHelper({ sectionId, businessMode, className }: SectionHelperProps) {
