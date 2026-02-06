@@ -13,9 +13,7 @@ import { SetupProgressChecklist } from "./SetupProgressChecklist";
 import { Copilot, CopilotTrigger } from "./Copilot";
 import { SoundManager } from "@/components/notifications/SoundManager";
 import { PageTransition } from "@/components/ui/page-transition";
-import { format } from "date-fns";
 import { useState } from "react";
-import { CalendarDays } from "lucide-react";
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -29,41 +27,24 @@ export function LiveDashboard() {
   const { enabledModules, businessMode } = useTenantConfig();
   const [copilotOpen, setCopilotOpen] = useState(false);
 
-  const businessName = tenant?.name?.split(' ')[0] || "there";
+  const businessName = tenant?.name || "there";
   const greeting = getGreeting();
   const hasBooking = enabledModules.includes("booking");
   const showActiveWork = businessMode === "food" || businessMode === "dispatch";
   const showSchedule = hasBooking && !showActiveWork;
 
   return (
-    <PageTransition className="space-y-6">
+    <PageTransition className="space-y-8">
       {/* Audio notification manager */}
       <SoundManager />
 
-      {/* Page Header - Hidden on mobile since mobile has its own greeting style */}
-      <header className="hidden md:flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+      {/* Header with greeting */}
+      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
-            {greeting}, {businessName}!
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+            {greeting}, {businessName} 👋
           </h1>
-          <p className="mt-1 text-muted-foreground text-sm">
-            Here's how your business is performing today.
-          </p>
         </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <CalendarDays className="h-4 w-4" />
-          <span>{format(new Date(), "EEEE, MMMM d, yyyy")}</span>
-        </div>
-      </header>
-
-      {/* Mobile Header */}
-      <header className="md:hidden">
-        <h1 className="text-xl font-semibold tracking-tight">
-          {greeting}, {businessName}!
-        </h1>
-        <p className="mt-0.5 text-muted-foreground text-sm">
-          Here's how {tenant?.name || "your business"} is doing
-        </p>
       </header>
 
       {/* Alerts - Only show if there are issues */}
