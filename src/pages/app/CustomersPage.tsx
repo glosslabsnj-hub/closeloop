@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Toolbar, FilterSelect } from "@/components/layout/Toolbar";
 import { Button } from "@/components/ui/button";
@@ -47,7 +48,6 @@ import {
 import { useCustomers, Customer } from "@/hooks/useCustomers";
 import { formatDistanceToNow, parseISO, differenceInDays } from "date-fns";
 import { cn } from "@/lib/utils";
-import { CustomerDetailSheet } from "@/components/customers/CustomerDetailSheet";
 import { AddCustomerDialog } from "@/components/customers/AddCustomerDialog";
 
 type StatusFilter = "all" | "active" | "new" | "vip" | "attention";
@@ -95,13 +95,12 @@ function getMockStats(customerId: string) {
 }
 
 export default function CustomersPage() {
+  const navigate = useNavigate();
   const { customers, isLoading, deleteCustomer } = useCustomers();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   // Filter customers
@@ -155,8 +154,7 @@ export default function CustomersPage() {
   };
 
   const handleViewCustomer = (customer: Customer) => {
-    setSelectedCustomer(customer);
-    setDetailOpen(true);
+    navigate(`/app/customers/${customer.id}`);
   };
 
   const handleDeleteCustomer = async (customer: Customer) => {
@@ -516,13 +514,6 @@ export default function CustomersPage() {
           </CardContent>
         </Card>
       )}
-
-      {/* Detail Sheet */}
-      <CustomerDetailSheet
-        customer={selectedCustomer}
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
-      />
 
       {/* Add Dialog */}
       <AddCustomerDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
