@@ -1,12 +1,13 @@
 /**
- * compute-distance-eta: Calculate travel ETA using Mapbox or HERE
+ * compute-distance-eta: Calculate travel ETA using Mapbox
  *
  * Computes driving distance and time from tenant's base location to a destination.
  * Uses tenant-scoped settings from tenant_distance_settings table.
  * 
- * Geocode provider selection:
- * - 'mapbox' (default): Standard geocoding for addresses
- * - 'here': Better for cross-streets, routes, mile markers (dispatch/towing)
+ * Features:
+ * - Advanced address preprocessing for cross-streets, highways, and abbreviations
+ * - State hints for regional accuracy
+ * - Proximity-based bias from tenant's base location
  *
  * POST /functions/v1/compute-distance-eta
  * Body: {
@@ -19,7 +20,7 @@
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { geocodeWithHere, isCrossStreetOrRouteQuery } from "../_shared/here_geocode.ts";
+import { preprocessAddress } from "../_shared/address_preprocessor.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -60,7 +61,6 @@ interface ComputeEtaResponse {
 interface TenantDistanceSettings {
   distance_provider_enabled: boolean;
   provider: string;
-  geocode_provider: string;  // 'mapbox' or 'here'
   base_lat: number | null;
   base_lng: number | null;
   base_place_name: string | null;
@@ -252,90 +252,98 @@ serve(async (req: Request) => {
 
     if (address_text && (destLat === undefined || destLng === undefined)) {
       const stateHint = settings.base_state_hint;
-      const geocodeProvider = settings.geocode_provider || "mapbox";
+      geocodeProviderUsed = "mapbox";
       
-      // Determine if we should use HERE (better for cross-streets, routes, mile markers)
-      const shouldUseHere = geocodeProvider === "here" || isCrossStreetOrRouteQuery(address_text);
+      // Preprocess address for better geocoding (handles cross-streets, highways, abbreviations)
+      const preprocessed = preprocessAddress(address_text, {
+        stateHint: stateHint || undefined,
+        expandAbbreviations: true,
+      });
       
-      if (shouldUseHere) {
-        // Use HERE for dispatch/towing - better cross-street & route handling
-        geocodeProviderUsed = "here";
-        console.log(`[compute-distance-eta] Using HERE geocoder (provider=${geocodeProvider}, isCrossStreet=${isCrossStreetOrRouteQuery(address_text)})`);
-        
-        const hereResult = await geocodeWithHere(address_text, {
-          stateHint: stateHint || undefined,
-          countryCode: "USA",
-          // Bias results toward tenant's base location
-          proximityLat: originLat,
-          proximityLng: originLng,
-          proximityRadius: 80000, // 80km ~ 50 miles
-        });
-        
-        if (!hereResult.ok || hereResult.lat === null || hereResult.lng === null) {
-          // Fallback to Mapbox if HERE fails
-          console.log(`[compute-distance-eta] HERE failed, falling back to Mapbox: ${hereResult.error}`);
-          geocodeProviderUsed = "mapbox_fallback";
-        } else {
-          destLat = hereResult.lat;
-          destLng = hereResult.lng;
-          geocodedPlaceName = hereResult.place_name;
-          stateHintApplied = !!stateHint;
-          
-          // Map HERE relevance to confidence
-          if (hereResult.relevance < 0.5) {
-            geocodingConfidence = "low";
-          } else if (hereResult.match_level === "street" || hereResult.match_level === "intersection") {
-            geocodingConfidence = "high";
-          }
-          
-          console.log(`[compute-distance-eta] HERE geocoded: "${geocodedPlaceName?.substring(0, 50)}..." relevance=${hereResult.relevance} type=${hereResult.match_level}`);
-        }
+      if (preprocessed.modifications.length > 0) {
+        console.log(`[compute-distance-eta] Address preprocessed: ${preprocessed.modifications.join(", ")}`);
       }
       
-      // Use Mapbox if HERE not configured, failed, or for standard addresses
-      if (destLat === undefined || destLng === undefined) {
-        geocodeProviderUsed = geocodeProviderUsed === "mapbox_fallback" ? "mapbox_fallback" : "mapbox";
-        
-        // Apply state hint if address doesn't include a state/country
-        let addressToGeocode = address_text.trim();
-        const hasState = /,\s*[A-Z]{2}\b/.test(addressToGeocode) || 
-                         /\b(Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West Virginia|Wisconsin|Wyoming)\b/i.test(addressToGeocode);
-        
-        if (!hasState && stateHint) {
-          addressToGeocode = `${addressToGeocode}, ${stateHint}`;
-          stateHintApplied = true;
-          console.log(`[compute-distance-eta] Applied state hint: "${stateHint}" to address`);
+      stateHintApplied = preprocessed.modifications.includes("added_state_hint");
+      
+      // Build Mapbox geocoding URL with proximity bias
+      const encodedAddress = encodeURIComponent(preprocessed.normalized);
+      let geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodedAddress}.json?access_token=${accessToken}&limit=5&country=US`;
+      
+      // Add proximity bias from tenant's base location (improves accuracy for nearby addresses)
+      if (originLat !== undefined && originLng !== undefined) {
+        geocodeUrl += `&proximity=${originLng},${originLat}`;
+      }
+      
+      // For cross-streets and routes, use 'address' type to get more precise results
+      if (preprocessed.isCrossStreet || preprocessed.isHighwayRoute) {
+        geocodeUrl += `&types=address,poi`;
+        console.log(`[compute-distance-eta] Using address/poi types for ${preprocessed.isCrossStreet ? "cross-street" : "highway"} query`);
+      }
+
+      const geocodeRes = await fetch(geocodeUrl);
+      if (!geocodeRes.ok) {
+        return new Response(
+          JSON.stringify({ ...disabledResult, error: "Geocoding failed", needs_verification: true, geocode_provider_used: geocodeProviderUsed }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const geocodeData = await geocodeRes.json();
+      if (!geocodeData.features || geocodeData.features.length === 0) {
+        // If preprocessed address fails, try original as fallback
+        if (preprocessed.normalized !== preprocessed.original) {
+          console.log(`[compute-distance-eta] Preprocessed address failed, trying original`);
+          const fallbackUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address_text.trim())}.json?access_token=${accessToken}&limit=1&country=US`;
+          const fallbackRes = await fetch(fallbackUrl);
+          if (fallbackRes.ok) {
+            const fallbackData = await fallbackRes.json();
+            if (fallbackData.features?.length > 0) {
+              const feature = fallbackData.features[0];
+              [destLng, destLat] = feature.center;
+              geocodedPlaceName = feature.place_name;
+              geocodingConfidence = (feature.relevance || 0) >= 0.7 ? "high" : "low";
+            }
+          }
         }
         
-        const encodedAddress = encodeURIComponent(addressToGeocode);
-        const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodedAddress}.json?access_token=${accessToken}&limit=1`;
-
-        const geocodeRes = await fetch(geocodeUrl);
-        if (!geocodeRes.ok) {
-          return new Response(
-            JSON.stringify({ ...disabledResult, error: "Geocoding failed", needs_verification: true, geocode_provider_used: geocodeProviderUsed }),
-            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-
-        const geocodeData = await geocodeRes.json();
-        if (!geocodeData.features || geocodeData.features.length === 0) {
+        if (destLat === undefined || destLng === undefined) {
           return new Response(
             JSON.stringify({ ...disabledResult, error: "Address not found", needs_verification: true, geocode_provider_used: geocodeProviderUsed }),
             { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
-
-        const feature = geocodeData.features[0];
-        [destLng, destLat] = feature.center;
-        geocodedPlaceName = feature.place_name;
+      } else {
+        // Pick best result - prefer higher relevance and proximity to base
+        const features = geocodeData.features;
+        let bestFeature = features[0];
+        let bestScore = features[0].relevance || 0;
+        
+        // If we have proximity data, score by distance too
+        if (originLat !== undefined && originLng !== undefined && features.length > 1) {
+          for (const feature of features) {
+            const [lng, lat] = feature.center;
+            // Simple distance scoring (closer = better)
+            const distFactor = 1 / (1 + Math.abs(lat - originLat) + Math.abs(lng - originLng));
+            const score = (feature.relevance || 0) * 0.7 + distFactor * 0.3;
+            if (score > bestScore) {
+              bestScore = score;
+              bestFeature = feature;
+            }
+          }
+        }
+        
+        [destLng, destLat] = bestFeature.center;
+        geocodedPlaceName = bestFeature.place_name;
         
         // Check geocoding relevance score (Mapbox returns 0-1)
-        const relevance = feature.relevance || 0;
+        const relevance = bestFeature.relevance || 0;
         if (relevance < 0.7) {
           geocodingConfidence = "low";
           console.log(`[compute-distance-eta] Low Mapbox geocoding relevance: ${relevance}`);
         }
+        
+        console.log(`[compute-distance-eta] Mapbox geocoded: "${geocodedPlaceName?.substring(0, 60)}..." relevance=${relevance.toFixed(2)}`);
       }
     }
 
