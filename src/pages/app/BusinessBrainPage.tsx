@@ -51,6 +51,7 @@ import {
   ImpoundReleaseEditor, 
   DispatchIvrSettings 
 } from "@/components/brain/dispatch/impound";
+import { DistanceBasisSettings } from "@/components/brain/dispatch/DistanceBasisSettings";
 
 // Hooks
 import { useTenantConfig } from "@/hooks/useTenantConfig";
@@ -413,6 +414,17 @@ export default function BusinessBrainPage() {
                     preview={summaries.dispatchSettings}
                   >
                     <DispatchDeliverySettings />
+                  </CollapsibleBrainSection>
+                )}
+
+                {showDispatchDelivery && (
+                  <CollapsibleBrainSection
+                    id="distance-pricing"
+                    title="How You Charge for Distance"
+                    icon={Navigation}
+                    preview="Configure default distance pricing method"
+                  >
+                    <DistanceBasisSettings />
                   </CollapsibleBrainSection>
                 )}
 

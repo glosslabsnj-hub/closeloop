@@ -19,6 +19,8 @@ export interface TenantDistanceSettings {
   eta_min_minutes: number | null;
   eta_max_minutes: number | null;
   eta_rounding_minutes: number;
+  /** Default distance basis for pricing: tow_distance | dispatch_distance | total_trip | flat */
+  default_distance_basis: string;
   created_at: string;
   updated_at: string;
 }
@@ -35,6 +37,7 @@ const DEFAULT_SETTINGS: Omit<TenantDistanceSettings, "tenant_id" | "created_at" 
   eta_min_minutes: null,
   eta_max_minutes: null,
   eta_rounding_minutes: 5,
+  default_distance_basis: "tow_distance",
 };
 
 export function useTenantDistanceSettings() {

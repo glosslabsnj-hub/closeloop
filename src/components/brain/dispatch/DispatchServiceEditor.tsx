@@ -424,10 +424,13 @@ export function DispatchServiceEditor({
                   <div className="space-y-2">
                     <Label>Distance Measured From</Label>
                     <Select
-                      value={formData.pricing_config.distance_basis || "tow_distance"}
+                      value={formData.pricing_config.distance_basis || "default"}
                       onValueChange={(v) => setFormData({
                         ...formData,
-                        pricing_config: { ...formData.pricing_config, distance_basis: v as DistanceBasis },
+                        pricing_config: { 
+                          ...formData.pricing_config, 
+                          distance_basis: v === "default" ? undefined : v as DistanceBasis 
+                        },
                       })}
                     >
                       <SelectTrigger>
@@ -445,7 +448,9 @@ export function DispatchServiceEditor({
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                      {formData.pricing_config.distance_basis === "dispatch_distance" 
+                      {!formData.pricing_config.distance_basis || formData.pricing_config.distance_basis === ("default" as any)
+                        ? "This service will use your business-wide default distance setting."
+                        : formData.pricing_config.distance_basis === "dispatch_distance" 
                         ? "Price will be based on how far we travel to reach the customer."
                         : formData.pricing_config.distance_basis === "total_trip"
                         ? "Price will be based on the entire trip distance (to customer + tow)."
