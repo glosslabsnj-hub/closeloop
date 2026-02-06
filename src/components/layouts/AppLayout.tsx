@@ -238,66 +238,48 @@ function AppLayoutContent() {
 
   return (
     <TooltipProvider delayDuration={0}>
-      <div className="min-h-screen bg-background flex">
-        {/* Desktop Sidebar - Linear/Notion style */}
-        <aside
-          onMouseEnter={() => setSidebarHovered(true)}
-          onMouseLeave={() => setSidebarHovered(false)}
-          className={cn(
-            "hidden md:flex flex-col fixed left-0 top-0 bottom-0 z-40",
-            "bg-[hsl(222,25%,7%)] border-r border-white/[0.06]",
-            "transition-all duration-200 ease-out",
-            sidebarExpanded ? "w-56" : "w-[60px]"
-          )}
-        >
-          {/* Logo */}
-          <div className={cn(
-            "flex items-center h-14 border-b border-white/[0.06]",
-            sidebarExpanded ? "px-4 gap-3" : "justify-center"
-          )}>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary shrink-0">
-              <Phone className="h-4 w-4 text-primary-foreground" />
+      <div className="min-h-screen bg-background flex flex-col">
+        {/* Desktop Header - Admin controls in top-right */}
+        {isSuperAdmin && (
+          <header className="hidden md:flex fixed top-0 left-[60px] right-0 z-50 h-12 bg-background/95 backdrop-blur-lg border-b border-white/[0.06] items-center justify-end px-4 gap-3">
+            <div className="flex items-center gap-2 text-warning mr-2">
+              <FlaskConical className="h-3.5 w-3.5" />
+              <span className="text-[11px] font-semibold uppercase tracking-wider">Admin Testing</span>
             </div>
-            {sidebarExpanded && (
-              <div className="min-w-0">
-                <p className="text-sm font-semibold truncate">{displayTenant?.name || "CloseLoop"}</p>
-              </div>
-            )}
-          </div>
+            <AdminModeSelector />
+            <AdminTenantSwitcher />
+            <NotificationBell />
+          </header>
+        )}
 
-          {/* Admin Controls - Only for super admins */}
-          {isSuperAdmin && (
+        {/* Desktop Sidebar - Same for all users */}
+        <aside
+            onMouseEnter={() => setSidebarHovered(true)}
+            onMouseLeave={() => setSidebarHovered(false)}
+            className={cn(
+              "hidden md:flex flex-col fixed left-0 top-0 bottom-0 z-40",
+              "bg-[hsl(222,25%,7%)] border-r border-white/[0.06]",
+              "transition-all duration-200 ease-out",
+              sidebarExpanded ? "w-56" : "w-[60px]"
+            )}
+          >
+            {/* Logo */}
             <div className={cn(
-              "border-b border-white/[0.06]",
-              sidebarExpanded ? "p-3" : "p-2"
+              "flex items-center h-14 border-b border-white/[0.06]",
+              sidebarExpanded ? "px-4 gap-3" : "justify-center"
             )}>
-              {sidebarExpanded ? (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-warning mb-2">
-                    <FlaskConical className="h-3.5 w-3.5" />
-                    <span className="text-[11px] font-semibold uppercase tracking-wider">Admin Testing</span>
-                  </div>
-                  <AdminModeSelector />
-                  <AdminTenantSwitcher />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary shrink-0">
+                <Phone className="h-4 w-4 text-primary-foreground" />
+              </div>
+              {sidebarExpanded && (
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold truncate">{displayTenant?.name || "CloseLoop"}</p>
                 </div>
-              ) : (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex justify-center p-2 rounded-lg bg-warning/10">
-                      <FlaskConical className="h-4 w-4 text-warning" />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" sideOffset={8}>
-                    <span className="text-warning font-medium">Admin Mode</span>
-                    <p className="text-xs text-muted-foreground">Hover to expand controls</p>
-                  </TooltipContent>
-                </Tooltip>
               )}
             </div>
-          )}
 
-          {/* Admin Mode Banner */}
-          <AdminModeSwitcher />
+            {/* Admin Mode Banner - Minimal indicator only */}
+            <AdminModeSwitcher />
 
           {/* Search - Cmd+K style teaser */}
           <div className={cn("p-2", sidebarExpanded ? "px-3" : "")}>
@@ -501,7 +483,8 @@ function AppLayoutContent() {
         <main className={cn(
           "flex-1 min-h-screen",
           "md:ml-[60px]", // Sidebar width
-          "pt-14 md:pt-0", // Mobile header
+          isSuperAdmin ? "md:pt-12" : "md:pt-0", // Desktop admin header
+          "pt-14", // Mobile header
           "pb-16 md:pb-0" // Mobile bottom nav
         )}>
           {isRouteAccessible ? (
