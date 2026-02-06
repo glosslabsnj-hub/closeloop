@@ -12,11 +12,14 @@ export default function DashboardPage() {
   const { tenant, subscription, assistantSettings, refreshTenant, isSuperAdmin, hasActiveSubscription } = useAuth();
   const { canGoLive, p0Flags, loading: readinessLoading } = useAIReadinessV2();
 
+  // Super admins always bypass setup wizard - they can access the live dashboard directly
   const setupComplete =
+    isSuperAdmin ||
     assistantSettings?.go_live_enabled === true ||
     !!(assistantSettings as any)?.setup_completed_at;
 
-  const isActuallyLive = setupComplete && canGoLive && p0Flags.length === 0;
+  // For status badge: super admins show as "Admin Mode", otherwise show live status
+  const isActuallyLive = !isSuperAdmin && setupComplete && canGoLive && p0Flags.length === 0;
 
   // Super admins always bypass subscription gating - don't show "Choose Plan" screen
   // Only show for non-admins without an active subscription
@@ -50,6 +53,16 @@ export default function DashboardPage() {
   const statusBadge = (() => {
     if (readinessLoading) return null;
 
+    // Super admins see an "Admin Mode" badge
+    if (isSuperAdmin) {
+      return (
+        <Badge variant="secondary" size="sm" className="gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+          Admin Mode
+        </Badge>
+      );
+    }
+
     if (isActuallyLive) {
       return (
         <Badge variant="success" size="sm" className="gap-1.5">
@@ -61,7 +74,7 @@ export default function DashboardPage() {
 
     if (setupComplete && !isActuallyLive) {
       return (
-        <Badge variant="outline" size="sm" className="border-amber-500/30 text-amber-500">
+        <Badge variant="outline" size="sm" className="border-warning/30 text-warning">
           Setup Incomplete
         </Badge>
       );
