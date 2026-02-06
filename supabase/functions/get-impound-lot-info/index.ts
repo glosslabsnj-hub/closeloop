@@ -182,11 +182,38 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Resolve tenant_id - it could be a UUID or a business name
+    let resolvedTenantId = tenant_id;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(tenant_id)) {
+      console.log(`[get-impound-lot-info] tenant_id "${tenant_id}" is not UUID, looking up by name`);
+      const { data: tenant, error: tenantError } = await supabase
+        .from("tenants")
+        .select("id")
+        .ilike("name", `%${tenant_id}%`)
+        .limit(1)
+        .maybeSingle();
+      
+      if (tenantError || !tenant) {
+        console.error("[get-impound-lot-info] Could not resolve tenant by name:", tenantError);
+        return new Response(
+          JSON.stringify({
+            error: "Could not identify business",
+            message: "I'm having trouble accessing our system. Let me connect you with someone who can help.",
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      resolvedTenantId = tenant.id;
+      console.log(`[get-impound-lot-info] Resolved "${tenant_id}" to tenant ${resolvedTenantId}`);
+    }
+
     // Build query for lot
     let query = supabase
       .from("impound_lots")
       .select("*")
-      .eq("tenant_id", tenant_id)
+      .eq("tenant_id", resolvedTenantId)
       .eq("is_active", true);
 
     if (lot_id) {
