@@ -247,27 +247,30 @@ export default function DriverImpoundLog() {
               name="dispatch_job_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Link to Job (optional)</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ""}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a job to link" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="">No link</SelectItem>
-                      {activeJobs.map((job) => (
-                        <SelectItem key={job.id} value={job.id}>
-                          #{job.job_number || job.id.slice(0, 8)} - {job.customer_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
+                    <FormLabel>Link to Job (optional)</FormLabel>
+                    <Select
+                      onValueChange={(val) => field.onChange(val === "none" ? "" : val)}
+                      value={field.value || ""}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a job to link" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">No link</SelectItem>
+                        {activeJobs.map((job) => (
+                          <SelectItem key={job.id} value={job.id}>
+                            #{job.job_number || job.id.slice(0, 8)} - {job.customer_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
           {/* Reason */}
           <FormField
