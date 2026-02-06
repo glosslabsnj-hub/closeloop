@@ -1,22 +1,28 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { SetupWizard } from "@/components/dashboard/SetupWizard";
 import { LiveDashboard } from "@/components/dashboard/LiveDashboard";
+import { WelcomeSetupChecklist } from "@/components/dashboard/WelcomeSetupChecklist";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CreditCard, LayoutDashboard } from "lucide-react";
 import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
+import { useState } from "react";
 
 export default function DashboardPage() {
   const { tenant, subscription, assistantSettings, refreshTenant } = useAuth();
   const { canGoLive, p0Flags, loading: readinessLoading } = useAIReadinessV2();
+  const [setupSkipped, setSetupSkipped] = useState(false);
 
   const setupComplete =
     assistantSettings?.go_live_enabled === true ||
     !!(assistantSettings as any)?.setup_completed_at;
 
   const isActuallyLive = setupComplete && canGoLive && p0Flags.length === 0;
+
+  // Check if we should show the welcome checklist (new users without setup)
+  const showWelcomeChecklist = !setupComplete && !setupSkipped;
 
   // No subscription - show welcome
   if (!subscription) {
@@ -68,6 +74,17 @@ export default function DashboardPage() {
 
     return null;
   })();
+
+  // Show welcome checklist for new users
+  if (showWelcomeChecklist) {
+    return (
+      <PageContainer maxWidth="lg">
+        <div className="py-8">
+          <WelcomeSetupChecklist onSkip={() => setSetupSkipped(true)} />
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer maxWidth="xl">
