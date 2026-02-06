@@ -3,17 +3,47 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Truck, AlertTriangle, Plus, Loader2 } from "lucide-react";
+import { Truck, Plus, Loader2, Map } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DispatchJobCard } from "@/components/dispatch/DispatchJobCard";
-import { DispatchJobsTable } from "@/components/dispatch/DispatchJobsTable";
-import { DispatchQueueStats } from "@/components/dispatch/DispatchQueueStats";
+import { DispatchCommandTable } from "@/components/dispatch/DispatchCommandTable";
+import { DispatchCommandStats } from "@/components/dispatch/DispatchCommandStats";
 import { DispatchFilters } from "@/components/dispatch/DispatchFilters";
+import { DispatchJobDetailsSheet } from "@/components/dispatch/DispatchJobDetailsSheet";
+import { AssignJobDialog } from "@/components/dispatch/AssignJobDialog";
 import { EmptyState } from "@/components/ui/empty-state";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Link } from "react-router-dom";
+
+interface DispatchJob {
+  id: string;
+  job_number?: string;
+  status: string;
+  priority: string;
+  customer_name: string | null;
+  customer_phone: string | null;
+  pickup_address: string | null;
+  pickup_lat?: number | null;
+  pickup_lng?: number | null;
+  dropoff_address?: string | null;
+  dropoff_lat?: number | null;
+  dropoff_lng?: number | null;
+  job_type?: string | null;
+  description?: string | null;
+  notes?: string | null;
+  price_cents?: number | null;
+  estimated_duration_minutes?: number | null;
+  assigned_crew: string | null;
+  assigned_vehicle: string | null;
+  created_at: string;
+  dispatched_at?: string | null;
+  arrived_at?: string | null;
+  completed_at?: string | null;
+  customers?: { full_name: string; phone_e164: string } | null;
+}
 
 export default function DispatchPage() {
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["dispatch_queue"]);
@@ -25,6 +55,12 @@ export default function DispatchPage() {
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+  
+  // Sheet and Dialog state
+  const [selectedJob, setSelectedJob] = useState<DispatchJob | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [jobToAssign, setJobToAssign] = useState<DispatchJob | null>(null);
 
   const { data: jobs, isLoading } = useQuery({
     queryKey: ["dispatch-jobs", tenant?.id],
@@ -37,7 +73,7 @@ export default function DispatchPage() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as DispatchJob[];
     },
     enabled: !!tenant?.id,
   });
@@ -53,6 +89,8 @@ export default function DispatchPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dispatch-jobs"] });
       toast({ title: "Job updated" });
+      setDetailsOpen(false);
+      setAssignDialogOpen(false);
     },
     onError: (error: Error) => {
       toast({ variant: "destructive", title: "Error", description: error.message });
@@ -81,14 +119,20 @@ export default function DispatchPage() {
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const customerName = job.customer_name?.toLowerCase() || "";
-        const address = job.pickup_address?.toLowerCase() || "";
+        const pickupAddress = job.pickup_address?.toLowerCase() || "";
+        const dropoffAddress = job.dropoff_address?.toLowerCase() || "";
         const jobNumber = job.job_number?.toLowerCase() || "";
         const jobType = job.job_type?.toLowerCase() || "";
+        const vehicle = job.assigned_vehicle?.toLowerCase() || "";
+        const crew = job.assigned_crew?.toLowerCase() || "";
         return (
           customerName.includes(query) ||
-          address.includes(query) ||
+          pickupAddress.includes(query) ||
+          dropoffAddress.includes(query) ||
           jobNumber.includes(query) ||
-          jobType.includes(query)
+          jobType.includes(query) ||
+          vehicle.includes(query) ||
+          crew.includes(query)
         );
       }
 
@@ -96,30 +140,42 @@ export default function DispatchPage() {
     });
   }, [jobs, statusFilter, priorityFilter, searchQuery]);
 
-  const urgentJobs = jobs?.filter(
-    (j) => j.priority === "urgent" && activeStatuses.includes(j.status)
-  ) || [];
-
-  const handleAssign = (job: NonNullable<typeof jobs>[0]) => {
-    // TODO: Open assign dialog
+  const handleAssign = (job: DispatchJob) => {
+    setJobToAssign(job);
+    setAssignDialogOpen(true);
   };
 
-  const handleUpdateStatus = (job: NonNullable<typeof jobs>[0], newStatus: string) => {
+  const handleAssignSubmit = (jobId: string, crew: string, vehicle: string) => {
+    const updates: Record<string, unknown> = {
+      status: "assigned",
+      assigned_crew: crew || null,
+      assigned_vehicle: vehicle || null,
+      dispatched_at: new Date().toISOString(),
+    };
+    updateJobMutation.mutate({ jobId, updates });
+  };
+
+  const handleUpdateStatus = (job: DispatchJob, newStatus: string) => {
     const updates: Record<string, unknown> = { status: newStatus };
     if (newStatus === "completed") {
       updates.completed_at = new Date().toISOString();
     }
+    if (newStatus === "on_site") {
+      updates.arrived_at = new Date().toISOString();
+    }
     updateJobMutation.mutate({ jobId: job.id, updates });
   };
 
-  const handleCall = (job: NonNullable<typeof jobs>[0]) => {
-    if (job.customer_phone) {
-      window.open(`tel:${job.customer_phone}`);
+  const handleCall = (job: DispatchJob) => {
+    const phone = job.customer_phone || job.customers?.phone_e164;
+    if (phone) {
+      window.open(`tel:${phone}`);
     }
   };
 
-  const handleViewDetails = (job: NonNullable<typeof jobs>[0]) => {
-    // TODO: Open details sheet
+  const handleViewDetails = (job: DispatchJob) => {
+    setSelectedJob(job);
+    setDetailsOpen(true);
   };
 
   if (moduleLoading || !isAllowed) {
@@ -139,92 +195,102 @@ export default function DispatchPage() {
   }
 
   return (
-    <PageContainer maxWidth="full">
-      <div className="space-y-6">
-        <PageHeader
-          icon={<Truck className="h-5 w-5" />}
-          title="Dispatch Queue"
-          description={`${filteredJobs.length} ${statusFilter === "active" ? "active" : ""} jobs`}
-          action={
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              New Job
-            </Button>
-          }
-        />
-
-        {/* Urgent Alert */}
-        {urgentJobs.length > 0 && (
-          <Card className="border-destructive/50 bg-destructive/5">
-            <CardContent className="py-3 px-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-full bg-destructive/10">
-                  <AlertTriangle className="h-4 w-4 text-destructive" />
-                </div>
-                <div>
-                  <p className="font-medium text-destructive text-sm">
-                    {urgentJobs.length} Urgent Job{urgentJobs.length > 1 ? "s" : ""} Require
-                    Immediate Attention
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Stats Overview */}
-        <DispatchQueueStats jobs={jobs || []} />
-
-        {/* Filters */}
-        <DispatchFilters
-          statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
-          priorityFilter={priorityFilter}
-          onPriorityFilterChange={setPriorityFilter}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-        />
-
-        {/* Jobs List */}
-        {filteredJobs.length === 0 ? (
-          <EmptyState
-            icon={Truck}
-            title="No dispatch jobs"
-            description={
-              statusFilter !== "all" || priorityFilter !== "all" || searchQuery
-                ? "Try adjusting your filters to see more results."
-                : "When your AI creates dispatch requests, they'll appear here for assignment."
-            }
+    <TooltipProvider>
+      <PageContainer maxWidth="full">
+        <div className="space-y-6">
+          <PageHeader
+            icon={<Truck className="h-5 w-5" />}
+            title="Dispatch Command Center"
+            description={`${filteredJobs.length} ${statusFilter === "active" ? "active" : ""} jobs in queue`}
             action={
-              statusFilter === "all" && priorityFilter === "all" && !searchQuery
-                ? { label: "Create Job", onClick: () => {} }
-                : undefined
+              <div className="flex items-center gap-2">
+                <Button variant="outline" asChild>
+                  <Link to="/app/dispatch-map">
+                    <Map className="h-4 w-4 mr-2" />
+                    Map View
+                  </Link>
+                </Button>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Job
+                </Button>
+              </div>
             }
           />
-        ) : viewMode === "table" ? (
-          <DispatchJobsTable
-            jobs={filteredJobs}
-            onAssign={handleAssign}
-            onUpdateStatus={handleUpdateStatus}
-            onCall={handleCall}
-            onViewDetails={handleViewDetails}
+
+          {/* Command Center Stats */}
+          <DispatchCommandStats jobs={jobs || []} />
+
+          {/* Filters */}
+          <DispatchFilters
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+            priorityFilter={priorityFilter}
+            onPriorityFilterChange={setPriorityFilter}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
           />
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filteredJobs.map((job) => (
-              <DispatchJobCard
-                key={job.id}
-                job={job}
-                onAssign={handleAssign}
-                onUpdateStatus={handleUpdateStatus}
-                onCall={handleCall}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    </PageContainer>
+
+          {/* Jobs List */}
+          {filteredJobs.length === 0 ? (
+            <EmptyState
+              icon={Truck}
+              title="No dispatch jobs"
+              description={
+                statusFilter !== "all" || priorityFilter !== "all" || searchQuery
+                  ? "Try adjusting your filters to see more results."
+                  : "When your AI creates dispatch requests, they'll appear here for assignment."
+              }
+              action={
+                statusFilter === "all" && priorityFilter === "all" && !searchQuery
+                  ? { label: "Create Job", onClick: () => {} }
+                  : undefined
+              }
+            />
+          ) : viewMode === "table" ? (
+            <DispatchCommandTable
+              jobs={filteredJobs}
+              onAssign={handleAssign}
+              onUpdateStatus={handleUpdateStatus}
+              onCall={handleCall}
+              onViewDetails={handleViewDetails}
+            />
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredJobs.map((job) => (
+                <DispatchJobCard
+                  key={job.id}
+                  job={job}
+                  onAssign={handleAssign}
+                  onUpdateStatus={handleUpdateStatus}
+                  onCall={handleCall}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Job Details Sheet */}
+        <DispatchJobDetailsSheet
+          job={selectedJob}
+          open={detailsOpen}
+          onOpenChange={setDetailsOpen}
+          onAssign={handleAssign}
+          onUpdateStatus={handleUpdateStatus}
+          onCall={handleCall}
+        />
+
+        {/* Assign Job Dialog */}
+        <AssignJobDialog
+          job={jobToAssign}
+          open={assignDialogOpen}
+          onOpenChange={setAssignDialogOpen}
+          onAssign={handleAssignSubmit}
+          isLoading={updateJobMutation.isPending}
+        />
+      </PageContainer>
+    </TooltipProvider>
   );
 }
