@@ -45,6 +45,7 @@ import { IntelligenceSettingsForm } from "@/components/settings/IntelligenceSett
 import { BusinessHoursManager } from "@/components/brain/BusinessHoursManager";
 import { AINeverPromiseEditor } from "@/components/brain/AINeverPromiseEditor";
 import { AIScriptsEditor } from "@/components/brain/AIScriptsEditor";
+import ServiceCallFlowSettings from "@/components/ai/ServiceCallFlowSettings";
 import { 
   ImpoundLotEditor, 
   ImpoundFeesEditor, 
@@ -506,6 +507,11 @@ export default function BusinessBrainPage() {
               <div className="space-y-3">
                 <SectionHelper sectionId="ai-behavior" businessMode={businessMode} />
                 
+                {/* Service Call Flow - only for service/general modes */}
+                {(businessMode === "service" || businessMode === "general") && (
+                  <ServiceCallFlowSettings />
+                )}
+
                 <CollapsibleBrainSection
                   id="scripts"
                   title="Greeting & Scripts"
