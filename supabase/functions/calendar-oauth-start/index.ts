@@ -104,8 +104,6 @@ serve(async (req: Request) => {
       provider,
       timestamp: Date.now().toString(),
     });
-      timestamp: Date.now().toString(),
-    });
 
     let authUrl: string;
 
