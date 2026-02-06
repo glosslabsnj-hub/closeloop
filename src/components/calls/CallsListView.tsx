@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,20 +7,12 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Phone, Search, Filter, Download, Loader2 } from "lucide-react";
-import { format, isToday, isYesterday, startOfDay } from "date-fns";
+import { Phone, Download } from "lucide-react";
+import { format, isToday, isYesterday, startOfDay, isWithinInterval } from "date-fns";
 import { CallListCard } from "./CallListCard";
 import { CallDetailPanel } from "./CallDetailPanel";
-import { cn } from "@/lib/utils";
+import { CallsFilterBar, CallFilters } from "./CallsFilterBar";
 
 interface CallSession {
   id: string;
@@ -47,8 +39,6 @@ interface GroupedCalls {
   calls: CallSession[];
 }
 
-type OutcomeFilter = "all" | "booked" | "answered" | "lost" | "message" | "escalated";
-
 // Helper to extract customer name from call data
 function getCustomerName(call: CallSession): string {
   if (call.customer?.full_name && call.customer.full_name !== "Unknown") {
@@ -73,32 +63,37 @@ function getDateLabel(date: Date): string {
   return format(date, "EEEE, MMMM d");
 }
 
-const OUTCOME_FILTERS: { value: OutcomeFilter; label: string; count?: number }[] = [
-  { value: "all", label: "All" },
-  { value: "booked", label: "Booked" },
-  { value: "answered", label: "Questions" },
-  { value: "lost", label: "Missed" },
-  { value: "message", label: "Voicemail" },
-];
+// Calculate call duration in seconds
+function getCallDuration(call: CallSession): number {
+  if (!call.ended_at) return 0;
+  return Math.floor((new Date(call.ended_at).getTime() - new Date(call.started_at).getTime()) / 1000);
+}
+
+// Get revenue from call
+function getCallRevenue(call: CallSession): number {
+  const payload = call.extracted_payload;
+  if (!payload) return 0;
+  return (payload.price as number) || (payload.total as number) || 0;
+}
+
+const DEFAULT_FILTERS: CallFilters = {
+  search: "",
+  outcome: "all",
+  duration: "all",
+  customerType: "all",
+  datePreset: "all",
+  dateRange: undefined,
+  sort: "recent",
+};
 
 export function CallsListView() {
-  const navigate = useNavigate();
   const { tenant } = useAuth();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   
-  const [searchQuery, setSearchQuery] = useState("");
-  const [outcomeFilter, setOutcomeFilter] = useState<OutcomeFilter>("all");
+  const [filters, setFilters] = useState<CallFilters>(DEFAULT_FILTERS);
   const [selectedCall, setSelectedCall] = useState<CallSession | null>(null);
-  const [limit, setLimit] = useState(25);
-
-  // Handle URL params for direct call opening
-  useEffect(() => {
-    const callId = searchParams.get("call");
-    if (callId && !selectedCall) {
-      // Will be handled after data loads
-    }
-  }, [searchParams]);
+  const [limit, setLimit] = useState(50);
 
   // Realtime subscription
   useEffect(() => {
@@ -149,34 +144,95 @@ export function CallsListView() {
     }
   }, [calls, searchParams]);
 
-  // Filter and group calls
+  // Filter, sort, and group calls
   const { filteredCalls, groupedCalls, outcomeCounts } = useMemo(() => {
     if (!calls) return { filteredCalls: [], groupedCalls: [], outcomeCounts: {} as Record<string, number> };
     
-    // Count outcomes
+    // Count outcomes (before filtering)
     const counts: Record<string, number> = { all: calls.length };
     calls.forEach(call => {
       const outcome = call.outcome || "pending";
       counts[outcome] = (counts[outcome] || 0) + 1;
     });
 
-    // Filter
+    // Apply filters
     let filtered = calls;
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+
+    // Search filter (phone, name, summary, transcript)
+    if (filters.search) {
+      const query = filters.search.toLowerCase();
       filtered = filtered.filter(call =>
         call.caller_phone?.toLowerCase().includes(query) ||
         call.summary?.toLowerCase().includes(query) ||
+        call.transcript?.toLowerCase().includes(query) ||
         getCustomerName(call).toLowerCase().includes(query)
       );
     }
-    if (outcomeFilter !== "all") {
-      filtered = filtered.filter(call => call.outcome === outcomeFilter);
+
+    // Outcome filter
+    if (filters.outcome !== "all") {
+      filtered = filtered.filter(call => call.outcome === filters.outcome);
     }
+
+    // Date range filter
+    if (filters.dateRange?.from) {
+      filtered = filtered.filter(call => {
+        const callDate = new Date(call.started_at);
+        if (filters.dateRange?.to) {
+          return isWithinInterval(callDate, { start: filters.dateRange.from!, end: filters.dateRange.to });
+        }
+        return callDate >= filters.dateRange.from!;
+      });
+    }
+
+    // Duration filter
+    if (filters.duration !== "all") {
+      filtered = filtered.filter(call => {
+        const duration = getCallDuration(call);
+        switch (filters.duration) {
+          case "under1": return duration < 60;
+          case "1to3": return duration >= 60 && duration < 180;
+          case "3to5": return duration >= 180 && duration < 300;
+          case "over5": return duration >= 300;
+          default: return true;
+        }
+      });
+    }
+
+    // Customer type filter
+    if (filters.customerType !== "all") {
+      filtered = filtered.filter(call => {
+        const name = getCustomerName(call);
+        const hasCustomer = !!call.customer_id;
+        const isReturning = hasCustomer && call.customer?.full_name !== "Unknown";
+        
+        switch (filters.customerType) {
+          case "new": return hasCustomer && !isReturning;
+          case "returning": return isReturning;
+          case "unknown": return name === "Unknown Caller";
+          default: return true;
+        }
+      });
+    }
+
+    // Sort
+    const sorted = [...filtered].sort((a, b) => {
+      switch (filters.sort) {
+        case "oldest":
+          return new Date(a.started_at).getTime() - new Date(b.started_at).getTime();
+        case "longest":
+          return getCallDuration(b) - getCallDuration(a);
+        case "revenue":
+          return getCallRevenue(b) - getCallRevenue(a);
+        case "recent":
+        default:
+          return new Date(b.started_at).getTime() - new Date(a.started_at).getTime();
+      }
+    });
 
     // Group by date
     const groups: Record<string, CallSession[]> = {};
-    filtered.forEach(call => {
+    sorted.forEach(call => {
       const dayKey = startOfDay(new Date(call.started_at)).toISOString();
       if (!groups[dayKey]) groups[dayKey] = [];
       groups[dayKey].push(call);
@@ -188,10 +244,16 @@ export function CallsListView() {
         label: getDateLabel(new Date(dateStr)),
         calls,
       }))
-      .sort((a, b) => b.date.getTime() - a.date.getTime());
+      .sort((a, b) => {
+        // Respect sort order for groups
+        if (filters.sort === "oldest") {
+          return a.date.getTime() - b.date.getTime();
+        }
+        return b.date.getTime() - a.date.getTime();
+      });
 
-    return { filteredCalls: filtered, groupedCalls: grouped, outcomeCounts: counts };
-  }, [calls, searchQuery, outcomeFilter]);
+    return { filteredCalls: sorted, groupedCalls: grouped, outcomeCounts: counts };
+  }, [calls, filters]);
 
   const handleSelectCall = useCallback((call: CallSession) => {
     setSelectedCall(call);
@@ -204,7 +266,7 @@ export function CallsListView() {
   }, [setSearchParams]);
 
   const loadMore = useCallback(() => {
-    setLimit(prev => prev + 25);
+    setLimit(prev => prev + 50);
   }, []);
 
   const totalCount = calls?.length || 0;
@@ -224,41 +286,12 @@ export function CallsListView() {
       />
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        {/* Outcome tabs */}
-        <div className="flex items-center gap-1 overflow-x-auto pb-1 -mb-1">
-          {OUTCOME_FILTERS.map(filter => (
-            <Button
-              key={filter.value}
-              variant={outcomeFilter === filter.value ? "default" : "ghost"}
-              size="sm"
-              className={cn(
-                "h-8 shrink-0",
-                outcomeFilter === filter.value ? "" : "text-muted-foreground"
-              )}
-              onClick={() => setOutcomeFilter(filter.value)}
-            >
-              {filter.label}
-              {outcomeCounts[filter.value] !== undefined && outcomeCounts[filter.value] > 0 && (
-                <Badge variant="secondary" size="sm" className="ml-1.5">
-                  {outcomeCounts[filter.value]}
-                </Badge>
-              )}
-            </Button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-2 sm:ml-auto">
-          <div className="relative flex-1 sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search calls..."
-              className="pl-10"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
+      <div className="mb-6">
+        <CallsFilterBar
+          filters={filters}
+          onChange={setFilters}
+          outcomeCounts={outcomeCounts}
+        />
       </div>
 
       {/* Call list */}
@@ -272,8 +305,12 @@ export function CallsListView() {
       ) : filteredCalls.length === 0 ? (
         <EmptyState
           icon={Phone}
-          title="No calls yet"
-          description="When your AI handles calls, they'll appear here with full transcripts and extracted data."
+          title={filters.search || filters.outcome !== "all" ? "No matching calls" : "No calls yet"}
+          description={
+            filters.search || filters.outcome !== "all"
+              ? "Try adjusting your filters to find what you're looking for."
+              : "When your AI handles calls, they'll appear here with full transcripts and extracted data."
+          }
         />
       ) : (
         <div className="space-y-6">
