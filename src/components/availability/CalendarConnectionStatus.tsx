@@ -53,6 +53,25 @@ export function CalendarConnectionStatus() {
     ? CALENDAR_PROVIDERS.find((p) => p.id === activeConnection.provider)
     : null;
 
+  // Get selected calendar names from config_json
+  const getSelectedCalendarNames = (): string[] => {
+    if (!activeConnection?.config_json) return [];
+    const config = activeConnection.config_json as {
+      available_calendars?: Array<{ id: string; name: string; primary?: boolean }>;
+      selected_calendar_ids?: string[];
+    };
+    const availableCalendars = config.available_calendars || [];
+    const selectedIds = config.selected_calendar_ids || [];
+    
+    if (selectedIds.length === 0) return [];
+    
+    return selectedIds
+      .map((id) => availableCalendars.find((c) => c.id === id)?.name)
+      .filter((name): name is string => !!name);
+  };
+
+  const selectedCalendarNames = getSelectedCalendarNames();
+
   const handleSyncNow = async () => {
     if (!activeConnection) return;
     
@@ -179,30 +198,40 @@ export function CalendarConnectionStatus() {
                   <CheckCircle2 className="h-6 w-6 text-primary" />
                 )}
               </div>
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-semibold">
-                    Connected to {provider?.name || activeConnection?.provider}
-                  </h3>
-                  <Badge
-                    variant={isStale ? "outline" : "secondary"}
-                    className={`text-xs ${isStale ? "border-warning text-warning" : syncStatus.status === "fresh" ? "text-primary" : ""}`}
-                  >
-                    {syncStatus.icon === "success" && <CheckCircle2 className="h-3 w-3 mr-1" />}
-                    {syncStatus.icon === "clock" && <Clock className="h-3 w-3 mr-1" />}
-                    {syncStatus.icon === "warning" && <AlertTriangle className="h-3 w-3 mr-1" />}
-                    {syncStatus.message}
-                  </Badge>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-semibold">
+                      Connected to {provider?.name || activeConnection?.provider}
+                    </h3>
+                    <Badge
+                      variant={isStale ? "outline" : "secondary"}
+                      className={`text-xs ${isStale ? "border-warning text-warning" : syncStatus.status === "fresh" ? "text-primary" : ""}`}
+                    >
+                      {syncStatus.icon === "success" && <CheckCircle2 className="h-3 w-3 mr-1" />}
+                      {syncStatus.icon === "clock" && <Clock className="h-3 w-3 mr-1" />}
+                      {syncStatus.icon === "warning" && <AlertTriangle className="h-3 w-3 mr-1" />}
+                      {syncStatus.message}
+                    </Badge>
+                  </div>
+                  {selectedCalendarNames.length > 0 && (
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-xs text-muted-foreground">Syncing from:</span>
+                      {selectedCalendarNames.map((name, idx) => (
+                        <Badge key={idx} variant="outline" className="text-xs font-normal">
+                          {name}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-sm text-muted-foreground">
+                    {isStale
+                      ? "Your calendar looks out of date — sync now to refresh right away."
+                      : "Your schedule auto-syncs every ~5 minutes to prevent double bookings."}
+                  </p>
+                  <p className="text-xs text-muted-foreground/70">
+                    You can still hit Sync Now anytime for an instant refresh.
+                  </p>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {isStale
-                    ? "Your calendar looks out of date — sync now to refresh right away."
-                    : "Your schedule auto-syncs every ~5 minutes to prevent double bookings."}
-                </p>
-                <p className="text-xs text-muted-foreground/70">
-                  You can still hit Sync Now anytime for an instant refresh.
-                </p>
-              </div>
             </div>
             <div className="flex items-center gap-2">
               <Button
