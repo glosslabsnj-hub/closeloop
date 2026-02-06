@@ -62,17 +62,31 @@ serve(async (req: Request) => {
       });
     }
 
-    const { data: tenantUser, error: tenantError } = await supabase
-      .from("tenant_users")
-      .select("tenant_id")
+    // Check if user has an active tenant override (for multi-tenant users/admins)
+    const { data: adminSettings } = await supabase
+      .from("admin_settings")
+      .select("admin_active_tenant_id")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
-    if (tenantError || !tenantUser) {
-      return new Response(JSON.stringify({ error: "No tenant found" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    let tenantId: string | null = adminSettings?.admin_active_tenant_id || null;
+
+    // If no active tenant override, get the first tenant the user belongs to
+    if (!tenantId) {
+      const { data: tenantUser, error: tenantError } = await supabase
+        .from("tenant_users")
+        .select("tenant_id")
+        .eq("user_id", user.id)
+        .limit(1)
+        .maybeSingle();
+
+      if (tenantError || !tenantUser) {
+        return new Response(JSON.stringify({ error: "No tenant found" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      tenantId = tenantUser.tenant_id;
     }
 
     const { provider } = await req.json();
@@ -86,8 +100,10 @@ serve(async (req: Request) => {
 
     // Create signed state with tenant_id
     const state = await signState({
-      tenant_id: tenantUser.tenant_id,
+      tenant_id: tenantId!,
       provider,
+      timestamp: Date.now().toString(),
+    });
       timestamp: Date.now().toString(),
     });
 
