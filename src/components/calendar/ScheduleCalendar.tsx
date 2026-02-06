@@ -102,7 +102,7 @@ export function ScheduleCalendar({ onEventClick, onSlotClick }: ScheduleCalendar
       {!hasEventsThisWeek && (
         <div className="flex items-center justify-center py-6 text-sm text-muted-foreground border-t mt-4">
           <Calendar className="h-4 w-4 mr-2 opacity-50" />
-          <span>No bookings this week. Click any time slot to create one!</span>
+          <span>No schedule items this week. Click any time slot to create a booking!</span>
         </div>
       )}
     </div>

@@ -237,15 +237,43 @@ serve(async (req: Request) => {
   }
 });
 
+function timeZoneOffsetForDate(timeZone: string, yyyyMmDd: string): string {
+  // Use noon UTC to avoid DST edge cases that can occur around midnight.
+  const [y, m, d] = yyyyMmDd.split("-").map((n) => Number(n));
+  const probe = new Date(Date.UTC(y, (m || 1) - 1, d || 1, 12, 0, 0));
+
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      timeZoneName: "shortOffset",
+    }).formatToParts(probe);
+
+    const tz = parts.find((p) => p.type === "timeZoneName")?.value || "GMT";
+    // e.g. "GMT-5" or "GMT+5:30"
+    const match = tz.match(/GMT([+-]\d{1,2})(?::(\d{2}))?/);
+    if (!match) return "+00:00";
+
+    const minutes = match[2] || "00";
+
+    // match[1] already includes sign.
+    const sign = match[1].startsWith("-") ? "-" : "+";
+    const absHours = String(Math.abs(Number(match[1]))).padStart(2, "0");
+
+    return `${sign}${absHours}:${minutes}`;
+  } catch {
+    return "+00:00";
+  }
+}
+
 async function refreshToken(supabase: any, tokens: any): Promise<string | null> {
   if (!tokens.refresh_token) return null;
 
   try {
     let response;
-    
+
     if (tokens.provider === "google") {
       if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) return null;
-      
+
       response = await fetch("https://oauth2.googleapis.com/token", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -258,7 +286,7 @@ async function refreshToken(supabase: any, tokens: any): Promise<string | null> 
       });
     } else if (tokens.provider === "microsoft") {
       if (!MS_CLIENT_ID || !MS_CLIENT_SECRET) return null;
-      
+
       response = await fetch("https://login.microsoftonline.com/common/oauth2/v2.0/token", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -344,26 +372,56 @@ async function fetchGoogleBusyTimes(
         // Skip cancelled events
         if (event.status === "cancelled") continue;
 
-        // Get start/end times
-        const startAt = event.start?.dateTime || event.start?.date;
-        const endAt = event.end?.dateTime || event.end?.date;
+        // Respect transparency ("transparent" means it shouldn't block availability)
+        if (event.transparency === "transparent") {
+          console.log(`  -> Skipping transparent event: "${event.summary}"`);
+          continue;
+        }
 
-        console.log(`  Raw event: "${event.summary}" | start=${JSON.stringify(event.start)} | end=${JSON.stringify(event.end)}`);
+        const calendarTimeZone = eventsData.timeZone || event.start?.timeZone || "UTC";
+
+        // Get start/end times
+        let startAt: string | undefined = event.start?.dateTime || event.start?.date;
+        let endAt: string | undefined = event.end?.dateTime || event.end?.date;
+
+        console.log(
+          `  Raw event: "${event.summary}" | start=${JSON.stringify(event.start)} | end=${JSON.stringify(event.end)}`
+        );
 
         if (!startAt || !endAt) {
           console.log(`  -> Skipping: missing start or end time`);
           continue;
         }
 
-        // Skip zero-duration events (but log details for debugging)
-        if (startAt === endAt) {
-          console.log(`  -> Skipping zero-duration: startAt=${startAt}, endAt=${endAt}`);
-          continue;
+        // All-day events: Google returns date-only (end is exclusive). Convert to a block.
+        const isAllDay = !event.start?.dateTime && !!event.start?.date;
+        if (isAllDay) {
+          const startOffset = timeZoneOffsetForDate(calendarTimeZone, startAt);
+          const endOffset = timeZoneOffsetForDate(calendarTimeZone, endAt);
+
+          startAt = `${startAt}T00:00:00${startOffset}`;
+          endAt = `${endAt}T00:00:00${endOffset}`;
+
+          console.log(`  All-day event normalized (${calendarTimeZone}): ${startAt} -> ${endAt}`);
         }
 
-        // Skip all-day events (they have date but not dateTime) - these block full days
-        if (!event.start?.dateTime) {
-          console.log(`  -> Skipping all-day event (no dateTime)`);
+        // Zero-duration events: treat as a small busy block to prevent double-booking
+        if (startAt === endAt) {
+          const DEFAULT_ZERO_DURATION_MINUTES = 15;
+          const startMs = new Date(startAt).getTime();
+          const endMs = startMs + DEFAULT_ZERO_DURATION_MINUTES * 60 * 1000;
+          const normalizedEnd = new Date(endMs).toISOString();
+
+          console.log(
+            `  -> Zero-duration event normalized to ${DEFAULT_ZERO_DURATION_MINUTES}m: startAt=${startAt}, endAt=${normalizedEnd}`
+          );
+
+          endAt = normalizedEnd;
+        }
+
+        // Guard against invalid ranges after normalization
+        if (new Date(endAt).getTime() <= new Date(startAt).getTime()) {
+          console.log(`  -> Skipping: end <= start after normalization`);
           continue;
         }
 
