@@ -18,20 +18,15 @@ import {
   Cake,
   Stethoscope,
   Users,
-  BookOpen,
-  Zap,
-  BarChart3,
   TrendingUp,
-  FileText,
-  Building2,
-  Mic,
-  PlugZap,
-  UserCog,
   HelpCircle,
   Warehouse,
+  RefreshCw,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface NavItem {
@@ -39,11 +34,7 @@ interface NavItem {
   label: string;
   icon: React.ElementType;
   badge?: number;
-}
-
-interface NavSection {
-  label: string;
-  items: NavItem[];
+  hasArrow?: boolean;
 }
 
 interface MobileSidebarProps {
@@ -69,11 +60,10 @@ export function MobileSidebar({
   const navigate = useNavigate();
 
   const businessMode = effectiveTenant?.business_mode || "service";
+  const alwaysAccessibleRoutes = ["/app/settings", "/app/go-live"];
+  const effectiveHasSubscription = isSuperAdmin || hasActiveSubscription;
 
-  // Build navigation sections based on business mode and enabled modules
-  const navSections: NavSection[] = [];
-
-  // MAIN section
+  // MAIN NAVIGATION items
   const mainItems: NavItem[] = [
     { href: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/app/inbox", label: "Calls & Sessions", icon: MessageSquare },
@@ -100,38 +90,59 @@ export function MobileSidebar({
   }
 
   mainItems.push({ href: "/app/customers", label: "Customers", icon: Users });
-  
-  navSections.push({ label: "Main", items: mainItems });
+  mainItems.push({ href: "/app/calendar", label: "Calendar", icon: Calendar });
 
-  // BUSINESS BRAIN section
-  const brainItems: NavItem[] = [
-    { href: "/app/business-brain", label: "AI Assistant", icon: Bot, badge: conflictsCount || undefined },
-    { href: "/app/business-brain?tab=knowledge", label: "Knowledge Base", icon: BookOpen },
-    { href: "/app/integrations", label: "Automations", icon: Zap },
-  ];
-  navSections.push({ label: "Business Brain", items: brainItems });
-
-  // INSIGHTS section
-  const insightsItems: NavItem[] = [
+  // SECONDARY items (with arrows for expandable)
+  const secondaryItems: NavItem[] = [
+    { href: "/app/business-brain", label: "Business Brain", icon: Bot, badge: conflictsCount || undefined, hasArrow: true },
     { href: "/app/reports/roi", label: "Revenue & ROI", icon: TrendingUp },
-    { href: "/app/reports", label: "Reports", icon: BarChart3 },
+    { href: "/app/lead-recovery", label: "Lead Recovery", icon: RefreshCw },
   ];
-  navSections.push({ label: "Insights", items: insightsItems });
 
-  // SETTINGS section
-  const settingsItems: NavItem[] = [
-    { href: "/app/settings", label: "Settings", icon: Settings },
+  // BOTTOM items
+  const bottomItems: NavItem[] = [
+    { href: "/app/settings", label: "Settings", icon: Settings, hasArrow: true },
     { href: "/app/help", label: "Help & Support", icon: HelpCircle },
   ];
-  navSections.push({ label: "Settings", items: settingsItems });
-
-  const alwaysAccessibleRoutes = ["/app/settings", "/app/go-live"];
-  const effectiveHasSubscription = isSuperAdmin || hasActiveSubscription;
 
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
     onClose();
+  };
+
+  const renderNavItem = (item: NavItem) => {
+    const Icon = item.icon;
+    const isActive = location.pathname === item.href;
+    const isLocked = !effectiveHasSubscription && 
+      !alwaysAccessibleRoutes.some(route => item.href.startsWith(route));
+
+    return (
+      <Link
+        key={item.href}
+        to={isLocked ? "/app/go-live" : item.href}
+        onClick={onClose}
+        className={cn(
+          "flex items-center gap-3 px-4 py-3 text-[15px] transition-colors",
+          isActive 
+            ? "bg-primary/10 text-primary font-medium" 
+            : isLocked
+              ? "text-muted-foreground/30"
+              : "text-foreground hover:bg-muted/50"
+        )}
+      >
+        <Icon className={cn("h-5 w-5", isActive ? "text-primary" : "text-muted-foreground")} />
+        <span className="flex-1">{item.label}</span>
+        {item.badge && item.badge > 0 && (
+          <span className="h-5 min-w-5 px-1.5 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-semibold">
+            {item.badge}
+          </span>
+        )}
+        {item.hasArrow && (
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        )}
+      </Link>
+    );
   };
 
   if (!isOpen) return null;
@@ -145,86 +156,64 @@ export function MobileSidebar({
       />
       
       {/* Sidebar */}
-      <aside className="absolute left-0 top-0 bottom-0 w-80 bg-background border-r border-border overflow-y-auto animate-slide-up-fade">
-        {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between p-4 bg-background border-b border-border/50">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center">
-              <Phone className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <div>
-              <p className="font-semibold">{effectiveTenant?.name || "CloseLoop"}</p>
-              <p className="text-xs text-muted-foreground">{user?.email}</p>
-            </div>
-          </div>
+      <aside className="absolute left-0 top-0 bottom-0 w-80 bg-background border-r border-border flex flex-col animate-slide-up-fade">
+        {/* Header with user info */}
+        <div className="flex items-center justify-between p-4 border-b border-border">
           <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
             <X className="h-4 w-4" />
           </Button>
         </div>
 
-        {/* Navigation Sections */}
-        <nav className="p-4 space-y-6">
-          {navSections.map((section) => (
-            <div key={section.label}>
-              <p className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                {section.label}
-              </p>
-              <div className="space-y-0.5">
-                {section.items.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = location.pathname === item.href;
-                  const isLocked = !effectiveHasSubscription && 
-                    !alwaysAccessibleRoutes.some(route => item.href.startsWith(route));
-
-                  return (
-                    <Link
-                      key={item.href}
-                      to={isLocked ? "/app/go-live" : item.href}
-                      onClick={onClose}
-                      className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors",
-                        isActive 
-                          ? "bg-primary/10 text-primary" 
-                          : isLocked
-                            ? "text-muted-foreground/30"
-                            : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
-                      )}
-                    >
-                      <Icon className={cn("h-[18px] w-[18px]", isActive && "text-primary")} />
-                      {item.label}
-                      {item.badge && item.badge > 0 && (
-                        <span className="ml-auto h-5 min-w-5 px-1.5 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-semibold">
-                          {item.badge}
-                        </span>
-                      )}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </nav>
-
-        {/* User Section */}
-        <div className="sticky bottom-0 p-4 bg-background border-t border-border/50">
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback className="bg-primary/20 text-primary text-sm font-semibold">
+        {/* User Profile Section */}
+        <div className="p-4 border-b border-border">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-12 w-12">
+              <AvatarFallback className="bg-primary/20 text-primary text-lg font-semibold">
                 {user?.email?.[0].toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{effectiveTenant?.name || "My Business"}</p>
-              <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+              <p className="font-semibold text-foreground truncate">
+                {user?.email?.split('@')[0] || "User"}
+              </p>
+              <p className="text-sm text-muted-foreground truncate">
+                {effectiveTenant?.name || "My Business"}
+              </p>
             </div>
           </div>
+        </div>
+
+        {/* Scrollable Navigation */}
+        <nav className="flex-1 overflow-y-auto">
+          {/* Main Navigation */}
+          <div className="py-2">
+            {mainItems.map(renderNavItem)}
+          </div>
+          
+          <Separator className="mx-4" />
+          
+          {/* Secondary Navigation */}
+          <div className="py-2">
+            {secondaryItems.map(renderNavItem)}
+          </div>
+          
+          <Separator className="mx-4" />
+          
+          {/* Bottom Navigation */}
+          <div className="py-2">
+            {bottomItems.map(renderNavItem)}
+          </div>
+        </nav>
+
+        {/* Sign Out Button */}
+        <div className="p-4 border-t border-border">
           <Button 
             variant="ghost" 
-            className="w-full mt-2 justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+            className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
             onClick={handleSignOut}
           >
-            <LogOut className="mr-2 h-4 w-4" />
-            Sign out
+            <LogOut className="mr-3 h-5 w-5" />
+            Log Out
           </Button>
         </div>
       </aside>

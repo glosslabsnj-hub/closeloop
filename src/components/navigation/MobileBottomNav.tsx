@@ -6,7 +6,7 @@ import {
   LayoutDashboard,
   MessageSquare,
   Calendar,
-  Settings,
+  Users,
   Bot,
   Truck,
   UtensilsCrossed,
@@ -30,7 +30,13 @@ export function MobileBottomNav({ effectiveTenant }: MobileBottomNavProps) {
 
   const businessMode = effectiveTenant?.business_mode || "service";
 
-  // Build bottom nav items based on business mode
+  // Build bottom nav items - always 5 items
+  // 1. Home (Dashboard)
+  // 2. Inbox (Calls & Sessions)
+  // 3. Mode-specific (Jobs/Orders/Bookings)
+  // 4. Customers
+  // 5. AI (Business Brain)
+
   const navItems: NavItem[] = [
     { href: "/app/dashboard", label: "Home", icon: LayoutDashboard },
     { href: "/app/inbox", label: "Inbox", icon: MessageSquare },
@@ -46,23 +52,20 @@ export function MobileBottomNav({ effectiveTenant }: MobileBottomNavProps) {
   } else if (enabledModules.includes("booking")) {
     navItems.push({ href: "/app/bookings", label: terms.bookingsPageTitle || "Bookings", icon: Calendar });
   } else {
-    // Default to Business Brain if no modules
-    navItems.push({ href: "/app/business-brain", label: "Setup", icon: Bot });
+    navItems.push({ href: "/app/calendar", label: "Calendar", icon: Calendar });
   }
 
-  // Add AI and Settings
+  // Always add Customers and AI
+  navItems.push({ href: "/app/customers", label: "Customers", icon: Users });
   navItems.push({ href: "/app/business-brain", label: "AI", icon: Bot });
-  navItems.push({ href: "/app/settings", label: "Settings", icon: Settings });
-
-  // Limit to 5 items
-  const displayItems = navItems.slice(0, 5);
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 h-16 bg-background/95 backdrop-blur-lg border-t border-border/50 safe-area-pb">
       <div className="grid grid-cols-5 h-full">
-        {displayItems.map((item) => {
+        {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = location.pathname === item.href;
+          const isActive = location.pathname === item.href || 
+            (item.href !== "/app/dashboard" && location.pathname.startsWith(item.href));
           
           return (
             <Link
@@ -73,7 +76,12 @@ export function MobileBottomNav({ effectiveTenant }: MobileBottomNavProps) {
                 isActive ? "text-primary" : "text-muted-foreground"
               )}
             >
-              <Icon className={cn("h-5 w-5", isActive && "text-primary")} />
+              <div className={cn(
+                "flex items-center justify-center w-10 h-7 rounded-full transition-colors",
+                isActive && "bg-primary/10"
+              )}>
+                <Icon className="h-5 w-5" />
+              </div>
               <span className={cn(
                 "text-[10px] font-medium",
                 isActive && "text-primary"
