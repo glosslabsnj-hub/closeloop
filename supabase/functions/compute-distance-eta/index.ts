@@ -39,6 +39,11 @@ interface ComputeEtaRequest {
   origin_address_text?: string;
   // If true, skips tenant settings lookup (for simple point-to-point calculations)
   skip_eta_settings?: boolean;
+  /**
+   * Legacy: if true, applies eta_per_mile_minutes on top of Mapbox drive time.
+   * NOTE: This can dramatically inflate ETAs because Mapbox duration already reflects distance.
+   */
+  apply_per_mile_buffer?: boolean;
 }
 
 interface ComputeEtaResponse {
@@ -56,6 +61,21 @@ interface ComputeEtaResponse {
   needs_verification: boolean;
   state_hint_applied: boolean;
   geocode_provider_used: string;
+
+  // Deploy verification
+  _version?: string;
+  _deployed_at?: string;
+
+  // Debug breakdown for why ETA is what it is
+  eta_components?: {
+    response_base_minutes: number;
+    busy_pct: number;
+    busy_buffer_minutes: number;
+    drive_minutes: number;
+    per_mile_buffer_minutes: number;
+    rounding_minutes: number;
+    total_minutes: number;
+  };
 }
 
 interface TenantDistanceSettings {
@@ -79,6 +99,10 @@ interface BusynessRules {
   busy_buffer_minutes?: number;
   manual_busyness_pct?: number; // 0-100 slider value
 }
+
+// Update this string when you want to verify a fresh deploy is running
+const VERSION = "compute-distance-eta@2026-02-06.1";
+const DEPLOYED_AT = new Date().toISOString();
 
 const METERS_PER_MILE = 1609.344;
 
@@ -104,9 +128,11 @@ serve(async (req: Request) => {
   };
 
   try {
+    console.log(`[${VERSION}] Request received at ${new Date().toISOString()}`);
+
     if (req.method !== "POST") {
       return new Response(
-        JSON.stringify({ ...disabledResult, error: "POST only" }),
+        JSON.stringify({ ...disabledResult, error: "POST only", _version: VERSION, _deployed_at: DEPLOYED_AT }),
         { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -118,16 +144,17 @@ serve(async (req: Request) => {
 
     // Parse request
     const body: ComputeEtaRequest = await req.json();
-    const { 
-      tenant_id, 
-      address_text, 
-      dest_lat, 
-      dest_lng, 
+    const {
+      tenant_id,
+      address_text,
+      dest_lat,
+      dest_lng,
       intent = "dispatch",
       origin_lat,
       origin_lng,
       origin_address_text,
-      skip_eta_settings = false
+      skip_eta_settings = false,
+      apply_per_mile_buffer = false,
     } = body;
 
     if (!tenant_id) {
@@ -516,27 +543,34 @@ serve(async (req: Request) => {
       // - durationMinutes: Actual drive time from base to pickup (from Mapbox)
       
       // Start with base response time (average time to get out the door)
-      let responseTime = settings.eta_base_minutes;
-      
+      const responseBaseMinutes = settings.eta_base_minutes;
+      let responseTime = responseBaseMinutes;
+
       // Apply busyness buffer if configured
       // Formula: At 100% busyness, add full busy_buffer_minutes
       // At 0% busyness, add nothing
-      if (busynessRules) {
-        const busyPct = Math.min(100, Math.max(0, busynessRules.manual_busyness_pct ?? 0));
-        const busyBufferMax = busynessRules.busy_buffer_minutes ?? 15;
-        const busyBufferMinutes = Math.round((busyPct / 100) * busyBufferMax);
-        
-        responseTime += busyBufferMinutes;
-        
-        console.log(`[compute-distance-eta] Busyness adjustment: ${busyPct}% busyness → +${busyBufferMinutes}min buffer (max ${busyBufferMax}min)`);
-      }
-      
+      const busyPct = Math.min(100, Math.max(0, busynessRules?.manual_busyness_pct ?? 0));
+      const busyBufferMax = busynessRules?.busy_buffer_minutes ?? 15;
+      const busyBufferMinutes = Math.round((busyPct / 100) * busyBufferMax);
+      responseTime += busyBufferMinutes;
+
+      console.log(
+        `[compute-distance-eta] Busyness adjustment: ${busyPct}% busyness → +${busyBufferMinutes}min buffer (max ${busyBufferMax}min)`
+      );
+
       // Total ETA = busyness-adjusted response time + drive time
       etaMinutes = responseTime + durationMinutes;
 
-      // Add per-mile buffer if configured (optional additional buffer)
-      if (settings.eta_per_mile_minutes) {
-        etaMinutes += Math.ceil(distanceMiles * settings.eta_per_mile_minutes);
+      // IMPORTANT: Mapbox duration already reflects distance + traffic.
+      // Applying a per-mile buffer on top of that double-counts distance and can inflate ETAs.
+      // Keep per-mile as opt-in legacy behavior only.
+      const perMileBufferMinutes =
+        apply_per_mile_buffer && settings.eta_per_mile_minutes
+          ? Math.ceil(distanceMiles * settings.eta_per_mile_minutes)
+          : 0;
+
+      if (perMileBufferMinutes > 0) {
+        etaMinutes += perMileBufferMinutes;
       }
 
       // Apply min/max clamps
@@ -557,7 +591,7 @@ serve(async (req: Request) => {
     }
 
     // Log success (no PII)
-    console.log(`[compute-distance-eta] tenant=${tenant_id.substring(0, 8)}... intent=${intent} distance=${distanceMiles.toFixed(1)}mi eta=${etaMinutes}min confidence=${geocodingConfidence} geocoder=${geocodeProviderUsed}`);
+    console.log(`[${VERSION}] tenant=${tenant_id.substring(0, 8)}... intent=${intent} distance=${distanceMiles.toFixed(1)}mi eta=${etaMinutes}min confidence=${geocodingConfidence} geocoder=${geocodeProviderUsed}`);
 
     const result: ComputeEtaResponse = {
       geocoded_place_name: geocodedPlaceName,
@@ -573,6 +607,23 @@ serve(async (req: Request) => {
       needs_verification: needsVerification,
       state_hint_applied: stateHintApplied,
       geocode_provider_used: geocodeProviderUsed,
+      _version: VERSION,
+      _deployed_at: DEPLOYED_AT,
+      eta_components: {
+        response_base_minutes: settings.eta_base_minutes,
+        busy_pct: Math.min(100, Math.max(0, busynessRules?.manual_busyness_pct ?? 0)),
+        busy_buffer_minutes: Math.round(
+          (Math.min(100, Math.max(0, busynessRules?.manual_busyness_pct ?? 0)) / 100) *
+            (busynessRules?.busy_buffer_minutes ?? 15)
+        ),
+        drive_minutes: durationMinutes,
+        per_mile_buffer_minutes:
+          apply_per_mile_buffer && settings.eta_per_mile_minutes
+            ? Math.ceil(distanceMiles * settings.eta_per_mile_minutes)
+            : 0,
+        rounding_minutes: rounding,
+        total_minutes: etaMinutes,
+      },
     };
 
     return new Response(JSON.stringify(result), {
