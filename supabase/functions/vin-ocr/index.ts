@@ -105,7 +105,7 @@ Remember: VINs are exactly 17 characters, alphanumeric, no spaces.`
   } catch (error) {
     console.error("VIN OCR error:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Failed to process image" }),
+      JSON.stringify({ error: error instanceof Error ? error.message : "Failed to process image" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

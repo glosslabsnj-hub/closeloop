@@ -323,7 +323,7 @@ Deno.serve(async (req) => {
     console.error("[get-impound-lot-info] Error:", error);
     return new Response(
       JSON.stringify({
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         message: "I'm having trouble getting that information right now. Let me connect you with someone who can help.",
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -203,19 +203,21 @@ serve(async (req) => {
     }
 
     // Log the review request
-    await supabase.from("review_requests").insert({
-      tenant_id: tenant.id,
-      customer_id: customer_id,
-      job_id: job_id || null,
-      booking_id: booking_id || null,
-      channel: channel,
-      sms_sent: results.sms || false,
-      email_sent: results.email || false,
-      sent_at: new Date().toISOString(),
-    }).catch(() => {
+    try {
+      await supabase.from("review_requests").insert({
+        tenant_id: tenant.id,
+        customer_id: customer_id,
+        job_id: job_id || null,
+        booking_id: booking_id || null,
+        channel: channel,
+        sms_sent: results.sms || false,
+        email_sent: results.email || false,
+        sent_at: new Date().toISOString(),
+      });
+    } catch {
       // Table might not exist, ignore
       console.log("Could not log review request (table may not exist)");
-    });
+    }
 
     return new Response(
       JSON.stringify({
@@ -232,7 +234,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error sending review request:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Internal server error" }),
+      JSON.stringify({ error: error instanceof Error ? error.message : "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

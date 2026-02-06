@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { createHmac } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -82,7 +81,6 @@ serve(async (req) => {
     const tenantId = payload.metadata?.tenant_id;
     const estimateId = payload.metadata?.estimate_id;
     const bookingId = payload.metadata?.booking_id;
-    const customerId = payload.metadata?.customer_id;
 
     // Handle different event types
     switch (payload.event_type) {
@@ -102,20 +100,22 @@ serve(async (req) => {
 
         // Log the financing approval
         if (tenantId) {
-          await supabase.from("activity_log").insert({
-            tenant_id: tenantId,
-            entity_type: "financing",
-            entity_id: payload.loan_id,
-            action: "approved",
-            details: {
-              loan_id: payload.loan_id,
-              amount_cents: payload.amount_cents,
-              estimate_id: estimateId,
-              booking_id: bookingId,
-            },
-          }).catch(() => {
+          try {
+            await supabase.from("activity_log").insert({
+              tenant_id: tenantId,
+              entity_type: "financing",
+              entity_id: payload.loan_id,
+              action: "approved",
+              details: {
+                loan_id: payload.loan_id,
+                amount_cents: payload.amount_cents,
+                estimate_id: estimateId,
+                booking_id: bookingId,
+              },
+            });
+          } catch {
             // activity_log table might not exist, ignore
-          });
+          }
         }
         break;
 
@@ -140,19 +140,21 @@ serve(async (req) => {
         // Log the decline but don't update estimate status
         // Customer might want to pay differently
         if (tenantId) {
-          await supabase.from("activity_log").insert({
-            tenant_id: tenantId,
-            entity_type: "financing",
-            entity_id: payload.loan_id,
-            action: "declined",
-            details: {
-              loan_id: payload.loan_id,
-              estimate_id: estimateId,
-              booking_id: bookingId,
-            },
-          }).catch(() => {
+          try {
+            await supabase.from("activity_log").insert({
+              tenant_id: tenantId,
+              entity_type: "financing",
+              entity_id: payload.loan_id,
+              action: "declined",
+              details: {
+                loan_id: payload.loan_id,
+                estimate_id: estimateId,
+                booking_id: bookingId,
+              },
+            });
+          } catch {
             // activity_log table might not exist, ignore
-          });
+          }
         }
         break;
 
@@ -170,15 +172,17 @@ serve(async (req) => {
 
     // Store the webhook event for audit
     if (tenantId) {
-      await supabase.from("webhook_events").insert({
-        tenant_id: tenantId,
-        source: "wisetack",
-        event_type: payload.event_type,
-        payload: payload,
-        received_at: new Date().toISOString(),
-      }).catch(() => {
+      try {
+        await supabase.from("webhook_events").insert({
+          tenant_id: tenantId,
+          source: "wisetack",
+          event_type: payload.event_type,
+          payload: payload,
+          received_at: new Date().toISOString(),
+        });
+      } catch {
         // webhook_events table might not exist, ignore
-      });
+      }
     }
 
     return new Response(
@@ -188,7 +192,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error processing Wisetack webhook:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Internal server error" }),
+      JSON.stringify({ error: error instanceof Error ? error.message : "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

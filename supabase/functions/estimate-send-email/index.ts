@@ -157,8 +157,16 @@ serve(async (req) => {
       );
     }
 
+    // Handle joined data which may be arrays or objects
+    const customerData = Array.isArray(estimate.customer) 
+      ? estimate.customer[0] 
+      : estimate.customer;
+    const tenantData = Array.isArray(estimate.tenant) 
+      ? estimate.tenant[0] 
+      : estimate.tenant;
+
     // Check if customer has email
-    const customerEmail = estimate.customer?.email;
+    const customerEmail = customerData?.email;
     if (!customerEmail) {
       return new Response(
         JSON.stringify({ error: "Customer does not have an email address" }),
@@ -179,8 +187,8 @@ serve(async (req) => {
         total_cents: estimate.total_cents || 0,
         valid_until: estimate.valid_until,
       },
-      estimate.tenant || { business_name: null, phone: null, email: null },
-      estimate.customer?.full_name || "Valued Customer",
+      tenantData || { business_name: null, phone: null, email: null },
+      customerData?.full_name || "Valued Customer",
       viewUrl
     );
 
@@ -190,7 +198,7 @@ serve(async (req) => {
     if (!resendApiKey) {
       console.warn("RESEND_API_KEY not set, logging email instead of sending");
       console.log("Would send email to:", customerEmail);
-      console.log("Subject:", `Your Estimate from ${estimate.tenant?.business_name || "Our Company"}`);
+      console.log("Subject:", `Your Estimate from ${tenantData?.business_name || "Our Company"}`);
 
       // Still update the estimate status even without sending
       await supabase
@@ -213,8 +221,8 @@ serve(async (req) => {
     }
 
     // Send via Resend
-    const fromEmail = estimate.tenant?.email || "noreply@closeloop.ai";
-    const fromName = estimate.tenant?.business_name || "CloseLoop";
+    const fromEmail = tenantData?.email || "noreply@closeloop.ai";
+    const fromName = tenantData?.business_name || "CloseLoop";
 
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -225,7 +233,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: `${fromName} <${fromEmail}>`,
         to: [customerEmail],
-        subject: `Your Estimate from ${estimate.tenant?.business_name || "Our Company"} - ${estimate.estimate_number}`,
+        subject: `Your Estimate from ${tenantData?.business_name || "Our Company"} - ${estimate.estimate_number}`,
         html: emailHtml,
       }),
     });
@@ -260,7 +268,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error in estimate-send-email:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Internal server error" }),
+      JSON.stringify({ error: error instanceof Error ? error.message : "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
