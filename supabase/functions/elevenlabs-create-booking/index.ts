@@ -247,17 +247,8 @@ serve(async (req: Request) => {
       sessionId = session?.id || null;
     }
 
-    if (!tenantId) {
-      const { data: recentSession } = await supabase
-        .from("ai_call_sessions")
-        .select("tenant_id, id")
-        .is("ended_at", null)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      tenantId = recentSession?.tenant_id || null;
-      sessionId = recentSession?.id || null;
-    }
+    // P0-2: Removed cross-tenant fallback that queried most recent session
+    // across ALL tenants. This was a tenant isolation risk.
 
     if (!tenantId) {
       return new Response(

@@ -120,22 +120,8 @@ serve(async (req: Request) => {
       }
     }
 
-    // Strategy 2: Find by most recent active session (no ended_at)
-    if (!tenantId) {
-      const { data: recentSession } = await supabase
-        .from("ai_call_sessions")
-        .select("tenant_id, id")
-        .is("ended_at", null)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      tenantId = recentSession?.tenant_id || null;
-      sessionId = recentSession?.id || null;
-      if (tenantId) {
-        console.log(`[create-dispatch] Found session by active (ended_at=null): ${sessionId}`);
-      }
-    }
+    // P0-2: Removed cross-tenant fallback (Strategy 2) that queried most
+    // recent session across ALL tenants. This was a tenant isolation risk.
     
     // Strategy 3: Find by caller phone from body (recent session in last 5 min)
     if (!tenantId && customer_phone) {

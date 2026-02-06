@@ -465,7 +465,9 @@ serve(async (req) => {
       .eq("elevenlabs_conversation_id", payload.conversation_id)
       .single();
 
-    if (existingSession?.transcript && existingSession?.ended_at) {
+    // P0-4: Check ended_at alone. Previously required BOTH transcript AND ended_at,
+    // which allowed duplicate processing when first webhook had null transcript.
+    if (existingSession?.ended_at) {
       console.log(`Duplicate webhook detected for conversation ${conversationId} - already processed`);
       await logEventStage(supabase, "unknown", existingSession.id, null, conversationId, "webhook_duplicate_skipped", {
         existing_session_id: existingSession.id,

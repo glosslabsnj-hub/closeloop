@@ -146,38 +146,8 @@ serve(async (req: Request) => {
       }
     }
 
-    // Fallback 1: most recent active session (ended_at is null)
-    if (!tenantId) {
-      const { data: recentSession } = await supabase
-        .from("ai_call_sessions")
-        .select("tenant_id")
-        .is("ended_at", null)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      if (recentSession?.tenant_id) {
-        tenantId = recentSession.tenant_id;
-        resolutionMethod = "active_session";
-      }
-    }
-
-    // Fallback 2: most recent session created in last 5 minutes (even if ended)
-    if (!tenantId) {
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      const { data: recentSession } = await supabase
-        .from("ai_call_sessions")
-        .select("tenant_id")
-        .gte("created_at", fiveMinutesAgo)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      if (recentSession?.tenant_id) {
-        tenantId = recentSession.tenant_id;
-        resolutionMethod = "recent_session_5min";
-      }
-    }
+    // P0-2: Removed cross-tenant fallback lookups (Fallback 1 and 2) that
+    // queried most recent session across ALL tenants. Tenant isolation risk.
 
     console.log(`[check-service-area] Tenant resolution: method=${resolutionMethod}, tenant_id=${tenantId || 'NONE'}`);
 

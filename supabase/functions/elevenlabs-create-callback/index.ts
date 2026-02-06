@@ -105,22 +105,8 @@ serve(async (req: Request) => {
       }
     }
 
-    // Fallback: find most recent active session
-    if (!tenantId) {
-      const { data: recentSession } = await supabase
-        .from("ai_call_sessions")
-        .select("tenant_id, id, caller_phone")
-        .is("ended_at", null)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      if (recentSession) {
-        tenantId = recentSession.tenant_id || null;
-        sessionId = recentSession.id || null;
-        callerPhone = recentSession.caller_phone || null;
-      }
-    }
+    // P0-2: Removed cross-tenant fallback that queried most recent session
+    // across ALL tenants. This was a tenant isolation risk.
 
     if (!tenantId) {
       console.error("[create-callback] No tenant_id found");

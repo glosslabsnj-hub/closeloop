@@ -167,20 +167,8 @@ serve(async (req: Request) => {
       sessionId = recentSession?.id || null;
     }
 
-    // Last resort: get from most recent session across all tenants
-    if (!resolvedTenantId) {
-      const { data: recentSession } = await supabase
-        .from("ai_call_sessions")
-        .select("tenant_id, id")
-        .is("ended_at", null)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      resolvedTenantId = recentSession?.tenant_id || null;
-      sessionId = recentSession?.id || null;
-      console.log(`[elevenlabs-create-dispatch-job] Fallback to recent session: tenant=${resolvedTenantId?.substring(0, 8)}...`);
-    }
+    // P0-2: Removed cross-tenant fallback that queried most recent session
+    // across ALL tenants. This was a tenant isolation risk.
 
     if (!resolvedTenantId) {
       console.error("[elevenlabs-create-dispatch-job] Could not resolve tenant_id");
