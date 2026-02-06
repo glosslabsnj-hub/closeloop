@@ -293,6 +293,53 @@ Deno.serve(async (req) => {
     const twiml = await registerResponse.text();
     console.log(`[twilio-inbound] ElevenLabs returned TwiML (${twiml.length} chars)`);
 
+    // Step 9: Extract conversation_id from TwiML and create ai_call_sessions record
+    // ElevenLabs TwiML contains the conversation ID in the Stream URL
+    let conversationId: string | null = null;
+    const streamUrlMatch = twiml.match(/wss:\/\/[^"]+/);
+    if (streamUrlMatch) {
+      const streamUrl = streamUrlMatch[0];
+      // Extract conversation_id from URL path like /convai/.../conversation/conv_xxx
+      const convMatch = streamUrl.match(/conversation\/(conv_[a-zA-Z0-9]+)/);
+      if (convMatch) {
+        conversationId = convMatch[1];
+        console.log(`[twilio-inbound] Extracted conversation_id: ${conversationId}`);
+      }
+    }
+
+    // Create ai_call_sessions record so webhook can find it later
+    if (conversationId) {
+      try {
+        const insertResponse = await fetch(`${SUPABASE_URL}/rest/v1/ai_call_sessions`, {
+          method: "POST",
+          headers: {
+            "apikey": SUPABASE_SERVICE_ROLE_KEY,
+            "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal",
+          },
+          body: JSON.stringify({
+            tenant_id: tenantId,
+            elevenlabs_conversation_id: conversationId,
+            twilio_call_sid: callSid,
+            caller_phone: callerPhoneE164,
+            call_direction: "inbound",
+            started_at: new Date().toISOString(),
+          }),
+        });
+        
+        if (insertResponse.ok) {
+          console.log(`[twilio-inbound] Created ai_call_sessions for ${conversationId}`);
+        } else {
+          console.error(`[twilio-inbound] Failed to create session: ${insertResponse.status}`);
+        }
+      } catch (e) {
+        console.error(`[twilio-inbound] Session insert error:`, e);
+      }
+    } else {
+      console.warn(`[twilio-inbound] Could not extract conversation_id from TwiML`);
+    }
+
     // Update connect_status if needed
     if (settings.connect_status !== "forwarding_verified") {
       await updateSupabase(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, "assistant_settings", 
