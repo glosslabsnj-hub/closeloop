@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 import { useCustomers } from "@/hooks/useCustomers";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 interface AddCustomerDialogProps {
   open: boolean;
@@ -91,14 +91,14 @@ export function AddCustomerDialog({ open, onOpenChange }: AddCustomerDialogProps
         source: "manual",
       });
 
-      toast.success("Customer added");
+      toast.success("Customer added", `${formData.full_name.trim()} has been added to your customers.`);
       resetForm();
       onOpenChange(false);
     } catch (error: any) {
       if (error.message?.includes("duplicate")) {
-        toast.error("A customer with this phone number already exists");
+        toast.error("Duplicate customer", "A customer with this phone number already exists");
       } else {
-        toast.error(error.message || "Failed to add customer");
+        toast.error("Failed to add customer", error.message || "Please try again");
       }
     } finally {
       setIsSaving(false);
