@@ -327,14 +327,14 @@ function createDispatchJobTool(modeSpecificDescription?: string, isDispatchMode 
     {
       name: "customer_name",
       type: "string",
-      required: false,
-      description: "Customer's name",
+      required: true,
+      description: "Customer's first name. ALWAYS ask for this before dispatching.",
     },
     {
       name: "customer_phone",
       type: "string",
       required: false,
-      description: "Customer phone number",
+      description: "Customer phone number (auto-filled from caller ID)",
       dynamicValue: "{{caller_phone}}",
     },
     {
