@@ -35,7 +35,9 @@ export function AgentControlPanel() {
   const voiceEnabled = assistantSettings?.voice_ai_enabled && assistantSettings?.go_live_enabled;
   const smsEnabled = assistantSettings?.instant_text_enabled || false;
   const isActive = voiceEnabled || smsEnabled;
-  const closeloopNumber = assistantSettings?.closeloop_number;
+  
+  // Check both forwarding_phone_e164 (real Twilio number) and closeloop_number (legacy)
+  const closeloopNumber = (assistantSettings as any)?.forwarding_phone_e164 || assistantSettings?.closeloop_number;
 
   const [offBehaviorModalOpen, setOffBehaviorModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
