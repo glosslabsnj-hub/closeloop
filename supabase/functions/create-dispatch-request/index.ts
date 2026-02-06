@@ -17,14 +17,18 @@ const corsHeaders = {
 };
 
 interface CreateDispatchRequest {
-  customer_name: string;
-  customer_phone: string;
+  // Customer info (name is optional; phone is required to link/create a customer)
+  customer_name?: string;
+  customer_phone?: string;
+
+  // Dispatch info
   pickup_address: string;
   dropoff_address?: string;
   vehicle_type?: string;
   drivable?: boolean;
   urgency?: "emergency" | "same_day" | "scheduled";
   notes?: string;
+
   // ElevenLabs context
   conversation_id?: string;
   agent_id?: string;
@@ -85,13 +89,15 @@ serve(async (req: Request) => {
       conversation_id 
     } = body;
 
+    const pickupAddress = (pickup_address || "").trim();
+
     // Validate required fields
-    if (!customer_name || !pickup_address) {
+    if (!pickupAddress) {
       return new Response(
         JSON.stringify({
           success: false,
           message: "Missing required information",
-          error: "customer_name and pickup_address are required"
+          error: "pickup_address is required"
         } as CreateDispatchResponse),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -104,17 +110,19 @@ serve(async (req: Request) => {
     // Get tenant_id from active conversation
     let tenantId: string | null = null;
     let sessionId: string | null = null;
+    let sessionCallerPhone: string | null = null;
     
     // Strategy 1: Find by conversation_id
     if (conversation_id) {
       const { data: session } = await supabase
         .from("ai_call_sessions")
-        .select("tenant_id, id")
+        .select("tenant_id, id, caller_phone")
         .eq("elevenlabs_conversation_id", conversation_id)
         .maybeSingle();
       
       tenantId = session?.tenant_id || null;
       sessionId = session?.id || null;
+      sessionCallerPhone = session?.caller_phone || null;
       if (tenantId) {
         console.log(`[create-dispatch] Found session by conversation_id: ${conversation_id}`);
       }
@@ -130,7 +138,7 @@ serve(async (req: Request) => {
       
       const { data: phoneSession } = await supabase
         .from("ai_call_sessions")
-        .select("tenant_id, id")
+        .select("tenant_id, id, caller_phone")
         .eq("caller_phone", phoneE164)
         .gte("created_at", fiveMinAgo)
         .order("created_at", { ascending: false })
@@ -139,6 +147,7 @@ serve(async (req: Request) => {
       
       tenantId = phoneSession?.tenant_id || null;
       sessionId = phoneSession?.id || null;
+      sessionCallerPhone = phoneSession?.caller_phone || phoneE164 || null;
       if (tenantId) {
         console.log(`[create-dispatch] Found session by phone ${phoneE164}: ${sessionId}`);
       }
@@ -158,47 +167,82 @@ serve(async (req: Request) => {
     
     console.log(`[create-dispatch] Processing for tenant ${tenantId}, session ${sessionId}`);
 
-    // Normalize phone
-    const phoneE164 = normalizePhone(customer_phone);
+    const customerName = (customer_name || "").trim();
+    const effectivePhoneRaw = (customer_phone || sessionCallerPhone || "").trim();
+    const phoneE164 = normalizePhone(effectivePhoneRaw);
 
-    // Find or create customer
+    if (!phoneE164) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "Missing phone number",
+          error: "customer_phone is required to create a dispatch job"
+        } as CreateDispatchResponse),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Find or create customer (dispatch_jobs.customer_id is NOT NULL)
     let customerId: string | null = null;
-    if (phoneE164) {
-      const { data: existingCustomer } = await supabase
-        .from("customers")
-        .select("id")
-        .eq("tenant_id", tenantId)
-        .eq("phone_e164", phoneE164)
-        .maybeSingle();
 
-      if (existingCustomer) {
-        customerId = existingCustomer.id;
-        // Update name if provided
-        if (customer_name) {
-          await supabase
-            .from("customers")
-            .update({ full_name: customer_name, updated_at: new Date().toISOString() })
-            .eq("id", customerId);
-        }
-      } else {
-        // Create new customer
-        const { data: newCustomer, error: customerError } = await supabase
+    const { data: existingCustomer, error: existingCustomerError } = await supabase
+      .from("customers")
+      .select("id, full_name")
+      .eq("tenant_id", tenantId)
+      .eq("phone_e164", phoneE164)
+      .maybeSingle();
+
+    if (existingCustomerError) {
+      console.error("[create-dispatch-request] Customer lookup error:", existingCustomerError);
+    }
+
+    if (existingCustomer) {
+      customerId = existingCustomer.id;
+
+      // Update name if we got a better one (but avoid overwriting a real name)
+      if (customerName && (existingCustomer.full_name === "Unknown" || existingCustomer.full_name === "Phone Customer")) {
+        await supabase
           .from("customers")
-          .insert({
-            tenant_id: tenantId,
-            full_name: customer_name,
-            phone_e164: phoneE164,
-            phone_raw: customer_phone,
-            source: "voice_ai"
-          })
-          .select("id")
-          .single();
+          .update({ full_name: customerName, updated_at: new Date().toISOString() })
+          .eq("id", customerId);
+      } else {
+        await supabase
+          .from("customers")
+          .update({ updated_at: new Date().toISOString() })
+          .eq("id", customerId);
+      }
+    } else {
+      const { data: newCustomer, error: customerError } = await supabase
+        .from("customers")
+        .insert({
+          tenant_id: tenantId,
+          full_name: customerName || "Unknown",
+          phone_e164: phoneE164,
+          phone_raw: effectivePhoneRaw || null,
+          source: "voice_ai",
+        })
+        .select("id")
+        .single();
 
-        if (!customerError && newCustomer) {
-          customerId = newCustomer.id;
-        }
+      if (customerError) {
+        console.error("[create-dispatch-request] Failed to create customer:", customerError);
+      } else {
+        customerId = newCustomer?.id || null;
       }
     }
+
+    if (!customerId) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "Unable to create dispatch request",
+          error: "Could not resolve or create customer"
+        } as CreateDispatchResponse),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const dispatchCustomerName = customerName || "Unknown";
 
     // Generate job number
     const jobNumber = generateJobNumber();
@@ -216,9 +260,9 @@ serve(async (req: Request) => {
         tenant_id: tenantId,
         job_number: jobNumber,
         customer_id: customerId,
-        customer_name: customer_name,
-        customer_phone: phoneE164 || customer_phone,
-        pickup_address: pickup_address,
+        customer_name: dispatchCustomerName,
+        customer_phone: phoneE164,
+        pickup_address: pickupAddress,
         dropoff_address: dropoff_address || null,
         job_type: vehicle_type ? "Tow" : "Dispatch",
         priority: urgencyToPriority(urgency),
@@ -270,10 +314,10 @@ serve(async (req: Request) => {
           extracted_payload: {
             dispatch_id: dispatch.id,
             job_number: dispatch.job_number,
-            customer_name,
+            customer_name: customerName || null,
             customer_phone: phoneE164,
-            pickup_address,
-            dropoff_address,
+            pickup_address: pickupAddress,
+            dropoff_address: dropoff_address || null,
             vehicle_type,
             drivable,
             urgency,
