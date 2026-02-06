@@ -386,7 +386,7 @@ serve(async (req) => {
     await logEventStage(supabase, "unknown", null, null, "unknown", "webhook_parse_error", { raw_body_length: rawBody.length, raw_body_preview: rawBody.substring(0, 200) }, parseError instanceof Error ? parseError.message : "JSON parse failed");
     return new Response(
       JSON.stringify({ status: "error", reason: "parse_failed" }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 
@@ -994,9 +994,13 @@ async function processCallData(
   });
 
   // Get enabled_modules from tenant for routing decisions
-  const enabledModules: string[] = Array.isArray(tenant?.enabled_modules) 
-    ? tenant.enabled_modules 
+  const enabledModules: string[] = Array.isArray(tenant?.enabled_modules)
+    ? tenant.enabled_modules
     : [];
+
+  if (enabledModules.length === 0) {
+    console.warn(`[elevenlabs-webhook] enabled_modules is empty for tenant ${tenantId} - all intents will route to "none"`);
+  }
 
   // ===== PERSIST DERIVED ENTITY =====
   await persistDerivedEntity(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, tenantBusinessMode, enabledModules, validatedPayload, validatedPayload.customer.name, customerId, callerPhoneE164, payload);
