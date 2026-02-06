@@ -1,0 +1,277 @@
+/**
+ * elevenlabs-create-callback: ElevenLabs tool endpoint for scheduling
+ * callback requests during voice calls.
+ * 
+ * Called by ElevenLabs agent when:
+ * - Customer needs a quote
+ * - Customer wants to speak with owner/manager
+ * - Customer has complex questions AI can't answer
+ * - Customer requests a follow-up call
+ */
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const VERSION = "1.0.0";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+interface ElevenLabsCallbackRequest {
+  reason: string;
+  customer_name?: string;
+  customer_phone?: string;
+  department?: string;
+  preferred_time?: string;
+  notes?: string;
+  tenant_id?: string;
+  tenantId?: string;
+  conversation_id?: string;
+  call_id?: string;
+  params?: {
+    reason?: string;
+    customer_name?: string;
+    customer_phone?: string;
+    department?: string;
+    preferred_time?: string;
+    notes?: string;
+    tenant_id?: string;
+  };
+}
+
+interface CreateCallbackResponse {
+  success: boolean;
+  callback_id?: string;
+  message: string;
+  preferred_time?: string;
+  department?: string;
+  error?: string;
+  _version?: string;
+}
+
+// Normalize phone to E.164
+function normalizePhone(phone: string): string {
+  if (!phone) return "";
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  if (phone.startsWith("+")) return phone;
+  return `+${digits}`;
+}
+
+serve(async (req: Request) => {
+  console.log(`[create-callback] v${VERSION} - Request received`);
+  
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const body: ElevenLabsCallbackRequest = await req.json();
+    
+    console.log(`[create-callback] Full request:`, JSON.stringify(body));
+    
+    // Parse request params (handle nested params from ElevenLabs)
+    const reason = body.reason || body.params?.reason || "callback requested";
+    const customerName = body.customer_name || body.params?.customer_name || "";
+    const customerPhone = body.customer_phone || body.params?.customer_phone || "";
+    const department = body.department || body.params?.department || "general";
+    const preferredTime = body.preferred_time || body.params?.preferred_time || "ASAP";
+    const notes = body.notes || body.params?.notes || "";
+    const directTenantId = body.tenant_id || body.tenantId || body.params?.tenant_id || "";
+    const conversationId = body.conversation_id || body.call_id || "";
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, serviceKey);
+
+    // Resolve tenant_id from conversation or use direct
+    let tenantId: string | null = directTenantId || null;
+    let sessionId: string | null = null;
+    let callerPhone: string | null = null;
+    
+    if (conversationId) {
+      const { data: session } = await supabase
+        .from("ai_call_sessions")
+        .select("tenant_id, id, caller_phone")
+        .eq("elevenlabs_conversation_id", conversationId)
+        .maybeSingle();
+      
+      if (session) {
+        tenantId = session.tenant_id || tenantId;
+        sessionId = session.id || null;
+        callerPhone = session.caller_phone || null;
+      }
+    }
+
+    // Fallback: find most recent active session
+    if (!tenantId) {
+      const { data: recentSession } = await supabase
+        .from("ai_call_sessions")
+        .select("tenant_id, id, caller_phone")
+        .is("ended_at", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (recentSession) {
+        tenantId = recentSession.tenant_id || null;
+        sessionId = recentSession.id || null;
+        callerPhone = recentSession.caller_phone || null;
+      }
+    }
+
+    if (!tenantId) {
+      console.error("[create-callback] No tenant_id found");
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "I'll make sure someone calls you back. Can I get your number to confirm?",
+          error: "No active session found",
+          _version: VERSION,
+        } as CreateCallbackResponse),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Use caller phone from session if not provided
+    const phoneE164 = normalizePhone(customerPhone) || callerPhone || "";
+    
+    console.log(`[create-callback] Tenant: ${tenantId.substring(0, 8)}..., Reason: ${reason}, Phone: ${phoneE164}`);
+
+    // Find or create customer
+    let customerId: string | null = null;
+    
+    if (phoneE164) {
+      const { data: existingCustomer } = await supabase
+        .from("customers")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .eq("phone_e164", phoneE164)
+        .maybeSingle();
+
+      if (existingCustomer) {
+        customerId = existingCustomer.id;
+        // Update name if provided
+        if (customerName) {
+          await supabase
+            .from("customers")
+            .update({ full_name: customerName, updated_at: new Date().toISOString() })
+            .eq("id", customerId);
+        }
+      } else {
+        // Create new customer
+        const { data: newCustomer } = await supabase
+          .from("customers")
+          .insert({
+            tenant_id: tenantId,
+            full_name: customerName || "Callback Request",
+            phone_e164: phoneE164,
+            phone_raw: customerPhone || phoneE164,
+            source: "voice_ai",
+          })
+          .select("id")
+          .single();
+        customerId = newCustomer?.id || null;
+      }
+    }
+
+    // Create opportunity for callback
+    const { data: opportunity, error: opportunityError } = await supabase
+      .from("opportunities")
+      .insert({
+        tenant_id: tenantId,
+        customer_id: customerId,
+        caller_phone: phoneE164,
+        channel: "voice",
+        intent_tag: "callback",
+        urgency: preferredTime?.toLowerCase() === "asap" ? "high" : "medium",
+        status: "pending",
+        notes: `Callback requested: ${reason}. Department: ${department}. Preferred time: ${preferredTime}. ${notes}`.trim(),
+        session_id: sessionId,
+      })
+      .select("id")
+      .single();
+
+    if (opportunityError) {
+      console.error("[create-callback] Opportunity error:", opportunityError);
+      // Still succeed - we captured the intent
+    }
+
+    // Update session with callback outcome
+    if (sessionId) {
+      await supabase
+        .from("ai_call_sessions")
+        .update({
+          opportunity_id: opportunity?.id,
+          outcome: "callback",
+          extracted_payload: {
+            callback_reason: reason,
+            customer_name: customerName,
+            customer_phone: phoneE164,
+            department: department,
+            preferred_time: preferredTime,
+            notes: notes,
+          },
+        })
+        .eq("id", sessionId);
+    }
+
+    // Trigger notification to business owner
+    try {
+      // Get tenant notification settings
+      const { data: tenant } = await supabase
+        .from("tenants")
+        .select("business_name, owner_email, owner_phone")
+        .eq("id", tenantId)
+        .single();
+
+      if (tenant?.owner_phone || tenant?.owner_email) {
+        console.log(`[create-callback] Would notify owner: ${tenant.owner_email || tenant.owner_phone}`);
+        // TODO: Trigger SMS/email notification via universal-delivery
+      }
+    } catch (notifyErr) {
+      console.error("[create-callback] Notification error:", notifyErr);
+      // Non-fatal
+    }
+
+    // Build response message based on preferred time
+    let responseMessage = "Got it! Someone will call you back";
+    if (preferredTime?.toLowerCase() === "asap" || preferredTime?.toLowerCase() === "now") {
+      responseMessage = "Got it! Someone will call you back as soon as possible";
+    } else if (preferredTime?.toLowerCase().includes("morning")) {
+      responseMessage = "Got it! Someone will call you back this morning";
+    } else if (preferredTime?.toLowerCase().includes("afternoon")) {
+      responseMessage = "Got it! Someone will call you back this afternoon";
+    } else if (preferredTime) {
+      responseMessage = `Got it! Someone will call you back ${preferredTime}`;
+    }
+
+    console.log(`[create-callback] Success - Opportunity: ${opportunity?.id || 'none'}`);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        callback_id: opportunity?.id || sessionId,
+        message: responseMessage,
+        preferred_time: preferredTime,
+        department: department,
+        _version: VERSION,
+      } as CreateCallbackResponse),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (error) {
+    console.error("[create-callback] Error:", error);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        message: "I'll make sure someone calls you back soon.",
+        error: error instanceof Error ? error.message : "Unknown error",
+        _version: VERSION,
+      } as CreateCallbackResponse),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
