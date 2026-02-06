@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// v2.0.0 - Lightweight fetch-based implementation to avoid cold-start timeouts
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,6 +29,51 @@ const DAY_LABELS: Record<DayOfWeek, string> = {
   sunday: "Sunday",
 };
 
+// Lookup tenant by name using ilike
+async function resolveTenantByName(url: string, key: string, name: string): Promise<string | null> {
+  const response = await fetch(
+    `${url}/rest/v1/tenants?name=ilike.*${encodeURIComponent(name)}*&select=id&limit=1`,
+    {
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) return null;
+  const data = await response.json();
+  return data?.[0]?.id || null;
+}
+
+// Fetch impound lot(s)
+async function fetchImpoundLots(
+  url: string,
+  key: string,
+  tenantId: string,
+  lotId?: string
+): Promise<any[]> {
+  let queryUrl = `${url}/rest/v1/impound_lots?tenant_id=eq.${tenantId}&is_active=eq.true&select=*`;
+
+  if (lotId) {
+    queryUrl += `&id=eq.${lotId}`;
+  } else {
+    queryUrl += "&order=is_default.desc&limit=1";
+  }
+
+  const response = await fetch(queryUrl, {
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) return [];
+  return await response.json();
+}
+
 // Format time from 24h to 12h AM/PM
 function formatTime(time24: string): string {
   const [hours, minutes] = time24.split(":").map(Number);
@@ -43,7 +88,6 @@ function formatTime(time24: string): string {
 // Format time for speech (simpler)
 function formatTimeForSpeech(time24: string): string {
   const [hours, minutes] = time24.split(":").map(Number);
-  const period = hours >= 12 ? "PM" : "AM";
   const hours12 = hours % 12 || 12;
   if (minutes === 0) {
     return `${hours12}`;
@@ -118,7 +162,6 @@ function formatHoursForDisplay(hoursJson: Record<string, HoursEntry>): Record<st
 function buildHoursSummary(hoursJson: Record<string, HoursEntry>): string {
   const parts: string[] = [];
 
-  // Check for weekday pattern (Mon-Fri same)
   const weekdays = ["monday", "tuesday", "wednesday", "thursday", "friday"] as DayOfWeek[];
   const weekdayHours = weekdays.map((d) => hoursJson[d]);
   const allWeekdaysSame = weekdayHours.every(
@@ -131,7 +174,6 @@ function buildHoursSummary(hoursJson: Record<string, HoursEntry>): string {
       `Monday through Friday we're open ${formatTimeForSpeech(weekdayHours[0].open)} to ${formatTimeForSpeech(weekdayHours[0].close)}`
     );
   } else {
-    // List each weekday
     for (const day of weekdays) {
       const h = hoursJson[day];
       if (h?.open && h?.close) {
@@ -140,7 +182,6 @@ function buildHoursSummary(hoursJson: Record<string, HoursEntry>): string {
     }
   }
 
-  // Saturday
   const satHours = hoursJson["saturday"];
   if (satHours?.open && satHours?.close) {
     parts.push(`Saturdays ${formatTimeForSpeech(satHours.open)} to ${formatTimeForSpeech(satHours.close)}`);
@@ -148,7 +189,6 @@ function buildHoursSummary(hoursJson: Record<string, HoursEntry>): string {
     parts.push("Saturdays we're closed");
   }
 
-  // Sunday
   const sunHours = hoursJson["sunday"];
   if (sunHours?.open && sunHours?.close) {
     parts.push(`Sundays ${formatTimeForSpeech(sunHours.open)} to ${formatTimeForSpeech(sunHours.close)}`);
@@ -164,6 +204,9 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
   try {
     const body: LotInfoRequest = await req.json();
     const { tenant_id, lot_id } = body;
@@ -178,24 +221,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Resolve tenant_id - it could be a UUID or a business name
+    // Resolve tenant_id
     let resolvedTenantId = tenant_id;
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(tenant_id)) {
       console.log(`[get-impound-lot-info] tenant_id "${tenant_id}" is not UUID, looking up by name`);
-      const { data: tenant, error: tenantError } = await supabase
-        .from("tenants")
-        .select("id")
-        .ilike("name", `%${tenant_id}%`)
-        .limit(1)
-        .maybeSingle();
+      const resolved = await resolveTenantByName(SUPABASE_URL, SUPABASE_KEY, tenant_id);
       
-      if (tenantError || !tenant) {
-        console.error("[get-impound-lot-info] Could not resolve tenant by name:", tenantError);
+      if (!resolved) {
+        console.error("[get-impound-lot-info] Could not resolve tenant by name");
         return new Response(
           JSON.stringify({
             error: "Could not identify business",
@@ -205,36 +239,12 @@ Deno.serve(async (req) => {
         );
       }
       
-      resolvedTenantId = tenant.id;
+      resolvedTenantId = resolved;
       console.log(`[get-impound-lot-info] Resolved "${tenant_id}" to tenant ${resolvedTenantId}`);
     }
 
-    // Build query for lot
-    let query = supabase
-      .from("impound_lots")
-      .select("*")
-      .eq("tenant_id", resolvedTenantId)
-      .eq("is_active", true);
-
-    if (lot_id) {
-      query = query.eq("id", lot_id);
-    } else {
-      // Get default lot, or first active lot
-      query = query.order("is_default", { ascending: false }).limit(1);
-    }
-
-    const { data: lots, error: lotError } = await query;
-
-    if (lotError) {
-      console.error("[get-impound-lot-info] Query error:", lotError);
-      return new Response(
-        JSON.stringify({
-          error: lotError.message,
-          message: "I'm having trouble accessing our lot information. Please try again.",
-        }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Fetch lot(s)
+    const lots = await fetchImpoundLots(SUPABASE_URL, SUPABASE_KEY, resolvedTenantId, lot_id);
 
     if (!lots || lots.length === 0) {
       return new Response(
