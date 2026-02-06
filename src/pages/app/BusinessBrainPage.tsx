@@ -47,6 +47,7 @@ import { AINeverPromiseEditor } from "@/components/brain/AINeverPromiseEditor";
 import { AIScriptsEditor } from "@/components/brain/AIScriptsEditor";
 import { BrainOverview } from "@/components/brain/BrainOverview";
 import { AIAssistantConfigEditor } from "@/components/brain/AIAssistantConfigEditor";
+import { ServicesConfigPage } from "@/components/brain/ServicesConfigPage";
 import { 
   ImpoundLotEditor, 
   ImpoundFeesEditor, 
@@ -272,31 +273,46 @@ export default function BusinessBrainPage() {
                 {/* Pricing Readiness - inline, not collapsible */}
                 <QuoteReadinessCard />
 
-                {!isDispatchMode && (
-                  <CollapsibleBrainSection
-                    id="pricing-rules"
-                    title="Pricing Rules"
-                    icon={DollarSign}
-                    preview={summaries.pricingRules}
-                  >
-                    <PricingRulesEditor />
-                  </CollapsibleBrainSection>
+                {/* Use new comprehensive ServicesConfigPage for standard service businesses */}
+                {!isFoodMode && !isDispatchMode && (
+                  <ServicesConfigPage />
                 )}
 
-                <CollapsibleBrainSection
-                  id="catalog"
-                  title={isFoodMode ? "Menu" : "Services"}
-                  icon={Tag}
-                  preview={summaries.catalog}
-                >
-                  {isFoodMode ? (
-                    <MenuCatalogEditor />
-                  ) : isDispatchMode ? (
+                {/* Food mode uses MenuCatalogEditor */}
+                {isFoodMode && (
+                  <>
+                    {!isDispatchMode && (
+                      <CollapsibleBrainSection
+                        id="pricing-rules"
+                        title="Pricing Rules"
+                        icon={DollarSign}
+                        preview={summaries.pricingRules}
+                      >
+                        <PricingRulesEditor />
+                      </CollapsibleBrainSection>
+                    )}
+                    <CollapsibleBrainSection
+                      id="catalog"
+                      title="Menu"
+                      icon={Tag}
+                      preview={summaries.catalog}
+                    >
+                      <MenuCatalogEditor />
+                    </CollapsibleBrainSection>
+                  </>
+                )}
+
+                {/* Dispatch mode uses DispatchServiceCatalog */}
+                {isDispatchMode && (
+                  <CollapsibleBrainSection
+                    id="catalog"
+                    title="Services"
+                    icon={Tag}
+                    preview={summaries.catalog}
+                  >
                     <DispatchServiceCatalog />
-                  ) : (
-                    <ServiceCatalogEditor />
-                  )}
-                </CollapsibleBrainSection>
+                  </CollapsibleBrainSection>
+                )}
               </div>
             )}
 
