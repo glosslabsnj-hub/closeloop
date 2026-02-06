@@ -489,6 +489,7 @@ serve(async (req) => {
 
   // Build full business context
   let context: BusinessContext | null = null;
+  let systemPrompt = "";
   
   try {
     const result = await buildBusinessContext(supabase, {
@@ -501,6 +502,7 @@ serve(async (req) => {
       includeIntelligence: true,
     });
     context = result.context;
+    systemPrompt = result.systemPrompt || "";
 
     // Store context snapshot for debugging
     await storeContextSnapshot(supabase, context);
@@ -533,7 +535,6 @@ serve(async (req) => {
       event_data: { session_id: sessionId },
     });
   }
-
   // Build safe dynamic variables
   const dynamicVariables = buildSafeDynamicVars(context, callerPhoneE164, customerId);
 
@@ -590,15 +591,28 @@ serve(async (req) => {
     has_hours: dynamicVariables.context_has_hours,
   });
 
+  const conversationConfigOverride =
+    context?.tenant.business_mode === "dispatch" && systemPrompt
+      ? {
+          agent: {
+            prompt: {
+              prompt: systemPrompt,
+            },
+          },
+        }
+      : undefined;
+
+  const responsePayload: Record<string, unknown> = {
+    dynamic_variables: dynamicVariables,
+    client_data: dynamicVariables,
+  };
+
+  if (conversationConfigOverride) {
+    responsePayload.conversation_config_override = conversationConfigOverride;
+  }
+
   // Return both formats for maximum compatibility
-  return new Response(
-    JSON.stringify({
-      dynamic_variables: dynamicVariables,
-      client_data: dynamicVariables,
-    }),
-    { 
-      status: 200, 
-      headers: { ...corsHeaders, "Content-Type": "application/json" } 
-    }
-  );
-});
+  return new Response(JSON.stringify(responsePayload), {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
