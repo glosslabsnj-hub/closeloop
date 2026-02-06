@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,7 +6,7 @@ import { useModuleRequired } from "@/hooks/useModuleRequired";
 import { Button } from "@/components/ui/button";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Truck, Plus, Loader2, Map } from "lucide-react";
+import { Truck, Plus, Loader2, Map, Bell } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DispatchJobCard } from "@/components/dispatch/DispatchJobCard";
 import { DispatchCommandTable } from "@/components/dispatch/DispatchCommandTable";
@@ -17,6 +17,7 @@ import { AssignJobDialog } from "@/components/dispatch/AssignJobDialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Link } from "react-router-dom";
+import { toast as sonnerToast } from "sonner";
 
 interface DispatchJob {
   id: string;
@@ -62,7 +63,7 @@ export default function DispatchPage() {
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [jobToAssign, setJobToAssign] = useState<DispatchJob | null>(null);
 
-  const { data: jobs, isLoading } = useQuery({
+  const { data: jobs, isLoading, refetch } = useQuery({
     queryKey: ["dispatch-jobs", tenant?.id],
     queryFn: async () => {
       if (!tenant?.id) return [];
@@ -77,6 +78,64 @@ export default function DispatchPage() {
     },
     enabled: !!tenant?.id,
   });
+
+  // Real-time subscription for new jobs and status updates
+  useEffect(() => {
+    if (!tenant?.id) return;
+
+    const channel = supabase
+      .channel("dispatch-jobs-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "dispatch_jobs",
+          filter: `tenant_id=eq.${tenant.id}`,
+        },
+        (payload) => {
+          // Show alert for new job
+          const newJob = payload.new as DispatchJob;
+          sonnerToast.info("New Dispatch Job!", {
+            description: `${newJob.customer_name || "Customer"} - ${newJob.pickup_address?.slice(0, 40) || "Unknown location"}`,
+            duration: 10000,
+            action: {
+              label: "View",
+              onClick: () => {
+                setSelectedJob(newJob);
+                setDetailsOpen(true);
+              },
+            },
+          });
+          // Play notification sound if available
+          try {
+            const audio = new Audio("/notification.mp3");
+            audio.volume = 0.5;
+            audio.play().catch(() => {});
+          } catch {}
+          // Refetch to get the new job
+          refetch();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "dispatch_jobs",
+          filter: `tenant_id=eq.${tenant.id}`,
+        },
+        () => {
+          // Refetch on any update (driver status changes, etc.)
+          refetch();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [tenant?.id, refetch]);
 
   const updateJobMutation = useMutation({
     mutationFn: async ({ jobId, updates }: { jobId: string; updates: Record<string, unknown> }) => {
