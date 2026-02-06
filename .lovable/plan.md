@@ -1,211 +1,153 @@
 
-# Comprehensive Dashboard & Setup Flow Fix Plan
+# Distance Basis Configuration for Dispatch Businesses
 
-## Problem Summary
+## Overview
 
-You've identified multiple interconnected issues across the setup flow, dashboard, and navigation:
-
-1. **Setup Wizard Logic Issues**
-   - Phone options are confusing ("Use existing" vs "New CloseLoop number" - both actually get a Twilio number)
-   - "Set Availability" and "Test AI" steps appear too early (before Business Brain is configured)
-   - The flow doesn't make logical sense for onboarding
-
-2. **Dashboard AgentControlPanel Issues**
-   - Shows "AI Receptionist Active" but "No phone number connected" 
-   - "Connect Phone" button navigates to `/app/settings` which lands on Team Members tab (wrong!)
-   - Phone number display logic is inconsistent
-
-3. **SetupProgressChecklist Issues**
-   - "Connect phone" links to `/app/settings` (wrong tab - goes to Team Members)
-   - Missing a dedicated phone connection location
-
-4. **Go Live Step Issues**
-   - Currently allows going live before Business Brain is properly filled out
-   - Needs 85% AI Readiness score enforcement (already partially implemented but flow issues)
-
-5. **Test Tenants**
-   - Admin test line (+18553297357) exists but is linked to wrong tenant (HAWKS TOWING instead of being a shared admin line)
-   - Test tenants exist and have active subscriptions (verified in DB)
+You want dispatch businesses to be able to clearly configure how distance is measured for pricing - whether they charge based on the tow distance (pickup to dropoff), dispatch distance (base to pickup), or total trip. This configuration should be easy to understand and set at the business level as a default, with the option to override per-service.
 
 ---
 
-## Root Cause Analysis
+## What Already Exists
 
-The core architectural problem is that **phone configuration was moved out of Settings** but **navigation links weren't updated**. There's no dedicated Phone Settings section in the Settings sidebar, so clicking "Connect Phone" lands users on Team Members.
+Good news: most of the infrastructure is already in place.
 
-Additionally, the setup wizard's 4-step flow conflates "quick start" with "production readiness":
-- Step 1 (Phone) - Good
-- Step 2 (Calendar/Availability) - Premature; should be optional/later
-- Step 3 (Test AI) - Useless without Business Brain data
-- Step 4 (Go Live) - Gates on readiness but the flow doesn't guide users to fill out Business Brain first
+1. **Per-Service Configuration**: The service editor already has a "Distance Measured From" dropdown with three options
+2. **Edge Function Logic**: The `check-service-area` function already reads this setting and calculates prices using the correct distance
+3. **Distance Calculation**: Both dispatch distance and tow distance are calculated in parallel for every call
 
 ---
 
-## Solution Architecture
+## What Needs to Change
 
-### Phase 1: Fix Navigation Links
+### 1. Remove the Legacy "Double-Count" Option
 
-**Files to modify:**
-- `src/components/dashboard/AgentControlPanel.tsx`
-- `src/components/dashboard/SetupProgressChecklist.tsx`
-- `src/components/dashboard/Copilot.tsx`
+The `apply_per_mile_buffer` flag in `compute-distance-eta` was causing inflated ETAs by adding per-mile time on top of Mapbox's route duration (which already accounts for distance). This should be removed entirely since:
+- It's confusing
+- It was never intentional behavior
+- It doesn't map to any real business need
 
 **Changes:**
-- Change all "Connect Phone" links from `/app/settings` to `/app/business-brain?section=phone` (assuming phone is in Business Brain) OR create a dedicated phone setup route
-- Since phone configuration is handled in the SetupWizard's PhoneConnectionStep, we should link to a flow that shows that component
-
-### Phase 2: Redesign Setup Wizard Flow
-
-**Current problematic flow:**
-```text
-1. Connect Phone → 2. Set Availability → 3. Test AI → 4. Go Live
-```
-
-**Proposed flow:**
-```text
-1. Connect Phone → 2. Complete Business Brain (85%+) → 3. Test AI → 4. Go Live
-```
-
-**Files to modify:**
-- `src/components/dashboard/SetupWizard.tsx` - Restructure steps
-- `src/components/dashboard/CalendarConnectionStep.tsx` - Move to optional Business Brain section
-- `src/components/dashboard/TestAIStep.tsx` - Gate on readiness
-- `src/components/dashboard/GoLiveStep.tsx` - Already has readiness gating
-
-### Phase 3: Clarify Phone Options
-
-**Current confusing UX in PhoneConnectionStep:**
-- "Get a New CloseLoop Number" - provisions Twilio number
-- "Use My Existing Number" - ALSO provisions a Twilio number for forwarding
-
-**Proposed clarification:**
-- "New AI Number" - Get a fresh number for your AI (share this with customers)
-- "Forward Calls to AI" - Keep your current number, forward to AI when you can't answer
-
-**Files to modify:**
-- `src/components/dashboard/PhoneConnectionStep.tsx` - Improve copy and explanation
-
-### Phase 4: Fix Dashboard Status Display
-
-**Issue:** AgentControlPanel shows "Active" but "No phone connected"
-
-**Root cause:** The status dot uses `isActive = voiceEnabled || smsEnabled`, but phone display uses different field
-
-**Files to modify:**
-- `src/components/dashboard/AgentControlPanel.tsx`
-  - Only show "Active" status if phone IS actually connected
-  - Fix "Connect Phone" button to navigate to correct location
-
-### Phase 5: Create Proper Phone Settings Route
-
-Since phone configuration doesn't have a home in Settings, we need either:
-- **Option A:** Add a "Phone & Voice" section to the Settings sidebar
-- **Option B:** Route phone configuration through Business Brain
-- **Option C:** Create a standalone `/app/phone-setup` page that uses PhoneConnectionStep
-
-**Recommended: Option B** - Route to Business Brain since that's the "single source of truth" for AI configuration.
+- Remove the `apply_per_mile_buffer` parameter from the request interface
+- Remove all conditional logic that uses it
+- Remove the `eta_per_mile_minutes` field from the ETA components debug output
 
 ---
 
-## Technical Implementation Details
+### 2. Add Tenant-Level Default Distance Basis
 
-### 1. Fix AgentControlPanel.tsx (Lines ~210-223)
+Create a new setting in the Business Brain for dispatch businesses that sets the default distance measurement method. This will be stored in the `tenant_distance_settings` table.
 
-Change the "Connect Phone" link from:
-```tsx
-<Link to="/app/settings">
-```
-To:
-```tsx
-<Link to="/app/business-brain?section=phone">
-```
+**New field:** `default_distance_basis` with options:
+- `tow_distance` - "Price based on tow distance (pickup to dropoff)" - Default for towing
+- `dispatch_distance` - "Price based on how far we travel to you"
+- `total_trip` - "Price based on entire round trip"
+- `flat` - "Distance doesn't affect pricing"
 
-Also add logic to prevent showing "Active" when no phone is connected:
-```tsx
-const isActive = (voiceEnabled || smsEnabled) && !!closeloopNumber;
-```
+---
 
-### 2. Fix SetupProgressChecklist.tsx (Line 97)
+### 3. New UI Section: "How You Charge for Distance"
 
-Change:
-```tsx
-href: "/app/settings",
-```
-To:
-```tsx
-href: "/app/business-brain?section=phone",
-```
+Add a dedicated card in the Business Brain (under Dispatch Settings or as a new section) that clearly explains:
 
-### 3. Restructure SetupWizard.tsx
-
-Replace the 4-step wizard with a 3-step flow:
+**Visual Layout:**
 ```text
-Step 1: Connect Phone
-Step 2: Configure AI Knowledge (link to Business Brain, show readiness %)
-Step 3: Go Live (requires 85%+ readiness)
++-----------------------------------------------+
+|  How You Charge for Distance                  |
++-----------------------------------------------+
+|  Most towing businesses charge based on how   |
+|  far the vehicle needs to be towed.           |
+|                                               |
+|  [ ] Tow Distance (pickup → dropoff)          |
+|      "We charge based on how far we tow the   |
+|       vehicle to its destination"             |
+|                                               |
+|  [ ] Dispatch Distance (our shop → pickup)    |
+|      "We charge based on how far we travel    |
+|       to reach you"                           |
+|                                               |
+|  [ ] Total Trip (shop → pickup → dropoff)     |
+|      "We charge for our entire round trip"    |
+|                                               |
+|  This becomes the default for new services.   |
+|  You can override this per-service.           |
++-----------------------------------------------+
 ```
 
-Remove the "Test AI" step from required setup (move to Business Brain as an action button).
+---
 
-Remove "Set Availability" as a required step (it's part of Business Brain Hours section).
+### 4. Per-Service Inheritance
 
-### 4. Improve PhoneConnectionStep.tsx Copy
+Update the service editor to show when a service is using the tenant default vs. a custom override:
 
-Update the option labels:
-```tsx
-// Option 1
-Label: "Get a New AI Number"
-Description: "We'll assign you a dedicated phone number. Give this to customers or add it to your website."
+**Service Editor Changes:**
+- Add "Use Business Default" option that's pre-selected for new services
+- Show which distance basis the business default is set to
+- Allow explicit override per-service
+- Visual indicator when using default vs. custom
 
-// Option 2  
-Label: "Keep My Current Number"
-Description: "We'll give you an AI number behind the scenes. Forward your calls there when you can't answer."
+---
+
+## Technical Implementation
+
+### Database Changes
+
+Add a new column to `tenant_distance_settings`:
+
+```sql
+ALTER TABLE tenant_distance_settings 
+ADD COLUMN IF NOT EXISTS default_distance_basis TEXT 
+DEFAULT 'tow_distance' 
+CHECK (default_distance_basis IN ('tow_distance', 'dispatch_distance', 'total_trip', 'flat'));
 ```
 
-Add clarifying note:
-```tsx
-<p className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
-  Both options give you an AI-powered number. The difference is whether customers call it directly or you forward calls to it.
-</p>
-```
+### Edge Function Changes
 
-### 5. Add Phone Section to Business Brain
+**compute-distance-eta:**
+- Remove `apply_per_mile_buffer` parameter and all related logic
+- Remove `eta_per_mile_minutes` from the ETA components output
+- Simplify the code to: `ETA = response_base + busyness_buffer + drive_time`
 
-Create a Phone configuration section in Business Brain that embeds or links to PhoneConnectionStep, so all AI configuration lives in one place.
+**check-service-area:**
+- When resolving `distance_basis`, check service config first, then fall back to tenant default
+- Add logging to show which distance basis was used and why
 
-### 6. Fix Admin Test Line Tenant Linking
+### Frontend Changes
 
-The admin test line (+18553297357) is currently linked to HAWKS TOWING tenant. It should either:
-- Be unlinked (tenant_id = NULL) with is_admin_test_line = true
-- Have dynamic routing based on admin's active tenant (already implemented in twilio-inbound)
+**New Component: `DistanceBasisSettings.tsx`**
+- Radio button group with clear explanations
+- Located in Business Brain under a "Pricing & Distance" or "Dispatch Settings" section
+- Saves to `tenant_distance_settings.default_distance_basis`
 
-Since dynamic routing is already implemented, the current setup may work, but we should verify the twilio-inbound function correctly overrides the tenant based on admin_active_tenant_id.
+**Updated: `DispatchServiceEditor.tsx`**
+- Add "Use Business Default" option to the distance basis dropdown
+- Show the current default in the dropdown description
+- Inherit from tenant default when creating new services
 
 ---
 
 ## File Changes Summary
 
-| File | Change Type | Description |
-|------|-------------|-------------|
-| `src/components/dashboard/AgentControlPanel.tsx` | Modify | Fix Connect Phone link, fix Active status logic |
-| `src/components/dashboard/SetupProgressChecklist.tsx` | Modify | Fix phone href to Business Brain |
-| `src/components/dashboard/SetupWizard.tsx` | Modify | Restructure to 3 steps, remove Calendar/Test as required |
-| `src/components/dashboard/PhoneConnectionStep.tsx` | Modify | Clarify option labels and add explanation |
-| `src/components/dashboard/Copilot.tsx` | Modify | Fix Settings → Phone link |
-| `src/pages/app/BusinessBrainPage.tsx` | Modify | Add phone section support via query param |
-| `supabase/migrations/` | Create | Fix admin test line tenant_id if needed |
+| File | Change |
+|------|--------|
+| `supabase/functions/compute-distance-eta/index.ts` | Remove `apply_per_mile_buffer` logic |
+| `supabase/functions/elevenlabs-check-service-area/index.ts` | Add tenant default fallback |
+| `src/components/brain/dispatch/DistanceBasisSettings.tsx` | New component |
+| `src/components/brain/dispatch/DispatchServiceEditor.tsx` | Add "use default" option |
+| `src/hooks/useTenantDistanceSettings.ts` | Add `default_distance_basis` field |
+| `src/pages/app/BusinessBrainPage.tsx` | Add new section |
+| Database migration | Add column to `tenant_distance_settings` |
 
 ---
 
-## Verification Checklist
+## User Experience Flow
 
-After implementation:
-1. Dashboard "Connect Phone" button goes to Business Brain phone section
-2. Setup wizard flows: Phone → Business Brain → Go Live
-3. "AI Receptionist Active" only shows when phone IS connected
-4. Phone options clearly explain both give you an AI number
-5. Go Live requires 85% readiness score
-6. Super admins can switch between test tenants and see correct data
-7. All test tenants (5 modes) have active subscriptions
-8. Admin test line routes correctly based on admin's active tenant
+1. **During Onboarding**: Ask "How do you typically charge for distance?" with clear examples
+2. **In Business Brain**: Dedicated "Distance & Pricing" card shows current setting
+3. **Per Service**: Shows "Using business default (Tow Distance)" or allows override
+4. **During Calls**: AI uses the correct distance for pricing quotes
 
+---
+
+## Summary
+
+This plan removes the confusing legacy double-counting logic and adds a clear, business-owner-friendly way to configure how distance affects pricing. The setting lives at the tenant level as a default (so you don't have to configure every service) but can be overridden per-service for businesses with mixed pricing models.
