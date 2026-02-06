@@ -48,6 +48,7 @@ import ReservationsPage from "@/pages/app/ReservationsPage";
 import CateringPage from "@/pages/app/CateringPage";
 import DispatchPage from "@/pages/app/DispatchPage";
 import ImpoundLotPage from "@/pages/app/ImpoundLotPage";
+import FleetPage from "@/pages/app/FleetPage";
 import MedicalIntakePage from "@/pages/app/MedicalIntakePage";
 import OrderTicketPage from "@/pages/app/OrderTicketPage";
 import HelpCenterPage from "@/pages/app/HelpCenterPage";
@@ -142,6 +143,7 @@ const App = () => (
               <Route path="/app/catering" element={<CateringPage />} />
               <Route path="/app/dispatch" element={<DispatchPage />} />
               <Route path="/app/impound-lot" element={<ImpoundLotPage />} />
+              <Route path="/app/fleet" element={<FleetPage />} />
               <Route path="/app/medical-intake" element={<MedicalIntakePage />} />
               <Route path="/app/orders/:orderId/ticket" element={<OrderTicketPage />} />
               <Route path="/app/reports/roi" element={<ReportsROIPage />} />
