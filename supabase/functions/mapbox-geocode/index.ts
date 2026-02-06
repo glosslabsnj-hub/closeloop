@@ -8,12 +8,8 @@
  * Body: { tenant_id: string, address_text: string }
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsResponse, errorResponse, jsonResponse } from "../_shared/cors.ts";
+import { requireAuthedTenant } from "../_shared/tenant.ts";
 
 interface GeocodeRequest {
   tenant_id: string;
@@ -29,24 +25,12 @@ interface GeocodeResponse {
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return corsResponse();
   }
 
   try {
     if (req.method !== "POST") {
-      return new Response(
-        JSON.stringify({ error: "POST only" }),
-        { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Verify auth
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Missing authorization" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse("POST only", 405);
     }
 
     // Parse request
@@ -54,43 +38,17 @@ serve(async (req: Request) => {
     const { tenant_id, address_text } = body;
 
     if (!tenant_id || !address_text?.trim()) {
-      return new Response(
-        JSON.stringify({ error: "Missing tenant_id or address_text" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse("Missing tenant_id or address_text", 400);
     }
 
-    // Verify user has access to tenant
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    // Check tenant membership using tenant_users table
-    const { data: membership, error: memberError } = await supabase
-      .from("tenant_users")
-      .select("tenant_id")
-      .eq("tenant_id", tenant_id)
-      .maybeSingle();
-
-    if (memberError || !membership) {
-      console.error("[mapbox-geocode] Tenant access denied:", memberError?.message || "No membership found");
-      return new Response(
-        JSON.stringify({ error: "Tenant access denied" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Verify user has access to the requested tenant
+    await requireAuthedTenant(req, tenant_id);
 
     // Get Mapbox token
     const accessToken = Deno.env.get("MAPBOX_ACCESS_TOKEN");
     if (!accessToken) {
       console.error("[mapbox-geocode] MAPBOX_ACCESS_TOKEN not configured");
-      return new Response(
-        JSON.stringify({ error: "Geocoding service not configured" } as GeocodeResponse),
-        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse("Geocoding service not configured", 503);
     }
 
     // Call Mapbox Geocoding API
@@ -104,19 +62,13 @@ serve(async (req: Request) => {
 
     if (!response.ok) {
       console.error(`[mapbox-geocode] Mapbox API error: ${response.status}`);
-      return new Response(
-        JSON.stringify({ lat: null, lng: null, place_name: null, error: "Geocoding service error" } as GeocodeResponse),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ lat: null, lng: null, place_name: null, error: "Geocoding service error" } as GeocodeResponse, 502);
     }
 
     const data = await response.json();
 
     if (!data.features || data.features.length === 0) {
-      return new Response(
-        JSON.stringify({ lat: null, lng: null, place_name: null, error: "Address not found" } as GeocodeResponse),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ lat: null, lng: null, place_name: null, error: "Address not found" } as GeocodeResponse);
     }
 
     const feature = data.features[0];
@@ -133,20 +85,14 @@ serve(async (req: Request) => {
       error: null,
     };
 
-    return new Response(JSON.stringify(result), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse(result);
   } catch (error) {
     console.error("[mapbox-geocode] Error:", error);
-    return new Response(
-      JSON.stringify({
-        lat: null,
-        lng: null,
-        place_name: null,
-        error: error instanceof Error ? error.message : "Unknown error",
-      } as GeocodeResponse),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return jsonResponse({
+      lat: null,
+      lng: null,
+      place_name: null,
+      error: error instanceof Error ? error.message : "Unknown error",
+    } as GeocodeResponse, 500);
   }
 });

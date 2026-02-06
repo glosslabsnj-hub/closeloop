@@ -32,7 +32,7 @@ export interface PricingRule {
   id: string;
   name: string;
   ruleType: "fixed" | "range" | "formula" | "conditional";
-  conditions?: Record<string, any>; // e.g., { serviceType: "drain_cleaning", urgency: "normal" }
+  conditions?: Record<string, string | number | boolean>; // e.g., { serviceType: "drain_cleaning", urgency: "normal" }
   requiredInputs?: string[]; // fields needed to apply this rule
   fixedPrice?: number; // cents
   rangeMin?: number; // cents
@@ -47,7 +47,7 @@ export interface BusynessRule {
   surchargePercent?: number; // 0-100
 }
 
-export interface OfferingContext {
+interface OfferingContext {
   serviceId?: string;
   serviceName?: string;
   duration?: number; // minutes
@@ -55,7 +55,7 @@ export interface OfferingContext {
   priceType?: "fixed" | "starting_at" | "quote_only";
 }
 
-export interface QueueMetrics {
+interface QueueMetrics {
   busynessLevel: "low" | "medium" | "high";
   queueLength: number;
   avgCompletionMinutes?: number;
@@ -76,7 +76,7 @@ export function computePriceQuote(params: {
   rules: PricingRule[];
   businessMode: string;
   offering: OfferingContext;
-  inputs: Record<string, any>;
+  inputs: Record<string, string | number | boolean | undefined>;
 }): QuoteResult {
   const { rules, businessMode, offering, inputs } = params;
 
@@ -224,7 +224,7 @@ export function computeEtaQuote(params: {
   busynessRules: Record<string, BusynessRule>;
   mode: string;
   queueMetrics: QueueMetrics;
-  inputs: Record<string, any>;
+  inputs: Record<string, string | number | boolean | undefined>;
 }): QuoteResult {
   const { busynessRules, mode, queueMetrics, inputs } = params;
 
@@ -313,7 +313,7 @@ export function computeEtaQuote(params: {
  */
 function checkRuleConditions(
   rule: PricingRule,
-  inputs: Record<string, any>,
+  inputs: Record<string, string | number | boolean | undefined>,
   offering: OfferingContext
 ): boolean {
   if (!rule.conditions) return true; // No conditions = always matches
@@ -341,7 +341,7 @@ function checkRuleConditions(
  */
 function getMissingInputs(
   rule: PricingRule,
-  inputs: Record<string, any>
+  inputs: Record<string, string | number | boolean | undefined>
 ): RequiredInput[] {
   if (!rule.requiredInputs || rule.requiredInputs.length === 0) return [];
 
@@ -408,275 +408,3 @@ export function detectPricingQuestion(message: string): boolean {
 
 // ============= INLINE UNIT TEST EXAMPLES =============
 
-/**
- * Exported test examples for quick verification.
- * Not a test runner - just example inputs/outputs.
- */
-export const __examples = [
-  // PRICING EXAMPLES
-  {
-    name: "Fixed price with no rules",
-    test: () => {
-      const result = computePriceQuote({
-        rules: [],
-        businessMode: "service",
-        offering: {
-          serviceName: "Drain Cleaning",
-          basePrice: 14900, // $149
-          priceType: "fixed",
-        },
-        inputs: {},
-      });
-      return result.type === "EXACT" && result.value === 14900 && result.confidence > 0.9;
-    },
-  },
-  {
-    name: "Quote-only with no rules",
-    test: () => {
-      const result = computePriceQuote({
-        rules: [],
-        businessMode: "service",
-        offering: {
-          serviceName: "Commercial Plumbing",
-          priceType: "quote_only",
-        },
-        inputs: {},
-      });
-      return result.type === "UNKNOWN" && result.confidence < 0.5;
-    },
-  },
-  {
-    name: "Fixed rule match",
-    test: () => {
-      const result = computePriceQuote({
-        rules: [
-          {
-            id: "r1",
-            name: "Standard Drain Cleaning",
-            ruleType: "fixed",
-            fixedPrice: 14900,
-            priority: 10,
-          },
-        ],
-        businessMode: "service",
-        offering: { serviceName: "Drain Cleaning" },
-        inputs: {},
-      });
-      return result.type === "EXACT" && result.value === 14900 && result.confidence === 0.9;
-    },
-  },
-  {
-    name: "Range rule match",
-    test: () => {
-      const result = computePriceQuote({
-        rules: [
-          {
-            id: "r2",
-            name: "HVAC Repair",
-            ruleType: "range",
-            rangeMin: 20000,
-            rangeMax: 50000,
-            priority: 10,
-          },
-        ],
-        businessMode: "service",
-        offering: { serviceName: "HVAC Repair" },
-        inputs: {},
-      });
-      return result.type === "ESTIMATE" && result.rangeMin === 20000 && result.rangeMax === 50000 && result.confidence === 0.6;
-    },
-  },
-  {
-    name: "Missing required inputs - has range",
-    test: () => {
-      const result = computePriceQuote({
-        rules: [
-          {
-            id: "r3",
-            name: "Custom Job",
-            ruleType: "range",
-            requiredInputs: ["jobSize", "urgency"],
-            rangeMin: 10000,
-            rangeMax: 30000,
-            priority: 10,
-          },
-        ],
-        businessMode: "service",
-        offering: { serviceName: "Custom Job" },
-        inputs: {},
-      });
-      return result.type === "ESTIMATE" && result.missingInputs.length === 2 && result.confidence === 0.5;
-    },
-  },
-  {
-    name: "Missing required inputs - no range",
-    test: () => {
-      const result = computePriceQuote({
-        rules: [
-          {
-            id: "r4",
-            name: "Complex Quote",
-            ruleType: "fixed",
-            requiredInputs: ["projectScope"],
-            fixedPrice: 50000,
-            priority: 10,
-          },
-        ],
-        businessMode: "service",
-        offering: { serviceName: "Complex Quote" },
-        inputs: {},
-      });
-      return result.type === "UNKNOWN" && result.missingInputs.length === 1 && result.confidence === 0.4;
-    },
-  },
-  {
-    name: "Conditional rule with matching condition",
-    test: () => {
-      const result = computePriceQuote({
-        rules: [
-          {
-            id: "r5",
-            name: "Urgent Drain Cleaning",
-            ruleType: "conditional",
-            conditions: { urgency: "high" },
-            fixedPrice: 19900, // $199 for urgent
-            priority: 20,
-          },
-          {
-            id: "r6",
-            name: "Standard Drain Cleaning",
-            ruleType: "fixed",
-            fixedPrice: 14900,
-            priority: 10,
-          },
-        ],
-        businessMode: "service",
-        offering: { serviceName: "Drain Cleaning" },
-        inputs: { urgency: "high" },
-      });
-      return result.type === "EXACT" && result.value === 19900 && result.confidence === 0.85;
-    },
-  },
-  {
-    name: "Starting-at fallback",
-    test: () => {
-      const result = computePriceQuote({
-        rules: [],
-        businessMode: "service",
-        offering: {
-          serviceName: "HVAC Service",
-          basePrice: 15000, // $150
-          priceType: "starting_at",
-        },
-        inputs: {},
-      });
-      return result.type === "ESTIMATE" && result.rangeMin === 15000 && result.rangeMax === 30000 && result.confidence === 0.5;
-    },
-  },
-
-  // ETA EXAMPLES
-  {
-    name: "ETA - Low busyness, no queue",
-    test: () => {
-      const result = computeEtaQuote({
-        busynessRules: {
-          low: { busynessLevel: "low", etaMultiplier: 1.0 },
-        },
-        mode: "service",
-        queueMetrics: {
-          busynessLevel: "low",
-          queueLength: 0,
-          avgCompletionMinutes: 30,
-        },
-        inputs: { duration: 60 },
-      });
-      return result.type === "EXACT" && result.value === 60 && result.confidence === 0.85;
-    },
-  },
-  {
-    name: "ETA - High busyness with queue",
-    test: () => {
-      const result = computeEtaQuote({
-        busynessRules: {
-          high: { busynessLevel: "high", etaMultiplier: 1.5 },
-        },
-        mode: "service",
-        queueMetrics: {
-          busynessLevel: "high",
-          queueLength: 2,
-          avgCompletionMinutes: 30,
-        },
-        inputs: { duration: 60 },
-      });
-      // queueDelay = 2 * 30 = 60
-      // adjustedDuration = 60 * 1.5 = 90
-      // total = 150
-      return result.type === "ESTIMATE" && result.rangeMin && result.rangeMin >= 135 && result.confidence === 0.5;
-    },
-  },
-  {
-    name: "ETA - Missing duration",
-    test: () => {
-      const result = computeEtaQuote({
-        busynessRules: {},
-        mode: "service",
-        queueMetrics: {
-          busynessLevel: "medium",
-          queueLength: 0,
-        },
-        inputs: {},
-      });
-      return result.type === "UNKNOWN" && result.missingInputs.length === 1 && result.missingInputs[0].field === "duration";
-    },
-  },
-  {
-    name: "ETA - Medium busyness",
-    test: () => {
-      const result = computeEtaQuote({
-        busynessRules: {
-          medium: { busynessLevel: "medium", etaMultiplier: 1.2 },
-        },
-        mode: "service",
-        queueMetrics: {
-          busynessLevel: "medium",
-          queueLength: 1,
-          avgCompletionMinutes: 45,
-        },
-        inputs: { duration: 90 },
-      });
-      // queueDelay = 1 * 45 = 45
-      // adjustedDuration = 90 * 1.2 = 108
-      // total = 153
-      return result.type === "ESTIMATE" && result.drivers && result.drivers.length > 0;
-    },
-  },
-];
-
-/**
- * Quick test runner (not Jest - just console verification)
- */
-export function runExampleTests(): void {
-  console.log("Running computeQuote example tests...\n");
-
-  let passed = 0;
-  let failed = 0;
-
-  for (const example of __examples) {
-    try {
-      const result = example.test();
-      if (result) {
-        console.log(`✅ ${example.name}`);
-        passed++;
-      } else {
-        console.log(`❌ ${example.name}`);
-        failed++;
-      }
-    } catch (error) {
-      console.log(`❌ ${example.name} (threw error)`);
-      console.error(error);
-      failed++;
-    }
-  }
-
-  console.log(`\nResults: ${passed} passed, ${failed} failed`);
-}

@@ -1,11 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { captureException } from "../_shared/sentry.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsResponse, errorResponse, jsonResponse } from "../_shared/cors.ts";
 
 interface OrderItem {
   name: string;
@@ -43,7 +39,7 @@ interface DeliverySettings {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return corsResponse();
   }
 
   try {
@@ -63,9 +59,7 @@ serve(async (req) => {
         notify_phone,
         tenant_id,
       });
-      return new Response(JSON.stringify(testResult), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse(testResult);
     }
 
     if (!order_id || !tenant_id) {
@@ -93,9 +87,7 @@ serve(async (req) => {
 
     if (!settings?.enabled) {
       console.log("Order handoff disabled for tenant");
-      return new Response(JSON.stringify({ status: "skipped", reason: "handoff disabled" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ status: "skipped", reason: "handoff disabled" });
     }
 
     // Determine which methods to run
@@ -215,9 +207,7 @@ serve(async (req) => {
       console.error("Failed to trigger workflow:", e);
     }
 
-    return new Response(JSON.stringify({ status: "success", results }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ status: "success", results });
   } catch (error) {
     console.error("Order handoff error:", error);
 
@@ -226,10 +216,7 @@ serve(async (req) => {
       tags: { function: "order-handoff" },
     });
 
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return errorResponse(error instanceof Error ? error.message : "Unknown error", 500);
   }
 });
 

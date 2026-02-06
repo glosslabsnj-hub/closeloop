@@ -41,7 +41,7 @@ export function PhoneConnectionStep({ onComplete, isComplete }: PhoneConnectionS
   // Get the real Twilio number if provisioned
   const closeloopNumber = useMemo(() => {
     // Priority: forwarding_phone_e164 > closeloop_number > placeholder
-    const phoneNumber = (assistantSettings as any)?.forwarding_phone_e164 || assistantSettings?.closeloop_number;
+    const phoneNumber = assistantSettings?.forwarding_phone_e164 || assistantSettings?.closeloop_number;
     if (phoneNumber) {
       return phoneNumber;
     }
@@ -49,7 +49,7 @@ export function PhoneConnectionStep({ onComplete, isComplete }: PhoneConnectionS
   }, [assistantSettings]);
 
   // Get connection status
-  const connectStatus = (assistantSettings as any)?.connect_status || "not_connected";
+  const connectStatus = assistantSettings?.connect_status || "not_connected";
 
   const saveSettings = async (updates: Record<string, unknown>) => {
     if (!tenant) throw new Error("No tenant");

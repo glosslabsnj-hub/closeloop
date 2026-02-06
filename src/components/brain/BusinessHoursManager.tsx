@@ -50,7 +50,7 @@ export function BusinessHoursManager() {
 
   useEffect(() => {
     if (tenant) {
-      const tenantHours = (tenant as any).hours_json;
+      const tenantHours = tenant.hours_json as Record<string, { open?: string; close?: string; closed?: boolean }> | null;
       if (tenantHours && typeof tenantHours === "object") {
         const mergedHours: BusinessHours = { ...defaultHours };
         Object.keys(tenantHours).forEach((day) => {

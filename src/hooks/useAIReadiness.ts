@@ -67,7 +67,7 @@ export function useAIReadiness(): AIReadinessScore {
       ]);
 
       // Check intake fields from tenant (raw query to avoid type issues)
-      const intakeFields = (tenant as any)?.intake_fields_json || (tenant as any)?.context_fields_json || [];
+      const intakeFields = tenant?.context_fields_json as unknown[] || [];
 
       return {
         servicesCount: servicesCount || 0,

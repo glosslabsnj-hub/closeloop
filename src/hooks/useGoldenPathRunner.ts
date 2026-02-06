@@ -66,7 +66,6 @@ export function useGoldenPathRunner() {
         .single();
 
       if (insertError || !run) {
-        console.error("Failed to create run:", insertError);
         toast.error("Failed to start test run");
         setIsRunning(false);
         return null;
@@ -513,9 +512,7 @@ export function useGoldenPathRunner() {
         })
         .eq("id", run.id);
 
-      if (updateError) {
-        console.error("Failed to update run:", updateError);
-      }
+      // Silently handle update errors - run data still returned
 
       const finalRun: GoldenPathRun = {
         id: run.id,
@@ -541,8 +538,7 @@ export function useGoldenPathRunner() {
       }
 
       return finalRun;
-    } catch (error) {
-      console.error("Golden path test error:", error);
+    } catch {
       toast.error("Test run failed unexpectedly");
       setIsRunning(false);
       return null;

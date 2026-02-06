@@ -1,15 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+import { corsResponse, errorResponse, jsonResponse } from "../_shared/cors.ts";
+import { requireAuthedTenant, serviceClient } from "../_shared/tenant.ts";
 
 // OAuth credentials for token refresh
 const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CALENDAR_CLIENT_ID");
@@ -19,27 +10,20 @@ const MS_CLIENT_SECRET = Deno.env.get("MS_CALENDAR_CLIENT_SECRET");
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return corsResponse();
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     // Parse body first to check for cron mode
     const body = await req.json();
     const { connection_id, days = 30, _cron_tenant_id } = body;
 
-    let tenantId: string | null = null;
+    let tenantId: string;
 
     // Check if this is a cron call (service role with explicit tenant_id)
+    const authHeader = req.headers.get("Authorization") || "";
     const token = authHeader.replace("Bearer ", "");
-    const isServiceRole = token === SUPABASE_SERVICE_ROLE_KEY;
+    const isServiceRole = token === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     if (isServiceRole && _cron_tenant_id) {
       // Cron mode: trust the tenant_id from the cron job
@@ -47,55 +31,12 @@ serve(async (req: Request) => {
       console.log("[sync-availability] Cron mode for tenant:", tenantId);
     } else {
       // User mode: verify user and get tenant
-      const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        global: { headers: { Authorization: authHeader } },
-      });
-
-      const { data: { user }, error: userError } = await userClient.auth.getUser();
-      if (userError || !user) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      // Check if user has an active tenant override (for multi-tenant users/admins)
-      const { data: adminSettings } = await userClient
-        .from("admin_settings")
-        .select("admin_active_tenant_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      tenantId = adminSettings?.admin_active_tenant_id || null;
-
-      // If no active tenant override, get the first tenant the user belongs to
-      if (!tenantId) {
-        const { data: tenantUser } = await userClient
-          .from("tenant_users")
-          .select("tenant_id")
-          .eq("user_id", user.id)
-          .limit(1)
-          .maybeSingle();
-
-        if (!tenantUser) {
-          return new Response(JSON.stringify({ error: "No tenant" }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        tenantId = tenantUser.tenant_id;
-      }
-    }
-
-    if (!tenantId) {
-      return new Response(JSON.stringify({ error: "No tenant" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      const result = await requireAuthedTenant(req);
+      tenantId = result.tenantId;
     }
 
     // Use service role for token access
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const supabase = serviceClient();
 
     // Get connection
     const { data: connection, error: connError } = await supabase
@@ -106,10 +47,7 @@ serve(async (req: Request) => {
       .single();
 
     if (connError || !connection) {
-      return new Response(JSON.stringify({ error: "Connection not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return errorResponse("Connection not found", 404);
     }
 
     // Get tokens
@@ -127,10 +65,7 @@ serve(async (req: Request) => {
         .update({ status: "error", sync_error: "No tokens found" })
         .eq("id", connection_id);
 
-      return new Response(JSON.stringify({ error: "No tokens found" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return errorResponse("No tokens found", 400);
     }
 
     let accessToken = tokens.access_token;
@@ -144,10 +79,7 @@ serve(async (req: Request) => {
           .update({ status: "error", sync_error: "Token refresh failed" })
           .eq("id", connection_id);
 
-        return new Response(JSON.stringify({ error: "Token refresh failed" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return errorResponse("Token refresh failed", 401);
       }
     }
 
@@ -158,7 +90,8 @@ serve(async (req: Request) => {
 
     // Fetch busy times based on provider
     let events: { start_at: string; end_at: string; external_event_id: string; summary?: string }[] = [];
-    const selectedCalendarIds = (connection.config_json as any)?.selected_calendar_ids || [];
+    const configJson = connection.config_json as { selected_calendar_ids?: string[] } | null;
+    const selectedCalendarIds = configJson?.selected_calendar_ids || [];
 
     console.log("=== SYNC-AVAILABILITY DEBUG ===");
     console.log("Tenant ID:", tenantId);
@@ -205,35 +138,26 @@ serve(async (req: Request) => {
         .update({ sync_error: syncError.message })
         .eq("id", connection_id);
         
-      return new Response(JSON.stringify({ error: syncError.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return errorResponse(syncError.message, 500);
     }
 
     console.log("=== SYNC COMPLETE ===");
     console.log("Events synced to busy_blocks:", syncResult);
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        synced_count: syncResult,
-        events_found: events.length,
-        date_range: {
-          start: startDate.toISOString(),
-          end: endDate.toISOString(),
-        },
-        calendar_ids: selectedCalendarIds,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return jsonResponse({
+      success: true,
+      synced_count: syncResult,
+      events_found: events.length,
+      date_range: {
+        start: startDate.toISOString(),
+        end: endDate.toISOString(),
+      },
+      calendar_ids: selectedCalendarIds,
+    });
   } catch (error: unknown) {
     console.error("Error in sync-availability:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return errorResponse(message, 500);
   }
 });
 

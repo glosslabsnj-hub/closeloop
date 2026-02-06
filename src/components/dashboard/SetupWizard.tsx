@@ -23,7 +23,7 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
   const { score, p0Flags, canGoLive: aiReady } = useAIReadinessV2();
 
   // Determine completion status from assistant_settings
-  const phoneComplete = (assistantSettings as any)?.setup_step_phone || assistantSettings?.phone_connected || false;
+  const phoneComplete = assistantSettings?.setup_step_phone || assistantSettings?.phone_connected || false;
   const aiKnowledgeComplete = score >= 85 && p0Flags.length === 0;
   const goLiveComplete = assistantSettings?.go_live_enabled || false;
 

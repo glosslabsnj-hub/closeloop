@@ -1,10 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsResponse, errorResponse, jsonResponse } from "../_shared/cors.ts";
 
 interface TriggerWorkflowRequest {
   tenant_id: string;
@@ -20,13 +16,6 @@ interface TriggerWorkflowRequest {
   retry_run_id?: string; // If set, this is a retry of a previous run
 }
 
-// Helper for consistent JSON responses with CORS
-function json(status: number, body: unknown, headers: Record<string, string> = {}) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json", ...corsHeaders, ...headers },
-  });
-}
 
 function nowIso() {
   return new Date().toISOString();
@@ -1544,12 +1533,12 @@ async function generateHash(input: string): Promise<string> {
 // Main handler
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return corsResponse();
   }
 
   try {
     if (req.method !== "POST") {
-      return json(405, { error: "POST only" });
+      return errorResponse("POST only", 405);
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -1562,7 +1551,7 @@ serve(async (req) => {
     const isDryRun = dry_run === true;
 
     if (!tenant_id || !trigger || !entity_type || !entity_id) {
-      return json(400, { error: "Missing required fields: tenant_id, trigger, entity_type, entity_id" });
+      return errorResponse("Missing required fields: tenant_id, trigger, entity_type, entity_id", 400);
     }
 
     console.log(`[trigger-workflow] Triggering ${trigger} for ${entity_type}/${entity_id}${isDryRun ? " (DRY RUN)" : ""}`);
@@ -1629,10 +1618,10 @@ serve(async (req) => {
     if (!workflow) {
       console.log(`[trigger-workflow] No active workflow found for ${trigger}`);
       // Still return success if automation rules executed
-      return json(200, {
+      return jsonResponse({
         ok: true,
         status: automationResults.executed > 0 ? "automation_rules_only" : "no_workflow",
-        message: automationResults.executed > 0 
+        message: automationResults.executed > 0
           ? `Executed ${automationResults.executed} automation rules, no workflow found`
           : "No active workflow or automation rules for this trigger",
         automation_results: automationResults,
@@ -1685,7 +1674,7 @@ serve(async (req) => {
         .from("workflow_runs")
         .update({ status: "failed", finished_at: nowIso(), error: "Workflow has no start node" })
         .eq("id", run.id);
-      return json(200, { ok: false, run_id: run.id, error: "Workflow has no start node", automation_results: automationResults });
+      return jsonResponse({ ok: false, run_id: run.id, error: "Workflow has no start node", automation_results: automationResults });
     }
 
     // BFS traversal with adjacency list
@@ -1791,7 +1780,7 @@ serve(async (req) => {
 
     console.log(`[trigger-workflow] Completed with status: ${finalStatus}, steps: ${stepsExecuted}${needsRetry ? `, retry scheduled in ${backoffMinutes}min` : ""}`);
 
-    return json(200, {
+    return jsonResponse({
       ok: !executionError,
       run_id: run.id,
       status: finalStatus,
@@ -1801,6 +1790,6 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("[trigger-workflow] Error:", error);
-    return json(500, { ok: false, error: String(error) });
+    return jsonResponse({ ok: false, error: String(error) }, 500);
   }
 });

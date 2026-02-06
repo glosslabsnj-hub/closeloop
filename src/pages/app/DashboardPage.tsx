@@ -16,7 +16,7 @@ export default function DashboardPage() {
   const setupComplete =
     isSuperAdmin ||
     assistantSettings?.go_live_enabled === true ||
-    !!(assistantSettings as any)?.setup_completed_at;
+    !!assistantSettings?.setup_completed_at;
 
   // For status badge: super admins show as "Admin Mode", otherwise show live status
   const isActuallyLive = !isSuperAdmin && setupComplete && canGoLive && p0Flags.length === 0;

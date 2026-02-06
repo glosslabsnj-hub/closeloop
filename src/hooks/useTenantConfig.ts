@@ -29,12 +29,12 @@ export function useTenantConfig(): TenantConfig {
       };
     }
 
-    const businessMode = (tenant as any).business_mode as BusinessMode || "service";
-    
+    const businessMode = tenant.business_mode as BusinessMode || "service";
+
     // Parse enabled_modules from tenant
     let enabledModules: string[] = [];
     try {
-      const modules = (tenant as any).enabled_modules;
+      const modules = tenant.enabled_modules;
       if (Array.isArray(modules)) {
         enabledModules = modules;
       } else if (typeof modules === "string") {
@@ -51,7 +51,7 @@ export function useTenantConfig(): TenantConfig {
       enabledModules = defaultModulesByMode[businessMode] || defaultModulesByMode.service;
     }
 
-    const hipaaMode = businessMode === "medical" || (tenant as any).hipaa_mode === true;
+    const hipaaMode = businessMode === "medical" || tenant.hipaa_mode === true;
 
     return {
       businessMode,

@@ -209,8 +209,8 @@ export function useWorkflowNodeMutations(workflowId: string | null) {
           workflow_id: workflowId,
           node_type: data.node_type,
           name: data.name,
-          config: (data.config || {}) as any,
-          position: (data.position || { x: 0, y: 0 }) as any,
+          config: (data.config || {}) as Record<string, unknown>,
+          position: (data.position || { x: 0, y: 0 }) as { x: number; y: number },
         })
         .select()
         .single();
@@ -228,11 +228,11 @@ export function useWorkflowNodeMutations(workflowId: string | null) {
 
   const updateNode = useMutation({
     mutationFn: async ({ id, ...data }: Partial<WorkflowNode> & { id: string }) => {
-      const updateData: Record<string, any> = {};
+      const updateData: Record<string, unknown> = {};
       if (data.name !== undefined) updateData.name = data.name;
       if (data.node_type !== undefined) updateData.node_type = data.node_type;
-      if (data.config !== undefined) updateData.config = data.config as any;
-      if (data.position !== undefined) updateData.position = data.position as any;
+      if (data.config !== undefined) updateData.config = data.config as Record<string, unknown>;
+      if (data.position !== undefined) updateData.position = data.position as { x: number; y: number };
       
       const { data: node, error } = await supabase
         .from("workflow_nodes")
@@ -287,7 +287,7 @@ export function useWorkflowEdgeMutations(workflowId: string | null) {
           workflow_id: workflowId,
           from_node_id: data.from_node_id,
           to_node_id: data.to_node_id,
-          condition: (data.condition || {}) as any,
+          condition: (data.condition || {}) as Record<string, unknown>,
           label: data.label || null,
         })
         .select()

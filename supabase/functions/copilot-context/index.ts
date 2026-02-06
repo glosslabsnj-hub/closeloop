@@ -1,11 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+import { corsResponse, errorResponse, jsonResponse } from "../_shared/cors.ts";
+import { requireAuthedTenant, serviceClient } from "../_shared/tenant.ts";
 
 interface NavigationItem {
   path: string;
@@ -220,50 +215,12 @@ function buildNavigationMap(businessMode: string, enabledModules: string[]): Nav
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return corsResponse();
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Get auth from header
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "No authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Get user from token
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
-
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Invalid token" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Get tenant for user
-    const { data: tenantUser, error: tuError } = await supabase
-      .from("tenant_users")
-      .select("tenant_id")
-      .eq("user_id", user.id)
-      .single();
-
-    if (tuError || !tenantUser) {
-      return new Response(
-        JSON.stringify({ error: "No tenant found for user" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const tenantId = tenantUser.tenant_id;
+    const { tenantId } = await requireAuthedTenant(req);
+    const supabase = serviceClient();
 
     // Fetch all needed data in parallel
     const [
@@ -316,10 +273,7 @@ serve(async (req) => {
     const phoneNumber = phoneNumbersResult.data;
 
     if (!tenant) {
-      return new Response(
-        JSON.stringify({ error: "Tenant not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse("Tenant not found", 404);
     }
 
     const businessMode = tenant.business_mode || "service";
@@ -441,15 +395,10 @@ serve(async (req) => {
       hipaa_mode: hipaaMode,
     };
 
-    return new Response(
-      JSON.stringify({ copilot_context: copilotContext }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return jsonResponse({ copilot_context: copilotContext });
   } catch (error) {
     console.error("Error in copilot-context:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return errorResponse(message, 500);
   }
 });

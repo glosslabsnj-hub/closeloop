@@ -59,9 +59,8 @@ export function DashboardHeroCard() {
 
   // Load busyness level from tenant on mount
   useEffect(() => {
-    const tenantAny = tenant as any;
-    if (tenantAny?.busyness_rules_jsonb) {
-      const rules = tenantAny.busyness_rules_jsonb as any;
+    if (tenant?.busyness_rules_jsonb) {
+      const rules = tenant.busyness_rules_jsonb as { manual_busyness_pct?: number };
       setBusynessLevel(rules.manual_busyness_pct || 30);
     }
   }, [tenant]);
@@ -100,7 +99,7 @@ export function DashboardHeroCard() {
       const revenueRecovered = bookings
         .filter(b => b.deposit_paid)
         .reduce((sum, b) => {
-          const price = (b.services as any)?.price_cents || 0;
+          const price = (b.services as { price_cents?: number } | null)?.price_cents || 0;
           return sum + (price / 100);
         }, 0);
 
@@ -121,8 +120,8 @@ export function DashboardHeroCard() {
 
     // If turning OFF, check if off_behavior is configured
     if (!enabled && hasVoice) {
-      const offBehavior = (assistantSettings as any)?.off_behavior || "FORWARD_OWNER";
-      const forwardNumber = (assistantSettings as any)?.owner_forward_number;
+      const offBehavior = assistantSettings?.off_behavior || "FORWARD_OWNER";
+      const forwardNumber = assistantSettings?.owner_forward_number;
 
       // If FORWARD_OWNER but no number configured, show modal
       if (offBehavior === "FORWARD_OWNER" && !forwardNumber) {
@@ -157,7 +156,7 @@ export function DashboardHeroCard() {
       await refreshTenant();
 
       // Get configured off behavior for better messaging
-      const offBehavior = (assistantSettings as any)?.off_behavior || "FORWARD_OWNER";
+      const offBehavior = assistantSettings?.off_behavior || "FORWARD_OWNER";
       const offBehaviorLabel = getOffBehaviorLabel(offBehavior);
 
       toast({
@@ -207,8 +206,7 @@ export function DashboardHeroCard() {
       setBusynessSaving(true);
 
       try {
-        const tenantAny = tenant as any;
-        const currentRules = tenantAny.busyness_rules_jsonb || {};
+        const currentRules = (tenant.busyness_rules_jsonb as Record<string, unknown>) || {};
         const updatedRules = {
           ...currentRules,
           manual_busyness_pct: level,
@@ -216,7 +214,7 @@ export function DashboardHeroCard() {
 
         const { error } = await supabase
           .from("tenants")
-          .update({ busyness_rules_jsonb: updatedRules } as any)
+          .update({ busyness_rules_jsonb: updatedRules })
           .eq("id", tenant.id);
 
         if (error) throw error;
@@ -465,8 +463,8 @@ export function DashboardHeroCard() {
         open={offBehaviorModalOpen}
         onOpenChange={setOffBehaviorModalOpen}
         tenantId={tenant?.id || ""}
-        currentBehavior={(assistantSettings as any)?.off_behavior}
-        currentForwardNumber={(assistantSettings as any)?.owner_forward_number}
+        currentBehavior={assistantSettings?.off_behavior}
+        currentForwardNumber={assistantSettings?.owner_forward_number}
         onConfigured={async () => {
           await refreshTenant();
           // After configuration, proceed with toggle OFF

@@ -161,8 +161,8 @@ export function normalizeJobType(jobType: string): string {
  */
 export function estimateEta(policy: EtaPolicy, input: EtaInput): EtaResult {
   const notes: string[] = [];
-  let range: EtaRange;
-  let source: "job_type" | "mode" | "default";
+  let range: EtaRange | undefined;
+  let source: "job_type" | "mode" | "default" = "default";
 
   // Merge with defaults
   const effectivePolicy: EtaPolicy = {
@@ -190,7 +190,6 @@ export function estimateEta(policy: EtaPolicy, input: EtaInput): EtaResult {
     }
   }
 
-  // @ts-ignore - range may be uninitialized
   if (!range && effectivePolicy.mode_overrides) {
     const modeOverride = effectivePolicy.mode_overrides[input.business_mode];
     if (modeOverride) {
@@ -200,7 +199,6 @@ export function estimateEta(policy: EtaPolicy, input: EtaInput): EtaResult {
     }
   }
 
-  // @ts-ignore - range may still be uninitialized
   if (!range) {
     range = { ...effectivePolicy.default_range_minutes };
     source = "default";
@@ -239,7 +237,7 @@ export function estimateEta(policy: EtaPolicy, input: EtaInput): EtaResult {
     spoken,
     min: range.min,
     max: range.max,
-    source: source!,
+    source,
     notes,
   };
 }

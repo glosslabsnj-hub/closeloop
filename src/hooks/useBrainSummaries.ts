@@ -223,7 +223,7 @@ export function useBrainSummaries(): BrainSummaries {
       if (!intentRules || intentRules.length === 0) return "Not configured yet";
       let totalRequired = 0;
       for (const rule of intentRules) {
-        const action = rule.action_json as any;
+        const action = rule.action_json as { required_inputs?: string[] } | null;
         if (action?.required_inputs) {
           totalRequired += action.required_inputs.length;
         }

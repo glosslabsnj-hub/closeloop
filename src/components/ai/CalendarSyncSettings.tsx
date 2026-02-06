@@ -60,7 +60,7 @@ export default function CalendarSyncSettings({ onSyncComplete }: CalendarSyncSet
     try {
       // Load provider from assistant settings
       if (assistantSettings) {
-        setProvider((assistantSettings as any).calendar_provider || 'closeloop');
+        setProvider(assistantSettings.calendar_provider || 'closeloop');
       }
 
       // Load availability slots

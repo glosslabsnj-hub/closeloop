@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
   useCalendarConnections,
+  useCalendarSync,
   CALENDAR_PROVIDERS,
   useAvailableSlots,
   type CalendarConnection,
@@ -74,6 +75,7 @@ const WIZARD_STEPS = [
 
 export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnectionWizardProps) {
   const { createConnection, connections, refetch } = useCalendarConnections();
+  const { sync: syncCalendar } = useCalendarSync();
   const { tenant, updateTenant, isUpdating } = useTenantSettings();
   const { settings: assistantSettings, updateSettings: updateAssistantSettings } = useAssistantSettings();
   const { toast } = useToast();
@@ -90,7 +92,7 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
   
   // Booking behavior state
   const [bookingBehavior, setBookingBehavior] = useState<BookingBehavior>(
-    (assistantSettings as any)?.ai_booking_mode === "auto_book" ? "auto_book" : "pending_approval"
+    (assistantSettings as Record<string, unknown>)?.ai_booking_mode === "auto_book" ? "auto_book" : "pending_approval"
   );
   
   // OAuth states
@@ -203,9 +205,9 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
     const connectedCal = connections.find(c => c.status === "connected" && (c.provider === "google" || c.provider === "microsoft"));
     if (connectedCal) {
       setCurrentConnectionId(connectedCal.id);
-      const calendars = (connectedCal.config_json as any)?.available_calendars || [];
+      const calendars = (connectedCal.config_json as Record<string, unknown>)?.available_calendars || [];
       setAvailableCalendars(calendars);
-      setSelectedCalendarIds((connectedCal.config_json as any)?.selected_calendar_ids || []);
+      setSelectedCalendarIds((connectedCal.config_json as Record<string, unknown>)?.selected_calendar_ids || []);
     }
   }, [connections]);
 
@@ -334,24 +336,14 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
 
     setSyncStatus("syncing");
     try {
-      const response = await supabase.functions.invoke("sync-availability", {
-        body: { connection_id: currentConnectionId, days: 30 },
-      });
-
-      if (response.error) {
-        throw new Error(response.error.message);
-      }
-
-      setSyncedEventsCount(response.data?.synced_count || 0);
+      const result = await syncCalendar(currentConnectionId);
+      setSyncedEventsCount(result.syncedCount);
       setSyncStatus("success");
-      
+
       // After sync, load available slots
       await loadTestSlots();
-    } catch (error: unknown) {
-      console.error("Sync error:", error);
+    } catch {
       setSyncStatus("error");
-      const message = error instanceof Error ? error.message : "Sync failed";
-      toast({ title: "Sync failed", description: message, variant: "destructive" });
     }
   };
 

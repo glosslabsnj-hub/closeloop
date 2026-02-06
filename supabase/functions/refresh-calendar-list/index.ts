@@ -1,69 +1,24 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+import { corsResponse, errorResponse, jsonResponse } from "../_shared/cors.ts";
+import { requireAuthedTenant, serviceClient } from "../_shared/tenant.ts";
 
 const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CALENDAR_CLIENT_ID");
 const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CALENDAR_CLIENT_SECRET");
 const MS_CLIENT_ID = Deno.env.get("MS_CALENDAR_CLIENT_ID");
 const MS_CLIENT_SECRET = Deno.env.get("MS_CALENDAR_CLIENT_SECRET");
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return corsResponse();
   }
 
   try {
-    // Get auth header
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const anonClient = createClient(
-      SUPABASE_URL,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    // Get user and their tenant
-    const { data: { user } } = await anonClient.auth.getUser();
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const { data: tenant } = await supabase
-      .from("tenants")
-      .select("id")
-      .eq("user_id", user.id)
-      .single();
-
-    if (!tenant) {
-      return new Response(JSON.stringify({ error: "No tenant found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const { tenantId } = await requireAuthedTenant(req);
+    const supabase = serviceClient();
 
     const { connection_id } = await req.json();
     if (!connection_id) {
-      return new Response(JSON.stringify({ error: "connection_id required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return errorResponse("connection_id required", 400);
     }
 
     // Get the connection
@@ -71,29 +26,23 @@ serve(async (req: Request) => {
       .from("calendar_connections")
       .select("*")
       .eq("id", connection_id)
-      .eq("tenant_id", tenant.id)
+      .eq("tenant_id", tenantId)
       .single();
 
     if (!connection) {
-      return new Response(JSON.stringify({ error: "Connection not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return errorResponse("Connection not found", 404);
     }
 
     // Get stored token
     const { data: tokenData } = await supabase
       .from("calendar_tokens")
       .select("*")
-      .eq("tenant_id", tenant.id)
+      .eq("tenant_id", tenantId)
       .eq("provider", connection.provider)
       .single();
 
     if (!tokenData) {
-      return new Response(JSON.stringify({ error: "No token found - please reconnect" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return errorResponse("No token found - please reconnect", 400);
     }
 
     let accessToken = tokenData.access_token;
@@ -125,10 +74,7 @@ serve(async (req: Request) => {
             })
             .eq("id", tokenData.id);
         } else {
-          return new Response(JSON.stringify({ error: "Token expired - please reconnect" }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          return errorResponse("Token expired - please reconnect", 400);
         }
       } else if (connection.provider === "microsoft" && tokenData.refresh_token) {
         const refreshResponse = await fetch(
@@ -157,16 +103,10 @@ serve(async (req: Request) => {
             })
             .eq("id", tokenData.id);
         } else {
-          return new Response(JSON.stringify({ error: "Token expired - please reconnect" }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          return errorResponse("Token expired - please reconnect", 400);
         }
       } else {
-        return new Response(JSON.stringify({ error: "Token expired - please reconnect" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return errorResponse("Token expired - please reconnect", 400);
       }
     }
 
@@ -191,10 +131,7 @@ serve(async (req: Request) => {
       } else {
         const errorText = await calendarResponse.text();
         console.error("Google calendar list error:", errorText);
-        return new Response(JSON.stringify({ error: "Failed to fetch calendars" }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return errorResponse("Failed to fetch calendars", 500);
       }
     } else if (connection.provider === "microsoft") {
       const calendarResponse = await fetch(
@@ -214,10 +151,7 @@ serve(async (req: Request) => {
       } else {
         const errorText = await calendarResponse.text();
         console.error("Microsoft calendar list error:", errorText);
-        return new Response(JSON.stringify({ error: "Failed to fetch calendars" }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return errorResponse("Failed to fetch calendars", 500);
       }
     }
 
@@ -233,15 +167,10 @@ serve(async (req: Request) => {
       })
       .eq("id", connection_id);
 
-    return new Response(JSON.stringify({ calendars }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ calendars });
   } catch (error: unknown) {
     console.error("Error in refresh-calendar-list:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return errorResponse(message, 500);
   }
 });

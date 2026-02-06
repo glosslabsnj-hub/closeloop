@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -381,6 +382,44 @@ export function usePlaceHold() {
       toast({ title: "Slot unavailable", description: error.message, variant: "destructive" });
     },
   });
+}
+
+/**
+ * Shared hook for syncing a calendar connection.
+ * Extracts the duplicated sync-availability call from
+ * CalendarConnectionStatus and CalendarConnectionWizard.
+ */
+export function useCalendarSync() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { tenant } = useAuth();
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const sync = async (connectionId: string, days = 30) => {
+    setIsSyncing(true);
+    try {
+      const response = await supabase.functions.invoke("sync-availability", {
+        body: { connection_id: connectionId, days },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["calendar_connections", tenant?.id] });
+      queryClient.invalidateQueries({ queryKey: ["busy_blocks", tenant?.id] });
+
+      return { syncedCount: response.data?.synced_count || 0, eventsFound: response.data?.events_found || 0 };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not sync calendar";
+      toast({ title: "Sync failed", description: message, variant: "destructive" });
+      throw error;
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  return { sync, isSyncing };
 }
 
 export function useConfirmBooking() {

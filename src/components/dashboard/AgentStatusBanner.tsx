@@ -23,7 +23,7 @@ export function AgentStatusBanner() {
 
   const isLive = assistantSettings?.go_live_enabled || false;
   const phoneConnected = assistantSettings?.phone_connected || false;
-  const calendarConnected = !!(assistantSettings as any)?.booking_url;
+  const calendarConnected = !!assistantSettings?.booking_url;
 
   const handleToggleLive = async (enabled: boolean) => {
     if (!tenant) return;

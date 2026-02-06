@@ -47,8 +47,6 @@ export function BrainPreviewPanel({ open, onOpenChange, activeSection }: BrainPr
   const sections = useMemo<PreviewSection[]>(() => {
     if (!tenant) return [];
 
-    const t = tenant as any;
-
     return [
       {
         id: "profile",
@@ -57,23 +55,23 @@ export function BrainPreviewPanel({ open, onOpenChange, activeSection }: BrainPr
         items: [
           {
             label: "Business Name",
-            value: t.name || null,
-            status: t.name ? "complete" : "missing",
+            value: tenant.name || null,
+            status: tenant.name ? "complete" : "missing",
           },
           {
             label: "Timezone",
-            value: t.timezone || null,
-            status: t.timezone ? "complete" : "missing",
+            value: tenant.timezone || null,
+            status: tenant.timezone ? "complete" : "missing",
           },
           {
             label: "Address",
-            value: t.address || null,
-            status: t.address ? "complete" : "missing",
+            value: tenant.address || null,
+            status: tenant.address ? "complete" : "missing",
           },
           {
             label: "Tagline",
-            value: t.tagline || null,
-            status: t.tagline ? "complete" : "partial",
+            value: tenant.tagline || null,
+            status: tenant.tagline ? "complete" : "partial",
           },
         ],
       },

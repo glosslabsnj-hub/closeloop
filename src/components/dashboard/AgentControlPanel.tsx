@@ -109,8 +109,8 @@ export function AgentControlPanel() {
 
     // If turning OFF with voice, check off_behavior is configured
     if (!enabled && hasVoice) {
-      const offBehavior = (assistantSettings as any)?.off_behavior || "FORWARD_OWNER";
-      const forwardNumber = (assistantSettings as any)?.owner_forward_number;
+      const offBehavior = assistantSettings?.off_behavior || "FORWARD_OWNER";
+      const forwardNumber = assistantSettings?.owner_forward_number;
 
       if (offBehavior === "FORWARD_OWNER" && !forwardNumber) {
         setOffBehaviorModalOpen(true);
@@ -377,8 +377,8 @@ export function AgentControlPanel() {
         open={offBehaviorModalOpen}
         onOpenChange={setOffBehaviorModalOpen}
         tenantId={tenant?.id || ""}
-        currentBehavior={(assistantSettings as any)?.off_behavior}
-        currentForwardNumber={(assistantSettings as any)?.owner_forward_number}
+        currentBehavior={assistantSettings?.off_behavior}
+        currentForwardNumber={assistantSettings?.owner_forward_number}
         onConfigured={async () => {
           await refreshTenant();
           handleToggle(false);

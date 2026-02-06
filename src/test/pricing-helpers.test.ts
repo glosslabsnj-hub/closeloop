@@ -65,14 +65,14 @@ describe("SKU Feature Gating Helpers", () => {
       expect(step?.includedMinutes).toBe(200);
     });
 
-    it("includedMinutes for voice-600 is 600", () => {
+    it("includedMinutes for voice-600 maps to growth-2000 (2000 min)", () => {
       const step = getLadderStep("voice-600");
-      expect(step?.includedMinutes).toBe(600);
+      expect(step?.includedMinutes).toBe(2000);
     });
 
-    it("includedMinutes for voice-1500 is 1500", () => {
+    it("includedMinutes for voice-1500 maps to scale-5000 (5000 min)", () => {
       const step = getLadderStep("voice-1500");
-      expect(step?.includedMinutes).toBe(1500);
+      expect(step?.includedMinutes).toBe(5000);
     });
   });
 });

@@ -9,12 +9,8 @@
  *   GET /functions/v1/health-db?table=tenant_distance_settings
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsResponse, errorResponse, jsonResponse } from "../_shared/cors.ts";
+import { serviceClient } from "../_shared/tenant.ts";
 
 interface CheckResult {
   check_name: string;
@@ -39,13 +35,11 @@ interface PolicyRow {
   roles: string[] | string | null;
 }
 
-// Use any for the supabase client since we don't have full DB types in edge functions
-// deno-lint-ignore no-explicit-any
-type AnySupabaseClient = SupabaseClient<any, any, any>;
+type AnySupabaseClient = ReturnType<typeof serviceClient>;
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return corsResponse();
   }
 
   try {
@@ -54,18 +48,10 @@ serve(async (req: Request) => {
 
     // Validate table name to prevent SQL injection (alphanumeric + underscore only)
     if (!/^[a-z_][a-z0-9_]*$/.test(tableName)) {
-      return new Response(
-        JSON.stringify({ error: "Invalid table name format" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse("Invalid table name format");
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    const supabase: AnySupabaseClient = createClient(supabaseUrl, serviceKey, {
-      auth: { persistSession: false },
-    });
+    const supabase: AnySupabaseClient = serviceClient();
 
     // Run metadata-only verification query
     const { data, error } = await supabase.rpc("fn_verify_table_health", {
@@ -85,33 +71,24 @@ serve(async (req: Request) => {
         summary: `${checks.filter((c) => c.ok).length}/${checks.length} checks passed`,
       };
 
-      return new Response(JSON.stringify(response), {
-        status: allPassed ? 200 : 503,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse(response, allPassed ? 200 : 503);
     }
 
     if (error) {
       console.error("Health check error:", error);
-      return new Response(
-        JSON.stringify({ ok: false, error: error.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ ok: false, error: error.message }, 500);
     }
 
     const responseData = data as HealthResponse | null;
-    return new Response(JSON.stringify(responseData), {
-      status: responseData?.ok ? 200 : 503,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse(responseData, responseData?.ok ? 200 : 503);
   } catch (error) {
     console.error("Health check error:", error);
-    return new Response(
-      JSON.stringify({
+    return jsonResponse(
+      {
         ok: false,
         error: error instanceof Error ? error.message : "Unknown error",
-      }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      },
+      500,
     );
   }
 });

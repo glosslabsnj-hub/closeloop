@@ -41,7 +41,6 @@ export function useAIContextSnapshots(tenantId: string | null) {
 
       setSnapshots((data || []) as AIContextSnapshot[]);
     } catch (err: unknown) {
-      console.error("Failed to fetch AI context snapshots:", err);
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);

@@ -85,8 +85,7 @@ export function useBusinessMemory() {
       queryClient.invalidateQueries({ queryKey: ["business-memory", tenantId] });
       toast.success("Memory updated");
     },
-    onError: (error) => {
-      console.error("Failed to toggle memory:", error);
+    onError: () => {
       toast.error("Failed to update memory");
     },
   });
@@ -104,8 +103,7 @@ export function useBusinessMemory() {
       queryClient.invalidateQueries({ queryKey: ["business-memory", tenantId] });
       toast.success("Memory deleted");
     },
-    onError: (error) => {
-      console.error("Failed to delete memory:", error);
+    onError: () => {
       toast.error("Failed to delete memory");
     },
   });

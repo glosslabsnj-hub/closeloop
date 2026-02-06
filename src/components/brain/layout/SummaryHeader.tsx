@@ -40,14 +40,12 @@ export function SummaryHeader({ className }: SummaryHeaderProps) {
 
   if (!tenant) return null;
 
-  const t = tenant as any;
-  const businessName = t.name || "Your Business";
-  const hoursToday = t.hours_today || null;
-  const serviceAreaSummary = t.service_area_summary || 
-    (t.service_area_config_json?.base_address?.city 
-      ? `${t.service_area_config_json.base_address.city}, ${t.service_area_config_json.base_address.state}`
-      : null
-    );
+  const businessName = tenant.name || "Your Business";
+  const hoursToday = null; // Computed at runtime, not stored
+  const serviceArea = tenant.service_area_json as { base_address?: { city?: string; state?: string } } | null;
+  const serviceAreaSummary = serviceArea?.base_address?.city
+    ? `${serviceArea.base_address.city}, ${serviceArea.base_address.state}`
+    : null;
   const hasCalendar = false; // Would check calendar_connections in real impl
 
   return (

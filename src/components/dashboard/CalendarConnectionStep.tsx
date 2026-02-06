@@ -63,7 +63,7 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
   
   const [selectedOption, setSelectedOption] = useState<CalendarOption>('closeloop');
   const [bookingMode, setBookingMode] = useState<'auto_book' | 'pending_approval'>(
-    (assistantSettings as any)?.ai_booking_mode || 'auto_book'
+    assistantSettings?.ai_booking_mode || 'auto_book'
   );
   const [saving, setSaving] = useState(false);
 
@@ -178,7 +178,7 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
   const selectedOptionData = calendarOptions.find(o => o.id === selectedOption);
 
   if (isComplete) {
-    const provider = (assistantSettings as any)?.calendar_provider || 'closeloop';
+    const provider = assistantSettings?.calendar_provider || 'closeloop';
     return (
       <Card className="border-primary/20 bg-primary/5">
         <CardHeader>

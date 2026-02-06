@@ -1,12 +1,12 @@
-import { useCalendarConnections, CALENDAR_PROVIDERS } from "@/hooks/useCalendarConnections";
+import { useCalendarConnections, useCalendarSync, CALENDAR_PROVIDERS } from "@/hooks/useCalendarConnections";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Calendar, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Clock, 
+import {
+  Calendar,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
   RefreshCw,
   Loader2,
   ExternalLink,
@@ -14,7 +14,6 @@ import {
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { useState } from "react";
 import { CalendarConnectionWizard } from "@/components/settings/CalendarConnectionWizard";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 // Helper to get contextual sync status messaging
@@ -43,13 +42,13 @@ function getSyncStatus(lastSyncAt: string | null) {
 
 export function CalendarConnectionStatus() {
   const { connections, hasConnectedCalendar, isLoading, refetch } = useCalendarConnections();
+  const { sync, isSyncing } = useCalendarSync();
   const [wizardOpen, setWizardOpen] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
   const { toast } = useToast();
 
   const activeConnection = connections.find((c) => c.status === "connected");
   const errorConnection = connections.find((c) => c.status === "error");
-  const provider = activeConnection 
+  const provider = activeConnection
     ? CALENDAR_PROVIDERS.find((p) => p.id === activeConnection.provider)
     : null;
 
@@ -74,30 +73,15 @@ export function CalendarConnectionStatus() {
 
   const handleSyncNow = async () => {
     if (!activeConnection) return;
-    
-    setIsSyncing(true);
     try {
-      const response = await supabase.functions.invoke("sync-availability", {
-        body: { connection_id: activeConnection.id, days: 30 },
-      });
-
-      if (response.error) {
-        throw new Error(response.error.message);
-      }
-
+      const result = await sync(activeConnection.id);
       toast({
         title: "Calendar synced",
-        description: `${response.data?.synced_count || 0} events synced`,
+        description: `${result.syncedCount} events synced`,
       });
       refetch();
-    } catch (error) {
-      toast({
-        title: "Sync failed",
-        description: error instanceof Error ? error.message : "Could not sync calendar",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSyncing(false);
+    } catch {
+      // Error already toasted by useCalendarSync
     }
   };
 

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsResponse, errorResponse, jsonResponse } from "../_shared/cors.ts";
+import { serviceClient } from "../_shared/tenant.ts";
 
 /**
  * Manage session-based slot locks during AI calls
@@ -10,30 +11,18 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  * - confirm: Convert a lock to a confirmed booking
  */
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return corsResponse();
   }
 
   try {
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const supabase = serviceClient();
 
     const { action, session_id, ...params } = await req.json();
 
     if (!session_id) {
-      return new Response(JSON.stringify({ error: "session_id is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return errorResponse("session_id is required", 400);
     }
 
     let result;
@@ -79,13 +68,7 @@ serve(async (req: Request) => {
         const { slot_start, slot_end, customer_id, service_id, notes } = params;
 
         if (!slot_start || !slot_end) {
-          return new Response(
-            JSON.stringify({ error: "slot_start and slot_end are required for confirm action" }),
-            {
-              status: 400,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            }
-          );
+          return errorResponse("slot_start and slot_end are required for confirm action", 400);
         }
 
         const { data, error } = await supabase.rpc("fn_confirm_slot_from_session", {
@@ -118,24 +101,13 @@ serve(async (req: Request) => {
       }
 
       default:
-        return new Response(
-          JSON.stringify({ error: `Unknown action: ${action}. Valid actions: extend, release, confirm` }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
+        return errorResponse(`Unknown action: ${action}. Valid actions: extend, release, confirm`, 400);
     }
 
-    return new Response(JSON.stringify(result), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse(result);
   } catch (error: unknown) {
     console.error("Error in manage-session-locks:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return errorResponse(message, 500);
   }
 });

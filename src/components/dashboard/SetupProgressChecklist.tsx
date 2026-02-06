@@ -61,8 +61,8 @@ export function SetupProgressChecklist() {
   });
 
   // Check if hours are configured
-  const hoursConfigured = !!(tenant as any)?.hours_json && 
-    Object.keys((tenant as any)?.hours_json || {}).length > 0;
+  const hoursConfigured = !!tenant?.hours_json &&
+    Object.keys((tenant?.hours_json as Record<string, unknown>) || {}).length > 0;
 
   // Build steps based on existing state
   const steps: SetupStep[] = [
@@ -104,7 +104,7 @@ export function SetupProgressChecklist() {
       description: "Make sure everything works",
       href: "/app/simulator",
       icon: FlaskConical,
-      completed: (assistantSettings as any)?.setup_step_tested || false,
+      completed: assistantSettings?.setup_step_tested || false,
     },
     {
       id: "golive",

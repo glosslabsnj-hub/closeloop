@@ -29,16 +29,16 @@ interface GoLiveStepProps {
 }
 
 export function GoLiveStep({ onComplete, isComplete, canActivate }: GoLiveStepProps) {
-  const { tenant, assistantSettings, refreshTenant } = useAuth();
+  const { tenant, assistantSettings, subscription, refreshTenant } = useAuth();
   const { toast } = useToast();
   const { score, canGoLive, p0Flags, loading: readinessLoading } = useAIReadinessV2();
-  
+
   const [showConfirm, setShowConfirm] = useState(false);
   const [activating, setActivating] = useState(false);
   const isLive = assistantSettings?.go_live_enabled || false;
 
   // Plan-based feature filtering using centralized helpers
-  const planCode = (assistantSettings as any)?.plan_code || null;
+  const planCode = subscription?.plan_code || null;
   const hasVoice = hasVoiceFeature(planCode);
   const hasSms = hasSmsFeature(planCode);
 

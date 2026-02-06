@@ -25,9 +25,9 @@ export default function BookingBehaviorSettings({ compact, onSave }: BookingBeha
 
   useEffect(() => {
     if (assistantSettings) {
-      setBookingMode((assistantSettings as any).ai_booking_mode || 'auto_book');
-      setNotifyEmail((assistantSettings as any).pending_booking_notify_email ?? true);
-      setNotifySms((assistantSettings as any).pending_booking_notify_sms ?? true);
+      setBookingMode(assistantSettings.ai_booking_mode || 'auto_book');
+      setNotifyEmail(assistantSettings.pending_booking_notify_email ?? true);
+      setNotifySms(assistantSettings.pending_booking_notify_sms ?? true);
     }
   }, [assistantSettings]);
 

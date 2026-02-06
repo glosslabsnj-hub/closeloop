@@ -43,7 +43,7 @@ export async function requireAuthedTenant(req: Request, requestedTenantId?: stri
     .eq("user_id", userId);
 
   if (memErr) throw new Error("Failed to read tenant membership");
-  const allowedTenantIds = (memberships ?? []).map((m: any) => m.tenant_id).filter(Boolean);
+  const allowedTenantIds = (memberships ?? []).map((m: { tenant_id: string }) => m.tenant_id).filter(Boolean);
 
   if (allowedTenantIds.length === 0) throw new Error("User has no tenant membership");
 

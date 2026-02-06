@@ -2,9 +2,7 @@
 import type { Tables, Enums } from "@/integrations/supabase/types";
 import type { PlanSku, PlanTier } from "@/config/pricing";
 
-export type Tenant = Tables<"tenants"> & {
-  ai_enabled?: boolean;
-};
+export type Tenant = Tables<"tenants">;
 
 export type TenantUser = Tables<"tenant_users">;
 export type Service = Tables<"services">;
@@ -31,11 +29,7 @@ export type Subscription = Tables<"subscriptions"> & {
   overage_minute_rate_cents?: number | null;
   overage_sms_rate_cents?: number | null;
 };
-export type AssistantSettings = Tables<"assistant_settings"> & {
-  // Extended fields added by migrations (optional since they may not exist in DB response)
-  forwarding_phone_e164?: string | null;
-  connect_status?: string | null;
-};
+export type AssistantSettings = Tables<"assistant_settings">;
 export type PhoneNumber = Tables<"phone_numbers">;
 
 // Usage tracking

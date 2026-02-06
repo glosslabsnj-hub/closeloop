@@ -132,7 +132,8 @@ export function validateOfferingForMode(
   }
 
   // Check price type
-  if (offering.priceType && !contract.allowedPriceTypes.includes(offering.priceType as any)) {
+  const priceType = offering.priceType as "fixed" | "starting_at" | "quote_only" | undefined;
+  if (priceType && !contract.allowedPriceTypes.includes(priceType)) {
     errors.push(`Price type "${offering.priceType}" not allowed for ${mode} mode (allowed: ${contract.allowedPriceTypes.join(", ")})`);
   }
 
@@ -163,7 +164,8 @@ export function sanitizeOfferingForMode<T extends { duration?: number; depositRe
   }
 
   // Reset price type if not allowed
-  if (sanitized.priceType && !contract.allowedPriceTypes.includes(sanitized.priceType as any)) {
+  const sanitizedPriceType = sanitized.priceType as "fixed" | "starting_at" | "quote_only" | undefined;
+  if (sanitizedPriceType && !contract.allowedPriceTypes.includes(sanitizedPriceType)) {
     sanitized.priceType = contract.allowedPriceTypes[0];
   }
 

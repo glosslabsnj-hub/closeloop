@@ -28,7 +28,7 @@ export function AINeverPromiseEditor() {
 
   useEffect(() => {
     if (tenant) {
-      const aiNeverPromise = (tenant as any).ai_never_promise;
+      const aiNeverPromise = tenant.ai_never_promise;
       if (Array.isArray(aiNeverPromise)) {
         setPromises(aiNeverPromise);
       }

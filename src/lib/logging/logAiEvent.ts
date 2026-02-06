@@ -133,7 +133,6 @@ export async function logAiEvent(
     }]);
 
     if (error) {
-      console.error(`[logAiEvent] Failed to log ${eventType}:`, error);
       return { logged: false, debug: { error: error.message } };
     }
 
@@ -145,7 +144,6 @@ export async function logAiEvent(
       },
     };
   } catch (err) {
-    console.error(`[logAiEvent] Exception logging ${eventType}:`, err);
     return { logged: false, debug: { error: String(err) } };
   }
 }
@@ -165,13 +163,19 @@ export async function logEtaComputed(
 // Server-side helper (for edge functions)
 // ============================================================================
 
+/** Minimal interface for Supabase client used in edge functions */
+interface SupabaseClientLike {
+  from(table: string): {
+    insert(values: Record<string, unknown> | Record<string, unknown>[]): Promise<{ error: { message: string } | null }>;
+  };
+}
+
 /**
  * Creates a logger bound to a specific supabase client.
  * Use this in edge functions where you have a service role client.
  */
 export function createAiEventLogger(
-  // deno-lint-ignore no-explicit-any
-  supabaseClient: any
+  supabaseClient: SupabaseClientLike
 ) {
   return {
     logEtaComputed: async (

@@ -30,7 +30,9 @@ export function useSoundManager() {
   // Initialize audio context on first user interaction
   const initAudio = useCallback(() => {
     if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      // WebKit prefix for older Safari versions
+      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      audioContextRef.current = new AudioContextClass();
     }
     return audioContextRef.current;
   }, []);
@@ -64,8 +66,8 @@ export function useSoundManager() {
         oscillator.start(startTime);
         oscillator.stop(startTime + config.duration);
       }
-    } catch (e) {
-      console.log("Audio not available:", e);
+    } catch {
+      // Audio playback not available - silently fail
     }
   }, [initAudio]);
 
@@ -122,7 +124,7 @@ export function SoundManager() {
           processedEventsRef.current.add(eventId);
           
           playSound("order");
-          const order = payload.new as any;
+          const order = payload.new as { order_number?: string; order_type?: string };
           toast({
             title: "🍽️ New Order!",
             description: `Order #${order.order_number} - ${order.order_type?.toUpperCase() || "Pickup"}`,
@@ -180,11 +182,11 @@ export function SoundManager() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'dispatch_jobs', filter: `tenant_id=eq.${tenant.id}` },
         (payload) => {
-          const job = payload.new as any;
+          const job = payload.new as { id: string; priority?: string; job_type?: string; customer_name?: string };
           const eventId = `dispatch-${job.id}`;
           if (processedEventsRef.current.has(eventId)) return;
           processedEventsRef.current.add(eventId);
-          
+
           if (job.priority === "urgent") {
             playSound("urgent");
           } else {

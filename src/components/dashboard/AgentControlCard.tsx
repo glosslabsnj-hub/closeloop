@@ -40,7 +40,7 @@ export function AgentControlCard() {
   // Voice agent state
   const voiceEnabled = assistantSettings?.voice_ai_enabled && assistantSettings?.go_live_enabled;
   const phoneConnected = assistantSettings?.phone_connected || false;
-  const calendarConnected = !!(assistantSettings as any)?.booking_url;
+  const calendarConnected = !!assistantSettings?.booking_url;
   const closeloopNumber = assistantSettings?.closeloop_number;
 
   // SMS agent state

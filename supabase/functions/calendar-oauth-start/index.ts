@@ -1,11 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+import { corsResponse, errorResponse, jsonResponse } from "../_shared/cors.ts";
+import { requireAuthedTenant } from "../_shared/tenant.ts";
 
 // OAuth configuration
 const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CALENDAR_CLIENT_ID");
@@ -14,8 +9,6 @@ const GOOGLE_REDIRECT_URI = Deno.env.get("GOOGLE_CALENDAR_REDIRECT_URI");
 const MS_CLIENT_ID = Deno.env.get("MS_CALENDAR_CLIENT_ID");
 const MS_REDIRECT_URI = Deno.env.get("MS_CALENDAR_REDIRECT_URI");
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const JWT_SECRET = Deno.env.get("SUPABASE_JWT_SECRET") || Deno.env.get("CLOSELOOP_OAUTH_STATE_SECRET") || "closeloop-state-secret";
 
 // Simple state signing
@@ -36,71 +29,21 @@ async function signState(data: Record<string, string>): Promise<string> {
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return corsResponse();
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Create Supabase client with user's token
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    // Get user's tenant
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Check if user has an active tenant override (for multi-tenant users/admins)
-    const { data: adminSettings } = await supabase
-      .from("admin_settings")
-      .select("admin_active_tenant_id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    let tenantId: string | null = adminSettings?.admin_active_tenant_id || null;
-
-    // If no active tenant override, get the first tenant the user belongs to
-    if (!tenantId) {
-      const { data: tenantUser, error: tenantError } = await supabase
-        .from("tenant_users")
-        .select("tenant_id")
-        .eq("user_id", user.id)
-        .limit(1)
-        .maybeSingle();
-
-      if (tenantError || !tenantUser) {
-        return new Response(JSON.stringify({ error: "No tenant found" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      tenantId = tenantUser.tenant_id;
-    }
+    const { tenantId } = await requireAuthedTenant(req);
 
     const { provider } = await req.json();
 
     if (!provider || !["google", "microsoft"].includes(provider)) {
-      return new Response(JSON.stringify({ error: "Invalid provider" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return errorResponse("Invalid provider", 400);
     }
 
     // Create signed state with tenant_id
     const state = await signState({
-      tenant_id: tenantId!,
+      tenant_id: tenantId,
       provider,
       timestamp: Date.now().toString(),
     });
@@ -109,10 +52,7 @@ serve(async (req: Request) => {
 
     if (provider === "google") {
       if (!GOOGLE_CLIENT_ID || !GOOGLE_REDIRECT_URI) {
-        return new Response(
-          JSON.stringify({ error: "Google Calendar not configured. Please add GOOGLE_CALENDAR_CLIENT_ID and GOOGLE_CALENDAR_REDIRECT_URI secrets." }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return errorResponse("Google Calendar not configured. Please add GOOGLE_CALENDAR_CLIENT_ID and GOOGLE_CALENDAR_REDIRECT_URI secrets.", 500);
       }
 
       const scopes = [
@@ -134,10 +74,7 @@ serve(async (req: Request) => {
       authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
     } else if (provider === "microsoft") {
       if (!MS_CLIENT_ID || !MS_REDIRECT_URI) {
-        return new Response(
-          JSON.stringify({ error: "Microsoft Calendar not configured. Please add MS_CALENDAR_CLIENT_ID and MS_CALENDAR_REDIRECT_URI secrets." }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return errorResponse("Microsoft Calendar not configured. Please add MS_CALENDAR_CLIENT_ID and MS_CALENDAR_REDIRECT_URI secrets.", 500);
       }
 
       const scopes = [
@@ -157,21 +94,13 @@ serve(async (req: Request) => {
 
       authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params.toString()}`;
     } else {
-      return new Response(JSON.stringify({ error: "Unknown provider" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return errorResponse("Unknown provider", 400);
     }
 
-    return new Response(JSON.stringify({ auth_url: authUrl }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ auth_url: authUrl });
   } catch (error: unknown) {
     console.error("Error in calendar-oauth-start:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return errorResponse(message, 500);
   }
 });

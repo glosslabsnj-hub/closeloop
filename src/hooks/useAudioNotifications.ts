@@ -13,7 +13,7 @@ export function useAudioNotifications() {
   // Sync with assistant settings if available
   useEffect(() => {
     if (assistantSettings && 'notification_sounds_enabled' in assistantSettings) {
-      const dbSetting = (assistantSettings as any).notification_sounds_enabled;
+      const dbSetting = (assistantSettings as Record<string, unknown>).notification_sounds_enabled;
       if (typeof dbSetting === 'boolean') {
         setSoundEnabled(dbSetting);
         localStorage.setItem("notificationSoundsEnabled", String(dbSetting));

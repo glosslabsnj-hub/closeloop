@@ -10,11 +10,7 @@
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsResponse, jsonResponse } from "../_shared/cors.ts";
 
 interface CreateDispatchRequest {
   // Customer info (name is optional; phone is required to link/create a customer)
@@ -72,7 +68,7 @@ function urgencyToPriority(urgency?: string): "low" | "normal" | "high" | "urgen
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return corsResponse();
   }
 
   try {
@@ -93,14 +89,11 @@ serve(async (req: Request) => {
 
     // Validate required fields
     if (!pickupAddress) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: "Missing required information",
-          error: "pickup_address is required"
-        } as CreateDispatchResponse),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({
+        success: false,
+        message: "Missing required information",
+        error: "pickup_address is required"
+      } as CreateDispatchResponse);
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -155,14 +148,11 @@ serve(async (req: Request) => {
 
     if (!tenantId) {
       console.error(`[create-dispatch] No session found. conv_id=${conversation_id}, phone=${customer_phone}`);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: "Unable to identify business",
-          error: "No active voice session found"
-        } as CreateDispatchResponse),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({
+        success: false,
+        message: "Unable to identify business",
+        error: "No active voice session found"
+      } as CreateDispatchResponse);
     }
     
     console.log(`[create-dispatch] Processing for tenant ${tenantId}, session ${sessionId}`);
@@ -172,14 +162,11 @@ serve(async (req: Request) => {
     const phoneE164 = normalizePhone(effectivePhoneRaw);
 
     if (!phoneE164) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: "Missing phone number",
-          error: "customer_phone is required to create a dispatch job"
-        } as CreateDispatchResponse),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({
+        success: false,
+        message: "Missing phone number",
+        error: "customer_phone is required to create a dispatch job"
+      } as CreateDispatchResponse);
     }
 
     // Find or create customer (dispatch_jobs.customer_id is NOT NULL)
@@ -232,14 +219,11 @@ serve(async (req: Request) => {
     }
 
     if (!customerId) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: "Unable to create dispatch request",
-          error: "Could not resolve or create customer"
-        } as CreateDispatchResponse),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({
+        success: false,
+        message: "Unable to create dispatch request",
+        error: "Could not resolve or create customer"
+      } as CreateDispatchResponse);
     }
 
     const dispatchCustomerName = customerName || "Unknown";
@@ -277,14 +261,11 @@ serve(async (req: Request) => {
 
     if (dispatchError) {
       console.error("[create-dispatch-request] Error creating dispatch:", dispatchError);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: "Failed to create dispatch request",
-          error: dispatchError.message
-        } as CreateDispatchResponse),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({
+        success: false,
+        message: "Failed to create dispatch request",
+        error: dispatchError.message
+      } as CreateDispatchResponse);
     }
 
     // Trigger dispatch handoff to notify the business
@@ -336,20 +317,14 @@ serve(async (req: Request) => {
       message: `Dispatch ${dispatch.job_number} created successfully`
     };
 
-    return new Response(JSON.stringify(response), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    });
+    return jsonResponse(response);
 
   } catch (error) {
     console.error("[create-dispatch-request] Error:", error);
-    return new Response(
-      JSON.stringify({
-        success: false,
-        message: "Unable to submit dispatch request",
-        error: error instanceof Error ? error.message : "Unknown error"
-      } as CreateDispatchResponse),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return jsonResponse({
+      success: false,
+      message: "Unable to submit dispatch request",
+      error: error instanceof Error ? error.message : "Unknown error"
+    } as CreateDispatchResponse);
   }
 });

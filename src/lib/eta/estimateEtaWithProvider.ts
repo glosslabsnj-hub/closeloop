@@ -149,7 +149,6 @@ async function callRouteProvider(
     });
 
     if (error) {
-      console.error("[estimateEtaWithProvider] Edge function error:", error);
       return {
         distance_miles: null,
         duration_minutes: null,
@@ -169,7 +168,6 @@ async function callRouteProvider(
       error: data.error,
     };
   } catch (err) {
-    console.error("[estimateEtaWithProvider] Call failed:", err);
     return {
       distance_miles: null,
       duration_minutes: null,

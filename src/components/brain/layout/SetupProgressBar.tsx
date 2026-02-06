@@ -50,15 +50,13 @@ export function SetupProgressBar({ onNavigateToSection, className }: SetupProgre
   const milestones = useMemo<SetupMilestone[]>(() => {
     if (!tenant) return [];
 
-    const t = tenant as any;
-
     return [
       {
         id: "identity",
         label: "Identity",
         icon: Building2,
         section: "profile",
-        isComplete: Boolean(t.name && t.timezone),
+        isComplete: Boolean(tenant.name && tenant.timezone),
       },
       {
         id: "hours",

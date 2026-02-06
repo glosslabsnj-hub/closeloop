@@ -1,11 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { captureException } from "../_shared/sentry.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsResponse, errorResponse, jsonResponse } from "../_shared/cors.ts";
 
 interface DispatchHandoffRequest {
   dispatch_id?: string;
@@ -40,7 +36,7 @@ async function createHmacSignature(payload: string, secret: string): Promise<str
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return corsResponse();
   }
 
   try {
@@ -95,16 +91,12 @@ serve(async (req) => {
           throw new Error(`Webhook returned ${response.status}: ${await response.text()}`);
         }
 
-        return new Response(JSON.stringify({ success: true, method: "webhook" }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return jsonResponse({ success: true, method: "webhook" });
       }
 
       if (method === "email" && notify_email) {
         console.log(`[TEST] Would send email to ${notify_email}:`, testPayload);
-        return new Response(JSON.stringify({ success: true, method: "email", message: "Email test logged" }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return jsonResponse({ success: true, method: "email", message: "Email test logged" });
       }
 
       if (method === "sms" && notify_phone) {
@@ -144,14 +136,10 @@ serve(async (req) => {
           }
         }
         
-        return new Response(JSON.stringify({ success: true, method: "sms" }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return jsonResponse({ success: true, method: "sms" });
       }
 
-      return new Response(JSON.stringify({ success: true, message: "Test completed" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ success: true, message: "Test completed" });
     }
 
     // Real dispatch handoff
@@ -181,9 +169,7 @@ serve(async (req) => {
       .single();
 
     if (!settings?.enabled) {
-      return new Response(JSON.stringify({ success: true, message: "Handoff disabled" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ success: true, message: "Handoff disabled" });
     }
 
     // Fetch tenant info
@@ -483,9 +469,7 @@ serve(async (req) => {
       console.error("Failed to trigger workflow:", e);
     }
 
-    return new Response(JSON.stringify({ success: true, results }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ success: true, results });
 
   } catch (error) {
     console.error("Dispatch handoff error:", error);
@@ -495,9 +479,6 @@ serve(async (req) => {
       tags: { function: "dispatch-handoff" },
     });
 
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return errorResponse(error instanceof Error ? error.message : "Unknown error", 500);
   }
 });
