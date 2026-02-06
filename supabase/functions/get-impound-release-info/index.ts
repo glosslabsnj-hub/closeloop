@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// v2.0.0 - Lightweight fetch-based implementation to avoid cold-start timeouts
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,12 +35,85 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
   money_order: "Money Order",
 };
 
+// Lookup tenant by name using ilike
+async function resolveTenantByName(url: string, key: string, name: string): Promise<string | null> {
+  const response = await fetch(
+    `${url}/rest/v1/tenants?name=ilike.*${encodeURIComponent(name)}*&select=id&limit=1`,
+    {
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) return null;
+  const data = await response.json();
+  return data?.[0]?.id || null;
+}
+
+// Fetch vehicle with lot info
+async function fetchVehicleWithLot(url: string, key: string, vehicleId: string, tenantId: string): Promise<any | null> {
+  const response = await fetch(
+    `${url}/rest/v1/impound_vehicles?id=eq.${vehicleId}&tenant_id=eq.${tenantId}&select=*,impound_lots(id,name,address,city,state,zip,phone,hours_json)`,
+    {
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) return null;
+  const data = await response.json();
+  return data?.[0] || null;
+}
+
+// Fetch impound settings
+async function fetchImpoundSettings(url: string, key: string, tenantId: string): Promise<any | null> {
+  const response = await fetch(
+    `${url}/rest/v1/impound_settings?tenant_id=eq.${tenantId}&select=*`,
+    {
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) return null;
+  const data = await response.json();
+  return data?.[0] || null;
+}
+
+// Update vehicle fees
+async function updateVehicleFees(
+  url: string,
+  key: string,
+  vehicleId: string,
+  updates: Record<string, any>
+): Promise<void> {
+  await fetch(`${url}/rest/v1/impound_vehicles?id=eq.${vehicleId}`, {
+    method: "PATCH",
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+      Prefer: "return=minimal",
+    },
+    body: JSON.stringify(updates),
+  });
+}
+
 // Format cents to dollars string
 function formatCurrency(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
-// Format cents to speakable dollars (e.g., "$330" instead of "$330.00")
+// Format cents to speakable dollars
 function formatCurrencyForSpeech(cents: number): string {
   const dollars = cents / 100;
   if (dollars === Math.floor(dollars)) {
@@ -61,13 +134,6 @@ function getCurrentDayName(): DayOfWeek {
   return days[new Date().getDay()];
 }
 
-// Get next day name
-function getNextDayName(current: DayOfWeek): DayOfWeek {
-  const days: DayOfWeek[] = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-  const currentIndex = days.indexOf(current);
-  return days[(currentIndex + 1) % 7];
-}
-
 // Format time from 24h to 12h AM/PM
 function formatTime(time24: string): string {
   const [hours, minutes] = time24.split(":").map(Number);
@@ -80,16 +146,14 @@ function formatTime(time24: string): string {
 }
 
 // Check if current time is within hours
-function isOpenNow(hours: HoursEntry | null, timezone?: string): boolean {
+function isOpenNow(hours: HoursEntry | null): boolean {
   if (!hours || !hours.open || !hours.close) return false;
 
   const now = new Date();
   const [openHour, openMin] = hours.open.split(":").map(Number);
   const [closeHour, closeMin] = hours.close.split(":").map(Number);
 
-  const currentHour = now.getHours();
-  const currentMin = now.getMinutes();
-  const currentMinutes = currentHour * 60 + currentMin;
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const openMinutes = openHour * 60 + openMin;
   const closeMinutes = closeHour * 60 + closeMin;
 
@@ -102,24 +166,18 @@ function findNextOpen(hoursJson: Record<string, HoursEntry>): string | null {
   const dayLabels = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const today = new Date().getDay();
 
-  // Check remaining hours today
   const todayName = days[today];
   const todayHours = hoursJson[todayName];
   if (todayHours?.open && todayHours?.close) {
     const now = new Date();
-    const [closeHour, closeMin] = todayHours.close.split(":").map(Number);
-    const closeMinutes = closeHour * 60 + closeMin;
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-    // If we haven't passed opening time yet today
     const [openHour, openMin] = todayHours.open.split(":").map(Number);
     const openMinutes = openHour * 60 + openMin;
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
     if (currentMinutes < openMinutes) {
       return `Today at ${formatTime(todayHours.open)}`;
     }
   }
 
-  // Check next 7 days
   for (let i = 1; i <= 7; i++) {
     const checkDay = (today + i) % 7;
     const dayName = days[checkDay];
@@ -139,6 +197,9 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
   try {
     const body: ReleaseInfoRequest = await req.json();
     const { tenant_id, vehicle_id } = body;
@@ -153,24 +214,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Resolve tenant_id - it could be a UUID or a business name
+    // Resolve tenant_id
     let resolvedTenantId = tenant_id;
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(tenant_id)) {
       console.log(`[get-impound-release-info] tenant_id "${tenant_id}" is not UUID, looking up by name`);
-      const { data: tenant, error: tenantError } = await supabase
-        .from("tenants")
-        .select("id")
-        .ilike("name", `%${tenant_id}%`)
-        .limit(1)
-        .maybeSingle();
+      const resolved = await resolveTenantByName(SUPABASE_URL, SUPABASE_KEY, tenant_id);
       
-      if (tenantError || !tenant) {
-        console.error("[get-impound-release-info] Could not resolve tenant by name:", tenantError);
+      if (!resolved) {
+        console.error("[get-impound-release-info] Could not resolve tenant by name");
         return new Response(
           JSON.stringify({
             error: "Could not identify business",
@@ -180,32 +232,15 @@ Deno.serve(async (req) => {
         );
       }
       
-      resolvedTenantId = tenant.id;
+      resolvedTenantId = resolved;
       console.log(`[get-impound-release-info] Resolved "${tenant_id}" to tenant ${resolvedTenantId}`);
     }
 
     // Load vehicle with lot info
-    const { data: vehicle, error: vehicleError } = await supabase
-      .from("impound_vehicles")
-      .select(`
-        *,
-        impound_lots (
-          id,
-          name,
-          address,
-          city,
-          state,
-          zip,
-          phone,
-          hours_json
-        )
-      `)
-      .eq("id", vehicle_id)
-      .eq("tenant_id", resolvedTenantId)
-      .single();
+    const vehicle = await fetchVehicleWithLot(SUPABASE_URL, SUPABASE_KEY, vehicle_id, resolvedTenantId);
 
-    if (vehicleError || !vehicle) {
-      console.error("[get-impound-release-info] Vehicle not found:", vehicleError);
+    if (!vehicle) {
+      console.error("[get-impound-release-info] Vehicle not found");
       return new Response(
         JSON.stringify({
           error: "Vehicle not found",
@@ -216,11 +251,7 @@ Deno.serve(async (req) => {
     }
 
     // Load tenant settings
-    const { data: settings, error: settingsError } = await supabase
-      .from("impound_settings")
-      .select("*")
-      .eq("tenant_id", resolvedTenantId)
-      .single();
+    const settings = await fetchImpoundSettings(SUPABASE_URL, SUPABASE_KEY, resolvedTenantId);
 
     // Use defaults if no settings
     const effectiveSettings = settings || {
@@ -236,7 +267,7 @@ Deno.serve(async (req) => {
     // Calculate fees
     const towedAt = new Date(vehicle.towed_at);
     const now = new Date();
-    const daysStored = Math.max(1, daysBetween(towedAt, now)); // Minimum 1 day
+    const daysStored = Math.max(1, daysBetween(towedAt, now));
 
     const baseTow = vehicle.base_tow_fee_cents || effectiveSettings.base_tow_fee_cents;
     const storagePerDay = vehicle.storage_fee_daily_cents || effectiveSettings.daily_storage_cents;
@@ -252,15 +283,12 @@ Deno.serve(async (req) => {
       vehicle.total_storage_cents !== storageTotal ||
       vehicle.total_fees_cents !== totalCents
     ) {
-      await supabase
-        .from("impound_vehicles")
-        .update({
-          days_stored: daysStored,
-          total_storage_cents: storageTotal,
-          total_fees_cents: totalCents,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", vehicle_id);
+      await updateVehicleFees(SUPABASE_URL, SUPABASE_KEY, vehicle_id, {
+        days_stored: daysStored,
+        total_storage_cents: storageTotal,
+        total_fees_cents: totalCents,
+        updated_at: new Date().toISOString(),
+      });
     }
 
     // Get release requirements
@@ -302,10 +330,8 @@ Deno.serve(async (req) => {
     // Build speakable message
     const messageParts: string[] = [];
 
-    // Total amount
     messageParts.push(`The total to release your vehicle is ${formatCurrencyForSpeech(totalCents)}.`);
 
-    // Fee breakdown
     const breakdownParts: string[] = [];
     breakdownParts.push(`the ${formatCurrencyForSpeech(baseTow)} tow fee`);
     if (daysStored > 0) {
@@ -316,7 +342,6 @@ Deno.serve(async (req) => {
     }
     messageParts.push(`That includes ${breakdownParts.join(" plus ")}.`);
 
-    // Requirements
     const reqDescriptions = requirements
       .filter((r: { item: string }) => r.item !== "payment")
       .map((r: { description: string }) => r.description.toLowerCase().replace("valid ", ""));
@@ -324,11 +349,9 @@ Deno.serve(async (req) => {
       messageParts.push(`You'll need to bring ${reqDescriptions.join(" and ")}.`);
     }
 
-    // Payment methods
     const paymentLabels = paymentMethods.map((m: string) => PAYMENT_METHOD_LABELS[m] || m).join(" or ");
     messageParts.push(`We accept ${paymentLabels.toLowerCase()}.`);
 
-    // Lot hours and location
     if (isOpen) {
       const closeTime = todayHours?.close ? formatTime(todayHours.close) : "close";
       messageParts.push(`The lot is open today until ${closeTime}`);

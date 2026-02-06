@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// v2.0.0 - Lightweight fetch-based implementation to avoid cold-start timeouts
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,6 +33,85 @@ interface LotResult {
   name: string;
   address: string;
   phone: string | null;
+}
+
+// Inline Supabase query helper (avoids esm.sh cold-start)
+async function querySupabase(
+  url: string,
+  key: string,
+  table: string,
+  query: Record<string, string>,
+  extraParams?: string
+): Promise<any[]> {
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(query)) {
+    params.append(k, `eq.${v}`);
+  }
+  if (extraParams) {
+    params.append("select", extraParams);
+  }
+
+  const response = await fetch(`${url}/rest/v1/${table}?${params.toString()}`, {
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    console.error(`[querySupabase] ${table} query failed:`, response.status);
+    return [];
+  }
+
+  return await response.json();
+}
+
+// Lookup tenant by name using ilike
+async function resolveTenantByName(url: string, key: string, name: string): Promise<string | null> {
+  const response = await fetch(
+    `${url}/rest/v1/tenants?name=ilike.*${encodeURIComponent(name)}*&select=id&limit=1`,
+    {
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) return null;
+  const data = await response.json();
+  return data?.[0]?.id || null;
+}
+
+// Fetch impound vehicles with embedded lot info
+async function fetchImpoundVehicles(
+  url: string,
+  key: string,
+  tenantId: string,
+  towedDate?: string
+): Promise<any[]> {
+  let queryUrl = `${url}/rest/v1/impound_vehicles?tenant_id=eq.${tenantId}&status=in.(in_lot,pending_release)&select=*,impound_lots(id,name,address,city,state,zip,phone)`;
+
+  if (towedDate) {
+    queryUrl += `&towed_at=gte.${towedDate}T00:00:00Z&towed_at=lte.${towedDate}T23:59:59Z`;
+  }
+
+  const response = await fetch(queryUrl, {
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    console.error(`[fetchImpoundVehicles] query failed:`, response.status);
+    return [];
+  }
+
+  return await response.json();
 }
 
 // Normalize license plate: remove spaces, dashes, convert to uppercase
@@ -106,6 +185,9 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
   try {
     const body: CheckImpoundRequest = await req.json();
     const { tenant_id, license_plate, license_plate_state, vin, vehicle_description, towed_date } = body;
@@ -134,28 +216,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
     // Resolve tenant_id - it could be a UUID or a business name
     let resolvedTenantId = tenant_id;
-    
-    // Check if tenant_id is a valid UUID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
     if (!uuidRegex.test(tenant_id)) {
-      // Not a UUID - try to look up by business name
       console.log(`[check-impound] tenant_id "${tenant_id}" is not UUID, looking up by name`);
-      const { data: tenant, error: tenantError } = await supabase
-        .from("tenants")
-        .select("id")
-        .ilike("name", `%${tenant_id}%`)
-        .limit(1)
-        .maybeSingle();
+      const resolved = await resolveTenantByName(SUPABASE_URL, SUPABASE_KEY, tenant_id);
       
-      if (tenantError || !tenant) {
-        console.error("[check-impound] Could not resolve tenant by name:", tenantError);
+      if (!resolved) {
+        console.error("[check-impound] Could not resolve tenant by name");
         return new Response(
           JSON.stringify({
             found: false,
@@ -166,58 +236,12 @@ Deno.serve(async (req) => {
         );
       }
       
-      resolvedTenantId = tenant.id;
+      resolvedTenantId = resolved;
       console.log(`[check-impound] Resolved "${tenant_id}" to tenant ${resolvedTenantId}`);
     }
 
-    // Build query
-    let query = supabase
-      .from("impound_vehicles")
-      .select(`
-        id,
-        license_plate,
-        license_plate_state,
-        vehicle_year,
-        vehicle_make,
-        vehicle_model,
-        vehicle_color,
-        towed_from_address,
-        towed_at,
-        status,
-        lot_id,
-        impound_lots (
-          id,
-          name,
-          address,
-          city,
-          state,
-          zip,
-          phone
-        )
-      `)
-      .eq("tenant_id", resolvedTenantId)
-      .in("status", ["in_lot", "pending_release"]);
-
-    // Add date filter if provided
-    if (towed_date) {
-      const startOfDay = `${towed_date}T00:00:00Z`;
-      const endOfDay = `${towed_date}T23:59:59Z`;
-      query = query.gte("towed_at", startOfDay).lte("towed_at", endOfDay);
-    }
-
-    const { data: vehicles, error: queryError } = await query;
-
-    if (queryError) {
-      console.error("[check-impound] Query error:", queryError);
-      return new Response(
-        JSON.stringify({
-          found: false,
-          error: queryError.message,
-          message: "I'm having trouble searching our system right now. Please hold while I connect you with someone who can help.",
-        }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Fetch vehicles
+    const vehicles = await fetchImpoundVehicles(SUPABASE_URL, SUPABASE_KEY, resolvedTenantId, towed_date);
 
     if (!vehicles || vehicles.length === 0) {
       return new Response(
@@ -399,7 +423,6 @@ Deno.serve(async (req) => {
     }));
 
     // Build clarification message
-    const descriptions = topResults.map((r) => buildVehicleDescription(r.vehicle));
     const uniqueColors = [...new Set(topResults.map((r) => r.vehicle.vehicle_color).filter(Boolean))];
 
     let message = `I found ${scoredResults.length} vehicle${scoredResults.length > 1 ? "s" : ""} that could be yours.`;
