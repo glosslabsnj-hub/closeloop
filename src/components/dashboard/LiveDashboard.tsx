@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { AgentControlPanel } from "./AgentControlPanel";
 import { MetricsGrid } from "./MetricsGrid";
 import { NeedsAttentionBanner } from "./NeedsAttentionBanner";
@@ -19,10 +20,14 @@ function getGreeting(): string {
 
 export function LiveDashboard() {
   const { tenant, assistantSettings } = useAuth();
+  const { businessMode } = useTenantConfig();
   const [copilotOpen, setCopilotOpen] = useState(false);
 
   const businessName = tenant?.name?.split(' ')[0] || "there";
   const greeting = getGreeting();
+  
+  // Lead Recovery is not relevant for dispatch businesses
+  const showLeadRecovery = businessMode !== "dispatch";
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -48,11 +53,15 @@ export function LiveDashboard() {
       {/* Agent Control - Most prominent element */}
       <AgentControlPanel />
 
-      {/* Performance Widgets */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      {/* Performance Widgets - Conditional layout based on business mode */}
+      {showLeadRecovery ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <ROIPerformanceWidget />
+          <LeadRecoveryWidget />
+        </div>
+      ) : (
         <ROIPerformanceWidget />
-        <LeadRecoveryWidget />
-      </div>
+      )}
 
       {/* Metrics */}
       <MetricsGrid />
