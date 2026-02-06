@@ -1,127 +1,327 @@
 
-# Distance Basis Configuration for Dispatch Businesses
+# Crew & Fleet Management with Driver Portal
 
 ## Overview
 
-You want dispatch businesses to be able to clearly configure how distance is measured for pricing - whether they charge based on the tow distance (pickup to dropoff), dispatch distance (base to pickup), or total trip. This configuration should be easy to understand and set at the business level as a default, with the option to override per-service.
+This plan implements a complete crew/driver management system for dispatch businesses with three key parts:
+
+1. **Fleet Management** - Central place to manage crews/drivers and vehicles in Business Brain
+2. **Smart Job Assignment** - Dropdowns in AssignJobDialog that pull from your fleet, with auto-linking between drivers and vehicles
+3. **Driver Portal** - Separate authenticated experience for drivers to view their jobs, update status, and log impound vehicles
 
 ---
 
 ## What Already Exists
 
-Good news: most of the infrastructure is already in place.
-
-1. **Per-Service Configuration**: The service editor already has a "Distance Measured From" dropdown with three options
-2. **Edge Function Logic**: The `check-service-area` function already reads this setting and calculates prices using the correct distance
-3. **Distance Calculation**: Both dispatch distance and tow distance are calculated in parallel for every call
-
----
-
-## What Needs to Change
-
-### 1. Remove the Legacy "Double-Count" Option
-
-The `apply_per_mile_buffer` flag in `compute-distance-eta` was causing inflated ETAs by adding per-mile time on top of Mapbox's route duration (which already accounts for distance). This should be removed entirely since:
-- It's confusing
-- It was never intentional behavior
-- It doesn't map to any real business need
-
-**Changes:**
-- Remove the `apply_per_mile_buffer` parameter from the request interface
-- Remove all conditional logic that uses it
-- Remove the `eta_per_mile_minutes` field from the ETA components debug output
+- **Onboarding Setup**: The `DispatchSetupEditor` already collects crews/vehicles as string arrays during onboarding, stored in tenant config
+- **Dispatch Jobs Table**: Has `assigned_crew` and `assigned_vehicle` as text fields (not linked to proper entities)
+- **User Roles**: Current roles are `owner`, `staff`, `super_admin` - no driver role yet
+- **Impound Lot**: Full impound vehicle management exists, but no driver-specific quick-add flow
 
 ---
 
-### 2. Add Tenant-Level Default Distance Basis
+## Database Changes
 
-Create a new setting in the Business Brain for dispatch businesses that sets the default distance measurement method. This will be stored in the `tenant_distance_settings` table.
+### 1. New Tables
 
-**New field:** `default_distance_basis` with options:
-- `tow_distance` - "Price based on tow distance (pickup to dropoff)" - Default for towing
-- `dispatch_distance` - "Price based on how far we travel to you"
-- `total_trip` - "Price based on entire round trip"
-- `flat` - "Distance doesn't affect pricing"
+**`fleet_drivers`** - Crew members/drivers who can be assigned jobs
+```text
+id              UUID PRIMARY KEY
+tenant_id       UUID → tenants.id
+user_id         UUID NULLABLE → auth.users.id (nullable until invited)
+full_name       TEXT NOT NULL
+phone_e164      TEXT
+email           TEXT
+license_number  TEXT
+license_expiry  DATE
+status          ENUM('active', 'inactive', 'on_break')
+default_vehicle_id  UUID NULLABLE → fleet_vehicles.id
+photo_url       TEXT
+created_at      TIMESTAMP
+updated_at      TIMESTAMP
+```
+
+**`fleet_vehicles`** - Vehicles in the fleet
+```text
+id              UUID PRIMARY KEY
+tenant_id       UUID → tenants.id
+name            TEXT NOT NULL (e.g., "Truck #1", "Flatbed-01")
+vehicle_type    TEXT (e.g., "flatbed", "wheel_lift", "heavy_duty")
+license_plate   TEXT
+vin             TEXT
+year            INTEGER
+make            TEXT
+model           TEXT
+status          ENUM('available', 'in_use', 'maintenance', 'retired')
+capacity_notes  TEXT
+photo_url       TEXT
+current_driver_id  UUID NULLABLE → fleet_drivers.id
+created_at      TIMESTAMP
+updated_at      TIMESTAMP
+```
+
+### 2. New User Role
+
+Add `driver` to the `user_role` enum:
+```sql
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'driver';
+```
+
+### 3. Update dispatch_jobs
+
+Add foreign key references (optional, for better data integrity):
+```sql
+ALTER TABLE dispatch_jobs 
+ADD COLUMN driver_id UUID REFERENCES fleet_drivers(id),
+ADD COLUMN vehicle_id UUID REFERENCES fleet_vehicles(id);
+```
+
+The existing `assigned_crew` and `assigned_vehicle` text fields will be kept for display purposes but the new ID fields will be the source of truth.
 
 ---
 
-### 3. New UI Section: "How You Charge for Distance"
+## Frontend Components
 
-Add a dedicated card in the Business Brain (under Dispatch Settings or as a new section) that clearly explains:
+### Part 1: Fleet Management in Business Brain
 
-**Visual Layout:**
+**New Section: "Your Fleet" under Policies tab** (for dispatch mode only)
+
 ```text
 +-----------------------------------------------+
-|  How You Charge for Distance                  |
+|  👥  Crew & Drivers                           |
 +-----------------------------------------------+
-|  Most towing businesses charge based on how   |
-|  far the vehicle needs to be towed.           |
+|  Add the people who can be assigned to jobs   |
 |                                               |
-|  [ ] Tow Distance (pickup → dropoff)          |
-|      "We charge based on how far we tow the   |
-|       vehicle to its destination"             |
+|  ┌───────────────────────────────────────┐    |
+|  │ 🧑 John D.        Active     Truck #1 │    |
+|  │    📧 john@example.com  📞 555-1234   │    |
+|  │    [Invite to Portal] [Edit] [Remove] │    |
+|  └───────────────────────────────────────┘    |
 |                                               |
-|  [ ] Dispatch Distance (our shop → pickup)    |
-|      "We charge based on how far we travel    |
-|       to reach you"                           |
-|                                               |
-|  [ ] Total Trip (shop → pickup → dropoff)     |
-|      "We charge for our entire round trip"    |
-|                                               |
-|  This becomes the default for new services.   |
-|  You can override this per-service.           |
+|  [+ Add Driver]                               |
 +-----------------------------------------------+
 ```
 
----
+```text
++-----------------------------------------------+
+|  🚚  Fleet Vehicles                           |
++-----------------------------------------------+
+|  Vehicles that can be dispatched              |
+|                                               |
+|  ┌───────────────────────────────────────┐    |
+|  │ 🚛 Truck #1       Available           │    |
+|  │    2022 Ford F-550 Flatbed            │    |
+|  │    Assigned: John D.                  │    |
+|  │    [Edit] [Mark Maintenance]          │    |
+|  └───────────────────────────────────────┘    |
+|                                               |
+|  [+ Add Vehicle]                              |
++-----------------------------------------------+
+```
 
-### 4. Per-Service Inheritance
+**New Files:**
+- `src/components/brain/dispatch/FleetDriversManager.tsx`
+- `src/components/brain/dispatch/FleetVehiclesManager.tsx`
+- `src/components/brain/dispatch/DriverEditorDialog.tsx`
+- `src/components/brain/dispatch/VehicleEditorDialog.tsx`
 
-Update the service editor to show when a service is using the tenant default vs. a custom override:
+### Part 2: Enhanced Job Assignment
 
-**Service Editor Changes:**
-- Add "Use Business Default" option that's pre-selected for new services
-- Show which distance basis the business default is set to
-- Allow explicit override per-service
-- Visual indicator when using default vs. custom
+**Update `AssignJobDialog.tsx`**
+
+Replace free-text inputs with Select dropdowns that:
+1. Fetch drivers from `fleet_drivers` where `status = 'active'`
+2. Fetch vehicles from `fleet_vehicles` where `status != 'retired'`
+3. When a driver is selected, auto-populate their default vehicle
+4. Allow dispatcher to override the vehicle if needed
+5. Show driver's current status (available/on job)
+
+```text
++-----------------------------------------------+
+|  Assign Job #DSP-240206-ABC1                  |
++-----------------------------------------------+
+|  Customer: John Smith                         |
+|  Pickup: 123 Main St, Springfield             |
++-----------------------------------------------+
+|                                               |
+|  Driver *                                     |
+|  ┌─────────────────────────────────────┐     |
+|  │ ▼ John D. (Truck #1)                │     |
+|  │   Mike S. (Van A)                   │     |
+|  │   Sarah T. (no default vehicle)     │     |
+|  └─────────────────────────────────────┘     |
+|                                               |
+|  Vehicle (auto-filled from driver)            |
+|  ┌─────────────────────────────────────┐     |
+|  │ ▼ Truck #1 - 2022 Ford F-550        │     |
+|  └─────────────────────────────────────┘     |
+|                                               |
+|  [Cancel]            [Assign & Dispatch]      |
++-----------------------------------------------+
+```
+
+### Part 3: Driver Portal
+
+**New Route: `/driver`**
+
+A completely separate, mobile-first experience for drivers.
+
+**New Layout: `DriverLayout.tsx`**
+- Simplified navigation (no access to Business Brain, settings, etc.)
+- Mobile-optimized bottom tab bar
+- Only shows driver-relevant actions
+
+**Driver Dashboard Features:**
+
+1. **My Jobs** - List of assigned jobs with status
+   - See job details (pickup, dropoff, customer info, notes)
+   - Update job status (en_route → on_site → completed)
+   - Call customer directly
+   - Get directions via maps app
+
+2. **Log Impound** - Quick-add form for impound vehicles
+   - Tablet/phone-friendly large inputs
+   - Camera capture for photos
+   - License plate, VIN, vehicle details
+   - Auto-link to dispatch job
+
+3. **My Vehicle** - Select which vehicle they're driving today
+   - Updates `fleet_vehicles.current_driver_id`
+   - Updates `fleet_drivers.default_vehicle_id`
+
+**New Files:**
+- `src/pages/driver/DriverDashboard.tsx`
+- `src/pages/driver/DriverJobsList.tsx`
+- `src/pages/driver/DriverJobDetail.tsx`
+- `src/pages/driver/DriverImpoundLog.tsx`
+- `src/pages/driver/DriverVehicleSelect.tsx`
+- `src/components/layouts/DriverLayout.tsx`
+
+**Driver Authentication Flow:**
+
+1. Owner invites driver from Fleet Management (enters email)
+2. System creates `fleet_drivers` record with email
+3. Sends invite email with signup link: `/driver/signup?token=xxx`
+4. Driver signs up, gets `driver` role in `user_roles`
+5. Driver logs in, sees `/driver` portal (not `/app`)
+6. AuthContext detects `driver` role and redirects appropriately
 
 ---
 
 ## Technical Implementation
 
-### Database Changes
-
-Add a new column to `tenant_distance_settings`:
+### Database Migration
 
 ```sql
-ALTER TABLE tenant_distance_settings 
-ADD COLUMN IF NOT EXISTS default_distance_basis TEXT 
-DEFAULT 'tow_distance' 
-CHECK (default_distance_basis IN ('tow_distance', 'dispatch_distance', 'total_trip', 'flat'));
+-- Add driver role
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'driver';
+
+-- Fleet drivers table
+CREATE TABLE fleet_drivers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id),
+  full_name TEXT NOT NULL,
+  phone_e164 TEXT,
+  email TEXT,
+  license_number TEXT,
+  license_expiry DATE,
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'on_break')),
+  default_vehicle_id UUID,
+  photo_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Fleet vehicles table
+CREATE TABLE fleet_vehicles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  vehicle_type TEXT,
+  license_plate TEXT,
+  vin TEXT,
+  year INTEGER,
+  make TEXT,
+  model TEXT,
+  status TEXT NOT NULL DEFAULT 'available' CHECK (status IN ('available', 'in_use', 'maintenance', 'retired')),
+  capacity_notes TEXT,
+  photo_url TEXT,
+  current_driver_id UUID REFERENCES fleet_drivers(id),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Add FK from drivers to vehicles (after vehicles exist)
+ALTER TABLE fleet_drivers 
+ADD CONSTRAINT fleet_drivers_default_vehicle_fkey 
+FOREIGN KEY (default_vehicle_id) REFERENCES fleet_vehicles(id);
+
+-- Update dispatch_jobs for proper linking
+ALTER TABLE dispatch_jobs 
+ADD COLUMN driver_id UUID REFERENCES fleet_drivers(id),
+ADD COLUMN vehicle_id UUID REFERENCES fleet_vehicles(id);
+
+-- RLS policies
+ALTER TABLE fleet_drivers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE fleet_vehicles ENABLE ROW LEVEL SECURITY;
+
+-- Owners/staff can manage fleet
+CREATE POLICY "Tenant users can view fleet_drivers" ON fleet_drivers
+  FOR SELECT USING (
+    tenant_id IN (SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid())
+  );
+
+CREATE POLICY "Tenant users can manage fleet_drivers" ON fleet_drivers
+  FOR ALL USING (
+    tenant_id IN (
+      SELECT tenant_id FROM tenant_users 
+      WHERE user_id = auth.uid() AND role IN ('owner', 'staff')
+    )
+  );
+
+-- Drivers can view their own record and their tenant's vehicles
+CREATE POLICY "Drivers can view own record" ON fleet_drivers
+  FOR SELECT USING (user_id = auth.uid());
+
+-- Similar policies for fleet_vehicles...
 ```
 
-### Edge Function Changes
+### Routing Updates
 
-**compute-distance-eta:**
-- Remove `apply_per_mile_buffer` parameter and all related logic
-- Remove `eta_per_mile_minutes` from the ETA components output
-- Simplify the code to: `ETA = response_base + busyness_buffer + drive_time`
+```typescript
+// App.tsx - Add driver routes
+<Route element={<DriverLayout />}>
+  <Route path="/driver" element={<DriverDashboard />} />
+  <Route path="/driver/jobs" element={<DriverJobsList />} />
+  <Route path="/driver/jobs/:id" element={<DriverJobDetail />} />
+  <Route path="/driver/impound" element={<DriverImpoundLog />} />
+  <Route path="/driver/vehicle" element={<DriverVehicleSelect />} />
+</Route>
+```
 
-**check-service-area:**
-- When resolving `distance_basis`, check service config first, then fall back to tenant default
-- Add logging to show which distance basis was used and why
+### AuthContext Updates
 
-### Frontend Changes
+Detect driver role and provide appropriate routing:
 
-**New Component: `DistanceBasisSettings.tsx`**
-- Radio button group with clear explanations
-- Located in Business Brain under a "Pricing & Distance" or "Dispatch Settings" section
-- Saves to `tenant_distance_settings.default_distance_basis`
+```typescript
+// In AuthContext
+const isDriver = userRole === 'driver';
 
-**Updated: `DispatchServiceEditor.tsx`**
-- Add "Use Business Default" option to the distance basis dropdown
-- Show the current default in the dropdown description
-- Inherit from tenant default when creating new services
+// In DriverLayout or ProtectedRoute
+if (isDriver && !pathname.startsWith('/driver')) {
+  return <Navigate to="/driver" />;
+}
+```
+
+---
+
+## Hooks & Queries
+
+**New Hooks:**
+- `useFleetDrivers()` - Fetch all drivers for the tenant
+- `useFleetVehicles()` - Fetch all vehicles for the tenant
+- `useDriverJobs()` - Fetch jobs assigned to current driver
 
 ---
 
@@ -129,25 +329,41 @@ CHECK (default_distance_basis IN ('tow_distance', 'dispatch_distance', 'total_tr
 
 | File | Change |
 |------|--------|
-| `supabase/functions/compute-distance-eta/index.ts` | Remove `apply_per_mile_buffer` logic |
-| `supabase/functions/elevenlabs-check-service-area/index.ts` | Add tenant default fallback |
-| `src/components/brain/dispatch/DistanceBasisSettings.tsx` | New component |
-| `src/components/brain/dispatch/DispatchServiceEditor.tsx` | Add "use default" option |
-| `src/hooks/useTenantDistanceSettings.ts` | Add `default_distance_basis` field |
-| `src/pages/app/BusinessBrainPage.tsx` | Add new section |
-| Database migration | Add column to `tenant_distance_settings` |
+| Database migration | Create fleet_drivers, fleet_vehicles tables; add driver role |
+| `src/App.tsx` | Add /driver routes with DriverLayout |
+| `src/components/layouts/DriverLayout.tsx` | New driver-specific layout |
+| `src/pages/driver/DriverDashboard.tsx` | Driver home with job summary |
+| `src/pages/driver/DriverJobsList.tsx` | List of assigned jobs |
+| `src/pages/driver/DriverJobDetail.tsx` | Full job details + status updates |
+| `src/pages/driver/DriverImpoundLog.tsx` | Quick impound vehicle entry |
+| `src/pages/driver/DriverVehicleSelect.tsx` | Select current vehicle |
+| `src/components/brain/dispatch/FleetDriversManager.tsx` | Manage drivers in Brain |
+| `src/components/brain/dispatch/FleetVehiclesManager.tsx` | Manage vehicles in Brain |
+| `src/components/brain/dispatch/DriverEditorDialog.tsx` | Add/edit driver dialog |
+| `src/components/brain/dispatch/VehicleEditorDialog.tsx` | Add/edit vehicle dialog |
+| `src/components/dispatch/AssignJobDialog.tsx` | Replace inputs with dropdowns |
+| `src/hooks/useFleetDrivers.ts` | Fleet drivers query hook |
+| `src/hooks/useFleetVehicles.ts` | Fleet vehicles query hook |
+| `src/hooks/useDriverJobs.ts` | Driver's assigned jobs hook |
+| `src/contexts/AuthContext.tsx` | Add isDriver detection |
+| `src/pages/app/BusinessBrainPage.tsx` | Add Fleet section for dispatch mode |
 
 ---
 
-## User Experience Flow
+## Implementation Order
 
-1. **During Onboarding**: Ask "How do you typically charge for distance?" with clear examples
-2. **In Business Brain**: Dedicated "Distance & Pricing" card shows current setting
-3. **Per Service**: Shows "Using business default (Tow Distance)" or allows override
-4. **During Calls**: AI uses the correct distance for pricing quotes
+1. **Database First** - Create tables, add role, set up RLS
+2. **Fleet Management UI** - Build the Brain section for drivers/vehicles
+3. **Enhanced Assignment** - Update AssignJobDialog with dropdowns
+4. **Driver Portal** - Build the separate driver experience
+5. **Driver Invite Flow** - Email invites + signup
 
 ---
 
 ## Summary
 
-This plan removes the confusing legacy double-counting logic and adds a clear, business-owner-friendly way to configure how distance affects pricing. The setting lives at the tenant level as a default (so you don't have to configure every service) but can be overridden per-service for businesses with mixed pricing models.
+This plan creates a proper fleet management system where:
+- Business owners can add/manage drivers and vehicles in one organized place
+- Dispatchers assign jobs with intelligent dropdowns that auto-link driver + vehicle
+- Drivers get their own portal to see jobs, update status, and log impound vehicles
+- Everything is properly authenticated with RLS protecting data
