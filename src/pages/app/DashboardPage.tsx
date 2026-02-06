@@ -9,7 +9,7 @@ import { CreditCard, LayoutDashboard } from "lucide-react";
 import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
 
 export default function DashboardPage() {
-  const { tenant, subscription, assistantSettings, refreshTenant } = useAuth();
+  const { tenant, subscription, assistantSettings, refreshTenant, isSuperAdmin, hasActiveSubscription } = useAuth();
   const { canGoLive, p0Flags, loading: readinessLoading } = useAIReadinessV2();
 
   const setupComplete =
@@ -18,8 +18,9 @@ export default function DashboardPage() {
 
   const isActuallyLive = setupComplete && canGoLive && p0Flags.length === 0;
 
-  // No subscription - show welcome
-  if (!subscription) {
+  // Super admins always bypass subscription gating - don't show "Choose Plan" screen
+  // Only show for non-admins without an active subscription
+  if (!hasActiveSubscription && !isSuperAdmin) {
     return (
       <div className="flex items-center justify-center min-h-[70vh] p-8">
         <div className="text-center space-y-5 max-w-sm">
