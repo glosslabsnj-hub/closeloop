@@ -12,6 +12,7 @@ import { UnifiedAlertBanner } from "./UnifiedAlertBanner";
 import { SetupProgressChecklist } from "./SetupProgressChecklist";
 import { Copilot, CopilotTrigger } from "./Copilot";
 import { SoundManager } from "@/components/notifications/SoundManager";
+import { PageTransition } from "@/components/ui/page-transition";
 import { format } from "date-fns";
 import { useState } from "react";
 import { CalendarDays } from "lucide-react";
@@ -35,7 +36,7 @@ export function LiveDashboard() {
   const showSchedule = hasBooking && !showActiveWork;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <PageTransition className="space-y-6">
       {/* Audio notification manager */}
       <SoundManager />
 
@@ -102,6 +103,6 @@ export function LiveDashboard() {
           <CopilotTrigger onClick={() => setCopilotOpen(true)} />
         )}
       </div>
-    </div>
+    </PageTransition>
   );
 }
