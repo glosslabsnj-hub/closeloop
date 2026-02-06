@@ -4,16 +4,21 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { useNavigate, Link } from "react-router-dom";
 import { hasVoiceFeature, hasSmsFeature } from "@/config/pricing";
+import { useQuery } from "@tanstack/react-query";
+import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
 import {
   Phone,
-  MessageSquare,
   Settings2,
   FlaskConical,
   Brain,
   Copy,
   Check,
+  AlertCircle,
+  Shield,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -24,28 +29,83 @@ import { AgentOffBehaviorModal } from "./AgentOffBehaviorModal";
  * Premium workspace aesthetic with calm, confident design
  */
 export function AgentControlPanel() {
-  const { tenant, assistantSettings, refreshTenant, subscription } = useAuth();
+  const { tenant, assistantSettings, refreshTenant, subscription, isSuperAdmin } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { score: readinessScore, canGoLive } = useAIReadinessV2();
 
   const planCode = subscription?.plan_code;
   const hasVoice = hasVoiceFeature(planCode);
   const hasSms = hasSmsFeature(planCode);
 
+  // Fetch phone number from phone_numbers table as fallback
+  // For super admins, also check for admin test lines
+  const { data: phoneNumberData } = useQuery({
+    queryKey: ["tenant-phone-number", tenant?.id, isSuperAdmin],
+    queryFn: async () => {
+      if (!tenant?.id) return null;
+      
+      // First, try to find a phone number for this tenant
+      const { data: tenantPhone } = await supabase
+        .from("phone_numbers")
+        .select("phone_e164")
+        .eq("tenant_id", tenant.id)
+        .limit(1)
+        .maybeSingle();
+      
+      if (tenantPhone?.phone_e164) return tenantPhone.phone_e164;
+      
+      // For super admins, also look for admin test lines
+      if (isSuperAdmin) {
+        const { data: adminLine } = await supabase
+          .from("phone_numbers")
+          .select("phone_e164")
+          .eq("is_admin_test_line", true)
+          .limit(1)
+          .maybeSingle();
+        
+        if (adminLine?.phone_e164) return adminLine.phone_e164;
+      }
+      
+      return null;
+    },
+    enabled: !!tenant?.id,
+  });
+
   const voiceEnabled = assistantSettings?.voice_ai_enabled && assistantSettings?.go_live_enabled;
   const smsEnabled = assistantSettings?.instant_text_enabled || false;
   
-  // Check both forwarding_phone_e164 (real Twilio number) and closeloop_number (legacy)
-  const closeloopNumber = (assistantSettings as any)?.forwarding_phone_e164 || assistantSettings?.closeloop_number;
+  // Check multiple sources for phone number
+  const closeloopNumber = 
+    (assistantSettings as any)?.forwarding_phone_e164 || 
+    assistantSettings?.closeloop_number ||
+    phoneNumberData;
   
-  // Only show as "Active" if phone is actually connected
-  const isActive = (voiceEnabled || smsEnabled) && !!closeloopNumber;
+  const hasPhoneConnected = !!closeloopNumber;
+  
+  // Show as "Active" if enabled AND has phone
+  const isActive = (voiceEnabled || smsEnabled) && hasPhoneConnected;
+  
+  // Super admins can always toggle; regular users need readiness threshold
+  const canToggleOn = isSuperAdmin || canGoLive;
+  const readinessPercent = readinessScore || 0;
 
   const [offBehaviorModalOpen, setOffBehaviorModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [toggling, setToggling] = useState(false);
 
   const handleToggle = async (enabled: boolean) => {
     if (!tenant) return;
+
+    // If trying to enable and not a super admin, check readiness
+    if (enabled && !isSuperAdmin && !canGoLive) {
+      toast({
+        variant: "destructive",
+        title: "Cannot Go Live Yet",
+        description: `AI Readiness must be at least 85%. Currently at ${readinessPercent}%.`,
+      });
+      return;
+    }
 
     // If turning OFF with voice, check off_behavior is configured
     if (!enabled && hasVoice) {
@@ -58,6 +118,7 @@ export function AgentControlPanel() {
       }
     }
 
+    setToggling(true);
     try {
       const updates: Record<string, any> = { updated_at: new Date().toISOString() };
 
@@ -85,6 +146,8 @@ export function AgentControlPanel() {
       });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Update Failed", description: error.message });
+    } finally {
+      setToggling(false);
     }
   };
 
@@ -137,11 +200,19 @@ export function AgentControlPanel() {
               
               {/* Status Text */}
               <div className="min-w-0">
-                <p className="font-medium">
-                  {isActive ? "AI Receptionist Active" : "AI Receptionist Paused"}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium">
+                    {isActive ? "AI Receptionist Active" : "AI Receptionist Paused"}
+                  </p>
+                  {isSuperAdmin && (
+                    <Badge variant="outline" className="gap-1 text-xs">
+                      <Shield className="h-3 w-3" />
+                      Admin
+                    </Badge>
+                  )}
+                </div>
                 <p className="text-sm text-muted-foreground">
-                  {closeloopNumber 
+                  {hasPhoneConnected 
                     ? formatPhone(closeloopNumber) 
                     : "No phone number connected"}
                 </p>
@@ -152,11 +223,37 @@ export function AgentControlPanel() {
             <Switch
               checked={isActive}
               onCheckedChange={handleToggle}
+              disabled={toggling || (!hasPhoneConnected && !isActive)}
             />
           </div>
 
+          {/* Readiness indicator when not active and below threshold */}
+          {!isActive && !canGoLive && (
+            <div className="mt-4 pt-4 border-t border-border/50 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>AI Readiness</span>
+                </div>
+                <span className={cn(
+                  "font-medium",
+                  readinessPercent >= 85 ? "text-success" : "text-muted-foreground"
+                )}>
+                  {readinessPercent}% / 85%
+                </span>
+              </div>
+              <Progress value={readinessPercent} className="h-1.5" />
+              {isSuperAdmin && (
+                <p className="text-xs text-muted-foreground">
+                  <Shield className="h-3 w-3 inline mr-1" />
+                  Super admin: You can override readiness requirements
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Phone Number & Actions */}
-          {closeloopNumber && (
+          {hasPhoneConnected && (
             <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-2">
                 <span className="font-mono text-sm text-muted-foreground">
@@ -209,7 +306,7 @@ export function AgentControlPanel() {
           )}
 
           {/* Actions when no phone number */}
-          {!closeloopNumber && (
+          {!hasPhoneConnected && (
             <div className="mt-4 pt-4 border-t border-border/50 flex items-center gap-2">
               <Button
                 variant="secondary"
