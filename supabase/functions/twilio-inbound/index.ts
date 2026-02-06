@@ -50,49 +50,130 @@ function normalizeToE164(phone: string): string {
   return digits.length > 0 ? `+${digits}` : "";
 }
 
-// Inline Supabase client creation (avoid esm.sh import issues)
-async function querySupabase(url: string, key: string, table: string, query: Record<string, string>): Promise<any[]> {
+// Inline "safe-mode" helpers (avoid heavy imports + prevent hanging requests)
+function fetchWithTimeout(
+  input: string,
+  init: RequestInit,
+  timeoutMs: number
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  return fetch(input, {
+    ...init,
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timeoutId));
+}
+
+async function logTwilioEvent(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  data: {
+    tenant_id?: string | null;
+    twilio_call_sid: string;
+    to_number: string;
+    from_number: string;
+    stage: string;
+    http_status?: number | null;
+    error_message?: string | null;
+    raw_payload?: Record<string, unknown> | null;
+  }
+) {
+  try {
+    // Keep this fast: don't let logging block the call path.
+    await fetchWithTimeout(
+      `${supabaseUrl}/rest/v1/twilio_event_logs`,
+      {
+        method: "POST",
+        headers: {
+          apikey: serviceRoleKey,
+          Authorization: `Bearer ${serviceRoleKey}`,
+          "Content-Type": "application/json",
+          Prefer: "return=minimal",
+        },
+        body: JSON.stringify({
+          tenant_id: data.tenant_id ?? null,
+          twilio_call_sid: data.twilio_call_sid,
+          to_number: data.to_number,
+          from_number: data.from_number,
+          stage: data.stage,
+          http_status: data.http_status ?? null,
+          error_message: data.error_message ?? null,
+          raw_payload: data.raw_payload ?? null,
+        }),
+      },
+      1200
+    );
+  } catch {
+    // swallow
+  }
+}
+
+// Inline DB read (REST) with timeout
+async function querySupabase(
+  url: string,
+  key: string,
+  table: string,
+  query: Record<string, string>,
+  timeoutMs = 2500
+): Promise<any[]> {
   const params = new URLSearchParams();
   for (const [k, v] of Object.entries(query)) {
     params.append(k, `eq.${v}`);
   }
   params.append("limit", "1");
-  
-  const response = await fetch(`${url}/rest/v1/${table}?${params.toString()}`, {
-    headers: {
-      "apikey": key,
-      "Authorization": `Bearer ${key}`,
-      "Content-Type": "application/json",
+
+  const response = await fetchWithTimeout(
+    `${url}/rest/v1/${table}?${params.toString()}`,
+    {
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
     },
-  });
-  
+    timeoutMs
+  );
+
   if (!response.ok) {
     console.error(`[querySupabase] ${table} query failed:`, response.status);
     return [];
   }
-  
+
   return await response.json();
 }
 
-async function updateSupabase(url: string, key: string, table: string, match: Record<string, string>, data: Record<string, any>): Promise<boolean> {
+async function updateSupabase(
+  url: string,
+  key: string,
+  table: string,
+  match: Record<string, string>,
+  data: Record<string, any>,
+  timeoutMs = 2500
+): Promise<boolean> {
   const params = new URLSearchParams();
   for (const [k, v] of Object.entries(match)) {
     params.append(k, `eq.${v}`);
   }
-  
-  const response = await fetch(`${url}/rest/v1/${table}?${params.toString()}`, {
-    method: "PATCH",
-    headers: {
-      "apikey": key,
-      "Authorization": `Bearer ${key}`,
-      "Content-Type": "application/json",
-      "Prefer": "return=minimal",
+
+  const response = await fetchWithTimeout(
+    `${url}/rest/v1/${table}?${params.toString()}`,
+    {
+      method: "PATCH",
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify(data),
     },
-    body: JSON.stringify(data),
-  });
-  
+    timeoutMs
+  );
+
   return response.ok;
 }
+
 
 // Get agent ID based on business mode and IVR selection
 function getAgentIdForMode(mode: string, ivrSelection?: string): string | null {
@@ -159,13 +240,35 @@ Deno.serve(async (req) => {
     return twimlResponse(hangupTwiml("Our voice assistant is currently unavailable. Please try again later."));
   }
 
+  // Hard deadline to avoid Twilio timeouts ("application error")
+  const startedMs = Date.now();
+  const hardDeadlineMs = 9500;
+  const timeLeft = () => Math.max(800, hardDeadlineMs - (Date.now() - startedMs));
+
+  const callSidSafe = callSid || `missing_${Date.now()}`;
   const callerPhoneE164 = normalizeToE164(fromNumber);
+  const toPhoneE164 = normalizeToE164(toNumber) || toNumber;
+
+  void logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    tenant_id: null,
+    twilio_call_sid: callSidSafe,
+    to_number: toPhoneE164,
+    from_number: callerPhoneE164 || fromNumber,
+    stage: "request_received",
+    raw_payload: { has_digits: !!digits, digits: digits || null },
+  });
 
   try {
     // Step 1: Lookup phone number -> tenant
-    const phoneRecords = await querySupabase(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, "phone_numbers", {
-      phone_e164: toNumber,
-    });
+    const phoneRecords = await querySupabase(
+      SUPABASE_URL,
+      SUPABASE_SERVICE_ROLE_KEY,
+      "phone_numbers",
+      {
+        phone_e164: toPhoneE164,
+      },
+      Math.min(2500, timeLeft())
+    );
 
     if (!phoneRecords.length) {
       console.error(`[twilio-inbound] No tenant for number: ${toNumber}`);
@@ -262,10 +365,10 @@ Deno.serve(async (req) => {
       hipaa_mode: businessMode === "medical" ? "true" : "false",
     };
 
-    // Step 8: Register call with ElevenLabs
+    // Step 8: Register call with ElevenLabs (timeout to avoid Twilio hanging)
     console.log(`[twilio-inbound] Registering with agent ${agentId.slice(0, 12)}...`);
-    
-    const registerResponse = await fetch(
+
+    const registerResponse = await fetchWithTimeout(
       "https://api.elevenlabs.io/v1/convai/twilio/register-call",
       {
         method: "POST",
@@ -275,13 +378,14 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           agent_id: agentId,
-          from_number: fromNumber,
-          to_number: toNumber,
+          from_number: callerPhoneE164 || fromNumber,
+          to_number: toPhoneE164,
           conversation_initiation_client_data: {
             dynamic_variables: dynamicVariables,
           },
         }),
-      }
+      },
+      Math.min(7000, timeLeft())
     );
 
     if (!registerResponse.ok) {
@@ -310,23 +414,27 @@ Deno.serve(async (req) => {
     // Create ai_call_sessions record so webhook can find it later
     if (conversationId) {
       try {
-        const insertResponse = await fetch(`${SUPABASE_URL}/rest/v1/ai_call_sessions`, {
-          method: "POST",
-          headers: {
-            "apikey": SUPABASE_SERVICE_ROLE_KEY,
-            "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-            "Content-Type": "application/json",
-            "Prefer": "return=minimal",
+        const insertResponse = await fetchWithTimeout(
+          `${SUPABASE_URL}/rest/v1/ai_call_sessions`,
+          {
+            method: "POST",
+            headers: {
+              apikey: SUPABASE_SERVICE_ROLE_KEY,
+              Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              "Content-Type": "application/json",
+              Prefer: "return=minimal",
+            },
+            body: JSON.stringify({
+              tenant_id: tenantId,
+              elevenlabs_conversation_id: conversationId,
+              twilio_call_sid: callSidSafe,
+              caller_phone: callerPhoneE164,
+              call_direction: "inbound",
+              started_at: new Date().toISOString(),
+            }),
           },
-          body: JSON.stringify({
-            tenant_id: tenantId,
-            elevenlabs_conversation_id: conversationId,
-            twilio_call_sid: callSid,
-            caller_phone: callerPhoneE164,
-            call_direction: "inbound",
-            started_at: new Date().toISOString(),
-          }),
-        });
+          Math.min(2500, timeLeft())
+        );
         
         if (insertResponse.ok) {
           console.log(`[twilio-inbound] Created ai_call_sessions for ${conversationId}`);
