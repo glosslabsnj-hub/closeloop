@@ -145,11 +145,13 @@ export default function DispatchPage() {
     setAssignDialogOpen(true);
   };
 
-  const handleAssignSubmit = (jobId: string, crew: string, vehicle: string) => {
+  const handleAssignSubmit = (jobId: string, crew: string, vehicle: string, driverId?: string, vehicleId?: string) => {
     const updates: Record<string, unknown> = {
       status: "assigned",
       assigned_crew: crew || null,
       assigned_vehicle: vehicle || null,
+      driver_id: driverId || null,
+      vehicle_id: vehicleId || null,
       dispatched_at: new Date().toISOString(),
     };
     updateJobMutation.mutate({ jobId, updates });

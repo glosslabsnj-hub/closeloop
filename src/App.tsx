@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { PublicLayout } from "@/components/layouts/PublicLayout";
 import { AppLayout } from "@/components/layouts/AppLayout";
 import { AdminLayout } from "@/components/layouts/AdminLayout";
+import { DriverLayout } from "@/components/layouts/DriverLayout";
 
 // Public Pages
 import LandingPage from "@/pages/public/LandingPage";
@@ -57,6 +58,12 @@ import WorkflowEditPage from "@/pages/app/WorkflowEditPage";
 import WorkflowRunsPage from "@/pages/app/WorkflowRunsPage";
 import WorkflowRunDetailPage from "@/pages/app/WorkflowRunDetailPage";
 import LeadRecoveryPage from "@/pages/app/LeadRecoveryPage";
+
+// Driver Portal Pages
+import DriverDashboard from "@/pages/driver/DriverDashboard";
+import DriverJobDetail from "@/pages/driver/DriverJobDetail";
+import DriverImpoundLog from "@/pages/driver/DriverImpoundLog";
+import DriverVehicleSelect from "@/pages/driver/DriverVehicleSelect";
 
 import AdminOverviewPage from "@/pages/admin/AdminOverviewPage";
 import AdminTenantsPage from "@/pages/admin/AdminTenantsPage";
@@ -159,6 +166,14 @@ const App = () => (
               <Route path="/admin/golden-path" element={<AdminGoldenPathPage />} />
               <Route path="/admin/setup-requests" element={<AdminSetupRequestsPage />} />
               <Route path="/admin/audit-report" element={<AdminAuditReportPage />} />
+            </Route>
+
+            {/* Driver Portal Routes */}
+            <Route element={<DriverLayout />}>
+              <Route path="/driver" element={<DriverDashboard />} />
+              <Route path="/driver/jobs/:id" element={<DriverJobDetail />} />
+              <Route path="/driver/impound" element={<DriverImpoundLog />} />
+              <Route path="/driver/vehicle" element={<DriverVehicleSelect />} />
             </Route>
 
             {/* Debug Routes (dev/admin only) */}
