@@ -29,17 +29,10 @@ export function useReviewRequests() {
       return data;
     },
     onSuccess: (data) => {
-      toast({
-        title: "Review request sent",
-        description: data.message,
-      });
+      toast.success("Review request sent", data.message);
     },
     onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error("Failed to send review request", error.message);
     },
   });
 
