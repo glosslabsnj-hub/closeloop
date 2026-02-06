@@ -52,6 +52,7 @@ import {
   DispatchIvrSettings 
 } from "@/components/brain/dispatch/impound";
 import { DistanceBasisSettings } from "@/components/brain/dispatch/DistanceBasisSettings";
+import { FleetManagementSection } from "@/components/brain/dispatch/FleetManagementSection";
 
 // Hooks
 import { useTenantConfig } from "@/hooks/useTenantConfig";
@@ -72,7 +73,7 @@ import {
   FileText, Shield, MessageSquareText, Send, Truck, UtensilsCrossed, HeartPulse,
   Building2, Palette, Clock, DollarSign, Tag, MapPin, Navigation, Gauge,
   Calendar, Mic, BookOpen, Brain, HelpCircle, MessageCircle, Lightbulb, FileUp, AlertCircle,
-  Warehouse, Phone, FileCheck
+  Warehouse, Phone, FileCheck, Users
 } from "lucide-react";
 
 const VALID_SECTIONS = ["profile", "hours", "services", "service-area", "availability", "policies", "ai-behavior", "knowledge"] as const;
@@ -469,6 +470,17 @@ export default function BusinessBrainPage() {
                     preview="Documents needed to release vehicles"
                   >
                     <ImpoundReleaseEditor />
+                  </CollapsibleBrainSection>
+                )}
+
+                {showDispatchDelivery && (
+                  <CollapsibleBrainSection
+                    id="fleet"
+                    title="Your Fleet"
+                    icon={Users}
+                    preview="Manage drivers and vehicles"
+                  >
+                    <FleetManagementSection />
                   </CollapsibleBrainSection>
                 )}
 

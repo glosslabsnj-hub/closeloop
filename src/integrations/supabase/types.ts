@@ -1965,6 +1965,7 @@ export type Database = {
           customer_phone: string | null
           description: string | null
           dispatched_at: string | null
+          driver_id: string | null
           dropoff_address: string | null
           dropoff_lat: number | null
           dropoff_lng: number | null
@@ -1984,6 +1985,7 @@ export type Database = {
           status: Database["public"]["Enums"]["dispatch_status"]
           tenant_id: string
           updated_at: string
+          vehicle_id: string | null
         }
         Insert: {
           arrived_at?: string | null
@@ -1996,6 +1998,7 @@ export type Database = {
           customer_phone?: string | null
           description?: string | null
           dispatched_at?: string | null
+          driver_id?: string | null
           dropoff_address?: string | null
           dropoff_lat?: number | null
           dropoff_lng?: number | null
@@ -2015,6 +2018,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["dispatch_status"]
           tenant_id: string
           updated_at?: string
+          vehicle_id?: string | null
         }
         Update: {
           arrived_at?: string | null
@@ -2027,6 +2031,7 @@ export type Database = {
           customer_phone?: string | null
           description?: string | null
           dispatched_at?: string | null
+          driver_id?: string | null
           dropoff_address?: string | null
           dropoff_lat?: number | null
           dropoff_lng?: number | null
@@ -2046,6 +2051,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["dispatch_status"]
           tenant_id?: string
           updated_at?: string
+          vehicle_id?: string | null
         }
         Relationships: [
           {
@@ -2053,6 +2059,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispatch_jobs_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "fleet_drivers"
             referencedColumns: ["id"]
           },
           {
@@ -2067,6 +2080,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispatch_jobs_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "fleet_vehicles"
             referencedColumns: ["id"]
           },
         ]
@@ -2269,6 +2289,138 @@ export type Database = {
           },
           {
             foreignKeyName: "extracted_knowledge_suggestions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fleet_drivers: {
+        Row: {
+          created_at: string | null
+          default_vehicle_id: string | null
+          email: string | null
+          full_name: string
+          id: string
+          license_expiry: string | null
+          license_number: string | null
+          phone_e164: string | null
+          photo_url: string | null
+          status: string
+          tenant_id: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          default_vehicle_id?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          license_expiry?: string | null
+          license_number?: string | null
+          phone_e164?: string | null
+          photo_url?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          default_vehicle_id?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          license_expiry?: string | null
+          license_number?: string | null
+          phone_e164?: string | null
+          photo_url?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleet_drivers_default_vehicle_fkey"
+            columns: ["default_vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "fleet_vehicles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fleet_drivers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fleet_vehicles: {
+        Row: {
+          capacity_notes: string | null
+          created_at: string | null
+          current_driver_id: string | null
+          id: string
+          license_plate: string | null
+          make: string | null
+          model: string | null
+          name: string
+          photo_url: string | null
+          status: string
+          tenant_id: string
+          updated_at: string | null
+          vehicle_type: string | null
+          vin: string | null
+          year: number | null
+        }
+        Insert: {
+          capacity_notes?: string | null
+          created_at?: string | null
+          current_driver_id?: string | null
+          id?: string
+          license_plate?: string | null
+          make?: string | null
+          model?: string | null
+          name: string
+          photo_url?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string | null
+          vehicle_type?: string | null
+          vin?: string | null
+          year?: number | null
+        }
+        Update: {
+          capacity_notes?: string | null
+          created_at?: string | null
+          current_driver_id?: string | null
+          id?: string
+          license_plate?: string | null
+          make?: string | null
+          model?: string | null
+          name?: string
+          photo_url?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string | null
+          vehicle_type?: string | null
+          vin?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleet_vehicles_current_driver_id_fkey"
+            columns: ["current_driver_id"]
+            isOneToOne: false
+            referencedRelation: "fleet_drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fleet_vehicles_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2657,6 +2809,7 @@ export type Database = {
           id: string
           license_plate: string | null
           license_plate_state: string | null
+          logged_by_driver_id: string | null
           lot_id: string | null
           notes: string | null
           payment_method: string | null
@@ -2692,6 +2845,7 @@ export type Database = {
           id?: string
           license_plate?: string | null
           license_plate_state?: string | null
+          logged_by_driver_id?: string | null
           lot_id?: string | null
           notes?: string | null
           payment_method?: string | null
@@ -2727,6 +2881,7 @@ export type Database = {
           id?: string
           license_plate?: string | null
           license_plate_state?: string | null
+          logged_by_driver_id?: string | null
           lot_id?: string | null
           notes?: string | null
           payment_method?: string | null
@@ -2757,6 +2912,13 @@ export type Database = {
             columns: ["dispatch_job_id"]
             isOneToOne: false
             referencedRelation: "dispatch_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "impound_vehicles_logged_by_driver_id_fkey"
+            columns: ["logged_by_driver_id"]
+            isOneToOne: false
+            referencedRelation: "fleet_drivers"
             referencedColumns: ["id"]
           },
           {
@@ -7127,7 +7289,7 @@ export type Database = {
       subscription_status: "active" | "trialing" | "past_due" | "canceled"
       suggestion_status: "pending_review" | "approved" | "rejected" | "merged"
       suggestion_type: "service" | "faq" | "menu_item" | "policy" | "objection"
-      user_role: "owner" | "staff" | "super_admin"
+      user_role: "owner" | "staff" | "super_admin" | "driver"
       voice_mode: "always_on" | "busy_mode" | "overflow" | "after_hours_only"
       webhook_auth_mode: "none" | "header" | "basic"
       workflow_node_type:
@@ -7463,7 +7625,7 @@ export const Constants = {
       subscription_status: ["active", "trialing", "past_due", "canceled"],
       suggestion_status: ["pending_review", "approved", "rejected", "merged"],
       suggestion_type: ["service", "faq", "menu_item", "policy", "objection"],
-      user_role: ["owner", "staff", "super_admin"],
+      user_role: ["owner", "staff", "super_admin", "driver"],
       voice_mode: ["always_on", "busy_mode", "overflow", "after_hours_only"],
       webhook_auth_mode: ["none", "header", "basic"],
       workflow_node_type: [
