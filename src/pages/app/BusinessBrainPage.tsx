@@ -48,6 +48,7 @@ import { AIScriptsEditor } from "@/components/brain/AIScriptsEditor";
 import { BrainOverview } from "@/components/brain/BrainOverview";
 import { AIAssistantConfigEditor } from "@/components/brain/AIAssistantConfigEditor";
 import { ServicesConfigPage } from "@/components/brain/ServicesConfigPage";
+import { FAQsKnowledgePage } from "@/components/brain/FAQsKnowledgePage";
 import { 
   ImpoundLotEditor, 
   ImpoundFeesEditor, 
@@ -540,14 +541,8 @@ export default function BusinessBrainPage() {
                   </CollapsibleBrainSection>
                 )}
 
-                <CollapsibleBrainSection
-                  id="faqs"
-                  title="FAQs"
-                  icon={HelpCircle}
-                  preview={summaries.faqs}
-                >
-                  <BusinessFAQEditor />
-                </CollapsibleBrainSection>
+                {/* Use new comprehensive FAQs Knowledge Page */}
+                <FAQsKnowledgePage />
 
                 <CollapsibleBrainSection
                   id="objections"
