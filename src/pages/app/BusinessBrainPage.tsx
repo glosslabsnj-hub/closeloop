@@ -52,7 +52,7 @@ import {
   DispatchIvrSettings 
 } from "@/components/brain/dispatch/impound";
 import { DistanceBasisSettings } from "@/components/brain/dispatch/DistanceBasisSettings";
-import { FleetManagementSection } from "@/components/brain/dispatch/FleetManagementSection";
+// FleetManagementSection removed - fleet accessible via sidebar
 
 // Hooks
 import { useTenantConfig } from "@/hooks/useTenantConfig";
@@ -66,6 +66,7 @@ import {
   CollapsibleBrainSection,
   HIPAAWarning,
   SectionHelper,
+  SectionGroupHeader,
   BRAIN_CATEGORIES,
 } from "@/components/brain/layout";
 import { useBrainSummaries } from "@/hooks/useBrainSummaries";
@@ -73,10 +74,10 @@ import {
   FileText, Shield, MessageSquareText, Send, Truck, UtensilsCrossed, HeartPulse,
   Building2, Palette, Clock, DollarSign, Tag, MapPin, Navigation, Gauge,
   Calendar, Mic, BookOpen, Brain, HelpCircle, MessageCircle, Lightbulb, FileUp, AlertCircle,
-  Warehouse, Phone, FileCheck, Users
+  Warehouse, Phone, FileCheck, Briefcase, Package
 } from "lucide-react";
 
-const VALID_SECTIONS = ["profile", "hours", "services", "service-area", "availability", "policies", "ai-behavior", "knowledge", "fleet"] as const;
+const VALID_SECTIONS = ["profile", "hours", "services", "service-area", "availability", "policies", "ai-behavior", "knowledge"] as const;
 type SectionId = typeof VALID_SECTIONS[number];
 
 const LEGACY_SECTION_ALIASES: Record<string, SectionId> = {
@@ -353,10 +354,13 @@ export default function BusinessBrainPage() {
               </div>
             )}
 
-            {/* POLICIES - Compact accordion view */}
+            {/* POLICIES - Compact accordion view with visual groupings */}
             {activeSection === "policies" && (
               <div className="space-y-3">
                 <SectionHelper sectionId="policies" businessMode={businessMode} />
+                
+                {/* Core Policies Group */}
+                <SectionGroupHeader label="Core Policies" icon={Briefcase} />
                 
                 <CollapsibleBrainSection
                   id="policies"
@@ -407,6 +411,11 @@ export default function BusinessBrainPage() {
                   </CollapsibleBrainSection>
                 )}
 
+                {/* Dispatch Operations Group - only show for dispatch mode */}
+                {showDispatchDelivery && (
+                  <SectionGroupHeader label="Dispatch Operations" icon={Truck} />
+                )}
+
                 {showDispatchDelivery && (
                   <CollapsibleBrainSection
                     id="dispatch-settings"
@@ -438,6 +447,11 @@ export default function BusinessBrainPage() {
                   >
                     <DispatchIvrSettings />
                   </CollapsibleBrainSection>
+                )}
+
+                {/* Impound Lot Group - only show for dispatch mode */}
+                {showDispatchDelivery && (
+                  <SectionGroupHeader label="Impound Lot" icon={Warehouse} />
                 )}
 
                 {showDispatchDelivery && (
@@ -473,16 +487,6 @@ export default function BusinessBrainPage() {
                   </CollapsibleBrainSection>
                 )}
 
-                {showDispatchDelivery && (
-                  <CollapsibleBrainSection
-                    id="fleet"
-                    title="Your Fleet"
-                    icon={Users}
-                    preview="Manage drivers and vehicles"
-                  >
-                    <FleetManagementSection />
-                  </CollapsibleBrainSection>
-                )}
 
                 {showMedicalSettings && (
                   <CollapsibleBrainSection
@@ -586,25 +590,6 @@ export default function BusinessBrainPage() {
               </div>
             )}
 
-            {/* FLEET (dispatch only) */}
-            {activeSection === "fleet" && isDispatchMode && (
-              <div className="space-y-3">
-                <SectionHelper sectionId="fleet" businessMode={businessMode} />
-                
-                <div className="rounded-lg border bg-card p-5">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-muted">
-                      <Truck className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-sm">Fleet Management</h3>
-                      <p className="text-xs text-muted-foreground">Manage your crew members and vehicles</p>
-                    </div>
-                  </div>
-                  <FleetManagementSection />
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </main>

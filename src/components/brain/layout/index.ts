@@ -11,6 +11,7 @@ export { CollapsibleBrainSection } from "./CollapsibleBrainSection";
 export { SetupProgressBar } from "./SetupProgressBar";
 export { SummaryHeader } from "./SummaryHeader";
 export { SectionHelper } from "./SectionHelper";
+export { SectionGroupHeader } from "./SectionGroupHeader";
 export {
   BRAIN_CATEGORIES,
   getOrderedCategories,
