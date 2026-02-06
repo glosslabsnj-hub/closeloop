@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { AgentControlPanel } from "./AgentControlPanel";
+import { BusynessSliderWidget } from "./BusynessSliderWidget";
 import { MetricsGrid } from "./MetricsGrid";
 import { NeedsAttentionBanner } from "./NeedsAttentionBanner";
 import { LiveActivityFeed } from "./LiveActivityFeed";
@@ -52,6 +53,9 @@ export function LiveDashboard() {
 
       {/* Agent Control - Most prominent element */}
       <AgentControlPanel />
+
+      {/* Busyness Quick Adjust */}
+      <BusynessSliderWidget />
 
       {/* Performance Widgets - Conditional layout based on business mode */}
       {showLeadRecovery ? (
