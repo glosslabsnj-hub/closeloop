@@ -60,7 +60,7 @@ export interface AgentToolsConfig {
 
 // ============= BASE URL =============
 
-const BASE_URL = "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1";
+const BASE_URL = `${Deno.env.get("SUPABASE_URL")}/functions/v1`;
 
 // ============= SHARED TOOL DEFINITIONS =============
 

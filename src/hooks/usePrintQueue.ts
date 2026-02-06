@@ -44,7 +44,7 @@ export function usePrintQueue() {
       if (error) throw error;
       
       // Filter for orders with print_requested = true that haven't been marked as printed
-      const printQueue = (data || []).filter((order: any) => {
+      const printQueue = (data || []).filter((order) => {
         const state = order.handoff_state as PrintableOrder["handoff_state"];
         return state?.print_requested === true && !state?.print_completed;
       });
@@ -79,7 +79,7 @@ export function usePrintQueue() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["print-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["print-queue", tenant?.id] });
       toast({ title: "Order marked as printed" });
     },
     onError: (error) => {
@@ -111,7 +111,10 @@ export function usePrintQueue() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["print-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["print-queue", tenant?.id] });
+    },
+    onError: (error) => {
+      toast({ title: "Failed to dismiss print", description: String(error), variant: "destructive" });
     },
   });
 
