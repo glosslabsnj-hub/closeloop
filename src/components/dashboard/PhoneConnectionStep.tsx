@@ -255,11 +255,14 @@ export function PhoneConnectionStep({ onComplete, isComplete }: PhoneConnectionS
           className="space-y-4"
         >
           {/* Option 1: Get new number */}
-          <div className={`flex items-start space-x-4 p-4 rounded-lg border-2 transition-colors cursor-pointer ${
-            phoneMethod === "closeloop_number" 
-              ? "border-primary bg-primary/5" 
-              : "border-muted hover:border-primary/50"
-          }`}>
+          <div 
+            onClick={() => setPhoneMethod("closeloop_number")}
+            className={`flex items-start space-x-4 p-4 rounded-lg border-2 transition-colors cursor-pointer ${
+              phoneMethod === "closeloop_number" 
+                ? "border-primary bg-primary/5" 
+                : "border-muted hover:border-primary/50"
+            }`}
+          >
             <RadioGroupItem value="closeloop_number" id="new-number" className="mt-1" />
             <div className="flex-1">
               <Label htmlFor="new-number" className="font-medium cursor-pointer flex items-center gap-2">
@@ -273,11 +276,14 @@ export function PhoneConnectionStep({ onComplete, isComplete }: PhoneConnectionS
           </div>
 
           {/* Option 2: Use existing number */}
-          <div className={`flex items-start space-x-4 p-4 rounded-lg border-2 transition-colors cursor-pointer ${
-            phoneMethod === "forwarded" 
-              ? "border-primary bg-primary/5" 
-              : "border-muted hover:border-primary/50"
-          }`}>
+          <div 
+            onClick={() => setPhoneMethod("forwarded")}
+            className={`flex items-start space-x-4 p-4 rounded-lg border-2 transition-colors cursor-pointer ${
+              phoneMethod === "forwarded" 
+                ? "border-primary bg-primary/5" 
+                : "border-muted hover:border-primary/50"
+            }`}
+          >
             <RadioGroupItem value="forwarded" id="existing-number" className="mt-1" />
             <div className="flex-1">
               <Label htmlFor="existing-number" className="font-medium cursor-pointer flex items-center gap-2">
