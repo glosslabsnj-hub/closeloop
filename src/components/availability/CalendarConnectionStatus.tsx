@@ -11,7 +11,7 @@ import {
   Loader2,
   ExternalLink,
 } from "lucide-react";
-import { formatDistanceToNow, parseISO, differenceInHours } from "date-fns";
+import { formatDistanceToNow, parseISO } from "date-fns";
 import { useState } from "react";
 import { CalendarConnectionWizard } from "@/components/settings/CalendarConnectionWizard";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,15 +22,23 @@ function getSyncStatus(lastSyncAt: string | null) {
   if (!lastSyncAt) return { status: "never" as const, message: "Never synced", icon: "warning" };
 
   const syncDate = parseISO(lastSyncAt);
-  const hoursAgo = differenceInHours(new Date(), syncDate);
+  const minutesAgo = Math.max(0, Math.round((Date.now() - syncDate.getTime()) / (60 * 1000)));
 
-  if (hoursAgo < 1) {
+  if (minutesAgo <= 10) {
     return { status: "fresh" as const, message: "Up to date", icon: "success" };
-  } else if (hoursAgo < 6) {
-    return { status: "recent" as const, message: `Updated ${formatDistanceToNow(syncDate, { addSuffix: true })}`, icon: "clock" };
-  } else {
-    return { status: "stale" as const, message: `Last sync: ${formatDistanceToNow(syncDate, { addSuffix: true })}`, icon: "warning" };
+  } else if (minutesAgo <= 60) {
+    return {
+      status: "recent" as const,
+      message: `Updated ${formatDistanceToNow(syncDate, { addSuffix: true })}`,
+      icon: "clock",
+    };
   }
+
+  return {
+    status: "stale" as const,
+    message: `Last sync: ${formatDistanceToNow(syncDate, { addSuffix: true })}`,
+    icon: "warning",
+  };
 }
 
 export function CalendarConnectionStatus() {
@@ -188,11 +196,11 @@ export function CalendarConnectionStatus() {
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {isStale
-                    ? "Your calendar may be out of date. Click Sync Now to refresh."
-                    : "Your AI automatically sees your meetings and blocks those times."}
+                    ? "Your calendar looks out of date — sync now to refresh right away."
+                    : "Your schedule auto-syncs every ~5 minutes to prevent double bookings."}
                 </p>
                 <p className="text-xs text-muted-foreground/70">
-                  Syncs automatically when you receive bookings
+                  You can still hit Sync Now anytime for an instant refresh.
                 </p>
               </div>
             </div>

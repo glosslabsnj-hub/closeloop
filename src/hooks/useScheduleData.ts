@@ -1,7 +1,8 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfWeek, endOfWeek, format } from "date-fns";
 import { useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export interface ScheduleEvent {
   id: string;
@@ -19,7 +20,8 @@ export interface ScheduleEvent {
 }
 
 export function useScheduleData(weekStart: Date) {
-  const queryClient = useQueryClient();
+  const { tenant } = useAuth();
+
   const startDate = startOfWeek(weekStart, { weekStartsOn: 0 });
   const endDate = endOfWeek(weekStart, { weekStartsOn: 0 });
 
@@ -27,8 +29,10 @@ export function useScheduleData(weekStart: Date) {
   const endISO = format(endDate, "yyyy-MM-dd'T'23:59:59");
 
   const { data: bookings, isLoading: bookingsLoading, refetch: refetchBookings } = useQuery({
-    queryKey: ["schedule-bookings", startISO, endISO],
+    queryKey: ["schedule-bookings", tenant?.id, startISO, endISO],
     queryFn: async () => {
+      if (!tenant?.id) return [];
+
       const { data, error } = await supabase
         .from("bookings")
         .select(`
@@ -40,6 +44,7 @@ export function useScheduleData(weekStart: Date) {
           lead:leads(full_name),
           service:services(name)
         `)
+        .eq("tenant_id", tenant.id)
         .gte("start_at", startISO)
         .lte("start_at", endISO)
         .neq("status", "canceled");
@@ -47,14 +52,18 @@ export function useScheduleData(weekStart: Date) {
       if (error) throw error;
       return data || [];
     },
+    enabled: !!tenant?.id,
   });
 
   const { data: busyBlocks, isLoading: busyLoading, refetch: refetchBusyBlocks } = useQuery({
-    queryKey: ["schedule-busy-blocks", startISO, endISO],
+    queryKey: ["schedule-busy-blocks", tenant?.id, startISO, endISO],
     queryFn: async () => {
+      if (!tenant?.id) return [];
+
       const { data, error } = await supabase
         .from("busy_blocks")
         .select("*")
+        .eq("tenant_id", tenant.id)
         .gte("start_at", startISO)
         .lte("start_at", endISO)
         .eq("is_active", true);
@@ -62,25 +71,26 @@ export function useScheduleData(weekStart: Date) {
       if (error) throw error;
       return data || [];
     },
+    enabled: !!tenant?.id,
   });
 
   // Realtime subscription for instant calendar updates
   useEffect(() => {
+    if (!tenant?.id) return;
+
     const channel = supabase
-      .channel('schedule-realtime')
+      .channel(`schedule-realtime-${tenant.id}`)
       .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'bookings' },
+        "postgres_changes",
+        { event: "*", schema: "public", table: "bookings", filter: `tenant_id=eq.${tenant.id}` },
         () => {
-          // Refetch bookings when any change occurs
           refetchBookings();
         }
       )
       .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'busy_blocks' },
+        "postgres_changes",
+        { event: "*", schema: "public", table: "busy_blocks", filter: `tenant_id=eq.${tenant.id}` },
         () => {
-          // Refetch busy blocks when any change occurs
           refetchBusyBlocks();
         }
       )
@@ -89,7 +99,7 @@ export function useScheduleData(weekStart: Date) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [refetchBookings, refetchBusyBlocks]);
+  }, [tenant?.id, refetchBookings, refetchBusyBlocks]);
 
   const events: ScheduleEvent[] = [];
 
