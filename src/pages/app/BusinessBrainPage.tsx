@@ -46,6 +46,7 @@ import { BusinessHoursManager } from "@/components/brain/BusinessHoursManager";
 import { AINeverPromiseEditor } from "@/components/brain/AINeverPromiseEditor";
 import { AIScriptsEditor } from "@/components/brain/AIScriptsEditor";
 import { BrainOverview } from "@/components/brain/BrainOverview";
+import { AIAssistantConfigEditor } from "@/components/brain/AIAssistantConfigEditor";
 import { 
   ImpoundLotEditor, 
   ImpoundFeesEditor, 
@@ -483,14 +484,8 @@ export default function BusinessBrainPage() {
               <div className="space-y-3">
                 <SectionHelper sectionId="ai-behavior" businessMode={businessMode} />
                 
-                <CollapsibleBrainSection
-                  id="scripts"
-                  title="Greeting & Scripts"
-                  icon={Mic}
-                  preview={summaries.scripts}
-                >
-                  <AIScriptsEditor />
-                </CollapsibleBrainSection>
+                {/* New AI Assistant Config Editor with tabs */}
+                <AIAssistantConfigEditor />
 
                 <CollapsibleBrainSection
                   id="guidelines"
