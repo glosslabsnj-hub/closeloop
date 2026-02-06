@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tenant, TenantUser, UserRoleType, Subscription, AssistantSettings } from "@/types/database";
@@ -150,36 +150,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
 
-      // Update local state
-      setAdminSettings({ admin_active_tenant_id: tenantId });
+      // Update local state immediately
+      setAdminSettings(prev => ({ ...prev, admin_active_tenant_id: tenantId }));
 
-      // Fetch the selected tenant's data
-      const { data: tenantData } = await supabase
-        .from("tenants")
-        .select("*")
-        .eq("id", tenantId)
-        .single();
+      // Fetch tenant, subscription, and assistant settings in parallel
+      const [tenantRes, subRes, settingsRes] = await Promise.all([
+        supabase.from("tenants").select("*").eq("id", tenantId).single(),
+        supabase.from("subscriptions").select("*").eq("tenant_id", tenantId).maybeSingle(),
+        supabase.from("assistant_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
+      ]);
 
-      if (tenantData) {
-        setActiveTenant(tenantData as Tenant);
-
-        // Also fetch subscription + assistant settings for the new tenant
-        const { data: subData } = await supabase
-          .from("subscriptions")
-          .select("*")
-          .eq("tenant_id", tenantId)
-          .maybeSingle();
-        setSubscription(subData);
-
-        const { data: settingsData } = await supabase
-          .from("assistant_settings")
-          .select("*")
-          .eq("tenant_id", tenantId)
-          .maybeSingle();
-        setAssistantSettings(settingsData);
-
-        toast.success(`Switched to ${tenantData.name}`);
+      if (tenantRes.data) {
+        setActiveTenant(tenantRes.data as Tenant);
+        toast.success(`Switched to ${tenantRes.data.name}`);
       }
+
+      // Always update subscription and settings state (even if null)
+      setSubscription(subRes.data);
+      setAssistantSettings(settingsRes.data);
+
+      console.log("[AuthContext] Tenant switch complete:", {
+        tenantId,
+        subscription: subRes.data?.status,
+        hasSettings: !!settingsRes.data,
+      });
     } catch (error: any) {
       console.error("Failed to set active tenant:", error);
       toast.error("Failed to switch tenant");
@@ -342,8 +336,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   };
 
-  // Super admins always bypass subscription gating (eliminates race conditions during init)
-  const hasActiveSubscription = isSuperAdmin || subscription?.status === "active" || subscription?.status === "trialing";
+  // Super admins ALWAYS bypass subscription gating - this is critical for admin testing
+  // Check isSuperAdmin first to prevent any race conditions during initialization
+  const hasActiveSubscription = React.useMemo(() => {
+    if (isSuperAdmin) return true;
+    return subscription?.status === "active" || subscription?.status === "trialing";
+  }, [isSuperAdmin, subscription?.status]);
 
   // For super admins, expose the *effective* tenant as `tenant` so the whole app updates
   // when switching the active test tenant.
