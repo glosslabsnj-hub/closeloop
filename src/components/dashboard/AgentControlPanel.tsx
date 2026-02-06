@@ -160,8 +160,8 @@ export function AgentControlPanel() {
     }
   };
 
-  // No subscription yet
-  if (!planCode) {
+  // No subscription yet - super admins bypass this check
+  if (!planCode && !isSuperAdmin) {
     return (
       <Card className="border-dashed border-2">
         <CardContent className="flex flex-col items-center justify-center py-12 text-center">
