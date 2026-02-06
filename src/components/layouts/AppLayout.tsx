@@ -278,9 +278,6 @@ function AppLayoutContent() {
               )}
             </div>
 
-            {/* Admin Mode Banner - Minimal indicator only */}
-            <AdminModeSwitcher />
-
           {/* Search - Cmd+K style teaser */}
           <div className={cn("p-2", sidebarExpanded ? "px-3" : "")}>
             <button
