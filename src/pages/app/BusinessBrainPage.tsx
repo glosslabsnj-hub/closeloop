@@ -45,6 +45,7 @@ import { IntelligenceSettingsForm } from "@/components/settings/IntelligenceSett
 import { BusinessHoursManager } from "@/components/brain/BusinessHoursManager";
 import { AINeverPromiseEditor } from "@/components/brain/AINeverPromiseEditor";
 import { AIScriptsEditor } from "@/components/brain/AIScriptsEditor";
+import { BrainOverview } from "@/components/brain/BrainOverview";
 import { 
   ImpoundLotEditor, 
   ImpoundFeesEditor, 
@@ -74,7 +75,7 @@ import {
   Warehouse, Phone, FileCheck
 } from "lucide-react";
 
-const VALID_SECTIONS = ["profile", "hours", "services", "service-area", "availability", "policies", "ai-behavior", "knowledge"] as const;
+const VALID_SECTIONS = ["overview", "profile", "hours", "services", "service-area", "availability", "policies", "ai-behavior", "knowledge"] as const;
 type SectionId = typeof VALID_SECTIONS[number];
 
 const LEGACY_SECTION_ALIASES: Record<string, SectionId> = {
@@ -87,7 +88,6 @@ const LEGACY_TAB_TO_SECTION: Record<string, { section: SectionId; hash?: string 
   updates: { section: "knowledge", hash: "review" },
   assets: { section: "knowledge", hash: "documents" },
   uploads: { section: "knowledge", hash: "documents" },
-  overview: { section: "profile" },
   memory: { section: "ai-behavior", hash: "intelligence" },
 };
 
@@ -114,7 +114,7 @@ export default function BusinessBrainPage() {
       const mapped = LEGACY_TAB_TO_SECTION[legacyTab];
       return { activeSection: mapped.section, focusHash: mapped.hash ?? null };
     }
-    return { activeSection: "profile" as SectionId, focusHash: null as string | null };
+    return { activeSection: "overview" as SectionId, focusHash: null as string | null };
   }, [legacyTab, normalizedSectionParam]);
 
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -212,6 +212,11 @@ export default function BusinessBrainPage() {
 
           {/* SECTION CONTENT */}
           <div className="space-y-4">
+            
+            {/* OVERVIEW */}
+            {activeSection === "overview" && (
+              <BrainOverview />
+            )}
             
             {/* PROFILE */}
             {activeSection === "profile" && (
