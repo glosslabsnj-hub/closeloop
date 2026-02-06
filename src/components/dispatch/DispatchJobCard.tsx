@@ -103,12 +103,11 @@
  
          {/* Actions */}
          <div className="flex gap-2 pt-3 border-t">
-           {job.status === "pending" && (
-             <Button size="sm" className="flex-1" onClick={() => onAssign?.(job)}>
-               Assign
-               Assign
-             </Button>
-           )}
+          {job.status === "pending" && (
+              <Button size="sm" className="flex-1" onClick={() => onAssign?.(job)}>
+                Assign
+              </Button>
+            )}
            {job.status === "assigned" && (
              <Button
                size="sm"
