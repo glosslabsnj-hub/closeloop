@@ -202,18 +202,82 @@ serve(async (req: Request) => {
     let originLng = origin_lng;
     let originPlaceName: string | null = null;
 
-    // If origin override via address, geocode it
+    // If origin override via address, geocode it with same preprocessing as destination
     if (origin_address_text && (originLat === undefined || originLng === undefined)) {
       const accessToken = Deno.env.get("MAPBOX_ACCESS_TOKEN");
       if (accessToken) {
-        const encodedOrigin = encodeURIComponent(origin_address_text.trim());
-        const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodedOrigin}.json?access_token=${accessToken}&limit=1`;
+        // Determine state hint for origin geocoding (same logic as destination)
+        let originStateHint = settings.base_state_hint;
+        if (!originStateHint && settings.base_place_name) {
+          const stateMatch = settings.base_place_name.match(/,\s*([A-Za-z\s]+)\s+\d{5}/);
+          if (stateMatch) {
+            const stateName = stateMatch[1].trim();
+            const stateAbbreviations: Record<string, string> = {
+              "Alabama": "AL", "Alaska": "AK", "Arizona": "AZ", "Arkansas": "AR",
+              "California": "CA", "Colorado": "CO", "Connecticut": "CT", "Delaware": "DE",
+              "Florida": "FL", "Georgia": "GA", "Hawaii": "HI", "Idaho": "ID",
+              "Illinois": "IL", "Indiana": "IN", "Iowa": "IA", "Kansas": "KS",
+              "Kentucky": "KY", "Louisiana": "LA", "Maine": "ME", "Maryland": "MD",
+              "Massachusetts": "MA", "Michigan": "MI", "Minnesota": "MN", "Mississippi": "MS",
+              "Missouri": "MO", "Montana": "MT", "Nebraska": "NE", "Nevada": "NV",
+              "New Hampshire": "NH", "New Jersey": "NJ", "New Mexico": "NM", "New York": "NY",
+              "North Carolina": "NC", "North Dakota": "ND", "Ohio": "OH", "Oklahoma": "OK",
+              "Oregon": "OR", "Pennsylvania": "PA", "Rhode Island": "RI", "South Carolina": "SC",
+              "South Dakota": "SD", "Tennessee": "TN", "Texas": "TX", "Utah": "UT",
+              "Vermont": "VT", "Virginia": "VA", "Washington": "WA", "West Virginia": "WV",
+              "Wisconsin": "WI", "Wyoming": "WY", "Washington DC": "DC"
+            };
+            originStateHint = stateAbbreviations[stateName] || null;
+          }
+        }
+        
+        // Preprocess origin address (same as destination)
+        const originPreprocessed = preprocessAddress(origin_address_text, {
+          stateHint: originStateHint || undefined,
+          expandAbbreviations: true,
+        });
+        
+        if (originPreprocessed.modifications.length > 0) {
+          console.log(`[compute-distance-eta] Origin preprocessed: ${originPreprocessed.modifications.join(", ")}`);
+        }
+        
+        // Build geocode URL with proximity bias from tenant base
+        let geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(originPreprocessed.normalized)}.json?access_token=${accessToken}&limit=5&country=US`;
+        
+        // Add proximity bias from tenant's base location
+        if (settings.base_lat !== null && settings.base_lng !== null) {
+          geocodeUrl += `&proximity=${settings.base_lng},${settings.base_lat}`;
+        }
+        
+        // For cross-streets and routes, use 'address' type
+        if (originPreprocessed.isCrossStreet || originPreprocessed.isHighwayRoute) {
+          geocodeUrl += `&types=address,poi`;
+          console.log(`[compute-distance-eta] Using address/poi types for origin ${originPreprocessed.isCrossStreet ? "cross-street" : "highway"} query`);
+        }
+        
         const geocodeRes = await fetch(geocodeUrl);
         if (geocodeRes.ok) {
           const geocodeData = await geocodeRes.json();
           if (geocodeData.features?.length > 0) {
-            [originLng, originLat] = geocodeData.features[0].center;
-            originPlaceName = geocodeData.features[0].place_name;
+            // Pick best result using same scoring as destination
+            let bestFeature = geocodeData.features[0];
+            let bestScore = geocodeData.features[0].relevance || 0;
+            
+            if (settings.base_lat !== null && settings.base_lng !== null && geocodeData.features.length > 1) {
+              for (const feature of geocodeData.features) {
+                const [lng, lat] = feature.center;
+                const distFactor = 1 / (1 + Math.abs(lat - settings.base_lat) + Math.abs(lng - settings.base_lng));
+                const score = (feature.relevance || 0) * 0.7 + distFactor * 0.3;
+                if (score > bestScore) {
+                  bestScore = score;
+                  bestFeature = feature;
+                }
+              }
+            }
+            
+            [originLng, originLat] = bestFeature.center;
+            originPlaceName = bestFeature.place_name;
+            console.log(`[compute-distance-eta] Origin geocoded: "${originPlaceName?.substring(0, 60)}..." relevance=${bestFeature.relevance?.toFixed(2) || '?'}`);
           }
         }
       }
@@ -251,7 +315,35 @@ serve(async (req: Request) => {
     let geocodeProviderUsed = "none";
 
     if (address_text && (destLat === undefined || destLng === undefined)) {
-      const stateHint = settings.base_state_hint;
+      // Determine state hint - use explicit setting, or derive from base_place_name
+      let stateHint = settings.base_state_hint;
+      if (!stateHint && settings.base_place_name) {
+        // Try to extract state from base_place_name (e.g., "18 Yorkshire Road, Trenton, New Jersey 08610, United States")
+        const stateMatch = settings.base_place_name.match(/,\s*([A-Za-z\s]+)\s+\d{5}/);
+        if (stateMatch) {
+          const stateName = stateMatch[1].trim();
+          // Convert full state name to abbreviation for geocoding
+          const stateAbbreviations: Record<string, string> = {
+            "Alabama": "AL", "Alaska": "AK", "Arizona": "AZ", "Arkansas": "AR",
+            "California": "CA", "Colorado": "CO", "Connecticut": "CT", "Delaware": "DE",
+            "Florida": "FL", "Georgia": "GA", "Hawaii": "HI", "Idaho": "ID",
+            "Illinois": "IL", "Indiana": "IN", "Iowa": "IA", "Kansas": "KS",
+            "Kentucky": "KY", "Louisiana": "LA", "Maine": "ME", "Maryland": "MD",
+            "Massachusetts": "MA", "Michigan": "MI", "Minnesota": "MN", "Mississippi": "MS",
+            "Missouri": "MO", "Montana": "MT", "Nebraska": "NE", "Nevada": "NV",
+            "New Hampshire": "NH", "New Jersey": "NJ", "New Mexico": "NM", "New York": "NY",
+            "North Carolina": "NC", "North Dakota": "ND", "Ohio": "OH", "Oklahoma": "OK",
+            "Oregon": "OR", "Pennsylvania": "PA", "Rhode Island": "RI", "South Carolina": "SC",
+            "South Dakota": "SD", "Tennessee": "TN", "Texas": "TX", "Utah": "UT",
+            "Vermont": "VT", "Virginia": "VA", "Washington": "WA", "West Virginia": "WV",
+            "Wisconsin": "WI", "Wyoming": "WY", "Washington DC": "DC"
+          };
+          stateHint = stateAbbreviations[stateName] || null;
+          if (stateHint) {
+            console.log(`[compute-distance-eta] Derived state hint "${stateHint}" from base_place_name`);
+          }
+        }
+      }
       geocodeProviderUsed = "mapbox";
       
       // Preprocess address for better geocoding (handles cross-streets, highways, abbreviations)
