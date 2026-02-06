@@ -1,4 +1,4 @@
-import { Clock, User, Navigation, MapPin, CheckCircle2, AlertTriangle, DollarSign, Timer } from "lucide-react";
+import { Clock, User, Navigation, MapPin, CheckCircle2, AlertTriangle, DollarSign, Timer, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DispatchJob {
@@ -36,32 +36,36 @@ export function DispatchCommandStats({ jobs }: DispatchCommandStatsProps) {
       label: "Pending",
       value: jobs.filter((j) => j.status === "pending").length,
       icon: Clock,
-      colorClass: "text-warning bg-warning/10 border-warning/30",
-      iconColor: "text-warning",
+      activeClass: "bg-warning/10 border-warning/30",
+      iconClass: "text-warning",
+      valueClass: "text-warning",
     },
     {
       key: "assigned",
       label: "Assigned",
       value: jobs.filter((j) => j.status === "assigned").length,
       icon: User,
-      colorClass: "text-primary bg-primary/10 border-primary/30",
-      iconColor: "text-primary",
+      activeClass: "bg-primary/10 border-primary/30",
+      iconClass: "text-primary",
+      valueClass: "text-primary",
     },
     {
       key: "en_route",
       label: "En Route",
       value: jobs.filter((j) => j.status === "en_route").length,
       icon: Navigation,
-      colorClass: "text-info bg-info/10 border-info/30",
-      iconColor: "text-info",
+      activeClass: "bg-primary/10 border-primary/30",
+      iconClass: "text-primary",
+      valueClass: "text-primary",
     },
     {
       key: "on_site",
       label: "On Site",
       value: jobs.filter((j) => j.status === "on_site").length,
       icon: MapPin,
-      colorClass: "text-success bg-success/10 border-success/30",
-      iconColor: "text-success",
+      activeClass: "bg-success/10 border-success/30",
+      iconClass: "text-success",
+      valueClass: "text-success",
     },
   ];
 
@@ -69,15 +73,15 @@ export function DispatchCommandStats({ jobs }: DispatchCommandStatsProps) {
     <div className="space-y-4">
       {/* Urgent Alert Banner */}
       {urgentCount > 0 && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-destructive/10 border border-destructive/30">
-          <div className="p-2 rounded-full bg-destructive/20">
-            <AlertTriangle className="h-4 w-4 text-destructive" />
+        <div className="flex items-center gap-4 px-5 py-4 rounded-xl bg-destructive/10 border border-destructive/30 animate-fade-in">
+          <div className="flex items-center justify-center h-10 w-10 rounded-full bg-destructive/20 shrink-0">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <p className="font-semibold text-destructive">
               {urgentCount} Urgent Job{urgentCount > 1 ? "s" : ""} Need Immediate Dispatch
             </p>
-            <p className="text-sm text-destructive/80">
+            <p className="text-sm text-destructive/70 mt-0.5">
               These jobs are marked high priority and awaiting assignment
             </p>
           </div>
@@ -91,22 +95,27 @@ export function DispatchCommandStats({ jobs }: DispatchCommandStatsProps) {
           <div
             key={stat.key}
             className={cn(
-              "relative overflow-hidden rounded-lg border p-4 transition-colors",
-              stat.value > 0 ? stat.colorClass : "bg-muted/30 border-border"
+              "relative overflow-hidden rounded-xl border p-4 transition-all duration-200",
+              stat.value > 0 
+                ? stat.activeClass 
+                : "bg-card/50 border-border/50"
             )}
           >
             <div className="flex items-center justify-between mb-2">
-              <stat.icon className={cn("h-5 w-5", stat.value > 0 ? stat.iconColor : "text-muted-foreground")} />
+              <stat.icon className={cn(
+                "h-5 w-5 transition-colors",
+                stat.value > 0 ? stat.iconClass : "text-muted-foreground/50"
+              )} />
               <span className={cn(
-                "text-2xl font-bold tabular-nums",
-                stat.value > 0 ? "" : "text-muted-foreground"
+                "text-2xl font-bold tabular-nums tracking-tight",
+                stat.value > 0 ? stat.valueClass : "text-muted-foreground/50"
               )}>
                 {stat.value}
               </span>
             </div>
             <p className={cn(
-              "text-xs font-medium uppercase tracking-wide",
-              stat.value > 0 ? "" : "text-muted-foreground"
+              "text-xs font-medium uppercase tracking-wider",
+              stat.value > 0 ? "text-foreground/70" : "text-muted-foreground/50"
             )}>
               {stat.label}
             </p>
@@ -115,41 +124,44 @@ export function DispatchCommandStats({ jobs }: DispatchCommandStatsProps) {
 
         {/* Divider on larger screens */}
         <div className="hidden lg:flex items-center justify-center">
-          <div className="h-12 w-px bg-border" />
+          <div className="h-12 w-px bg-border/50" />
         </div>
 
         {/* Completed Today */}
-        <div className="rounded-lg border bg-success/5 border-success/20 p-4">
+        <div className="rounded-xl border bg-success/5 border-success/20 p-4">
           <div className="flex items-center justify-between mb-2">
             <CheckCircle2 className="h-5 w-5 text-success" />
-            <span className="text-2xl font-bold tabular-nums text-success">
+            <span className="text-2xl font-bold tabular-nums tracking-tight text-success">
               {completedToday.length}
             </span>
           </div>
-          <p className="text-xs font-medium uppercase tracking-wide text-success/80">
+          <p className="text-xs font-medium uppercase tracking-wider text-success/70">
             Completed Today
           </p>
         </div>
 
         {/* Revenue Today */}
-        <div className="rounded-lg border bg-card p-4">
+        <div className="rounded-xl border bg-card/50 border-border/50 p-4">
           <div className="flex items-center justify-between mb-2">
-            <DollarSign className="h-5 w-5 text-emerald-500" />
-            <span className="text-2xl font-bold tabular-nums">
+            <DollarSign className="h-5 w-5 text-success" />
+            <span className="text-2xl font-bold tabular-nums tracking-tight">
               ${(todayRevenue / 100).toLocaleString()}
             </span>
           </div>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Today's Revenue
           </p>
         </div>
       </div>
 
       {/* Active Jobs Summary Bar */}
-      <div className="flex items-center justify-between px-4 py-2 rounded-lg bg-muted/30 border">
+      <div className="flex items-center justify-between px-5 py-3 rounded-xl bg-muted/30 border border-border/50">
         <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
+          <div className="flex items-center gap-2.5">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-success" />
+            </span>
             <span className="text-sm font-medium">{activeJobs.length} Active Jobs</span>
           </div>
           {avgDuration > 0 && (
@@ -159,8 +171,9 @@ export function DispatchCommandStats({ jobs }: DispatchCommandStatsProps) {
             </div>
           )}
         </div>
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <span>Total Jobs Today: {jobs.filter(j => 
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <TrendingUp className="h-4 w-4" />
+          <span>Total Today: {jobs.filter(j => 
             new Date(j.completed_at || '').toDateString() === new Date().toDateString() ||
             activeStatuses.includes(j.status)
           ).length}</span>
