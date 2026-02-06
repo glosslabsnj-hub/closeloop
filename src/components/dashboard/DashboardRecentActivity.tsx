@@ -3,9 +3,11 @@ import { useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useTerminology } from "@/hooks/useTerminology";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -19,55 +21,69 @@ import {
   FlaskConical,
   Inbox,
   CheckCircle2,
+  Stethoscope,
+  ClipboardCheck,
 } from "lucide-react";
 
 interface ActivityItem {
   id: string;
-  type: "call" | "booking" | "order" | "dispatch" | "sms";
+  type: "call" | "booking" | "order" | "dispatch" | "sms" | "intake";
   title: string;
   subtitle: string;
   time: string;
   timestamp: Date;
-  status?: "success" | "warning" | "info";
+  status?: "success" | "warning" | "info" | "pending";
+  statusLabel?: string;
 }
 
 export function DashboardRecentActivity() {
   const navigate = useNavigate();
   const { tenant } = useAuth();
+  const { businessMode } = useTenantConfig();
   const queryClient = useQueryClient();
   const terms = useTerminology();
 
-  // Realtime subscription
+  // Realtime subscription based on mode
   useEffect(() => {
     if (!tenant?.id) return;
 
-    const channel = supabase
-      .channel('dashboard-activity-realtime')
-      .on(
+    const tables: string[] = ["ai_call_sessions"];
+    
+    if (businessMode === "food") {
+      tables.push("food_orders");
+    } else if (businessMode === "dispatch") {
+      tables.push("dispatch_jobs");
+    } else if (businessMode === "medical") {
+      tables.push("bookings", "medical_intakes");
+    } else {
+      tables.push("bookings");
+    }
+
+    const channel = supabase.channel('dashboard-activity-realtime');
+    
+    tables.forEach(table => {
+      channel.on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'ai_call_sessions', filter: `tenant_id=eq.${tenant.id}` },
-        () => queryClient.invalidateQueries({ queryKey: ["dashboard-activity", tenant.id] })
-      )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'bookings', filter: `tenant_id=eq.${tenant.id}` },
-        () => queryClient.invalidateQueries({ queryKey: ["dashboard-activity", tenant.id] })
-      )
-      .subscribe();
+        { event: 'INSERT', schema: 'public', table, filter: `tenant_id=eq.${tenant.id}` },
+        () => queryClient.invalidateQueries({ queryKey: ["dashboard-activity", tenant.id, businessMode] })
+      );
+    });
+
+    channel.subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tenant?.id, queryClient]);
+  }, [tenant?.id, businessMode, queryClient]);
 
   const { data: activities, isLoading } = useQuery({
-    queryKey: ["dashboard-activity", tenant?.id],
+    queryKey: ["dashboard-activity", tenant?.id, businessMode],
     queryFn: async (): Promise<ActivityItem[]> => {
       if (!tenant?.id) return [];
 
       const results: ActivityItem[] = [];
 
-      // Fetch recent calls
+      // Fetch recent calls (all modes)
       const { data: calls } = await supabase
         .from("ai_call_sessions")
         .select("id, caller_phone, outcome, started_at, summary")
@@ -98,27 +114,132 @@ export function DashboardRecentActivity() {
         });
       });
 
-      // Fetch recent bookings
-      const { data: bookings } = await supabase
-        .from("bookings")
-        .select("id, status, created_at, leads(full_name), services(name)")
-        .eq("tenant_id", tenant.id)
-        .order("created_at", { ascending: false })
-        .limit(3);
+      // Mode-specific activity
+      if (businessMode === "food") {
+        const { data: orders } = await supabase
+          .from("food_orders")
+          .select("id, status, created_at, customer_name, total_cents")
+          .eq("tenant_id", tenant.id)
+          .order("created_at", { ascending: false })
+          .limit(5);
 
-      bookings?.forEach((booking) => {
-        const leadName = (booking.leads as any)?.full_name || terms.customer;
-        const serviceName = (booking.services as any)?.name;
-        results.push({
-          id: `booking-${booking.id}`,
-          type: "booking",
-          title: booking.status === 'confirmed' ? terms.bookingConfirmed : terms.bookingCreated,
-          subtitle: serviceName ? `${leadName} - ${serviceName}` : leadName,
-          time: formatDistanceToNow(new Date(booking.created_at), { addSuffix: false }),
-          timestamp: new Date(booking.created_at),
-          status: booking.status === 'confirmed' ? 'success' : 'info',
+        orders?.forEach((order) => {
+          const statusMap: Record<string, { label: string; status: ActivityItem["status"] }> = {
+            pending: { label: "New Order", status: "warning" },
+            confirmed: { label: "Confirmed", status: "info" },
+            preparing: { label: "Preparing", status: "info" },
+            ready: { label: "Ready", status: "success" },
+            completed: { label: "Completed", status: "success" },
+            canceled: { label: "Canceled", status: "pending" },
+          };
+          const statusInfo = statusMap[order.status] || { label: order.status, status: "info" };
+          const amount = order.total_cents ? `$${(order.total_cents / 100).toFixed(2)}` : "";
+
+          results.push({
+            id: `order-${order.id}`,
+            type: "order",
+            title: statusInfo.label,
+            subtitle: `${order.customer_name || "Customer"}${amount ? ` • ${amount}` : ""}`,
+            time: formatDistanceToNow(new Date(order.created_at), { addSuffix: false }),
+            timestamp: new Date(order.created_at),
+            status: statusInfo.status,
+            statusLabel: statusInfo.label,
+          });
         });
-      });
+      } else if (businessMode === "dispatch") {
+        const { data: jobs } = await supabase
+          .from("dispatch_jobs")
+          .select("id, status, created_at, customer_name, job_type, priority")
+          .eq("tenant_id", tenant.id)
+          .order("created_at", { ascending: false })
+          .limit(5);
+
+        jobs?.forEach((job) => {
+          const statusMap: Record<string, { label: string; status: ActivityItem["status"] }> = {
+            pending: { label: "New Job", status: "warning" },
+            assigned: { label: "Assigned", status: "info" },
+            en_route: { label: "En Route", status: "info" },
+            on_site: { label: "On Site", status: "info" },
+            completed: { label: "Completed", status: "success" },
+            cancelled: { label: "Cancelled", status: "pending" },
+          };
+          const statusInfo = statusMap[job.status] || { label: job.status, status: "info" };
+
+          results.push({
+            id: `job-${job.id}`,
+            type: "dispatch",
+            title: statusInfo.label,
+            subtitle: `${job.customer_name || "Customer"} • ${job.job_type || "Service"}`,
+            time: formatDistanceToNow(new Date(job.created_at), { addSuffix: false }),
+            timestamp: new Date(job.created_at),
+            status: job.priority === "urgent" ? "warning" : statusInfo.status,
+            statusLabel: job.priority === "urgent" ? "Urgent" : undefined,
+          });
+        });
+      } else if (businessMode === "medical") {
+        // Fetch appointments (HIPAA-safe: minimal info)
+        const { data: bookings } = await supabase
+          .from("bookings")
+          .select("id, status, created_at, services(name)")
+          .eq("tenant_id", tenant.id)
+          .order("created_at", { ascending: false })
+          .limit(4);
+
+        bookings?.forEach((booking) => {
+          const serviceName = (booking.services as any)?.name || "Appointment";
+          results.push({
+            id: `booking-${booking.id}`,
+            type: "booking",
+            title: booking.status === 'confirmed' ? 'Confirmed' : 'Scheduled',
+            subtitle: serviceName,
+            time: formatDistanceToNow(new Date(booking.created_at), { addSuffix: false }),
+            timestamp: new Date(booking.created_at),
+            status: booking.status === 'confirmed' ? 'success' : 'info',
+          });
+        });
+
+        // Fetch intakes
+        const { data: intakes } = await supabase
+          .from("medical_intakes")
+          .select("id, created_at, status, reason_for_visit")
+          .eq("tenant_id", tenant.id)
+          .order("created_at", { ascending: false })
+          .limit(3);
+
+        intakes?.forEach((intake) => {
+          results.push({
+            id: `intake-${intake.id}`,
+            type: "intake",
+            title: "Intake Form",
+            subtitle: intake.reason_for_visit?.slice(0, 30) || "New intake submitted",
+            time: formatDistanceToNow(new Date(intake.created_at), { addSuffix: false }),
+            timestamp: new Date(intake.created_at),
+            status: intake.status === 'completed' ? 'success' : 'info',
+          });
+        });
+      } else {
+        // Service/General: bookings
+        const { data: bookings } = await supabase
+          .from("bookings")
+          .select("id, status, created_at, leads(full_name), services(name)")
+          .eq("tenant_id", tenant.id)
+          .order("created_at", { ascending: false })
+          .limit(4);
+
+        bookings?.forEach((booking) => {
+          const leadName = (booking.leads as any)?.full_name || terms.customer;
+          const serviceName = (booking.services as any)?.name;
+          results.push({
+            id: `booking-${booking.id}`,
+            type: "booking",
+            title: booking.status === 'confirmed' ? terms.bookingConfirmed : terms.bookingCreated,
+            subtitle: serviceName ? `${leadName} - ${serviceName}` : leadName,
+            time: formatDistanceToNow(new Date(booking.created_at), { addSuffix: false }),
+            timestamp: new Date(booking.created_at),
+            status: booking.status === 'confirmed' ? 'success' : 'info',
+          });
+        });
+      }
 
       // Sort by timestamp and take top 6
       return results
@@ -131,19 +252,29 @@ export function DashboardRecentActivity() {
 
   const iconMap: Record<string, React.ElementType> = useMemo(() => ({
     call: Phone,
-    booking: Calendar,
+    booking: businessMode === "medical" ? Stethoscope : Calendar,
     order: UtensilsCrossed,
     dispatch: Truck,
     sms: MessageSquare,
-  }), []);
+    intake: ClipboardCheck,
+  }), [businessMode]);
 
   const colorMap: Record<string, string> = useMemo(() => ({
     call: "bg-primary/10 text-primary",
-    booking: "bg-success/10 text-success",
-    order: "bg-warning/10 text-warning",
-    dispatch: "bg-info/10 text-info",
+    booking: businessMode === "medical" ? "bg-teal-500/10 text-teal-500" : "bg-success/10 text-success",
+    order: "bg-orange-500/10 text-orange-500",
+    dispatch: "bg-purple-500/10 text-purple-500",
     sms: "bg-purple-500/10 text-purple-500",
-  }), []);
+    intake: "bg-blue-500/10 text-blue-500",
+  }), [businessMode]);
+
+  const getViewAllHref = () => {
+    switch (businessMode) {
+      case "food": return "/app/orders";
+      case "dispatch": return "/app/dispatch";
+      default: return "/app/inbox";
+    }
+  };
 
   const hasActivity = activities && activities.length > 0;
 
@@ -180,7 +311,7 @@ export function DashboardRecentActivity() {
             variant="ghost"
             size="sm"
             className="gap-1 text-sm h-8 text-muted-foreground hover:text-foreground"
-            onClick={() => navigate("/app/inbox")}
+            onClick={() => navigate(getViewAllHref())}
           >
             View All
             <ArrowRight className="h-3.5 w-3.5" />
@@ -198,7 +329,7 @@ export function DashboardRecentActivity() {
                 <div
                   key={item.id}
                   className="flex items-center gap-3 py-2 px-2 -mx-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                  onClick={() => navigate("/app/inbox")}
+                  onClick={() => navigate(getViewAllHref())}
                 >
                   <div className={cn(
                     "flex h-9 w-9 items-center justify-center rounded-lg shrink-0",
@@ -211,6 +342,15 @@ export function DashboardRecentActivity() {
                       <p className="text-sm font-medium truncate">{item.title}</p>
                       {item.status === "success" && (
                         <CheckCircle2 className="h-3 w-3 text-success shrink-0" />
+                      )}
+                      {item.statusLabel && (
+                        <Badge 
+                          variant={item.status === "warning" ? "warning" : "secondary"} 
+                          size="sm"
+                          className="shrink-0"
+                        >
+                          {item.statusLabel}
+                        </Badge>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground truncate">{item.subtitle}</p>

@@ -6,6 +6,7 @@ import { DashboardRecentActivity } from "./DashboardRecentActivity";
 import { DashboardNeedsAttention } from "./DashboardNeedsAttention";
 import { DashboardCallChart } from "./DashboardCallChart";
 import { DashboardTodaySchedule } from "./DashboardTodaySchedule";
+import { DashboardActiveWork } from "./DashboardActiveWork";
 import { DashboardAIPerformance } from "./DashboardAIPerformance";
 import { UnifiedAlertBanner } from "./UnifiedAlertBanner";
 import { SetupProgressChecklist } from "./SetupProgressChecklist";
@@ -13,7 +14,6 @@ import { Copilot, CopilotTrigger } from "./Copilot";
 import { SoundManager } from "@/components/notifications/SoundManager";
 import { format } from "date-fns";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { CalendarDays } from "lucide-react";
 
 function getGreeting(): string {
@@ -24,13 +24,15 @@ function getGreeting(): string {
 }
 
 export function LiveDashboard() {
-  const { tenant, assistantSettings } = useAuth();
-  const { enabledModules } = useTenantConfig();
+  const { tenant } = useAuth();
+  const { enabledModules, businessMode } = useTenantConfig();
   const [copilotOpen, setCopilotOpen] = useState(false);
 
   const businessName = tenant?.name?.split(' ')[0] || "there";
   const greeting = getGreeting();
   const hasBooking = enabledModules.includes("booking");
+  const showActiveWork = businessMode === "food" || businessMode === "dispatch";
+  const showSchedule = hasBooking && !showActiveWork;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -71,15 +73,16 @@ export function LiveDashboard() {
       {/* Call Volume Chart */}
       <DashboardCallChart />
 
-      {/* Schedule + AI Performance - Side by side */}
+      {/* Schedule / Active Work + AI Performance - Side by side */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {hasBooking && <DashboardTodaySchedule />}
+        {showActiveWork && <DashboardActiveWork />}
+        {showSchedule && <DashboardTodaySchedule />}
         <DashboardAIPerformance />
-        {!hasBooking && <SetupProgressChecklist />}
+        {!showActiveWork && !showSchedule && <SetupProgressChecklist />}
       </div>
 
-      {/* Setup Progress - Only if booking enabled */}
-      {hasBooking && <SetupProgressChecklist />}
+      {/* Setup Progress - Only if not already shown */}
+      {(showActiveWork || showSchedule) && <SetupProgressChecklist />}
 
       {/* Copilot FAB */}
       <div className="fixed bottom-6 right-6 z-30 md:bottom-8 md:right-8">
