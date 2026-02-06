@@ -1,12 +1,25 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTenantConfig, type BusinessMode } from "@/hooks/useTenantConfig";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useTerminology } from "@/hooks/useTerminology";
 import { useROIDashboard } from "@/hooks/useROIDashboard";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { 
   Phone, 
@@ -21,9 +34,12 @@ import {
   Clock,
   ShoppingBag,
   Activity,
+  ChevronDown,
 } from "lucide-react";
-import { startOfDay, endOfDay, subDays, startOfMonth } from "date-fns";
+import { startOfDay, endOfDay, subDays, startOfMonth, subWeeks, subMonths } from "date-fns";
 import { formatRevenue } from "@/lib/revenueUtils";
+
+type ComparisonPeriod = "yesterday" | "last_week" | "last_month";
 
 interface HeroMetric {
   label: string;
@@ -32,6 +48,7 @@ interface HeroMetric {
   trend?: { value: number; direction: "up" | "down" | "flat" };
   accent: string;
   href: string;
+  sparkline?: number[];
 }
 
 function TrendBadge({ value, direction }: { value: number; direction: "up" | "down" | "flat" }) {
@@ -51,14 +68,63 @@ function TrendBadge({ value, direction }: { value: number; direction: "up" | "do
   );
 }
 
-function MetricCard({ metric, onClick }: { metric: HeroMetric; onClick: () => void }) {
+function MiniSparkline({ data, color }: { data: number[]; color: string }) {
+  if (!data || data.length < 2) return null;
+  
+  const max = Math.max(...data, 1);
+  const min = Math.min(...data, 0);
+  const range = max - min || 1;
+  const height = 20;
+  const width = 48;
+  
+  const points = data.map((val, i) => {
+    const x = (i / (data.length - 1)) * width;
+    const y = height - ((val - min) / range) * height;
+    return `${x},${y}`;
+  }).join(" ");
+  
+  return (
+    <svg width={width} height={height} className="overflow-visible">
+      <polyline
+        points={points}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="opacity-60"
+      />
+    </svg>
+  );
+}
+
+function MetricCard({ 
+  metric, 
+  onClick,
+  comparisonLabel,
+}: { 
+  metric: HeroMetric; 
+  onClick: () => void;
+  comparisonLabel: string;
+}) {
   const Icon = metric.icon;
+  const [isHovered, setIsHovered] = useState(false);
+  
+  const getSparklineColor = () => {
+    if (metric.accent.includes("success")) return "hsl(var(--success))";
+    if (metric.accent.includes("warning")) return "hsl(var(--warning))";
+    if (metric.accent.includes("info")) return "hsl(var(--info))";
+    if (metric.accent.includes("primary")) return "hsl(var(--primary))";
+    return "hsl(var(--muted-foreground))";
+  };
   
   return (
     <Card 
       interactive 
       onClick={onClick}
-      className="cursor-pointer group"
+      className="cursor-pointer group relative overflow-hidden"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       <CardContent className="p-4 md:p-5">
         <div className="flex items-start justify-between mb-3">
@@ -68,9 +134,25 @@ function MetricCard({ metric, onClick }: { metric: HeroMetric; onClick: () => vo
           )}>
             <Icon className="h-5 w-5" />
           </div>
-          {metric.trend && (
-            <TrendBadge value={metric.trend.value} direction={metric.trend.direction} />
-          )}
+          <div className="flex items-center gap-2">
+            {isHovered && metric.sparkline && metric.sparkline.length > 1 && (
+              <div className="animate-in fade-in-50 duration-200">
+                <MiniSparkline data={metric.sparkline} color={getSparklineColor()} />
+              </div>
+            )}
+            {metric.trend && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <TrendBadge value={metric.trend.value} direction={metric.trend.direction} />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  vs {comparisonLabel}
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
         </div>
         <div>
           <p className="text-2xl md:text-3xl font-bold tracking-tight tabular-nums">
@@ -108,78 +190,70 @@ export function DashboardHeroMetrics() {
   const { businessMode } = useTenantConfig();
   const terms = useTerminology();
   const { data: roiData, isLoading: roiLoading } = useROIDashboard();
+  const [comparisonPeriod, setComparisonPeriod] = useState<ComparisonPeriod>("yesterday");
 
   const todayStart = startOfDay(new Date()).toISOString();
   const todayEnd = endOfDay(new Date()).toISOString();
-  const yesterdayStart = startOfDay(subDays(new Date(), 1)).toISOString();
-  const yesterdayEnd = endOfDay(subDays(new Date(), 1)).toISOString();
+  
+  const getComparisonDates = () => {
+    const now = new Date();
+    switch (comparisonPeriod) {
+      case "last_week":
+        return { start: startOfDay(subWeeks(now, 1)).toISOString(), end: endOfDay(subWeeks(now, 1)).toISOString() };
+      case "last_month":
+        return { start: startOfDay(subMonths(now, 1)).toISOString(), end: endOfDay(subMonths(now, 1)).toISOString() };
+      default:
+        return { start: startOfDay(subDays(now, 1)).toISOString(), end: endOfDay(subDays(now, 1)).toISOString() };
+    }
+  };
+  
+  const comparisonDates = getComparisonDates();
   const monthStart = startOfMonth(new Date()).toISOString();
 
-  // Fetch calls today vs yesterday
+  // Fetch calls today vs comparison + sparkline
   const { data: callsData, isLoading: callsLoading } = useQuery({
-    queryKey: ["hero-calls", tenant?.id, todayStart],
+    queryKey: ["hero-calls", tenant?.id, todayStart, comparisonPeriod],
     queryFn: async () => {
-      if (!tenant?.id) return { today: 0, yesterday: 0 };
+      if (!tenant?.id) return { today: 0, comparison: 0, sparkline: [] };
       
-      const [todayResult, yesterdayResult] = await Promise.all([
-        supabase
-          .from("ai_call_sessions")
-          .select("*", { count: "exact", head: true })
-          .eq("tenant_id", tenant.id)
-          .gte("started_at", todayStart)
-          .lte("started_at", todayEnd),
-        supabase
-          .from("ai_call_sessions")
-          .select("*", { count: "exact", head: true })
-          .eq("tenant_id", tenant.id)
-          .gte("started_at", yesterdayStart)
-          .lte("started_at", yesterdayEnd),
+      const last7Days = Array.from({ length: 7 }, (_, i) => {
+        const date = subDays(new Date(), 6 - i);
+        return { start: startOfDay(date).toISOString(), end: endOfDay(date).toISOString() };
+      });
+      
+      const [todayResult, comparisonResult, ...sparklineResults] = await Promise.all([
+        supabase.from("ai_call_sessions").select("*", { count: "exact", head: true }).eq("tenant_id", tenant.id).gte("started_at", todayStart).lte("started_at", todayEnd),
+        supabase.from("ai_call_sessions").select("*", { count: "exact", head: true }).eq("tenant_id", tenant.id).gte("started_at", comparisonDates.start).lte("started_at", comparisonDates.end),
+        ...last7Days.map(({ start, end }) => supabase.from("ai_call_sessions").select("*", { count: "exact", head: true }).eq("tenant_id", tenant.id).gte("started_at", start).lte("started_at", end)),
       ]);
       
-      return {
-        today: todayResult.count || 0,
-        yesterday: yesterdayResult.count || 0,
-      };
+      return { today: todayResult.count || 0, comparison: comparisonResult.count || 0, sparkline: sparklineResults.map(r => r.count || 0) };
     },
     enabled: !!tenant?.id,
   });
 
   // Fetch mode-specific primary metric
   const { data: primaryMetric, isLoading: primaryLoading } = useQuery({
-    queryKey: ["hero-primary", tenant?.id, businessMode, todayStart],
+    queryKey: ["hero-primary", tenant?.id, businessMode, todayStart, comparisonPeriod],
     queryFn: async () => {
-      if (!tenant?.id) return { today: 0, yesterday: 0 };
+      if (!tenant?.id) return { today: 0, comparison: 0, sparkline: [] };
       
       let table = "bookings";
-      const dateField = "created_at";
+      if (businessMode === "dispatch") table = "dispatch_jobs";
+      else if (businessMode === "food") table = "food_orders";
       
-      if (businessMode === "dispatch") {
-        table = "dispatch_jobs";
-      } else if (businessMode === "food") {
-        table = "food_orders";
-      } else if (businessMode === "medical") {
-        table = "bookings"; // Medical uses appointments/bookings
-      }
+      const last7Days = Array.from({ length: 7 }, (_, i) => {
+        const date = subDays(new Date(), 6 - i);
+        return { start: startOfDay(date).toISOString(), end: endOfDay(date).toISOString() };
+      });
       
-      const [todayResult, yesterdayResult] = await Promise.all([
-        supabase
-          .from(table as any)
-          .select("*", { count: "exact", head: true })
-          .eq("tenant_id", tenant.id)
-          .gte(dateField, todayStart)
-          .lte(dateField, todayEnd),
-        supabase
-          .from(table as any)
-          .select("*", { count: "exact", head: true })
-          .eq("tenant_id", tenant.id)
-          .gte(dateField, yesterdayStart)
-          .lte(dateField, yesterdayEnd),
+      const [todayResult, comparisonResult, ...sparklineResults] = await Promise.all([
+        supabase.from(table as any).select("*", { count: "exact", head: true }).eq("tenant_id", tenant.id).gte("created_at", todayStart).lte("created_at", todayEnd),
+        supabase.from(table as any).select("*", { count: "exact", head: true }).eq("tenant_id", tenant.id).gte("created_at", comparisonDates.start).lte("created_at", comparisonDates.end),
+        ...last7Days.map(({ start, end }) => supabase.from(table as any).select("*", { count: "exact", head: true }).eq("tenant_id", tenant.id).gte("created_at", start).lte("created_at", end)),
       ]);
       
-      return {
-        today: todayResult.count || 0,
-        yesterday: yesterdayResult.count || 0,
-      };
+      return { today: todayResult.count || 0, comparison: comparisonResult.count || 0, sparkline: sparklineResults.map(r => r.count || 0) };
     },
     enabled: !!tenant?.id,
   });
@@ -189,78 +263,30 @@ export function DashboardHeroMetrics() {
     queryKey: ["hero-tertiary", tenant?.id, businessMode, monthStart],
     queryFn: async () => {
       if (!tenant?.id) return null;
-      
       switch (businessMode) {
         case "service": {
-          // Utilization: completed bookings / total slots available (simplified)
-          const { count: completed } = await supabase
-            .from("bookings")
-            .select("*", { count: "exact", head: true })
-            .eq("tenant_id", tenant.id)
-            .eq("status", "completed")
-            .gte("created_at", monthStart);
-          const { count: total } = await supabase
-            .from("bookings")
-            .select("*", { count: "exact", head: true })
-            .eq("tenant_id", tenant.id)
-            .gte("created_at", monthStart);
-          const utilization = total && total > 0 ? Math.round((completed || 0) / total * 100) : 0;
-          return { value: `${utilization}%`, label: "Utilization" };
+          const { count: completed } = await supabase.from("bookings").select("*", { count: "exact", head: true }).eq("tenant_id", tenant.id).eq("status", "completed").gte("created_at", monthStart);
+          const { count: total } = await supabase.from("bookings").select("*", { count: "exact", head: true }).eq("tenant_id", tenant.id).gte("created_at", monthStart);
+          return { value: `${total && total > 0 ? Math.round((completed || 0) / total * 100) : 0}%`, label: "Utilization" };
         }
         case "food": {
-          // Average Order Value
-          const { data: orders } = await supabase
-            .from("food_orders")
-            .select("total_cents")
-            .eq("tenant_id", tenant.id)
-            .gte("created_at", monthStart);
-          if (!orders || orders.length === 0) return { value: "$0", label: "Avg Order" };
-          const totalCents = orders.reduce((sum, o) => sum + (o.total_cents || 0), 0);
-          const avgCents = Math.round(totalCents / orders.length);
-          return { value: formatRevenue(avgCents), label: "Avg Order" };
+          const { data: orders } = await supabase.from("food_orders").select("total_cents").eq("tenant_id", tenant.id).gte("created_at", monthStart);
+          if (!orders?.length) return { value: "$0", label: "Avg Order" };
+          return { value: formatRevenue(Math.round(orders.reduce((sum, o) => sum + (o.total_cents || 0), 0) / orders.length)), label: "Avg Order" };
         }
         case "dispatch": {
-          // Average Response Time (time from created to dispatched)
-          const { data: jobs } = await supabase
-            .from("dispatch_jobs")
-            .select("created_at, dispatched_at")
-            .eq("tenant_id", tenant.id)
-            .not("dispatched_at", "is", null)
-            .gte("created_at", monthStart)
-            .limit(100);
-          if (!jobs || jobs.length === 0) return { value: "—", label: "Avg Response" };
-          let totalMinutes = 0;
-          let count = 0;
-          jobs.forEach(j => {
-            if (j.dispatched_at && j.created_at) {
-              const diff = (new Date(j.dispatched_at).getTime() - new Date(j.created_at).getTime()) / 60000;
-              if (diff > 0 && diff < 1440) { // Less than 24 hours
-                totalMinutes += diff;
-                count++;
-              }
-            }
-          });
-          const avgMin = count > 0 ? Math.round(totalMinutes / count) : 0;
-          return { value: avgMin > 0 ? `${avgMin}m` : "—", label: "Avg Response" };
+          const { data: jobs } = await supabase.from("dispatch_jobs").select("created_at, dispatched_at").eq("tenant_id", tenant.id).not("dispatched_at", "is", null).gte("created_at", monthStart).limit(100);
+          if (!jobs?.length) return { value: "—", label: "Avg Response" };
+          let totalMin = 0, count = 0;
+          jobs.forEach(j => { if (j.dispatched_at) { const diff = (new Date(j.dispatched_at).getTime() - new Date(j.created_at).getTime()) / 60000; if (diff > 0 && diff < 1440) { totalMin += diff; count++; } } });
+          return { value: count > 0 ? `${Math.round(totalMin / count)}m` : "—", label: "Avg Response" };
         }
         case "medical": {
-          // Show Rate (confirmed / total appointments)
-          const { count: confirmed } = await supabase
-            .from("bookings")
-            .select("*", { count: "exact", head: true })
-            .eq("tenant_id", tenant.id)
-            .in("status", ["confirmed", "completed"])
-            .gte("created_at", monthStart);
-          const { count: total } = await supabase
-            .from("bookings")
-            .select("*", { count: "exact", head: true })
-            .eq("tenant_id", tenant.id)
-            .gte("created_at", monthStart);
-          const showRate = total && total > 0 ? Math.round((confirmed || 0) / total * 100) : 0;
-          return { value: `${showRate}%`, label: "Show Rate" };
+          const { count: confirmed } = await supabase.from("bookings").select("*", { count: "exact", head: true }).eq("tenant_id", tenant.id).in("status", ["confirmed", "completed"]).gte("created_at", monthStart);
+          const { count: total } = await supabase.from("bookings").select("*", { count: "exact", head: true }).eq("tenant_id", tenant.id).gte("created_at", monthStart);
+          return { value: `${total && total > 0 ? Math.round((confirmed || 0) / total * 100) : 0}%`, label: "Show Rate" };
         }
-        default:
-          return null;
+        default: return null;
       }
     },
     enabled: !!tenant?.id,
@@ -268,170 +294,63 @@ export function DashboardHeroMetrics() {
 
   // Fetch patient count for medical mode
   const { data: patientCount, isLoading: patientLoading } = useQuery({
-    queryKey: ["hero-patients", tenant?.id, monthStart],
-    queryFn: async () => {
-      if (!tenant?.id) return 0;
-      const { count } = await supabase
-        .from("customers")
-        .select("*", { count: "exact", head: true })
-        .eq("tenant_id", tenant.id);
-      return count || 0;
-    },
+    queryKey: ["hero-patients", tenant?.id],
+    queryFn: async () => { if (!tenant?.id) return 0; const { count } = await supabase.from("customers").select("*", { count: "exact", head: true }).eq("tenant_id", tenant.id); return count || 0; },
     enabled: !!tenant?.id && businessMode === "medical",
   });
 
-  const isLoading = callsLoading || primaryLoading || roiLoading || tertiaryLoading || 
-    (businessMode === "medical" && patientLoading);
+  const isLoading = callsLoading || primaryLoading || roiLoading || tertiaryLoading || (businessMode === "medical" && patientLoading);
+  const comparisonLabels: Record<ComparisonPeriod, string> = { yesterday: "yesterday", last_week: "last week", last_month: "last month" };
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map((i) => <MetricSkeleton key={i} />)}
+      <div className="space-y-3">
+        <div className="flex justify-end"><Skeleton className="h-8 w-28" /></div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">{[1, 2, 3, 4].map((i) => <MetricSkeleton key={i} />)}</div>
       </div>
     );
   }
 
-  const getTrend = (today: number, yesterday: number): HeroMetric["trend"] => {
-    if (yesterday === 0) return { value: 0, direction: "flat" };
-    const change = Math.round(((today - yesterday) / yesterday) * 100);
-    return {
-      value: Math.abs(change),
-      direction: change > 0 ? "up" : change < 0 ? "down" : "flat",
-    };
+  const getTrend = (today: number, comparison: number): HeroMetric["trend"] => {
+    if (comparison === 0) return { value: 0, direction: "flat" };
+    const change = Math.round(((today - comparison) / comparison) * 100);
+    return { value: Math.abs(change), direction: change > 0 ? "up" : change < 0 ? "down" : "flat" };
   };
 
-  const callsTrend = getTrend(callsData?.today || 0, callsData?.yesterday || 0);
-  const primaryTrend = getTrend(primaryMetric?.today || 0, primaryMetric?.yesterday || 0);
+  const callsTrend = getTrend(callsData?.today || 0, callsData?.comparison || 0);
+  const primaryTrend = getTrend(primaryMetric?.today || 0, primaryMetric?.comparison || 0);
 
-  // Build metrics based on business mode
   const getMetricsByMode = (): HeroMetric[] => {
-    const callsMetric: HeroMetric = {
-      label: "Calls Today",
-      value: callsData?.today || 0,
-      icon: Phone,
-      trend: callsTrend,
-      accent: "bg-primary/10 text-primary",
-      href: "/app/inbox",
-    };
-
-    const revenueMetric: HeroMetric = {
-      label: "AI Revenue",
-      value: roiData ? formatRevenue(roiData.aiRevenueCents) : "$0",
-      icon: DollarSign,
-      trend: roiData?.trends ? {
-        value: Math.abs(Math.round(roiData.trends.revenue)),
-        direction: roiData.trends.revenue > 0 ? "up" : roiData.trends.revenue < 0 ? "down" : "flat",
-      } : undefined,
-      accent: "bg-success/10 text-success",
-      href: "/app/reports/roi",
-    };
+    const callsMetric: HeroMetric = { label: "Calls Today", value: callsData?.today || 0, icon: Phone, trend: callsTrend, accent: "bg-primary/10 text-primary", href: "/app/inbox", sparkline: callsData?.sparkline };
+    const revenueMetric: HeroMetric = { label: "AI Revenue", value: roiData ? formatRevenue(roiData.aiRevenueCents) : "$0", icon: DollarSign, trend: roiData?.trends ? { value: Math.abs(Math.round(roiData.trends.revenue)), direction: roiData.trends.revenue > 0 ? "up" : roiData.trends.revenue < 0 ? "down" : "flat" } : undefined, accent: "bg-success/10 text-success", href: "/app/reports/roi" };
 
     switch (businessMode) {
-      case "food":
-        return [
-          callsMetric,
-          {
-            label: "Orders Today",
-            value: primaryMetric?.today || 0,
-            icon: UtensilsCrossed,
-            trend: primaryTrend,
-            accent: "bg-orange-500/10 text-orange-500",
-            href: "/app/orders",
-          },
-          revenueMetric,
-          {
-            label: tertiaryMetric?.label || "Avg Order",
-            value: tertiaryMetric?.value || "$0",
-            icon: ShoppingBag,
-            accent: "bg-warning/10 text-warning",
-            href: "/app/orders",
-          },
-        ];
-
-      case "dispatch":
-        return [
-          callsMetric,
-          {
-            label: "Jobs Today",
-            value: primaryMetric?.today || 0,
-            icon: Truck,
-            trend: primaryTrend,
-            accent: "bg-purple-500/10 text-purple-500",
-            href: "/app/dispatch",
-          },
-          revenueMetric,
-          {
-            label: tertiaryMetric?.label || "Avg Response",
-            value: tertiaryMetric?.value || "—",
-            icon: Clock,
-            accent: "bg-info/10 text-info",
-            href: "/app/dispatch",
-          },
-        ];
-
-      case "medical":
-        return [
-          callsMetric,
-          {
-            label: "Appointments",
-            value: primaryMetric?.today || 0,
-            icon: Stethoscope,
-            trend: primaryTrend,
-            accent: "bg-teal-500/10 text-teal-500",
-            href: "/app/bookings",
-          },
-          {
-            label: "Patients",
-            value: patientCount || 0,
-            icon: Users,
-            accent: "bg-blue-500/10 text-blue-500",
-            href: "/app/customers",
-          },
-          {
-            label: tertiaryMetric?.label || "Show Rate",
-            value: tertiaryMetric?.value || "0%",
-            icon: Activity,
-            accent: "bg-success/10 text-success",
-            href: "/app/reports",
-          },
-        ];
-
-      case "service":
-      case "general":
-      default:
-        return [
-          callsMetric,
-          {
-            label: terms.bookingsMetricLabel || "Bookings Today",
-            value: primaryMetric?.today || 0,
-            icon: Calendar,
-            trend: primaryTrend,
-            accent: "bg-blue-500/10 text-blue-500",
-            href: "/app/bookings",
-          },
-          revenueMetric,
-          {
-            label: tertiaryMetric?.label || "Utilization",
-            value: tertiaryMetric?.value || "0%",
-            icon: TrendingUp,
-            accent: "bg-warning/10 text-warning",
-            href: "/app/reports/roi",
-          },
-        ];
+      case "food": return [callsMetric, { label: "Orders Today", value: primaryMetric?.today || 0, icon: UtensilsCrossed, trend: primaryTrend, accent: "bg-warning/10 text-warning", href: "/app/orders", sparkline: primaryMetric?.sparkline }, revenueMetric, { label: tertiaryMetric?.label || "Avg Order", value: tertiaryMetric?.value || "$0", icon: ShoppingBag, accent: "bg-warning/10 text-warning", href: "/app/orders" }];
+      case "dispatch": return [callsMetric, { label: "Jobs Today", value: primaryMetric?.today || 0, icon: Truck, trend: primaryTrend, accent: "bg-info/10 text-info", href: "/app/dispatch", sparkline: primaryMetric?.sparkline }, revenueMetric, { label: tertiaryMetric?.label || "Avg Response", value: tertiaryMetric?.value || "—", icon: Clock, accent: "bg-info/10 text-info", href: "/app/dispatch" }];
+      case "medical": return [callsMetric, { label: "Appointments", value: primaryMetric?.today || 0, icon: Stethoscope, trend: primaryTrend, accent: "bg-info/10 text-info", href: "/app/bookings", sparkline: primaryMetric?.sparkline }, { label: "Patients", value: patientCount || 0, icon: Users, accent: "bg-info/10 text-info", href: "/app/customers" }, { label: tertiaryMetric?.label || "Show Rate", value: tertiaryMetric?.value || "0%", icon: Activity, accent: "bg-success/10 text-success", href: "/app/reports" }];
+      default: return [callsMetric, { label: terms.bookingsMetricLabel || "Bookings Today", value: primaryMetric?.today || 0, icon: Calendar, trend: primaryTrend, accent: "bg-info/10 text-info", href: "/app/bookings", sparkline: primaryMetric?.sparkline }, revenueMetric, { label: tertiaryMetric?.label || "Utilization", value: tertiaryMetric?.value || "0%", icon: TrendingUp, accent: "bg-warning/10 text-warning", href: "/app/reports/roi" }];
     }
   };
 
   const metrics = getMetricsByMode();
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      {metrics.map((metric) => (
-        <MetricCard 
-          key={metric.label} 
-          metric={metric} 
-          onClick={() => navigate(metric.href)}
-        />
-      ))}
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">vs {comparisonLabels[comparisonPeriod]}<ChevronDown className="h-3.5 w-3.5" /></Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setComparisonPeriod("yesterday")}>vs Yesterday</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setComparisonPeriod("last_week")}>vs Last Week</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setComparisonPeriod("last_month")}>vs Last Month</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {metrics.map((metric) => (<MetricCard key={metric.label} metric={metric} onClick={() => navigate(metric.href)} comparisonLabel={comparisonLabels[comparisonPeriod]} />))}
+      </div>
     </div>
   );
 }
