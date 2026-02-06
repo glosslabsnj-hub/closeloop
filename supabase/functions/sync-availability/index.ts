@@ -31,47 +31,68 @@ serve(async (req: Request) => {
       });
     }
 
-    // Verify user and get tenant
-    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    // Parse body first to check for cron mode
+    const body = await req.json();
+    const { connection_id, days = 30, _cron_tenant_id } = body;
 
-    const { data: { user }, error: userError } = await userClient.auth.getUser();
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    let tenantId: string | null = null;
+
+    // Check if this is a cron call (service role with explicit tenant_id)
+    const token = authHeader.replace("Bearer ", "");
+    const isServiceRole = token === SUPABASE_SERVICE_ROLE_KEY;
+
+    if (isServiceRole && _cron_tenant_id) {
+      // Cron mode: trust the tenant_id from the cron job
+      tenantId = _cron_tenant_id;
+      console.log("[sync-availability] Cron mode for tenant:", tenantId);
+    } else {
+      // User mode: verify user and get tenant
+      const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { headers: { Authorization: authHeader } },
       });
-    }
 
-    // Check if user has an active tenant override (for multi-tenant users/admins)
-    const { data: adminSettings } = await userClient
-      .from("admin_settings")
-      .select("admin_active_tenant_id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    let tenantId: string | null = adminSettings?.admin_active_tenant_id || null;
-
-    // If no active tenant override, get the first tenant the user belongs to
-    if (!tenantId) {
-      const { data: tenantUser } = await userClient
-        .from("tenant_users")
-        .select("tenant_id")
-        .eq("user_id", user.id)
-        .limit(1)
-        .maybeSingle();
-
-      if (!tenantUser) {
-        return new Response(JSON.stringify({ error: "No tenant" }), {
-          status: 400,
+      const { data: { user }, error: userError } = await userClient.auth.getUser();
+      if (userError || !user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      tenantId = tenantUser.tenant_id;
+
+      // Check if user has an active tenant override (for multi-tenant users/admins)
+      const { data: adminSettings } = await userClient
+        .from("admin_settings")
+        .select("admin_active_tenant_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      tenantId = adminSettings?.admin_active_tenant_id || null;
+
+      // If no active tenant override, get the first tenant the user belongs to
+      if (!tenantId) {
+        const { data: tenantUser } = await userClient
+          .from("tenant_users")
+          .select("tenant_id")
+          .eq("user_id", user.id)
+          .limit(1)
+          .maybeSingle();
+
+        if (!tenantUser) {
+          return new Response(JSON.stringify({ error: "No tenant" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        tenantId = tenantUser.tenant_id;
+      }
     }
 
-    const { connection_id, days = 30 } = await req.json();
+    if (!tenantId) {
+      return new Response(JSON.stringify({ error: "No tenant" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Use service role for token access
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -327,17 +348,22 @@ async function fetchGoogleBusyTimes(
         const startAt = event.start?.dateTime || event.start?.date;
         const endAt = event.end?.dateTime || event.end?.date;
 
-        if (!startAt || !endAt) continue;
+        console.log(`  Raw event: "${event.summary}" | start=${JSON.stringify(event.start)} | end=${JSON.stringify(event.end)}`);
 
-        // Skip zero-duration events
-        if (startAt === endAt) {
-          console.log(`Skipping zero-duration event: ${event.summary || "Untitled"}`);
+        if (!startAt || !endAt) {
+          console.log(`  -> Skipping: missing start or end time`);
           continue;
         }
 
-        // Skip all-day events (they have date but not dateTime)
+        // Skip zero-duration events (but log details for debugging)
+        if (startAt === endAt) {
+          console.log(`  -> Skipping zero-duration: startAt=${startAt}, endAt=${endAt}`);
+          continue;
+        }
+
+        // Skip all-day events (they have date but not dateTime) - these block full days
         if (!event.start?.dateTime) {
-          console.log(`Skipping all-day event: ${event.summary || "Untitled"}`);
+          console.log(`  -> Skipping all-day event (no dateTime)`);
           continue;
         }
 
