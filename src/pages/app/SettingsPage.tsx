@@ -37,6 +37,7 @@ import { DangerZoneSection } from "@/components/settings/DangerZoneSection";
 import { SettingsCard } from "@/components/settings/SettingsSection";
 import { RevenueSettingsSection } from "@/components/settings/RevenueSettingsSection";
 import { RecoverySettingsSection } from "@/components/settings/recovery/RecoverySettingsSection";
+import { BusinessProfileSettings } from "@/components/settings/BusinessProfileSettings";
 import { cn } from "@/lib/utils";
 
 interface SettingsGroup {
@@ -209,19 +210,7 @@ export default function SettingsPage() {
   const renderSectionContent = () => {
     switch (activeSection) {
       case "profile":
-        return (
-          <SettingsCard
-            title="Business Profile"
-            description="Your business identity and contact information."
-          >
-            <p className="text-sm text-muted-foreground">
-              Business profile settings are managed in the Business Brain → Identity section.
-            </p>
-            <Button variant="outline" className="mt-4" onClick={() => window.location.href = "/app/brain"}>
-              Go to Business Brain
-            </Button>
-          </SettingsCard>
-        );
+        return <BusinessProfileSettings />;
 
       case "team":
         return (
