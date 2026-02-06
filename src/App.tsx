@@ -57,6 +57,7 @@ import WorkflowEditPage from "@/pages/app/WorkflowEditPage";
 import WorkflowRunsPage from "@/pages/app/WorkflowRunsPage";
 import WorkflowRunDetailPage from "@/pages/app/WorkflowRunDetailPage";
 import LeadRecoveryPage from "@/pages/app/LeadRecoveryPage";
+import CustomersPage from "@/pages/app/CustomersPage";
 
 import AdminOverviewPage from "@/pages/admin/AdminOverviewPage";
 import AdminTenantsPage from "@/pages/admin/AdminTenantsPage";
@@ -129,6 +130,7 @@ const App = () => (
               <Route path="/app/kitchen" element={<KitchenDisplayPage />} />
               <Route path="/app/loyalty" element={<LoyaltyPage />} />
               <Route path="/app/settings" element={<SettingsPage />} />
+              <Route path="/app/customers" element={<CustomersPage />} />
               {/* Module-specific routes */}
               <Route path="/app/orders" element={<OrdersPage />} />
               <Route path="/app/reservations" element={<ReservationsPage />} />
