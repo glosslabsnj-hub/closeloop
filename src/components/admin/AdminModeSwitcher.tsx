@@ -63,6 +63,50 @@ const BUSINESS_MODES: Record<BusinessMode, ModeConfig> = {
   },
 };
 
+// Helper to normalize phone to E.164 for customer matching
+function normalizePhoneE164(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  if (phone.startsWith("+")) return phone;
+  return `+${digits}`;
+}
+
+// Helper to find or create a customer and return their ID
+async function findOrCreateCustomer(
+  tenantId: string, 
+  name: string, 
+  phone: string
+): Promise<string> {
+  const phoneE164 = normalizePhoneE164(phone);
+  
+  // First try to find existing customer
+  const { data: existing } = await supabase
+    .from("customers")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("phone_e164", phoneE164)
+    .maybeSingle();
+  
+  if (existing) return existing.id;
+  
+  // Create new customer
+  const { data: newCustomer, error } = await supabase
+    .from("customers")
+    .insert({
+      tenant_id: tenantId,
+      full_name: name,
+      phone_e164: phoneE164,
+      phone_raw: phone,
+      source: "test_data",
+    })
+    .select("id")
+    .single();
+  
+  if (error) throw new Error(`Customer creation failed: ${error.message}`);
+  return newCustomer.id;
+}
+
 async function clearAllIndustrySpecificData(tenantId: string) {
   // Clear all industry-specific tables to avoid stale data
   await Promise.all([
@@ -95,40 +139,52 @@ async function insertFoodModeData(tenantId: string) {
     if (error) throw new Error(`Menu items: ${error.message}`);
   }
   
-  // Insert reservations with computed dates
+  // Insert reservations with computed dates - must create customers first
   if (testData.reservations && testData.reservations.length > 0) {
-    const reservationRecords = testData.reservations.map(res => ({
-      tenant_id: tenantId,
-      customer_name: res.customer_name,
-      customer_phone: res.customer_phone,
-      party_size: res.party_size,
-      reservation_date: getRelativeDate(res.reservation_date),
-      reservation_time: res.reservation_time,
-      status: res.status,
-      special_requests: res.special_requests,
-      table_preference: res.table_preference,
-    }));
+    const reservationRecords = await Promise.all(
+      testData.reservations.map(async (res) => {
+        const customerId = await findOrCreateCustomer(tenantId, res.customer_name, res.customer_phone);
+        return {
+          tenant_id: tenantId,
+          customer_id: customerId,
+          customer_name: res.customer_name,
+          customer_phone: res.customer_phone,
+          party_size: res.party_size,
+          reservation_date: getRelativeDate(res.reservation_date),
+          reservation_time: res.reservation_time,
+          status: res.status,
+          special_requests: res.special_requests,
+          table_preference: res.table_preference,
+        };
+      })
+    );
     
     const { error } = await supabase.from("reservations").insert(reservationRecords);
     if (error) throw new Error(`Reservations: ${error.message}`);
   }
   
-  // Insert food orders
+  // Insert food orders - must create customers first
   if (testData.orders && testData.orders.length > 0) {
-    const orderRecords = testData.orders.map(order => ({
-      tenant_id: tenantId,
-      order_number: order.order_number,
-      order_type: order.order_type,
-      customer_name: order.customer_name,
-      customer_phone: order.customer_phone,
-      items_json: order.items_json,
-      subtotal_cents: order.subtotal_cents,
-      tax_cents: order.tax_cents,
-      total_cents: order.total_cents,
-      status: order.status,
-      special_instructions: order.special_instructions,
-      delivery_address: order.delivery_address,
-    }));
+    const orderRecords = await Promise.all(
+      testData.orders.map(async (order) => {
+        const customerId = await findOrCreateCustomer(tenantId, order.customer_name, order.customer_phone);
+        return {
+          tenant_id: tenantId,
+          customer_id: customerId,
+          order_number: order.order_number,
+          order_type: order.order_type,
+          customer_name: order.customer_name,
+          customer_phone: order.customer_phone,
+          items_json: order.items_json,
+          subtotal_cents: order.subtotal_cents,
+          tax_cents: order.tax_cents,
+          total_cents: order.total_cents,
+          status: order.status,
+          special_instructions: order.special_instructions,
+          delivery_address: order.delivery_address,
+        };
+      })
+    );
     
     const { error } = await supabase.from("food_orders").insert(orderRecords);
     if (error) throw new Error(`Food orders: ${error.message}`);
@@ -165,27 +221,33 @@ async function insertDispatchModeData(tenantId: string) {
   if (testData.dispatchJobs && testData.dispatchJobs.length > 0) {
     const now = new Date();
     
-    const dispatchRecords = testData.dispatchJobs.map((job, index) => ({
-      tenant_id: tenantId,
-      job_number: job.job_number,
-      job_type: job.job_type,
-      priority: job.priority,
-      status: job.status,
-      customer_name: job.customer_name,
-      customer_phone: job.customer_phone,
-      pickup_address: job.pickup_address,
-      dropoff_address: job.dropoff_address,
-      description: job.description,
-      assigned_crew: job.assigned_crew,
-      assigned_vehicle: job.assigned_vehicle,
-      estimated_duration_minutes: job.estimated_duration_minutes,
-      price_cents: job.price_cents,
-      notes: job.notes,
-      requested_at: new Date(now.getTime() - (index + 1) * 1800000).toISOString(), // 30 min apart
-      dispatched_at: job.status !== "pending" ? new Date(now.getTime() - index * 1200000).toISOString() : null,
-      arrived_at: job.status === "on_site" || job.status === "completed" ? new Date(now.getTime() - index * 600000).toISOString() : null,
-      completed_at: job.status === "completed" ? new Date(now.getTime() - 3600000).toISOString() : null,
-    }));
+    const dispatchRecords = await Promise.all(
+      testData.dispatchJobs.map(async (job, index) => {
+        const customerId = await findOrCreateCustomer(tenantId, job.customer_name, job.customer_phone);
+        return {
+          tenant_id: tenantId,
+          customer_id: customerId,
+          job_number: job.job_number,
+          job_type: job.job_type,
+          priority: job.priority,
+          status: job.status,
+          customer_name: job.customer_name,
+          customer_phone: job.customer_phone,
+          pickup_address: job.pickup_address,
+          dropoff_address: job.dropoff_address,
+          description: job.description,
+          assigned_crew: job.assigned_crew,
+          assigned_vehicle: job.assigned_vehicle,
+          estimated_duration_minutes: job.estimated_duration_minutes,
+          price_cents: job.price_cents,
+          notes: job.notes,
+          requested_at: new Date(now.getTime() - (index + 1) * 1800000).toISOString(), // 30 min apart
+          dispatched_at: job.status !== "pending" ? new Date(now.getTime() - index * 1200000).toISOString() : null,
+          arrived_at: job.status === "on_site" || job.status === "completed" ? new Date(now.getTime() - index * 600000).toISOString() : null,
+          completed_at: job.status === "completed" ? new Date(now.getTime() - 3600000).toISOString() : null,
+        };
+      })
+    );
     
     const { error } = await supabase.from("dispatch_jobs").insert(dispatchRecords);
     if (error) throw new Error(`Dispatch jobs: ${error.message}`);
