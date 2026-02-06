@@ -128,17 +128,19 @@ serve(async (req: Request) => {
     // Resolve tenant_id
     let resolvedTenantId: string | null = tenant_id || null;
     let sessionId: string | null = null;
+    let sessionCallerPhone: string | null = null;
     
     // Try to get tenant from conversation_id if not provided
     if (!resolvedTenantId && conversation_id) {
       const { data: session } = await supabase
         .from("ai_call_sessions")
-        .select("tenant_id, id")
+        .select("tenant_id, id, caller_phone")
         .eq("elevenlabs_conversation_id", conversation_id)
         .maybeSingle();
       
       resolvedTenantId = session?.tenant_id || null;
       sessionId = session?.id || null;
+      sessionCallerPhone = session?.caller_phone || null;
       console.log(`[elevenlabs-create-dispatch-job] Resolved tenant from conversation: ${resolvedTenantId?.substring(0, 8)}...`);
     }
 
@@ -182,8 +184,9 @@ serve(async (req: Request) => {
       );
     }
 
-    // Normalize phone
-    const phoneE164 = normalizePhone(customer_phone);
+    // Normalize phone (prefer caller_id from the active session if the tool didn't send customer_phone)
+    const effectivePhoneRaw = (customer_phone || sessionCallerPhone || "").trim();
+    const phoneE164 = normalizePhone(effectivePhoneRaw);
 
     // Find or create customer
     let customerId: string | null = null;
@@ -205,21 +208,23 @@ serve(async (req: Request) => {
               .update({ full_name: customer_name, updated_at: new Date().toISOString() })
               .eq("id", customerId);
           }
-        } else if (customer_name) {
-          // Create new customer
-          const { data: newCustomer } = await supabase
+        } else {
+          // Create new customer (name optional)
+          const { data: newCustomer, error: newCustomerError } = await supabase
             .from("customers")
             .insert({
               tenant_id: resolvedTenantId,
-              full_name: customer_name,
+              full_name: customer_name?.trim() || "Unknown",
               phone_e164: phoneE164,
-              phone_raw: customer_phone,
+              phone_raw: customer_phone || null,
               source: "voice_ai"
             })
             .select("id")
             .single();
 
-          if (newCustomer) {
+          if (newCustomerError) {
+            console.error("[elevenlabs-create-dispatch-job] Failed to create customer:", newCustomerError);
+          } else if (newCustomer) {
             customerId = newCustomer.id;
           }
         }
@@ -227,6 +232,18 @@ serve(async (req: Request) => {
         console.error("[elevenlabs-create-dispatch-job] Customer lookup/create error:", e);
         // Continue without customer record
       }
+    }
+
+    if (!customerId) {
+      console.error("[elevenlabs-create-dispatch-job] Missing customerId (cannot create dispatch job)");
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "I can still get this dispatched — what's the best callback number for you?",
+          error: "Unable to resolve or create customer"
+        } as CreateDispatchJobResponse),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Generate job number
@@ -245,7 +262,7 @@ serve(async (req: Request) => {
         tenant_id: resolvedTenantId,
         job_number: jobNumber,
         customer_id: customerId,
-        customer_name: customer_name || "Caller",
+        customer_name: customer_name?.trim() || "Unknown",
         customer_phone: phoneE164 || customer_phone || null,
         pickup_address: pickup_address,
         dropoff_address: dropoff_address || null,
