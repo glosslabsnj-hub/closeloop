@@ -87,7 +87,7 @@ export function MobileSettingsNav({ activeSection, onSectionChange, config }: Mo
       label: "AI Features",
       colorClass: "text-emerald-500",
       items: [
-        { id: "recovery", label: "Lead Recovery", icon: RefreshCw },
+        { id: "recovery", label: "Lead Recovery", icon: RefreshCw, visible: config.showRecovery },
       ],
     },
     {
