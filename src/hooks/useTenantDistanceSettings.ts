@@ -10,6 +10,7 @@ export interface TenantDistanceSettings {
   tenant_id: string;
   distance_provider_enabled: boolean;
   provider: string;
+  geocode_provider: string;  // 'mapbox' or 'here'
   base_lat: number | null;
   base_lng: number | null;
   base_place_name: string | null;
@@ -26,6 +27,7 @@ export interface TenantDistanceSettings {
 const DEFAULT_SETTINGS: Omit<TenantDistanceSettings, "tenant_id" | "created_at" | "updated_at"> = {
   distance_provider_enabled: false,
   provider: "mapbox",
+  geocode_provider: "mapbox",
   base_lat: null,
   base_lng: null,
   base_place_name: null,
