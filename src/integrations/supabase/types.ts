@@ -5692,6 +5692,7 @@ export type Database = {
           eta_min_minutes: number | null
           eta_per_mile_minutes: number | null
           eta_rounding_minutes: number
+          geocode_provider: string
           mapbox_route_profile: string
           provider: string
           service_radius_miles: number | null
@@ -5710,6 +5711,7 @@ export type Database = {
           eta_min_minutes?: number | null
           eta_per_mile_minutes?: number | null
           eta_rounding_minutes?: number
+          geocode_provider?: string
           mapbox_route_profile?: string
           provider?: string
           service_radius_miles?: number | null
@@ -5728,6 +5730,7 @@ export type Database = {
           eta_min_minutes?: number | null
           eta_per_mile_minutes?: number | null
           eta_rounding_minutes?: number
+          geocode_provider?: string
           mapbox_route_profile?: string
           provider?: string
           service_radius_miles?: number | null
