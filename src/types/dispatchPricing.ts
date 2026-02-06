@@ -23,6 +23,11 @@ export type DistanceBasis =
   | "flat";             // Ignore distance
 
 export const DISTANCE_BASIS_OPTIONS = [
+  {
+    value: "default" as const,
+    label: "Use Business Default",
+    description: "Use the default set in your Business Brain",
+  },
   { 
     value: "tow_distance" as const, 
     label: "Tow Distance (pickup → dropoff)", 

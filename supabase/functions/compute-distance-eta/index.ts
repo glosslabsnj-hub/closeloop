@@ -39,11 +39,6 @@ interface ComputeEtaRequest {
   origin_address_text?: string;
   // If true, skips tenant settings lookup (for simple point-to-point calculations)
   skip_eta_settings?: boolean;
-  /**
-   * Legacy: if true, applies eta_per_mile_minutes on top of Mapbox drive time.
-   * NOTE: This can dramatically inflate ETAs because Mapbox duration already reflects distance.
-   */
-  apply_per_mile_buffer?: boolean;
 }
 
 interface ComputeEtaResponse {
@@ -72,7 +67,6 @@ interface ComputeEtaResponse {
     busy_pct: number;
     busy_buffer_minutes: number;
     drive_minutes: number;
-    per_mile_buffer_minutes: number;
     rounding_minutes: number;
     total_minutes: number;
   };
@@ -154,7 +148,6 @@ serve(async (req: Request) => {
       origin_lng,
       origin_address_text,
       skip_eta_settings = false,
-      apply_per_mile_buffer = false,
     } = body;
 
     if (!tenant_id) {
@@ -559,19 +552,9 @@ serve(async (req: Request) => {
       );
 
       // Total ETA = busyness-adjusted response time + drive time
+      // NOTE: Mapbox duration already reflects distance + traffic.
+      // No additional per-mile buffer is applied - this was removed to prevent inflated ETAs.
       etaMinutes = responseTime + durationMinutes;
-
-      // IMPORTANT: Mapbox duration already reflects distance + traffic.
-      // Applying a per-mile buffer on top of that double-counts distance and can inflate ETAs.
-      // Keep per-mile as opt-in legacy behavior only.
-      const perMileBufferMinutes =
-        apply_per_mile_buffer && settings.eta_per_mile_minutes
-          ? Math.ceil(distanceMiles * settings.eta_per_mile_minutes)
-          : 0;
-
-      if (perMileBufferMinutes > 0) {
-        etaMinutes += perMileBufferMinutes;
-      }
 
       // Apply min/max clamps
       if (settings.eta_min_minutes !== null) {
@@ -617,10 +600,6 @@ serve(async (req: Request) => {
             (busynessRules?.busy_buffer_minutes ?? 15)
         ),
         drive_minutes: durationMinutes,
-        per_mile_buffer_minutes:
-          apply_per_mile_buffer && settings.eta_per_mile_minutes
-            ? Math.ceil(distanceMiles * settings.eta_per_mile_minutes)
-            : 0,
         rounding_minutes: rounding,
         total_minutes: etaMinutes,
       },

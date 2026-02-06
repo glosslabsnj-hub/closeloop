@@ -5686,6 +5686,7 @@ export type Database = {
           base_place_name: string | null
           base_state_hint: string | null
           created_at: string
+          default_distance_basis: string | null
           distance_provider_enabled: boolean
           eta_base_minutes: number
           eta_max_minutes: number | null
@@ -5705,6 +5706,7 @@ export type Database = {
           base_place_name?: string | null
           base_state_hint?: string | null
           created_at?: string
+          default_distance_basis?: string | null
           distance_provider_enabled?: boolean
           eta_base_minutes?: number
           eta_max_minutes?: number | null
@@ -5724,6 +5726,7 @@ export type Database = {
           base_place_name?: string | null
           base_state_hint?: string | null
           created_at?: string
+          default_distance_basis?: string | null
           distance_provider_enabled?: boolean
           eta_base_minutes?: number
           eta_max_minutes?: number | null

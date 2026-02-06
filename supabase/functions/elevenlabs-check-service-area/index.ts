@@ -186,7 +186,7 @@ serve(async (req: Request) => {
     // Get tenant settings and towing services with pricing config
     const [tenantResult, distanceSettingsResult, towingServicesResult] = await Promise.all([
       supabase.from("tenants").select("service_area_json").eq("id", tenantId).single(),
-      supabase.from("tenant_distance_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
+      supabase.from("tenant_distance_settings").select("*, default_distance_basis").eq("tenant_id", tenantId).maybeSingle(),
       // Fetch towing services that may have distance-tiered pricing
       supabase.from("services")
         .select("id, name, pricing_config_json, service_category")
@@ -308,8 +308,13 @@ serve(async (req: Request) => {
     ) || towingServices[0];
 
     // Determine which distance to use for pricing based on service config
+    // Priority: service-level override > tenant default > fallback to tow_distance
     const pricingConfig = primaryTowService?.pricing_config_json as Record<string, unknown> | null;
-    const distanceBasis = (pricingConfig?.distance_basis as string) || "tow_distance";
+    const tenantDefaultBasis = (distanceSettings?.default_distance_basis as string) || "tow_distance";
+    const serviceBasis = pricingConfig?.distance_basis as string | undefined;
+    const distanceBasis = serviceBasis || tenantDefaultBasis;
+    
+    console.log(`[check-service-area] Distance basis: service=${serviceBasis || 'none'} tenant_default=${tenantDefaultBasis} → using ${distanceBasis}`);
     
     let pricingDistanceMiles: number | null;
     let distanceBasisUsed: string;
@@ -320,6 +325,9 @@ serve(async (req: Request) => {
     } else if (distanceBasis === "total_trip") {
       pricingDistanceMiles = (dispatchDistanceMiles || 0) + (towDistanceMiles || 0);
       distanceBasisUsed = "total_trip";
+    } else if (distanceBasis === "flat") {
+      pricingDistanceMiles = 0;
+      distanceBasisUsed = "flat";
     } else {
       // Default: tow_distance - use tow distance if available, else dispatch
       pricingDistanceMiles = towDistanceMiles ?? dispatchDistanceMiles;
