@@ -496,34 +496,46 @@ serve(async (req: Request) => {
       }
     }
     
-    // Build message - include verification prompt if needed
+    // Build message
+    // Important: if we are clearly out of area, say so even if geocoding is uncertain.
     let message = "";
-    if (needsVerification) {
-      // For ambiguous addresses, still try to serve but flag for verification
+    if (!inArea) {
+      message = `Outside ${radiusMiles}-mile service area (${dispatchDistanceMiles?.toFixed(1)} miles away)`;
+    } else if (needsVerification) {
+      // For ambiguous addresses *within* the service area, prompt for clarification.
       message = verificationMessage || "Address needs verification";
-    } else if (inArea) {
+    } else {
       if (towDistanceMiles !== null) {
         message = `Dispatch: ${dispatchDistanceMiles?.toFixed(1) || "?"} mi to pickup, Tow: ${towDistanceMiles.toFixed(1)} mi to dropoff`;
       } else {
         message = `Within service area - ${dispatchDistanceMiles?.toFixed(1) || "?"} miles from base`;
       }
-    } else {
-      message = `Outside ${radiusMiles}-mile service area (${dispatchDistanceMiles?.toFixed(1)} miles away)`;
     }
 
+    // Previously we defaulted to in_area=true whenever geocoding was uncertain.
+    // That makes truly out-of-area addresses look like "can't find you".
+    // New rule: only keep calls "in area" when the computed distance is within the radius.
+    const responseInArea = inArea;
+
+    // If out of area, always mark as out_of_area regardless of uncertainty.
+    const responseServiceTier: ServiceAreaResponse["service_tier"] = responseInArea
+      ? (needsVerification ? "long_distance" : serviceTier)
+      : "out_of_area";
+
     const response: ServiceAreaResponse = {
-      // If geocoding is uncertain, default to in_area to avoid false rejections
-      in_area: needsVerification ? true : inArea,
+      in_area: responseInArea,
       distance_miles: dispatchDistanceMiles,
       tow_distance_miles: towDistanceMiles,
       dropoff_geocoded: dropoffGeocoded,
       eta_minutes: dispatchData.eta_minutes_estimate,
       eta_range: dispatchData.eta_range_minutes || `${distanceSettings.eta_min_minutes || 30}-${distanceSettings.eta_max_minutes || 60} minutes`,
       message,
-      service_tier: needsVerification ? "long_distance" : serviceTier,
-      pricing_note: needsVerification 
-        ? "Address is approximate - collect details and verify exact location before quoting."
-        : pricingNote,
+      service_tier: responseServiceTier,
+      pricing_note: !responseInArea
+        ? `Outside service area (${radiusMiles} miles). Collect details and offer a callback if needed.`
+        : (needsVerification
+            ? "Address is approximate - collect details and verify exact location before quoting."
+            : pricingNote),
       local_radius_miles: localRadiusMiles,
       distance_basis_used: distanceBasisUsed,
       price_breakdown: needsVerification ? null : priceBreakdown,
