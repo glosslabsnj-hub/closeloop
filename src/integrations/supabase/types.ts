@@ -381,10 +381,15 @@ export type Database = {
           business_phone_number: string | null
           busy_toggle: boolean
           calendar_provider: string | null
+          cancellation_notice_hours: number | null
           closeloop_number: string | null
+          confirmation_method: string | null
           connect_status: string | null
           created_at: string
+          deposit_amount: string | null
+          deposit_required: boolean | null
           dispatch_ivr_mode: string | null
+          emergency_surcharge: string | null
           forwarding_phone_e164: string | null
           go_live_enabled: boolean
           impound_agent_id: string | null
@@ -406,6 +411,8 @@ export type Database = {
           readiness_p1_flags: Json | null
           readiness_recommendations: Json | null
           readiness_score: number | null
+          recurring_enabled: boolean | null
+          same_day_enabled: boolean | null
           service_default_flow: string | null
           setup_completed_at: string | null
           setup_step_calendar: boolean | null
@@ -418,6 +425,7 @@ export type Database = {
           updated_at: string
           voice_ai_enabled: boolean
           voice_mode: Database["public"]["Enums"]["voice_mode"]
+          waitlist_enabled: boolean | null
         }
         Insert: {
           ai_booking_mode?: string | null
@@ -426,10 +434,15 @@ export type Database = {
           business_phone_number?: string | null
           busy_toggle?: boolean
           calendar_provider?: string | null
+          cancellation_notice_hours?: number | null
           closeloop_number?: string | null
+          confirmation_method?: string | null
           connect_status?: string | null
           created_at?: string
+          deposit_amount?: string | null
+          deposit_required?: boolean | null
           dispatch_ivr_mode?: string | null
+          emergency_surcharge?: string | null
           forwarding_phone_e164?: string | null
           go_live_enabled?: boolean
           impound_agent_id?: string | null
@@ -451,6 +464,8 @@ export type Database = {
           readiness_p1_flags?: Json | null
           readiness_recommendations?: Json | null
           readiness_score?: number | null
+          recurring_enabled?: boolean | null
+          same_day_enabled?: boolean | null
           service_default_flow?: string | null
           setup_completed_at?: string | null
           setup_step_calendar?: boolean | null
@@ -463,6 +478,7 @@ export type Database = {
           updated_at?: string
           voice_ai_enabled?: boolean
           voice_mode?: Database["public"]["Enums"]["voice_mode"]
+          waitlist_enabled?: boolean | null
         }
         Update: {
           ai_booking_mode?: string | null
@@ -471,10 +487,15 @@ export type Database = {
           business_phone_number?: string | null
           busy_toggle?: boolean
           calendar_provider?: string | null
+          cancellation_notice_hours?: number | null
           closeloop_number?: string | null
+          confirmation_method?: string | null
           connect_status?: string | null
           created_at?: string
+          deposit_amount?: string | null
+          deposit_required?: boolean | null
           dispatch_ivr_mode?: string | null
+          emergency_surcharge?: string | null
           forwarding_phone_e164?: string | null
           go_live_enabled?: boolean
           impound_agent_id?: string | null
@@ -496,6 +517,8 @@ export type Database = {
           readiness_p1_flags?: Json | null
           readiness_recommendations?: Json | null
           readiness_score?: number | null
+          recurring_enabled?: boolean | null
+          same_day_enabled?: boolean | null
           service_default_flow?: string | null
           setup_completed_at?: string | null
           setup_step_calendar?: boolean | null
@@ -508,6 +531,7 @@ export type Database = {
           updated_at?: string
           voice_ai_enabled?: boolean
           voice_mode?: Database["public"]["Enums"]["voice_mode"]
+          waitlist_enabled?: boolean | null
         }
         Relationships: [
           {
@@ -6465,6 +6489,95 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      waitlist: {
+        Row: {
+          contacted_at: string | null
+          created_at: string | null
+          customer_id: string | null
+          customer_name: string
+          customer_phone: string
+          expires_at: string | null
+          id: string
+          notes: string | null
+          preferred_date: string | null
+          preferred_time_end: string | null
+          preferred_time_start: string | null
+          service_id: string | null
+          service_name: string | null
+          session_id: string | null
+          status: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          contacted_at?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          customer_name: string
+          customer_phone: string
+          expires_at?: string | null
+          id?: string
+          notes?: string | null
+          preferred_date?: string | null
+          preferred_time_end?: string | null
+          preferred_time_start?: string | null
+          service_id?: string | null
+          service_name?: string | null
+          session_id?: string | null
+          status?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          contacted_at?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          customer_name?: string
+          customer_phone?: string
+          expires_at?: string | null
+          id?: string
+          notes?: string | null
+          preferred_date?: string | null
+          preferred_time_end?: string | null
+          preferred_time_start?: string | null
+          service_id?: string | null
+          service_name?: string | null
+          session_id?: string | null
+          status?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waitlist_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waitlist_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waitlist_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_call_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waitlist_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       webhook_executions: {
         Row: {

@@ -250,6 +250,15 @@ export interface BusinessContext {
     greeting_script: string;
     fallback_script: string;
     service_default_flow: "schedule_first" | "urgency_check" | "dispatch_first";
+    ai_booking_mode: "pending" | "auto_confirm";
+    same_day_enabled: boolean;
+    emergency_surcharge: string;
+    cancellation_notice_hours: number;
+    confirmation_method: "sms" | "email" | "both";
+    waitlist_enabled: boolean;
+    recurring_enabled: boolean;
+    deposit_required: boolean;
+    deposit_amount: string;
   };
   // Business Brain snapshot (full structured data)
   business_brain?: BusinessBrainSnapshot;
@@ -1590,6 +1599,15 @@ export async function buildBusinessContext(
       greeting_script: assistant?.greeting_script || "",
       fallback_script: assistant?.fallback_script || "",
       service_default_flow: (assistantSettings?.service_default_flow as "schedule_first" | "urgency_check" | "dispatch_first") || "schedule_first",
+      ai_booking_mode: (assistantSettings?.ai_booking_mode as "pending" | "auto_confirm") || "pending",
+      same_day_enabled: assistantSettings?.same_day_enabled !== false,
+      emergency_surcharge: assistantSettings?.emergency_surcharge || "",
+      cancellation_notice_hours: assistantSettings?.cancellation_notice_hours || 24,
+      confirmation_method: (assistantSettings?.confirmation_method as "sms" | "email" | "both") || "sms",
+      waitlist_enabled: assistantSettings?.waitlist_enabled === true,
+      recurring_enabled: assistantSettings?.recurring_enabled === true,
+      deposit_required: assistantSettings?.deposit_required === true,
+      deposit_amount: assistantSettings?.deposit_amount || "",
     },
     // Business Brain fields - initialized with defaults, populated below
     business_brain_summary: "",
