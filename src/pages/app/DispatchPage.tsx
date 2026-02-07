@@ -44,12 +44,6 @@ interface DispatchJob {
   arrived_at?: string | null;
   completed_at?: string | null;
   customers?: { full_name: string; phone_e164: string } | null;
-  // Distance and pricing data
-  dispatch_distance_miles?: number | null;
-  tow_distance_miles?: number | null;
-  total_distance_miles?: number | null;
-  service_tier?: string | null;
-  pricing_note?: string | null;
 }
 
 export default function DispatchPage() {

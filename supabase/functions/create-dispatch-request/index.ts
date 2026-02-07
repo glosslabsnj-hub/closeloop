@@ -253,50 +253,6 @@ serve(async (req: Request) => {
     // Use sanitized name for dispatch job
     const dispatchCustomerName = sanitizedName;
 
-    // ========== DEDUPLICATION: Check for existing job with same session_id ==========
-    // This prevents duplicate jobs when the AI calls the tool multiple times during a single call
-    if (sessionId) {
-      const { data: existingJob } = await supabase
-        .from("dispatch_jobs")
-        .select("id, job_number, customer_name")
-        .eq("tenant_id", tenantId)
-        .eq("session_id", sessionId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (existingJob) {
-        console.log(`[create-dispatch-request] Existing job found for session ${sessionId}: ${existingJob.job_number}`);
-        
-        // Update the existing job with any new information (name, notes, etc.)
-        const updatePayload: Record<string, unknown> = {
-          updated_at: new Date().toISOString(),
-        };
-        
-        // Update name if we now have a better one
-        if (shouldUpdateCustomerName(existingJob.customer_name || "", rawCustomerName)) {
-          updatePayload.customer_name = sanitizedName;
-        }
-        
-        if (notes) updatePayload.notes = notes;
-        if (dropoff_address) updatePayload.dropoff_address = dropoff_address;
-        
-        await supabase
-          .from("dispatch_jobs")
-          .update(updatePayload)
-          .eq("id", existingJob.id);
-
-        console.log(`[create-dispatch-request] Updated existing job ${existingJob.job_number} with new data`);
-
-        return jsonResponse({
-          success: true,
-          job_number: existingJob.job_number,
-          dispatch_id: existingJob.id,
-          message: `Dispatch ${existingJob.job_number} updated successfully`
-        } as CreateDispatchResponse);
-      }
-    }
-
     // Generate job number
     const jobNumber = generateJobNumber();
 

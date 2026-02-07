@@ -49,12 +49,6 @@ interface DispatchJob {
   arrived_at?: string | null;
   completed_at?: string | null;
   customers?: { full_name: string; phone_e164: string } | null;
-  // Distance and pricing data
-  dispatch_distance_miles?: number | null;
-  tow_distance_miles?: number | null;
-  total_distance_miles?: number | null;
-  service_tier?: string | null;
-  pricing_note?: string | null;
 }
 
 interface DispatchJobDetailsSheetProps {
@@ -287,58 +281,6 @@ export function DispatchJobDetailsSheet({
 
           <Separator />
 
-          {/* Distance & Pricing */}
-          {(job.dispatch_distance_miles || job.tow_distance_miles || job.pricing_note || job.price_cents) && (
-            <>
-              <div className="space-y-3">
-                <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                  Distance & Pricing
-                </h4>
-                <div className="grid grid-cols-2 gap-4">
-                  {job.dispatch_distance_miles !== null && job.dispatch_distance_miles !== undefined && (
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Distance to Pickup</p>
-                      <p className="text-sm font-medium">{job.dispatch_distance_miles.toFixed(1)} mi</p>
-                    </div>
-                  )}
-                  {job.tow_distance_miles !== null && job.tow_distance_miles !== undefined && (
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Tow Distance</p>
-                      <p className="text-sm font-medium">{job.tow_distance_miles.toFixed(1)} mi</p>
-                    </div>
-                  )}
-                  {job.total_distance_miles !== null && job.total_distance_miles !== undefined && (
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Total Trip</p>
-                      <p className="text-sm font-medium">{job.total_distance_miles.toFixed(1)} mi</p>
-                    </div>
-                  )}
-                  {job.service_tier && (
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Service Tier</p>
-                      <Badge variant="outline" className="capitalize">{job.service_tier.replace("_", " ")}</Badge>
-                    </div>
-                  )}
-                  {job.price_cents !== null && job.price_cents !== undefined && (
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Price</p>
-                      <div className="flex items-center gap-1">
-                        <DollarSign className="h-4 w-4 text-emerald-500" />
-                        <p className="text-sm font-semibold">${(job.price_cents / 100).toFixed(2)}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                {job.pricing_note && (
-                  <div className="p-3 rounded-lg bg-muted/50 text-sm">
-                    {job.pricing_note}
-                  </div>
-                )}
-              </div>
-              <Separator />
-            </>
-          )}
-
           {/* Job Details */}
           <div className="space-y-3">
             <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
@@ -349,6 +291,15 @@ export function DispatchJobDetailsSheet({
                 <p className="text-xs text-muted-foreground">Service Type</p>
                 <p className="text-sm font-medium">{job.job_type || "General"}</p>
               </div>
+              {job.price_cents !== null && job.price_cents !== undefined && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Price</p>
+                  <div className="flex items-center gap-1">
+                    <DollarSign className="h-4 w-4 text-emerald-500" />
+                    <p className="text-sm font-semibold">{(job.price_cents / 100).toFixed(2)}</p>
+                  </div>
+                </div>
+              )}
               {job.estimated_duration_minutes && (
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Est. Duration</p>
@@ -364,7 +315,7 @@ export function DispatchJobDetailsSheet({
                 <p className="text-xs text-muted-foreground">Notes</p>
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
                   <FileText className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-                  <p className="text-sm">{job.description}{job.description && job.notes ? " • " : ""}{job.notes}</p>
+                  <p className="text-sm">{job.description || job.notes}</p>
                 </div>
               </div>
             )}
