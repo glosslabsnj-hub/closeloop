@@ -2005,6 +2005,7 @@ export type Database = {
           job_type: string | null
           notes: string | null
           on_site_at: string | null
+          photos: Json | null
           pickup_address: string | null
           pickup_lat: number | null
           pickup_lng: number | null
@@ -2047,6 +2048,7 @@ export type Database = {
           job_type?: string | null
           notes?: string | null
           on_site_at?: string | null
+          photos?: Json | null
           pickup_address?: string | null
           pickup_lat?: number | null
           pickup_lng?: number | null
@@ -2089,6 +2091,7 @@ export type Database = {
           job_type?: string | null
           notes?: string | null
           on_site_at?: string | null
+          photos?: Json | null
           pickup_address?: string | null
           pickup_lat?: number | null
           pickup_lng?: number | null

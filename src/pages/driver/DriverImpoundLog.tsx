@@ -16,6 +16,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import {
   Select,
@@ -25,7 +26,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Truck, CheckCircle2 } from "lucide-react";
+import { Loader2, Truck, CheckCircle2, Camera, ChevronDown, ChevronUp } from "lucide-react";
+import { PhotoUploader } from "@/components/driver/PhotoUploader";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const impoundSchema = z.object({
   license_plate: z.string().min(1, "License plate is required"),
@@ -47,6 +50,8 @@ export default function DriverImpoundLog() {
   const { activeJobs, driverRecord } = useDriverJobs();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [showOptionalFields, setShowOptionalFields] = useState(false);
 
   const form = useForm<ImpoundFormValues>({
     resolver: zodResolver(impoundSchema),
@@ -83,6 +88,7 @@ export default function DriverImpoundLog() {
         status: "in_lot",
         towed_at: new Date().toISOString(),
         logged_by_driver_id: driverRecord?.id || null,
+        photos: photos.length > 0 ? photos : null,
       } as Record<string, unknown>;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -92,7 +98,7 @@ export default function DriverImpoundLog() {
 
       setShowSuccess(true);
       form.reset();
-      
+      setPhotos([]);
       setTimeout(() => {
         setShowSuccess(false);
       }, 3000);
@@ -141,18 +147,18 @@ export default function DriverImpoundLog() {
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
           {/* License Plate - Large Input */}
           <FormField
             control={form.control}
             name="license_plate"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>License Plate *</FormLabel>
+                <FormLabel className="text-base">License Plate *</FormLabel>
                 <FormControl>
                   <Input 
                     placeholder="ABC-1234" 
-                    className="text-lg h-12 font-mono uppercase"
+                    className="text-xl h-14 font-mono uppercase text-center tracking-widest"
                     {...field} 
                   />
                 </FormControl>
@@ -161,41 +167,31 @@ export default function DriverImpoundLog() {
             )}
           />
 
-          {/* VIN */}
-          <FormField
-            control={form.control}
-            name="vin"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>VIN (if available)</FormLabel>
-                <FormControl>
-                  <Input 
-                    placeholder="1HGBH41JXMN109186" 
-                    className="font-mono uppercase"
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {/* Photo Upload Section */}
+          {tenant?.id && (
+            <Card className="border-dashed">
+              <CardHeader className="pb-3 pt-4">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Camera className="h-4 w-4" />
+                  Vehicle Photos
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Take photos of the vehicle for documentation
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pb-4">
+                <PhotoUploader
+                  tenantId={tenant.id}
+                  entityType="impound"
+                  onPhotosChange={setPhotos}
+                  maxPhotos={5}
+                />
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Year/Make/Model Row */}
+          {/* Quick Vehicle Info */}
           <div className="grid grid-cols-3 gap-3">
-            <FormField
-              control={form.control}
-              name="year"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Year</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="2024" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             <FormField
               control={form.control}
               name="make"
@@ -223,22 +219,21 @@ export default function DriverImpoundLog() {
                 </FormItem>
               )}
             />
-          </div>
 
-          {/* Color */}
-          <FormField
-            control={form.control}
-            name="color"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Color</FormLabel>
-                <FormControl>
-                  <Input placeholder="Silver" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            <FormField
+              control={form.control}
+              name="color"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Color</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Silver" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
           {/* Link to Dispatch Job */}
           {activeJobs.length > 0 && (
@@ -247,30 +242,33 @@ export default function DriverImpoundLog() {
               name="dispatch_job_id"
               render={({ field }) => (
                 <FormItem>
-                    <FormLabel>Link to Job (optional)</FormLabel>
-                    <Select
-                      onValueChange={(val) => field.onChange(val === "none" ? "" : val)}
-                      value={field.value || ""}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a job to link" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="none">No link</SelectItem>
-                        {activeJobs.map((job) => (
-                          <SelectItem key={job.id} value={job.id}>
-                            #{job.job_number || job.id.slice(0, 8)} - {job.customer_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
+                  <FormLabel>Link to Job</FormLabel>
+                  <Select
+                    onValueChange={(val) => field.onChange(val === "none" ? "" : val)}
+                    value={field.value || ""}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="h-12">
+                        <SelectValue placeholder="Select a job to link" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="none">No link</SelectItem>
+                      {activeJobs.map((job) => (
+                        <SelectItem key={job.id} value={job.id}>
+                          #{job.job_number || job.id.slice(0, 8)} - {job.customer_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription className="text-xs">
+                    Automatically links photos and details to the job
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
 
           {/* Reason */}
           <FormField
@@ -278,26 +276,11 @@ export default function DriverImpoundLog() {
             name="reason"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Reason for Impound</FormLabel>
+                <FormLabel>Reason for Tow</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., Accident recovery, police hold" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Notes */}
-          <FormField
-            control={form.control}
-            name="notes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Notes</FormLabel>
-                <FormControl>
-                  <Textarea 
-                    placeholder="Any additional details..."
-                    rows={3}
+                  <Input 
+                    placeholder="e.g., Accident recovery, police hold" 
+                    className="h-12"
                     {...field} 
                   />
                 </FormControl>
@@ -306,18 +289,85 @@ export default function DriverImpoundLog() {
             )}
           />
 
+          {/* Optional Fields - Collapsible */}
+          <Collapsible open={showOptionalFields} onOpenChange={setShowOptionalFields}>
+            <CollapsibleTrigger asChild>
+              <Button type="button" variant="ghost" className="w-full justify-between h-10 text-muted-foreground">
+                <span className="text-sm">More Details (VIN, Year, Notes)</span>
+                {showOptionalFields ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 pt-2">
+              {/* VIN */}
+              <FormField
+                control={form.control}
+                name="vin"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>VIN</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="1HGBH41JXMN109186" 
+                        className="font-mono uppercase"
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Year */}
+              <FormField
+                control={form.control}
+                name="year"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Year</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="2024" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Notes */}
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notes</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Any additional details..."
+                        rows={3}
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CollapsibleContent>
+          </Collapsible>
+
           <Button 
             type="submit" 
-            className="w-full h-12 text-lg"
+            className="w-full h-14 text-lg font-semibold"
             disabled={isSubmitting}
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                Logging...
+                Logging Vehicle...
               </>
             ) : (
-              "Log Vehicle"
+              <>
+                <Truck className="h-5 w-5 mr-2" />
+                Log Vehicle to Impound
+              </>
             )}
           </Button>
         </form>
