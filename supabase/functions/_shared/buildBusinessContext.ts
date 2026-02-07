@@ -185,6 +185,9 @@ export interface BusinessContext {
       pricing_negotiation: string;
       capacity: string;
       escalation: string;
+      recognition: string;
+      max_discount_percent: number;
+      loyalty_threshold_orders: number;
     };
     ai_guidelines_summary: string;
   };
@@ -1160,49 +1163,141 @@ function buildOutOfAreaMessage(
 
 // ============= AI GUIDELINES HELPER FUNCTIONS =============
 
+// New structure from AIBusinessPolicies component
+interface PolicyConfig {
+  enabled?: boolean;
+  guidance?: string;
+  thresholds?: Record<string, number | string>;
+}
+
 interface AiPoliciesJson {
+  // New nested structure (from AIBusinessPolicies.tsx)
+  upsell?: PolicyConfig;
+  pricing?: PolicyConfig;
+  capacity?: PolicyConfig;
+  recognition?: PolicyConfig;
+  escalation?: PolicyConfig;
+  // Legacy flat structure (backwards compatibility)
   upselling?: string;
   pricing_negotiation?: string;
-  capacity?: string;
-  escalation?: string;
-  [key: string]: string | undefined;
+  [key: string]: PolicyConfig | string | undefined;
 }
 
 /**
  * Build a speech-ready summary of AI guidelines/policies.
  * These are high-level strategic instructions for the AI (upselling, pricing flexibility, etc.)
  */
+/**
+ * Extract guidance string from either new nested structure or legacy flat structure
+ */
+function extractPolicyGuidance(policy: PolicyConfig | string | undefined): string {
+  if (!policy) return "";
+  if (typeof policy === "string") return policy;
+  // New nested structure - only return guidance if enabled
+  if (policy.enabled === false) return "";
+  return policy.guidance || "";
+}
+
+/**
+ * Extract threshold value from new nested policy structure
+ */
+function extractPolicyThreshold(policy: PolicyConfig | string | undefined, key: string): number | string | undefined {
+  if (!policy || typeof policy === "string") return undefined;
+  return policy.thresholds?.[key];
+}
+
+/**
+ * Build a speech-ready summary of AI guidelines/policies.
+ * Handles both new nested structure and legacy flat structure.
+ */
 function buildAiGuidelinesSummary(aiPolicies: AiPoliciesJson | null | undefined): string {
   if (!aiPolicies) return "";
 
   const parts: string[] = [];
 
-  if (aiPolicies.upselling) {
-    parts.push(`Upselling: ${aiPolicies.upselling}`);
-  }
-  if (aiPolicies.pricing_negotiation) {
-    parts.push(`Pricing flexibility: ${aiPolicies.pricing_negotiation}`);
-  }
-  if (aiPolicies.capacity) {
-    parts.push(`Capacity/availability: ${aiPolicies.capacity}`);
-  }
-  if (aiPolicies.escalation) {
-    parts.push(`Escalation: ${aiPolicies.escalation}`);
+  // Handle upselling (new: upsell, legacy: upselling)
+  const upsellGuidance = extractPolicyGuidance(aiPolicies.upsell) || extractPolicyGuidance(aiPolicies.upselling);
+  if (upsellGuidance) {
+    parts.push(`Upselling: ${upsellGuidance}`);
   }
 
-  // Check for any other custom keys
-  for (const key of Object.keys(aiPolicies)) {
-    if (!["upselling", "pricing_negotiation", "capacity", "escalation"].includes(key)) {
-      const value = aiPolicies[key];
-      if (value) {
-        parts.push(`${key}: ${value}`);
-      }
+  // Handle pricing/negotiation (new: pricing, legacy: pricing_negotiation)
+  const pricingGuidance = extractPolicyGuidance(aiPolicies.pricing) || extractPolicyGuidance(aiPolicies.pricing_negotiation);
+  if (pricingGuidance) {
+    // Include threshold info if available
+    const maxDiscount = extractPolicyThreshold(aiPolicies.pricing, "max_discount_percent");
+    const loyaltyThreshold = extractPolicyThreshold(aiPolicies.pricing, "loyalty_threshold_orders");
+    let pricingPart = `Pricing flexibility: ${pricingGuidance}`;
+    if (maxDiscount !== undefined && Number(maxDiscount) > 0) {
+      pricingPart += ` (Max discount: ${maxDiscount}%)`;
     }
+    if (loyaltyThreshold !== undefined) {
+      pricingPart += ` (Loyalty after ${loyaltyThreshold} orders)`;
+    }
+    parts.push(pricingPart);
+  }
+
+  // Handle capacity (both structures use same key)
+  const capacityGuidance = extractPolicyGuidance(aiPolicies.capacity);
+  if (capacityGuidance) {
+    const busyThreshold = extractPolicyThreshold(aiPolicies.capacity, "busy_threshold_percent");
+    let capacityPart = `Capacity/availability: ${capacityGuidance}`;
+    if (busyThreshold !== undefined) {
+      capacityPart += ` (Busy at ${busyThreshold}%)`;
+    }
+    parts.push(capacityPart);
+  }
+
+  // Handle recognition (new structure only)
+  const recognitionGuidance = extractPolicyGuidance(aiPolicies.recognition);
+  if (recognitionGuidance) {
+    parts.push(`Customer recognition: ${recognitionGuidance}`);
+  }
+
+  // Handle escalation (both structures use same key)
+  const escalationGuidance = extractPolicyGuidance(aiPolicies.escalation);
+  if (escalationGuidance) {
+    parts.push(`Escalation: ${escalationGuidance}`);
   }
 
   if (parts.length === 0) return "";
 
   return parts.join(". ") + ".";
+}
+
+/**
+ * Extract individual policy guidances for dynamic variables
+ */
+function extractAiGuidelines(aiPolicies: AiPoliciesJson | null | undefined): {
+  upselling: string;
+  pricing_negotiation: string;
+  capacity: string;
+  escalation: string;
+  recognition: string;
+  max_discount_percent: number;
+  loyalty_threshold_orders: number;
+} {
+  const defaults = {
+    upselling: "",
+    pricing_negotiation: "",
+    capacity: "",
+    escalation: "",
+    recognition: "",
+    max_discount_percent: 0,
+    loyalty_threshold_orders: 5,
+  };
+  
+  if (!aiPolicies) return defaults;
+
+  return {
+    upselling: extractPolicyGuidance(aiPolicies.upsell) || extractPolicyGuidance(aiPolicies.upselling) || "",
+    pricing_negotiation: extractPolicyGuidance(aiPolicies.pricing) || extractPolicyGuidance(aiPolicies.pricing_negotiation) || "",
+    capacity: extractPolicyGuidance(aiPolicies.capacity) || "",
+    escalation: extractPolicyGuidance(aiPolicies.escalation) || "",
+    recognition: extractPolicyGuidance(aiPolicies.recognition) || "",
+    max_discount_percent: Number(extractPolicyThreshold(aiPolicies.pricing, "max_discount_percent")) || 0,
+    loyalty_threshold_orders: Number(extractPolicyThreshold(aiPolicies.pricing, "loyalty_threshold_orders")) || 5,
+  };
 }
 
 // ============= PRICING HELPER FUNCTIONS =============
@@ -1523,20 +1618,26 @@ export async function buildBusinessContext(
     intake: {
       required_fields: parseIntakeFields(tenant.context_fields_json),
     },
-    policies: {
-      cancellation: tenant.cancellation_policy || "",
-      deposit: tenant.deposit_policy || "",
-      refund: tenant.refund_policy || "",
-      payment_methods: tenant.payment_methods || [],
-      ai_never_promise: tenant.ai_never_promise || [],
-      ai_guidelines: {
-        upselling: tenant.ai_policies_json?.upselling || "",
-        pricing_negotiation: tenant.ai_policies_json?.pricing_negotiation || "",
-        capacity: tenant.ai_policies_json?.capacity || "",
-        escalation: tenant.ai_policies_json?.escalation || "",
-      },
-      ai_guidelines_summary: buildAiGuidelinesSummary(tenant.ai_policies_json),
-    },
+    policies: (() => {
+      const aiGuidelines = extractAiGuidelines(tenant.ai_policies_json);
+      return {
+        cancellation: tenant.cancellation_policy || "",
+        deposit: tenant.deposit_policy || "",
+        refund: tenant.refund_policy || "",
+        payment_methods: tenant.payment_methods || [],
+        ai_never_promise: tenant.ai_never_promise || [],
+        ai_guidelines: {
+          upselling: aiGuidelines.upselling,
+          pricing_negotiation: aiGuidelines.pricing_negotiation,
+          capacity: aiGuidelines.capacity,
+          escalation: aiGuidelines.escalation,
+          recognition: aiGuidelines.recognition,
+          max_discount_percent: aiGuidelines.max_discount_percent,
+          loyalty_threshold_orders: aiGuidelines.loyalty_threshold_orders,
+        },
+        ai_guidelines_summary: buildAiGuidelinesSummary(tenant.ai_policies_json),
+      };
+    })(),
     food_settings: foodSettings ? {
       estimated_prep_minutes: foodSettings.estimated_prep_minutes || 15,
       accepts_pickup: foodSettings.accepts_pickup !== false,
