@@ -154,11 +154,11 @@ export function ImpoundReleaseEditor() {
           <div>
             <p className="text-sm font-medium text-primary mb-1">What the AI tells customers</p>
             <p className="text-sm italic">
-              "To pick up your vehicle, you'll need to bring 
+              "To pick up your vehicle, you'll need to bring: 
               {allActiveRequirements.length > 0 
-                ? ` ${allActiveRequirements.map(r => r.description || r.label.toLowerCase()).join(" and ")}.`
+                ? ` ${allActiveRequirements.map(r => r.label.toLowerCase()).join(", ")}.`
                 : " a valid ID and payment."
-              }"
+              } Make sure to have all documents ready when you arrive."
             </p>
           </div>
         </div>
@@ -167,16 +167,23 @@ export function ImpoundReleaseEditor() {
       {/* Standard Requirements */}
       <Card>
         <CardContent className="pt-6 space-y-4">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-2">
             <FileCheck className="h-4 w-4 text-muted-foreground" />
             <h4 className="font-medium">Standard Requirements</h4>
           </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Select the documents and conditions required to release a vehicle. The AI will tell callers exactly what to bring.
+          </p>
 
           <div className="space-y-3">
             {BUILT_IN_REQUIREMENTS.map((req) => (
               <label
                 key={req.id}
-                className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors"
+                className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                  selectedRequirements.includes(req.id)
+                    ? "border-primary bg-primary/5"
+                    : "hover:bg-muted/50"
+                }`}
               >
                 <Checkbox
                   checked={selectedRequirements.includes(req.id)}
@@ -198,7 +205,7 @@ export function ImpoundReleaseEditor() {
         <CardContent className="pt-6 space-y-4">
           <h4 className="font-medium">Custom Requirements</h4>
           <p className="text-sm text-muted-foreground">
-            Add additional requirements specific to your business.
+            Add specific requirements for your business that aren't listed above. For example: "Manager approval for police holds" or "Lienholder authorization letter".
           </p>
 
           {customRequirements.length > 0 && (
@@ -226,15 +233,19 @@ export function ImpoundReleaseEditor() {
             </div>
           )}
 
-          <div className="flex gap-2">
-            <div className="flex-1 space-y-2">
+          <div className="space-y-3 p-4 rounded-lg border bg-muted/30">
+            <div className="space-y-2">
+              <Label>Requirement Name</Label>
               <Input
-                placeholder="Requirement name"
+                placeholder="e.g., Manager Signature"
                 value={newCustom.label}
                 onChange={(e) => setNewCustom(prev => ({ ...prev, label: e.target.value }))}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Description (optional)</Label>
               <Input
-                placeholder="Description (optional)"
+                placeholder="e.g., Required for vehicles held over 30 days"
                 value={newCustom.description}
                 onChange={(e) => setNewCustom(prev => ({ ...prev, description: e.target.value }))}
               />
@@ -243,9 +254,10 @@ export function ImpoundReleaseEditor() {
               variant="outline"
               onClick={addCustomRequirement}
               disabled={!newCustom.label.trim()}
-              className="self-start"
+              className="w-full"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-4 w-4 mr-2" />
+              Add Custom Requirement
             </Button>
           </div>
         </CardContent>

@@ -164,14 +164,15 @@ export function ImpoundFeesEditor() {
         <div className="flex items-start gap-3">
           <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-primary mb-1">What the AI tells customers</p>
+            <p className="text-sm font-medium text-primary mb-1">What the AI tells customers (example with {exampleDays} days storage)</p>
             <p className="text-sm italic">
               "The total to release your vehicle is ${formatDollars(exampleTotal)}. 
-              That includes the ${formatDollars(settings.base_tow_fee_cents)} tow fee plus 
-              ${formatDollars(exampleDays * settings.daily_storage_cents)} for {exampleDays} days of storage and fees. 
+              That's ${formatDollars(settings.base_tow_fee_cents)} for the tow, 
+              ${formatDollars(exampleDays * settings.daily_storage_cents)} for {exampleDays} days of storage, 
+              plus ${formatDollars(settings.admin_fee_cents + settings.gate_fee_cents)} in fees. 
               We accept {settings.accepted_payment.map(m => 
                 PAYMENT_METHODS.find(p => p.id === m)?.label.toLowerCase()
-              ).filter(Boolean).join(" or ")}."
+              ).filter(Boolean).join(", ")}."
             </p>
           </div>
         </div>
@@ -180,10 +181,13 @@ export function ImpoundFeesEditor() {
       {/* Fee Structure */}
       <Card>
         <CardContent className="pt-6 space-y-4">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-2">
             <DollarSign className="h-4 w-4 text-muted-foreground" />
             <h4 className="font-medium">Fee Structure</h4>
           </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            The AI calculates total release costs automatically based on days stored. Set your standard fees below.
+          </p>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -199,7 +203,7 @@ export function ImpoundFeesEditor() {
                   className="pl-7"
                 />
               </div>
-              <p className="text-xs text-muted-foreground">One-time tow fee</p>
+              <p className="text-xs text-muted-foreground">Charged once when vehicle is impounded</p>
             </div>
 
             <div className="space-y-2">
@@ -215,11 +219,11 @@ export function ImpoundFeesEditor() {
                   className="pl-7"
                 />
               </div>
-              <p className="text-xs text-muted-foreground">Per day in lot</p>
+              <p className="text-xs text-muted-foreground">Per day the vehicle stays in your lot</p>
             </div>
 
             <div className="space-y-2">
-              <Label>Admin Fee</Label>
+              <Label>Admin/Processing Fee</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                 <Input
@@ -231,11 +235,11 @@ export function ImpoundFeesEditor() {
                   className="pl-7"
                 />
               </div>
-              <p className="text-xs text-muted-foreground">Processing fee</p>
+              <p className="text-xs text-muted-foreground">One-time paperwork/processing fee</p>
             </div>
 
             <div className="space-y-2">
-              <Label>Gate Fee</Label>
+              <Label>Gate Fee (After-Hours)</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                 <Input
@@ -247,8 +251,14 @@ export function ImpoundFeesEditor() {
                   className="pl-7"
                 />
               </div>
-              <p className="text-xs text-muted-foreground">After-hours pickup</p>
+              <p className="text-xs text-muted-foreground">Extra fee for pickups outside normal hours</p>
             </div>
+          </div>
+          
+          <div className="rounded-lg border bg-muted/30 p-3 mt-4">
+            <p className="text-xs text-muted-foreground">
+              <strong>Example calculation:</strong> $150 tow + ($35/day × 3 days) + $25 admin + $50 gate = <strong>${formatDollars(settings.base_tow_fee_cents + 3*settings.daily_storage_cents + settings.admin_fee_cents + settings.gate_fee_cents)}</strong>
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -256,16 +266,23 @@ export function ImpoundFeesEditor() {
       {/* Payment Methods */}
       <Card>
         <CardContent className="pt-6 space-y-4">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-2">
             <CreditCard className="h-4 w-4 text-muted-foreground" />
             <h4 className="font-medium">Accepted Payment Methods</h4>
           </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            The AI will tell callers which payment types you accept for vehicle release.
+          </p>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {PAYMENT_METHODS.map((method) => (
               <label
                 key={method.id}
-                className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors"
+                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                  settings.accepted_payment.includes(method.id) 
+                    ? "border-primary bg-primary/5" 
+                    : "hover:bg-muted/50"
+                }`}
               >
                 <Checkbox
                   checked={settings.accepted_payment.includes(method.id)}
