@@ -91,11 +91,15 @@ export function DistanceBasisSettings() {
 
   return (
     <div className="space-y-4">
-      <div className="space-y-1">
+      <div className="space-y-2">
         <p className="text-sm text-muted-foreground">
-          Most towing businesses charge based on how far the vehicle needs to be towed. 
-          Choose what works best for your business.
+          Choose how you calculate pricing for distance-based services. This affects how the AI quotes customers.
         </p>
+        <div className="rounded-lg border bg-muted/30 p-3">
+          <p className="text-xs text-muted-foreground">
+            <strong>Most towing businesses</strong> charge based on <strong>Tow Distance</strong> — how far the vehicle needs to be hauled. Some charge for the full round trip including drive-out.
+          </p>
+        </div>
       </div>
 
       <RadioGroup
@@ -126,22 +130,25 @@ export function DistanceBasisSettings() {
                   {option.icon}
                   {isSelected && (
                     <Badge variant="secondary" className="ml-auto text-xs">
-                      Current
+                      Active
                     </Badge>
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground">{option.description}</p>
-                <p className="text-xs text-muted-foreground italic">{option.example}</p>
+                <p className="text-xs text-muted-foreground italic">
+                  Example: {option.example}
+                </p>
               </div>
             </Label>
           );
         })}
       </RadioGroup>
 
-      <p className="text-xs text-muted-foreground border-l-2 border-muted pl-3 mt-4">
-        This becomes the default for all services. You can override this on individual services 
-        if some use a different pricing method.
-      </p>
+      <div className="rounded-lg border bg-muted/30 p-3 mt-4">
+        <p className="text-xs text-muted-foreground">
+          <strong>Note:</strong> This is your default for all services. You can override this on individual services if some use a different pricing method (e.g., flat rate for local tows, per-mile for long distance).
+        </p>
+      </div>
     </div>
   );
 }

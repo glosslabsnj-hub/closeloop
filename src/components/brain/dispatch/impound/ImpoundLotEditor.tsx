@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, MapPin, Phone, Building, Navigation, ExternalLink, Car } from "lucide-react";
+import { Loader2, MapPin, Phone, Building, Navigation, ExternalLink, Car, Clock } from "lucide-react";
 
 interface HoursEntry {
   open: string | null;
@@ -247,10 +247,13 @@ export function ImpoundLotEditor() {
       {/* Location Details */}
       <Card>
         <CardContent className="pt-6 space-y-4">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-2">
             <Building className="h-4 w-4 text-muted-foreground" />
             <h4 className="font-medium">Location Details</h4>
           </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            The AI tells callers this address when they ask where to pick up their vehicle.
+          </p>
 
           <div className="space-y-3">
             <div className="space-y-2">
@@ -260,6 +263,9 @@ export function ImpoundLotEditor() {
                 onChange={(e) => updateField("name", e.target.value)}
                 placeholder="Main Impound Lot"
               />
+              <p className="text-xs text-muted-foreground">
+                Example: "Downtown Impound", "ABC Towing Storage Lot"
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -302,13 +308,16 @@ export function ImpoundLotEditor() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Phone className="h-3.5 w-3.5" />
-                Lot Phone
+                Lot Phone Number
               </Label>
               <Input
                 value={lot.phone || ""}
                 onChange={(e) => updateField("phone", e.target.value || null)}
                 placeholder="(512) 555-1234"
               />
+              <p className="text-xs text-muted-foreground">
+                If different from your main business number. AI will give this for impound-specific calls.
+              </p>
             </div>
           </div>
         </CardContent>
@@ -319,29 +328,34 @@ export function ImpoundLotEditor() {
         <CardContent className="pt-6 space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <Navigation className="h-4 w-4 text-muted-foreground" />
-            <h4 className="font-medium">Directions for Customers</h4>
+            <h4 className="font-medium">Driving Directions</h4>
           </div>
           <p className="text-sm text-muted-foreground">
-            The AI will read this to callers asking how to get to your lot.
+            The AI reads this word-for-word when callers ask "How do I get there?" Write it like you're giving directions over the phone.
           </p>
           <Textarea
             value={lot.directions || ""}
             onChange={(e) => updateField("directions", e.target.value || null)}
-            placeholder="Located off Highway 183, behind the Shell gas station. Look for the large blue sign."
-            rows={3}
+            placeholder="We're located off Highway 183, behind the Shell gas station on the corner of 5th and Main. Look for the large blue sign that says 'ABC Towing'. The entrance is on the right side of the building."
+            rows={4}
           />
+          <div className="rounded-lg border bg-muted/30 p-3">
+            <p className="text-xs text-muted-foreground">
+              <strong>Tip:</strong> Include landmarks, cross streets, and what to look for. Avoid abbreviations like "Hwy" — write "Highway" so it sounds natural when spoken.
+            </p>
+          </div>
         </CardContent>
       </Card>
 
       {/* Hours */}
       <Card>
         <CardContent className="pt-6 space-y-4">
-          <div className="flex items-center gap-2 mb-4">
-            <MapPin className="h-4 w-4 text-muted-foreground" />
-            <h4 className="font-medium">Release Hours</h4>
+          <div className="flex items-center gap-2 mb-2">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <h4 className="font-medium">Vehicle Release Hours</h4>
           </div>
           <p className="text-sm text-muted-foreground mb-4">
-            When can customers pick up their vehicles?
+            When can customers pick up their vehicles? The AI will tell callers these hours and whether you're currently open.
           </p>
 
           <div className="space-y-3">
@@ -357,7 +371,7 @@ export function ImpoundLotEditor() {
                     onCheckedChange={(checked) => toggleDayClosed(key, !checked)}
                   />
                   {isClosed ? (
-                    <span className="text-sm text-muted-foreground">Closed</span>
+                    <span className="text-sm text-muted-foreground">Closed — no pickups</span>
                   ) : (
                     <div className="flex items-center gap-2">
                       <Input
@@ -378,6 +392,12 @@ export function ImpoundLotEditor() {
                 </div>
               );
             })}
+          </div>
+          
+          <div className="rounded-lg border bg-amber-500/10 border-amber-500/20 p-3 mt-4">
+            <p className="text-xs text-amber-600 dark:text-amber-400">
+              <strong>After-hours pickups:</strong> If you offer gate fees for after-hours releases, configure that in the Fee Structure section below.
+            </p>
           </div>
         </CardContent>
       </Card>

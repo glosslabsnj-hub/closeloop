@@ -30,22 +30,22 @@ interface IvrOption {
 const IVR_OPTIONS: IvrOption[] = [
   {
     value: "towing_only",
-    label: "Towing Calls Only",
-    description: "All calls go directly to the dispatch AI for towing, roadside, and service requests.",
+    label: "Towing & Roadside Only",
+    description: "All calls go directly to the towing/dispatch AI. Best if you don't handle impound inquiries over the phone.",
     icon: Truck,
     preview: "Hi, thanks for calling! Do you need a tow or roadside assistance today?",
   },
   {
     value: "impound_only",
     label: "Impound Inquiries Only",
-    description: "All calls go directly to the impound AI for vehicle lookups and release information.",
+    description: "All calls go directly to the impound AI. Best for a dedicated impound line or if you only do impound recovery.",
     icon: Warehouse,
-    preview: "Hi, thanks for calling! I can help you check on a vehicle or get release information. What's the license plate number?",
+    preview: "Hi, thanks for calling the impound lot! I can help you check on a vehicle or get release information. What's the plate number?",
   },
   {
     value: "ivr_routing",
-    label: "IVR Menu (1 or 2)",
-    description: "Callers choose: Press 1 for towing/roadside, Press 2 for impound status. Both agents can transfer to each other.",
+    label: "IVR Menu (Press 1 or 2)",
+    description: "Callers choose: Press 1 for towing/roadside, Press 2 for impound. Each agent can transfer to the other if needed.",
     icon: PhoneCall,
     preview: "Thanks for calling! Press 1 for towing and roadside assistance, or press 2 to check on an impounded vehicle.",
   },
@@ -116,12 +116,17 @@ export function DispatchIvrSettings() {
 
   return (
     <div className="space-y-6">
+      {/* Intro Text */}
+      <p className="text-sm text-muted-foreground">
+        Choose how inbound calls are routed when someone calls your CloseLoop number. This controls whether they reach your towing dispatcher, impound assistant, or an IVR menu.
+      </p>
+
       {/* AI Preview */}
       <div className="rounded-lg border bg-primary/5 border-primary/20 p-4">
         <div className="flex items-start gap-3">
           <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-primary mb-1">What callers hear</p>
+            <p className="text-sm font-medium text-primary mb-1">What callers hear first</p>
             <p className="text-sm italic">"{selectedOption.preview}"</p>
           </div>
         </div>
@@ -132,7 +137,7 @@ export function DispatchIvrSettings() {
         <CardContent className="pt-6 space-y-4">
           <div className="flex items-center gap-2 mb-4">
             <Phone className="h-4 w-4 text-muted-foreground" />
-            <h4 className="font-medium">Inbound Call Routing</h4>
+            <h4 className="font-medium">Call Routing Mode</h4>
           </div>
 
           <RadioGroup value={mode} onValueChange={(v) => setMode(v as IvrMode)}>
@@ -167,9 +172,16 @@ export function DispatchIvrSettings() {
       {mode === "ivr_routing" && (
         <div className="rounded-lg border bg-muted/50 p-4">
           <p className="text-sm text-muted-foreground">
-            <strong>Agent Transfers:</strong> Both the towing and impound agents can transfer 
-            callers to each other if needed. For example, if someone calls the towing line 
-            asking about an impounded vehicle, the AI will offer to transfer them.
+            <strong>Smart Transfers:</strong> If someone calls the towing line asking about an impounded vehicle, the AI will offer to transfer them to impound. Same goes the other way — the impound agent can transfer to dispatch if someone needs a tow.
+          </p>
+        </div>
+      )}
+
+      {/* Impound-only tip */}
+      {mode === "impound_only" && (
+        <div className="rounded-lg border bg-amber-500/10 border-amber-500/20 p-4">
+          <p className="text-sm text-amber-600 dark:text-amber-400">
+            <strong>Tip:</strong> With this mode, callers can't request tows from this number. Make sure you have a separate line for dispatch, or switch to IVR routing.
           </p>
         </div>
       )}
@@ -178,7 +190,7 @@ export function DispatchIvrSettings() {
       <div className="flex justify-end">
         <Button onClick={saveSettings} disabled={saving}>
           {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-          Save Routing
+          Save Call Routing
         </Button>
       </div>
     </div>
