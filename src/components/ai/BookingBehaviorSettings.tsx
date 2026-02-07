@@ -25,7 +25,11 @@ export default function BookingBehaviorSettings({ compact, onSave }: BookingBeha
 
   useEffect(() => {
     if (assistantSettings) {
-      setBookingMode(assistantSettings.ai_booking_mode || 'auto_book');
+      // Normalize backend values to UI values
+      const rawMode = assistantSettings.ai_booking_mode;
+      const normalizedMode: 'auto_book' | 'pending_approval' = 
+        rawMode === 'pending_approval' || rawMode === 'pending' ? 'pending_approval' : 'auto_book';
+      setBookingMode(normalizedMode);
       setNotifyEmail(assistantSettings.pending_booking_notify_email ?? true);
       setNotifySms(assistantSettings.pending_booking_notify_sms ?? true);
     }

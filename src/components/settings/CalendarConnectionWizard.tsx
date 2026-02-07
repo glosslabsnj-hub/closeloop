@@ -205,9 +205,10 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
     const connectedCal = connections.find(c => c.status === "connected" && (c.provider === "google" || c.provider === "microsoft"));
     if (connectedCal) {
       setCurrentConnectionId(connectedCal.id);
-      const calendars = (connectedCal.config_json as Record<string, unknown>)?.available_calendars || [];
+      const configJson = connectedCal.config_json as Record<string, unknown> | null;
+      const calendars = (configJson?.available_calendars as AvailableCalendar[]) || [];
       setAvailableCalendars(calendars);
-      setSelectedCalendarIds((connectedCal.config_json as Record<string, unknown>)?.selected_calendar_ids || []);
+      setSelectedCalendarIds((configJson?.selected_calendar_ids as string[]) || []);
     }
   }, [connections]);
 

@@ -62,9 +62,10 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
   const { toast } = useToast();
   
   const [selectedOption, setSelectedOption] = useState<CalendarOption>('closeloop');
-  const [bookingMode, setBookingMode] = useState<'auto_book' | 'pending_approval'>(
-    assistantSettings?.ai_booking_mode || 'auto_book'
-  );
+  const [bookingMode, setBookingMode] = useState<'auto_book' | 'pending_approval'>(() => {
+    const rawMode = assistantSettings?.ai_booking_mode;
+    return rawMode === 'pending_approval' || rawMode === 'pending' ? 'pending_approval' : 'auto_book';
+  });
   const [saving, setSaving] = useState(false);
 
   const saveSettings = async (updates: Record<string, unknown>) => {

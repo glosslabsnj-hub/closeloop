@@ -63,16 +63,16 @@ export function SetupProgressBar({ onNavigateToSection, className }: SetupProgre
         label: "Hours",
         icon: Clock,
         section: "hours",
-        // Would check hours_config or similar
-        isComplete: Boolean(t.hours_today || t.business_hours_json),
+        // Check hours_json on tenant
+        isComplete: Boolean(tenant.hours_json),
       },
       {
         id: "offerings",
         label: businessMode === "food" ? "Menu" : "Services",
         icon: Package,
         section: "services",
-        // Would check services count
-        isComplete: Boolean(t.has_services || t.services_count > 0),
+        // Basic check - would ideally count services
+        isComplete: false, // Requires separate query
       },
       {
         id: "coverage",
@@ -80,8 +80,7 @@ export function SetupProgressBar({ onNavigateToSection, className }: SetupProgre
         icon: MapPin,
         section: "service-area",
         isComplete: Boolean(
-          t.service_area_config_json?.mode || 
-          t.service_area_config_json?.radius_miles
+          (tenant as Record<string, unknown>).service_area_config_json
         ),
       },
       {
@@ -89,15 +88,15 @@ export function SetupProgressBar({ onNavigateToSection, className }: SetupProgre
         label: "Policies",
         icon: Shield,
         section: "policies",
-        isComplete: Boolean(t.cancellation_policy || t.payment_methods?.length > 0),
+        isComplete: Boolean(tenant.cancellation_policy),
       },
       {
         id: "ai",
         label: "AI Scripts",
         icon: Sparkles,
         section: "ai-behavior",
-        // Would check ai_assistants or assistant_settings
-        isComplete: Boolean(t.greeting_script),
+        // Basic check for greeting setup
+        isComplete: false, // Requires assistant_settings query
       },
     ];
   }, [tenant, businessMode]);

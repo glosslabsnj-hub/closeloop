@@ -228,10 +228,10 @@ export function computeEtaQuote(params: {
 }): QuoteResult {
   const { busynessRules, mode, queueMetrics, inputs } = params;
 
-  const baseDuration = inputs.duration || inputs.estimatedDuration;
+  const rawDuration = inputs.duration || inputs.estimatedDuration;
 
   // No base duration provided
-  if (!baseDuration) {
+  if (!rawDuration) {
     return {
       type: "UNKNOWN",
       confidence: 0.3,
@@ -246,6 +246,11 @@ export function computeEtaQuote(params: {
       ],
     };
   }
+
+  // Ensure baseDuration is a number
+  const baseDuration = typeof rawDuration === "number" 
+    ? rawDuration 
+    : parseFloat(String(rawDuration)) || 0;
 
   // Get busyness rule
   const busynessRule = busynessRules[queueMetrics.busynessLevel];
