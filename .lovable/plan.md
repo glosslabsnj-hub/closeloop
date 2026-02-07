@@ -1,242 +1,213 @@
 
-# Voice Agent Flow Overhaul: Industry-Aware Service Agent
+# UI Polish & Busyness Slider Relevance Fix
 
-## Problem Summary
+## Issues Identified
 
-When you called the plumbing business (Blue Boxer Plumbing), the AI agent incorrectly behaved like a dispatch service:
-1. Collected your address and name
-2. Confirmed service area
-3. Immediately offered "dispatch someone in 30-60 minutes"
+### 1. ROI Performance Widget Layout Issues
+**Location**: `src/components/dashboard/ROIPerformanceWidget.tsx`
 
-**What should have happened** for a service/booking business:
-1. Understand the service needed (drain cleaning)
-2. Ask about urgency/timing preference
-3. Check the calendar for availability
-4. Offer appointment slots
-5. Book the appointment (or mark as pending based on settings)
+**Problems**:
+- On smaller screens, the 5-column metrics grid collapses to 2 columns, causing awkward layouts
+- The "View Full Report" button in the ROI callout can extend outside its container
+- Header text can overflow on narrow widths
+- The grid gap and sizing doesn't account for small viewports properly
 
-## Root Cause Analysis
-
-The issue is in the **Service Agent base prompt** (`agentBasePrompts.ts`) which includes an "EMERGENCY/SAME-DAY FLOW" section that triggers immediate dispatch behavior. The agent is treating *every* service request as if it might be urgent, when most service businesses operate on an **appointment-first** model.
-
-### Current Flow (Broken)
-```text
-Customer: "I need my drain cleaned"
-Agent: "What's your address?"
-Agent: "We can dispatch someone in 30-60 minutes"
+**Current Code Issues**:
+```tsx
+// Line 300 - Grid layout causes overlap on intermediate sizes
+<div className="grid grid-cols-2 gap-5 md:grid-cols-5 md:gap-6 mt-5">
 ```
 
-### Expected Flow (Correct)
-```text
-Customer: "I need my drain cleaned"
-Agent: "Is this an emergency, or can it wait for a scheduled appointment?"
-  OR
-Agent: "When would you like to schedule that?"
-Agent: "Let me check our availability... We have openings at 2pm today or 10am tomorrow"
+### 2. FAQ Section Layout in Business Brain
+**Location**: `src/components/brain/BusinessFAQEditor.tsx` + `src/components/brain/SuggestedFAQButtons.tsx`
+
+**Problems**:
+- `SuggestedFAQButtons` component renders "Quick add common questions:" text + multiple buttons in the header
+- The header layout (title/description + headerActions + Add button) doesn't have proper overflow handling
+- Suggested FAQ buttons can wrap and push content off-screen
+
+**Current Code Issues**:
+```tsx
+// KnowledgeSection.tsx line 66-71 - Header actions can overflow
+<div className="flex items-center gap-2 shrink-0">
+  {headerActions}  // This can be very wide
+  <Button size="sm" onClick={onAdd}>
 ```
+
+### 3. Busyness Slider Relevance
+**Location**: `src/components/dashboard/BusynessSliderWidget.tsx` + `src/components/dashboard/LiveDashboard.tsx`
+
+**Problems**:
+- Currently shows for ALL business modes unconditionally
+- Not relevant for appointment-based businesses (salons, auto detailing) where ETAs aren't quoted
+- Only relevant for:
+  - **Dispatch**: Always (ETA is core to the flow)
+  - **Service with urgency_check flow**: Sometimes (when same-day/emergency dispatch is offered)
+  - **Service with schedule_first flow**: Rarely (appointments are scheduled, not ETAs)
+  - **Food**: Always (prep times affect delivery/pickup ETAs)
+
+**Why It's Confusing**:
+- A salon owner sees "Current Busyness: 0%" and has no idea what it does
+- The "ETA +X min" indicator is meaningless for a business that books appointments 2 weeks out
 
 ## Solution Design
 
-### 1. Add New Tenant Setting: `service_default_flow`
+### Fix 1: ROI Performance Widget Responsive Layout
 
-Create a new field in `assistant_settings` to control the default behavior for service businesses:
+**Changes to `ROIPerformanceWidget.tsx`**:
+1. Add `overflow-hidden` to the card container
+2. Improve grid responsiveness: 1 column on mobile, 2 columns on sm, 4 columns on md, 5 columns on lg
+3. Make the ROI callout span full width on mobile
+4. Truncate header text properly
+5. Make "View Full Report" button responsive
 
-| Value | Behavior |
-|-------|----------|
-| `schedule_first` | Always start with calendar availability (default for salons, auto detailing, cleaning) |
-| `urgency_check` | Ask "Is this urgent or can it wait?" before deciding path (default for HVAC, plumbing, electrical) |
-| `dispatch_first` | Immediate dispatch like a tow truck (not typical for service mode) |
-
-**Industry defaults** (auto-set during onboarding):
-- Salon/Spa/Barbershop → `schedule_first`
-- Auto Detailing/Car Wash → `schedule_first`
-- Cleaning/Maid Service → `schedule_first`
-- HVAC/Heating/Cooling → `urgency_check`
-- Plumbing → `urgency_check`
-- Electrical → `urgency_check`
-- Locksmith → `dispatch_first`
-- General Service → `schedule_first`
-
-### 2. Update Service Agent Base Prompt
-
-Rewrite the Service Agent prompt to follow this decision tree:
-
-```text
-┌─────────────────────────────────────────────┐
-│         Customer Calls Service Business      │
-└─────────────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────┐
-│     Identify Service Requested              │
-│     "What can I help you with today?"       │
-└─────────────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────┐
-│     Check service_default_flow setting      │
-└─────────────────────────────────────────────┘
-          │                    │                    │
-          ▼                    ▼                    ▼
-    schedule_first       urgency_check        dispatch_first
-          │                    │                    │
-          ▼                    ▼                    ▼
-┌─────────────────┐  ┌──────────────────┐  ┌────────────────┐
-│ "When works     │  │ "Is this urgent  │  │ "Where are you │
-│  for you?"      │  │  or can it wait?"│  │  located?"     │
-│ → Check calendar│  │                  │  │ → Dispatch NOW │
-└─────────────────┘  └──────────────────┘  └────────────────┘
-                            │
-              ┌─────────────┴─────────────┐
-              ▼                           ▼
-        "It's urgent!"            "I can schedule"
-              │                           │
-              ▼                           ▼
-     ┌────────────────┐          ┌────────────────┐
-     │ Check if same- │          │ Check calendar │
-     │ day available  │          │ offer slots    │
-     └────────────────┘          └────────────────┘
-              │
-     Has same-day slots?
-         │          │
-        Yes         No
-         │          │
-         ▼          ▼
-     Book today   "I can have someone
-                   call you back to
-                   expedite, or we have
-                   [next available]"
+```tsx
+// Improved grid layout
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-6 mt-5">
 ```
 
-### 3. Dynamic Variable Injection
+### Fix 2: FAQ Section Header Layout
 
-Add a new dynamic variable `service_default_flow` to the context builder so the ElevenLabs agent knows which flow to use.
+**Changes to `KnowledgeSection.tsx`**:
+1. Move `headerActions` below the title/description instead of inline
+2. Stack header elements vertically on mobile
+3. Add `overflow-hidden` and `min-w-0` to prevent text overflow
 
-### 4. Update the ElevenLabs Service Agent
+**Changes to `SuggestedFAQButtons.tsx`**:
+1. Make the component more compact
+2. Limit visible suggestions to 3 on mobile
+3. Use a collapsible/dropdown pattern for mobile
 
-The prompt in ElevenLabs must be updated to read the `service_default_flow` variable and adapt behavior accordingly. This is a configuration change in the ElevenLabs dashboard.
+### Fix 3: Conditional Busyness Slider
 
-## Technical Implementation
+**Changes to `LiveDashboard.tsx`**:
+1. Add logic to conditionally show/hide the busyness slider based on:
+   - `businessMode` (always show for dispatch and food)
+   - `service_default_flow` setting (show for urgency_check/dispatch_first, hide for schedule_first)
+   - `same_day_enabled` setting (if enabled, show the slider)
 
-### Database Migration
+**Logic**:
+```typescript
+const showBusynessSlider = useMemo(() => {
+  // Always show for dispatch and food - ETAs are core
+  if (businessMode === "dispatch" || businessMode === "food") return true;
+  
+  // For service/medical/general, only show if same-day/urgent flow is enabled
+  if (assistantSettings?.service_default_flow === "urgency_check" ||
+      assistantSettings?.service_default_flow === "dispatch_first" ||
+      assistantSettings?.same_day_enabled) {
+    return true;
+  }
+  
+  // Default: hide for appointment-first businesses
+  return false;
+}, [businessMode, assistantSettings]);
+```
 
-Add new column to `assistant_settings`:
-- `service_default_flow`: enum (`schedule_first`, `urgency_check`, `dispatch_first`) DEFAULT `schedule_first`
+**Changes to `BusynessSliderWidget.tsx`**:
+1. Add contextual help text based on business mode
+2. Make it clearer what the slider affects
 
-### Files to Modify
+## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `supabase/migrations/new.sql` | Add `service_default_flow` column |
-| `supabase/functions/_shared/buildBusinessContext.ts` | Include `service_default_flow` in context |
-| `supabase/functions/_shared/voiceContextContract.ts` | Register new dynamic variable |
-| `supabase/functions/_shared/agentBasePrompts.ts` | Rewrite SERVICE_AGENT_BASE_PROMPT with flow logic |
-| `src/integrations/supabase/types.ts` | Auto-updated with new column |
-| `src/components/brain/sections/AISetupSection.tsx` | Add UI toggle for "Service Call Behavior" |
+| `src/components/dashboard/ROIPerformanceWidget.tsx` | Fix grid layout, add overflow handling, improve responsiveness |
+| `src/components/brain/shared/KnowledgeSection.tsx` | Fix header layout, stack elements on mobile |
+| `src/components/brain/SuggestedFAQButtons.tsx` | Make more compact, limit visible on mobile |
+| `src/components/dashboard/LiveDashboard.tsx` | Add conditional logic for busyness slider |
+| `src/components/dashboard/BusynessSliderWidget.tsx` | Add contextual description based on mode |
 
-### Prompt Changes (agentBasePrompts.ts)
+## Technical Details
 
-Replace the current EMERGENCY/SAME-DAY FLOW section with a conditional flow:
+### ROI Widget Grid Fix (ROIPerformanceWidget.tsx)
 
+**Before (lines 283-369)**:
+- `grid-cols-2 md:grid-cols-5` causes 2-column layout on tablet which is cramped
+- Header text can overflow
+- ROI callout "View Full Report" can overflow
+
+**After**:
+- `grid-cols-1 xs:grid-cols-2 md:grid-cols-4 xl:grid-cols-5` for better breakpoints
+- Header with `truncate` and `min-w-0`
+- ROI callout moved to bottom row on mobile
+
+### KnowledgeSection Header Fix
+
+**Before**:
+```tsx
+<div className="flex items-center justify-between gap-4">
+  <div className="min-w-0">
+    <CardTitle>...</CardTitle>
+    <CardDescription>...</CardDescription>
+  </div>
+  <div className="flex items-center gap-2 shrink-0">
+    {headerActions}  // Can be very wide
+    <Button>Add</Button>
+  </div>
+</div>
+```
+
+**After**:
+```tsx
+<div className="space-y-3">
+  <div className="flex items-center justify-between gap-4">
+    <div className="min-w-0">
+      <CardTitle>...</CardTitle>
+      <CardDescription>...</CardDescription>
+    </div>
+    <Button>Add</Button>
+  </div>
+  {headerActions && (
+    <div className="overflow-hidden">{headerActions}</div>
+  )}
+</div>
+```
+
+### SuggestedFAQButtons Compact Layout
+
+**Changes**:
+- Use smaller chips instead of full buttons
+- Limit to 3 visible on mobile, show all on desktop
+- Add horizontal scroll on overflow instead of wrap
+
+### Busyness Slider Conditional Logic
+
+**New hook or inline logic in LiveDashboard**:
 ```typescript
-### DETERMINING THE CALL FLOW
-
-At the start of every call, determine the appropriate flow based on the 
-business setting (service_default_flow variable):
-
-**IF service_default_flow = "schedule_first":**
-- Skip urgency questions
-- Immediately ask about scheduling: "When would work best for you?"
-- Use suggest_availability and check_availability tools
-- Book the appointment
-
-**IF service_default_flow = "urgency_check":**
-- After identifying the service, ask: "Is this something urgent, or can it wait for a scheduled appointment?"
-- Listen for urgency indicators: "emergency", "right now", "today", "ASAP", "water everywhere", "no heat", "locked out"
-- IF URGENT: Check for same-day availability first, then offer dispatch if enabled
-- IF NOT URGENT: Proceed to scheduling flow
-
-**IF service_default_flow = "dispatch_first":**
-- Treat like dispatch mode: collect address, give ETA, dispatch immediately
-- This is rare for service businesses
-
-**IMPORTANT: DO NOT assume urgency.** A customer saying "I need my drain cleaned" 
-is NOT automatically urgent. Only explicit urgency language triggers emergency flow.
+const showBusynessSlider = useMemo(() => {
+  // Dispatch/Food: Always show (ETA-driven)
+  if (businessMode === "dispatch" || businessMode === "food") return true;
+  
+  // Service modes: Only if urgency/dispatch flow or same-day enabled
+  const flow = assistantSettings?.service_default_flow;
+  const sameDayEnabled = assistantSettings?.same_day_enabled;
+  
+  if (flow === "urgency_check" || flow === "dispatch_first") return true;
+  if (sameDayEnabled) return true;
+  
+  return false;
+}, [businessMode, assistantSettings]);
 ```
 
-### Business Brain UI Update
+## Verification Steps
 
-Add a new setting in the AI Setup section:
+After implementation:
+1. View dashboard on mobile (375px) - ROI widget should not overlap
+2. View dashboard on tablet (768px) - Metrics should be readable
+3. Expand FAQ section in Business Brain - Suggested FAQ buttons should not overflow
+4. Switch between business modes and verify busyness slider visibility:
+   - Dispatch business: Slider visible
+   - Plumbing with urgency_check: Slider visible
+   - Salon with schedule_first: Slider hidden
+   - Restaurant: Slider visible
+5. Resize browser to various widths - no layout breaks
 
-**Service Call Behavior** (only visible for service mode)
-- "Schedule appointments by default" (schedule_first)
-- "Ask if urgent or can be scheduled" (urgency_check)  
-- "Immediate dispatch like a tow service" (dispatch_first)
+## Summary
 
-## ElevenLabs Dashboard Changes Required
+This fix addresses three interconnected issues:
+1. **Professional ROI widget** with proper responsive layout
+2. **Clean FAQ section** with non-overflowing suggested buttons
+3. **Contextual busyness slider** that only shows when relevant to the business type
 
-After code deployment, update the Service Agent prompt in ElevenLabs dashboard:
-
-1. Go to your ElevenLabs Service Agent configuration
-2. In the System Prompt, add this section AFTER the opening greeting logic:
-
-```text
-### CALL FLOW BEHAVIOR
-
-Check the {{service_default_flow}} variable to determine how to handle calls:
-
-**IF {{service_default_flow}} = "schedule_first":**
-- Skip urgency questions
-- Immediately ask: "When would work best for you?"
-- Use suggest_availability and check_availability tools
-- Book the appointment
-
-**IF {{service_default_flow}} = "urgency_check":**
-- After identifying service, ask: "Is this urgent, or would you like to schedule an appointment?"
-- URGENT triggers: "emergency", "right now", "flooding", "burst", "locked out"
-- IF URGENT: Check same-day availability, offer expedited service
-- IF CAN SCHEDULE: Normal booking flow
-
-**IF {{service_default_flow}} = "dispatch_first":**
-- Treat as immediate dispatch: collect address, give ETA, dispatch now
-
-IMPORTANT: "I need my drain cleaned" is NOT urgent. Only explicit emergency language triggers urgent handling.
-```
-
-## Implementation Complete
-
-### Database
-- ✅ Added `service_default_flow` column to `assistant_settings` (text, default: "schedule_first")
-
-### Edge Functions
-- ✅ Updated `buildBusinessContext.ts` to include `service_default_flow` in ai_settings
-- ✅ Updated `voiceContextContract.ts` to register new dynamic variable
-- ✅ Rewrote `SERVICE_AGENT_BASE_PROMPT` with industry-aware flow logic
-
-### Frontend
-- ✅ Created `ServiceCallFlowSettings.tsx` component with 3 options
-- ✅ Added to AI Assistant page booking tab
-- ✅ Added to Business Brain AI behavior section
-
-### Expected Behavior After Fix
-
-**Scenario 1: Plumber with urgency_check (routine request)**
-```text
-Customer: "I need my drain cleaned"
-Agent: "Sure, I can help with that. Is this urgent, or can you schedule?"
-Customer: "I can schedule"
-Agent: "Perfect! When works best for you?"
-```
-
-**Scenario 2: Plumber with urgency_check (urgent request)**
-```text
-Customer: "I have water flooding my basement!"
-Agent: "Oh no - let me see what we can do. What's your address?"
-Agent: "We can have someone there in 45 minutes. Should I send them?"
-```
-
-**Scenario 3: Salon with schedule_first**
-```text
-Customer: "I need a haircut"
-Agent: "Great! When would you like to come in?"
-```
+The changes maintain all existing functionality while making the UI more polished and reducing confusion for users whose businesses don't use real-time ETA calculations.
