@@ -649,6 +649,30 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     defaultValue: "",
     category: "policies",
   },
+  {
+    key: "ai_recognition_guidance",
+    description: "Guidance for recognizing repeat customers",
+    type: "string",
+    source: "policies.ai_guidelines.recognition",
+    defaultValue: "",
+    category: "policies",
+  },
+  {
+    key: "ai_max_discount_percent",
+    description: "Maximum discount percentage AI can offer",
+    type: "number",
+    source: "policies.ai_guidelines.max_discount_percent",
+    defaultValue: 0,
+    category: "policies",
+  },
+  {
+    key: "ai_loyalty_threshold_orders",
+    description: "Number of orders before customer is considered loyal",
+    type: "number",
+    source: "policies.ai_guidelines.loyalty_threshold_orders",
+    defaultValue: 5,
+    category: "policies",
+  },
 
   // ===== AI SETTINGS =====
   {
