@@ -2503,15 +2503,23 @@ export type Database = {
           accepts_delivery: boolean | null
           accepts_dine_in: boolean | null
           accepts_pickup: boolean | null
+          allows_special_instructions: boolean | null
           catering_lead_days: number | null
           catering_min_guests: number | null
           created_at: string | null
+          delivery_fee_cents: number | null
+          delivery_fee_config: Json | null
+          delivery_fee_type: string | null
           delivery_minimum_cents: number | null
           delivery_radius_miles: number | null
           estimated_prep_minutes: number | null
+          kitchen_hours_json: Json | null
+          max_order_items: number | null
           menu_notes: string | null
           order_confirmation_mode: string | null
+          peak_time_buffer_minutes: number | null
           tenant_id: string
+          tip_suggestions: number[] | null
           updated_at: string | null
         }
         Insert: {
@@ -2519,15 +2527,23 @@ export type Database = {
           accepts_delivery?: boolean | null
           accepts_dine_in?: boolean | null
           accepts_pickup?: boolean | null
+          allows_special_instructions?: boolean | null
           catering_lead_days?: number | null
           catering_min_guests?: number | null
           created_at?: string | null
+          delivery_fee_cents?: number | null
+          delivery_fee_config?: Json | null
+          delivery_fee_type?: string | null
           delivery_minimum_cents?: number | null
           delivery_radius_miles?: number | null
           estimated_prep_minutes?: number | null
+          kitchen_hours_json?: Json | null
+          max_order_items?: number | null
           menu_notes?: string | null
           order_confirmation_mode?: string | null
+          peak_time_buffer_minutes?: number | null
           tenant_id: string
+          tip_suggestions?: number[] | null
           updated_at?: string | null
         }
         Update: {
@@ -2535,15 +2551,23 @@ export type Database = {
           accepts_delivery?: boolean | null
           accepts_dine_in?: boolean | null
           accepts_pickup?: boolean | null
+          allows_special_instructions?: boolean | null
           catering_lead_days?: number | null
           catering_min_guests?: number | null
           created_at?: string | null
+          delivery_fee_cents?: number | null
+          delivery_fee_config?: Json | null
+          delivery_fee_type?: string | null
           delivery_minimum_cents?: number | null
           delivery_radius_miles?: number | null
           estimated_prep_minutes?: number | null
+          kitchen_hours_json?: Json | null
+          max_order_items?: number | null
           menu_notes?: string | null
           order_confirmation_mode?: string | null
+          peak_time_buffer_minutes?: number | null
           tenant_id?: string
+          tip_suggestions?: number[] | null
           updated_at?: string | null
         }
         Relationships: [
@@ -4579,6 +4603,62 @@ export type Database = {
           },
         ]
       }
+      medical_practice_settings: {
+        Row: {
+          accepted_insurance_carriers: string[] | null
+          accepts_insurance: boolean | null
+          consultation_fee_cents: number | null
+          created_at: string
+          follow_up_fee_cents: number | null
+          insurance_notes: string | null
+          new_patient_fee_cents: number | null
+          requires_consent_form: boolean | null
+          requires_medical_history: boolean | null
+          series_discount_percent: number | null
+          tenant_id: string
+          updated_at: string
+          waive_consultation_with_treatment: boolean | null
+        }
+        Insert: {
+          accepted_insurance_carriers?: string[] | null
+          accepts_insurance?: boolean | null
+          consultation_fee_cents?: number | null
+          created_at?: string
+          follow_up_fee_cents?: number | null
+          insurance_notes?: string | null
+          new_patient_fee_cents?: number | null
+          requires_consent_form?: boolean | null
+          requires_medical_history?: boolean | null
+          series_discount_percent?: number | null
+          tenant_id: string
+          updated_at?: string
+          waive_consultation_with_treatment?: boolean | null
+        }
+        Update: {
+          accepted_insurance_carriers?: string[] | null
+          accepts_insurance?: boolean | null
+          consultation_fee_cents?: number | null
+          created_at?: string
+          follow_up_fee_cents?: number | null
+          insurance_notes?: string | null
+          new_patient_fee_cents?: number | null
+          requires_consent_form?: boolean | null
+          requires_medical_history?: boolean | null
+          series_discount_percent?: number | null
+          tenant_id?: string
+          updated_at?: string
+          waive_consultation_with_treatment?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_practice_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       medical_settings: {
         Row: {
           created_at: string
@@ -4664,6 +4744,57 @@ export type Database = {
           },
         ]
       }
+      menu_item_sizes: {
+        Row: {
+          created_at: string
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          menu_item_id: string
+          name: string
+          price_cents: number
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          menu_item_id: string
+          name: string
+          price_cents: number
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          menu_item_id?: string
+          name?: string
+          price_cents?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_item_sizes_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_item_sizes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_items: {
         Row: {
           category: string | null
@@ -4710,6 +4841,65 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "menu_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_specials: {
+        Row: {
+          active_days: number[] | null
+          created_at: string
+          description: string | null
+          end_date: string | null
+          end_time: string | null
+          id: string
+          is_active: boolean | null
+          items: Json
+          name: string
+          schedule_type: string
+          start_date: string | null
+          start_time: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          active_days?: number[] | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          end_time?: string | null
+          id?: string
+          is_active?: boolean | null
+          items?: Json
+          name: string
+          schedule_type?: string
+          start_date?: string | null
+          start_time?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          active_days?: number[] | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          end_time?: string | null
+          id?: string
+          is_active?: boolean | null
+          items?: Json
+          name?: string
+          schedule_type?: string
+          start_date?: string | null
+          start_time?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_specials_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -5031,6 +5221,77 @@ export type Database = {
           },
           {
             foreignKeyName: "phone_numbers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_modifiers: {
+        Row: {
+          active_days: number[] | null
+          active_end_time: string | null
+          active_start_time: string | null
+          adjustment_type: string
+          adjustment_value: number
+          applies_to_categories: string[] | null
+          applies_to_modes: string[] | null
+          applies_to_services: string[] | null
+          created_at: string
+          description: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          modifier_type: string
+          name: string
+          show_to_customer: boolean | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          active_days?: number[] | null
+          active_end_time?: string | null
+          active_start_time?: string | null
+          adjustment_type?: string
+          adjustment_value?: number
+          applies_to_categories?: string[] | null
+          applies_to_modes?: string[] | null
+          applies_to_services?: string[] | null
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          modifier_type: string
+          name: string
+          show_to_customer?: boolean | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          active_days?: number[] | null
+          active_end_time?: string | null
+          active_start_time?: string | null
+          adjustment_type?: string
+          adjustment_value?: number
+          applies_to_categories?: string[] | null
+          applies_to_modes?: string[] | null
+          applies_to_services?: string[] | null
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          modifier_type?: string
+          name?: string
+          show_to_customer?: boolean | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_modifiers_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -5567,6 +5828,77 @@ export type Database = {
           },
         ]
       }
+      service_packages: {
+        Row: {
+          billing_interval: string | null
+          created_at: string
+          description: string | null
+          display_order: number | null
+          id: string
+          included_items: Json
+          included_services_per_period: Json | null
+          is_active: boolean | null
+          is_featured: boolean | null
+          member_discount_percent: number | null
+          name: string
+          package_price_cents: number
+          package_type: string
+          regular_price_cents: number | null
+          session_validity_days: number | null
+          tenant_id: string
+          total_sessions: number | null
+          updated_at: string
+        }
+        Insert: {
+          billing_interval?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          included_items?: Json
+          included_services_per_period?: Json | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          member_discount_percent?: number | null
+          name: string
+          package_price_cents: number
+          package_type?: string
+          regular_price_cents?: number | null
+          session_validity_days?: number | null
+          tenant_id: string
+          total_sessions?: number | null
+          updated_at?: string
+        }
+        Update: {
+          billing_interval?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          included_items?: Json
+          included_services_per_period?: Json | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          member_discount_percent?: number | null
+          name?: string
+          package_price_cents?: number
+          package_type?: string
+          regular_price_cents?: number | null
+          session_validity_days?: number | null
+          tenant_id?: string
+          total_sessions?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_packages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       services: {
         Row: {
           created_at: string
@@ -5912,6 +6244,9 @@ export type Database = {
       }
       tenant_distance_settings: {
         Row: {
+          after_hours_end: string | null
+          after_hours_multiplier: number | null
+          after_hours_start: string | null
           base_lat: number | null
           base_lng: number | null
           base_place_name: string | null
@@ -5924,14 +6259,23 @@ export type Database = {
           eta_min_minutes: number | null
           eta_per_mile_minutes: number | null
           eta_rounding_minutes: number
+          fuel_surcharge_percent: number | null
           geocode_provider: string
+          holiday_dates: string[] | null
+          holiday_multiplier: number | null
           mapbox_route_profile: string
+          minimum_charge_cents: number | null
           provider: string
           service_radius_miles: number | null
+          special_equipment_fees: Json | null
           tenant_id: string
           updated_at: string
+          weekend_multiplier: number | null
         }
         Insert: {
+          after_hours_end?: string | null
+          after_hours_multiplier?: number | null
+          after_hours_start?: string | null
           base_lat?: number | null
           base_lng?: number | null
           base_place_name?: string | null
@@ -5944,14 +6288,23 @@ export type Database = {
           eta_min_minutes?: number | null
           eta_per_mile_minutes?: number | null
           eta_rounding_minutes?: number
+          fuel_surcharge_percent?: number | null
           geocode_provider?: string
+          holiday_dates?: string[] | null
+          holiday_multiplier?: number | null
           mapbox_route_profile?: string
+          minimum_charge_cents?: number | null
           provider?: string
           service_radius_miles?: number | null
+          special_equipment_fees?: Json | null
           tenant_id: string
           updated_at?: string
+          weekend_multiplier?: number | null
         }
         Update: {
+          after_hours_end?: string | null
+          after_hours_multiplier?: number | null
+          after_hours_start?: string | null
           base_lat?: number | null
           base_lng?: number | null
           base_place_name?: string | null
@@ -5964,12 +6317,18 @@ export type Database = {
           eta_min_minutes?: number | null
           eta_per_mile_minutes?: number | null
           eta_rounding_minutes?: number
+          fuel_surcharge_percent?: number | null
           geocode_provider?: string
+          holiday_dates?: string[] | null
+          holiday_multiplier?: number | null
           mapbox_route_profile?: string
+          minimum_charge_cents?: number | null
           provider?: string
           service_radius_miles?: number | null
+          special_equipment_fees?: Json | null
           tenant_id?: string
           updated_at?: string
+          weekend_multiplier?: number | null
         }
         Relationships: [
           {
