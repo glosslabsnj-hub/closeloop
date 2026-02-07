@@ -19,6 +19,17 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Link } from "react-router-dom";
 import { toast as sonnerToast } from "sonner";
 
+interface PriceBreakdown {
+  base_price?: number;
+  per_mile_rate?: number;
+  distance_charge?: number;
+  vehicle_modifier?: number;
+  urgency_modifier?: number;
+  total?: number;
+  description?: string;
+  [key: string]: unknown;
+}
+
 interface DispatchJob {
   id: string;
   job_number?: string;
@@ -44,6 +55,13 @@ interface DispatchJob {
   arrived_at?: string | null;
   completed_at?: string | null;
   customers?: { full_name: string; phone_e164: string } | null;
+  // Distance & Pricing fields
+  dispatch_distance_miles?: number | null;
+  tow_distance_miles?: number | null;
+  total_distance_miles?: number | null;
+  service_tier?: string | null;
+  pricing_note?: string | null;
+  price_breakdown?: PriceBreakdown | null;
 }
 
 export default function DispatchPage() {
