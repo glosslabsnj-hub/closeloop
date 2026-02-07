@@ -479,14 +479,14 @@ export const SERVICE_AGENT_CONFIG: AgentToolsConfig = {
 };
 
 /**
- * DISPATCH AGENT (6 Tools)
+ * DISPATCH AGENT (7 Tools)
  * Industries: Towing, roadside assistance, courier/delivery, mobile mechanics, locksmith
  */
 export const DISPATCH_AGENT_CONFIG: AgentToolsConfig = {
   mode: "dispatch",
   agentName: "Dispatch Agent",
   industries: ["Towing", "roadside assistance", "courier/delivery", "mobile mechanics", "locksmith"],
-  toolCount: 6,
+  toolCount: 7,
   tools: [
     createCheckAvailabilityTool(
       `Check availability for SCHEDULED (non-emergency) jobs. Use when customer wants to schedule a future tow, planned vehicle transport, or non-urgent service. Example: "Can I schedule a tow for tomorrow morning?"`
@@ -506,6 +506,48 @@ export const DISPATCH_AGENT_CONFIG: AgentToolsConfig = {
       `MAIN DISPATCH TOOL - Send a driver/technician NOW. Use for: "I need a tow", "I'm stranded", "Car won't start", "Locked out", "Flat tire". Always call check_service_area FIRST to get ETA and confirm coverage, then create the dispatch job.`,
       true // isDispatchMode
     ),
+    // STATUS LOOKUP - For existing job inquiries
+    {
+      name: "lookup_dispatch_status",
+      description: `Check status of an existing dispatch job. Use when caller asks: "Where's my driver?", "Any update?", "How much longer?", "Checking on my tow", "Is someone on the way?", "ETA on my driver?". Requires at least 2 of: customer_name, customer_phone, pickup_address.`,
+      url: `${BASE_URL}/elevenlabs-lookup-dispatch-status`,
+      method: "POST",
+      parameters: [
+        {
+          name: "tenant_id",
+          type: "string",
+          required: true,
+          description: "Tenant identifier",
+          dynamicValue: "{{tenant_id}}",
+        },
+        {
+          name: "customer_name",
+          type: "string",
+          required: false,
+          description: "Customer's name to match against job records",
+        },
+        {
+          name: "customer_phone",
+          type: "string",
+          required: false,
+          description: "Customer's phone number for lookup",
+          dynamicValue: "{{caller_phone}}",
+        },
+        {
+          name: "pickup_address",
+          type: "string",
+          required: false,
+          description: "Pickup address to match against job records",
+        },
+        {
+          name: "conversation_id",
+          type: "string",
+          required: false,
+          description: "Conversation tracking",
+        },
+      ],
+    },
+    // CALLBACK
     {
       name: "create_callback",
       description: `Schedule a callback for pricing questions, complaints, or when customer needs to speak to dispatch manager. Use when: "I need an exact quote", "I want to talk to a manager", "I have a complaint", or billing questions.`,
@@ -516,7 +558,7 @@ export const DISPATCH_AGENT_CONFIG: AgentToolsConfig = {
           name: "reason",
           type: "string",
           required: true,
-          description: "Why callback needed: 'pricing question', 'exact quote needed', 'speak to manager', 'complaint', 'billing'",
+          description: "Why callback needed: 'pricing question', 'exact quote needed', 'speak to manager', 'complaint', 'billing', 'pricing negotiation'",
         },
         {
           name: "customer_name",

@@ -37,7 +37,7 @@ console.log("");
 console.log("2. Tool Count Verification:");
 const expectedToolCounts: Record<BusinessMode, number> = {
   service: 6,
-  dispatch: 6,
+  dispatch: 7,
   food: 6,
   medical: 5,
   general: 3,
@@ -55,7 +55,7 @@ console.log("");
 console.log("3. Tool Presence Verification:");
 const expectedToolsPerMode: Record<BusinessMode, string[]> = {
   service: ["check_availability", "suggest_availability", "create_booking", "check_service_area", "create_dispatch_job", "create_callback"],
-  dispatch: ["check_availability", "suggest_availability", "create_booking", "check_service_area", "create_dispatch_job", "create_callback"],
+  dispatch: ["check_availability", "suggest_availability", "create_booking", "check_service_area", "create_dispatch_job", "lookup_dispatch_status", "create_callback"],
   food: ["check_availability", "suggest_availability", "create_booking", "check_service_area", "create_dispatch_job", "create_callback"],
   medical: ["check_availability", "suggest_availability", "create_booking", "check_service_area", "create_callback"],
   general: ["suggest_availability", "check_service_area", "create_callback"],

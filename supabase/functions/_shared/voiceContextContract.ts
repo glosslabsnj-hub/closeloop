@@ -942,6 +942,74 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     category: "food",
   },
 
+  // ===== DISPATCH-SPECIFIC KNOWLEDGE =====
+  {
+    key: "vehicle_knowledge_summary",
+    description: "Vehicle classification and towing requirements (AWD, electric, etc.)",
+    type: "string",
+    source: "knowledge.vehicle_knowledge_summary",
+    defaultValue: "",
+    category: "offerings",
+  },
+  {
+    key: "roadside_safety_scripts",
+    description: "Context-specific safety guidance (highway, night, accident)",
+    type: "string",
+    source: "knowledge.roadside_safety_scripts",
+    defaultValue: "",
+    category: "policies",
+  },
+  {
+    key: "price_modifiers_summary",
+    description: "Automatic surcharges explained (after-hours, vehicle-specific)",
+    type: "string",
+    source: "pricing.price_modifiers_summary",
+    defaultValue: "",
+    category: "pricing",
+  },
+
+  // ===== COMPETITOR & SEASONAL KNOWLEDGE =====
+  {
+    key: "competitor_positioning_summary",
+    description: "How to handle competitor comparisons",
+    type: "string",
+    source: "knowledge.competitor_positioning_summary",
+    defaultValue: "",
+    category: "policies",
+  },
+  {
+    key: "competitor_never_say",
+    description: "Things to never say about competitors",
+    type: "string",
+    source: (ctx) => {
+      const neverSay = ctx.knowledge.competitor_never_say || [];
+      if (neverSay.length === 0) return "";
+      return neverSay.join(", ");
+    },
+    defaultValue: "",
+    category: "policies",
+  },
+  {
+    key: "our_advantages_summary",
+    description: "Our competitive advantages to mention",
+    type: "string",
+    source: (ctx) => {
+      const advantages = ctx.knowledge.our_advantages || [];
+      if (advantages.length === 0) return "";
+      return advantages.join(", ");
+    },
+    defaultValue: "",
+    category: "policies",
+  },
+  {
+    key: "seasonal_events_summary",
+    description: "Time-sensitive promotions or service announcements",
+    type: "string",
+    source: "knowledge.seasonal_events_summary",
+    defaultValue: "",
+    category: "offerings",
+  },
+
   // ===== DEBUG FLAGS =====
   {
     key: "context_has_hours",
