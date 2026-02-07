@@ -59,21 +59,20 @@ export function SuggestedFAQButtons({ onAdd, existingQuestions = [] }: Suggested
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Lightbulb className="h-3 w-3" />
-        <span>Quick add common questions:</span>
+        <Lightbulb className="h-3 w-3 shrink-0" />
+        <span className="truncate">Quick add:</span>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex gap-2 overflow-x-auto pb-1 -mb-1 scrollbar-thin">
         {availableFAQs.slice(0, 4).map((faq) => (
-          <Button
+          <button
             key={faq.question}
-            variant="outline"
-            size="sm"
-            className="text-xs h-7"
+            type="button"
+            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full border border-border bg-background hover:bg-muted/50 transition-colors whitespace-nowrap shrink-0"
             onClick={() => onAdd(faq.question, faq.answer)}
           >
-            <Plus className="h-3 w-3 mr-1" />
+            <Plus className="h-3 w-3" />
             {faq.question}
-          </Button>
+          </button>
         ))}
       </div>
     </div>

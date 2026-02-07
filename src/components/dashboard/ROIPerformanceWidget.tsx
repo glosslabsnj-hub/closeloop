@@ -277,27 +277,27 @@ export function ROIPerformanceWidget() {
 
   return (
     <TooltipProvider>
-      <Card>
-        <CardContent className="p-5 md:p-6">
+      <Card className="overflow-hidden">
+        <CardContent className="p-4 md:p-6">
           {/* Header: story headline + badge */}
-          <div className="flex items-start justify-between mb-2">
+          <div className="flex items-start justify-between gap-3 mb-2">
             <div className="space-y-1 min-w-0 flex-1">
               <h3 className="text-sm font-semibold text-foreground truncate">
                 {storyHeadline}
               </h3>
               {winMessage && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground line-clamp-2">
                   {winMessage}
                 </p>
               )}
             </div>
-            <Badge variant="muted" size="sm" className="flex-shrink-0 ml-3">
+            <Badge variant="muted" size="sm" className="flex-shrink-0">
               This Month
             </Badge>
           </div>
 
-          {/* Metrics Grid */}
-          <div className="grid grid-cols-2 gap-5 md:grid-cols-5 md:gap-6 mt-5">
+          {/* Metrics Grid - Improved responsive breakpoints */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-5 mt-4">
             {/* AI Revenue */}
             <MetricCell
               label="AI Revenue"
@@ -337,8 +337,8 @@ export function ROIPerformanceWidget() {
               tooltip="Percentage of calls that resulted in a booking"
             />
 
-            {/* ROI Callout */}
-            <div className="col-span-2 md:col-span-1">
+            {/* ROI Callout - Full width on mobile/tablet, single column on xl */}
+            <div className="sm:col-span-2 lg:col-span-4 xl:col-span-1">
               <div className="rounded-xl bg-primary/5 border border-primary/10 p-4 h-full flex flex-col justify-between">
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-1">
@@ -359,7 +359,7 @@ export function ROIPerformanceWidget() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="mt-2 h-7 text-xs gap-1 px-0 justify-start text-primary hover:text-primary/80"
+                  className="mt-2 h-7 text-xs gap-1 px-0 justify-start text-primary hover:text-primary/80 w-fit"
                   onClick={() => navigate("/app/reports/roi")}
                 >
                   View Full Report
