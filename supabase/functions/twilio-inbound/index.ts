@@ -371,39 +371,10 @@ Deno.serve(async (req) => {
       hipaa_mode: businessMode === "medical" ? "true" : "false",
     };
 
-    // Step 8: Build prompt override for dispatch mode to enforce identity collection
-    let conversationConfigOverride: Record<string, unknown> | undefined;
-    
-    if (businessMode === "dispatch") {
-      const dispatchIdentityPrompt = `
-CRITICAL IDENTITY COLLECTION RULES (FOLLOW EXACTLY):
-
-Before calling any dispatch tool, you MUST:
-
-1. GET CUSTOMER NAME (MANDATORY):
-   - Ask: "And who am I speaking with?" or "What's your name?"
-   - Wait for response. Do NOT skip this step.
-   - If they refuse: acknowledge and continue, but you tried.
-
-2. CONFIRM PHONE NUMBER (MANDATORY):
-   ${callerPhoneLast4 ? `- Say: "I've got your number ending in ${callerPhoneLast4}. Is that the best number for the driver to reach you?"` : `- Ask: "What's the best callback number for the driver?"`}
-   - If they provide a different number, use that instead.
-
-NEVER use placeholder values like "not provided", "unknown", "n/a", "caller", or "customer" as the customer name. If you don't have a real name, leave the field empty and the system will handle it.
-
-When you have: location, vehicle info, customer name, and confirmed phone - THEN call the dispatch tool.
-`.trim();
-
-      conversationConfigOverride = {
-        agent: {
-          prompt: {
-            prompt: dispatchIdentityPrompt,
-          },
-        },
-      };
-    }
-
-    // Step 9: Register call with ElevenLabs (timeout to avoid Twilio hanging)
+    // Step 8: Register call with ElevenLabs (timeout to avoid Twilio hanging)
+    // NOTE: conversation_config_override removed - it was breaking the agent connection.
+    // Identity collection will be enforced via the ElevenLabs dashboard prompt 
+    // and backend placeholder sanitization.
     console.log(`[twilio-inbound] Registering with agent ${agentId.slice(0, 12)}...`);
 
     const registerPayload: Record<string, unknown> = {
@@ -412,7 +383,6 @@ When you have: location, vehicle info, customer name, and confirmed phone - THEN
       to_number: toPhoneE164,
       conversation_initiation_client_data: {
         dynamic_variables: dynamicVariables,
-        ...(conversationConfigOverride ? { conversation_config_override: conversationConfigOverride } : {}),
       },
     };
 
@@ -437,13 +407,8 @@ When you have: location, vehicle info, customer name, and confirmed phone - THEN
 
     const twiml = await registerResponse.text();
     console.log(`[twilio-inbound] ElevenLabs returned TwiML (${twiml.length} chars)`);
-    
-    // Log that we used prompt override for dispatch
-    if (conversationConfigOverride) {
-      console.log(`[twilio-inbound] Applied dispatch identity prompt override`);
-    }
 
-    // Step 10: Extract conversation_id from TwiML and create ai_call_sessions record
+    // Step 9: Extract conversation_id from TwiML and create ai_call_sessions record
     // ElevenLabs TwiML contains the conversation ID in the Stream URL or as a parameter
     let conversationId: string | null = null;
     
