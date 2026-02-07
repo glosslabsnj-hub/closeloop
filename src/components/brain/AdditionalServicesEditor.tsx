@@ -7,11 +7,14 @@
  * The AI adapts its behavior based on the detail level configured:
  * - Full pricing: AI can quote prices directly
  * - Basic info only: AI mentions service and offers callback
+ * 
+ * Industry-aware: Suggests relevant add-on services based on business type
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useServices } from "@/hooks/useServices";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,7 +44,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Trash2, Loader2, Info, Lightbulb, ChevronDown, ChevronRight, Check, X, Wrench, PhoneCall, DollarSign } from "lucide-react";
+import { Plus, Trash2, Loader2, Info, Lightbulb, ChevronDown, ChevronRight, Check, X, Wrench, PhoneCall, DollarSign, Sparkles } from "lucide-react";
 import { createService, updateService, deleteService } from "@/lib/brain/writeBrainFact";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -57,6 +60,12 @@ interface ServiceFormData {
   duration_minutes: number;
 }
 
+interface AdditionalServiceSuggestion {
+  name: string;
+  description: string;
+  category: string;
+}
+
 const defaultFormData: ServiceFormData = {
   name: "",
   description: "",
@@ -66,21 +75,203 @@ const defaultFormData: ServiceFormData = {
   duration_minutes: 60,
 };
 
-// Common additional service categories by business type
-const CATEGORY_SUGGESTIONS = [
-  "Auto Repair",
-  "Body Work",
-  "Detailing",
-  "Maintenance",
-  "Specialty Services",
-  "Consulting",
-  "Add-on Services",
-  "Other",
-];
+// ============================================================================
+// INDUSTRY-AWARE SUGGESTIONS
+// ============================================================================
+
+// Map industries to relevant add-on services
+const INDUSTRY_ADDON_SUGGESTIONS: Record<string, AdditionalServiceSuggestion[]> = {
+  // Towing & Dispatch industries
+  towing: [
+    { name: "Auto Repair", description: "General mechanical repairs and diagnostics", category: "Auto Repair" },
+    { name: "Body Work", description: "Collision repair, dent removal, and paint work", category: "Body Work" },
+    { name: "Detailing", description: "Interior/exterior cleaning and detailing services", category: "Detailing" },
+    { name: "Vehicle Storage", description: "Short and long-term vehicle storage", category: "Storage" },
+    { name: "Tire Services", description: "New tires, mounting, balancing, and rotation", category: "Maintenance" },
+    { name: "Battery Sales", description: "New battery installation and testing", category: "Maintenance" },
+    { name: "Impound Release", description: "Vehicle release and impound lot services", category: "Impound" },
+  ],
+  roadside: [
+    { name: "Auto Repair", description: "General mechanical repairs", category: "Auto Repair" },
+    { name: "Tire Services", description: "New tires and tire repairs", category: "Maintenance" },
+    { name: "Battery Replacement", description: "New battery sales and installation", category: "Maintenance" },
+    { name: "Windshield Repair", description: "Chip and crack repairs", category: "Glass" },
+  ],
+  
+  // Auto Detailing
+  detailing: [
+    { name: "Ceramic Coating", description: "Long-lasting paint protection", category: "Protection" },
+    { name: "Paint Correction", description: "Swirl and scratch removal", category: "Correction" },
+    { name: "Window Tinting", description: "Automotive window film installation", category: "Add-on Services" },
+    { name: "PPF Installation", description: "Paint protection film application", category: "Protection" },
+    { name: "Headlight Restoration", description: "Foggy headlight lens restoration", category: "Restoration" },
+    { name: "Odor Removal", description: "Deep cleaning and odor elimination", category: "Specialty" },
+    { name: "Leather Conditioning", description: "Leather cleaning and conditioning", category: "Interior" },
+  ],
+  
+  // HVAC
+  hvac: [
+    { name: "Duct Cleaning", description: "Air duct cleaning and sanitization", category: "Maintenance" },
+    { name: "Air Quality Testing", description: "Indoor air quality assessment", category: "Specialty" },
+    { name: "Thermostat Installation", description: "Smart thermostat setup", category: "Add-on Services" },
+    { name: "Maintenance Plans", description: "Annual service and maintenance agreements", category: "Plans" },
+    { name: "Insulation Services", description: "Attic and wall insulation", category: "Specialty" },
+    { name: "UV Light Installation", description: "Air purification systems", category: "Add-on Services" },
+  ],
+  
+  // Plumbing
+  plumbing: [
+    { name: "Water Heater Services", description: "Installation, repair, and maintenance", category: "Specialty" },
+    { name: "Drain Cleaning", description: "Professional drain clearing and jetting", category: "Maintenance" },
+    { name: "Sewer Line Services", description: "Inspection, repair, and replacement", category: "Specialty" },
+    { name: "Water Treatment", description: "Filtration and softener systems", category: "Add-on Services" },
+    { name: "Gas Line Services", description: "Gas line installation and repair", category: "Specialty" },
+    { name: "Fixture Installation", description: "Faucets, toilets, and fixtures", category: "Installation" },
+  ],
+  
+  // Electrical
+  electrical: [
+    { name: "Panel Upgrades", description: "Electrical panel replacement and upgrades", category: "Specialty" },
+    { name: "EV Charger Installation", description: "Electric vehicle charging stations", category: "Installation" },
+    { name: "Generator Installation", description: "Backup generator setup", category: "Installation" },
+    { name: "Smart Home Wiring", description: "Home automation and smart device setup", category: "Add-on Services" },
+    { name: "Lighting Design", description: "Custom lighting installation", category: "Add-on Services" },
+    { name: "Surge Protection", description: "Whole-home surge protection", category: "Protection" },
+  ],
+  
+  // Salon/Spa
+  salon: [
+    { name: "Makeup Services", description: "Professional makeup application", category: "Beauty" },
+    { name: "Skincare Treatments", description: "Facials and skin treatments", category: "Skincare" },
+    { name: "Nail Services", description: "Manicures and pedicures", category: "Nails" },
+    { name: "Waxing", description: "Hair removal services", category: "Beauty" },
+    { name: "Lash Extensions", description: "Eyelash extension application", category: "Beauty" },
+    { name: "Bridal Packages", description: "Wedding day beauty services", category: "Special Events" },
+  ],
+  spa: [
+    { name: "Massage Therapy", description: "Various massage modalities", category: "Wellness" },
+    { name: "Body Treatments", description: "Wraps, scrubs, and body care", category: "Wellness" },
+    { name: "Couples Packages", description: "Side-by-side treatments", category: "Special Events" },
+    { name: "Aromatherapy", description: "Essential oil treatments", category: "Add-on Services" },
+  ],
+  
+  // Cleaning
+  cleaning: [
+    { name: "Deep Cleaning", description: "Intensive one-time cleaning", category: "Specialty" },
+    { name: "Move-In/Move-Out", description: "Cleaning for moves", category: "Specialty" },
+    { name: "Carpet Cleaning", description: "Professional carpet shampooing", category: "Specialty" },
+    { name: "Window Cleaning", description: "Interior and exterior windows", category: "Add-on Services" },
+    { name: "Organizing Services", description: "Home organization", category: "Add-on Services" },
+    { name: "Pressure Washing", description: "Exterior surface cleaning", category: "Exterior" },
+  ],
+  
+  // Landscaping
+  landscaping: [
+    { name: "Irrigation Systems", description: "Sprinkler installation and repair", category: "Installation" },
+    { name: "Tree Services", description: "Trimming, removal, and planting", category: "Specialty" },
+    { name: "Hardscaping", description: "Patios, walkways, and retaining walls", category: "Construction" },
+    { name: "Outdoor Lighting", description: "Landscape lighting design", category: "Add-on Services" },
+    { name: "Snow Removal", description: "Winter snow and ice services", category: "Seasonal" },
+    { name: "Pest Control", description: "Lawn pest treatment", category: "Maintenance" },
+  ],
+  
+  // Auto Repair/Mechanic
+  auto_repair: [
+    { name: "Detailing", description: "Interior/exterior detailing", category: "Detailing" },
+    { name: "Body Work", description: "Collision and dent repair", category: "Body Work" },
+    { name: "Window Tinting", description: "Automotive tinting", category: "Add-on Services" },
+    { name: "Fleet Services", description: "Commercial fleet maintenance", category: "Commercial" },
+    { name: "Performance Upgrades", description: "Performance parts and tuning", category: "Specialty" },
+    { name: "Vehicle Inspections", description: "State inspections and pre-purchase", category: "Inspection" },
+  ],
+  
+  // Medical/Healthcare
+  medical: [
+    { name: "Lab Services", description: "On-site lab work and testing", category: "Diagnostics" },
+    { name: "Telemedicine", description: "Virtual consultations", category: "Virtual Care" },
+    { name: "Wellness Programs", description: "Preventive care and wellness", category: "Wellness" },
+    { name: "Physical Therapy", description: "Rehabilitation services", category: "Therapy" },
+  ],
+  medspa: [
+    { name: "IV Therapy", description: "Vitamin and hydration infusions", category: "Wellness" },
+    { name: "Weight Management", description: "Medical weight loss programs", category: "Wellness" },
+    { name: "Skincare Products", description: "Professional-grade skincare", category: "Retail" },
+    { name: "Membership Plans", description: "Monthly treatment packages", category: "Plans" },
+  ],
+  
+  // Photography
+  photography: [
+    { name: "Videography", description: "Professional video services", category: "Video" },
+    { name: "Photo Editing", description: "Advanced retouching and editing", category: "Post-Production" },
+    { name: "Prints & Albums", description: "Professional printing services", category: "Products" },
+    { name: "Drone Photography", description: "Aerial photography", category: "Specialty" },
+  ],
+  
+  // Fitness
+  fitness: [
+    { name: "Nutrition Coaching", description: "Meal planning and nutrition advice", category: "Wellness" },
+    { name: "Online Training", description: "Virtual workout programs", category: "Virtual" },
+    { name: "Group Classes", description: "Small group training sessions", category: "Classes" },
+    { name: "Recovery Services", description: "Stretching, massage, recovery", category: "Wellness" },
+  ],
+  
+  // Pet Services
+  pet_grooming: [
+    { name: "Pet Boarding", description: "Overnight pet care", category: "Boarding" },
+    { name: "Pet Sitting", description: "In-home pet sitting", category: "Care" },
+    { name: "Pet Photography", description: "Professional pet photos", category: "Specialty" },
+    { name: "Pet Products", description: "Premium pet supplies", category: "Retail" },
+  ],
+  
+  // Locksmith
+  locksmith: [
+    { name: "Safe Services", description: "Safe opening and installation", category: "Specialty" },
+    { name: "Security Systems", description: "Security system installation", category: "Installation" },
+    { name: "Access Control", description: "Commercial access systems", category: "Commercial" },
+    { name: "Key Duplication", description: "Key copying services", category: "Services" },
+  ],
+};
+
+// Map business_mode to default suggestions when no specific industry match
+const MODE_DEFAULT_SUGGESTIONS: Record<string, AdditionalServiceSuggestion[]> = {
+  dispatch: [
+    { name: "Vehicle Storage", description: "Short and long-term storage", category: "Storage" },
+    { name: "Minor Repairs", description: "Basic repair services", category: "Auto Repair" },
+    { name: "Fleet Services", description: "Commercial fleet support", category: "Commercial" },
+  ],
+  service: [
+    { name: "Maintenance Plans", description: "Recurring service agreements", category: "Plans" },
+    { name: "Emergency Services", description: "After-hours emergency calls", category: "Emergency" },
+    { name: "Consulting", description: "Expert consultation and advice", category: "Consulting" },
+  ],
+  food: [
+    { name: "Catering", description: "Event catering services", category: "Catering" },
+    { name: "Meal Prep", description: "Weekly meal preparation", category: "Specialty" },
+    { name: "Private Events", description: "Private dining and events", category: "Events" },
+  ],
+  medical: [
+    { name: "Telemedicine", description: "Virtual consultations", category: "Virtual Care" },
+    { name: "Wellness Programs", description: "Preventive care programs", category: "Wellness" },
+  ],
+  general: [
+    { name: "Consulting", description: "Expert consultation", category: "Consulting" },
+    { name: "Custom Services", description: "Tailored solutions", category: "Specialty" },
+  ],
+};
+
+// Categories that are relevant by mode
+const MODE_CATEGORIES: Record<string, string[]> = {
+  dispatch: ["Auto Repair", "Body Work", "Detailing", "Storage", "Maintenance", "Impound", "Glass", "Commercial"],
+  service: ["Maintenance", "Specialty", "Add-on Services", "Plans", "Installation", "Emergency", "Consulting"],
+  food: ["Catering", "Events", "Specialty", "Delivery"],
+  medical: ["Wellness", "Diagnostics", "Therapy", "Virtual Care", "Specialty"],
+  general: ["Consulting", "Specialty", "Add-on Services", "Other"],
+};
 
 export function AdditionalServicesEditor() {
   const { tenant } = useAuth();
   const { services, isLoading } = useServices();
+  const { businessMode } = useTenantConfig();
   const queryClient = useQueryClient();
 
   const [expandedServiceId, setExpandedServiceId] = useState<string | null>(null);
@@ -90,9 +281,51 @@ export function AdditionalServicesEditor() {
   const [savingServiceId, setSavingServiceId] = useState<string | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [newServiceData, setNewServiceData] = useState<ServiceFormData>(defaultFormData);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // Filter to only secondary services
+  // Filter to only secondary services - must be before useMemo that depends on it
   const secondaryServices = services?.filter(s => s.service_type === "secondary") || [];
+
+  // Get industry from tenant
+  const tenantIndustry = tenant?.industry?.toLowerCase() || "";
+  
+  // Get industry-aware suggestions
+  const industrySuggestions = useMemo(() => {
+    // Try exact industry match first
+    const exactMatch = INDUSTRY_ADDON_SUGGESTIONS[tenantIndustry];
+    if (exactMatch) return exactMatch;
+    
+    // Try partial matches (e.g., "auto_detailing" -> "detailing")
+    for (const [key, suggestions] of Object.entries(INDUSTRY_ADDON_SUGGESTIONS)) {
+      if (tenantIndustry.includes(key) || key.includes(tenantIndustry)) {
+        return suggestions;
+      }
+    }
+    
+    // Fall back to mode defaults
+    return MODE_DEFAULT_SUGGESTIONS[businessMode] || MODE_DEFAULT_SUGGESTIONS.general;
+  }, [tenantIndustry, businessMode]);
+  
+  // Get relevant categories for the current industry/mode
+  const categoryOptions = useMemo(() => {
+    const baseCategories = MODE_CATEGORIES[businessMode] || MODE_CATEGORIES.general;
+    // Add any unique categories from industry suggestions
+    const suggestionCategories = industrySuggestions.map(s => s.category);
+    const allCategories = [...new Set([...baseCategories, ...suggestionCategories])];
+    // Always add "Other" at the end
+    if (!allCategories.includes("Other")) {
+      allCategories.push("Other");
+    }
+    return allCategories;
+  }, [businessMode, industrySuggestions]);
+  
+  // Filter out suggestions that are already added
+  const availableSuggestions = useMemo(() => {
+    const existingNames = secondaryServices.map(s => s.name.toLowerCase());
+    return industrySuggestions.filter(
+      suggestion => !existingNames.includes(suggestion.name.toLowerCase())
+    );
+  }, [industrySuggestions, secondaryServices]);
 
   const formatPrice = (service: any) => {
     if (service.price_type === "quote_only") return "Quote/Callback";
@@ -224,6 +457,39 @@ export function AdditionalServicesEditor() {
     setNewServiceData(defaultFormData);
   };
 
+  // Get an industry-aware example for the explanation - must be before any early returns
+  const industryExample = useMemo(() => {
+    const examples: Record<string, string> = {
+      towing: "a tow company might also offer body work, auto repair, or detailing",
+      roadside: "a roadside service might also offer tire sales or battery replacement",
+      detailing: "a detailing business might also offer ceramic coating or window tinting",
+      hvac: "an HVAC company might also offer duct cleaning or maintenance plans",
+      plumbing: "a plumber might also offer water heater services or drain cleaning",
+      electrical: "an electrician might also offer EV charger installation or smart home wiring",
+      salon: "a salon might also offer makeup services, skincare, or nail services",
+      cleaning: "a cleaning service might also offer deep cleaning, carpet cleaning, or pressure washing",
+      landscaping: "a landscaping company might also offer irrigation systems or tree services",
+      auto_repair: "an auto shop might also offer detailing, body work, or inspections",
+    };
+    
+    // Try to find a matching example
+    for (const [key, example] of Object.entries(examples)) {
+      if (tenantIndustry.includes(key) || key.includes(tenantIndustry)) {
+        return example;
+      }
+    }
+    
+    // Default by mode
+    const modeExamples: Record<string, string> = {
+      dispatch: "a service company might also offer repairs, storage, or maintenance",
+      service: "a service business might also offer maintenance plans or specialty services",
+      food: "a restaurant might also offer catering or meal prep services",
+      medical: "a medical practice might also offer telemedicine or wellness programs",
+      general: "a business might also offer consulting or add-on services",
+    };
+    return modeExamples[businessMode] || modeExamples.general;
+  }, [tenantIndustry, businessMode]);
+
   if (isLoading) {
     return (
       <Card>
@@ -280,7 +546,7 @@ export function AdditionalServicesEditor() {
               <SelectValue placeholder="Select category..." />
             </SelectTrigger>
             <SelectContent>
-              {CATEGORY_SUGGESTIONS.map(cat => (
+              {categoryOptions.map(cat => (
                 <SelectItem key={cat} value={cat}>{cat}</SelectItem>
               ))}
             </SelectContent>
@@ -359,7 +625,6 @@ export function AdditionalServicesEditor() {
       </div>
     </div>
   );
-
   return (
     <div className="space-y-6">
       {/* Explanation Card */}
@@ -370,11 +635,11 @@ export function AdditionalServicesEditor() {
             <p className="text-sm font-medium">What are Additional Services?</p>
             <p className="text-sm text-muted-foreground">
               These are services your business offers <strong>in addition</strong> to your core business. 
-              For example, a tow company might also offer body work or auto repair. 
+              For example, {industryExample}. 
               The AI will mention these when relevant and either quote prices or offer callbacks based on your configuration.
             </p>
             <div className="flex items-center gap-2 pt-1">
-              <Lightbulb className="h-4 w-4 text-amber-500" />
+              <Lightbulb className="h-4 w-4 text-warning shrink-0" />
               <p className="text-xs text-muted-foreground">
                 <strong>Tip:</strong> Add as much or as little detail as you want — the AI adapts!
               </p>
@@ -394,6 +659,63 @@ export function AdditionalServicesEditor() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Industry-Aware Suggestions */}
+      {availableSuggestions.length > 0 && (
+        <Collapsible open={showSuggestions} onOpenChange={setShowSuggestions}>
+          <div className="rounded-lg border bg-accent/30 border-accent/50 overflow-hidden">
+            <CollapsibleTrigger asChild>
+              <button className="w-full px-4 py-3 flex items-center justify-between hover:bg-accent/50 transition-colors text-left">
+                <div className="flex items-center gap-3">
+                  <Sparkles className="h-5 w-5 text-accent-foreground shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">
+                      Suggested services for your business
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {availableSuggestions.length} suggestion{availableSuggestions.length !== 1 ? 's' : ''} based on your industry
+                    </p>
+                  </div>
+                </div>
+                {showSuggestions ? (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                )}
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="px-4 pb-4 pt-1 space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {availableSuggestions.map((suggestion) => (
+                    <button
+                      key={suggestion.name}
+                      onClick={() => {
+                        setNewServiceData({
+                          ...defaultFormData,
+                          name: suggestion.name,
+                          description: suggestion.description,
+                          service_category: suggestion.category,
+                        });
+                        setIsCreatingNew(true);
+                        setShowSuggestions(false);
+                      }}
+                      className="flex items-start gap-3 p-3 rounded-md border bg-background hover:bg-muted/50 transition-colors text-left group"
+                    >
+                      <Plus className="h-4 w-4 text-muted-foreground group-hover:text-primary mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{suggestion.name}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{suggestion.description}</p>
+                        <Badge variant="secondary" className="mt-1 text-xs">{suggestion.category}</Badge>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </CollapsibleContent>
+          </div>
+        </Collapsible>
       )}
 
       {/* Header */}
