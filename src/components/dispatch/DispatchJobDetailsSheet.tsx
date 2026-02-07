@@ -20,9 +20,22 @@ import {
   ExternalLink,
   Copy,
   ChevronRight,
+  Route,
+  Calculator,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+
+interface PriceBreakdown {
+  base_price?: number;
+  per_mile_rate?: number;
+  distance_charge?: number;
+  vehicle_modifier?: number;
+  urgency_modifier?: number;
+  total?: number;
+  description?: string;
+  [key: string]: unknown;
+}
 
 interface DispatchJob {
   id: string;
@@ -49,6 +62,13 @@ interface DispatchJob {
   arrived_at?: string | null;
   completed_at?: string | null;
   customers?: { full_name: string; phone_e164: string } | null;
+  // Distance & Pricing fields
+  dispatch_distance_miles?: number | null;
+  tow_distance_miles?: number | null;
+  total_distance_miles?: number | null;
+  service_tier?: string | null;
+  pricing_note?: string | null;
+  price_breakdown?: PriceBreakdown | null;
 }
 
 interface DispatchJobDetailsSheetProps {
@@ -279,6 +299,115 @@ export function DispatchJobDetailsSheet({
             </div>
           </div>
 
+          {/* Distance & Pricing Section */}
+          {(job.dispatch_distance_miles || job.tow_distance_miles || job.price_breakdown || job.pricing_note) && (
+            <>
+              <Separator />
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                  <Route className="h-4 w-4" />
+                  Distance & Pricing
+                </h4>
+                
+                {/* Distance Breakdown */}
+                {(job.dispatch_distance_miles || job.tow_distance_miles) && (
+                  <div className="p-3 rounded-lg bg-muted/50 space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Distance Breakdown</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {job.dispatch_distance_miles != null && (
+                        <div className="space-y-0.5">
+                          <p className="text-xs text-muted-foreground">Drive to Pickup</p>
+                          <p className="text-sm font-semibold">{job.dispatch_distance_miles.toFixed(1)} mi</p>
+                        </div>
+                      )}
+                      {job.tow_distance_miles != null && (
+                        <div className="space-y-0.5">
+                          <p className="text-xs text-muted-foreground">Pickup → Drop-off</p>
+                          <p className="text-sm font-semibold">{job.tow_distance_miles.toFixed(1)} mi</p>
+                        </div>
+                      )}
+                    </div>
+                    {job.total_distance_miles != null && (
+                      <div className="pt-2 border-t border-border/50 flex justify-between items-center">
+                        <p className="text-xs text-muted-foreground">Total Trip</p>
+                        <p className="text-sm font-bold">{job.total_distance_miles.toFixed(1)} mi</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Service Tier Badge */}
+                {job.service_tier && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Service Tier:</span>
+                    <Badge variant="outline" className="text-xs">
+                      {job.service_tier}
+                    </Badge>
+                  </div>
+                )}
+
+                {/* Price Breakdown */}
+                {job.price_breakdown && Object.keys(job.price_breakdown).length > 0 && (
+                  <div className="p-3 rounded-lg border border-success/30 bg-success/5 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Calculator className="h-4 w-4 text-success" />
+                      <p className="text-xs font-medium text-success uppercase tracking-wide">Price Breakdown</p>
+                    </div>
+                    <div className="space-y-1.5">
+                      {job.price_breakdown.base_price != null && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Base Price</span>
+                          <span className="font-medium">${job.price_breakdown.base_price.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {job.price_breakdown.distance_charge != null && job.price_breakdown.distance_charge > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            Distance Charge
+                            {job.price_breakdown.per_mile_rate && (
+                              <span className="text-xs ml-1">(${job.price_breakdown.per_mile_rate}/mi)</span>
+                            )}
+                          </span>
+                          <span className="font-medium">${job.price_breakdown.distance_charge.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {job.price_breakdown.vehicle_modifier != null && job.price_breakdown.vehicle_modifier !== 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Vehicle Adjustment</span>
+                          <span className="font-medium">
+                            {job.price_breakdown.vehicle_modifier > 0 ? '+' : ''}${job.price_breakdown.vehicle_modifier.toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                      {job.price_breakdown.urgency_modifier != null && job.price_breakdown.urgency_modifier !== 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Urgency Fee</span>
+                          <span className="font-medium">
+                            +${job.price_breakdown.urgency_modifier.toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                      {job.price_breakdown.total != null && (
+                        <div className="flex justify-between text-sm pt-2 border-t border-success/20">
+                          <span className="font-semibold text-foreground">Total Quote</span>
+                          <span className="font-bold text-success text-base">${job.price_breakdown.total.toFixed(2)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Pricing Note from AI */}
+                {job.pricing_note && (
+                  <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                    <p className="text-xs font-medium text-primary mb-1">AI Quote Given to Customer</p>
+                    <p className="text-sm text-foreground">{job.pricing_note}</p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
           <Separator />
 
           {/* Job Details */}
@@ -293,10 +422,10 @@ export function DispatchJobDetailsSheet({
               </div>
               {job.price_cents !== null && job.price_cents !== undefined && (
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Price</p>
+                  <p className="text-xs text-muted-foreground">Final Price</p>
                   <div className="flex items-center gap-1">
-                    <DollarSign className="h-4 w-4 text-emerald-500" />
-                    <p className="text-sm font-semibold">{(job.price_cents / 100).toFixed(2)}</p>
+                    <DollarSign className="h-4 w-4 text-success" />
+                    <p className="text-sm font-semibold">${(job.price_cents / 100).toFixed(2)}</p>
                   </div>
                 </div>
               )}
