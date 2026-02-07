@@ -12,13 +12,14 @@ import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
+import { Menu, Wrench } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 // Section editors (unchanged logic)
 import { PricingRulesEditor } from "@/components/settings/PricingRulesEditor";
 import { BusynessRulesEditor } from "@/components/settings/BusynessRulesEditor";
 import { ServiceCatalogEditor } from "@/components/brain/ServiceCatalogEditor";
+import { AdditionalServicesEditor } from "@/components/brain/AdditionalServicesEditor";
 import { MenuCatalogEditor } from "@/components/brain/MenuCatalogEditor";
 import { DispatchServiceCatalog } from "@/components/brain/dispatch/DispatchServiceCatalog";
 import { RequiredQuestionsEditor } from "@/components/settings/RequiredQuestionsEditor";
@@ -294,6 +295,15 @@ export default function BusinessBrainPage() {
                   ) : (
                     <ServiceCatalogEditor />
                   )}
+                </CollapsibleBrainSection>
+
+                <CollapsibleBrainSection
+                  id="additional-services"
+                  title="Additional Services"
+                  icon={Wrench}
+                  preview="Secondary services beyond your core business"
+                >
+                  <AdditionalServicesEditor />
                 </CollapsibleBrainSection>
               </div>
             )}

@@ -160,6 +160,17 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         ],
         defaultCollapsed: false,
       },
+      {
+        id: "additional-services",
+        title: "Additional Services",
+        purpose: "Secondary services you offer beyond your core business",
+        usedByAI: [
+          "Mentions these when relevant (e.g., 'We also offer body work')",
+          "Quotes prices or offers callbacks based on configuration",
+          "Helps cross-sell when appropriate",
+        ],
+        defaultCollapsed: true,
+      },
     ],
     emphasis: ["service", "food", "dispatch"],
   },
