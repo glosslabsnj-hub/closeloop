@@ -58,9 +58,11 @@ import { DistanceBasisSettings } from "@/components/brain/dispatch/DistanceBasis
 // New mode-specific offerings editors
 import { PriceModifiersEditor } from "@/components/brain/PriceModifiersEditor";
 import { ServicePackagesEditor } from "@/components/brain/ServicePackagesEditor";
-import { DispatchPricingEditor } from "@/components/brain/dispatch/DispatchPricingEditor";
-import { FoodSettingsEditor, MenuSizesEditor, DailySpecialsEditor } from "@/components/brain/food";
-import { MedicalPricingEditor } from "@/components/brain/medical";
+import { DispatchPricingEditor, DispatchCoverageZonesEditor } from "@/components/brain/dispatch";
+import { FoodSettingsEditor, MenuSizesEditor, DailySpecialsEditor, DeliveryZonesEditor } from "@/components/brain/food";
+import { MedicalPricingEditor, MedicalCoverageEditor } from "@/components/brain/medical";
+import { ServiceCoverageEditor } from "@/components/brain/service";
+import { ResponseTimeEditor } from "@/components/brain/general";
 
 // Hooks
 import { useTenantConfig } from "@/hooks/useTenantConfig";
@@ -437,6 +439,62 @@ export default function BusinessBrainPage() {
                 >
                   {isDispatchMode ? <DispatchEtaSection /> : <DistanceEtaSection />}
                 </CollapsibleBrainSection>
+
+                {/* Mode-specific coverage settings */}
+                {businessMode === "service" && (
+                  <CollapsibleBrainSection
+                    id="service-coverage"
+                    title="Service Scheduling"
+                    icon={Clock}
+                    preview="Same-day service, travel buffers, and duration settings"
+                  >
+                    <ServiceCoverageEditor />
+                  </CollapsibleBrainSection>
+                )}
+
+                {isDispatchMode && (
+                  <CollapsibleBrainSection
+                    id="dispatch-zones"
+                    title="Coverage Zones & ETA"
+                    icon={MapPin}
+                    preview="Distance zones, highway coverage, and ETA rules"
+                  >
+                    <DispatchCoverageZonesEditor />
+                  </CollapsibleBrainSection>
+                )}
+
+                {(businessMode === "food" || isFoodMode) && (
+                  <CollapsibleBrainSection
+                    id="delivery-zones"
+                    title="Delivery Zones"
+                    icon={Truck}
+                    preview="Delivery areas, fees by zone, and peak hour adjustments"
+                  >
+                    <DeliveryZonesEditor />
+                  </CollapsibleBrainSection>
+                )}
+
+                {businessMode === "medical" && (
+                  <CollapsibleBrainSection
+                    id="medical-coverage"
+                    title="Visit Options"
+                    icon={HeartPulse}
+                    preview="Telehealth, home visits, and appointment scheduling"
+                  >
+                    <MedicalCoverageEditor />
+                  </CollapsibleBrainSection>
+                )}
+
+                {businessMode === "general" && (
+                  <CollapsibleBrainSection
+                    id="response-times"
+                    title="Response Times"
+                    icon={Phone}
+                    preview="Callback targets and priority zones"
+                  >
+                    <ResponseTimeEditor />
+                  </CollapsibleBrainSection>
+                )}
 
                 <CollapsibleBrainSection
                   id="workload"

@@ -1933,6 +1933,157 @@ export type Database = {
           },
         ]
       }
+      delivery_zones: {
+        Row: {
+          created_at: string
+          delivery_fee_cents: number | null
+          estimated_delivery_max_minutes: number | null
+          estimated_delivery_min_minutes: number | null
+          id: string
+          is_active: boolean | null
+          max_miles: number | null
+          min_miles: number | null
+          minimum_order_cents: number | null
+          neighborhood_names: string[] | null
+          peak_fee_cents: number | null
+          peak_time_adjustment_minutes: number | null
+          priority_order: number | null
+          tenant_id: string
+          updated_at: string
+          zip_codes: string[] | null
+          zone_name: string
+          zone_type: string | null
+        }
+        Insert: {
+          created_at?: string
+          delivery_fee_cents?: number | null
+          estimated_delivery_max_minutes?: number | null
+          estimated_delivery_min_minutes?: number | null
+          id?: string
+          is_active?: boolean | null
+          max_miles?: number | null
+          min_miles?: number | null
+          minimum_order_cents?: number | null
+          neighborhood_names?: string[] | null
+          peak_fee_cents?: number | null
+          peak_time_adjustment_minutes?: number | null
+          priority_order?: number | null
+          tenant_id: string
+          updated_at?: string
+          zip_codes?: string[] | null
+          zone_name: string
+          zone_type?: string | null
+        }
+        Update: {
+          created_at?: string
+          delivery_fee_cents?: number | null
+          estimated_delivery_max_minutes?: number | null
+          estimated_delivery_min_minutes?: number | null
+          id?: string
+          is_active?: boolean | null
+          max_miles?: number | null
+          min_miles?: number | null
+          minimum_order_cents?: number | null
+          neighborhood_names?: string[] | null
+          peak_fee_cents?: number | null
+          peak_time_adjustment_minutes?: number | null
+          priority_order?: number | null
+          tenant_id?: string
+          updated_at?: string
+          zip_codes?: string[] | null
+          zone_name?: string
+          zone_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_zones_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dispatch_coverage_zones: {
+        Row: {
+          available_24_7: boolean | null
+          available_hours: Json | null
+          base_rate_cents: number | null
+          county_names: Json | null
+          created_at: string
+          definition_type: string | null
+          eta_base_minutes: number | null
+          eta_per_mile_minutes: number | null
+          highway_numbers: string[] | null
+          id: string
+          is_active: boolean | null
+          max_miles: number | null
+          min_miles: number | null
+          minimum_charge_cents: number | null
+          per_mile_rate_cents: number | null
+          priority_order: number | null
+          tenant_id: string
+          updated_at: string
+          zip_codes: string[] | null
+          zone_name: string
+          zone_type: string | null
+        }
+        Insert: {
+          available_24_7?: boolean | null
+          available_hours?: Json | null
+          base_rate_cents?: number | null
+          county_names?: Json | null
+          created_at?: string
+          definition_type?: string | null
+          eta_base_minutes?: number | null
+          eta_per_mile_minutes?: number | null
+          highway_numbers?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          max_miles?: number | null
+          min_miles?: number | null
+          minimum_charge_cents?: number | null
+          per_mile_rate_cents?: number | null
+          priority_order?: number | null
+          tenant_id: string
+          updated_at?: string
+          zip_codes?: string[] | null
+          zone_name: string
+          zone_type?: string | null
+        }
+        Update: {
+          available_24_7?: boolean | null
+          available_hours?: Json | null
+          base_rate_cents?: number | null
+          county_names?: Json | null
+          created_at?: string
+          definition_type?: string | null
+          eta_base_minutes?: number | null
+          eta_per_mile_minutes?: number | null
+          highway_numbers?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          max_miles?: number | null
+          min_miles?: number | null
+          minimum_charge_cents?: number | null
+          per_mile_rate_cents?: number | null
+          priority_order?: number | null
+          tenant_id?: string
+          updated_at?: string
+          zip_codes?: string[] | null
+          zone_name?: string
+          zone_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispatch_coverage_zones_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dispatch_delivery_settings: {
         Row: {
           created_at: string | null
@@ -4524,6 +4675,80 @@ export type Database = {
           },
         ]
       }
+      medical_coverage_settings: {
+        Row: {
+          accepts_medicaid: boolean | null
+          accepts_medicare: boolean | null
+          created_at: string
+          home_visit_duration_minutes: number | null
+          home_visit_fee_cents: number | null
+          home_visit_radius_miles: number | null
+          in_network_insurers: string[] | null
+          new_patient_extra_minutes: number | null
+          offers_home_visits: boolean | null
+          offers_telehealth: boolean | null
+          out_of_network_policy: string | null
+          procedure_buffer_minutes: number | null
+          reserves_urgent_slots: boolean | null
+          standard_buffer_minutes: number | null
+          telehealth_platforms: string[] | null
+          telehealth_states: string[] | null
+          tenant_id: string
+          updated_at: string
+          urgent_slots_per_day: number | null
+        }
+        Insert: {
+          accepts_medicaid?: boolean | null
+          accepts_medicare?: boolean | null
+          created_at?: string
+          home_visit_duration_minutes?: number | null
+          home_visit_fee_cents?: number | null
+          home_visit_radius_miles?: number | null
+          in_network_insurers?: string[] | null
+          new_patient_extra_minutes?: number | null
+          offers_home_visits?: boolean | null
+          offers_telehealth?: boolean | null
+          out_of_network_policy?: string | null
+          procedure_buffer_minutes?: number | null
+          reserves_urgent_slots?: boolean | null
+          standard_buffer_minutes?: number | null
+          telehealth_platforms?: string[] | null
+          telehealth_states?: string[] | null
+          tenant_id: string
+          updated_at?: string
+          urgent_slots_per_day?: number | null
+        }
+        Update: {
+          accepts_medicaid?: boolean | null
+          accepts_medicare?: boolean | null
+          created_at?: string
+          home_visit_duration_minutes?: number | null
+          home_visit_fee_cents?: number | null
+          home_visit_radius_miles?: number | null
+          in_network_insurers?: string[] | null
+          new_patient_extra_minutes?: number | null
+          offers_home_visits?: boolean | null
+          offers_telehealth?: boolean | null
+          out_of_network_policy?: string | null
+          procedure_buffer_minutes?: number | null
+          reserves_urgent_slots?: boolean | null
+          standard_buffer_minutes?: number | null
+          telehealth_platforms?: string[] | null
+          telehealth_states?: string[] | null
+          tenant_id?: string
+          updated_at?: string
+          urgent_slots_per_day?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_coverage_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       medical_intakes: {
         Row: {
           ai_summary: string | null
@@ -5167,6 +5392,56 @@ export type Database = {
           },
         ]
       }
+      peak_hours: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          delivery_buffer_minutes: number | null
+          end_time: string
+          fee_adjustment_cents: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          prep_buffer_minutes: number | null
+          start_time: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          delivery_buffer_minutes?: number | null
+          end_time: string
+          fee_adjustment_cents?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          prep_buffer_minutes?: number | null
+          start_time: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          delivery_buffer_minutes?: number | null
+          end_time?: string
+          fee_adjustment_cents?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          prep_buffer_minutes?: number | null
+          start_time?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peak_hours_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       phone_numbers: {
         Row: {
           created_at: string
@@ -5370,6 +5645,62 @@ export type Database = {
             foreignKeyName: "reservations_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      response_time_settings: {
+        Row: {
+          after_hours_callback_mode: string | null
+          after_hours_target_minutes: number | null
+          callback_max_minutes: number | null
+          callback_target_minutes: number | null
+          created_at: string
+          email_max_hours: number | null
+          email_target_hours: number | null
+          priority_response_minutes: number | null
+          priority_zip_codes: string[] | null
+          tenant_id: string
+          updated_at: string
+          urgent_callback_minutes: number | null
+          urgent_surcharge_cents: number | null
+        }
+        Insert: {
+          after_hours_callback_mode?: string | null
+          after_hours_target_minutes?: number | null
+          callback_max_minutes?: number | null
+          callback_target_minutes?: number | null
+          created_at?: string
+          email_max_hours?: number | null
+          email_target_hours?: number | null
+          priority_response_minutes?: number | null
+          priority_zip_codes?: string[] | null
+          tenant_id: string
+          updated_at?: string
+          urgent_callback_minutes?: number | null
+          urgent_surcharge_cents?: number | null
+        }
+        Update: {
+          after_hours_callback_mode?: string | null
+          after_hours_target_minutes?: number | null
+          callback_max_minutes?: number | null
+          callback_target_minutes?: number | null
+          created_at?: string
+          email_max_hours?: number | null
+          email_target_hours?: number | null
+          priority_response_minutes?: number | null
+          priority_zip_codes?: string[] | null
+          tenant_id?: string
+          updated_at?: string
+          urgent_callback_minutes?: number | null
+          urgent_surcharge_cents?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "response_time_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -5828,6 +6159,65 @@ export type Database = {
           },
         ]
       }
+      service_coverage_settings: {
+        Row: {
+          accepts_same_day_urgent: boolean | null
+          avoid_traffic_hours: boolean | null
+          buffer_mode: string | null
+          created_at: string
+          default_onsite_minutes: number | null
+          onsite_by_service_type: Json | null
+          preferred_zip_priority: Json | null
+          same_day_cutoff_time: string | null
+          same_day_enabled: boolean | null
+          same_day_radius_miles: number | null
+          tenant_id: string
+          travel_buffer_minutes: number | null
+          updated_at: string
+          urgent_upcharge_percent: number | null
+        }
+        Insert: {
+          accepts_same_day_urgent?: boolean | null
+          avoid_traffic_hours?: boolean | null
+          buffer_mode?: string | null
+          created_at?: string
+          default_onsite_minutes?: number | null
+          onsite_by_service_type?: Json | null
+          preferred_zip_priority?: Json | null
+          same_day_cutoff_time?: string | null
+          same_day_enabled?: boolean | null
+          same_day_radius_miles?: number | null
+          tenant_id: string
+          travel_buffer_minutes?: number | null
+          updated_at?: string
+          urgent_upcharge_percent?: number | null
+        }
+        Update: {
+          accepts_same_day_urgent?: boolean | null
+          avoid_traffic_hours?: boolean | null
+          buffer_mode?: string | null
+          created_at?: string
+          default_onsite_minutes?: number | null
+          onsite_by_service_type?: Json | null
+          preferred_zip_priority?: Json | null
+          same_day_cutoff_time?: string | null
+          same_day_enabled?: boolean | null
+          same_day_radius_miles?: number | null
+          tenant_id?: string
+          travel_buffer_minutes?: number | null
+          updated_at?: string
+          urgent_upcharge_percent?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_coverage_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_packages: {
         Row: {
           billing_interval: string | null
@@ -6251,6 +6641,7 @@ export type Database = {
           base_lng: number | null
           base_place_name: string | null
           base_state_hint: string | null
+          busy_buffer_minutes: number | null
           created_at: string
           default_distance_basis: string | null
           distance_provider_enabled: boolean
@@ -6259,16 +6650,21 @@ export type Database = {
           eta_min_minutes: number | null
           eta_per_mile_minutes: number | null
           eta_rounding_minutes: number
+          eta_rounding_mode: string | null
           fuel_surcharge_percent: number | null
           geocode_provider: string
+          highway_response_faster_minutes: number | null
           holiday_dates: string[] | null
           holiday_multiplier: number | null
           mapbox_route_profile: string
+          max_eta_minutes: number | null
           minimum_charge_cents: number | null
           provider: string
+          remote_area_buffer_minutes: number | null
           service_radius_miles: number | null
           special_equipment_fees: Json | null
           tenant_id: string
+          traffic_buffer_percent: number | null
           updated_at: string
           weekend_multiplier: number | null
         }
@@ -6280,6 +6676,7 @@ export type Database = {
           base_lng?: number | null
           base_place_name?: string | null
           base_state_hint?: string | null
+          busy_buffer_minutes?: number | null
           created_at?: string
           default_distance_basis?: string | null
           distance_provider_enabled?: boolean
@@ -6288,16 +6685,21 @@ export type Database = {
           eta_min_minutes?: number | null
           eta_per_mile_minutes?: number | null
           eta_rounding_minutes?: number
+          eta_rounding_mode?: string | null
           fuel_surcharge_percent?: number | null
           geocode_provider?: string
+          highway_response_faster_minutes?: number | null
           holiday_dates?: string[] | null
           holiday_multiplier?: number | null
           mapbox_route_profile?: string
+          max_eta_minutes?: number | null
           minimum_charge_cents?: number | null
           provider?: string
+          remote_area_buffer_minutes?: number | null
           service_radius_miles?: number | null
           special_equipment_fees?: Json | null
           tenant_id: string
+          traffic_buffer_percent?: number | null
           updated_at?: string
           weekend_multiplier?: number | null
         }
@@ -6309,6 +6711,7 @@ export type Database = {
           base_lng?: number | null
           base_place_name?: string | null
           base_state_hint?: string | null
+          busy_buffer_minutes?: number | null
           created_at?: string
           default_distance_basis?: string | null
           distance_provider_enabled?: boolean
@@ -6317,16 +6720,21 @@ export type Database = {
           eta_min_minutes?: number | null
           eta_per_mile_minutes?: number | null
           eta_rounding_minutes?: number
+          eta_rounding_mode?: string | null
           fuel_surcharge_percent?: number | null
           geocode_provider?: string
+          highway_response_faster_minutes?: number | null
           holiday_dates?: string[] | null
           holiday_multiplier?: number | null
           mapbox_route_profile?: string
+          max_eta_minutes?: number | null
           minimum_charge_cents?: number | null
           provider?: string
+          remote_area_buffer_minutes?: number | null
           service_radius_miles?: number | null
           special_equipment_fees?: Json | null
           tenant_id?: string
+          traffic_buffer_percent?: number | null
           updated_at?: string
           weekend_multiplier?: number | null
         }
