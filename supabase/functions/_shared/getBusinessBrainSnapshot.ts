@@ -204,6 +204,93 @@ export interface FoodOrderSettingsSnapshot {
   order_confirmation_mode: string;
 }
 
+// ============= MODE-SPECIFIC KNOWLEDGE SNAPSHOTS =============
+
+export interface MenuKnowledgeSnapshot {
+  item_name: string;
+  description: string;
+  ingredients: string[];
+  allergens: string[];
+  dietary_tags: string[];
+  pairing_suggestions: string;
+  chef_notes: string;
+  spice_level: number;
+  is_signature: boolean;
+}
+
+export interface CateringKnowledgeSnapshot {
+  event_type: string;
+  min_guests: number | null;
+  max_guests: number | null;
+  lead_time_days: number | null;
+  deposit_percentage: number | null;
+  ai_script: string;
+}
+
+export interface VehicleKnowledgeSnapshot {
+  vehicle_category: string;
+  equipment_required: string[];
+  weight_class: string;
+  special_instructions: string;
+  additional_fees_apply: boolean;
+  fee_notes: string;
+}
+
+export interface RoadsideKnowledgeSnapshot {
+  situation_type: string;
+  safety_instructions: string;
+  estimated_service_time_minutes: number | null;
+  escalation_triggers: string[];
+  priority_level: string;
+  ai_script: string;
+}
+
+export interface SymptomTriageSnapshot {
+  symptom_category: string;
+  symptom_name: string;
+  severity_indicators: string[];
+  escalation_action: string;
+  can_be_telehealth: boolean;
+  hipaa_safe_response: string;
+}
+
+export interface InsuranceKnowledgeSnapshot {
+  carrier_name: string;
+  plan_types: string[];
+  is_accepted: boolean;
+  copay_typical_range: string;
+  patient_script: string;
+}
+
+export interface ProductKnowledgeSnapshot {
+  product_name: string;
+  brand: string;
+  benefits: string[];
+  is_premium: boolean;
+  upsell_script: string;
+}
+
+export interface AftercareSnapshot {
+  service_name: string;
+  immediate_care: string[];
+  things_to_avoid: string[];
+  warning_signs: string[];
+  follow_up_timeframe: string;
+}
+
+export interface CompetitorKnowledgeSnapshot {
+  competitor_name: string;
+  our_advantage: string[];
+  response_script: string;
+}
+
+export interface SeasonalKnowledgeSnapshot {
+  event_name: string;
+  special_hours: string;
+  special_pricing_notes: string;
+  ai_announcement: string;
+}
+
 export interface BusinessBrainSnapshot {
   tenant: TenantSnapshot;
   services: ServiceSnapshot[];
@@ -221,6 +308,24 @@ export interface BusinessBrainSnapshot {
     menu_items: MenuItemSnapshot[];
     food_order_settings: FoodOrderSettingsSnapshot;
   };
+  // Mode-specific knowledge sections
+  mode_knowledge: {
+    // Food mode
+    menu_knowledge: MenuKnowledgeSnapshot[];
+    catering_knowledge: CateringKnowledgeSnapshot[];
+    // Dispatch mode
+    vehicle_knowledge: VehicleKnowledgeSnapshot[];
+    roadside_knowledge: RoadsideKnowledgeSnapshot[];
+    // Medical mode
+    symptom_triage: SymptomTriageSnapshot[];
+    insurance_knowledge: InsuranceKnowledgeSnapshot[];
+    // Service mode
+    product_knowledge: ProductKnowledgeSnapshot[];
+    // Shared (all modes)
+    aftercare: AftercareSnapshot[];
+    competitors: CompetitorKnowledgeSnapshot[];
+    seasonal: SeasonalKnowledgeSnapshot[];
+  };
   _meta: {
     fetched_at: string;
     tenant_id: string;
@@ -235,6 +340,7 @@ export interface BusinessBrainSnapshot {
       availability_slots: number;
       pricing_rules: number;
       menu_items: number;
+      mode_knowledge: number;
     };
   };
 }
@@ -436,6 +542,70 @@ export async function getBusinessBrainSnapshot(
     .order("day_of_week")
     .order("start_time");
 
+  // Mode-specific knowledge queries
+  const menuKnowledgeQuery = supabase
+    .from("menu_knowledge")
+    .select("item_name, detailed_description, ingredients, allergens, dietary_tags, pairing_suggestions, chef_notes, spice_level, is_signature")
+    .eq("tenant_id", tenantId)
+    .order("is_signature", { ascending: false })
+    .limit(50);
+
+  const cateringKnowledgeQuery = supabase
+    .from("catering_knowledge")
+    .select("event_type, min_guests, max_guests, lead_time_days, deposit_percentage, ai_script")
+    .eq("tenant_id", tenantId)
+    .limit(20);
+
+  const vehicleKnowledgeQuery = supabase
+    .from("vehicle_knowledge")
+    .select("vehicle_category, equipment_required, weight_class, special_instructions, additional_fees_apply, fee_notes")
+    .eq("tenant_id", tenantId)
+    .limit(30);
+
+  const roadsideKnowledgeQuery = supabase
+    .from("roadside_knowledge")
+    .select("situation_type, safety_instructions, estimated_service_time_minutes, escalation_triggers, priority_level, ai_script")
+    .eq("tenant_id", tenantId)
+    .order("priority_level", { ascending: false })
+    .limit(20);
+
+  const symptomTriageQuery = supabase
+    .from("symptom_triage")
+    .select("symptom_category, symptom_name, severity_indicators, escalation_action, can_be_telehealth, hipaa_safe_response")
+    .eq("tenant_id", tenantId)
+    .limit(50);
+
+  const insuranceKnowledgeQuery = supabase
+    .from("insurance_knowledge")
+    .select("carrier_name, plan_types, is_accepted, copay_typical_range, patient_script")
+    .eq("tenant_id", tenantId)
+    .limit(30);
+
+  const productKnowledgeQuery = supabase
+    .from("product_knowledge")
+    .select("product_name, brand, benefits, is_premium, upsell_script")
+    .eq("tenant_id", tenantId)
+    .order("is_premium", { ascending: false })
+    .limit(30);
+
+  const aftercareQuery = supabase
+    .from("aftercare_instructions")
+    .select("service_name, immediate_care, things_to_avoid, warning_signs, follow_up_timeframe")
+    .eq("tenant_id", tenantId)
+    .limit(30);
+
+  const competitorQuery = supabase
+    .from("competitor_knowledge")
+    .select("competitor_name, our_advantage, response_script")
+    .eq("tenant_id", tenantId)
+    .limit(20);
+
+  const seasonalQuery = supabase
+    .from("seasonal_knowledge")
+    .select("event_name, special_hours, special_pricing_notes, ai_announcement")
+    .eq("tenant_id", tenantId)
+    .limit(20);
+
   // Execute core queries in parallel
   const [
     servicesResult,
@@ -446,6 +616,17 @@ export async function getBusinessBrainSnapshot(
     intelligenceSettingsResult,
     intentRulesResult,
     availabilitySlotsResult,
+    // Mode-specific knowledge
+    menuKnowledgeResult,
+    cateringKnowledgeResult,
+    vehicleKnowledgeResult,
+    roadsideKnowledgeResult,
+    symptomTriageResult,
+    insuranceKnowledgeResult,
+    productKnowledgeResult,
+    aftercareResult,
+    competitorResult,
+    seasonalResult,
   ] = await Promise.all([
     servicesQuery,
     faqsQuery,
@@ -455,6 +636,17 @@ export async function getBusinessBrainSnapshot(
     intelligenceSettingsQuery,
     intentRulesQuery,
     availabilitySlotsQuery,
+    // Mode-specific knowledge
+    menuKnowledgeQuery,
+    cateringKnowledgeQuery,
+    vehicleKnowledgeQuery,
+    roadsideKnowledgeQuery,
+    symptomTriageQuery,
+    insuranceKnowledgeQuery,
+    productKnowledgeQuery,
+    aftercareQuery,
+    competitorQuery,
+    seasonalQuery,
   ]);
 
   // Conditionally fetch food-specific data
@@ -667,6 +859,99 @@ export async function getBusinessBrainSnapshot(
     }
   }
 
+  // Transform mode-specific knowledge with safe defaults
+  const menu_knowledge: MenuKnowledgeSnapshot[] = safeArray(menuKnowledgeResult.data).map((m: any) => ({
+    item_name: safeString(m.item_name),
+    description: safeString(m.detailed_description),
+    ingredients: safeArray(m.ingredients),
+    allergens: safeArray(m.allergens),
+    dietary_tags: safeArray(m.dietary_tags),
+    pairing_suggestions: safeString(m.pairing_suggestions),
+    chef_notes: safeString(m.chef_notes),
+    spice_level: safeNumber(m.spice_level),
+    is_signature: safeBoolean(m.is_signature),
+  }));
+
+  const catering_knowledge: CateringKnowledgeSnapshot[] = safeArray(cateringKnowledgeResult.data).map((c: any) => ({
+    event_type: safeString(c.event_type),
+    min_guests: c.min_guests,
+    max_guests: c.max_guests,
+    lead_time_days: c.lead_time_days,
+    deposit_percentage: c.deposit_percentage,
+    ai_script: safeString(c.ai_script),
+  }));
+
+  const vehicle_knowledge: VehicleKnowledgeSnapshot[] = safeArray(vehicleKnowledgeResult.data).map((v: any) => ({
+    vehicle_category: safeString(v.vehicle_category),
+    equipment_required: safeArray(v.equipment_required),
+    weight_class: safeString(v.weight_class),
+    special_instructions: safeString(v.special_instructions),
+    additional_fees_apply: safeBoolean(v.additional_fees_apply),
+    fee_notes: safeString(v.fee_notes),
+  }));
+
+  const roadside_knowledge: RoadsideKnowledgeSnapshot[] = safeArray(roadsideKnowledgeResult.data).map((r: any) => ({
+    situation_type: safeString(r.situation_type),
+    safety_instructions: safeString(r.safety_instructions),
+    estimated_service_time_minutes: r.estimated_service_time_minutes,
+    escalation_triggers: safeArray(r.escalation_triggers),
+    priority_level: safeString(r.priority_level),
+    ai_script: safeString(r.ai_script),
+  }));
+
+  const symptom_triage: SymptomTriageSnapshot[] = safeArray(symptomTriageResult.data).map((s: any) => ({
+    symptom_category: safeString(s.symptom_category),
+    symptom_name: safeString(s.symptom_name),
+    severity_indicators: safeArray(s.severity_indicators),
+    escalation_action: safeString(s.escalation_action),
+    can_be_telehealth: safeBoolean(s.can_be_telehealth, true),
+    hipaa_safe_response: safeString(s.hipaa_safe_response),
+  }));
+
+  const insurance_knowledge: InsuranceKnowledgeSnapshot[] = safeArray(insuranceKnowledgeResult.data).map((i: any) => ({
+    carrier_name: safeString(i.carrier_name),
+    plan_types: safeArray(i.plan_types),
+    is_accepted: safeBoolean(i.is_accepted, true),
+    copay_typical_range: safeString(i.copay_typical_range),
+    patient_script: safeString(i.patient_script),
+  }));
+
+  const product_knowledge: ProductKnowledgeSnapshot[] = safeArray(productKnowledgeResult.data).map((p: any) => ({
+    product_name: safeString(p.product_name),
+    brand: safeString(p.brand),
+    benefits: safeArray(p.benefits),
+    is_premium: safeBoolean(p.is_premium),
+    upsell_script: safeString(p.upsell_script),
+  }));
+
+  const aftercare: AftercareSnapshot[] = safeArray(aftercareResult.data).map((a: any) => ({
+    service_name: safeString(a.service_name),
+    immediate_care: safeArray(a.immediate_care),
+    things_to_avoid: safeArray(a.things_to_avoid),
+    warning_signs: safeArray(a.warning_signs),
+    follow_up_timeframe: safeString(a.follow_up_timeframe),
+  }));
+
+  const competitors: CompetitorKnowledgeSnapshot[] = safeArray(competitorResult.data).map((c: any) => ({
+    competitor_name: safeString(c.competitor_name),
+    our_advantage: safeArray(c.our_advantage),
+    response_script: safeString(c.response_script),
+  }));
+
+  const seasonal: SeasonalKnowledgeSnapshot[] = safeArray(seasonalResult.data).map((s: any) => ({
+    event_name: safeString(s.event_name),
+    special_hours: safeString(s.special_hours),
+    special_pricing_notes: safeString(s.special_pricing_notes),
+    ai_announcement: safeString(s.ai_announcement),
+  }));
+
+  // Count total mode-specific knowledge items
+  const modeKnowledgeCount = menu_knowledge.length + catering_knowledge.length + 
+    vehicle_knowledge.length + roadside_knowledge.length + 
+    symptom_triage.length + insurance_knowledge.length + 
+    product_knowledge.length + aftercare.length + 
+    competitors.length + seasonal.length;
+
   // Build section counts for logging
   const section_counts = {
     services: services.length,
@@ -678,6 +963,7 @@ export async function getBusinessBrainSnapshot(
     availability_slots: availability_slots.length,
     pricing_rules: pricing_rules.length,
     menu_items: menu_items.length,
+    mode_knowledge: modeKnowledgeCount,
   };
 
   // STEP 4: Return complete snapshot
@@ -697,6 +983,18 @@ export async function getBusinessBrainSnapshot(
       menu_categories: [], // menu_categories table doesn't exist - derived from menu_items
       menu_items,
       food_order_settings,
+    },
+    mode_knowledge: {
+      menu_knowledge,
+      catering_knowledge,
+      vehicle_knowledge,
+      roadside_knowledge,
+      symptom_triage,
+      insurance_knowledge,
+      product_knowledge,
+      aftercare,
+      competitors,
+      seasonal,
     },
     _meta: {
       fetched_at: new Date().toISOString(),
