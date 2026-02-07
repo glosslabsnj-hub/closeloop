@@ -106,15 +106,15 @@ export function BrainPreviewPanel({ open, onOpenChange, activeSection }: BrainPr
         items: [
           {
             label: "Coverage Mode",
-            value: t.service_area_config_json?.mode || null,
-            status: t.service_area_config_json?.mode ? "complete" : "missing",
+            value: (tenant as Record<string, unknown>).service_area_config_json 
+              ? "Configured" 
+              : null,
+            status: (tenant as Record<string, unknown>).service_area_config_json ? "complete" : "missing",
           },
           {
             label: "Base Address",
-            value: t.service_area_config_json?.base_address?.city
-              ? `${t.service_area_config_json.base_address.city}, ${t.service_area_config_json.base_address.state}`
-              : null,
-            status: t.service_area_config_json?.base_address?.city ? "complete" : "missing",
+            value: tenant.address || null,
+            status: tenant.address ? "complete" : "missing",
           },
         ],
       },
@@ -125,15 +125,13 @@ export function BrainPreviewPanel({ open, onOpenChange, activeSection }: BrainPr
         items: [
           {
             label: "Cancellation Policy",
-            value: t.cancellation_policy ? truncate(t.cancellation_policy, 50) : null,
-            status: t.cancellation_policy ? "complete" : "missing",
+            value: tenant.cancellation_policy ? truncate(tenant.cancellation_policy, 50) : null,
+            status: tenant.cancellation_policy ? "complete" : "missing",
           },
           {
             label: "Payment Methods",
-            value: Array.isArray(t.payment_methods) && t.payment_methods.length > 0
-              ? t.payment_methods.join(", ")
-              : null,
-            status: Array.isArray(t.payment_methods) && t.payment_methods.length > 0 ? "complete" : "missing",
+            value: "Check policies tab",
+            status: "partial",
           },
         ],
       },

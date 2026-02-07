@@ -36,11 +36,17 @@ export function useTenantConfig(): TenantConfig {
     try {
       const modules = tenant.enabled_modules;
       if (Array.isArray(modules)) {
-        enabledModules = modules;
+        // Filter to ensure all values are strings
+        enabledModules = modules.filter((m): m is string => typeof m === "string");
       } else if (typeof modules === "string") {
-        enabledModules = JSON.parse(modules);
+        const parsed = JSON.parse(modules);
+        enabledModules = Array.isArray(parsed) 
+          ? parsed.filter((m): m is string => typeof m === "string")
+          : [];
       } else if (modules && typeof modules === "object") {
-        enabledModules = Object.keys(modules).filter(k => modules[k]);
+        enabledModules = Object.keys(modules as Record<string, unknown>).filter(
+          k => (modules as Record<string, unknown>)[k]
+        );
       }
     } catch {
       enabledModules = defaultModulesByMode[businessMode] || defaultModulesByMode.service;

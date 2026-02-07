@@ -10,6 +10,7 @@
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sanitizeCustomerName, isPlaceholderName, shouldUpdateCustomerName } from "../_shared/sanitizeName.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -188,33 +189,57 @@ serve(async (req: Request) => {
     const effectivePhoneRaw = (customer_phone || sessionCallerPhone || "").trim();
     const phoneE164 = normalizePhone(effectivePhoneRaw);
 
+    // Sanitize customer name - detect and normalize placeholders
+    const rawCustomerName = (customer_name || "").trim();
+    const sanitizedName = sanitizeCustomerName(rawCustomerName);
+
+    // Log if placeholder name was detected
+    if (isPlaceholderName(rawCustomerName)) {
+      console.log(`[elevenlabs-create-dispatch-job] Placeholder name detected: "${rawCustomerName}" - storing as "Unknown"`);
+      // Log to ai_event_logs for tracking
+      try {
+        await supabase.from("ai_event_logs").insert({
+          tenant_id: resolvedTenantId,
+          session_id: sessionId,
+          stage: "dispatch_identity_missing",
+          event_data: {
+            tool: "elevenlabs-create-dispatch-job",
+            placeholder_detected: rawCustomerName || null,
+            has_caller_phone: !!phoneE164,
+          },
+        });
+      } catch (e) {
+        // Don't block on logging errors
+      }
+    }
+
     // Find or create customer
     let customerId: string | null = null;
     if (phoneE164) {
       try {
         const { data: existingCustomer } = await supabase
           .from("customers")
-          .select("id")
+          .select("id, full_name")
           .eq("tenant_id", resolvedTenantId)
           .eq("phone_e164", phoneE164)
           .maybeSingle();
 
         if (existingCustomer) {
           customerId = existingCustomer.id;
-          // Update name if provided
-          if (customer_name) {
+          // Only update name if new name is better than existing
+          if (shouldUpdateCustomerName(existingCustomer.full_name, rawCustomerName)) {
             await supabase
               .from("customers")
-              .update({ full_name: customer_name, updated_at: new Date().toISOString() })
+              .update({ full_name: sanitizedName, updated_at: new Date().toISOString() })
               .eq("id", customerId);
           }
         } else {
-          // Create new customer (name optional)
+          // Create new customer (name is sanitized)
           const { data: newCustomer, error: newCustomerError } = await supabase
             .from("customers")
             .insert({
               tenant_id: resolvedTenantId,
-              full_name: customer_name?.trim() || "Unknown",
+              full_name: sanitizedName,
               phone_e164: phoneE164,
               phone_raw: customer_phone || null,
               source: "voice_ai"
@@ -255,14 +280,14 @@ serve(async (req: Request) => {
     if (vehicle_info) descriptionParts.push(`Vehicle: ${vehicle_info}`);
     const description = descriptionParts.join(". ") || null;
 
-    // Create dispatch job
+    // Create dispatch job with sanitized customer name
     const { data: dispatch, error: dispatchError } = await supabase
       .from("dispatch_jobs")
       .insert({
         tenant_id: resolvedTenantId,
         job_number: jobNumber,
         customer_id: customerId,
-        customer_name: customer_name?.trim() || "Unknown",
+        customer_name: sanitizedName,
         customer_phone: phoneE164 || customer_phone || null,
         pickup_address: pickup_address,
         dropoff_address: dropoff_address || null,
