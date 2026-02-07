@@ -67,6 +67,23 @@ import { DispatchPoliciesEditor } from "@/components/brain/dispatch";
 import { FoodPoliciesEditor } from "@/components/brain/food";
 import { IntakeRequirementsEditor } from "@/components/brain/shared/IntakeRequirementsEditor";
 
+// Mode-specific knowledge editors
+import {
+  ModeFAQSuggestions,
+  ModeObjectionSuggestions,
+  ModeKnowledgeSuggestions,
+  MenuKnowledgeEditor,
+  CateringKnowledgeEditor,
+  VehicleKnowledgeEditor,
+  RoadsideKnowledgeEditor,
+  SymptomTriageEditor,
+  InsuranceKnowledgeEditor,
+  ProductKnowledgeEditor,
+  AftercareInstructionsEditor,
+  CompetitorKnowledgeEditor,
+  SeasonalKnowledgeEditor,
+} from "@/components/brain/knowledge";
+
 // Hooks
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useFoodMode } from "@/hooks/useFoodMode";
@@ -87,7 +104,7 @@ import {
   FileText, Shield, MessageSquareText, Send, Truck, UtensilsCrossed, HeartPulse,
   Building2, Palette, Clock, DollarSign, Tag, MapPin, Navigation, Gauge,
   Calendar, Mic, BookOpen, Brain, HelpCircle, MessageCircle, Lightbulb, FileUp, AlertCircle,
-  Warehouse, Phone, FileCheck, Briefcase, Package
+  Warehouse, Phone, FileCheck, Briefcase, Package, Heart, Users
 } from "lucide-react";
 
 const VALID_SECTIONS = ["profile", "hours", "services", "service-area", "availability", "policies", "ai-behavior", "knowledge"] as const;
@@ -749,6 +766,112 @@ export default function BusinessBrainPage() {
                   preview={summaries.objections}
                 >
                   <BusinessObjectionEditor />
+                </CollapsibleBrainSection>
+
+                {/* Mode-specific knowledge sections */}
+                {isFoodMode && (
+                  <>
+                    <CollapsibleBrainSection
+                      id="menu-knowledge"
+                      title="Menu Item Details"
+                      icon={UtensilsCrossed}
+                      preview="Detailed descriptions, allergens, and pairings"
+                    >
+                      <MenuKnowledgeEditor />
+                    </CollapsibleBrainSection>
+
+                    <CollapsibleBrainSection
+                      id="catering-knowledge"
+                      title="Catering by Event Type"
+                      icon={Tag}
+                      preview="Event-specific requirements and pricing"
+                    >
+                      <CateringKnowledgeEditor />
+                    </CollapsibleBrainSection>
+                  </>
+                )}
+
+                {isDispatchMode && (
+                  <>
+                    <CollapsibleBrainSection
+                      id="vehicle-knowledge"
+                      title="Vehicle Requirements"
+                      icon={Truck}
+                      preview="Equipment and procedures by vehicle type"
+                    >
+                      <VehicleKnowledgeEditor />
+                    </CollapsibleBrainSection>
+
+                    <CollapsibleBrainSection
+                      id="roadside-knowledge"
+                      title="Roadside Situations"
+                      icon={AlertCircle}
+                      preview="Safety scripts and escalation triggers"
+                    >
+                      <RoadsideKnowledgeEditor />
+                    </CollapsibleBrainSection>
+                  </>
+                )}
+
+                {businessMode === "medical" && (
+                  <>
+                    <CollapsibleBrainSection
+                      id="symptom-triage"
+                      title="Symptom Triage Scripts"
+                      icon={HeartPulse}
+                      preview="HIPAA-safe responses and escalation rules"
+                    >
+                      <SymptomTriageEditor />
+                    </CollapsibleBrainSection>
+
+                    <CollapsibleBrainSection
+                      id="insurance-knowledge"
+                      title="Insurance Carrier Info"
+                      icon={Shield}
+                      preview="Carrier-specific scripts and coverage"
+                    >
+                      <InsuranceKnowledgeEditor />
+                    </CollapsibleBrainSection>
+                  </>
+                )}
+
+                {(businessMode === "service" || businessMode === "general") && (
+                  <CollapsibleBrainSection
+                    id="product-knowledge"
+                    title="Product & Material Knowledge"
+                    icon={Package}
+                    preview="Products you use and their benefits"
+                  >
+                    <ProductKnowledgeEditor />
+                  </CollapsibleBrainSection>
+                )}
+
+                {/* Shared knowledge sections (all modes) */}
+                <CollapsibleBrainSection
+                  id="aftercare"
+                  title="Aftercare Instructions"
+                  icon={Heart}
+                  preview="Post-service care instructions"
+                >
+                  <AftercareInstructionsEditor />
+                </CollapsibleBrainSection>
+
+                <CollapsibleBrainSection
+                  id="competitors"
+                  title="Competitor Positioning"
+                  icon={Users}
+                  preview="How to respond when competitors are mentioned"
+                >
+                  <CompetitorKnowledgeEditor />
+                </CollapsibleBrainSection>
+
+                <CollapsibleBrainSection
+                  id="seasonal"
+                  title="Seasonal & Events"
+                  icon={Calendar}
+                  preview="Holiday and event-specific info"
+                >
+                  <SeasonalKnowledgeEditor />
                 </CollapsibleBrainSection>
 
                 <CollapsibleBrainSection

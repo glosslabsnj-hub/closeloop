@@ -55,6 +55,69 @@ export type Database = {
           },
         ]
       }
+      aftercare_instructions: {
+        Row: {
+          ai_verbatim_script: string | null
+          created_at: string
+          follow_up_recommended: boolean | null
+          follow_up_timeframe: string | null
+          id: string
+          immediate_care: string[] | null
+          ongoing_care: string[] | null
+          service_id: string | null
+          service_name: string
+          tenant_id: string
+          things_to_avoid: string[] | null
+          updated_at: string
+          warning_signs: string[] | null
+        }
+        Insert: {
+          ai_verbatim_script?: string | null
+          created_at?: string
+          follow_up_recommended?: boolean | null
+          follow_up_timeframe?: string | null
+          id?: string
+          immediate_care?: string[] | null
+          ongoing_care?: string[] | null
+          service_id?: string | null
+          service_name: string
+          tenant_id: string
+          things_to_avoid?: string[] | null
+          updated_at?: string
+          warning_signs?: string[] | null
+        }
+        Update: {
+          ai_verbatim_script?: string | null
+          created_at?: string
+          follow_up_recommended?: boolean | null
+          follow_up_timeframe?: string | null
+          id?: string
+          immediate_care?: string[] | null
+          ongoing_care?: string[] | null
+          service_id?: string | null
+          service_name?: string
+          tenant_id?: string
+          things_to_avoid?: string[] | null
+          updated_at?: string
+          warning_signs?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aftercare_instructions_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aftercare_instructions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_assistants: {
         Row: {
           created_at: string
@@ -1386,6 +1449,71 @@ export type Database = {
           },
         ]
       }
+      catering_knowledge: {
+        Row: {
+          ai_script: string | null
+          cancellation_policy: string | null
+          created_at: string
+          deposit_percentage: number | null
+          event_type: string
+          id: string
+          lead_time_days: number | null
+          max_guests: number | null
+          menu_restrictions: string | null
+          min_guests: number | null
+          rental_equipment: string[] | null
+          setup_requirements: string | null
+          staffing_included: boolean | null
+          tenant_id: string
+          updated_at: string
+          venue_requirements: string | null
+        }
+        Insert: {
+          ai_script?: string | null
+          cancellation_policy?: string | null
+          created_at?: string
+          deposit_percentage?: number | null
+          event_type: string
+          id?: string
+          lead_time_days?: number | null
+          max_guests?: number | null
+          menu_restrictions?: string | null
+          min_guests?: number | null
+          rental_equipment?: string[] | null
+          setup_requirements?: string | null
+          staffing_included?: boolean | null
+          tenant_id: string
+          updated_at?: string
+          venue_requirements?: string | null
+        }
+        Update: {
+          ai_script?: string | null
+          cancellation_policy?: string | null
+          created_at?: string
+          deposit_percentage?: number | null
+          event_type?: string
+          id?: string
+          lead_time_days?: number | null
+          max_guests?: number | null
+          menu_restrictions?: string | null
+          min_guests?: number | null
+          rental_equipment?: string[] | null
+          setup_requirements?: string | null
+          staffing_included?: boolean | null
+          tenant_id?: string
+          updated_at?: string
+          venue_requirements?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catering_knowledge_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catering_requests: {
         Row: {
           budget_range: string | null
@@ -1460,6 +1588,53 @@ export type Database = {
           },
           {
             foreignKeyName: "catering_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      competitor_knowledge: {
+        Row: {
+          common_customer_concerns: string[] | null
+          competitor_name: string
+          created_at: string
+          id: string
+          never_say: string[] | null
+          our_advantage: string[] | null
+          price_comparison_notes: string | null
+          response_script: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          common_customer_concerns?: string[] | null
+          competitor_name: string
+          created_at?: string
+          id?: string
+          never_say?: string[] | null
+          our_advantage?: string[] | null
+          price_comparison_notes?: string | null
+          response_script?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          common_customer_concerns?: string[] | null
+          competitor_name?: string
+          created_at?: string
+          id?: string
+          never_say?: string[] | null
+          our_advantage?: string[] | null
+          price_comparison_notes?: string | null
+          response_script?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitor_knowledge_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -3511,6 +3686,62 @@ export type Database = {
         }
         Relationships: []
       }
+      insurance_knowledge: {
+        Row: {
+          billing_notes: string | null
+          carrier_name: string
+          common_coverage_notes: string | null
+          copay_typical_range: string | null
+          created_at: string
+          id: string
+          is_accepted: boolean | null
+          patient_script: string | null
+          plan_types: string[] | null
+          pre_authorization_required: string[] | null
+          tenant_id: string
+          updated_at: string
+          verification_process: string | null
+        }
+        Insert: {
+          billing_notes?: string | null
+          carrier_name: string
+          common_coverage_notes?: string | null
+          copay_typical_range?: string | null
+          created_at?: string
+          id?: string
+          is_accepted?: boolean | null
+          patient_script?: string | null
+          plan_types?: string[] | null
+          pre_authorization_required?: string[] | null
+          tenant_id: string
+          updated_at?: string
+          verification_process?: string | null
+        }
+        Update: {
+          billing_notes?: string | null
+          carrier_name?: string
+          common_coverage_notes?: string | null
+          copay_typical_range?: string | null
+          created_at?: string
+          id?: string
+          is_accepted?: boolean | null
+          patient_script?: string | null
+          plan_types?: string[] | null
+          pre_authorization_required?: string[] | null
+          tenant_id?: string
+          updated_at?: string
+          verification_process?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insurance_knowledge_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       intake_requirements: {
         Row: {
           ai_prompt_hint: string | null
@@ -5545,6 +5776,84 @@ export type Database = {
           },
         ]
       }
+      menu_knowledge: {
+        Row: {
+          allergens: string[] | null
+          calorie_count: number | null
+          chef_notes: string | null
+          created_at: string
+          detailed_description: string | null
+          dietary_tags: string[] | null
+          id: string
+          ingredients: string[] | null
+          is_seasonal: boolean | null
+          is_signature: boolean | null
+          item_name: string
+          menu_item_id: string | null
+          pairing_suggestions: string | null
+          prep_notes: string | null
+          seasonal_availability: string | null
+          spice_level: number | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          allergens?: string[] | null
+          calorie_count?: number | null
+          chef_notes?: string | null
+          created_at?: string
+          detailed_description?: string | null
+          dietary_tags?: string[] | null
+          id?: string
+          ingredients?: string[] | null
+          is_seasonal?: boolean | null
+          is_signature?: boolean | null
+          item_name: string
+          menu_item_id?: string | null
+          pairing_suggestions?: string | null
+          prep_notes?: string | null
+          seasonal_availability?: string | null
+          spice_level?: number | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          allergens?: string[] | null
+          calorie_count?: number | null
+          chef_notes?: string | null
+          created_at?: string
+          detailed_description?: string | null
+          dietary_tags?: string[] | null
+          id?: string
+          ingredients?: string[] | null
+          is_seasonal?: boolean | null
+          is_signature?: boolean | null
+          item_name?: string
+          menu_item_id?: string | null
+          pairing_suggestions?: string | null
+          prep_notes?: string | null
+          seasonal_availability?: string | null
+          spice_level?: number | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_knowledge_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_knowledge_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_specials: {
         Row: {
           active_days: number[] | null
@@ -6046,6 +6355,68 @@ export type Database = {
           },
         ]
       }
+      product_knowledge: {
+        Row: {
+          benefits: string[] | null
+          brand: string | null
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_premium: boolean | null
+          price_range: string | null
+          product_name: string
+          related_services: string[] | null
+          tenant_id: string
+          updated_at: string
+          upsell_script: string | null
+          usage_instructions: string | null
+          warnings: string | null
+        }
+        Insert: {
+          benefits?: string[] | null
+          brand?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_premium?: boolean | null
+          price_range?: string | null
+          product_name: string
+          related_services?: string[] | null
+          tenant_id: string
+          updated_at?: string
+          upsell_script?: string | null
+          usage_instructions?: string | null
+          warnings?: string | null
+        }
+        Update: {
+          benefits?: string[] | null
+          brand?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_premium?: boolean | null
+          price_range?: string | null
+          product_name?: string
+          related_services?: string[] | null
+          tenant_id?: string
+          updated_at?: string
+          upsell_script?: string | null
+          usage_instructions?: string | null
+          warnings?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_knowledge_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reservations: {
         Row: {
           created_at: string
@@ -6459,6 +6830,65 @@ export type Database = {
           },
         ]
       }
+      roadside_knowledge: {
+        Row: {
+          ai_script: string | null
+          can_be_self_service: boolean | null
+          common_questions: string[] | null
+          created_at: string
+          escalation_triggers: string[] | null
+          estimated_service_time_minutes: number | null
+          id: string
+          priority_level: string | null
+          safety_instructions: string | null
+          self_service_tips: string | null
+          situation_type: string
+          tenant_id: string
+          tools_required: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          ai_script?: string | null
+          can_be_self_service?: boolean | null
+          common_questions?: string[] | null
+          created_at?: string
+          escalation_triggers?: string[] | null
+          estimated_service_time_minutes?: number | null
+          id?: string
+          priority_level?: string | null
+          safety_instructions?: string | null
+          self_service_tips?: string | null
+          situation_type: string
+          tenant_id: string
+          tools_required?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          ai_script?: string | null
+          can_be_self_service?: boolean | null
+          common_questions?: string[] | null
+          created_at?: string
+          escalation_triggers?: string[] | null
+          estimated_service_time_minutes?: number | null
+          id?: string
+          priority_level?: string | null
+          safety_instructions?: string | null
+          self_service_tips?: string | null
+          situation_type?: string
+          tenant_id?: string
+          tools_required?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roadside_knowledge_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       routing_rules: {
         Row: {
           config_json: Json | null
@@ -6506,6 +6936,62 @@ export type Database = {
           },
           {
             foreignKeyName: "routing_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seasonal_knowledge: {
+        Row: {
+          ai_announcement: string | null
+          booking_tips: string | null
+          created_at: string
+          end_date: string | null
+          event_name: string
+          id: string
+          is_recurring: boolean | null
+          special_hours: string | null
+          special_menu_notes: string | null
+          special_pricing_notes: string | null
+          start_date: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ai_announcement?: string | null
+          booking_tips?: string | null
+          created_at?: string
+          end_date?: string | null
+          event_name: string
+          id?: string
+          is_recurring?: boolean | null
+          special_hours?: string | null
+          special_menu_notes?: string | null
+          special_pricing_notes?: string | null
+          start_date?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          ai_announcement?: string | null
+          booking_tips?: string | null
+          created_at?: string
+          end_date?: string | null
+          event_name?: string
+          id?: string
+          is_recurring?: boolean | null
+          special_hours?: string | null
+          special_menu_notes?: string | null
+          special_pricing_notes?: string | null
+          start_date?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seasonal_knowledge_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -7078,6 +7564,65 @@ export type Database = {
             foreignKeyName: "subscriptions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      symptom_triage: {
+        Row: {
+          can_be_telehealth: boolean | null
+          created_at: string
+          escalation_action: string | null
+          hipaa_safe_response: string | null
+          id: string
+          pre_visit_instructions: string | null
+          questions_to_ask: string[] | null
+          severity_indicators: string[] | null
+          specialty_referral: string | null
+          symptom_category: string
+          symptom_name: string
+          tenant_id: string
+          typical_duration_minutes: number | null
+          updated_at: string
+        }
+        Insert: {
+          can_be_telehealth?: boolean | null
+          created_at?: string
+          escalation_action?: string | null
+          hipaa_safe_response?: string | null
+          id?: string
+          pre_visit_instructions?: string | null
+          questions_to_ask?: string[] | null
+          severity_indicators?: string[] | null
+          specialty_referral?: string | null
+          symptom_category: string
+          symptom_name: string
+          tenant_id: string
+          typical_duration_minutes?: number | null
+          updated_at?: string
+        }
+        Update: {
+          can_be_telehealth?: boolean | null
+          created_at?: string
+          escalation_action?: string | null
+          hipaa_safe_response?: string | null
+          id?: string
+          pre_visit_instructions?: string | null
+          questions_to_ask?: string[] | null
+          severity_indicators?: string[] | null
+          specialty_referral?: string | null
+          symptom_category?: string
+          symptom_name?: string
+          tenant_id?: string
+          typical_duration_minutes?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "symptom_triage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -7841,6 +8386,65 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      vehicle_knowledge: {
+        Row: {
+          additional_fees_apply: boolean | null
+          common_issues: string[] | null
+          created_at: string
+          equipment_required: string[] | null
+          estimated_hookup_minutes: number | null
+          fee_notes: string | null
+          id: string
+          max_weight_lbs: number | null
+          requires_special_permit: boolean | null
+          special_instructions: string | null
+          tenant_id: string
+          updated_at: string
+          vehicle_category: string
+          weight_class: string | null
+        }
+        Insert: {
+          additional_fees_apply?: boolean | null
+          common_issues?: string[] | null
+          created_at?: string
+          equipment_required?: string[] | null
+          estimated_hookup_minutes?: number | null
+          fee_notes?: string | null
+          id?: string
+          max_weight_lbs?: number | null
+          requires_special_permit?: boolean | null
+          special_instructions?: string | null
+          tenant_id: string
+          updated_at?: string
+          vehicle_category: string
+          weight_class?: string | null
+        }
+        Update: {
+          additional_fees_apply?: boolean | null
+          common_issues?: string[] | null
+          created_at?: string
+          equipment_required?: string[] | null
+          estimated_hookup_minutes?: number | null
+          fee_notes?: string | null
+          id?: string
+          max_weight_lbs?: number | null
+          requires_special_permit?: boolean | null
+          special_instructions?: string | null
+          tenant_id?: string
+          updated_at?: string
+          vehicle_category?: string
+          weight_class?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_knowledge_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       voice_options: {
         Row: {
