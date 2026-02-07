@@ -55,48 +55,50 @@
      );
    }
  
-   return (
-     <Card className={className}>
-       <CardHeader>
-         <div className="flex items-center justify-between gap-4">
-           <div className="min-w-0">
-             <CardTitle className="text-base">{title}</CardTitle>
-             <CardDescription className="text-xs mt-1">{description}</CardDescription>
-           </div>
-           <div className="flex items-center gap-2 shrink-0">
-             {headerActions}
-             <Button size="sm" onClick={onAdd}>
-               <Plus className="w-4 h-4 mr-1.5" />
-               {addButtonLabel}
-             </Button>
-           </div>
-         </div>
-       </CardHeader>
-       <CardContent>
-         {items.length === 0 ? (
-           <div className="flex flex-col items-center justify-center py-12 text-center">
-             <div className="rounded-full bg-muted p-4 mb-4">
-               <EmptyIcon className="w-8 h-8 text-muted-foreground" />
-             </div>
-             <h3 className="text-lg font-medium">{emptyState.title}</h3>
-             <p className="mt-1 text-sm text-muted-foreground max-w-sm">
-               {emptyState.description}
-             </p>
-             <div className="mt-4">
-               <Button onClick={onAdd}>
-                 <Plus className="w-4 h-4 mr-2" />
-                 {addButtonLabel}
-               </Button>
-             </div>
-           </div>
-         ) : (
-           <div className="space-y-3">
-             {items.map((item) => (
-               <div key={item.id}>{renderItem(item)}</div>
-             ))}
-           </div>
-         )}
-       </CardContent>
-     </Card>
-   );
- }
+    return (
+      <Card className={className}>
+        <CardHeader className="space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <CardTitle className="text-base truncate">{title}</CardTitle>
+              <CardDescription className="text-xs mt-1 line-clamp-2">{description}</CardDescription>
+            </div>
+            <Button size="sm" onClick={onAdd} className="shrink-0">
+              <Plus className="w-4 h-4 mr-1.5" />
+              {addButtonLabel}
+            </Button>
+          </div>
+          {headerActions && (
+            <div className="overflow-x-auto -mx-1 px-1">
+              {headerActions}
+            </div>
+          )}
+        </CardHeader>
+        <CardContent>
+          {items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="rounded-full bg-muted p-4 mb-4">
+                <EmptyIcon className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-medium">{emptyState.title}</h3>
+              <p className="mt-1 text-sm text-muted-foreground max-w-sm">
+                {emptyState.description}
+              </p>
+              <div className="mt-4">
+                <Button onClick={onAdd}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  {addButtonLabel}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {items.map((item) => (
+                <div key={item.id}>{renderItem(item)}</div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }

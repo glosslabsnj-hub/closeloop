@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { AgentControlPanel } from "./AgentControlPanel";
@@ -12,6 +12,7 @@ import { SetupProgressChecklist } from "./SetupProgressChecklist";
 import { ROIPerformanceWidget } from "./ROIPerformanceWidget";
 import { LeadRecoveryWidget } from "./LeadRecoveryWidget";
 import { SoundManager } from "@/components/notifications/SoundManager";
+
 function getGreeting(): string {
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
@@ -29,6 +30,26 @@ export function LiveDashboard() {
   
   // Lead Recovery is not relevant for dispatch businesses
   const showLeadRecovery = businessMode !== "dispatch";
+
+  // Busyness slider is only relevant for businesses that quote ETAs
+  // - Dispatch/Food: Always (ETA is core to the flow)
+  // - Service with urgency_check/dispatch_first: Yes (same-day/emergency dispatch)
+  // - Service with schedule_first: No (appointments are scheduled ahead)
+  // - If same_day_enabled: Yes (they offer same-day service)
+  const showBusynessSlider = useMemo(() => {
+    // Always show for dispatch and food - ETAs are core
+    if (businessMode === "dispatch" || businessMode === "food") return true;
+    
+    // For service/medical/general, only show if same-day/urgent flow is enabled
+    const flow = assistantSettings?.service_default_flow;
+    const sameDayEnabled = assistantSettings?.same_day_enabled;
+    
+    if (flow === "urgency_check" || flow === "dispatch_first") return true;
+    if (sameDayEnabled) return true;
+    
+    // Default: hide for appointment-first businesses (salons, etc.)
+    return false;
+  }, [businessMode, assistantSettings?.service_default_flow, assistantSettings?.same_day_enabled]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -54,8 +75,8 @@ export function LiveDashboard() {
       {/* Agent Control - Most prominent element */}
       <AgentControlPanel />
 
-      {/* Busyness Quick Adjust */}
-      <BusynessSliderWidget />
+      {/* Busyness Quick Adjust - Only show for ETA-relevant businesses */}
+      {showBusynessSlider && <BusynessSliderWidget />}
 
       {/* Performance Widgets - Conditional layout based on business mode */}
       {showLeadRecovery ? (
