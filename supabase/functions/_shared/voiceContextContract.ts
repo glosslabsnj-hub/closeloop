@@ -384,6 +384,18 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     isPhi: true,
   },
   {
+    key: "caller_phone_last4",
+    description: "Last 4 digits of caller phone for verification",
+    type: "string",
+    source: (ctx, callerPhone) => {
+      if (!callerPhone || callerPhone.length < 4) return "";
+      return callerPhone.slice(-4);
+    },
+    defaultValue: "",
+    category: "caller",
+    isPhi: true,
+  },
+  {
     key: "customer_id",
     description: "Matched customer ID if caller is recognized",
     type: "string",
@@ -607,6 +619,49 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     defaultValue: "",
     category: "policies",
     includeInCompactJson: true,
+  },
+  {
+    key: "objections_summary",
+    description: "Trained objection responses for pricing/competitor pushback",
+    type: "string",
+    source: (ctx) => {
+      const objections = ctx.knowledge.objections || [];
+      if (objections.length === 0) return "";
+      return objections
+        .slice(0, 5)
+        .map(o => `When customer says "${o.objection}": "${o.response.substring(0, 150)}"`)
+        .join(" | ");
+    },
+    defaultValue: "",
+    category: "policies",
+    includeInCompactJson: true,
+  },
+  {
+    key: "ai_never_promise",
+    description: "Things the AI should never promise or guarantee",
+    type: "string",
+    source: (ctx) => {
+      const neverPromise = ctx.policies.ai_never_promise || [];
+      if (neverPromise.length === 0) return "";
+      return neverPromise.join(", ");
+    },
+    defaultValue: "",
+    category: "policies",
+  },
+  {
+    key: "knowledge_summary",
+    description: "Supplementary knowledge from uploaded docs",
+    type: "string",
+    source: (ctx) => {
+      const knowledge = ctx.knowledge.supplementary || [];
+      if (knowledge.length === 0) return "";
+      return knowledge
+        .slice(0, 5)
+        .map(k => `[${k.type}] ${k.title}: ${k.content.substring(0, 100)}`)
+        .join(" | ");
+    },
+    defaultValue: "",
+    category: "policies",
   },
   {
     key: "ai_guidelines_summary",
