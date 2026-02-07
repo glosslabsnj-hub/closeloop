@@ -54,7 +54,13 @@ import {
   DispatchIvrSettings 
 } from "@/components/brain/dispatch/impound";
 import { DistanceBasisSettings } from "@/components/brain/dispatch/DistanceBasisSettings";
-// FleetManagementSection removed - fleet accessible via sidebar
+
+// New mode-specific offerings editors
+import { PriceModifiersEditor } from "@/components/brain/PriceModifiersEditor";
+import { ServicePackagesEditor } from "@/components/brain/ServicePackagesEditor";
+import { DispatchPricingEditor } from "@/components/brain/dispatch/DispatchPricingEditor";
+import { FoodSettingsEditor, MenuSizesEditor, DailySpecialsEditor } from "@/components/brain/food";
+import { MedicalPricingEditor } from "@/components/brain/medical";
 
 // Hooks
 import { useTenantConfig } from "@/hooks/useTenantConfig";
@@ -271,7 +277,7 @@ export default function BusinessBrainPage() {
                 {/* Pricing Readiness - inline, not collapsible */}
                 <QuoteReadinessCard />
 
-                {!isDispatchMode && (
+                {!isDispatchMode && !isFoodMode && (
                   <CollapsibleBrainSection
                     id="pricing-rules"
                     title="Pricing Rules"
@@ -296,6 +302,104 @@ export default function BusinessBrainPage() {
                     <ServiceCatalogEditor />
                   )}
                 </CollapsibleBrainSection>
+
+                {/* Mode-specific offerings sections */}
+                {(businessMode === "service" || businessMode === "general") && (
+                  <>
+                    <CollapsibleBrainSection
+                      id="price-modifiers"
+                      title="Price Adjustments"
+                      icon={DollarSign}
+                      preview="Size, urgency, and after-hours rate adjustments"
+                    >
+                      <PriceModifiersEditor />
+                    </CollapsibleBrainSection>
+
+                    <CollapsibleBrainSection
+                      id="service-packages"
+                      title="Packages & Bundles"
+                      icon={Package}
+                      preview="Discounted bundles and membership plans"
+                    >
+                      <ServicePackagesEditor />
+                    </CollapsibleBrainSection>
+                  </>
+                )}
+
+                {isDispatchMode && (
+                  <>
+                    <CollapsibleBrainSection
+                      id="dispatch-pricing"
+                      title="Dispatch Fees"
+                      icon={DollarSign}
+                      preview="Equipment, storage, release, and emergency fees"
+                    >
+                      <DispatchPricingEditor />
+                    </CollapsibleBrainSection>
+
+                    <CollapsibleBrainSection
+                      id="distance-basis"
+                      title="Distance Pricing"
+                      icon={Navigation}
+                      preview="How mileage affects your quotes"
+                    >
+                      <DistanceBasisSettings />
+                    </CollapsibleBrainSection>
+                  </>
+                )}
+
+                {isFoodMode && (
+                  <>
+                    <CollapsibleBrainSection
+                      id="food-settings"
+                      title="Order Settings"
+                      icon={UtensilsCrossed}
+                      preview="Delivery, pickup, and catering configuration"
+                    >
+                      <FoodSettingsEditor />
+                    </CollapsibleBrainSection>
+
+                    <CollapsibleBrainSection
+                      id="menu-sizes"
+                      title="Size Options"
+                      icon={Tag}
+                      preview="S/M/L or Personal/Family size variants"
+                    >
+                      <MenuSizesEditor />
+                    </CollapsibleBrainSection>
+
+                    <CollapsibleBrainSection
+                      id="daily-specials"
+                      title="Specials & Deals"
+                      icon={Lightbulb}
+                      preview="Happy hour, daily specials, limited-time offers"
+                    >
+                      <DailySpecialsEditor />
+                    </CollapsibleBrainSection>
+                  </>
+                )}
+
+                {businessMode === "medical" && (
+                  <>
+                    <CollapsibleBrainSection
+                      id="medical-pricing"
+                      title="Practice Pricing"
+                      icon={HeartPulse}
+                      preview="Insurance, consultation fees, and payment options"
+                    >
+                      <MedicalPricingEditor />
+                    </CollapsibleBrainSection>
+
+                    <CollapsibleBrainSection
+                      id="service-packages"
+                      title="Treatment Packages"
+                      icon={Package}
+                      preview="Series treatments and bundled services"
+                    >
+                      <ServicePackagesEditor />
+                    </CollapsibleBrainSection>
+                  </>
+                )}
 
                 <CollapsibleBrainSection
                   id="additional-services"
