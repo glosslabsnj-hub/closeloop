@@ -7,6 +7,8 @@
  * - pickup_address, dropoff_address (optional)
  * - vehicle_info, service_type, urgency
  * - notes
+ * 
+ * ENHANCED: Now calculates and stores distance & pricing data by calling check_service_area
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -40,6 +42,27 @@ interface CreateDispatchJobResponse {
   dispatch_id?: string;
   message: string;
   error?: string;
+}
+
+interface ServiceAreaResponse {
+  in_area: boolean;
+  distance_miles: number | null;
+  tow_distance_miles: number | null;
+  eta_minutes: number | null;
+  eta_range: string;
+  service_tier: string;
+  pricing_note: string;
+  distance_basis_used: string;
+  price_breakdown: {
+    base_price?: number;
+    per_mile_rate?: number;
+    distance_charge?: number;
+    vehicle_modifier?: number;
+    urgency_modifier?: number;
+    total_estimate?: number;
+    total?: number;
+    description?: string;
+  } | null;
 }
 
 // Normalize phone to E.164 format
@@ -280,7 +303,65 @@ serve(async (req: Request) => {
     if (vehicle_info) descriptionParts.push(`Vehicle: ${vehicle_info}`);
     const description = descriptionParts.join(". ") || null;
 
-    // Create dispatch job with sanitized customer name
+    // === NEW: Calculate distance & pricing by calling check_service_area ===
+    let dispatchDistanceMiles: number | null = null;
+    let towDistanceMiles: number | null = null;
+    let totalDistanceMiles: number | null = null;
+    let serviceTier: string | null = null;
+    let pricingNote: string | null = null;
+    let priceBreakdown: Record<string, unknown> | null = null;
+    let etaRange: string | null = null;
+
+    try {
+      const checkServiceAreaUrl = `${supabaseUrl}/functions/v1/elevenlabs-check-service-area`;
+      const checkResponse = await fetch(checkServiceAreaUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${serviceKey}`,
+        },
+        body: JSON.stringify({
+          tenant_id: resolvedTenantId,
+          address: pickup_address,
+          dropoff_address: dropoff_address || "",
+          vehicle_type: vehicle_info || "",
+        }),
+      });
+
+      if (checkResponse.ok) {
+        const areaData: ServiceAreaResponse = await checkResponse.json();
+        
+        dispatchDistanceMiles = areaData.distance_miles;
+        towDistanceMiles = areaData.tow_distance_miles;
+        totalDistanceMiles = (dispatchDistanceMiles || 0) + (towDistanceMiles || 0);
+        serviceTier = areaData.service_tier || null;
+        pricingNote = areaData.pricing_note || null;
+        etaRange = areaData.eta_range || null;
+        
+        // Format price_breakdown for storage
+        if (areaData.price_breakdown) {
+          const pb = areaData.price_breakdown;
+          priceBreakdown = {
+            base_price: pb.base_price || null,
+            per_mile_rate: pb.per_mile_rate || null,
+            distance_charge: pb.distance_charge || null,
+            vehicle_modifier: pb.vehicle_modifier || null,
+            urgency_modifier: pb.urgency_modifier || null,
+            total: pb.total_estimate || pb.total || null,
+            description: pb.description || null,
+          };
+        }
+
+        console.log(`[elevenlabs-create-dispatch-job] Distance/pricing: dispatch=${dispatchDistanceMiles?.toFixed(1) || 'null'}mi, tow=${towDistanceMiles?.toFixed(1) || 'null'}mi, tier=${serviceTier}, pricing="${pricingNote?.substring(0, 50) || 'null'}..."`);
+      } else {
+        console.warn("[elevenlabs-create-dispatch-job] check_service_area returned non-OK status:", checkResponse.status);
+      }
+    } catch (e) {
+      console.warn("[elevenlabs-create-dispatch-job] Failed to get distance/pricing data:", e);
+      // Continue without distance data - job can still be created
+    }
+
+    // Create dispatch job with distance & pricing data
     const { data: dispatch, error: dispatchError } = await supabase
       .from("dispatch_jobs")
       .insert({
@@ -298,6 +379,13 @@ serve(async (req: Request) => {
         notes: notes || null,
         session_id: sessionId,
         requested_at: new Date().toISOString(),
+        // Distance & pricing fields
+        dispatch_distance_miles: dispatchDistanceMiles,
+        tow_distance_miles: towDistanceMiles,
+        total_distance_miles: totalDistanceMiles,
+        service_tier: serviceTier,
+        pricing_note: pricingNote,
+        price_breakdown: priceBreakdown,
       })
       .select("id, job_number")
       .single();
@@ -350,6 +438,11 @@ serve(async (req: Request) => {
               service_type,
               urgency,
               notes,
+              // Include pricing data in payload
+              dispatch_distance_miles: dispatchDistanceMiles,
+              tow_distance_miles: towDistanceMiles,
+              service_tier: serviceTier,
+              pricing_note: pricingNote,
             }
           })
           .eq("id", sessionId);
@@ -358,13 +451,17 @@ serve(async (req: Request) => {
       }
     }
 
-    console.log(`[elevenlabs-create-dispatch-job] Created dispatch ${dispatch.job_number} for tenant ${resolvedTenantId.substring(0, 8)}...`);
+    console.log(`[elevenlabs-create-dispatch-job] Created dispatch ${dispatch.job_number} for tenant ${resolvedTenantId.substring(0, 8)}... with pricing: ${pricingNote?.substring(0, 50) || 'none'}`);
 
+    // Build realistic confirmation message - NOT "driver is on the way"
+    // The job is PENDING assignment by a dispatcher
+    const etaMessage = etaRange ? ` We'll have someone there in about ${etaRange}.` : "";
+    
     const response: CreateDispatchJobResponse = {
       success: true,
       job_number: dispatch.job_number,
       dispatch_id: dispatch.id,
-      message: `Great! I've dispatched a driver to ${pickup_address}. Your job number is ${dispatch.job_number}. They should arrive within the estimated time I mentioned.`
+      message: `Got it — I've submitted your request and our dispatch team is assigning a driver now. Your job number is ${dispatch.job_number}.${etaMessage} You'll get a call or text when they're on the way.`
     };
 
     return new Response(JSON.stringify(response), {
