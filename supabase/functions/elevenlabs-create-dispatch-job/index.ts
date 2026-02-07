@@ -29,6 +29,14 @@ interface CreateDispatchJobRequest {
   customer_phone?: string;
   urgency?: "emergency" | "urgent" | "standard" | "same_day" | "scheduled";
   notes?: string;
+  // Pricing context from check_service_area
+  dispatch_distance_miles?: number;
+  tow_distance_miles?: number;
+  total_distance_miles?: number;
+  service_tier?: string;
+  pricing_note?: string;
+  price_cents?: number;
+  price_breakdown?: Record<string, unknown>;
   // ElevenLabs context
   tenant_id?: string;
   conversation_id?: string;
@@ -97,6 +105,14 @@ serve(async (req: Request) => {
       customer_phone, 
       urgency,
       notes,
+      // Pricing from check_service_area
+      dispatch_distance_miles,
+      tow_distance_miles,
+      total_distance_miles,
+      service_tier,
+      pricing_note,
+      price_cents,
+      price_breakdown,
       tenant_id,
       conversation_id 
     } = body;
@@ -271,16 +287,70 @@ serve(async (req: Request) => {
       );
     }
 
+    // ========== DEDUPLICATION: Check for existing job with same session_id ==========
+    // This prevents duplicate jobs when the AI calls the tool multiple times during a single call
+    if (sessionId) {
+      const { data: existingJob } = await supabase
+        .from("dispatch_jobs")
+        .select("id, job_number, customer_name")
+        .eq("tenant_id", resolvedTenantId)
+        .eq("session_id", sessionId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingJob) {
+        console.log(`[elevenlabs-create-dispatch-job] Existing job found for session ${sessionId}: ${existingJob.job_number}`);
+        
+        // Update the existing job with any new information (name, pricing, etc.)
+        const updatePayload: Record<string, unknown> = {
+          updated_at: new Date().toISOString(),
+        };
+        
+        // Update name if we now have a better one
+        if (shouldUpdateCustomerName(existingJob.customer_name || "", rawCustomerName)) {
+          updatePayload.customer_name = sanitizedName;
+        }
+        
+        // Update pricing data if provided
+        if (dispatch_distance_miles !== undefined) updatePayload.dispatch_distance_miles = dispatch_distance_miles;
+        if (tow_distance_miles !== undefined) updatePayload.tow_distance_miles = tow_distance_miles;
+        if (total_distance_miles !== undefined) updatePayload.total_distance_miles = total_distance_miles;
+        if (service_tier) updatePayload.service_tier = service_tier;
+        if (pricing_note) updatePayload.pricing_note = pricing_note;
+        if (price_cents !== undefined) updatePayload.price_cents = price_cents;
+        if (price_breakdown) updatePayload.price_breakdown = price_breakdown;
+        if (notes) updatePayload.notes = notes;
+        if (dropoff_address) updatePayload.dropoff_address = dropoff_address;
+        
+        await supabase
+          .from("dispatch_jobs")
+          .update(updatePayload)
+          .eq("id", existingJob.id);
+
+        console.log(`[elevenlabs-create-dispatch-job] Updated existing job ${existingJob.job_number} with new data`);
+
+        return new Response(JSON.stringify({
+          success: true,
+          job_number: existingJob.job_number,
+          dispatch_id: existingJob.id,
+          message: `Got it! Your job number is ${existingJob.job_number}. A driver is being dispatched to ${pickup_address}.`
+        } as CreateDispatchJobResponse), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+    }
+
     // Generate job number
     const jobNumber = generateJobNumber();
 
     // Build description from vehicle_info and service_type
     const descriptionParts: string[] = [];
-    if (service_type) descriptionParts.push(`Service: ${service_type}`);
     if (vehicle_info) descriptionParts.push(`Vehicle: ${vehicle_info}`);
     const description = descriptionParts.join(". ") || null;
 
-    // Create dispatch job with sanitized customer name
+    // Create dispatch job with sanitized customer name and pricing data
     const { data: dispatch, error: dispatchError } = await supabase
       .from("dispatch_jobs")
       .insert({
@@ -298,6 +368,14 @@ serve(async (req: Request) => {
         notes: notes || null,
         session_id: sessionId,
         requested_at: new Date().toISOString(),
+        // Pricing data from check_service_area
+        dispatch_distance_miles: dispatch_distance_miles || null,
+        tow_distance_miles: tow_distance_miles || null,
+        total_distance_miles: total_distance_miles || null,
+        service_tier: service_tier || null,
+        pricing_note: pricing_note || null,
+        price_cents: price_cents || null,
+        price_breakdown: price_breakdown || null,
       })
       .select("id, job_number")
       .single();

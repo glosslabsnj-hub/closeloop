@@ -1991,6 +1991,7 @@ export type Database = {
           customer_name: string | null
           customer_phone: string | null
           description: string | null
+          dispatch_distance_miles: number | null
           dispatched_at: string | null
           driver_id: string | null
           dropoff_address: string | null
@@ -2007,13 +2008,18 @@ export type Database = {
           pickup_address: string | null
           pickup_lat: number | null
           pickup_lng: number | null
+          price_breakdown: Json | null
           price_cents: number | null
+          pricing_note: string | null
           priority: Database["public"]["Enums"]["dispatch_priority"]
           requested_at: string | null
           scheduled_at: string | null
+          service_tier: string | null
           session_id: string | null
           status: Database["public"]["Enums"]["dispatch_status"]
           tenant_id: string
+          total_distance_miles: number | null
+          tow_distance_miles: number | null
           updated_at: string
           vehicle_id: string | null
         }
@@ -2027,6 +2033,7 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           description?: string | null
+          dispatch_distance_miles?: number | null
           dispatched_at?: string | null
           driver_id?: string | null
           dropoff_address?: string | null
@@ -2043,13 +2050,18 @@ export type Database = {
           pickup_address?: string | null
           pickup_lat?: number | null
           pickup_lng?: number | null
+          price_breakdown?: Json | null
           price_cents?: number | null
+          pricing_note?: string | null
           priority?: Database["public"]["Enums"]["dispatch_priority"]
           requested_at?: string | null
           scheduled_at?: string | null
+          service_tier?: string | null
           session_id?: string | null
           status?: Database["public"]["Enums"]["dispatch_status"]
           tenant_id: string
+          total_distance_miles?: number | null
+          tow_distance_miles?: number | null
           updated_at?: string
           vehicle_id?: string | null
         }
@@ -2063,6 +2075,7 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           description?: string | null
+          dispatch_distance_miles?: number | null
           dispatched_at?: string | null
           driver_id?: string | null
           dropoff_address?: string | null
@@ -2079,13 +2092,18 @@ export type Database = {
           pickup_address?: string | null
           pickup_lat?: number | null
           pickup_lng?: number | null
+          price_breakdown?: Json | null
           price_cents?: number | null
+          pricing_note?: string | null
           priority?: Database["public"]["Enums"]["dispatch_priority"]
           requested_at?: string | null
           scheduled_at?: string | null
+          service_tier?: string | null
           session_id?: string | null
           status?: Database["public"]["Enums"]["dispatch_status"]
           tenant_id?: string
+          total_distance_miles?: number | null
+          tow_distance_miles?: number | null
           updated_at?: string
           vehicle_id?: string | null
         }
