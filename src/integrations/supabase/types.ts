@@ -6511,6 +6511,33 @@ export type Database = {
         }
         Relationships: []
       }
+      voice_options: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          provider_voice_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id: string
+          is_active?: boolean | null
+          name: string
+          provider_voice_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          provider_voice_id?: string
+        }
+        Relationships: []
+      }
       waitlist: {
         Row: {
           contacted_at: string | null

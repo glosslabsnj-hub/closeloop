@@ -15,8 +15,9 @@ serve(async (req) => {
   try {
     const { email, new_password, admin_secret } = await req.json();
 
-    // Simple shared secret check (you can change this)
-    if (admin_secret !== "closeloop-admin-2024") {
+    // Validate admin secret from environment
+    const ADMIN_RESET_SECRET = Deno.env.get("ADMIN_CLEANUP_SECRET");
+    if (!ADMIN_RESET_SECRET || admin_secret !== ADMIN_RESET_SECRET) {
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
