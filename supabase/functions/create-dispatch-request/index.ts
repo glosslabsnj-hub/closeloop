@@ -320,7 +320,7 @@ serve(async (req: Request) => {
           extracted_payload: {
             dispatch_id: dispatch.id,
             job_number: dispatch.job_number,
-            customer_name: customerName || null,
+            customer_name: sanitizedName || null,
             customer_phone: phoneE164,
             pickup_address: pickupAddress,
             dropoff_address: dropoff_address || null,
