@@ -6,3 +6,4 @@
 
 export { MedicalPricingEditor } from "./MedicalPricingEditor";
 export { MedicalCoverageEditor } from "./MedicalCoverageEditor";
+export { MedicalPoliciesEditor } from "./MedicalPoliciesEditor";

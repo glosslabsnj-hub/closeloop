@@ -12,3 +12,4 @@ export { FleetManagementSection } from "./FleetManagementSection";
 export { FleetDriversManager } from "./FleetDriversManager";
 export { FleetVehiclesManager } from "./FleetVehiclesManager";
 export { DispatchCoverageZonesEditor } from "./DispatchCoverageZonesEditor";
+export { DispatchPoliciesEditor } from "./DispatchPoliciesEditor";

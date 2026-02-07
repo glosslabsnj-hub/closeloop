@@ -60,9 +60,12 @@ import { PriceModifiersEditor } from "@/components/brain/PriceModifiersEditor";
 import { ServicePackagesEditor } from "@/components/brain/ServicePackagesEditor";
 import { DispatchPricingEditor, DispatchCoverageZonesEditor } from "@/components/brain/dispatch";
 import { FoodSettingsEditor, MenuSizesEditor, DailySpecialsEditor, DeliveryZonesEditor } from "@/components/brain/food";
-import { MedicalPricingEditor, MedicalCoverageEditor } from "@/components/brain/medical";
-import { ServiceCoverageEditor } from "@/components/brain/service";
-import { ResponseTimeEditor } from "@/components/brain/general";
+import { MedicalPricingEditor, MedicalCoverageEditor, MedicalPoliciesEditor } from "@/components/brain/medical";
+import { ServiceCoverageEditor, ServicePoliciesEditor } from "@/components/brain/service";
+import { ResponseTimeEditor, GeneralPoliciesEditor } from "@/components/brain/general";
+import { DispatchPoliciesEditor } from "@/components/brain/dispatch";
+import { FoodPoliciesEditor } from "@/components/brain/food";
+import { IntakeRequirementsEditor } from "@/components/brain/shared/IntakeRequirementsEditor";
 
 // Hooks
 import { useTenantConfig } from "@/hooks/useTenantConfig";

@@ -2299,6 +2299,113 @@ export type Database = {
           },
         ]
       }
+      dispatch_policies: {
+        Row: {
+          accepted_payment_methods: string[] | null
+          cancel_after_dispatch_fee_cents: number | null
+          cancel_en_route_fee_cents: number | null
+          cancel_on_scene_fee_cents: number | null
+          cash_only_after_hours: boolean | null
+          created_at: string | null
+          damage_waiver_text: string | null
+          emergency_surcharge_cents: number | null
+          id: string
+          insurance_requirement_text: string | null
+          liability_limit_cents: number | null
+          lockout_attempt_limit: number | null
+          lockout_disclaimer: string | null
+          payment_due_at_service: boolean | null
+          pre_existing_damage_policy: string | null
+          prepayment_required: boolean | null
+          priority_fee_percentage: number | null
+          release_authorized_agent_allowed: boolean | null
+          release_police_hold_policy: string | null
+          release_requires_id: boolean | null
+          release_requires_insurance: boolean | null
+          release_requires_registration: boolean | null
+          release_requires_title: boolean | null
+          spare_key_policy: string | null
+          storage_daily_rate_cents: number | null
+          storage_grace_period_hours: number | null
+          storage_lien_sale_days: number | null
+          storage_max_days: number | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          accepted_payment_methods?: string[] | null
+          cancel_after_dispatch_fee_cents?: number | null
+          cancel_en_route_fee_cents?: number | null
+          cancel_on_scene_fee_cents?: number | null
+          cash_only_after_hours?: boolean | null
+          created_at?: string | null
+          damage_waiver_text?: string | null
+          emergency_surcharge_cents?: number | null
+          id?: string
+          insurance_requirement_text?: string | null
+          liability_limit_cents?: number | null
+          lockout_attempt_limit?: number | null
+          lockout_disclaimer?: string | null
+          payment_due_at_service?: boolean | null
+          pre_existing_damage_policy?: string | null
+          prepayment_required?: boolean | null
+          priority_fee_percentage?: number | null
+          release_authorized_agent_allowed?: boolean | null
+          release_police_hold_policy?: string | null
+          release_requires_id?: boolean | null
+          release_requires_insurance?: boolean | null
+          release_requires_registration?: boolean | null
+          release_requires_title?: boolean | null
+          spare_key_policy?: string | null
+          storage_daily_rate_cents?: number | null
+          storage_grace_period_hours?: number | null
+          storage_lien_sale_days?: number | null
+          storage_max_days?: number | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          accepted_payment_methods?: string[] | null
+          cancel_after_dispatch_fee_cents?: number | null
+          cancel_en_route_fee_cents?: number | null
+          cancel_on_scene_fee_cents?: number | null
+          cash_only_after_hours?: boolean | null
+          created_at?: string | null
+          damage_waiver_text?: string | null
+          emergency_surcharge_cents?: number | null
+          id?: string
+          insurance_requirement_text?: string | null
+          liability_limit_cents?: number | null
+          lockout_attempt_limit?: number | null
+          lockout_disclaimer?: string | null
+          payment_due_at_service?: boolean | null
+          pre_existing_damage_policy?: string | null
+          prepayment_required?: boolean | null
+          priority_fee_percentage?: number | null
+          release_authorized_agent_allowed?: boolean | null
+          release_police_hold_policy?: string | null
+          release_requires_id?: boolean | null
+          release_requires_insurance?: boolean | null
+          release_requires_registration?: boolean | null
+          release_requires_title?: boolean | null
+          spare_key_policy?: string | null
+          storage_daily_rate_cents?: number | null
+          storage_grace_period_hours?: number | null
+          storage_lien_sale_days?: number | null
+          storage_max_days?: number | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispatch_policies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estimates: {
         Row: {
           accepted_terms: boolean | null
@@ -2828,6 +2935,193 @@ export type Database = {
           },
         ]
       }
+      food_policies: {
+        Row: {
+          allergy_disclaimer: string | null
+          cake_cutting_fee_cents: number | null
+          catering_cancellation_days: number | null
+          catering_cancellation_fee_policy: string | null
+          catering_deposit_percentage: number | null
+          catering_final_count_hours: number | null
+          catering_minimum_guests: number | null
+          contactless_delivery_default: boolean | null
+          corkage_fee_cents: number | null
+          created_at: string | null
+          cross_contamination_warning: string | null
+          delivery_driver_tip_policy: string | null
+          delivery_instructions_required: boolean | null
+          delivery_photo_proof: boolean | null
+          dietary_accommodation_policy: string | null
+          id: string
+          large_party_deposit_cents: number | null
+          large_party_deposit_policy: string | null
+          large_party_minimum: number | null
+          missing_item_policy: string | null
+          nutrition_info_available: boolean | null
+          order_cancellation_allowed: boolean | null
+          order_cancellation_cutoff_minutes: number | null
+          order_cancellation_fee_cents: number | null
+          order_modification_cutoff_minutes: number | null
+          outside_food_allowed: boolean | null
+          private_event_minimum_cents: number | null
+          quality_issue_policy: string | null
+          reservation_cancellation_hours: number | null
+          reservation_hold_minutes: number | null
+          reservation_no_show_fee_cents: number | null
+          tenant_id: string
+          updated_at: string | null
+          wrong_order_refund_policy: string | null
+        }
+        Insert: {
+          allergy_disclaimer?: string | null
+          cake_cutting_fee_cents?: number | null
+          catering_cancellation_days?: number | null
+          catering_cancellation_fee_policy?: string | null
+          catering_deposit_percentage?: number | null
+          catering_final_count_hours?: number | null
+          catering_minimum_guests?: number | null
+          contactless_delivery_default?: boolean | null
+          corkage_fee_cents?: number | null
+          created_at?: string | null
+          cross_contamination_warning?: string | null
+          delivery_driver_tip_policy?: string | null
+          delivery_instructions_required?: boolean | null
+          delivery_photo_proof?: boolean | null
+          dietary_accommodation_policy?: string | null
+          id?: string
+          large_party_deposit_cents?: number | null
+          large_party_deposit_policy?: string | null
+          large_party_minimum?: number | null
+          missing_item_policy?: string | null
+          nutrition_info_available?: boolean | null
+          order_cancellation_allowed?: boolean | null
+          order_cancellation_cutoff_minutes?: number | null
+          order_cancellation_fee_cents?: number | null
+          order_modification_cutoff_minutes?: number | null
+          outside_food_allowed?: boolean | null
+          private_event_minimum_cents?: number | null
+          quality_issue_policy?: string | null
+          reservation_cancellation_hours?: number | null
+          reservation_hold_minutes?: number | null
+          reservation_no_show_fee_cents?: number | null
+          tenant_id: string
+          updated_at?: string | null
+          wrong_order_refund_policy?: string | null
+        }
+        Update: {
+          allergy_disclaimer?: string | null
+          cake_cutting_fee_cents?: number | null
+          catering_cancellation_days?: number | null
+          catering_cancellation_fee_policy?: string | null
+          catering_deposit_percentage?: number | null
+          catering_final_count_hours?: number | null
+          catering_minimum_guests?: number | null
+          contactless_delivery_default?: boolean | null
+          corkage_fee_cents?: number | null
+          created_at?: string | null
+          cross_contamination_warning?: string | null
+          delivery_driver_tip_policy?: string | null
+          delivery_instructions_required?: boolean | null
+          delivery_photo_proof?: boolean | null
+          dietary_accommodation_policy?: string | null
+          id?: string
+          large_party_deposit_cents?: number | null
+          large_party_deposit_policy?: string | null
+          large_party_minimum?: number | null
+          missing_item_policy?: string | null
+          nutrition_info_available?: boolean | null
+          order_cancellation_allowed?: boolean | null
+          order_cancellation_cutoff_minutes?: number | null
+          order_cancellation_fee_cents?: number | null
+          order_modification_cutoff_minutes?: number | null
+          outside_food_allowed?: boolean | null
+          private_event_minimum_cents?: number | null
+          quality_issue_policy?: string | null
+          reservation_cancellation_hours?: number | null
+          reservation_hold_minutes?: number | null
+          reservation_no_show_fee_cents?: number | null
+          tenant_id?: string
+          updated_at?: string | null
+          wrong_order_refund_policy?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "food_policies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      general_policies: {
+        Row: {
+          ada_accommodations_text: string | null
+          callback_availability: string | null
+          created_at: string | null
+          data_retention_policy: string | null
+          dispute_resolution_policy: string | null
+          force_majeure_text: string | null
+          holiday_policy: string | null
+          id: string
+          language_support: string[] | null
+          marketing_opt_in_default: boolean | null
+          preferred_contact_method: string | null
+          privacy_policy_url: string | null
+          response_time_hours: number | null
+          tenant_id: string
+          terms_of_service_url: string | null
+          updated_at: string | null
+          weather_cancellation_policy: string | null
+        }
+        Insert: {
+          ada_accommodations_text?: string | null
+          callback_availability?: string | null
+          created_at?: string | null
+          data_retention_policy?: string | null
+          dispute_resolution_policy?: string | null
+          force_majeure_text?: string | null
+          holiday_policy?: string | null
+          id?: string
+          language_support?: string[] | null
+          marketing_opt_in_default?: boolean | null
+          preferred_contact_method?: string | null
+          privacy_policy_url?: string | null
+          response_time_hours?: number | null
+          tenant_id: string
+          terms_of_service_url?: string | null
+          updated_at?: string | null
+          weather_cancellation_policy?: string | null
+        }
+        Update: {
+          ada_accommodations_text?: string | null
+          callback_availability?: string | null
+          created_at?: string | null
+          data_retention_policy?: string | null
+          dispute_resolution_policy?: string | null
+          force_majeure_text?: string | null
+          holiday_policy?: string | null
+          id?: string
+          language_support?: string[] | null
+          marketing_opt_in_default?: boolean | null
+          preferred_contact_method?: string | null
+          privacy_policy_url?: string | null
+          response_time_hours?: number | null
+          tenant_id?: string
+          terms_of_service_url?: string | null
+          updated_at?: string | null
+          weather_cancellation_policy?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "general_policies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       golden_path_runs: {
         Row: {
           created_at: string
@@ -3216,6 +3510,68 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      intake_requirements: {
+        Row: {
+          ai_prompt_hint: string | null
+          ask_order: number | null
+          created_at: string | null
+          field_key: string
+          field_label: string
+          field_type: string | null
+          id: string
+          is_active: boolean | null
+          is_required: boolean | null
+          options_json: Json | null
+          tenant_id: string
+          updated_at: string | null
+          validation_hint: string | null
+          visible_intents: string[] | null
+          visible_modes: string[] | null
+        }
+        Insert: {
+          ai_prompt_hint?: string | null
+          ask_order?: number | null
+          created_at?: string | null
+          field_key: string
+          field_label: string
+          field_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          options_json?: Json | null
+          tenant_id: string
+          updated_at?: string | null
+          validation_hint?: string | null
+          visible_intents?: string[] | null
+          visible_modes?: string[] | null
+        }
+        Update: {
+          ai_prompt_hint?: string | null
+          ask_order?: number | null
+          created_at?: string | null
+          field_key?: string
+          field_label?: string
+          field_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          options_json?: Json | null
+          tenant_id?: string
+          updated_at?: string | null
+          validation_hint?: string | null
+          visible_intents?: string[] | null
+          visible_modes?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intake_requirements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       integration_connections: {
         Row: {
@@ -4828,6 +5184,122 @@ export type Database = {
           },
         ]
       }
+      medical_policies: {
+        Row: {
+          after_hours_contact_policy: string | null
+          appointment_late_arrival_minutes: number | null
+          appointment_late_reschedule: boolean | null
+          appointment_no_show_fee_cents: number | null
+          balance_due_policy: string | null
+          cancellation_fee_cents: number | null
+          cancellation_notice_hours: number | null
+          collections_notice: string | null
+          complaint_procedure: string | null
+          controlled_substance_policy: string | null
+          created_at: string | null
+          emergency_protocol: string | null
+          financial_agreement_required: boolean | null
+          hipaa_consent_required: boolean | null
+          hospital_affiliation: string | null
+          id: string
+          insurance_verification_days_before: number | null
+          insurance_verification_required: boolean | null
+          minor_consent_policy: string | null
+          new_patient_arrival_minutes: number | null
+          out_of_network_disclosure: string | null
+          patient_rights_summary: string | null
+          payment_plan_available: boolean | null
+          payment_plan_minimum_cents: number | null
+          prescription_refill_appointment_required: boolean | null
+          prescription_refill_notice_days: number | null
+          records_release_form_required: boolean | null
+          records_request_fee_cents: number | null
+          records_request_processing_days: number | null
+          telehealth_consent_required: boolean | null
+          tenant_id: string
+          treatment_consent_required: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          after_hours_contact_policy?: string | null
+          appointment_late_arrival_minutes?: number | null
+          appointment_late_reschedule?: boolean | null
+          appointment_no_show_fee_cents?: number | null
+          balance_due_policy?: string | null
+          cancellation_fee_cents?: number | null
+          cancellation_notice_hours?: number | null
+          collections_notice?: string | null
+          complaint_procedure?: string | null
+          controlled_substance_policy?: string | null
+          created_at?: string | null
+          emergency_protocol?: string | null
+          financial_agreement_required?: boolean | null
+          hipaa_consent_required?: boolean | null
+          hospital_affiliation?: string | null
+          id?: string
+          insurance_verification_days_before?: number | null
+          insurance_verification_required?: boolean | null
+          minor_consent_policy?: string | null
+          new_patient_arrival_minutes?: number | null
+          out_of_network_disclosure?: string | null
+          patient_rights_summary?: string | null
+          payment_plan_available?: boolean | null
+          payment_plan_minimum_cents?: number | null
+          prescription_refill_appointment_required?: boolean | null
+          prescription_refill_notice_days?: number | null
+          records_release_form_required?: boolean | null
+          records_request_fee_cents?: number | null
+          records_request_processing_days?: number | null
+          telehealth_consent_required?: boolean | null
+          tenant_id: string
+          treatment_consent_required?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          after_hours_contact_policy?: string | null
+          appointment_late_arrival_minutes?: number | null
+          appointment_late_reschedule?: boolean | null
+          appointment_no_show_fee_cents?: number | null
+          balance_due_policy?: string | null
+          cancellation_fee_cents?: number | null
+          cancellation_notice_hours?: number | null
+          collections_notice?: string | null
+          complaint_procedure?: string | null
+          controlled_substance_policy?: string | null
+          created_at?: string | null
+          emergency_protocol?: string | null
+          financial_agreement_required?: boolean | null
+          hipaa_consent_required?: boolean | null
+          hospital_affiliation?: string | null
+          id?: string
+          insurance_verification_days_before?: number | null
+          insurance_verification_required?: boolean | null
+          minor_consent_policy?: string | null
+          new_patient_arrival_minutes?: number | null
+          out_of_network_disclosure?: string | null
+          patient_rights_summary?: string | null
+          payment_plan_available?: boolean | null
+          payment_plan_minimum_cents?: number | null
+          prescription_refill_appointment_required?: boolean | null
+          prescription_refill_notice_days?: number | null
+          records_release_form_required?: boolean | null
+          records_request_fee_cents?: number | null
+          records_request_processing_days?: number | null
+          telehealth_consent_required?: boolean | null
+          tenant_id?: string
+          treatment_consent_required?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_policies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       medical_practice_settings: {
         Row: {
           accepted_insurance_carriers: string[] | null
@@ -6284,6 +6756,98 @@ export type Database = {
             foreignKeyName: "service_packages_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_policies: {
+        Row: {
+          access_requirements: string | null
+          age_restriction_years: number | null
+          created_at: string | null
+          damage_policy: string | null
+          id: string
+          insurance_info: string | null
+          late_arrival_fee_cents: number | null
+          late_arrival_grace_minutes: number | null
+          liability_waiver_required: boolean | null
+          liability_waiver_text: string | null
+          max_reschedules_allowed: number | null
+          minimum_service_charge_cents: number | null
+          no_show_fee_cents: number | null
+          no_show_fee_type: string | null
+          parking_requirements: string | null
+          pet_policy: string | null
+          rescheduling_fee_cents: number | null
+          rescheduling_notice_hours: number | null
+          satisfaction_guarantee_enabled: boolean | null
+          satisfaction_guarantee_text: string | null
+          tenant_id: string
+          travel_fee_policy: string | null
+          updated_at: string | null
+          warranty_days: number | null
+          warranty_text: string | null
+        }
+        Insert: {
+          access_requirements?: string | null
+          age_restriction_years?: number | null
+          created_at?: string | null
+          damage_policy?: string | null
+          id?: string
+          insurance_info?: string | null
+          late_arrival_fee_cents?: number | null
+          late_arrival_grace_minutes?: number | null
+          liability_waiver_required?: boolean | null
+          liability_waiver_text?: string | null
+          max_reschedules_allowed?: number | null
+          minimum_service_charge_cents?: number | null
+          no_show_fee_cents?: number | null
+          no_show_fee_type?: string | null
+          parking_requirements?: string | null
+          pet_policy?: string | null
+          rescheduling_fee_cents?: number | null
+          rescheduling_notice_hours?: number | null
+          satisfaction_guarantee_enabled?: boolean | null
+          satisfaction_guarantee_text?: string | null
+          tenant_id: string
+          travel_fee_policy?: string | null
+          updated_at?: string | null
+          warranty_days?: number | null
+          warranty_text?: string | null
+        }
+        Update: {
+          access_requirements?: string | null
+          age_restriction_years?: number | null
+          created_at?: string | null
+          damage_policy?: string | null
+          id?: string
+          insurance_info?: string | null
+          late_arrival_fee_cents?: number | null
+          late_arrival_grace_minutes?: number | null
+          liability_waiver_required?: boolean | null
+          liability_waiver_text?: string | null
+          max_reschedules_allowed?: number | null
+          minimum_service_charge_cents?: number | null
+          no_show_fee_cents?: number | null
+          no_show_fee_type?: string | null
+          parking_requirements?: string | null
+          pet_policy?: string | null
+          rescheduling_fee_cents?: number | null
+          rescheduling_notice_hours?: number | null
+          satisfaction_guarantee_enabled?: boolean | null
+          satisfaction_guarantee_text?: string | null
+          tenant_id?: string
+          travel_fee_policy?: string | null
+          updated_at?: string | null
+          warranty_days?: number | null
+          warranty_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_policies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
