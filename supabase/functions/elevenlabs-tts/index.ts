@@ -30,8 +30,29 @@ serve(async (req) => {
       );
     }
 
+    // Resolve friendly voice ID to provider voice ID from database
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const { data: voiceData, error: voiceError } = await serviceClient
+      .from("voice_options")
+      .select("provider_voice_id")
+      .eq("id", voiceId)
+      .eq("is_active", true)
+      .single();
+
+    // Use voiceId directly if not found in DB (backwards compatibility with raw IDs)
+    const resolvedVoiceId = voiceData?.provider_voice_id || voiceId;
+
+    if (voiceError && voiceError.code !== "PGRST116") {
+      console.warn("[elevenlabs-tts] Voice lookup warning:", voiceError);
+    }
+
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${resolvedVoiceId}?output_format=mp3_44100_128`,
       {
         method: "POST",
         headers: {
