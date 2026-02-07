@@ -2328,6 +2328,156 @@ IMPORTANT GUIDELINES:
 
 `;
 
+  // ===== MODE-SPECIFIC KNOWLEDGE INJECTION =====
+  // Inject detailed knowledge from Business Brain based on business mode
+  const modeKnowledge = ctx.business_brain?.mode_knowledge;
+  
+  if (modeKnowledge) {
+    // FOOD MODE: Menu item details and catering
+    if (ctx.tenant.business_mode === "food") {
+      // Menu item details (allergens, ingredients, pairings)
+      if (modeKnowledge.menu_knowledge && modeKnowledge.menu_knowledge.length > 0) {
+        prompt += `\nDETAILED MENU KNOWLEDGE (use when describing dishes or answering ingredient questions):\n`;
+        for (const item of modeKnowledge.menu_knowledge.slice(0, 15)) {
+          prompt += `- ${item.is_signature ? "★ SIGNATURE: " : ""}${item.item_name}`;
+          if (item.description) prompt += `: ${item.description}`;
+          prompt += `\n`;
+          if (item.allergens?.length > 0) prompt += `  Allergens: ${item.allergens.join(", ")}\n`;
+          if (item.dietary_tags?.length > 0) prompt += `  Dietary: ${item.dietary_tags.join(", ")}\n`;
+          if (item.pairing_suggestions) prompt += `  Pairs well with: ${item.pairing_suggestions}\n`;
+        }
+        prompt += `\n`;
+      }
+      
+      // Catering info by event type
+      if (modeKnowledge.catering_knowledge && modeKnowledge.catering_knowledge.length > 0) {
+        prompt += `CATERING BY EVENT TYPE:\n`;
+        for (const catering of modeKnowledge.catering_knowledge.slice(0, 8)) {
+          prompt += `- ${catering.event_type}`;
+          if (catering.min_guests && catering.max_guests) {
+            prompt += ` (${catering.min_guests}-${catering.max_guests} guests)`;
+          }
+          if (catering.lead_time_days) prompt += ` - Book ${catering.lead_time_days}+ days ahead`;
+          if (catering.deposit_percentage) prompt += ` - ${catering.deposit_percentage}% deposit`;
+          prompt += `\n`;
+          if (catering.ai_script) prompt += `  Script: "${catering.ai_script}"\n`;
+        }
+        prompt += `\n`;
+      }
+    }
+
+    // DISPATCH MODE: Vehicle types and roadside situations
+    if (ctx.tenant.business_mode === "dispatch" || ctx.operations.modules.dispatch_enabled) {
+      // Vehicle-specific towing requirements
+      if (modeKnowledge.vehicle_knowledge && modeKnowledge.vehicle_knowledge.length > 0) {
+        prompt += `\nVEHICLE TOWING REQUIREMENTS:\n`;
+        for (const vehicle of modeKnowledge.vehicle_knowledge.slice(0, 10)) {
+          prompt += `- ${vehicle.vehicle_category}`;
+          if (vehicle.weight_class) prompt += ` (${vehicle.weight_class})`;
+          if (vehicle.equipment_required?.length > 0) prompt += `: Uses ${vehicle.equipment_required.join(", ")}`;
+          prompt += `\n`;
+          if (vehicle.special_instructions) prompt += `  Note: ${vehicle.special_instructions}\n`;
+          if (vehicle.additional_fees_apply && vehicle.fee_notes) prompt += `  Fee: ${vehicle.fee_notes}\n`;
+        }
+        prompt += `\n`;
+      }
+      
+      // Roadside situation safety scripts
+      if (modeKnowledge.roadside_knowledge && modeKnowledge.roadside_knowledge.length > 0) {
+        prompt += `ROADSIDE SITUATION HANDLING (SAFETY FIRST):\n`;
+        for (const situation of modeKnowledge.roadside_knowledge.slice(0, 8)) {
+          prompt += `- ${situation.situation_type}`;
+          if (situation.priority_level === "emergency") prompt += ` ⚠️ EMERGENCY`;
+          if (situation.estimated_service_time_minutes) prompt += ` (~${situation.estimated_service_time_minutes} min service)`;
+          prompt += `\n`;
+          if (situation.safety_instructions) prompt += `  SAFETY: "${situation.safety_instructions}"\n`;
+          if (situation.escalation_triggers?.length > 0) prompt += `  Escalate if: ${situation.escalation_triggers.join(", ")}\n`;
+          if (situation.ai_script) prompt += `  Script: "${situation.ai_script}"\n`;
+        }
+        prompt += `\n`;
+      }
+    }
+
+    // MEDICAL MODE: Symptom triage and insurance info
+    if (ctx.tenant.business_mode === "medical" || ctx.operations.modules.medical_intake_enabled) {
+      // Symptom triage scripts (HIPAA-safe)
+      if (modeKnowledge.symptom_triage && modeKnowledge.symptom_triage.length > 0) {
+        prompt += `\nSYMPTOM TRIAGE (HIPAA-SAFE RESPONSES ONLY):\n`;
+        for (const symptom of modeKnowledge.symptom_triage.slice(0, 12)) {
+          prompt += `- ${symptom.symptom_category}: ${symptom.symptom_name}`;
+          if (symptom.escalation_action) prompt += ` → ${symptom.escalation_action}`;
+          if (symptom.can_be_telehealth) prompt += ` [Telehealth OK]`;
+          prompt += `\n`;
+          if (symptom.severity_indicators?.length > 0) prompt += `  Red flags: ${symptom.severity_indicators.join(", ")}\n`;
+          if (symptom.hipaa_safe_response) prompt += `  Say: "${symptom.hipaa_safe_response}"\n`;
+        }
+        prompt += `\nIMPORTANT: Never diagnose. Use only the HIPAA-safe responses above.\n\n`;
+      }
+      
+      // Insurance carrier info
+      if (modeKnowledge.insurance_knowledge && modeKnowledge.insurance_knowledge.length > 0) {
+        prompt += `INSURANCE CARRIERS:\n`;
+        for (const ins of modeKnowledge.insurance_knowledge.slice(0, 10)) {
+          prompt += `- ${ins.carrier_name}: ${ins.is_accepted ? "✓ Accepted" : "✗ Not accepted"}`;
+          if (ins.plan_types?.length > 0) prompt += ` (${ins.plan_types.join(", ")})`;
+          if (ins.copay_typical_range) prompt += ` - Copay: ${ins.copay_typical_range}`;
+          prompt += `\n`;
+          if (ins.patient_script) prompt += `  Say: "${ins.patient_script}"\n`;
+        }
+        prompt += `\n`;
+      }
+    }
+
+    // SERVICE MODE: Product knowledge for upselling
+    if (ctx.tenant.business_mode === "service" || ctx.tenant.business_mode === "general") {
+      if (modeKnowledge.product_knowledge && modeKnowledge.product_knowledge.length > 0) {
+        prompt += `\nPRODUCT KNOWLEDGE (for education & upselling):\n`;
+        for (const product of modeKnowledge.product_knowledge.slice(0, 8)) {
+          prompt += `- ${product.is_premium ? "★ PREMIUM: " : ""}${product.brand ? product.brand + " " : ""}${product.product_name}`;
+          if (product.benefits?.length > 0) prompt += `: ${product.benefits.slice(0, 2).join(", ")}`;
+          prompt += `\n`;
+          if (product.upsell_script) prompt += `  Upsell: "${product.upsell_script}"\n`;
+        }
+        prompt += `\n`;
+      }
+    }
+
+    // SHARED: Aftercare, competitors, seasonal (all modes)
+    if (modeKnowledge.aftercare && modeKnowledge.aftercare.length > 0) {
+      prompt += `\nAFTERCARE INSTRUCTIONS (share when relevant):\n`;
+      for (const care of modeKnowledge.aftercare.slice(0, 6)) {
+        prompt += `- ${care.service_name}:\n`;
+        if (care.immediate_care?.length > 0) prompt += `  First 24hrs: ${care.immediate_care.slice(0, 2).join("; ")}\n`;
+        if (care.things_to_avoid?.length > 0) prompt += `  Avoid: ${care.things_to_avoid.slice(0, 2).join(", ")}\n`;
+        if (care.follow_up_timeframe) prompt += `  Follow-up: ${care.follow_up_timeframe}\n`;
+      }
+      prompt += `\n`;
+    }
+
+    if (modeKnowledge.competitors && modeKnowledge.competitors.length > 0) {
+      prompt += `COMPETITOR HANDLING (when mentioned):\n`;
+      for (const comp of modeKnowledge.competitors.slice(0, 5)) {
+        prompt += `- If "${comp.competitor_name}" is mentioned:\n`;
+        if (comp.our_advantage?.length > 0) prompt += `  Our advantage: ${comp.our_advantage.slice(0, 2).join("; ")}\n`;
+        if (comp.response_script) prompt += `  Respond: "${comp.response_script}"\n`;
+      }
+      prompt += `\n`;
+    }
+
+    if (modeKnowledge.seasonal && modeKnowledge.seasonal.length > 0) {
+      prompt += `SEASONAL/EVENT ANNOUNCEMENTS (mention proactively when relevant):\n`;
+      for (const event of modeKnowledge.seasonal.slice(0, 4)) {
+        prompt += `- ${event.event_name}`;
+        if (event.special_hours) prompt += ` - Hours: ${event.special_hours}`;
+        if (event.special_pricing_notes) prompt += ` - ${event.special_pricing_notes}`;
+        prompt += `\n`;
+        if (event.ai_announcement) prompt += `  Announce: "${event.ai_announcement}"\n`;
+      }
+      prompt += `\n`;
+    }
+  }
+
+
   if (ctx.ai_settings.greeting_script) {
     prompt += `GREETING: "${ctx.ai_settings.greeting_script}"\\n\\n`;
   }
