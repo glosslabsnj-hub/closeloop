@@ -450,6 +450,15 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     includeInCompactJson: true,
   },
   {
+    key: "secondary_services_summary",
+    description: "Additional services offered (e.g., body work for a tow company). AI adapts based on detail level configured.",
+    type: "string",
+    source: "offerings.secondary_services_summary",
+    defaultValue: "",
+    category: "offerings",
+    includeInCompactJson: true,
+  },
+  {
     key: "menu_summary",
     description: "Menu items summary for food mode",
     type: "string",

@@ -45,6 +45,10 @@ export interface NormalizedService {
   prep_instructions: string;
   synonyms: string[];
   pricing_config: PricingConfig | null;
+  /** Category for grouping (e.g., "Towing", "Body Work") */
+  service_category: string;
+  /** Type: "primary" (core business) or "secondary" (additional services) */
+  service_type: string;
 }
 
 export interface NormalizedMenuItem {
@@ -135,6 +139,9 @@ export interface BusinessContext {
     services: NormalizedService[];
     services_summary: string;
     services_for_prompt: string;
+    /** Secondary/additional services the business offers (e.g., body work for a tow company) */
+    secondary_services: NormalizedService[];
+    secondary_services_summary: string;
     menu: NormalizedMenuItem[];
     menu_summary: string;
   };
@@ -764,6 +771,8 @@ function normalizeServices(services: Array<{
       prep_instructions: s.preparation_instructions || "",
       synonyms,
       pricing_config: pricingConfig,
+      service_category: s.service_category || "",
+      service_type: s.service_type || "primary",
     };
   });
 }
@@ -787,6 +796,65 @@ function buildServicesSummary(services: NormalizedService[]): string {
   if (services.length > 8) result += `; +${services.length - 8} more`;
   
   return truncate(result, 800);
+}
+
+/**
+ * Build a speech-ready summary for secondary/additional services.
+ * These are services the business offers that aren't their primary focus.
+ * The AI adapts its response based on the level of detail configured.
+ */
+function buildSecondaryServicesSummary(services: NormalizedService[]): string {
+  if (services.length === 0) return "";
+  
+  // Group by category if categories exist
+  const byCategory: Record<string, NormalizedService[]> = {};
+  for (const s of services) {
+    const cat = s.service_category || "Other Services";
+    if (!byCategory[cat]) byCategory[cat] = [];
+    byCategory[cat].push(s);
+  }
+  
+  const parts: string[] = [];
+  
+  for (const [category, catServices] of Object.entries(byCategory)) {
+    // Build category summary
+    const serviceList = catServices.map(s => {
+      // Check if pricing info is available
+      if (s.price_type === "fixed" && s.price_amount) {
+        return `${s.name} ($${s.price_amount})`;
+      } else if (s.price_type === "starting_at" && s.price_amount) {
+        return `${s.name} (from $${s.price_amount})`;
+      } else {
+        return s.name;
+      }
+    });
+    
+    if (category !== "Other Services" && category) {
+      parts.push(`${category}: ${serviceList.join(", ")}`);
+    } else {
+      parts.push(serviceList.join(", "));
+    }
+  }
+  
+  const result = parts.join(". ");
+  
+  // Add AI guidance suffix based on detail level
+  const hasAnyPricing = services.some(s => s.price_amount != null);
+  const hasDescriptions = services.some(s => s.description && s.description.length > 20);
+  
+  let suffix = "";
+  if (hasAnyPricing && hasDescriptions) {
+    // Full detail mode - AI can quote and explain
+    suffix = "";
+  } else if (hasAnyPricing) {
+    // Pricing only - AI can quote but should offer callback for details
+    suffix = " (offer callback for more details)";
+  } else {
+    // Minimal info - AI should mention and offer callback
+    suffix = " (available - offer callback to discuss)";
+  }
+  
+  return truncate(result + suffix, 1200);
 }
 
 function buildServicesForPrompt(services: NormalizedService[]): string {
@@ -1547,7 +1615,10 @@ export async function buildBusinessContext(
   }
   
   // ===== NORMALIZE DATA =====
-  const normalizedServices = normalizeServices(services);
+  const allNormalizedServices = normalizeServices(services);
+  // Split primary vs secondary services
+  const normalizedServices = allNormalizedServices.filter(s => s.service_type !== "secondary");
+  const secondaryServices = allNormalizedServices.filter(s => s.service_type === "secondary");
   const normalizedMenu = normalizeMenuItems(menuItems);
   const enabledModules: string[] = Array.isArray(tenant.enabled_modules) ? tenant.enabled_modules as string[] : [];
   
@@ -1583,6 +1654,8 @@ export async function buildBusinessContext(
       services: normalizedServices,
       services_summary: buildServicesSummary(normalizedServices),
       services_for_prompt: buildServicesForPrompt(normalizedServices),
+      secondary_services: secondaryServices,
+      secondary_services_summary: buildSecondaryServicesSummary(secondaryServices),
       menu: normalizedMenu,
       menu_summary: buildMenuSummary(normalizedMenu),
     },

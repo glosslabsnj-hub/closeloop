@@ -73,6 +73,12 @@ export interface ServiceSnapshot {
   preparation_instructions: string;
   upsell_suggestions: string[];
   is_active: boolean;
+  /** Category for grouping (e.g., "Towing", "Body Work", "Auto Repair") */
+  service_category: string;
+  /** Type: "primary" (core business) or "secondary" (additional services offered) */
+  service_type: string;
+  /** Complex pricing configuration for variable/distance-tiered pricing */
+  pricing_config_json: any;
 }
 
 export interface FAQSnapshot {
@@ -376,10 +382,11 @@ export async function getBusinessBrainSnapshot(
   // STEP 2: Fetch all Business Brain data in parallel (typed separately to avoid inference issues)
   const servicesQuery = supabase
     .from("services")
-    .select("id, name, description, price_type, price_amount, duration_minutes, deposit_required, deposit_amount, preparation_instructions, upsell_suggestions, is_active")
+    .select("id, name, description, price_type, price_amount, duration_minutes, deposit_required, deposit_amount, preparation_instructions, upsell_suggestions, is_active, service_category, service_type, pricing_config_json")
     .eq("tenant_id", tenantId)
     .eq("is_active", true)
-    .limit(50);
+    .order("display_order", { ascending: true })
+    .limit(100);
 
   const faqsQuery = supabase
     .from("business_faqs")
@@ -516,6 +523,9 @@ export async function getBusinessBrainSnapshot(
     preparation_instructions: safeString(s.preparation_instructions),
     upsell_suggestions: safeArray(s.upsell_suggestions),
     is_active: safeBoolean(s.is_active, true),
+    service_category: safeString(s.service_category),
+    service_type: safeString(s.service_type) || "primary",
+    pricing_config_json: s.pricing_config_json || null,
   }));
 
   const faqs: FAQSnapshot[] = safeArray(faqsResult.data).map((f: any) => ({
