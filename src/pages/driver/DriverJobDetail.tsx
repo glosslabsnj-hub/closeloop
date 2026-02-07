@@ -1,14 +1,19 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { useDriverJobs } from "@/hooks/useDriverJobs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
 import { 
-  ArrowLeft, MapPin, Phone, Navigation, Clock, User, Truck, 
+  ArrowLeft, MapPin, Phone, Navigation, User, Truck, 
   FileText, AlertTriangle, Play, CheckCircle, ArrowRight,
-  Loader2
+  Loader2, Camera, DollarSign
 } from "lucide-react";
+import { PhotoUploader } from "@/components/driver/PhotoUploader";
 
 function getNextStatus(current: string): string | null {
   switch (current) {
@@ -39,22 +44,71 @@ function getNextStatusLabel(current: string): string {
 function getStatusIcon(current: string) {
   switch (current) {
     case "assigned":
-      return <Play className="h-4 w-4" />;
+      return <Play className="h-5 w-5" />;
     case "en_route":
-      return <ArrowRight className="h-4 w-4" />;
+      return <ArrowRight className="h-5 w-5" />;
     case "on_site":
-      return <CheckCircle className="h-4 w-4" />;
+      return <CheckCircle className="h-5 w-5" />;
     default:
       return null;
+  }
+}
+
+function getStatusColor(status: string): string {
+  switch (status) {
+    case "assigned":
+      return "bg-blue-500/10 text-blue-600 border-blue-200";
+    case "en_route":
+      return "bg-amber-500/10 text-amber-600 border-amber-200";
+    case "on_site":
+      return "bg-purple-500/10 text-purple-600 border-purple-200";
+    case "completed":
+      return "bg-green-500/10 text-green-600 border-green-200";
+    default:
+      return "";
   }
 }
 
 export default function DriverJobDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { jobs, isLoading, updateJobStatus } = useDriverJobs();
+  const { tenant } = useAuth();
+  const { toast } = useToast();
+  const { jobs, isLoading, updateJobStatus, refetch } = useDriverJobs();
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [savingPhotos, setSavingPhotos] = useState(false);
 
   const job = jobs.find(j => j.id === id);
+
+  const handleSavePhotos = async () => {
+    if (!job || photos.length === 0) return;
+    
+    setSavingPhotos(true);
+    try {
+      // Get existing photos
+      const existingPhotos = (job as any).photos || [];
+      const allPhotos = [...existingPhotos, ...photos];
+      
+      const { error } = await supabase
+        .from("dispatch_jobs")
+        .update({ photos: allPhotos })
+        .eq("id", job.id);
+
+      if (error) throw error;
+      
+      toast({ title: "Photos saved" });
+      setPhotos([]);
+      refetch();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save photos",
+      });
+    } finally {
+      setSavingPhotos(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -104,94 +158,121 @@ export default function DriverJobDetail() {
 
   const nextStatus = getNextStatus(job.status);
   const isCompleted = job.status === "completed";
+  const isOnSite = job.status === "on_site";
+  const existingPhotos = ((job as any).photos as string[]) || [];
+
+  const formatPrice = (cents: number | null) => {
+    if (!cents) return null;
+    return `$${(cents / 100).toFixed(2)}`;
+  };
 
   return (
-    <div className="p-4 space-y-4 pb-32">
+    <div className="p-4 space-y-4 pb-36">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate("/driver")}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="font-semibold">Job #{job.job_number || job.id.slice(0, 8)}</h1>
-          <p className="text-sm text-muted-foreground">{job.job_type || "Dispatch Job"}</p>
+          <h1 className="font-semibold text-lg">Job #{job.job_number || job.id.slice(0, 8)}</h1>
+          <div className="flex items-center gap-2 mt-1">
+            <Badge className={getStatusColor(job.status)}>
+              {job.status.replace("_", " ").toUpperCase()}
+            </Badge>
+            {job.priority === "urgent" && (
+              <Badge variant="destructive" className="gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                Urgent
+              </Badge>
+            )}
+          </div>
         </div>
-        {job.priority === "urgent" && (
-          <Badge variant="destructive" className="gap-1">
-            <AlertTriangle className="h-3 w-3" />
-            Urgent
-          </Badge>
-        )}
       </div>
 
-      {/* Customer Info */}
+      {/* Customer Info - Click to Call */}
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <User className="h-4 w-4" />
-            Customer
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div>
-            <p className="font-medium">{job.customer_name || "Unknown Customer"}</p>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                <User className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="font-medium">{job.customer_name || "Unknown Customer"}</p>
+                <p className="text-sm text-muted-foreground">{job.job_type || "Dispatch Job"}</p>
+              </div>
+            </div>
             {job.customer_phone && (
-              <Button variant="link" className="p-0 h-auto text-primary" onClick={handleCall}>
-                <Phone className="h-3 w-3 mr-1" />
-                {job.customer_phone}
+              <Button size="icon" variant="outline" className="h-12 w-12" onClick={handleCall}>
+                <Phone className="h-5 w-5" />
               </Button>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Locations */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <MapPin className="h-4 w-4" />
-            Locations
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {job.pickup_address && (
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Pickup</p>
-              <p className="text-sm mb-2">{job.pickup_address}</p>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="w-full"
-                onClick={() => handleDirections(job.pickup_address!)}
-              >
-                <Navigation className="h-4 w-4 mr-2" />
-                Get Directions
-              </Button>
+      {/* Pickup Location - Primary Action */}
+      {job.pickup_address && (
+        <Card className="border-primary/50">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">PICKUP</CardTitle>
+              {job.estimated_arrival_at && job.status === "en_route" && (
+                <Badge variant="outline" className="text-xs">
+                  ETA: {new Date(job.estimated_arrival_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Badge>
+              )}
             </div>
-          )}
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-base">{job.pickup_address}</p>
+            <Button 
+              className="w-full h-12"
+              onClick={() => handleDirections(job.pickup_address!)}
+            >
+              <Navigation className="h-5 w-5 mr-2" />
+              Navigate to Pickup
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
-          {job.dropoff_address && (
-            <>
-              <Separator />
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Drop-off</p>
-                <p className="text-sm mb-2">{job.dropoff_address}</p>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => handleDirections(job.dropoff_address!)}
-                >
-                  <Navigation className="h-4 w-4 mr-2" />
-                  Get Directions
-                </Button>
+      {/* Drop-off Location */}
+      {job.dropoff_address && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">DROP-OFF</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-base">{job.dropoff_address}</p>
+            <Button 
+              variant="outline"
+              className="w-full h-12"
+              onClick={() => handleDirections(job.dropoff_address!)}
+            >
+              <Navigation className="h-5 w-5 mr-2" />
+              Navigate to Drop-off
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Price Info */}
+      {job.price_cents && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-muted-foreground" />
+                <span className="font-medium">Job Total</span>
               </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+              <span className="text-xl font-bold">{formatPrice(job.price_cents)}</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Notes & Details */}
+      {/* Notes */}
       {(job.notes || job.description) && (
         <Card>
           <CardHeader className="pb-2">
@@ -211,29 +292,85 @@ export default function DriverJobDetail() {
       {/* Vehicle Info */}
       {job.assigned_vehicle && (
         <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <Truck className="h-5 w-5 text-muted-foreground" />
+              <span className="text-sm">{job.assigned_vehicle}</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Photo Upload Section - Show when on site or completed */}
+      {(isOnSite || isCompleted) && tenant?.id && (
+        <Card className="border-dashed">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <Truck className="h-4 w-4" />
-              Vehicle
+              <Camera className="h-4 w-4" />
+              Job Photos
             </CardTitle>
+            <CardDescription>
+              {isOnSite ? "Take photos before completing the job" : "View or add job photos"}
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm">{job.assigned_vehicle}</p>
+          <CardContent className="space-y-4">
+            {/* Existing Photos */}
+            {existingPhotos.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                  Saved Photos ({existingPhotos.length})
+                </p>
+                <div className="grid grid-cols-4 gap-2">
+                  {existingPhotos.map((url, i) => (
+                    <div key={i} className="aspect-square rounded-lg overflow-hidden bg-muted">
+                      <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Photo Uploader */}
+            <PhotoUploader
+              tenantId={tenant.id}
+              entityType="dispatch"
+              entityId={job.id}
+              onPhotosChange={setPhotos}
+              maxPhotos={8}
+            />
+
+            {/* Save Photos Button */}
+            {photos.length > 0 && (
+              <Button 
+                className="w-full"
+                onClick={handleSavePhotos}
+                disabled={savingPhotos}
+              >
+                {savingPhotos ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Saving...
+                  </>
+                ) : (
+                  `Save ${photos.length} Photo${photos.length !== 1 ? 's' : ''}`
+                )}
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
 
       {/* Status Action Button */}
       {!isCompleted && nextStatus && (
-        <div className="fixed bottom-20 left-4 right-4">
+        <div className="fixed bottom-20 left-4 right-4 z-10">
           <Button 
             size="lg" 
-            className="w-full h-14 text-lg"
+            className="w-full h-16 text-lg font-semibold shadow-lg"
             onClick={handleStatusUpdate}
             disabled={updateJobStatus.isPending}
           >
             {updateJobStatus.isPending ? (
-              <Loader2 className="h-5 w-5 animate-spin mr-2" />
+              <Loader2 className="h-6 w-6 animate-spin mr-2" />
             ) : (
               getStatusIcon(job.status)
             )}
@@ -243,11 +380,11 @@ export default function DriverJobDetail() {
       )}
 
       {isCompleted && (
-        <div className="fixed bottom-20 left-4 right-4">
-          <Card className="bg-green-500/10 border-green-200">
+        <div className="fixed bottom-20 left-4 right-4 z-10">
+          <Card className="bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800">
             <CardContent className="py-4 text-center">
-              <CheckCircle className="h-6 w-6 text-green-600 mx-auto mb-2" />
-              <p className="font-medium text-green-700">Job Completed</p>
+              <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400 mx-auto mb-2" />
+              <p className="font-medium text-green-700 dark:text-green-300">Job Completed</p>
             </CardContent>
           </Card>
         </div>

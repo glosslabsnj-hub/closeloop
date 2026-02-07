@@ -61,6 +61,7 @@ import WorkflowRunDetailPage from "@/pages/app/WorkflowRunDetailPage";
 import LeadRecoveryPage from "@/pages/app/LeadRecoveryPage";
 
 // Driver Portal Pages
+import DriverLoginPage from "@/pages/driver/DriverLoginPage";
 import DriverDashboard from "@/pages/driver/DriverDashboard";
 import DriverJobDetail from "@/pages/driver/DriverJobDetail";
 import DriverImpoundLog from "@/pages/driver/DriverImpoundLog";
@@ -171,6 +172,7 @@ const App = () => (
             </Route>
 
             {/* Driver Portal Routes */}
+            <Route path="/driver-login" element={<DriverLoginPage />} />
             <Route element={<DriverLayout />}>
               <Route path="/driver" element={<DriverDashboard />} />
               <Route path="/driver/jobs/:id" element={<DriverJobDetail />} />
