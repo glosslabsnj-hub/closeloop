@@ -1,176 +1,188 @@
 
-## What’s happening (root cause, based on your actual call data)
+# Security Hardening: Move Sensitive API Configuration to Backend
 
-You changing the tool fields to “Required” didn’t fix the behavior because:
+## Summary
 
-1) **“Required” in the tool config doesn’t force the agent to *ask***  
-It only forces the agent to *send something* for that parameter. When the agent doesn’t have the name, it often sends a placeholder to satisfy the schema (example from your database: a dispatch job was created with `customer_name = "not provided"`).
-
-2) **Your Twilio inbound call path is not applying our dispatch prompt override at all**  
-Your phone calls are going through:
-- `supabase/functions/twilio-inbound/index.ts` → ElevenLabs `POST /v1/convai/twilio/register-call`
-
-That function currently sends only a **minimal** `dynamic_variables` payload and **does not include `conversation_config_override`**.  
-So the dispatch agent is effectively running whatever prompt is currently configured in ElevenLabs (or a weaker prompt than our “always ask name + confirm phone” dispatch flow).
-
-Evidence:
-- Recent dispatch jobs show `customer_name: "not provided"` and/or `Unknown` in `dispatch_jobs`
-- The most recent tool calls are hitting `create-dispatch-request` (not `elevenlabs-create-dispatch-job`), which currently **does not enforce “ask name”** and can succeed using caller ID
-
-## Goal
-
-Make the dispatch agent reliably:
-- **asks for the customer name** (at least once, and early)
-- **confirms phone** (last 4 if caller ID exists; otherwise asks for the full number)
-- **doesn’t store placeholder junk** like “not provided” as a customer name
-- while still allowing the dispatch job to be created if the caller refuses (your stated intention)
+This plan addresses security vulnerabilities where sensitive configuration data is exposed in the frontend codebase. We'll move these to secure backend storage and create appropriate edge functions to serve them safely.
 
 ---
 
-## Implementation plan (backend + voice behavior)
+## Issues Identified
 
-### A) Fix the voice prompt actually used on phone calls (critical)
-**Change**: Update `supabase/functions/twilio-inbound/index.ts` to pass a **prompt override** during `register-call`.
-
-- Build (or retrieve) a proper dispatch system prompt on the server side.
-- Include it in the `register-call` request as:
-  - `conversation_initiation_client_data.conversation_config_override.agent.prompt.prompt`
-
-Why this matters:
-- This makes your dispatch agent follow the “ASK NAME + CONFIRM PHONE” flow even if the ElevenLabs dashboard prompt is imperfect.
-- It also means you don’t need to rely on the “Required” checkbox to force behavior.
-
-**Performance/safety requirement (Twilio timeouts):**
-- Keep Twilio response fast.
-- Implement a “fast path”:
-  1) Attempt to build a full prompt using existing shared context builders (preferred).
-  2) If it can’t finish quickly, fall back to a **minimal but strict dispatch identity prompt** that only enforces:
-     - ask name before dispatch
-     - confirm last 4 digits / request phone
-     - never use placeholders like “not provided”
-  3) Always return valid TwiML (no matter what).
-
-**Files involved**
-- `supabase/functions/twilio-inbound/index.ts`
-- (reuse existing shared prompt building logic from) `supabase/functions/_shared/buildBusinessContext.ts` and `supabase/functions/_shared/agentBasePrompts.ts` when feasible
+| Issue | Severity | Location | Risk |
+|-------|----------|----------|------|
+| Hardcoded admin secret | Critical | `admin-reset-password/index.ts` | Anyone can reset user passwords |
+| Hardcoded ElevenLabs voice IDs | Medium | `VoiceSelector.tsx` | Exposes vendor-specific IDs in client bundle |
+| Direct fetch pattern | Low | `VoiceSelector.tsx` | Less maintainable than SDK pattern |
 
 ---
 
-### B) Stop placeholder names from polluting your database (data quality guardrail)
-Right now, because of the “Required” tool field, the agent can send garbage like `"not provided"` and we will store it as a customer name.
+## Implementation Plan
 
-**Change**: Add a small “placeholder detection + sanitization” layer inside:
-- `supabase/functions/create-dispatch-request/index.ts`
-- and (for completeness) `supabase/functions/elevenlabs-create-dispatch-job/index.ts`
+### Phase 1: Fix Critical Admin Secret
 
-Rules:
-- Treat these as “missing name”:
-  - `""`, `"unknown"`, `"not provided"`, `"n/a"`, `"na"`, `"none"`, `"caller"`, `"customer"`, etc. (case-insensitive, trimmed)
-- If missing:
-  - store `customer_name` as `"Unknown"` (internal only)
-  - do not overwrite a real customer name with placeholders
-- Add lightweight logging (no PII) to `ai_event_logs` like:
-  - stage: `dispatch_identity_missing`
-  - fields: tool used, placeholder detected, whether caller_phone existed, session id
+**File:** `supabase/functions/admin-reset-password/index.ts`
 
-This ensures even if the agent still misbehaves occasionally, your CRM/dispatch queue doesn’t fill up with “not provided”.
+Replace the hardcoded secret with the existing `ADMIN_CLEANUP_SECRET` environment variable:
 
-**Files involved**
-- `supabase/functions/create-dispatch-request/index.ts`
-- `supabase/functions/elevenlabs-create-dispatch-job/index.ts`
+```text
+Before:
+  if (admin_secret !== "closeloop-admin-2024")
+
+After:
+  const ADMIN_RESET_SECRET = Deno.env.get("ADMIN_CLEANUP_SECRET");
+  if (!ADMIN_RESET_SECRET || admin_secret !== ADMIN_RESET_SECRET)
+```
+
+This uses the already-configured `ADMIN_CLEANUP_SECRET` from the secrets store.
 
 ---
 
-### C) Make “confirm last 4 digits” easy and consistent (optional but strong)
-**Change**: Add a derived dynamic variable (or compute in prompt) for last4.
+### Phase 2: Move Voice Configuration to Backend
 
-- In the Twilio call path we already have `caller_phone`.
-- We can pass:
-  - `caller_phone_last4` = last 4 digits (empty if unavailable)
+**Step 1: Create new edge function `get-voice-options`**
 
-Then the prompt can say:
-- “I’ve got your number ending in {{caller_phone_last4}} — is that the best number?”
+Create a new edge function that returns available voice options from a secure backend source:
 
-This reduces model “hesitation” and makes behavior more consistent.
+```text
+supabase/functions/get-voice-options/index.ts
+```
 
-**Files involved**
-- `supabase/functions/twilio-inbound/index.ts`
-- (optional) shared dynamic variable builder if we decide to unify the Twilio path with the canonical context system
+This function will:
+- Require authentication via JWT
+- Return voice options stored in the database or secrets
+- Never expose ElevenLabs voice IDs directly (use friendly IDs like "james", "sarah")
 
----
+**Step 2: Add voice configuration to database**
 
-### D) Align tool naming confusion (avoid prompt/tool mismatch)
-Your production calls are currently using **`create-dispatch-request`** as the dispatch creation tool endpoint.
+Create a new table `voice_options` to store available voices:
 
-We’ll do one of these (I’ll implement whichever is safest without breaking anything):
-1) **Keep current tool endpoint**, but update the dispatch prompt override text to refer to the “dispatch creation tool” generically (so it works whether your tool is named `create_dispatch_job` or `create_dispatch_request` in ElevenLabs), OR
-2) Standardize the dispatch agent to use `create_dispatch_job` → `elevenlabs-create-dispatch-job` going forward, while keeping `create-dispatch-request` for backward compatibility.
+| Column | Type | Description |
+|--------|------|-------------|
+| id | text | Friendly ID (e.g., "james") |
+| name | text | Display name |
+| description | text | Voice description |
+| provider_voice_id | text | Actual ElevenLabs ID |
+| is_active | boolean | Whether voice is available |
 
-This prevents the agent prompt from instructing the model to call a tool name it doesn’t have.
+RLS Policy: Read-only for authenticated users, write for service role only.
 
----
+**Step 3: Update VoiceSelector component**
 
-## Verification (end-to-end, measurable)
-After changes, we’ll verify using real call + database checks:
-
-1) **Make a test phone call** to the dispatch line.
-2) Confirm the agent asks:
-   - pickup
-   - dropoff (if applicable)
-   - vehicle
-   - **name**
-   - **“number ending in ____”** confirmation (or asks for full phone if caller ID isn’t present)
-3) Confirm the created `dispatch_jobs` row:
-   - `customer_name` is a real name (not “not provided”)
-4) Confirm logs:
-   - new `ai_event_logs` entries show whether identity was captured/missing
-5) Repeat once with the caller refusing to give a name:
-   - dispatch still created
-   - stored name becomes `"Unknown"` (not “not provided”)
+Refactor `VoiceSelector.tsx` to:
+- Fetch voice options from the new edge function
+- Remove hardcoded voice IDs
+- Use Supabase client's `functions.invoke()` pattern
+- Handle loading and error states
 
 ---
 
-## Important note about the “Required” checkbox (recommended settings)
-Even after we fix the prompt path, I recommend:
-- **Do not make `customer_name` required** in the tool schema if you want “non-blocking” behavior.
-  - Required often causes the model to invent/fill placeholders.
-- If you want “must ask but can proceed on refusal,” the best combo is:
-  - Prompt override + placeholder sanitization (this plan)
+### Phase 3: Improve API Call Patterns
+
+**Update TTS preview call**
+
+Replace direct fetch with Supabase SDK pattern:
+
+```text
+Before:
+  const response = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
+    { method: "POST", headers: {...}, body: ... }
+  );
+
+After:
+  const { data, error } = await supabase.functions.invoke("elevenlabs-tts", {
+    body: { text, voiceId }
+  });
+```
+
+This centralizes authentication handling and error management.
 
 ---
 
-## Also detected: project TypeScript build errors (must fix to keep the app shippable)
-Separate from the voice issue, the project currently has TypeScript errors that will block builds/publishing. I will fix these in the same implementation pass so you don’t regress elsewhere:
+## Files to Create
 
-- `BookingBehaviorSettings.tsx` + `CalendarConnectionStep.tsx`: mismatch between UI enum (`auto_book/pending_approval`) and backend enum (`auto_confirm/pending`)
-- `BrainPreviewPanel.tsx` + `SetupProgressBar.tsx`: undefined variable `t` (should use `tenant`)
-- `CalendarConnectionWizard.tsx`: unsafe `unknown` → typed state assignments (add casting/validation)
-- `useTenantConfig.ts`: `enabled_modules` parsing needs `string[]` sanitization
-- `useWorkflows.ts`: strict Supabase typed inserts failing; adjust typing safely without touching the auto-generated types file
-- `computeQuote.ts`: ensure arithmetic is performed on `number` (cast/normalize `baseDuration`)
+| File | Purpose |
+|------|---------|
+| `supabase/functions/get-voice-options/index.ts` | Secure voice options endpoint |
 
----
+## Files to Modify
 
-## Files we expect to change (summary)
-Backend functions:
-- `supabase/functions/twilio-inbound/index.ts`
-- `supabase/functions/create-dispatch-request/index.ts`
-- `supabase/functions/elevenlabs-create-dispatch-job/index.ts`
+| File | Changes |
+|------|---------|
+| `supabase/functions/admin-reset-password/index.ts` | Use environment secret instead of hardcoded |
+| `src/components/ai/VoiceSelector.tsx` | Fetch voices from backend, use SDK pattern |
 
-Frontend build fixes:
-- `src/components/ai/BookingBehaviorSettings.tsx`
-- `src/components/dashboard/CalendarConnectionStep.tsx`
-- `src/components/brain/explainability/BrainPreviewPanel.tsx`
-- `src/components/brain/layout/SetupProgressBar.tsx`
-- `src/components/settings/CalendarConnectionWizard.tsx`
-- `src/hooks/useTenantConfig.ts`
-- `src/hooks/useWorkflows.ts`
-- `src/lib/computeQuote.ts`
+## Database Changes
+
+| Change | Details |
+|--------|---------|
+| New table `voice_options` | Stores voice configurations securely |
+| RLS policies | Read-only for authenticated users |
 
 ---
 
-## Expected outcome
-After this:
-- Dispatch phone calls will consistently run with a prompt that explicitly requires a *real* attempt at name + phone confirmation.
-- “Required” tool fields won’t be your only enforcement lever (and won’t result in “not provided” being stored).
-- The app will compile cleanly again.
+## Technical Details
+
+### Edge Function: get-voice-options
+
+```text
+Flow:
+1. Verify JWT authentication
+2. Query voice_options table (is_active = true)
+3. Return only safe fields (id, name, description)
+4. Never return provider_voice_id to frontend
+```
+
+### Database Migration
+
+```sql
+CREATE TABLE public.voice_options (
+  id text PRIMARY KEY,
+  name text NOT NULL,
+  description text,
+  provider_voice_id text NOT NULL,
+  is_active boolean DEFAULT true,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Seed default voices
+INSERT INTO voice_options VALUES 
+  ('james', 'James', 'Professional and confident male voice', 'TX3LPaxmHKxFdv7VOQHJ', true),
+  ('sarah', 'Sarah', 'Warm and friendly female voice', 'EXAVITQu4vr4xnSDxMaL', true);
+
+-- RLS
+ALTER TABLE voice_options ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Authenticated read" ON voice_options 
+  FOR SELECT TO authenticated USING (is_active = true);
+```
+
+### Updated VoiceSelector Flow
+
+```text
+1. Component mounts
+2. Call supabase.functions.invoke("get-voice-options")
+3. Display loading state while fetching
+4. Render voice options from response
+5. When preview clicked, call elevenlabs-tts with friendly voice ID
+6. Edge function resolves friendly ID -> provider ID on backend
+```
+
+---
+
+## Security Benefits
+
+- Admin password reset now requires proper secret from Supabase secrets
+- Voice provider IDs never exposed in client JavaScript bundle
+- All sensitive lookups happen server-side
+- Consistent authentication pattern across all API calls
+
+---
+
+## Rollout
+
+1. Deploy edge functions first (they're backwards compatible)
+2. Run database migration
+3. Deploy frontend changes
+4. Verify voice preview still works
+5. Test admin password reset with proper secret
