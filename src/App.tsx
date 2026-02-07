@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { SessionExpirationHandler } from "@/components/auth/SessionExpirationHandler";
 
 // Layouts
 import { PublicLayout } from "@/components/layouts/PublicLayout";
@@ -91,6 +92,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <SessionExpirationHandler />
           <BrowserRouter>
           <Routes>
             {/* Public Routes */}
