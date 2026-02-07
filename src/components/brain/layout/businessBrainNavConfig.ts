@@ -161,6 +161,81 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         defaultCollapsed: false,
       },
       {
+        id: "price-modifiers",
+        title: "Price Adjustments",
+        purpose: "Size, urgency, and after-hours rate adjustments",
+        usedByAI: [
+          "Applies vehicle/property size adjustments to quotes",
+          "Adds urgency or after-hours surcharges",
+          "Explains additional fees to customers",
+        ],
+        isVisible: (mode) => ["service", "dispatch"].includes(mode),
+      },
+      {
+        id: "service-packages",
+        title: "Packages & Bundles",
+        purpose: "Discounted bundles and membership plans",
+        usedByAI: [
+          "Suggests packages when relevant to customer needs",
+          "Explains savings compared to individual pricing",
+          "Mentions membership benefits",
+        ],
+        isVisible: (mode) => ["service", "medical"].includes(mode),
+      },
+      {
+        id: "dispatch-pricing",
+        title: "Dispatch Fees",
+        purpose: "Equipment, storage, release, and emergency fees",
+        usedByAI: [
+          "Applies equipment fees (flatbed, dolly, winch)",
+          "Calculates storage rates",
+          "Adds emergency/after-hours surcharges",
+        ],
+        isVisible: (mode) => mode === "dispatch",
+      },
+      {
+        id: "food-settings",
+        title: "Order Settings",
+        purpose: "Delivery, pickup, and catering configuration",
+        usedByAI: [
+          "Explains delivery radius and fees",
+          "Quotes prep times",
+          "Handles catering inquiries",
+        ],
+        isVisible: (mode, modules) => mode === "food" || modules.includes("food_orders"),
+      },
+      {
+        id: "menu-sizes",
+        title: "Size Options",
+        purpose: "Size variants for menu items (S/M/L, Personal/Family)",
+        usedByAI: [
+          "Asks which size the customer wants",
+          "Quotes correct price per size",
+        ],
+        isVisible: (mode, modules) => mode === "food" || modules.includes("menu_knowledge"),
+      },
+      {
+        id: "daily-specials",
+        title: "Specials & Deals",
+        purpose: "Time-limited offers and recurring specials",
+        usedByAI: [
+          "Mentions active specials to customers",
+          "Explains what's included in deals",
+        ],
+        isVisible: (mode, modules) => mode === "food" || modules.includes("menu_knowledge"),
+      },
+      {
+        id: "medical-pricing",
+        title: "Practice Pricing",
+        purpose: "Insurance, consultation fees, and payment options",
+        usedByAI: [
+          "Answers insurance coverage questions",
+          "Quotes self-pay rates",
+          "Explains payment options",
+        ],
+        isVisible: (mode) => mode === "medical",
+      },
+      {
         id: "additional-services",
         title: "Additional Services",
         purpose: "Secondary services you offer beyond your core business",
