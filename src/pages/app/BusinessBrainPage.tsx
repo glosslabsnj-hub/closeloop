@@ -106,6 +106,8 @@ import {
   AdvancedGroup,
   BrainSetupBanner,
   CompletionCelebration,
+  NextStepSuggestion,
+  getModeGradient,
 } from "@/components/brain/layout";
 import { useBrainSummaries } from "@/hooks/useBrainSummaries";
 import { 
@@ -257,8 +259,21 @@ export default function BusinessBrainPage() {
             {/* PROFILE */}
             {activeSection === "profile" && (
               <div className="space-y-4">
+                {/* Completion Celebration - shows when all essentials done */}
+                {summaries.completionStats.percentage >= 100 && (
+                  <CompletionCelebration
+                    enhancements={[
+                      { id: "faqs", label: "Add FAQs", description: "Reduce \"I don't know\" responses", section: "knowledge" },
+                      { id: "objections", label: "Handle objections", description: "Address price pushback", section: "knowledge" },
+                      { id: "documents", label: "Upload documents", description: "Reference materials for AI", section: "knowledge" },
+                    ]}
+                    onNavigate={handleSectionChange}
+                    onGoToDashboard={() => window.location.href = "/app"}
+                  />
+                )}
+
                 {/* Setup Banner for new users */}
-                {summaries.completionStats.percentage < 100 && (
+                {summaries.completionStats.percentage < 100 && summaries.completionStats.percentage < 50 && (
                   <BrainSetupBanner
                     steps={[
                       { id: "business-info", label: "Business Info", section: "profile", isComplete: !!tenant?.name },
@@ -272,12 +287,14 @@ export default function BusinessBrainPage() {
                 )}
 
                 {/* Progress Indicator */}
-                <BrainProgressIndicator
-                  completedSections={summaries.completionStats.completed}
-                  totalSections={summaries.completionStats.total}
-                  incompleteItems={summaries.completionStats.incompleteItems}
-                  onNavigateToSection={handleSectionChange}
-                />
+                {summaries.completionStats.percentage < 100 && (
+                  <BrainProgressIndicator
+                    completedSections={summaries.completionStats.completed}
+                    totalSections={summaries.completionStats.total}
+                    incompleteItems={summaries.completionStats.incompleteItems}
+                    onNavigateToSection={handleSectionChange}
+                  />
+                )}
                 
                 <EssentialGroup title="Core Identity" description="How your AI introduces your business">
                   <SectionSummaryCard
@@ -292,6 +309,15 @@ export default function BusinessBrainPage() {
                     <BusinessProfileEditor />
                   </SectionSummaryCard>
                 </EssentialGroup>
+
+                {/* Next step suggestion */}
+                {tenant?.name && summaries.hours === "No hours set yet" && (
+                  <NextStepSuggestion
+                    completedSection="profile"
+                    mode={businessMode}
+                    onNavigate={handleSectionChange}
+                  />
+                )}
 
                 <AdvancedGroup title="Quick Start" collapsedDescription="Pre-built templates for common industries">
                   <SectionSummaryCard
@@ -325,6 +351,15 @@ export default function BusinessBrainPage() {
                     <BusinessHoursManager />
                   </SectionSummaryCard>
                 </EssentialGroup>
+
+                {/* Next step suggestion after hours are set */}
+                {summaries.hours !== "No hours set yet" && summaries.catalog === "No items added yet" && (
+                  <NextStepSuggestion
+                    completedSection="hours"
+                    mode={businessMode}
+                    onNavigate={handleSectionChange}
+                  />
+                )}
               </div>
             )}
 
