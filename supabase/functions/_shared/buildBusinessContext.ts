@@ -144,6 +144,10 @@ export interface BusinessContext {
     secondary_services_summary: string;
     menu: NormalizedMenuItem[];
     menu_summary: string;
+    /** Service packages & memberships summary for AI */
+    packages_summary: string;
+    /** Currently active promotions for AI to mention */
+    active_promotions: string;
   };
   pricing: {
     rules: any[]; // Array of PricingRule objects from computeQuote.ts
@@ -259,6 +263,8 @@ export interface BusinessContext {
     memory_hints_summary: string;
     // Customer context for repeat caller recognition
     customer_order_count: number | null;
+    /** Customer name from caller ID lookup (for returning callers) */
+    customer_name_from_lookup: string;
   };
   safety: {
     hipaa_mode: boolean;
@@ -1644,7 +1650,89 @@ function extractAiGuidelines(aiPolicies: AiPoliciesJson | null | undefined): {
   };
 }
 
-// ============= PRICING HELPER FUNCTIONS =============
+// ============= SERVICE PACKAGES & PROMOTIONS HELPER FUNCTIONS =============
+
+interface ServicePackageRow {
+  name: string;
+  description: string | null;
+  package_type: string;
+  regular_price_cents: number | null;
+  package_price_cents: number | null;
+  billing_interval: string | null;
+  member_discount_percent: number | null;
+  is_featured: boolean;
+}
+
+interface SeasonalKnowledgeRow {
+  event_name: string;
+  ai_announcement: string | null;
+  special_pricing_notes: string | null;
+  start_date: string | null;
+  end_date: string | null;
+}
+
+/**
+ * Build speech-ready summary of service packages & memberships
+ * Example: "Monthly membership ($99/month, 10% off all services). Treatment series: 5-pack Facial for $400 (saves $50)."
+ */
+function buildPackagesSummary(packages: ServicePackageRow[]): string {
+  if (!packages || packages.length === 0) return "";
+  
+  const parts: string[] = [];
+  
+  for (const pkg of packages.slice(0, 5)) {
+    const name = pkg.name;
+    const savings = pkg.regular_price_cents && pkg.package_price_cents
+      ? Math.round((pkg.regular_price_cents - pkg.package_price_cents) / 100)
+      : null;
+    
+    if (pkg.package_type === "membership" && pkg.billing_interval) {
+      const price = pkg.package_price_cents ? `$${Math.round(pkg.package_price_cents / 100)}` : "";
+      const discount = pkg.member_discount_percent ? `${pkg.member_discount_percent}% off services` : "";
+      parts.push(`${name} (${price}/${pkg.billing_interval}${discount ? ", " + discount : ""})`);
+    } else if (pkg.package_type === "bundle" || pkg.package_type === "series") {
+      const price = pkg.package_price_cents ? `$${Math.round(pkg.package_price_cents / 100)}` : "";
+      const savingsText = savings && savings > 0 ? ` (saves $${savings})` : "";
+      parts.push(`${name}: ${price}${savingsText}`);
+    } else {
+      // Generic package
+      const price = pkg.package_price_cents ? `$${Math.round(pkg.package_price_cents / 100)}` : "";
+      parts.push(`${name}: ${price}`);
+    }
+  }
+  
+  return parts.join(". ");
+}
+
+/**
+ * Build active promotions summary from seasonal knowledge
+ * Filters to only currently active promotions
+ * Example: "Summer Sale: 15% off all services through August. Book 3 get 1 free on haircuts."
+ */
+function buildActivePromotions(seasonal: SeasonalKnowledgeRow[]): string {
+  if (!seasonal || seasonal.length === 0) return "";
+  
+  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+  const parts: string[] = [];
+  
+  for (const event of seasonal) {
+    // Filter to only currently active events
+    const isActive = (!event.start_date || event.start_date <= today) && 
+                     (!event.end_date || event.end_date >= today);
+    
+    if (isActive) {
+      // Prefer ai_announcement, fall back to event_name + special_pricing_notes
+      if (event.ai_announcement) {
+        parts.push(event.ai_announcement);
+      } else if (event.special_pricing_notes) {
+        parts.push(`${event.event_name}: ${event.special_pricing_notes}`);
+      }
+    }
+  }
+  
+  return parts.slice(0, 3).join(". ");
+}
+
 
 /**
  * Format price from a service object
@@ -1780,6 +1868,8 @@ export async function buildBusinessContext(
     retentionSettingsResult,
     foodSettingsResult,
     distanceSettingsResult,
+    servicePackagesResult,
+    seasonalKnowledgeResult,
   ] = await Promise.all([
     supabase.from("tenants").select("*, pricing_rules_jsonb, busyness_rules_jsonb").eq("id", tenantId).single(),
     supabase.from("services").select("*").eq("tenant_id", tenantId).eq("is_active", true).limit(20),
@@ -1794,6 +1884,10 @@ export async function buildBusinessContext(
     supabase.from("tenant_food_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
     // Fetch ETA/distance settings from the canonical table
     supabase.from("tenant_distance_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
+    // Fetch service packages for memberships & bundles
+    supabase.from("service_packages").select("name, description, package_type, regular_price_cents, package_price_cents, billing_interval, member_discount_percent, is_featured").eq("tenant_id", tenantId).eq("is_active", true).order("display_order").limit(10),
+    // Fetch seasonal knowledge for active promotions (current date filter)
+    supabase.from("seasonal_knowledge").select("event_name, ai_announcement, special_pricing_notes, start_date, end_date").eq("tenant_id", tenantId).limit(10),
   ]);
   
   // ===== CONDITIONAL FETCH: IMPOUND LOT DATA =====
@@ -1846,6 +1940,8 @@ export async function buildBusinessContext(
   const retentionSettings = retentionSettingsResult.data;
   const foodSettings = foodSettingsResult.data;
   const distanceSettings = distanceSettingsResult.data as TenantDistanceSettings | null;
+  const servicePackages = servicePackagesResult.data || [];
+  const seasonalKnowledge = seasonalKnowledgeResult.data || [];
   
   // ===== DERIVE CAPABILITIES =====
   const capabilities = (tenant.capabilities_json as Record<string, boolean>) || {};
@@ -1997,6 +2093,8 @@ export async function buildBusinessContext(
       secondary_services_summary: buildSecondaryServicesSummary(secondaryServices),
       menu: normalizedMenu,
       menu_summary: buildMenuSummary(normalizedMenu),
+      packages_summary: buildPackagesSummary(servicePackages),
+      active_promotions: buildActivePromotions(seasonalKnowledge),
     },
     pricing: {
       rules: tenant.pricing_rules_jsonb?.rules || pricingRules,
@@ -2110,6 +2208,7 @@ export async function buildBusinessContext(
       memory_hints_summary: buildMemoryHintsSummary(memoryHints),
       // Customer context (populated during call if customer is recognized)
       customer_order_count: null, // Set by caller resolution during inbound call
+      customer_name_from_lookup: "", // Set by caller resolution during inbound call
     },
     safety: {
       hipaa_mode: hipaaMode,
