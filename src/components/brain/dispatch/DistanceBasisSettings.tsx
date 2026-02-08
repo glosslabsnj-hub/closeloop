@@ -93,11 +93,22 @@ export function DistanceBasisSettings() {
     <div className="space-y-4">
       <div className="space-y-2">
         <p className="text-sm text-muted-foreground">
-          Choose how you calculate pricing for distance-based services. This affects how the AI quotes customers.
+          Choose how your AI calculates distance for pricing. This determines what number goes into your per-mile rates.
         </p>
+        <div className="rounded-lg border bg-primary/5 border-primary/20 p-3">
+          <p className="text-xs">
+            <strong>Example:</strong> Customer is stranded 5 miles from your shop, needs a tow to a destination 10 miles away.
+          </p>
+          <ul className="text-xs text-muted-foreground mt-2 space-y-1">
+            <li>• <strong>Tow Distance</strong> = 10 miles (pickup → destination)</li>
+            <li>• <strong>Dispatch Distance</strong> = 5 miles (your shop → pickup)</li>
+            <li>• <strong>Total Trip</strong> = 15 miles (shop → pickup → destination)</li>
+          </ul>
+        </div>
         <div className="rounded-lg border bg-muted/30 p-3">
           <p className="text-xs text-muted-foreground">
-            <strong>Most towing businesses</strong> charge based on <strong>Tow Distance</strong> — how far the vehicle needs to be hauled. Some charge for the full round trip including drive-out.
+            <strong>Most towing businesses</strong> charge based on <strong>Tow Distance</strong> — how far the vehicle needs to be hauled. 
+            Some businesses charge for the full round trip to account for their drive-out time.
           </p>
         </div>
       </div>

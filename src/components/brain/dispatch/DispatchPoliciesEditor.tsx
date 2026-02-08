@@ -195,6 +195,14 @@ export function DispatchPoliciesEditor() {
 
   return (
     <div className="space-y-6">
+      {/* Explanation */}
+      <div className="rounded-lg border bg-muted/30 p-4">
+        <p className="text-sm text-muted-foreground">
+          <strong>Why this matters:</strong> Your AI explains these policies to callers before issues arise. 
+          Clear policies about payment, cancellation, and vehicle release prevent disputes and set expectations.
+        </p>
+      </div>
+
       {/* AI Preview */}
       <AIPreviewCard 
         title="How AI explains your dispatch policies"

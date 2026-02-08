@@ -331,9 +331,12 @@ export function DispatchPricingEditor() {
             <p className="text-sm font-medium">What is this?</p>
             <p className="text-sm text-muted-foreground">
               Configure all the additional fees and rate adjustments for your dispatch business.
-              These include <strong>after-hours rates</strong>, <strong>equipment fees</strong>,
+              These include <strong>after-hours rates</strong>, <strong>equipment fees</strong> (flatbed, winch, dollies),
               <strong>storage charges</strong>, and <strong>emergency surcharges</strong>.
-              Your AI will use these to give accurate quotes.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              <strong>How it works:</strong> When a caller needs an after-hours tow with a flatbed, 
+              your AI adds up the base service price + after-hours multiplier + flatbed fee to give an accurate quote.
             </p>
           </div>
         </div>

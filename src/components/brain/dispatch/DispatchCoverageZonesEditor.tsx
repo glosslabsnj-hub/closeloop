@@ -202,6 +202,14 @@ export function DispatchCoverageZonesEditor() {
 
   return (
     <div className="space-y-6">
+      {/* Explanation */}
+      <div className="rounded-lg border bg-muted/30 p-4">
+        <p className="text-sm text-muted-foreground">
+          <strong>Why this matters:</strong> When someone calls, your AI uses your base address to calculate drive time and give an accurate ETA. 
+          The busyness slider on your dashboard adds buffer time when you're slammed. Coverage zones let you set different pricing for highways, remote areas, or premium zones.
+        </p>
+      </div>
+
       <Tabs defaultValue="eta" className="w-full">
         <TabsList className="grid grid-cols-2 h-auto">
           <TabsTrigger value="eta" className="text-xs py-2">

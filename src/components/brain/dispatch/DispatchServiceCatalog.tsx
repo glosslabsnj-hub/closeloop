@@ -233,9 +233,9 @@ export function DispatchServiceCatalog() {
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex-1">
-          <h3 className="text-lg font-semibold">Service Catalog</h3>
+          <h3 className="text-lg font-semibold">Dispatch Services</h3>
           <p className="text-sm text-muted-foreground">
-            Configure your dispatch services with distance-based pricing
+            Configure the services you offer with accurate pricing. The AI uses these to quote callers.
           </p>
         </div>
         <Button onClick={() => { setEditingService(null); setEditorOpen(true); }}>
@@ -243,6 +243,17 @@ export function DispatchServiceCatalog() {
           Add Service
         </Button>
       </div>
+
+      {/* Explanation for new users */}
+      {(!services || services.length === 0) && (
+        <div className="rounded-lg border bg-muted/30 p-4">
+          <p className="text-sm text-muted-foreground">
+            <strong>Why this matters:</strong> When someone calls needing a tow or roadside help, 
+            your AI will ask for their location, then calculate and quote the price based on these services. 
+            Without services configured, the AI can only take callback requests.
+          </p>
+        </div>
+      )}
 
       {/* Search */}
       {services && services.length > 5 && (
@@ -405,10 +416,15 @@ export function DispatchServiceCatalog() {
               <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
                 <Truck className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="font-semibold text-lg">No services yet</h3>
-              <p className="text-sm text-muted-foreground max-w-sm">
-                Start by adding your dispatch services. Choose from presets like Local Tow, Jump Start, or Lockout,
-                or create custom services with distance-based pricing.
+              <h3 className="font-semibold text-lg">No dispatch services yet</h3>
+              <p className="text-sm text-muted-foreground max-w-md">
+                Your AI needs to know what services you offer and how much they cost. 
+                Start with common presets like <strong>Local Tow</strong>, <strong>Jump Start</strong>, 
+                <strong>Lockout</strong>, <strong>Tire Change</strong>, or <strong>Fuel Delivery</strong>.
+              </p>
+              <p className="text-xs text-muted-foreground max-w-md">
+                You can set flat rates or distance-based pricing with per-mile charges. 
+                The AI will automatically calculate and quote prices based on the caller's location.
               </p>
               <Button onClick={() => setEditorOpen(true)} className="mt-2">
                 <Plus className="h-4 w-4 mr-2" />
