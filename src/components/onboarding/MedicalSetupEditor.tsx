@@ -2,9 +2,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Shield, Phone, FileText, Clock, AlertTriangle } from "lucide-react";
+import { Shield, Phone, FileText, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 export interface MedicalSetupData {
   requireVerbalConsent: boolean;
@@ -14,6 +15,8 @@ export interface MedicalSetupData {
   urgentEscalationNumber: string;
   intakeTypes: string[];
   schedulingNotes: string;
+  // HIPAA acknowledgment
+  hipaaAcknowledged?: boolean;
 }
 
 interface MedicalSetupEditorProps {
@@ -44,14 +47,57 @@ export function MedicalSetupEditor({ data, onChange }: MedicalSetupEditorProps) 
 
   return (
     <div className="space-y-6">
-      <Alert className="border-amber-500/50 bg-amber-500/5">
-        <Shield className="h-4 w-4 text-amber-600" />
-        <AlertTitle className="text-amber-800 dark:text-amber-200">HIPAA Mode Active</AlertTitle>
-        <AlertDescription className="text-amber-700 dark:text-amber-300">
-          Your AI will operate under strict HIPAA guidelines. Full call recordings and transcripts 
-          are disabled by default. Only structured intake data and summaries are stored.
-        </AlertDescription>
-      </Alert>
+      {/* HIPAA Acknowledgment Card */}
+      <Card className={data.hipaaAcknowledged ? "border-success/50 bg-success/5" : "border-amber-500/50 bg-amber-500/5"}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Shield className={data.hipaaAcknowledged ? "h-5 w-5 text-success" : "h-5 w-5 text-amber-600"} />
+            HIPAA Compliance Mode
+          </CardTitle>
+          <CardDescription>
+            Your AI will operate under strict HIPAA guidelines to protect patient privacy.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3 text-sm">
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="h-4 w-4 text-success mt-0.5 shrink-0" />
+              <span>Call recordings are <strong>disabled by default</strong></span>
+            </div>
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="h-4 w-4 text-success mt-0.5 shrink-0" />
+              <span>Full transcripts are <strong>not stored</strong> — only structured intake data</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="h-4 w-4 text-success mt-0.5 shrink-0" />
+              <span>AI will <strong>never provide medical advice</strong> or diagnoses</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="h-4 w-4 text-success mt-0.5 shrink-0" />
+              <span>Urgent symptoms are <strong>immediately escalated</strong> to staff</span>
+            </div>
+          </div>
+
+          <div className="flex items-start space-x-3 pt-2 border-t">
+            <Checkbox
+              id="hipaa-ack"
+              checked={data.hipaaAcknowledged || false}
+              onCheckedChange={(checked) => update("hipaaAcknowledged", checked === true)}
+            />
+            <div className="grid gap-1.5 leading-none">
+              <label
+                htmlFor="hipaa-ack"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              >
+                I understand and acknowledge HIPAA mode
+              </label>
+              <p className="text-xs text-muted-foreground">
+                I confirm that I understand the privacy protections enabled for patient data.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Privacy Controls */}
       <Card>

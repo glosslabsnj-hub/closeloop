@@ -24,6 +24,8 @@ import ObjectionEditor, { ObjectionResponse } from "@/components/onboarding/Obje
 import PoliciesEditor, { BusinessPolicies } from "@/components/onboarding/PoliciesEditor";
 import { BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
 import { FoodSetupEditor, FoodSetupData } from "@/components/onboarding/FoodSetupEditor";
+import { DispatchSetupEditor, DispatchSetupData } from "@/components/onboarding/DispatchSetupEditor";
+import { MedicalSetupEditor, MedicalSetupData } from "@/components/onboarding/MedicalSetupEditor";
 import { formatErrorForToast } from "@/lib/errorMessages";
 import { OnboardingProgress, type OnboardingStep } from "@/components/onboarding/OnboardingProgress";
 import { OnboardingComplete } from "@/components/onboarding/OnboardingComplete";
@@ -91,6 +93,36 @@ export default function OnboardingPage() {
     cateringMinGuests: 10,
     cateringLeadDays: 3,
     menuNotes: "",
+  });
+
+  // Step 5: Dispatch Setup (for dispatch mode)
+  const [dispatchSetup, setDispatchSetup] = useState<DispatchSetupData>({
+    serviceRadius: 25,
+    estimatedResponseMinutes: 30,
+    requiresDropoff: true,
+    jobTypes: [],
+    crews: [],
+    vehicles: [],
+    dispatchNotes: "",
+    hasImpoundLot: false,
+    impoundLotAddress: "",
+    impoundBaseFee: 150,
+    impoundDailyStorageFee: 35,
+    impoundAdminFee: 75,
+    impoundGateFee: 0,
+    impoundReleaseNotes: "",
+  });
+
+  // Step 5: Medical Setup (for medical mode)
+  const [medicalSetup, setMedicalSetup] = useState<MedicalSetupData>({
+    requireVerbalConsent: true,
+    storeTranscripts: false,
+    storeRecordings: false,
+    retentionDays: 30,
+    urgentEscalationNumber: "",
+    intakeTypes: ["appointment_request"],
+    schedulingNotes: "",
+    hipaaAcknowledged: false,
   });
 
   // Step 6: Policies
@@ -181,14 +213,28 @@ export default function OnboardingPage() {
     initializedIndustryRef.current = industrySlug;
   }, [industrySlug, businessMode]);
 
-  // Step validation
+  // Step validation - mode-aware
   const canProceed = (stepNum: number) => {
     switch (stepNum) {
       case 1: return businessMode.length > 0;
       case 2: return industrySlug.length > 0;
       case 3: return enabledModules.length > 0;
       case 4: return validateBusinessBasics(businessBasics);
-      case 5: return services.length > 0 && services.every(s => s.name.trim().length > 0);
+      case 5: 
+        // Mode-aware validation for Step 5
+        if (businessMode === "food") {
+          // Food mode: must have at least one order type enabled
+          return foodSetup.acceptsPickup || foodSetup.acceptsDelivery || foodSetup.acceptsDineIn;
+        } else if (businessMode === "dispatch") {
+          // Dispatch mode: must have service radius set
+          return dispatchSetup.serviceRadius > 0;
+        } else if (businessMode === "medical") {
+          // Medical mode: must acknowledge HIPAA
+          return medicalSetup.hipaaAcknowledged === true;
+        } else {
+          // Service/General: must have at least one service
+          return services.length > 0 && services.every(s => s.name.trim().length > 0);
+        }
       case 6: return true;
       default: return false;
     }
@@ -365,6 +411,128 @@ export default function OnboardingPage() {
 
         if (busynessError) {
           console.error("Busyness rules save error:", busynessError);
+        }
+
+        // Save food menu items from quick-add
+        if (foodSetup.quickMenuItems && foodSetup.quickMenuItems.length > 0) {
+          const menuItemsToInsert = foodSetup.quickMenuItems.map((item, index) => ({
+            tenant_id: tenantId,
+            name: item.name,
+            price_cents: Math.round(item.price * 100),
+            category: item.category,
+            is_available: true,
+            sort_order: index,
+          }));
+
+          const { error: menuError } = await supabase
+            .from("menu_items")
+            .insert(menuItemsToInsert);
+
+          if (menuError) {
+            console.error("Menu items creation error:", menuError);
+          }
+        }
+      }
+
+      // Save dispatch setup for dispatch mode
+      const isDispatchMode = businessMode === "dispatch" || enabledModules.includes("dispatch_queue");
+      if (isDispatchMode) {
+        // Create dispatch services from job types
+        if (dispatchSetup.jobTypes && dispatchSetup.jobTypes.length > 0) {
+          const dispatchServicesToInsert = dispatchSetup.jobTypes.map((jobType, index) => ({
+            tenant_id: tenantId,
+            name: jobType,
+            description: `${jobType} service`,
+            duration_minutes: dispatchSetup.estimatedResponseMinutes,
+            price_amount: 0,
+            price_type: "quote_only" as const,
+            is_active: true,
+          }));
+
+          const { error: dispatchServicesError } = await supabase
+            .from("services")
+            .insert(dispatchServicesToInsert);
+
+          if (dispatchServicesError) {
+            console.error("Dispatch services creation error:", dispatchServicesError);
+          }
+        }
+
+        // Save impound lot data if configured (uses impound_lots and impound_settings tables)
+        if (dispatchSetup.hasImpoundLot) {
+          // Create impound lot entry
+          const { data: lotData, error: lotError } = await supabase
+            .from("impound_lots")
+            .insert({
+              tenant_id: tenantId,
+              name: "Main Lot",
+              address: dispatchSetup.impoundLotAddress || null,
+              is_active: true,
+            })
+            .select("id")
+            .single();
+
+          if (lotError) {
+            console.error("Impound lot creation error:", lotError);
+          }
+
+          // Create impound settings with fee structure
+          const { error: settingsError } = await supabase
+            .from("impound_settings")
+            .insert({
+              tenant_id: tenantId,
+              impound_handling_enabled: true,
+              base_tow_fee_cents: Math.round((dispatchSetup.impoundBaseFee || 150) * 100),
+              daily_storage_fee_cents: Math.round((dispatchSetup.impoundDailyStorageFee || 35) * 100),
+              admin_fee_cents: Math.round((dispatchSetup.impoundAdminFee || 75) * 100),
+              gate_fee_cents: Math.round((dispatchSetup.impoundGateFee || 0) * 100),
+              default_release_requirements: ["Valid ID", "Registration or Title", "Payment"],
+            });
+
+          if (settingsError) {
+            console.error("Impound settings creation error:", settingsError);
+          }
+        }
+      }
+
+      // Save medical setup for medical mode
+      const isMedicalMode = businessMode === "medical" || enabledModules.includes("medical_intake");
+      if (isMedicalMode) {
+        // Update tenant with HIPAA mode enabled
+        const { error: hipaaUpdateError } = await supabase
+          .from("tenants")
+          .update({ hipaa_mode: true })
+          .eq("id", tenantId);
+
+        if (hipaaUpdateError) {
+          console.error("HIPAA mode update error:", hipaaUpdateError);
+        }
+
+        // Create or update medical_settings
+        const { error: medicalSettingsError } = await supabase
+          .from("medical_settings")
+          .upsert({
+            tenant_id: tenantId,
+            store_recordings: medicalSetup.storeRecordings,
+            store_transcripts: medicalSetup.storeTranscripts,
+            retention_days: medicalSetup.retentionDays,
+            require_verbal_consent: medicalSetup.requireVerbalConsent,
+          });
+
+        if (medicalSettingsError) {
+          console.error("Medical settings save error:", medicalSettingsError);
+        }
+
+        // Save urgent escalation number to assistant settings
+        if (medicalSetup.urgentEscalationNumber) {
+          const { error: escalationError } = await supabase
+            .from("assistant_settings")
+            .update({ owner_forward_number: medicalSetup.urgentEscalationNumber })
+            .eq("tenant_id", tenantId);
+
+          if (escalationError) {
+            console.error("Escalation number save error:", escalationError);
+          }
         }
       }
 
@@ -696,26 +864,45 @@ export default function OnboardingPage() {
                     </div>
                   )}
 
-                  {/* Step 5: Offerings */}
+                  {/* Step 5: Offerings - Mode-Aware */}
                   {step === 5 && (
                     <div className="space-y-6">
                       <div>
                         <h2 className="text-2xl font-semibold tracking-tight">
-                          {businessMode === "food" ? "Food & Ordering Setup" : "Your Services"}
+                          {businessMode === "food" 
+                            ? "Food & Ordering Setup" 
+                            : businessMode === "dispatch"
+                              ? "Dispatch & Service Setup"
+                              : businessMode === "medical"
+                                ? "Medical Practice Setup"
+                                : "Your Services"}
                         </h2>
                         <p className="mt-2 text-muted-foreground">
                           {businessMode === "food"
-                            ? "Configure how customers can order from you."
-                            : "Add the services you offer. These will be pre-filled from your industry template."}
+                            ? "Configure how customers can order from you and add menu items."
+                            : businessMode === "dispatch"
+                              ? "Configure your service area, response times, and job types."
+                              : businessMode === "medical"
+                                ? "Configure HIPAA compliance and patient intake settings."
+                                : "Add the services you offer. These will be pre-filled from your industry template."}
                         </p>
-                        {industrySlug && industrySlug !== "other" && (
+                        {industrySlug && industrySlug !== "other" && businessMode !== "dispatch" && businessMode !== "medical" && (
                           <p className="mt-1 text-sm text-primary">
                             Template: {resolveIndustryTemplate(industrySlug).label}
                           </p>
                         )}
                       </div>
+                      
                       {businessMode === "food" ? (
                         <FoodSetupEditor data={foodSetup} onChange={setFoodSetup} />
+                      ) : businessMode === "dispatch" ? (
+                        <DispatchSetupEditor 
+                          data={dispatchSetup} 
+                          onChange={setDispatchSetup}
+                          showImpound={enabledModules.includes("impound_lot") || industrySlug.includes("tow")}
+                        />
+                      ) : businessMode === "medical" ? (
+                        <MedicalSetupEditor data={medicalSetup} onChange={setMedicalSetup} />
                       ) : (
                         <ServiceEditorAdvanced
                           services={services}
