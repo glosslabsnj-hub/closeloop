@@ -34,6 +34,10 @@ export interface CardConfig {
   isVisible?: (mode: BusinessMode, modules: string[]) => boolean;
   /** Show mode-specific emphasis */
   emphasis?: BusinessMode[];
+  /** NEW: Whether this is an essential section (must-complete for AI to work well) */
+  isEssential?: boolean;
+  /** NEW: Essential only for specific modes */
+  essentialForModes?: BusinessMode[];
 }
 
 export interface CategoryConfig {
@@ -70,6 +74,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         ],
         speechReadyFields: ["tagline", "location_summary"],
         defaultCollapsed: false,
+        isEssential: true, // Essential for all modes
       },
       {
         id: "industry-templates",
@@ -99,6 +104,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
           "Explains hours when asked",
         ],
         defaultCollapsed: false,
+        isEssential: true, // Essential for all modes
       },
     ],
   },
@@ -159,6 +165,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
           "Matches caller needs to the right service",
         ],
         defaultCollapsed: false,
+        isEssential: true, // Essential for all modes
       },
       {
         id: "price-modifiers",
@@ -276,6 +283,8 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
           "Delivers out-of-area message when needed",
         ],
         speechReadyFields: ["out_of_area_message"],
+        isEssential: true,
+        essentialForModes: ["dispatch", "service", "food"], // Essential for location-based modes
       },
       {
         id: "eta-settings",
@@ -446,6 +455,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         ],
         speechReadyFields: ["greeting_script", "fallback_script"],
         defaultCollapsed: false,
+        isEssential: true, // Essential for all modes
       },
       {
         id: "business-rules",
