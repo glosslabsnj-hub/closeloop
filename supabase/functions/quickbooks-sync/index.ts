@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsResponse, errorResponse, jsonResponse } from "../_shared/cors.ts";
 import { requireAuthedTenant, serviceClient } from "../_shared/tenant.ts";
 
@@ -22,10 +21,21 @@ interface QuickBooksConnection {
   };
 }
 
+// Customer interface for typing
+interface CustomerRecord {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  phone_e164: string | null;
+  phone_raw: string | null;
+  notes: string | null;
+}
+
 // Refresh access token if expired
+// deno-lint-ignore no-explicit-any
 async function refreshTokenIfNeeded(
   connection: QuickBooksConnection,
-  supabase: ReturnType<typeof createClient>
+  supabase: any
 ): Promise<string | null> {
   if (!connection.token_expires_at) {
     return connection.access_token_encrypted;
@@ -113,11 +123,12 @@ async function qbApiRequest(
 }
 
 // Sync customers from QuickBooks to CloseLoop
+// deno-lint-ignore no-explicit-any
 async function syncCustomersFromQB(
   accessToken: string,
   realmId: string,
   tenantId: string,
-  supabase: ReturnType<typeof createClient>
+  supabase: any
 ): Promise<{ imported: number; errors: string[] }> {
   const errors: string[] = [];
   let imported = 0;
@@ -200,11 +211,12 @@ async function syncCustomersFromQB(
 }
 
 // Export customers from CloseLoop to QuickBooks
+// deno-lint-ignore no-explicit-any
 async function syncCustomersToQB(
   accessToken: string,
   realmId: string,
   tenantId: string,
-  supabase: ReturnType<typeof createClient>
+  supabase: any
 ): Promise<{ exported: number; errors: string[] }> {
   const errors: string[] = [];
   let exported = 0;
@@ -222,7 +234,8 @@ async function syncCustomersToQB(
       return { exported, errors };
     }
 
-    for (const customer of customers || []) {
+    for (const rawCustomer of customers || []) {
+      const customer = rawCustomer as CustomerRecord;
       try {
         // Create customer in QuickBooks
         const nameParts = (customer.full_name || "").split(" ");

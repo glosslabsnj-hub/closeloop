@@ -16,7 +16,7 @@ import {
   serializeBusinessBrainSnapshot,
   type BusinessBrainSnapshot,
 } from "./getBusinessBrainSnapshot.ts";
-import { getBasePromptForMode } from "./agentBasePrompts.ts";
+import { getBasePromptForMode, buildPromptForCapabilities } from "./agentBasePrompts.ts";
 import type { BusinessMode } from "./agentResolver.ts";
 import { resolveCapabilities } from "./resolveCapabilities.ts";
 
@@ -1054,8 +1054,10 @@ function normalizeServices(services: Array<{
       prep_instructions: s.preparation_instructions || "",
       synonyms,
       pricing_config: pricingConfig,
-      service_category: s.service_category || "",
-      service_type: s.service_type || "primary",
+      // service_category and service_type are not in the DB schema yet
+      // They would need a migration to add these fields
+      service_category: "",
+      service_type: "primary",
     };
   });
 }
@@ -2947,6 +2949,19 @@ IMPORTANT GUIDELINES:
   // ===== APPEND MODE-SPECIFIC BASE PROMPT =====
   // This includes: Human Phone Rules, Time/Number Speaking, Tool Documentation, Industry Scenarios
   const businessMode = (ctx.tenant.business_mode || "general") as BusinessMode;
+  
+  // Use capability-aware prompt builder for behavioral instructions
+  // This dynamically includes only the relevant instruction sections based on enabled capabilities
+  const caps = resolveCapabilities(
+    ctx.tenant.business_mode,
+    null, // enabled_modules is already resolved into capabilities_json
+    ctx._meta.capabilities
+  );
+  const capabilityPrompt = buildPromptForCapabilities(caps);
+  prompt += `\n\n${capabilityPrompt}`;
+  
+  // Also append the mode-specific base prompt for backward compatibility
+  // This ensures agents have both capability-aware + mode-specific instructions
   const basePrompt = getBasePromptForMode(businessMode);
   prompt += `\n\n${basePrompt}`;
 
