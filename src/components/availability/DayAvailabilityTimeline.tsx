@@ -40,8 +40,8 @@ export function DayAvailabilityTimeline({
   const timeSlots = useMemo(() => {
     const slots: TimeSlot[] = [];
 
-    if (!businessHours || businessHours.closed) {
-      // Business is closed - show full day as closed
+    if (!businessHours || businessHours.closed || !businessHours.open || !businessHours.close) {
+      // Business is closed or hours not configured - show full day as closed
       return [{ hour: 0, label: "Closed", status: "outside-hours" as const }];
     }
 
