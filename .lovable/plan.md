@@ -1,395 +1,386 @@
 
-# Business Brain Redesign - Implementation Plan
+# Business Brain Refactor Plan
+## Goal: True Customization Without Breaking ElevenLabs Logic
 
-## Executive Summary
+### Executive Summary
 
-This plan transforms the Business Brain into a dramatically more understandable interface for business owners while preserving 100% of the existing backend logic, database interactions, and ElevenLabs integration.
+The Business Brain needs to evolve from a complex, scattered configuration system to a guided, scenario-aware setup that adapts to each business's unique needs. The core principle: **"If a business owner can't understand what to configure, the AI won't work well."**
 
-The redesign focuses on three core improvements:
-1. **Immediate clarity** - Every section shows its purpose and current state at a glance
-2. **Progressive disclosure** - Essential settings visible first, advanced settings on demand
-3. **Real-time AI preview** - Business owners see exactly what their AI will say before saving
+This plan preserves all existing ElevenLabs integration logic (the `buildBusinessContext.ts`, `voiceContextContract.ts`, and `agentBasePrompts.ts` files that power the AI) while completely restructuring how business owners input their data.
 
 ---
 
-## Current State Analysis
+### Current Architecture Analysis
 
-The existing Business Brain has:
-- **8 horizontal tabs** with collapsible accordion sections
-- **Mode-specific visibility** that hides irrelevant sections
-- **SectionHelper** boxes explaining each section
-- **CollapsibleBrainSection** components for all editors
-- **Mode-specific editors** under `dispatch/`, `food/`, `medical/`, `service/`, `general/`
-- **Industry helpers** in `industryHelpers.ts` and `industryExamples.ts`
-
-### What Works Well (Keep)
-- Tab-based navigation structure
-- Mode-specific editor components
-- `businessBrainNavConfig.ts` card definitions
-- All database save logic in editors
-- `useBrainSummaries` hook for status text
-- Deep linking via URL parameters
-
-### What Needs Improvement
-- Collapsible sections hide status - owners can't see what's configured at a glance
-- Helper boxes take up significant vertical space
-- No visual distinction between "must complete" vs "optional"
-- AI preview is inconsistent across editors
-- New users don't know where to start
-
----
-
-## Architecture Changes
-
-### New Component Hierarchy
-
+**Data Flow (Must Not Break)**:
 ```text
-BusinessBrainPage
-├── BusinessBrainTabs (existing, minor styling updates)
-├── BrainSetupBanner (NEW - shows for incomplete tenants)
-│   └── Links to first incomplete section
-├── Section Content (per tab)
-│   ├── SectionSummaryCards (NEW - replaces CollapsibleBrainSection)
-│   │   ├── Status preview visible always
-│   │   ├── Click to expand OR open drawer
-│   │   ├── Essential vs Advanced grouping
-│   │   └── AIPreviewBanner at bottom when editing
-│   └── InlineFieldHelp (NEW - replaces large SectionHelper)
-└── BrainProgressIndicator (NEW - floating/sticky element)
+Business Brain UI
+       |
+       v
+Database Tables (tenants, services, assistant_settings, etc.)
+       |
+       v
+getBusinessBrainSnapshot() - Fetches all tenant data
+       |
+       v
+buildBusinessContext() - Normalizes into BusinessContext
+       |
+       v
+voiceContextContract.ts - Creates dynamic variables
+       |
+       v
+ElevenLabs Agent (voice) or SMS Handler
 ```
 
-### Key New Components
-
-| Component | Purpose | Location |
-|-----------|---------|----------|
-| `SectionSummaryCard` | Status-focused card replacing accordions | `brain/layout/` |
-| `InlineFieldHelp` | Compact tooltip-based help system | `brain/layout/` |
-| `BrainProgressIndicator` | Shows overall completion status | `brain/layout/` |
-| `AIPreviewBanner` | Persistent "What AI will say" preview | `brain/layout/` |
-| `EssentialGroup` | Wrapper for must-complete sections | `brain/layout/` |
-| `AdvancedGroup` | Collapsible wrapper for optional sections | `brain/layout/` |
+**Current Problems Identified**:
+1. **60+ editors** scattered across 8 tabs with unclear relationships
+2. **Duplicate settings** appear in multiple places (FoodOrderSettings, DistanceBasisSettings)
+3. **No conditional logic** - sections show even when irrelevant
+4. **Missing "Required for AI"** indicators - owners don't know what's essential
+5. **Mode-specific nuances** not surfaced (e.g., catering vs regular orders are conflated)
+6. **No guided setup flow** - owners are dropped into a complex UI
 
 ---
 
-## Phase 1: Foundation Components
+### Refactor Principles
 
-### 1.1 Create SectionSummaryCard
+1. **Scenario-Driven Configuration**
+   - Instead of "configure these 60 settings," ask "What does your business do?"
+   - Show only relevant sections based on answers
 
-Replace `CollapsibleBrainSection` with a card that shows status at a glance:
+2. **Progressive Disclosure**
+   - Essential settings visible first
+   - Advanced settings hidden until needed
+   - AI Preview always visible to show impact
 
-```text
-┌──────────────────────────────────────────────────────────────┐
-│ 📍 Service Area                              ✓ Configured   │
-│ ────────────────────────────────────────────────────────────│
-│ 25-mile radius from Austin, TX • 45 min avg response       │
-│                                                              │
-│ [Edit →]                                                    │
-└──────────────────────────────────────────────────────────────┘
-```
+3. **Zero Breaking Changes to AI Logic**
+   - All database tables remain unchanged
+   - All edge functions remain unchanged
+   - Only the UI and data entry flow changes
 
-**Features:**
-- Icon + title always visible
-- 1-line status summary always visible
-- Completion indicator (checkmark, warning, or empty circle)
-- Click anywhere to expand inline OR open drawer/modal
-- Mode-aware styling (dispatch = amber, medical = rose, etc.)
-
-### 1.2 Create InlineFieldHelp
-
-Replace large `SectionHelper` boxes with compact tooltips:
-
-- Small (?) icon next to section title
-- Hover shows 1-line explanation
-- Click opens popover with full details + AI example
-- Mode-specific tips shown only when relevant
-
-### 1.3 Create BrainProgressIndicator
-
-Persistent progress display:
-
-- Shows "X of Y sections configured"
-- Color-coded by completion percentage
-- Lists top 3 incomplete items on hover
-- Sticky position at top of content area (mobile) or sidebar (desktop)
-
-### 1.4 Create AIPreviewBanner
-
-Real-time preview at bottom of each expanded editor:
-
-- Updates as user types
-- Shows actual phrasing AI will use
-- Mode-aware examples
-- Collapsible if user finds it distracting
+4. **Validation Before Go-Live**
+   - Clear checklist of what's required for AI to work
+   - Warnings when essential data is missing
 
 ---
 
-## Phase 2: Layout Restructure
+### Phase 1: Foundation (No UI Changes Yet)
 
-### 2.1 Essential vs Advanced Grouping
+**1.1 Create a Business Capabilities Discovery System**
 
-Group sections by importance:
+New hook: `useBusinessCapabilities`
+- Fetches and derives what the business actually does
+- Returns booleans like:
+  - `offersDelivery`, `offersCatering`, `offersPickup`, `offersDineIn` (food)
+  - `offersTowing`, `offersRoadside`, `hasImpoundLot`, `offersMotorClub` (dispatch)
+  - `offersMobileService`, `offersInShopService`, `offersSameDayEmergency` (service)
+  - `offersAppointments`, `offersWalkIns`, `requiresDeposits` (all modes)
+  - `hasTelehealth`, `hasNewPatientIntake`, `requiresInsurance` (medical)
 
-**Essential (Always Visible, Prominent Styling)**
-- Business Info
-- Hours
-- Services/Menu
-- Service Area (for dispatch/service modes)
-- Greeting & Scripts
+This hook becomes the single source of truth for visibility logic.
 
-**Advanced (Collapsed by Default)**
-- Price Modifiers
-- Packages & Bundles
-- Custom Knowledge
-- AI Memory Settings
-- Call Flow Settings
+**1.2 Create Essential Fields Registry**
 
-### 2.2 Mode-Specific Section Ordering
-
-Reorder sections based on business mode:
-
-**Dispatch Mode Priority:**
-1. Services & Rates
-2. Coverage & ETA
-3. Dispatch Fees
-4. Policies (payment, impound)
-5. Vehicle Knowledge
-
-**Food Mode Priority:**
-1. Menu
-2. Order Settings
-3. Delivery Zones
-4. Hours
-5. Specials
-
-**Medical Mode Priority:**
-1. Practice Info
-2. Hours
-3. Insurance & Pricing
-4. HIPAA Settings
-5. Calendar Sync
-
-**Service Mode Priority:**
-1. Services
-2. Pricing Rules
-3. Calendar
-4. Service Area
-5. Policies
-
-### 2.3 Refactor BusinessBrainPage Layout
-
-Update the main page to use new components:
-
+New file: `src/config/essentialFields.ts`
 ```text
-// Replace:
-<CollapsibleBrainSection ... />
-
-// With:
-<EssentialGroup title="Core Setup">
-  <SectionSummaryCard ... status="complete" />
-  <SectionSummaryCard ... status="incomplete" />
-</EssentialGroup>
-
-<AdvancedGroup title="Advanced Settings" defaultCollapsed>
-  <SectionSummaryCard ... />
-</AdvancedGroup>
+Defines per-mode which fields are:
+- REQUIRED: AI will fail without this
+- RECOMMENDED: AI works but less effective
+- OPTIONAL: Nice to have
 ```
+
+Used to:
+- Show "Required" badges in UI
+- Power the completion checklist
+- Gate "Go Live" button
+
+**1.3 Refactor useBrainSummaries**
+
+Current: Hardcoded 4 essential checks
+New: Dynamically calculates completion based on:
+- Business mode
+- Enabled capabilities
+- Essential fields registry
 
 ---
 
-## Phase 3: Enhanced User Guidance
+### Phase 2: Consolidate Duplicate Settings
 
-### 3.1 First-Time User Banner
+**2.1 Settings Location Matrix**
 
-For tenants with < 50% completion:
+| Setting | Current Locations | Canonical Location |
+|---------|------------------|-------------------|
+| FoodOrderSettings | Services, Policies | Services only |
+| DistanceBasisSettings | Services, Policies | Coverage & ETA only |
+| Order Settings | Multiple | Services > Order Options |
+
+**2.2 Create Redirect Links**
+
+When a setting only appears in one place, add contextual links:
+- "Looking for delivery settings? Go to Services"
+- Small link, not duplicate editor
+
+---
+
+### Phase 3: Scenario-Based Section Visibility
+
+**3.1 Food Mode Scenarios**
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│ 🎯 Getting Started                                    [Dismiss] │
-│ ───────────────────────────────────────────────────────────────│
-│ Your AI needs a few things to answer calls effectively.        │
-│ Complete these 4 essentials to go live:                        │
-│                                                                 │
-│ ○ Add business info  ○ Set hours  ● Add services  ○ Set area   │
-│                                                                 │
-│                                    [Continue Setup →]          │
-└─────────────────────────────────────────────────────────────────┘
+On first visit to Business Brain (food mode):
+- "What does [Business Name] offer?"
+  [ ] Dine-in
+  [ ] Pickup/Takeout
+  [ ] Delivery
+  [ ] Catering/Private Events
+  [ ] Reservations
+
+Based on answers:
+- Delivery → Show Delivery Zones, Delivery ETAs, Delivery Minimum
+- Catering → Show Catering Coverage, Event Types, Lead Time, Deposit %
+- Reservations → Show Table Management, Party Size Limits
+- None selected → Show simpler "Core Menu" focus
 ```
 
-### 3.2 Contextual Next Steps
-
-After completing a section, suggest the next logical step:
-
-- After adding services → "Now add your service area"
-- After service area → "Configure pricing rules"
-- After pricing → "Set up your greeting script"
-
-### 3.3 Completion Celebration
-
-When all essentials are complete:
+**3.2 Dispatch Mode Scenarios**
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│ 🎉 Your AI is ready!                                           │
-│ ───────────────────────────────────────────────────────────────│
-│ All essential sections are configured. Your AI can now:        │
-│ ✓ Answer pricing questions  ✓ Check availability              │
-│ ✓ Book appointments        ✓ Handle common questions           │
-│                                                                 │
-│ Want to take it further?                                       │
-│ • Add FAQs to reduce "I don't know" responses                  │
-│ • Configure objection handling for price pushback              │
-│ • Upload documents for detailed reference                      │
-│                                                                 │
-│                              [Go to Dashboard]  [Keep Editing] │
-└─────────────────────────────────────────────────────────────────┘
+- "What services does [Business Name] provide?"
+  [ ] Towing (light-duty, medium, heavy)
+  [ ] Roadside Assistance (jump, lockout, fuel, tire)
+  [ ] Impound/Storage
+  [ ] Motor Club/AAA calls
+
+Based on answers:
+- Towing → Show vehicle types, equipment fees, distance pricing
+- Roadside → Show roadside service catalog, flat-rate pricing
+- Impound → Show impound lot, storage rates, release requirements
+- Motor Club → Show motor club rates, coverage limits
+```
+
+**3.3 Service Mode Scenarios**
+
+```text
+- "How do customers get your services?"
+  [ ] Come to our location (salon, shop)
+  [ ] We go to them (mobile, home service)
+  [ ] Both
+
+Based on answers:
+- Mobile/Both → Show Service Area, Travel Times, On-site buffers
+- Shop-only → Hide Service Area, show Walk-in availability
+```
+
+**3.4 Implementation Approach**
+
+- Store scenario answers in `tenants.config_json` (no new tables)
+- `useBusinessCapabilities` reads these flags
+- BusinessBrainPage uses hook to show/hide sections
+
+---
+
+### Phase 4: AI Preview Integration
+
+**4.1 Global AI Preview Panel**
+
+Add a persistent "AI Preview" component that shows:
+- What the AI will say based on current configuration
+- Updates in real-time as owner makes changes
+
+**4.2 Per-Section AI Impact**
+
+Each section shows:
+- "How AI uses this" - one sentence
+- "Example response" - what AI might say
+- "If not configured" - what happens without it
+
+**4.3 Example for Policies Section**
+
+```text
++--------------------------------------------+
+| Cancellation Policy                        |
+| [24-hour notice required      ]            |
+|                                            |
+| AI Preview:                                |
+| "We do require 24 hours notice for         |
+|  cancellations. If you need to reschedule, |
+|  just let us know by tomorrow..."          |
++--------------------------------------------+
 ```
 
 ---
 
-## Phase 4: Visual Polish & Consistency
+### Phase 5: Guided Setup Flow
 
-### 4.1 Standardize All Editors
+**5.1 New Owner Onboarding**
 
-Ensure every editor follows the same pattern:
+When completion is < 30%, show a step-by-step wizard:
 
-1. **InlineFieldHelp** at top (compact, expandable)
-2. **Form fields** with consistent styling
-3. **AIPreviewBanner** at bottom showing live preview
-4. **Save button** with loading state
+```text
+Step 1: Business Identity
+  - Name, address, phone, hours
+  
+Step 2: What You Offer
+  - Scenario questions (see Phase 3)
+  - Auto-populate relevant sections
+  
+Step 3: Your Services/Menu
+  - Add at least 3 items
+  - Pricing setup
+  
+Step 4: Policies
+  - Cancellation, payment methods
+  
+Step 5: AI Greeting
+  - Custom greeting script
+  - Review AI voice sample
+  
+Step 6: Go Live Checklist
+  - Validate all required fields
+  - Test call option
+```
 
-### 4.2 Consistent Status Indicators
+**5.2 Quick Start Templates Enhancement**
 
-Use the same visual language everywhere:
-
-| Status | Icon | Color | Badge |
-|--------|------|-------|-------|
-| Complete | ✓ | Green | "Done" |
-| In Progress | ○ | Blue | "Started" |
-| Required | ! | Amber | "Required" |
-| Needs Attention | ⚠ | Red | "Review" |
-
-### 4.3 Mode-Specific Visual Themes
-
-Subtle color coding per mode:
-
-- **Service**: Blue accents
-- **Dispatch**: Amber accents
-- **Food**: Orange accents
-- **Medical**: Rose accents
-- **General**: Slate accents
+Current templates apply generic settings.
+Enhanced templates:
+- Ask scenario questions for that industry
+- Apply mode-specific defaults
+- Pre-populate FAQs and objections
 
 ---
 
-## Files to Create
+### Phase 6: Conditional Question Builder
 
+**6.1 New Feature: "If X, Ask Y"**
+
+Allow owners to create conditional intake logic:
+
+```text
+Example: Restaurant with delivery
+- IF order_type = "delivery" THEN ask delivery_address
+- IF party_size > 6 THEN ask special_occasion
+- IF ordering_alcohol THEN ask date_of_birth
+
+Example: Medical with new patients
+- IF is_new_patient THEN ask insurance_provider, date_of_birth, reason_for_visit
+- IF is_existing_patient THEN ask just reason_for_visit
+```
+
+**6.2 Implementation**
+
+- Add `condition_json` to `intake_requirements` table
+- UI: Simple rule builder (dropdown + dropdown + field)
+- `buildBusinessContext` already handles `required_questions` with intent mapping
+
+---
+
+### Files to Modify
+
+**New Files to Create:**
 | File | Purpose |
 |------|---------|
-| `src/components/brain/layout/SectionSummaryCard.tsx` | Status-focused section card |
-| `src/components/brain/layout/InlineFieldHelp.tsx` | Tooltip-based help system |
-| `src/components/brain/layout/BrainProgressIndicator.tsx` | Completion progress display |
-| `src/components/brain/layout/AIPreviewBanner.tsx` | Real-time AI preview banner |
-| `src/components/brain/layout/EssentialGroup.tsx` | Essential sections wrapper |
-| `src/components/brain/layout/AdvancedGroup.tsx` | Advanced settings accordion |
-| `src/components/brain/layout/BrainSetupBanner.tsx` | First-time user guidance |
-| `src/components/brain/layout/CompletionCelebration.tsx` | Success state component |
+| `src/hooks/useBusinessCapabilities.ts` | Single source of truth for what business offers |
+| `src/config/essentialFields.ts` | Required/Recommended/Optional field registry |
+| `src/components/brain/setup/ScenarioWizard.tsx` | Initial scenario questions |
+| `src/components/brain/setup/GuidedSetupFlow.tsx` | Step-by-step onboarding |
+| `src/components/brain/AIPreviewPanel.tsx` | Global AI preview component |
+| `src/components/brain/shared/ConditionalQuestionBuilder.tsx` | If X, Ask Y UI |
 
-## Files to Modify
-
+**Files to Modify:**
 | File | Changes |
 |------|---------|
-| `src/pages/app/BusinessBrainPage.tsx` | New layout structure, section grouping |
-| `src/components/brain/layout/index.ts` | Export new components |
-| `src/components/brain/layout/businessBrainNavConfig.ts` | Add essential/advanced flags |
-| `src/components/brain/layout/BusinessBrainTabs.tsx` | Minor styling updates |
-| `src/components/brain/layout/SectionHelper.tsx` | Convert to InlineFieldHelp style |
-| `src/hooks/useBrainSummaries.ts` | Add completion percentage calc |
+| `src/pages/app/BusinessBrainPage.tsx` | Use new capabilities hook for visibility, integrate scenario wizard |
+| `src/hooks/useBrainSummaries.ts` | Dynamic completion calculation based on capabilities |
+| `src/components/brain/layout/SectionSummaryCard.tsx` | Add "Required for AI" badge support |
+| `src/components/brain/layout/businessBrainNavConfig.ts` | Update visibility functions to use capabilities |
+| `src/components/brain/food/FoodServiceTypesEditor.tsx` | Add scenario questions for food mode |
+| `src/components/brain/dispatch/index.ts` | Add scenario questions for dispatch mode |
+| `src/hooks/useFoodOrderSettings.ts` | Extend to derive more capability flags |
+
+**Files That MUST NOT Change:**
+| File | Reason |
+|------|--------|
+| `supabase/functions/_shared/buildBusinessContext.ts` | Core AI context builder |
+| `supabase/functions/_shared/voiceContextContract.ts` | ElevenLabs variable contract |
+| `supabase/functions/_shared/agentBasePrompts.ts` | Agent behavioral prompts |
+| `supabase/functions/_shared/agentToolsConfig.ts` | Tool configurations |
+| `supabase/functions/_shared/getBusinessBrainSnapshot.ts` | Database fetcher |
+| All `supabase/functions/elevenlabs-*` | Handoff endpoints |
 
 ---
 
-## What Stays the Same (Zero Changes)
+### Database Changes
 
-- All database save/load logic in editors
-- ElevenLabs integration and prompt building
-- `getBusinessBrainSnapshot.ts` and Business Brain → AI pipeline
-- RLS policies and multi-tenant architecture
-- Mode-specific editor components (`dispatch/`, `food/`, etc.)
-- Validation and error handling
-- Deep linking via URL parameters
-- Mobile navigation (Sheet component)
+**No new tables required**. Use existing columns:
 
----
+| Table | Column | New Usage |
+|-------|--------|-----------|
+| `tenants` | `config_json` | Store scenario answers, capability flags |
+| `intake_requirements` | `condition_json` | Already exists, use for conditional questions |
 
-## Implementation Order
-
-1. **Phase 1**: Create foundation components (SectionSummaryCard, InlineFieldHelp, etc.)
-2. **Phase 2**: Refactor BusinessBrainPage to use new layout
-3. **Phase 3**: Add user guidance (setup banner, next steps, celebration)
-4. **Phase 4**: Polish and consistency pass across all editors
+**Optional Enhancement:**
+- Add `is_required` and `ai_impact` columns to existing settings tables for UI badges
+- Can be done with migration, no schema changes to core tables
 
 ---
 
-## Success Metrics
+### Testing Strategy
 
-After implementation, business owners should be able to:
+1. **Golden Path Tests**
+   - For each mode, verify that completing the guided setup results in a working AI
+   - Test: Scenario → Fill required → Go Live → Test Call
 
-1. **Understand status at a glance** - See what's configured without expanding anything
-2. **Know where to start** - Clear guidance for first-time users
-3. **See AI behavior in real-time** - Preview what AI will say before saving
-4. **Find advanced settings easily** - Without being overwhelmed on first visit
-5. **Complete setup faster** - 50% reduction in time to first "AI ready" state
+2. **Regression Tests**
+   - Existing tenants with data must continue working
+   - No changes to what AI says unless owner changes settings
+
+3. **Edge Cases**
+   - Business changes mode after setup (rare but possible)
+   - Business enables/disables capabilities after going live
 
 ---
 
-## Technical Details
+### Implementation Order
 
-### SectionSummaryCard Props
+| Phase | Priority | Estimated Effort |
+|-------|----------|-----------------|
+| 1.1 useBusinessCapabilities | P0 | 1 session |
+| 1.2 Essential Fields Registry | P0 | 1 session |
+| 2.1-2.2 Remove duplicates | P0 | 1 session |
+| 3.1-3.4 Scenario visibility | P0 | 2 sessions |
+| 4.1-4.3 AI Preview | P1 | 2 sessions |
+| 5.1-5.2 Guided setup | P1 | 2 sessions |
+| 6.1-6.2 Conditional questions | P2 | 2 sessions |
 
-```typescript
-interface SectionSummaryCardProps {
-  id: string;
-  title: string;
-  icon: LucideIcon;
-  status: 'complete' | 'incomplete' | 'warning' | 'error';
-  statusText: string;
-  isEssential?: boolean;
-  mode: BusinessMode;
-  onEdit: () => void;
-  children?: ReactNode; // Expanded content
-}
-```
+---
 
-### BrainProgressIndicator Props
+### Success Criteria
 
-```typescript
-interface BrainProgressIndicatorProps {
-  completedSections: number;
-  totalSections: number;
-  incompleteItems: { section: string; label: string }[];
-  onNavigateToSection: (section: string) => void;
-}
-```
+1. **Owner can set up a new business in under 10 minutes** (currently 30+)
+2. **Zero confusion about what affects the AI** (Required badges visible)
+3. **No "empty shell" sections** (only show what's relevant)
+4. **AI works the same as before** (regression tests pass)
+5. **Completion percentage accurately reflects AI readiness**
 
-### AIPreviewBanner Props
+---
 
-```typescript
-interface AIPreviewBannerProps {
-  preview: string;
-  subtitle?: string;
-  mode: BusinessMode;
-  isLoading?: boolean;
-}
-```
+### Technical Notes
 
-### Essential/Advanced Configuration
+**Why This Approach is Safe:**
 
-```typescript
-// In businessBrainNavConfig.ts
-export interface CardConfig {
-  // ... existing fields
-  isEssential?: boolean; // NEW: true = always visible, false = in Advanced group
-  essentialForModes?: BusinessMode[]; // NEW: essential only for specific modes
-}
-```
+The ElevenLabs integration is a read-only consumer of database state. It doesn't care how the data got into the database, only that it's there. By changing the UI layer while preserving:
+- Database schema
+- `buildBusinessContext()` logic
+- Dynamic variable contracts
+- Agent prompts and tools
 
-This redesign maintains complete backwards compatibility while dramatically improving the business owner experience.
+We guarantee the AI behavior remains unchanged while dramatically improving the setup experience.
+
+**Key Invariants to Preserve:**
+- `tenants.business_mode` determines agent type
+- `tenants.enabled_modules` determines which tools are available
+- `services` table is source of truth for offerings
+- `assistant_settings` stores go-live status and voice preferences
+- All queries remain tenant-scoped with RLS
 
