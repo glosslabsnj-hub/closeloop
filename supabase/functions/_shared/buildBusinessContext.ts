@@ -286,6 +286,7 @@ export interface BusinessContext {
     location_id: string | null;
     built_at: string;
     missing_sections: string[];
+    capabilities: Record<string, boolean>;
   };
 }
 
@@ -1537,6 +1538,35 @@ export async function buildBusinessContext(
   const foodSettings = foodSettingsResult.data;
   const distanceSettings = distanceSettingsResult.data as TenantDistanceSettings | null;
   
+  // ===== DERIVE CAPABILITIES =====
+  const capabilities = (tenant.capabilities_json as Record<string, boolean>) || {};
+  
+  // If capabilities_json is empty, derive from business_mode (backward compat)
+  if (Object.keys(capabilities).length === 0) {
+    const mode = tenant.business_mode || "general";
+    if (mode === "dispatch") {
+      capabilities.dispatch_queue = true;
+      capabilities.emergency_dispatch = true;
+      capabilities.distance_pricing = true;
+      capabilities.mobile_service = true;
+    } else if (mode === "food") {
+      capabilities.food_orders = true;
+      capabilities.menu_knowledge = true;
+      capabilities.pickup = true;
+    } else if (mode === "medical") {
+      capabilities.booking = true;
+      capabilities.medical_intake = true;
+      capabilities.hipaa_compliance = tenant.hipaa_mode || false;
+    } else if (mode === "service") {
+      capabilities.booking = true;
+      capabilities.calendar_sync = true;
+    } else {
+      capabilities.callbacks = true;
+    }
+    capabilities.ai_voice = true;
+    capabilities.instant_text_back = true;
+  }
+  
   // Track missing sections
   if (services.length === 0 && tenant.business_mode !== "food") missingSections.push("services");
   if (menuItems.length === 0 && tenant.business_mode === "food") missingSections.push("menu");
@@ -1794,6 +1824,7 @@ export async function buildBusinessContext(
       location_id: locationId || null,
       built_at: new Date().toISOString(),
       missing_sections: missingSections,
+      capabilities,
     },
   };
   
