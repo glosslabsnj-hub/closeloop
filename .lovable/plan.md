@@ -1,135 +1,286 @@
 
+# Plan: Wire Impound Agent Variables
 
-# Fix Dispatch Job Assignment Error & Distance/Pricing Display
+## Overview
+Add impound-specific context variables to `voiceContextContract.ts` and update `buildBusinessContext.ts` to populate them from the `impound_lots`, `impound_settings`, and capabilities data. This ensures the Impound Agent prompt can access lot address, hours, fee structure, and release requirements as dynamic variables.
 
-## Executive Summary
-When assigning a driver to a dispatch job, the update fails with **"revenue_attributions_status_check" constraint violation**. Additionally, distance calculations and price breakdowns are not being populated on dispatch jobs.
+## Technical Changes
 
----
+### 1. Update `BusinessContext` Interface (buildBusinessContext.ts)
+Add a new `impound` section to the interface to hold impound-specific data:
 
-## Issue 1: Revenue Attribution Trigger Error
-
-### Root Cause
-The `fn_attribution_on_dispatch_job()` database trigger is inserting `NEW.status` directly from `dispatch_jobs` into `revenue_attributions`. However, these tables use different status enumerations:
-
-| `dispatch_jobs.status` | `revenue_attributions.status` (allowed) |
-|------------------------|----------------------------------------|
-| pending | pending |
-| **assigned** | - |
-| **en_route** | - |
-| **on_site** | - |
-| completed | completed |
-| cancelled | cancelled |
-
-When you assign a driver (status changes to "assigned"), the trigger tries to insert "assigned" into `revenue_attributions`, which fails the CHECK constraint.
-
-### Fix
-Modify the trigger to map dispatch job statuses to valid attribution statuses:
-- `pending` → `pending`
-- `assigned`, `en_route`, `on_site` → `pending` (still in progress)
-- `completed` → `completed`
-- `cancelled` → `cancelled`
-
----
-
-## Issue 2: Missing Distance & Price Data
-
-### Root Cause
-The `elevenlabs-create-dispatch-job` function calls `elevenlabs-check-service-area` to calculate distances and pricing. However:
-
-1. **Database shows all jobs have NULL distance/pricing columns** - suggesting the service area check is either not being called or failing silently
-2. The service area function requires **base_address coordinates** for the tenant to calculate dispatch distance
-3. Jobs appear to be created successfully but without distance data
-
-### Investigation Needed
-Check if tenant has `base_lat` and `base_lng` configured in `dispatch_settings`. Without these, no distance calculations can occur.
-
-### Fix
-1. Ensure the tenant has base address configured in Business Brain → Coverage & ETA
-2. Verify the check-service-area function is being called and returning data
-3. If the job was created without distance data (e.g., from a manual test), the UI correctly shows nothing
-
----
-
-## Technical Implementation Plan
-
-### Database Migration (Priority: Critical)
-
-Fix the revenue attribution trigger to map statuses correctly:
-
-```sql
-CREATE OR REPLACE FUNCTION fn_attribution_on_dispatch_job()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  attribution_status text;
-BEGIN
-  IF NEW.session_id IS NOT NULL THEN
-    -- Map dispatch job status to valid attribution status
-    attribution_status := CASE 
-      WHEN NEW.status IN ('completed') THEN 'completed'
-      WHEN NEW.status IN ('cancelled') THEN 'cancelled'
-      ELSE 'pending'  -- pending, assigned, en_route, on_site all map to pending
-    END;
-    
-    INSERT INTO revenue_attributions (
-      tenant_id, entity_type, entity_id, session_id,
-      revenue_cents, status, attributed_at
-    ) VALUES (
-      NEW.tenant_id, 'dispatch_job', NEW.id, NEW.session_id,
-      COALESCE(NEW.price_cents, 0), attribution_status, now()
-    )
-    ON CONFLICT (tenant_id, entity_type, entity_id)
-    DO UPDATE SET
-      revenue_cents = COALESCE(EXCLUDED.revenue_cents, revenue_attributions.revenue_cents, 0),
-      status = EXCLUDED.status,
-      updated_at = now();
-  END IF;
-  RETURN NEW;
-END;
-$$;
+```typescript
+// Add to BusinessContext interface (around line 290)
+impound: {
+  lot_id: string;
+  lot_name: string;
+  lot_address: string;
+  lot_phone: string;
+  lot_hours_today: string;
+  lot_hours_summary: string;
+  is_open_now: boolean;
+  next_open: string;
+  // Fee structure from impound_settings
+  base_tow_fee_cents: number;
+  daily_storage_cents: number;
+  admin_fee_cents: number;
+  gate_fee_cents: number;
+  fee_summary: string;
+  // Release requirements
+  release_requirements: string[];
+  release_requirements_summary: string;
+  accepted_payment_methods: string[];
+  accepted_payment_summary: string;
+} | null;
 ```
 
-### UI Enhancement (Priority: Medium)
+### 2. Fetch Impound Data (buildBusinessContext.ts)
+Add parallel fetch for impound lot and settings when capability is enabled:
 
-Update the `DispatchJobDetailsSheet` to show a helpful message when distance data is missing:
+```typescript
+// Add to parallel fetch block (around line 1507-1535)
+// Fetch impound data only if capability enabled
+const impoundLotPromise = capabilities.impound_lot
+  ? supabase.from("impound_lots")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .eq("is_active", true)
+      .order("is_default", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+  : Promise.resolve({ data: null, error: null });
 
-```text
-// If no distance data, show guidance
-if (!job.dispatch_distance_miles && !job.tow_distance_miles) {
-  <div className="p-3 rounded-lg bg-muted/50">
-    <p className="text-sm text-muted-foreground">
-      Distance and pricing data will appear here when jobs are 
-      created through AI calls with a base address configured.
-    </p>
-  </div>
+const impoundSettingsPromise = capabilities.impound_lot
+  ? supabase.from("impound_settings")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .maybeSingle()
+  : Promise.resolve({ data: null, error: null });
+```
+
+### 3. Build Impound Context Object (buildBusinessContext.ts)
+Add helper function and populate the impound section:
+
+```typescript
+// Helper function to format impound hours for today
+function getImpoundLotHoursToday(hoursJson: Record<string, any> | null): { 
+  hours_today: string; 
+  is_open: boolean; 
+  next_open: string;
+  hours_summary: string;
+} {
+  // Similar logic to getTodayHours but for impound lots
+  // Returns formatted hours for voice AI
+}
+
+// Helper to build fee summary
+function buildImpoundFeeSummary(settings: any): string {
+  const parts: string[] = [];
+  if (settings.base_tow_fee_cents) 
+    parts.push(`$${(settings.base_tow_fee_cents / 100).toFixed(0)} base tow`);
+  if (settings.daily_storage_cents)
+    parts.push(`$${(settings.daily_storage_cents / 100).toFixed(0)} per day storage`);
+  if (settings.admin_fee_cents)
+    parts.push(`$${(settings.admin_fee_cents / 100).toFixed(0)} admin fee`);
+  if (settings.gate_fee_cents)
+    parts.push(`$${(settings.gate_fee_cents / 100).toFixed(0)} gate fee`);
+  return parts.join(", ");
+}
+
+// Helper to format release requirements
+function formatReleaseRequirements(reqs: string[]): string {
+  const REQUIREMENT_LABELS: Record<string, string> = {
+    valid_id: "valid government-issued ID",
+    registration: "vehicle registration or title",
+    insurance: "proof of insurance",
+    lien_release: "lien release from lienholder",
+    police_release: "police release authorization",
+    payment: "payment in full",
+  };
+  return reqs.map(r => REQUIREMENT_LABELS[r] || r).join(", ");
 }
 ```
 
-### Verification Steps (Post-Implementation)
+### 4. Register Variables in voiceContextContract.ts
+Add new impound-specific variables to the registry (after the dispatch-specific section, around line 1160):
 
-1. **Test job assignment**: Assign a driver to a pending job - should succeed without error
-2. **Test status progression**: Move job through assigned → en_route → on_site → completed
-3. **Verify attribution updates**: Check `revenue_attributions` table updates correctly on completion
-4. **Test with AI call**: Make a test call with pickup address to verify distance calculation
+```typescript
+// ===== IMPOUND LOT VARIABLES =====
+{
+  key: "impound_lot_id",
+  description: "Default impound lot UUID",
+  type: "string",
+  source: "impound.lot_id",
+  defaultValue: "",
+  category: "core",
+},
+{
+  key: "impound_lot_name",
+  description: "Impound lot name",
+  type: "string",
+  source: "impound.lot_name",
+  defaultValue: "",
+  category: "core",
+},
+{
+  key: "impound_lot_address",
+  description: "Full impound lot address",
+  type: "string",
+  source: "impound.lot_address",
+  defaultValue: "",
+  category: "core",
+},
+{
+  key: "impound_lot_phone",
+  description: "Impound lot phone number",
+  type: "string",
+  source: "impound.lot_phone",
+  defaultValue: "",
+  category: "core",
+},
+{
+  key: "impound_lot_hours_today",
+  description: "Today's hours for impound lot (e.g., '8 AM - 5 PM')",
+  type: "string",
+  source: "impound.lot_hours_today",
+  defaultValue: "",
+  category: "hours",
+},
+{
+  key: "impound_lot_hours_summary",
+  description: "Weekly hours summary for voice (e.g., 'Monday through Friday 8 to 5')",
+  type: "string",
+  source: "impound.lot_hours_summary",
+  defaultValue: "",
+  category: "hours",
+},
+{
+  key: "impound_is_open_now",
+  description: "Whether the impound lot is currently open",
+  type: "boolean",
+  source: "impound.is_open_now",
+  defaultValue: false,
+  category: "hours",
+},
+{
+  key: "impound_next_open",
+  description: "When the lot next opens (e.g., 'Tomorrow at 8 AM')",
+  type: "string",
+  source: "impound.next_open",
+  defaultValue: "",
+  category: "hours",
+},
+{
+  key: "impound_base_tow_fee",
+  description: "Base tow fee in dollars (e.g., '175')",
+  type: "string",
+  source: (ctx) => ctx.impound?.base_tow_fee_cents 
+    ? String(ctx.impound.base_tow_fee_cents / 100) : "",
+  defaultValue: "",
+  category: "pricing",
+},
+{
+  key: "impound_daily_storage_fee",
+  description: "Daily storage fee in dollars (e.g., '35')",
+  type: "string",
+  source: (ctx) => ctx.impound?.daily_storage_cents 
+    ? String(ctx.impound.daily_storage_cents / 100) : "",
+  defaultValue: "",
+  category: "pricing",
+},
+{
+  key: "impound_admin_fee",
+  description: "Admin fee in dollars",
+  type: "string",
+  source: (ctx) => ctx.impound?.admin_fee_cents 
+    ? String(ctx.impound.admin_fee_cents / 100) : "",
+  defaultValue: "",
+  category: "pricing",
+},
+{
+  key: "impound_gate_fee",
+  description: "Gate fee in dollars",
+  type: "string",
+  source: (ctx) => ctx.impound?.gate_fee_cents 
+    ? String(ctx.impound.gate_fee_cents / 100) : "",
+  defaultValue: "",
+  category: "pricing",
+},
+{
+  key: "impound_fee_summary",
+  description: "Speech-ready summary of all fees",
+  type: "string",
+  source: "impound.fee_summary",
+  defaultValue: "",
+  category: "pricing",
+},
+{
+  key: "impound_release_requirements",
+  description: "Comma-separated release requirements",
+  type: "string",
+  source: (ctx) => ctx.impound?.release_requirements?.join(", ") || "",
+  defaultValue: "",
+  category: "policies",
+},
+{
+  key: "impound_release_requirements_summary",
+  description: "Speech-ready release requirements",
+  type: "string",
+  source: "impound.release_requirements_summary",
+  defaultValue: "",
+  category: "policies",
+},
+{
+  key: "impound_accepted_payment",
+  description: "Accepted payment methods",
+  type: "string",
+  source: "impound.accepted_payment_summary",
+  defaultValue: "",
+  category: "policies",
+},
+```
 
----
+### 5. Variable Mapping for ElevenLabs Prompt
+The Impound Agent prompt will use these dynamic variables:
 
-## Files to Modify
+| Prompt Variable | Context Path | Description |
+|-----------------|--------------|-------------|
+| `{{tenant_id}}` | Already exists | For tool calls |
+| `{{business_name}}` | Already exists | Business name |
+| `{{impound_lot_id}}` | `impound.lot_id` | For tool calls |
+| `{{impound_lot_address}}` | `impound.lot_address` | Full address |
+| `{{impound_lot_hours_today}}` | `impound.lot_hours_today` | Today's hours |
+| `{{impound_is_open_now}}` | `impound.is_open_now` | Open status |
+| `{{impound_next_open}}` | `impound.next_open` | Next open time |
+| `{{impound_base_tow_fee}}` | Computed | Base tow in dollars |
+| `{{impound_daily_storage_fee}}` | Computed | Daily storage in dollars |
+| `{{impound_admin_fee}}` | Computed | Admin fee in dollars |
+| `{{impound_gate_fee}}` | Computed | Gate fee in dollars |
+| `{{impound_fee_summary}}` | `impound.fee_summary` | All fees summary |
+| `{{impound_release_requirements_summary}}` | `impound.release_requirements_summary` | What to bring |
+| `{{impound_accepted_payment}}` | `impound.accepted_payment_summary` | Payment methods |
 
-| File | Change |
-|------|--------|
-| New migration SQL | Fix `fn_attribution_on_dispatch_job()` trigger |
-| `src/components/dispatch/DispatchJobDetailsSheet.tsx` | Add "no distance data" guidance message |
+### 6. Files to Modify
 
----
+| File | Changes |
+|------|---------|
+| `supabase/functions/_shared/buildBusinessContext.ts` | Add `impound` to interface, fetch impound data, populate section |
+| `supabase/functions/_shared/voiceContextContract.ts` | Register 14 new impound variables |
 
-## Risk Assessment
+### 7. Edge Functions to Redeploy
+After changes:
+- `get-business-context`
+- `elevenlabs-init`
+- `twilio-inbound`
 
-- **Low risk**: Trigger fix is purely additive - maps existing statuses to valid values
-- **No data loss**: Attribution records will update correctly on job completion
-- **Backward compatible**: Existing jobs unaffected
+## Validation
+After implementation, calling `get-business-context` for a tenant with impound capability enabled should return:
+- All `impound_*` dynamic variables populated
+- Fee values converted from cents to dollars
+- Hours formatted for speech
+- Release requirements in natural language
 
+## Notes
+- Variables return empty strings when impound capability is disabled (safe fallback)
+- Fee values are stored in cents but exposed as dollars for speech
+- Hours use the same natural speech formatting as the main business hours
