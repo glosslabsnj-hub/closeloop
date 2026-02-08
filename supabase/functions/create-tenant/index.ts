@@ -146,7 +146,7 @@ serve(async (req) => {
       custom_industry: null,
       website_url: null,
       years_in_business: null,
-      context_fields_json: [],
+      context_fields_json: {},
     };
 
     // 7. Insert tenant row
