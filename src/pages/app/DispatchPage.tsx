@@ -97,6 +97,27 @@ export default function DispatchPage() {
     enabled: !!tenant?.id,
   });
 
+  // Fetch callback requests from opportunities
+  const { data: callbacks, refetch: refetchCallbacks } = useQuery({
+    queryKey: ["dispatch-callbacks", tenant?.id],
+    queryFn: async () => {
+      if (!tenant?.id) return [];
+      const { data, error } = await supabase
+        .from("opportunities")
+        .select("*, customers(full_name, phone_e164)")
+        .eq("tenant_id", tenant.id)
+        .eq("source", "voice_callback")
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!tenant?.id,
+  });
+
+  const pendingCallbacks = callbacks?.filter(c => c.status === "pending") || [];
+
   // Real-time subscription for new jobs and status updates
   useEffect(() => {
     if (!tenant?.id) return;
@@ -178,6 +199,9 @@ export default function DispatchPage() {
 
   const filteredJobs = useMemo(() => {
     if (!jobs) return [];
+
+    // If callbacks filter is selected, we handle that separately in the render
+    if (statusFilter === "callbacks") return [];
 
     return jobs.filter((job) => {
       // Status filter
@@ -310,10 +334,81 @@ export default function DispatchPage() {
             onSearchChange={setSearchQuery}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
+            callbackCount={pendingCallbacks.length}
           />
 
-          {/* Jobs List */}
-          {filteredJobs.length === 0 ? (
+          {/* Callbacks List */}
+          {statusFilter === "callbacks" ? (
+            callbacks && callbacks.length > 0 ? (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Callback requests from callers who need follow-up
+                </p>
+                <div className="grid gap-3">
+                  {callbacks.map((callback: any) => (
+                    <div
+                      key={callback.id}
+                      className="flex items-start justify-between p-4 border rounded-lg bg-card hover:bg-accent/50 transition-colors"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">
+                            {callback.customers?.full_name || "Unknown Caller"}
+                          </span>
+                          {callback.status === "pending" && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-warning/15 text-warning border border-warning/30">
+                              Pending
+                            </span>
+                          )}
+                          {callback.status === "contacted" && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-success/15 text-success border border-success/30">
+                              Contacted
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground whitespace-pre-line">
+                          {callback.notes}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(callback.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        {callback.customers?.phone_e164 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(`tel:${callback.customers.phone_e164}`)}
+                          >
+                            Call Back
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={async () => {
+                            await supabase
+                              .from("opportunities")
+                              .update({ status: "contacted" })
+                              .eq("id", callback.id);
+                            refetchCallbacks();
+                          }}
+                        >
+                          Mark Done
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <EmptyState
+                icon={Truck}
+                title="No callback requests"
+                description="When callers request a callback, they'll appear here for follow-up."
+              />
+            )
+          ) : filteredJobs.length === 0 ? (
             <EmptyState
               icon={Truck}
               title="No dispatch jobs"
