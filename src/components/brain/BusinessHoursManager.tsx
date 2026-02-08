@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Check } from "lucide-react";
 import { updateBusinessHours } from "@/lib/brain/writeBrainFact";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -17,13 +17,19 @@ import {
   getIs24x7
 } from "@/lib/hoursUtils";
 
-export function BusinessHoursManager() {
-  const { tenant } = useAuth();
+interface BusinessHoursManagerProps {
+  /** Callback when save completes successfully - use to collapse the section */
+  onSaveComplete?: () => void;
+}
+
+export function BusinessHoursManager({ onSaveComplete }: BusinessHoursManagerProps) {
+  const { tenant, refreshTenant } = useAuth();
   const queryClient = useQueryClient();
 
   const [hours, setHours] = useState<BusinessHours>(DEFAULT_BUSINESS_HOURS);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [justSaved, setJustSaved] = useState(false);
 
   useEffect(() => {
     if (tenant) {
@@ -36,19 +42,40 @@ export function BusinessHoursManager() {
     }
   }, [tenant]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!tenant?.id) return;
     setIsSaving(true);
+    setJustSaved(false);
+    
     try {
       await updateBusinessHours(tenant.id, hours);
-      toast.success("Hours saved");
-      queryClient.invalidateQueries({ queryKey: ["business-context"] });
+      
+      // Invalidate all relevant queries so UI updates
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["business-context"] }),
+        queryClient.invalidateQueries({ queryKey: ["brain-summaries-tenant"] }),
+        queryClient.invalidateQueries({ queryKey: ["tenant"] }),
+      ]);
+      
+      // Refresh the tenant in AuthContext so hours_json is updated
+      if (refreshTenant) {
+        await refreshTenant();
+      }
+      
+      toast.success("Hours saved successfully");
+      setJustSaved(true);
+      
+      // Auto-collapse after a brief moment so user sees the success state
+      setTimeout(() => {
+        onSaveComplete?.();
+      }, 800);
+      
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : "Failed to save");
+      toast.error(error instanceof Error ? error.message : "Failed to save hours");
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [tenant?.id, hours, queryClient, refreshTenant, onSaveComplete]);
 
   if (isLoading) {
     return (
@@ -62,18 +89,22 @@ export function BusinessHoursManager() {
 
   const toggle24x7 = () => {
     setHours(is24x7 ? DEFAULT_BUSINESS_HOURS : HOURS_24_7);
+    setJustSaved(false);
   };
 
   const setTypicalBusiness = () => {
     setHours(TYPICAL_BUSINESS_HOURS);
+    setJustSaved(false);
   };
 
   const setRestaurantHoursPreset = () => {
     setHours(RESTAURANT_HOURS);
+    setJustSaved(false);
   };
 
   const setSplitShiftHours = () => {
     setHours(RESTAURANT_SPLIT_HOURS);
+    setJustSaved(false);
   };
 
   return (
@@ -115,14 +146,27 @@ export function BusinessHoursManager() {
       </div>
 
       {/* Hours Editor */}
-      <BusinessHoursEditor hours={hours} onChange={setHours} />
+      <BusinessHoursEditor hours={hours} onChange={(newHours) => {
+        setHours(newHours);
+        setJustSaved(false);
+      }} />
 
       {/* Save */}
       <div className="flex justify-end pt-2">
-        <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-          <Save className="h-4 w-4 mr-2" />
-          Save
+        <Button 
+          onClick={handleSave} 
+          disabled={isSaving}
+          variant={justSaved ? "outline" : "default"}
+          className={justSaved ? "text-green-600 border-green-600" : ""}
+        >
+          {isSaving ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : justSaved ? (
+            <Check className="h-4 w-4 mr-2" />
+          ) : (
+            <Save className="h-4 w-4 mr-2" />
+          )}
+          {justSaved ? "Saved!" : "Save Hours"}
         </Button>
       </div>
     </div>

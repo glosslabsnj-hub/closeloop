@@ -25,6 +25,10 @@ interface SectionSummaryCardProps {
   children: ReactNode;
   className?: string;
   defaultExpanded?: boolean;
+  /** Controlled expansion state - when provided, overrides internal state */
+  expanded?: boolean;
+  /** Callback when expansion state changes */
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 const STATUS_CONFIG: Record<SectionStatus, { icon: typeof Check; color: string; label: string }> = {
@@ -54,20 +58,35 @@ export function SectionSummaryCard({
   children,
   className,
   defaultExpanded = false,
+  expanded: controlledExpanded,
+  onExpandedChange,
 }: SectionSummaryCardProps) {
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
+  
+  // Use controlled state if provided, otherwise use internal state
+  const isExpanded = controlledExpanded !== undefined ? controlledExpanded : internalExpanded;
+  
   const statusConfig = STATUS_CONFIG[status];
   const StatusIcon = statusConfig.icon;
 
   const toggleExpanded = useCallback(() => {
-    setIsExpanded(prev => !prev);
-  }, []);
+    const newValue = !isExpanded;
+    if (onExpandedChange) {
+      onExpandedChange(newValue);
+    } else {
+      setInternalExpanded(newValue);
+    }
+  }, [isExpanded, onExpandedChange]);
 
   // Sync with URL hash for deep linking
   useEffect(() => {
     const hash = window.location.hash.replace("#", "");
     if (hash === id && !isExpanded) {
-      setIsExpanded(true);
+      if (onExpandedChange) {
+        onExpandedChange(true);
+      } else {
+        setInternalExpanded(true);
+      }
       setTimeout(() => {
         const element = document.getElementById(id);
         if (element) {
@@ -75,7 +94,7 @@ export function SectionSummaryCard({
         }
       }, 100);
     }
-  }, [id, isExpanded]);
+  }, [id, isExpanded, onExpandedChange]);
 
   return (
     <div

@@ -182,14 +182,30 @@ export function useBrainSummaries(): BrainSummaries {
   });
 
   // Build preview strings
+  // Check if hours are configured (has at least one non-closed day with windows)
+  const hasHoursConfigured = (() => {
+    const hoursJson = tenant?.hours_json as unknown as Record<string, { closed?: boolean; windows?: { open: string; close: string }[]; open?: string; close?: string }> | null;
+    if (!hoursJson || typeof hoursJson !== "object") return false;
+    
+    // Check for at least one open day with valid hours
+    return Object.values(hoursJson).some(day => {
+      if (!day || day.closed) return false;
+      // New format: has windows array
+      if (Array.isArray(day.windows) && day.windows.length > 0) return true;
+      // Legacy format: has open/close times
+      if (day.open && day.close) return true;
+      return false;
+    });
+  })();
+
   return {
     // Profile
     businessInfo: tenant?.name ? `${tenant.name} — Your business identity` : "Not configured yet",
     templates: "Pre-built setups for common business types",
 
-    // Hours
-    hours: counts?.slots 
-      ? `${counts.slots} time slot${counts.slots === 1 ? "" : "s"} configured` 
+    // Hours - check hours_json instead of availability_slots
+    hours: hasHoursConfigured 
+      ? "Operating hours configured" 
       : "No hours set yet",
 
     // Services
@@ -287,7 +303,7 @@ export function useBrainSummaries(): BrainSummaries {
     completionStats: (() => {
       const essentialChecks = [
         { section: "profile", label: "Business Info", complete: !!tenant?.name },
-        { section: "hours", label: "Operating Hours", complete: (counts?.slots ?? 0) > 0 },
+        { section: "hours", label: "Operating Hours", complete: hasHoursConfigured },
         { section: "services", label: "Services/Menu", complete: (counts?.services ?? 0) > 0 },
         { section: "ai-behavior", label: "Greeting Script", complete: !!assistantData?.greeting_script },
       ];
