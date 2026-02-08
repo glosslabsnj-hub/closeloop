@@ -13,6 +13,7 @@
  */
 
 import type { BusinessMode } from "./agentResolver.ts";
+import { getToolsForCapabilities } from "./toolCapabilityMap.ts";
 
 // Re-export for consumers
 export type { BusinessMode };
@@ -1178,4 +1179,64 @@ export function toElevenLabsToolFormat(tool: AgentTool): {
 export function getElevenLabsToolsForMode(mode: BusinessMode): ReturnType<typeof toElevenLabsToolFormat>[] {
   const config = getAgentToolsConfig(mode);
   return config.tools.map(toElevenLabsToolFormat);
+}
+
+// ============= CAPABILITY-BASED TOOL BUILDING =============
+
+/**
+ * Build tools for a capability set, starting from a base mode
+ * 
+ * @param primaryMode - The "derived" primary mode (service, dispatch, food, medical, general)
+ * @param capabilities - Record of enabled capabilities
+ * @returns Array of tools to register with ElevenLabs
+ */
+export function buildToolsForCapabilities(
+  primaryMode: BusinessMode,
+  capabilities: Record<string, boolean>
+): AgentTool[] {
+  // Start with the base mode's core tools
+  const baseConfig = AGENT_TOOLS_REGISTRY[primaryMode];
+  if (!baseConfig) {
+    console.warn(`[agentToolsConfig] No config for mode ${primaryMode}, using general`);
+    return AGENT_TOOLS_REGISTRY.general.tools;
+  }
+  
+  const tools: AgentTool[] = [...baseConfig.tools];
+  const existingToolNames = new Set(tools.map(t => t.name));
+  
+  // Get all tools enabled by capabilities
+  const enabledToolNames = getToolsForCapabilities(capabilities);
+  
+  // We need access to tool definitions - create a lookup
+  const toolDefinitionLookup: Record<string, () => AgentTool> = {
+    check_availability: () => createCheckAvailabilityTool(),
+    suggest_availability: () => createSuggestAvailabilityTool(),
+    create_booking: () => createBookingTool(),
+    check_service_area: () => createCheckServiceAreaTool(undefined, true, true),
+    create_dispatch_job: () => createDispatchJobTool(undefined, true),
+    create_callback: () => createCallbackTool(),
+    // Add other tools as needed
+  };
+  
+  // Inject bonus tools that aren't already in the base set
+  for (const toolName of enabledToolNames) {
+    if (!existingToolNames.has(toolName)) {
+      const toolFactory = toolDefinitionLookup[toolName];
+      if (toolFactory) {
+        const tool = toolFactory();
+        tools.push(tool);
+        console.log(`[agentToolsConfig] Injecting bonus tool: ${toolName}`);
+      }
+    }
+  }
+  
+  // Log the final tool set
+  console.log(`[agentToolsConfig] Final tool set for ${primaryMode}:`, {
+    baseTools: baseConfig.tools.length,
+    bonusTools: tools.length - baseConfig.tools.length,
+    totalTools: tools.length,
+    toolNames: tools.map(t => t.name),
+  });
+  
+  return tools;
 }
