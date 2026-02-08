@@ -1,7 +1,10 @@
 // twilio-inbound - telephony entrypoint (safe-mode)
 // Update this string when you want to verify a fresh deploy is running
-const VERSION = "twilio-inbound@2026-02-06.1";
+const VERSION = "twilio-inbound@2026-02-08.1";
 const DEPLOYED_AT = new Date().toISOString();
+
+import { isHybridCapabilitySet, getAgentIdForCapabilities, derivePrimaryModeFromCapabilities } from "../_shared/agentResolver.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -31,7 +34,7 @@ function hangupTwiml(message: string): string {
 </Response>`;
 }
 
-// IVR menu TwiML - asks caller to press 1 or 2
+// IVR menu TwiML - asks caller to press 1 or 2 (dispatch-specific: towing vs impound)
 function ivrGatherTwiml(businessName: string, webhookUrl: string): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -39,6 +42,18 @@ function ivrGatherTwiml(businessName: string, webhookUrl: string): string {
     <Say voice="Polly.Joanna">Thanks for calling ${escapeXml(businessName)}. Press 1 for towing and roadside assistance, or press 2 to check on an impounded vehicle.</Say>
   </Gather>
   <Say voice="Polly.Joanna">We didn't receive your selection. Connecting you to dispatch.</Say>
+</Response>`;
+}
+
+// Hybrid IVR TwiML - asks caller to press 1 for scheduling or 2 for immediate assistance
+function hybridIvrTwiml(businessName: string, webhookUrl: string): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Gather numDigits="1" action="${escapeXml(webhookUrl)}" method="POST" timeout="5">
+    <Say voice="Polly.Joanna">Thanks for calling ${escapeXml(businessName)}. 
+      Press 1 to schedule an appointment, or press 2 for immediate assistance.</Say>
+  </Gather>
+  <Say voice="Polly.Joanna">We didn't receive your selection. Connecting you to our team.</Say>
 </Response>`;
 }
 
@@ -312,6 +327,10 @@ Deno.serve(async (req) => {
 
     console.log(`[twilio-inbound] Tenant: ${businessName}, mode: ${businessMode}`);
 
+    // Get capabilities from tenant
+    const capabilities = (tenant.capabilities_json as Record<string, boolean>) || {};
+    const isHybrid = isHybridCapabilitySet(capabilities);
+
     // Step 4: Get assistant settings
     const settingsRecords = await querySupabase(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, "assistant_settings", {
       tenant_id: tenantId,
@@ -324,7 +343,14 @@ Deno.serve(async (req) => {
       return twimlResponse(hangupTwiml(`Thank you for calling ${escapeXml(businessName)}. We're currently unavailable. Please leave a message or try again later.`));
     }
 
-    // Step 5: Handle IVR routing for dispatch businesses
+    // Step 5: Handle hybrid IVR routing (businesses with both booking + dispatch)
+    if (isHybrid && !digits) {
+      console.log(`[twilio-inbound] Showing hybrid IVR for business with booking + dispatch`);
+      const webhookUrl = `${SUPABASE_URL}/functions/v1/twilio-inbound`;
+      return twimlResponse(hybridIvrTwiml(businessName, webhookUrl));
+    }
+
+    // Step 5b: Handle dispatch-specific IVR routing (towing vs impound)
     const dispatchIvrMode = settings.dispatch_ivr_mode || "towing_only";
     
     // If dispatch mode with IVR routing enabled and no digits yet, show IVR menu
@@ -343,14 +369,21 @@ Deno.serve(async (req) => {
         ivrSelection = digits; // Use caller's selection
       }
       // towing_only or no selection defaults to dispatch agent
+    } else if (isHybrid && digits) {
+      // Hybrid routing: digits from hybrid IVR menu
+      ivrSelection = digits;
     }
 
-    // Step 6: Resolve agent ID for business mode
-    const agentId = getAgentIdForMode(businessMode, ivrSelection);
+    // Step 6: Resolve agent ID using capabilities-based resolution
+    const agentResolution = getAgentIdForCapabilities(capabilities, ivrSelection);
+    const agentId = agentResolution.agentId;
+    
     if (!agentId) {
-      console.error(`[twilio-inbound] No agent configured for mode: ${businessMode}`);
+      console.error(`[twilio-inbound] No agent configured. Resolution:`, agentResolution);
       return twimlResponse(hangupTwiml("Our voice assistant is temporarily unavailable. Please try again later."));
     }
+    
+    console.log(`[twilio-inbound] Agent resolved: ${agentId.slice(0, 12)}... (source: ${agentResolution.source})`);
 
     // Step 7: Build dynamic variables for ElevenLabs
     const callerPhoneLast4 = callerPhoneE164.length >= 4 
