@@ -98,6 +98,14 @@ import {
   SectionHelper,
   SectionGroupHeader,
   BRAIN_CATEGORIES,
+  // NEW: Phase 1 components
+  SectionSummaryCard,
+  BrainProgressIndicator,
+  AIPreviewBanner,
+  EssentialGroup,
+  AdvancedGroup,
+  BrainSetupBanner,
+  CompletionCelebration,
 } from "@/components/brain/layout";
 import { useBrainSummaries } from "@/hooks/useBrainSummaries";
 import { 
@@ -248,649 +256,789 @@ export default function BusinessBrainPage() {
             
             {/* PROFILE */}
             {activeSection === "profile" && (
-              <div className="space-y-3">
-                <SectionHelper sectionId="profile" businessMode={businessMode} className="mb-4" />
-                
-                <CollapsibleBrainSection
-                  id="business-info"
-                  title="Business Information"
-                  icon={Building2}
-                  preview={summaries.businessInfo}
-                >
-                  <BusinessProfileEditor />
-                </CollapsibleBrainSection>
+              <div className="space-y-4">
+                {/* Setup Banner for new users */}
+                {summaries.completionStats.percentage < 100 && (
+                  <BrainSetupBanner
+                    steps={[
+                      { id: "business-info", label: "Business Info", section: "profile", isComplete: !!tenant?.name },
+                      { id: "hours", label: "Set Hours", section: "hours", isComplete: summaries.hours !== "No hours set yet" },
+                      { id: "services", label: "Add Services", section: "services", isComplete: summaries.catalog !== "No items added yet" },
+                      { id: "scripts", label: "Greeting Script", section: "ai-behavior", isComplete: summaries.scripts !== "Using default greeting" },
+                    ]}
+                    onContinue={handleSectionChange}
+                    dismissible
+                  />
+                )}
 
-                <CollapsibleBrainSection
-                  id="templates"
-                  title="Quick Start Templates"
-                  icon={Palette}
-                  preview={summaries.templates}
-                >
-                  <IndustryTemplateCard />
-                </CollapsibleBrainSection>
+                {/* Progress Indicator */}
+                <BrainProgressIndicator
+                  completedSections={summaries.completionStats.completed}
+                  totalSections={summaries.completionStats.total}
+                  incompleteItems={summaries.completionStats.incompleteItems}
+                  onNavigateToSection={handleSectionChange}
+                />
+                
+                <EssentialGroup title="Core Identity" description="How your AI introduces your business">
+                  <SectionSummaryCard
+                    id="business-info"
+                    title="Business Information"
+                    icon={Building2}
+                    status={tenant?.name ? "complete" : "incomplete"}
+                    statusText={summaries.businessInfo}
+                    isEssential
+                    mode={businessMode}
+                  >
+                    <BusinessProfileEditor />
+                  </SectionSummaryCard>
+                </EssentialGroup>
+
+                <AdvancedGroup title="Quick Start" collapsedDescription="Pre-built templates for common industries">
+                  <SectionSummaryCard
+                    id="templates"
+                    title="Quick Start Templates"
+                    icon={Palette}
+                    status="incomplete"
+                    statusText={summaries.templates}
+                    mode={businessMode}
+                  >
+                    <IndustryTemplateCard />
+                  </SectionSummaryCard>
+                </AdvancedGroup>
               </div>
             )}
 
-            {/* HOURS - Single section, always expanded */}
+            {/* HOURS - Single essential section */}
             {activeSection === "hours" && (
-              <div className="space-y-3">
-                <SectionHelper sectionId="hours" businessMode={businessMode} />
-                
-                <div className="rounded-lg border bg-card p-5">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-muted">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-sm">Operating Hours</h3>
-                      <p className="text-xs text-muted-foreground">{summaries.hours}</p>
-                    </div>
-                  </div>
-                  <BusinessHoursManager />
-                </div>
+              <div className="space-y-4">
+                <EssentialGroup title="Business Hours" description="When customers can reach you">
+                  <SectionSummaryCard
+                    id="business-hours"
+                    title="Operating Hours"
+                    icon={Clock}
+                    status={summaries.hours !== "No hours set yet" ? "complete" : "incomplete"}
+                    statusText={summaries.hours}
+                    isEssential
+                    mode={businessMode}
+                    defaultExpanded
+                  >
+                    <BusinessHoursManager />
+                  </SectionSummaryCard>
+                </EssentialGroup>
               </div>
             )}
 
             {/* SERVICES */}
             {activeSection === "services" && (
-              <div className="space-y-3">
-                <SectionHelper sectionId="services" businessMode={businessMode} />
-                
+              <div className="space-y-4">
                 {/* Pricing Readiness - inline, not collapsible */}
                 <QuoteReadinessCard />
 
-                {!isDispatchMode && !isFoodMode && (
-                  <CollapsibleBrainSection
-                    id="pricing-rules"
-                    title="Pricing Rules"
-                    icon={DollarSign}
-                    preview={summaries.pricingRules}
-                  >
-                    <PricingRulesEditor />
-                  </CollapsibleBrainSection>
-                )}
-
-                <CollapsibleBrainSection
-                  id="catalog"
-                  title={isFoodMode ? "Menu" : "Services"}
-                  icon={Tag}
-                  preview={summaries.catalog}
-                >
-                  {isFoodMode ? (
-                    <MenuCatalogEditor />
-                  ) : isDispatchMode ? (
-                    <DispatchServiceCatalog />
-                  ) : (
-                    <ServiceCatalogEditor />
+                <EssentialGroup title="Core Offerings" description={isFoodMode ? "Your menu items" : "Services you provide"}>
+                  {!isDispatchMode && !isFoodMode && (
+                    <SectionSummaryCard
+                      id="pricing-rules"
+                      title="Pricing Rules"
+                      icon={DollarSign}
+                      status="incomplete"
+                      statusText={summaries.pricingRules}
+                      mode={businessMode}
+                    >
+                      <PricingRulesEditor />
+                    </SectionSummaryCard>
                   )}
-                </CollapsibleBrainSection>
 
-                {/* Mode-specific offerings sections */}
+                  <SectionSummaryCard
+                    id="catalog"
+                    title={isFoodMode ? "Menu" : isDispatchMode ? "Tow Services" : "Services"}
+                    icon={Tag}
+                    status={summaries.catalog !== "No items added yet" ? "complete" : "incomplete"}
+                    statusText={summaries.catalog}
+                    isEssential
+                    mode={businessMode}
+                  >
+                    {isFoodMode ? (
+                      <MenuCatalogEditor />
+                    ) : isDispatchMode ? (
+                      <DispatchServiceCatalog />
+                    ) : (
+                      <ServiceCatalogEditor />
+                    )}
+                  </SectionSummaryCard>
+                </EssentialGroup>
+
+                {/* Mode-specific pricing sections */}
                 {(businessMode === "service" || businessMode === "general") && (
-                  <>
-                    <CollapsibleBrainSection
+                  <AdvancedGroup title="Pricing Adjustments" collapsedDescription="Size, urgency, and package pricing">
+                    <SectionSummaryCard
                       id="price-modifiers"
                       title="Price Adjustments"
                       icon={DollarSign}
-                      preview="Size, urgency, and after-hours rate adjustments"
+                      status="incomplete"
+                      statusText="Size, urgency, and after-hours rate adjustments"
+                      mode={businessMode}
                     >
                       <PriceModifiersEditor />
-                    </CollapsibleBrainSection>
+                    </SectionSummaryCard>
 
-                    <CollapsibleBrainSection
+                    <SectionSummaryCard
                       id="service-packages"
                       title="Packages & Bundles"
                       icon={Package}
-                      preview="Discounted bundles and membership plans"
+                      status="incomplete"
+                      statusText="Discounted bundles and membership plans"
+                      mode={businessMode}
                     >
                       <ServicePackagesEditor />
-                    </CollapsibleBrainSection>
-                  </>
+                    </SectionSummaryCard>
+                  </AdvancedGroup>
                 )}
 
                 {isDispatchMode && (
-                  <>
-                    <CollapsibleBrainSection
+                  <AdvancedGroup title="Dispatch Pricing" collapsedDescription="Equipment fees and distance-based pricing">
+                    <SectionSummaryCard
                       id="dispatch-pricing"
                       title="Dispatch Fees"
                       icon={DollarSign}
-                      preview="Equipment, storage, release, and emergency fees"
+                      status="incomplete"
+                      statusText="Equipment, storage, release, and emergency fees"
+                      mode={businessMode}
                     >
                       <DispatchPricingEditor />
-                    </CollapsibleBrainSection>
+                    </SectionSummaryCard>
 
-                    <CollapsibleBrainSection
+                    <SectionSummaryCard
                       id="distance-basis"
                       title="Distance Pricing"
                       icon={Navigation}
-                      preview="How mileage affects your quotes"
+                      status="incomplete"
+                      statusText="How mileage affects your quotes"
+                      mode={businessMode}
                     >
                       <DistanceBasisSettings />
-                    </CollapsibleBrainSection>
-                  </>
+                    </SectionSummaryCard>
+                  </AdvancedGroup>
                 )}
 
                 {isFoodMode && (
-                  <>
-                    <CollapsibleBrainSection
+                  <AdvancedGroup title="Order Options" collapsedDescription="Sizes, specials, and delivery settings">
+                    <SectionSummaryCard
                       id="food-settings"
                       title="Order Settings"
                       icon={UtensilsCrossed}
-                      preview="Delivery, pickup, and catering configuration"
+                      status="incomplete"
+                      statusText="Delivery, pickup, and catering configuration"
+                      mode={businessMode}
                     >
                       <FoodSettingsEditor />
-                    </CollapsibleBrainSection>
+                    </SectionSummaryCard>
 
-                    <CollapsibleBrainSection
+                    <SectionSummaryCard
                       id="menu-sizes"
                       title="Size Options"
                       icon={Tag}
-                      preview="S/M/L or Personal/Family size variants"
+                      status="incomplete"
+                      statusText="S/M/L or Personal/Family size variants"
+                      mode={businessMode}
                     >
                       <MenuSizesEditor />
-                    </CollapsibleBrainSection>
+                    </SectionSummaryCard>
 
-                    <CollapsibleBrainSection
+                    <SectionSummaryCard
                       id="daily-specials"
                       title="Specials & Deals"
                       icon={Lightbulb}
-                      preview="Happy hour, daily specials, limited-time offers"
+                      status="incomplete"
+                      statusText="Happy hour, daily specials, limited-time offers"
+                      mode={businessMode}
                     >
                       <DailySpecialsEditor />
-                    </CollapsibleBrainSection>
-                  </>
+                    </SectionSummaryCard>
+                  </AdvancedGroup>
                 )}
 
                 {businessMode === "medical" && (
-                  <>
-                    <CollapsibleBrainSection
+                  <AdvancedGroup title="Practice Pricing" collapsedDescription="Insurance, fees, and treatment packages">
+                    <SectionSummaryCard
                       id="medical-pricing"
                       title="Practice Pricing"
                       icon={HeartPulse}
-                      preview="Insurance, consultation fees, and payment options"
+                      status="incomplete"
+                      statusText="Insurance, consultation fees, and payment options"
+                      mode={businessMode}
                     >
                       <MedicalPricingEditor />
-                    </CollapsibleBrainSection>
+                    </SectionSummaryCard>
 
-                    <CollapsibleBrainSection
+                    <SectionSummaryCard
                       id="service-packages"
                       title="Treatment Packages"
                       icon={Package}
-                      preview="Series treatments and bundled services"
+                      status="incomplete"
+                      statusText="Series treatments and bundled services"
+                      mode={businessMode}
                     >
                       <ServicePackagesEditor />
-                    </CollapsibleBrainSection>
-                  </>
+                    </SectionSummaryCard>
+                  </AdvancedGroup>
                 )}
 
-                <CollapsibleBrainSection
-                  id="additional-services"
-                  title="Additional Services"
-                  icon={Wrench}
-                  preview="Secondary services beyond your core business"
-                >
-                  <AdditionalServicesEditor />
-                </CollapsibleBrainSection>
+                <AdvancedGroup title="Secondary Services" collapsedDescription="Additional offerings beyond your core business">
+                  <SectionSummaryCard
+                    id="additional-services"
+                    title="Additional Services"
+                    icon={Wrench}
+                    status="incomplete"
+                    statusText="Secondary services beyond your core business"
+                    mode={businessMode}
+                  >
+                    <AdditionalServicesEditor />
+                  </SectionSummaryCard>
+                </AdvancedGroup>
               </div>
             )}
 
             {/* SERVICE AREA */}
             {activeSection === "service-area" && (
-              <div className="space-y-3">
-                <SectionHelper sectionId="service-area" businessMode={businessMode} />
-                
-                <CollapsibleBrainSection
-                  id="coverage"
-                  title="Where You Serve"
-                  icon={MapPin}
-                  preview={summaries.coverage}
+              <div className="space-y-4">
+                <EssentialGroup 
+                  title="Coverage Area" 
+                  description="Where your business provides service"
+                  showBadge={["dispatch", "service", "food"].includes(businessMode)}
                 >
-                  <ServiceAreaPreview />
-                  <div className="mt-4">
-                    <ServiceAreaManager />
-                  </div>
-                </CollapsibleBrainSection>
+                  <SectionSummaryCard
+                    id="coverage"
+                    title="Where You Serve"
+                    icon={MapPin}
+                    status="incomplete"
+                    statusText={summaries.coverage}
+                    isEssential={["dispatch", "service", "food"].includes(businessMode)}
+                    mode={businessMode}
+                  >
+                    <ServiceAreaPreview />
+                    <div className="mt-4">
+                      <ServiceAreaManager />
+                    </div>
+                  </SectionSummaryCard>
 
-                <CollapsibleBrainSection
-                  id="travel-times"
-                  title="Travel & Wait Times"
-                  icon={Navigation}
-                  preview={summaries.travelTimes}
-                >
-                  {isDispatchMode ? <DispatchEtaSection /> : <DistanceEtaSection />}
-                </CollapsibleBrainSection>
+                  <SectionSummaryCard
+                    id="travel-times"
+                    title="Travel & Wait Times"
+                    icon={Navigation}
+                    status="incomplete"
+                    statusText={summaries.travelTimes}
+                    mode={businessMode}
+                  >
+                    {isDispatchMode ? <DispatchEtaSection /> : <DistanceEtaSection />}
+                  </SectionSummaryCard>
+                </EssentialGroup>
 
                 {/* Mode-specific coverage settings */}
-                {businessMode === "service" && (
-                  <CollapsibleBrainSection
-                    id="service-coverage"
-                    title="Service Scheduling"
-                    icon={Clock}
-                    preview="Same-day service, travel buffers, and duration settings"
-                  >
-                    <ServiceCoverageEditor />
-                  </CollapsibleBrainSection>
-                )}
-
-                {isDispatchMode && (
-                  <CollapsibleBrainSection
-                    id="dispatch-zones"
-                    title="Coverage Zones & ETA"
-                    icon={MapPin}
-                    preview="Distance zones, highway coverage, and ETA rules"
-                  >
-                    <DispatchCoverageZonesEditor />
-                  </CollapsibleBrainSection>
-                )}
-
-                {(businessMode === "food" || isFoodMode) && (
-                  <CollapsibleBrainSection
-                    id="delivery-zones"
-                    title="Delivery Zones"
-                    icon={Truck}
-                    preview="Delivery areas, fees by zone, and peak hour adjustments"
-                  >
-                    <DeliveryZonesEditor />
-                  </CollapsibleBrainSection>
-                )}
-
-                {businessMode === "medical" && (
-                  <CollapsibleBrainSection
-                    id="medical-coverage"
-                    title="Visit Options"
-                    icon={HeartPulse}
-                    preview="Telehealth, home visits, and appointment scheduling"
-                  >
-                    <MedicalCoverageEditor />
-                  </CollapsibleBrainSection>
-                )}
-
-                {businessMode === "general" && (
-                  <CollapsibleBrainSection
-                    id="response-times"
-                    title="Response Times"
-                    icon={Phone}
-                    preview="Callback targets and priority zones"
-                  >
-                    <ResponseTimeEditor />
-                  </CollapsibleBrainSection>
-                )}
-
-                <CollapsibleBrainSection
-                  id="workload"
-                  title="Current Workload"
-                  icon={Gauge}
-                  preview={summaries.workload}
+                <AdvancedGroup 
+                  title="Mode-Specific Settings" 
+                  collapsedDescription="Additional coverage options for your business type"
+                  defaultCollapsed={false}
                 >
-                  <BusynessRulesEditor />
-                </CollapsibleBrainSection>
+                  {businessMode === "service" && (
+                    <SectionSummaryCard
+                      id="service-coverage"
+                      title="Service Scheduling"
+                      icon={Clock}
+                      status="incomplete"
+                      statusText="Same-day service, travel buffers, and duration settings"
+                      mode={businessMode}
+                    >
+                      <ServiceCoverageEditor />
+                    </SectionSummaryCard>
+                  )}
+
+                  {isDispatchMode && (
+                    <SectionSummaryCard
+                      id="dispatch-zones"
+                      title="Coverage Zones & ETA"
+                      icon={MapPin}
+                      status="incomplete"
+                      statusText="Distance zones, highway coverage, and ETA rules"
+                      mode={businessMode}
+                    >
+                      <DispatchCoverageZonesEditor />
+                    </SectionSummaryCard>
+                  )}
+
+                  {(businessMode === "food" || isFoodMode) && (
+                    <SectionSummaryCard
+                      id="delivery-zones"
+                      title="Delivery Zones"
+                      icon={Truck}
+                      status="incomplete"
+                      statusText="Delivery areas, fees by zone, and peak hour adjustments"
+                      mode={businessMode}
+                    >
+                      <DeliveryZonesEditor />
+                    </SectionSummaryCard>
+                  )}
+
+                  {businessMode === "medical" && (
+                    <SectionSummaryCard
+                      id="medical-coverage"
+                      title="Visit Options"
+                      icon={HeartPulse}
+                      status="incomplete"
+                      statusText="Telehealth, home visits, and appointment scheduling"
+                      mode={businessMode}
+                    >
+                      <MedicalCoverageEditor />
+                    </SectionSummaryCard>
+                  )}
+
+                  {businessMode === "general" && (
+                    <SectionSummaryCard
+                      id="response-times"
+                      title="Response Times"
+                      icon={Phone}
+                      status="incomplete"
+                      statusText="Callback targets and priority zones"
+                      mode={businessMode}
+                    >
+                      <ResponseTimeEditor />
+                    </SectionSummaryCard>
+                  )}
+
+                  <SectionSummaryCard
+                    id="workload"
+                    title="Current Workload"
+                    icon={Gauge}
+                    status="incomplete"
+                    statusText={summaries.workload}
+                    mode={businessMode}
+                  >
+                    <BusynessRulesEditor />
+                  </SectionSummaryCard>
+                </AdvancedGroup>
               </div>
             )}
 
-            {/* AVAILABILITY - Single section, always expanded */}
+            {/* AVAILABILITY */}
             {activeSection === "availability" && (
-              <div className="space-y-3">
-                <SectionHelper sectionId="availability" businessMode={businessMode} />
-                
-                <div className="rounded-lg border bg-card p-5">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-muted">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-sm">Calendar & Availability</h3>
-                      <p className="text-xs text-muted-foreground">{summaries.calendar}</p>
-                    </div>
-                  </div>
-                  <AvailabilityHub />
-                </div>
+              <div className="space-y-4">
+                <EssentialGroup title="Calendar Sync" description="Real-time availability from your calendar">
+                  <SectionSummaryCard
+                    id="calendar-sync"
+                    title="Calendar & Availability"
+                    icon={Calendar}
+                    status={summaries.calendar.includes("connected") ? "complete" : "incomplete"}
+                    statusText={summaries.calendar}
+                    mode={businessMode}
+                    defaultExpanded
+                  >
+                    <AvailabilityHub />
+                  </SectionSummaryCard>
+                </EssentialGroup>
               </div>
             )}
 
-            {/* POLICIES - Compact accordion view with visual groupings */}
+            {/* POLICIES */}
             {activeSection === "policies" && (
-              <div className="space-y-3">
-                <SectionHelper sectionId="policies" businessMode={businessMode} />
-                
-                {/* Core Policies Group */}
-                <SectionGroupHeader label="Core Policies" icon={Briefcase} />
-                
-                <CollapsibleBrainSection
-                  id="policies"
-                  title="Business Policies"
-                  icon={FileText}
-                  preview={summaries.policies}
-                >
-                  <BusinessPoliciesEditor />
-                </CollapsibleBrainSection>
-
-                <CollapsibleBrainSection
-                  id="never-promise"
-                  title="AI Guardrails"
-                  icon={Shield}
-                  preview={summaries.guardrails}
-                >
-                  <AINeverPromiseEditor />
-                </CollapsibleBrainSection>
-
-                <CollapsibleBrainSection
-                  id="required-questions"
-                  title="Required Questions"
-                  icon={MessageSquareText}
-                  preview={summaries.requiredQuestions}
-                >
-                  <RequiredQuestionsEditor />
-                </CollapsibleBrainSection>
-
-                {showBookingDelivery && (
-                  <CollapsibleBrainSection
-                    id="booking-delivery"
-                    title="Booking Delivery"
-                    icon={Send}
-                    preview={summaries.bookingDelivery}
+              <div className="space-y-4">
+                <EssentialGroup title="Core Policies" description="Rules your AI follows when talking to customers">
+                  <SectionSummaryCard
+                    id="policies"
+                    title="Business Policies"
+                    icon={FileText}
+                    status={summaries.policies !== "No policies configured yet" ? "complete" : "incomplete"}
+                    statusText={summaries.policies}
+                    mode={businessMode}
                   >
-                    <BookingDeliverySettings />
-                  </CollapsibleBrainSection>
-                )}
+                    <BusinessPoliciesEditor />
+                  </SectionSummaryCard>
 
-                {showFoodDelivery && (
-                  <CollapsibleBrainSection
-                    id="food-settings"
-                    title="Order Settings"
-                    icon={UtensilsCrossed}
-                    preview={summaries.foodSettings}
+                  <SectionSummaryCard
+                    id="never-promise"
+                    title="AI Guardrails"
+                    icon={Shield}
+                    status={summaries.guardrails !== "No guardrails configured yet" ? "complete" : "incomplete"}
+                    statusText={summaries.guardrails}
+                    mode={businessMode}
                   >
-                    <FoodOrderSettings />
-                  </CollapsibleBrainSection>
-                )}
+                    <AINeverPromiseEditor />
+                  </SectionSummaryCard>
 
-                {/* Dispatch Operations Group - only show for dispatch mode */}
-                {showDispatchDelivery && (
-                  <SectionGroupHeader label="Dispatch Operations" icon={Truck} />
-                )}
-
-                {showDispatchDelivery && (
-                  <CollapsibleBrainSection
-                    id="dispatch-settings"
-                    title="Dispatch Settings"
-                    icon={Truck}
-                    preview={summaries.dispatchSettings}
+                  <SectionSummaryCard
+                    id="required-questions"
+                    title="Required Questions"
+                    icon={MessageSquareText}
+                    status={summaries.requiredQuestions !== "Not configured yet" && summaries.requiredQuestions !== "No required fields set" ? "complete" : "incomplete"}
+                    statusText={summaries.requiredQuestions}
+                    mode={businessMode}
                   >
-                    <DispatchDeliverySettings />
-                  </CollapsibleBrainSection>
-                )}
+                    <RequiredQuestionsEditor />
+                  </SectionSummaryCard>
+                </EssentialGroup>
 
+                {/* Delivery Settings */}
+                <AdvancedGroup title="Delivery & Notifications" collapsedDescription="Where bookings and jobs get sent">
+                  {showBookingDelivery && (
+                    <SectionSummaryCard
+                      id="booking-delivery"
+                      title="Booking Delivery"
+                      icon={Send}
+                      status={summaries.bookingDelivery !== "Not configured yet" && summaries.bookingDelivery !== "No delivery method set" ? "complete" : "incomplete"}
+                      statusText={summaries.bookingDelivery}
+                      mode={businessMode}
+                    >
+                      <BookingDeliverySettings />
+                    </SectionSummaryCard>
+                  )}
+
+                  {showFoodDelivery && (
+                    <SectionSummaryCard
+                      id="food-settings"
+                      title="Order Settings"
+                      icon={UtensilsCrossed}
+                      status="incomplete"
+                      statusText={summaries.foodSettings}
+                      mode={businessMode}
+                    >
+                      <FoodOrderSettings />
+                    </SectionSummaryCard>
+                  )}
+                </AdvancedGroup>
+
+                {/* Dispatch Operations Group */}
                 {showDispatchDelivery && (
-                  <CollapsibleBrainSection
-                    id="distance-pricing"
-                    title="How You Charge for Distance"
-                    icon={Navigation}
-                    preview="Configure default distance pricing method"
-                  >
-                    <DistanceBasisSettings />
-                  </CollapsibleBrainSection>
+                  <AdvancedGroup title="Dispatch Operations" collapsedDescription="Distance pricing and call routing" defaultCollapsed={false}>
+                    <SectionSummaryCard
+                      id="dispatch-settings"
+                      title="Dispatch Settings"
+                      icon={Truck}
+                      status={summaries.dispatchSettings !== "Not configured yet" && summaries.dispatchSettings !== "No notifications set" ? "complete" : "incomplete"}
+                      statusText={summaries.dispatchSettings}
+                      mode={businessMode}
+                    >
+                      <DispatchDeliverySettings />
+                    </SectionSummaryCard>
+
+                    <SectionSummaryCard
+                      id="distance-pricing"
+                      title="How You Charge for Distance"
+                      icon={Navigation}
+                      status="incomplete"
+                      statusText="Configure default distance pricing method"
+                      mode={businessMode}
+                    >
+                      <DistanceBasisSettings />
+                    </SectionSummaryCard>
+
+                    <SectionSummaryCard
+                      id="ivr-routing"
+                      title="Call Routing (IVR)"
+                      icon={Phone}
+                      status="incomplete"
+                      statusText="Configure towing vs impound call routing"
+                      mode={businessMode}
+                    >
+                      <DispatchIvrSettings />
+                    </SectionSummaryCard>
+                  </AdvancedGroup>
                 )}
 
+                {/* Impound Lot Group */}
                 {showDispatchDelivery && (
-                  <CollapsibleBrainSection
-                    id="ivr-routing"
-                    title="Call Routing (IVR)"
-                    icon={Phone}
-                    preview="Configure towing vs impound call routing"
-                  >
-                    <DispatchIvrSettings />
-                  </CollapsibleBrainSection>
+                  <AdvancedGroup title="Impound Lot" collapsedDescription="Lot details, fees, and release requirements">
+                    <SectionSummaryCard
+                      id="impound-lot"
+                      title="Impound Lot Details"
+                      icon={Warehouse}
+                      status="incomplete"
+                      statusText="Lot location, hours, and directions"
+                      mode={businessMode}
+                    >
+                      <ImpoundLotEditor />
+                    </SectionSummaryCard>
+
+                    <SectionSummaryCard
+                      id="impound-fees"
+                      title="Impound Fee Structure"
+                      icon={DollarSign}
+                      status="incomplete"
+                      statusText="Tow fees, storage, and payment methods"
+                      mode={businessMode}
+                    >
+                      <ImpoundFeesEditor />
+                    </SectionSummaryCard>
+
+                    <SectionSummaryCard
+                      id="impound-release"
+                      title="Release Requirements"
+                      icon={FileCheck}
+                      status="incomplete"
+                      statusText="Documents needed to release vehicles"
+                      mode={businessMode}
+                    >
+                      <ImpoundReleaseEditor />
+                    </SectionSummaryCard>
+                  </AdvancedGroup>
                 )}
 
-                {/* Impound Lot Group - only show for dispatch mode */}
-                {showDispatchDelivery && (
-                  <SectionGroupHeader label="Impound Lot" icon={Warehouse} />
-                )}
-
-                {showDispatchDelivery && (
-                  <CollapsibleBrainSection
-                    id="impound-lot"
-                    title="Impound Lot Details"
-                    icon={Warehouse}
-                    preview="Lot location, hours, and directions"
-                  >
-                    <ImpoundLotEditor />
-                  </CollapsibleBrainSection>
-                )}
-
-                {showDispatchDelivery && (
-                  <CollapsibleBrainSection
-                    id="impound-fees"
-                    title="Impound Fee Structure"
-                    icon={DollarSign}
-                    preview="Tow fees, storage, and payment methods"
-                  >
-                    <ImpoundFeesEditor />
-                  </CollapsibleBrainSection>
-                )}
-
-                {showDispatchDelivery && (
-                  <CollapsibleBrainSection
-                    id="impound-release"
-                    title="Release Requirements"
-                    icon={FileCheck}
-                    preview="Documents needed to release vehicles"
-                  >
-                    <ImpoundReleaseEditor />
-                  </CollapsibleBrainSection>
-                )}
-
-
+                {/* Medical Compliance */}
                 {showMedicalSettings && (
-                  <CollapsibleBrainSection
-                    id="hipaa"
-                    title="HIPAA Settings"
-                    icon={HeartPulse}
-                    preview={summaries.hipaa}
-                  >
-                    <MedicalHIPAASettings />
-                  </CollapsibleBrainSection>
+                  <AdvancedGroup title="Compliance" collapsedDescription="HIPAA and data handling settings">
+                    <SectionSummaryCard
+                      id="hipaa"
+                      title="HIPAA Settings"
+                      icon={HeartPulse}
+                      status="warning"
+                      statusText={summaries.hipaa}
+                      mode={businessMode}
+                    >
+                      <MedicalHIPAASettings />
+                    </SectionSummaryCard>
+                  </AdvancedGroup>
                 )}
               </div>
             )}
 
             {/* AI BEHAVIOR */}
             {activeSection === "ai-behavior" && (
-              <div className="space-y-3">
-                <SectionHelper sectionId="ai-behavior" businessMode={businessMode} />
-                
+              <div className="space-y-4">
                 {/* Service Call Flow - only for service/general modes */}
                 {(businessMode === "service" || businessMode === "general") && (
                   <ServiceCallFlowSettings />
                 )}
 
-                <CollapsibleBrainSection
-                  id="scripts"
-                  title="Greeting & Scripts"
-                  icon={Mic}
-                  preview={summaries.scripts}
-                >
-                  <AIScriptsEditor />
-                </CollapsibleBrainSection>
+                <EssentialGroup title="Voice & Scripts" description="How your AI sounds and what it says">
+                  <SectionSummaryCard
+                    id="scripts"
+                    title="Greeting & Scripts"
+                    icon={Mic}
+                    status={summaries.scripts !== "Using default greeting" ? "complete" : "incomplete"}
+                    statusText={summaries.scripts}
+                    isEssential
+                    mode={businessMode}
+                  >
+                    <AIScriptsEditor />
+                  </SectionSummaryCard>
+                </EssentialGroup>
 
-                <CollapsibleBrainSection
-                  id="guidelines"
-                  title="Business Guidelines"
-                  icon={BookOpen}
-                  preview={summaries.guidelines}
-                >
-                  <AIBusinessPolicies />
-                </CollapsibleBrainSection>
+                <AdvancedGroup title="AI Behavior" collapsedDescription="Guidelines and learning settings">
+                  <SectionSummaryCard
+                    id="guidelines"
+                    title="Business Guidelines"
+                    icon={BookOpen}
+                    status={summaries.guidelines !== "No guidelines configured yet" ? "complete" : "incomplete"}
+                    statusText={summaries.guidelines}
+                    mode={businessMode}
+                  >
+                    <AIBusinessPolicies />
+                  </SectionSummaryCard>
 
-                <CollapsibleBrainSection
-                  id="intelligence"
-                  title="Intelligence Settings"
-                  icon={Brain}
-                  preview={summaries.intelligence}
-                >
-                  <IntelligenceSettingsForm />
-                </CollapsibleBrainSection>
+                  <SectionSummaryCard
+                    id="intelligence"
+                    title="Intelligence Settings"
+                    icon={Brain}
+                    status="incomplete"
+                    statusText={summaries.intelligence}
+                    mode={businessMode}
+                  >
+                    <IntelligenceSettingsForm />
+                  </SectionSummaryCard>
+                </AdvancedGroup>
               </div>
             )}
 
             {/* KNOWLEDGE */}
             {activeSection === "knowledge" && (
-              <div className="space-y-3">
-                <SectionHelper sectionId="knowledge" businessMode={businessMode} />
-                
+              <div className="space-y-4">
+                {/* Review Queue - shows with warning if items pending */}
                 {reviewCount > 0 && (
-                  <CollapsibleBrainSection
+                  <SectionSummaryCard
                     id="review"
                     title="Review Queue"
                     icon={AlertCircle}
-                    preview={`${reviewCount} item${reviewCount === 1 ? "" : "s"} need${reviewCount === 1 ? "s" : ""} review`}
+                    status="error"
+                    statusText={`${reviewCount} item${reviewCount === 1 ? "" : "s"} need${reviewCount === 1 ? "s" : ""} review`}
+                    mode={businessMode}
                     defaultExpanded
                   >
                     <BrainReviewQueue />
-                  </CollapsibleBrainSection>
+                  </SectionSummaryCard>
                 )}
 
-                <CollapsibleBrainSection
-                  id="faqs"
-                  title="FAQs"
-                  icon={HelpCircle}
-                  preview={summaries.faqs}
-                >
-                  <BusinessFAQEditor />
-                </CollapsibleBrainSection>
+                <EssentialGroup title="Core Knowledge" description="Common questions and objections" showBadge={false}>
+                  <SectionSummaryCard
+                    id="faqs"
+                    title="FAQs"
+                    icon={HelpCircle}
+                    status={summaries.faqs !== "No FAQs added yet" ? "complete" : "incomplete"}
+                    statusText={summaries.faqs}
+                    mode={businessMode}
+                  >
+                    <BusinessFAQEditor />
+                  </SectionSummaryCard>
 
-                <CollapsibleBrainSection
-                  id="objections"
-                  title="Objection Handling"
-                  icon={MessageCircle}
-                  preview={summaries.objections}
-                >
-                  <BusinessObjectionEditor />
-                </CollapsibleBrainSection>
+                  <SectionSummaryCard
+                    id="objections"
+                    title="Objection Handling"
+                    icon={MessageCircle}
+                    status={summaries.objections !== "No objection responses yet" ? "complete" : "incomplete"}
+                    statusText={summaries.objections}
+                    mode={businessMode}
+                  >
+                    <BusinessObjectionEditor />
+                  </SectionSummaryCard>
+                </EssentialGroup>
 
-                {/* Mode-specific knowledge sections */}
+                {/* Mode-specific knowledge */}
                 {isFoodMode && (
-                  <>
-                    <CollapsibleBrainSection
+                  <AdvancedGroup title="Food Knowledge" collapsedDescription="Menu details and catering info" defaultCollapsed={false}>
+                    <SectionSummaryCard
                       id="menu-knowledge"
                       title="Menu Item Details"
                       icon={UtensilsCrossed}
-                      preview="Detailed descriptions, allergens, and pairings"
+                      status="incomplete"
+                      statusText="Detailed descriptions, allergens, and pairings"
+                      mode={businessMode}
                     >
                       <MenuKnowledgeEditor />
-                    </CollapsibleBrainSection>
+                    </SectionSummaryCard>
 
-                    <CollapsibleBrainSection
+                    <SectionSummaryCard
                       id="catering-knowledge"
                       title="Catering by Event Type"
                       icon={Tag}
-                      preview="Event-specific requirements and pricing"
+                      status="incomplete"
+                      statusText="Event-specific requirements and pricing"
+                      mode={businessMode}
                     >
                       <CateringKnowledgeEditor />
-                    </CollapsibleBrainSection>
-                  </>
+                    </SectionSummaryCard>
+                  </AdvancedGroup>
                 )}
 
                 {isDispatchMode && (
-                  <>
-                    <CollapsibleBrainSection
+                  <AdvancedGroup title="Dispatch Knowledge" collapsedDescription="Vehicle types and roadside situations" defaultCollapsed={false}>
+                    <SectionSummaryCard
                       id="vehicle-knowledge"
                       title="Vehicle Requirements"
                       icon={Truck}
-                      preview="Equipment and procedures by vehicle type"
+                      status="incomplete"
+                      statusText="Equipment and procedures by vehicle type"
+                      mode={businessMode}
                     >
                       <VehicleKnowledgeEditor />
-                    </CollapsibleBrainSection>
+                    </SectionSummaryCard>
 
-                    <CollapsibleBrainSection
+                    <SectionSummaryCard
                       id="roadside-knowledge"
                       title="Roadside Situations"
                       icon={AlertCircle}
-                      preview="Safety scripts and escalation triggers"
+                      status="incomplete"
+                      statusText="Safety scripts and escalation triggers"
+                      mode={businessMode}
                     >
                       <RoadsideKnowledgeEditor />
-                    </CollapsibleBrainSection>
-                  </>
+                    </SectionSummaryCard>
+                  </AdvancedGroup>
                 )}
 
                 {businessMode === "medical" && (
-                  <>
-                    <CollapsibleBrainSection
+                  <AdvancedGroup title="Medical Knowledge" collapsedDescription="Symptoms, triage, and insurance info" defaultCollapsed={false}>
+                    <SectionSummaryCard
                       id="symptom-triage"
                       title="Symptom Triage Scripts"
                       icon={HeartPulse}
-                      preview="HIPAA-safe responses and escalation rules"
+                      status="incomplete"
+                      statusText="HIPAA-safe responses and escalation rules"
+                      mode={businessMode}
                     >
                       <SymptomTriageEditor />
-                    </CollapsibleBrainSection>
+                    </SectionSummaryCard>
 
-                    <CollapsibleBrainSection
+                    <SectionSummaryCard
                       id="insurance-knowledge"
                       title="Insurance Carrier Info"
                       icon={Shield}
-                      preview="Carrier-specific scripts and coverage"
+                      status="incomplete"
+                      statusText="Carrier-specific scripts and coverage"
+                      mode={businessMode}
                     >
                       <InsuranceKnowledgeEditor />
-                    </CollapsibleBrainSection>
-                  </>
+                    </SectionSummaryCard>
+                  </AdvancedGroup>
                 )}
 
                 {(businessMode === "service" || businessMode === "general") && (
-                  <CollapsibleBrainSection
-                    id="product-knowledge"
-                    title="Product & Material Knowledge"
-                    icon={Package}
-                    preview="Products you use and their benefits"
-                  >
-                    <ProductKnowledgeEditor />
-                  </CollapsibleBrainSection>
+                  <AdvancedGroup title="Service Knowledge" collapsedDescription="Products and materials you use">
+                    <SectionSummaryCard
+                      id="product-knowledge"
+                      title="Product & Material Knowledge"
+                      icon={Package}
+                      status="incomplete"
+                      statusText="Products you use and their benefits"
+                      mode={businessMode}
+                    >
+                      <ProductKnowledgeEditor />
+                    </SectionSummaryCard>
+                  </AdvancedGroup>
                 )}
 
-                {/* Shared knowledge sections (all modes) */}
-                <CollapsibleBrainSection
-                  id="aftercare"
-                  title="Aftercare Instructions"
-                  icon={Heart}
-                  preview="Post-service care instructions"
-                >
-                  <AftercareInstructionsEditor />
-                </CollapsibleBrainSection>
+                {/* Shared knowledge sections */}
+                <AdvancedGroup title="Additional Knowledge" collapsedDescription="Aftercare, competitors, and seasonal info">
+                  <SectionSummaryCard
+                    id="aftercare"
+                    title="Aftercare Instructions"
+                    icon={Heart}
+                    status="incomplete"
+                    statusText="Post-service care instructions"
+                    mode={businessMode}
+                  >
+                    <AftercareInstructionsEditor />
+                  </SectionSummaryCard>
 
-                <CollapsibleBrainSection
-                  id="competitors"
-                  title="Competitor Positioning"
-                  icon={Users}
-                  preview="How to respond when competitors are mentioned"
-                >
-                  <CompetitorKnowledgeEditor />
-                </CollapsibleBrainSection>
+                  <SectionSummaryCard
+                    id="competitors"
+                    title="Competitor Positioning"
+                    icon={Users}
+                    status="incomplete"
+                    statusText="How to respond when competitors are mentioned"
+                    mode={businessMode}
+                  >
+                    <CompetitorKnowledgeEditor />
+                  </SectionSummaryCard>
 
-                <CollapsibleBrainSection
-                  id="seasonal"
-                  title="Seasonal & Events"
-                  icon={Calendar}
-                  preview="Holiday and event-specific info"
-                >
-                  <SeasonalKnowledgeEditor />
-                </CollapsibleBrainSection>
+                  <SectionSummaryCard
+                    id="seasonal"
+                    title="Seasonal & Events"
+                    icon={Calendar}
+                    status="incomplete"
+                    statusText="Holiday and event-specific info"
+                    mode={businessMode}
+                  >
+                    <SeasonalKnowledgeEditor />
+                  </SectionSummaryCard>
 
-                <CollapsibleBrainSection
-                  id="custom"
-                  title="Custom Knowledge"
-                  icon={Lightbulb}
-                  preview={summaries.custom}
-                >
-                  <CustomKnowledgeEditor />
-                </CollapsibleBrainSection>
+                  <SectionSummaryCard
+                    id="custom"
+                    title="Custom Knowledge"
+                    icon={Lightbulb}
+                    status={summaries.custom !== "No custom knowledge yet" ? "complete" : "incomplete"}
+                    statusText={summaries.custom}
+                    mode={businessMode}
+                  >
+                    <CustomKnowledgeEditor />
+                  </SectionSummaryCard>
 
-                <CollapsibleBrainSection
-                  id="documents"
-                  title="Documents"
-                  icon={FileUp}
-                  preview={summaries.documents}
-                >
-                  <BrainAssetsManager />
-                </CollapsibleBrainSection>
+                  <SectionSummaryCard
+                    id="documents"
+                    title="Documents"
+                    icon={FileUp}
+                    status="incomplete"
+                    statusText={summaries.documents}
+                    mode={businessMode}
+                  >
+                    <BrainAssetsManager />
+                  </SectionSummaryCard>
+                </AdvancedGroup>
               </div>
             )}
 
