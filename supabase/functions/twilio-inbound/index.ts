@@ -4,6 +4,7 @@ const VERSION = "twilio-inbound@2026-02-08.1";
 const DEPLOYED_AT = new Date().toISOString();
 
 import { isHybridCapabilitySet, getAgentIdForCapabilities, derivePrimaryModeFromCapabilities } from "../_shared/agentResolver.ts";
+import { resolveCapabilities } from "../_shared/resolveCapabilities.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -386,10 +387,17 @@ Deno.serve(async (req) => {
     console.log(`[twilio-inbound] Agent resolved: ${agentId.slice(0, 12)}... (source: ${agentResolution.source})`);
 
     // Step 7: Build dynamic variables for ElevenLabs
-    const callerPhoneLast4 = callerPhoneE164.length >= 4 
-      ? callerPhoneE164.slice(-4) 
+    const callerPhoneLast4 = callerPhoneE164.length >= 4
+      ? callerPhoneE164.slice(-4)
       : "";
-    
+
+    // Resolve capabilities for flag injection
+    const caps = resolveCapabilities(
+      tenant.business_mode,
+      tenant.enabled_modules,
+      tenant.capabilities_json
+    );
+
     const dynamicVariables: Record<string, string> = {
       tenant_id: tenantId,
       business_name: businessName,
@@ -401,7 +409,31 @@ Deno.serve(async (req) => {
       service_summary: "",
       menu_summary: "",
       policies_summary: "",
-      hipaa_mode: businessMode === "medical" ? "true" : "false",
+      hipaa_mode: caps.hasMedicalIntake ? "true" : "false",
+      // Capability flags
+      has_booking: caps.hasBooking ? "true" : "false",
+      has_dispatch: caps.hasDispatchQueue ? "true" : "false",
+      has_impound: caps.hasImpoundLot ? "true" : "false",
+      has_fleet: caps.hasFleetManagement ? "true" : "false",
+      has_food_orders: caps.hasFoodOrders ? "true" : "false",
+      has_reservations: caps.hasReservations ? "true" : "false",
+      has_catering: caps.hasCatering ? "true" : "false",
+      has_medical_intake: caps.hasMedicalIntake ? "true" : "false",
+      has_estimates: caps.hasEstimates ? "true" : "false",
+      has_eta_tracking: caps.hasEtaTracking ? "true" : "false",
+      has_emergency_dispatch: caps.hasDispatchQueue ? "true" : "false",
+      has_calendar_sync: caps.hasCalendarSync ? "true" : "false",
+      // Derived business type flags
+      is_scheduling_business: caps.isSchedulingBusiness ? "true" : "false",
+      is_dispatch_business: caps.isDispatchBusiness ? "true" : "false",
+      is_food_business: caps.isFoodBusiness ? "true" : "false",
+      is_medical_business: caps.isMedicalBusiness ? "true" : "false",
+      is_service_business: caps.isServiceBusiness ? "true" : "false",
+      // Comma-separated capabilities list for prompt reference
+      capabilities_list: Object.entries(capabilities)
+        .filter(([_, v]) => v === true)
+        .map(([k]) => k)
+        .join(","),
     };
 
     // Step 8: Register call with ElevenLabs (timeout to avoid Twilio hanging)

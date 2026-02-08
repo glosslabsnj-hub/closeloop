@@ -445,6 +445,171 @@ function createCallbackTool(modeSpecificDescription?: string): AgentTool {
   };
 }
 
+/**
+ * cancel_booking - Cancel an existing appointment
+ * Used by: Service (capability: booking)
+ */
+function createCancelBookingTool(): AgentTool {
+  return {
+    name: "cancel_booking",
+    description: `Cancel an existing appointment. Use when caller says: "I need to cancel", "Cancel my appointment", "I can't make it". Ask for name or phone to identify the booking.`,
+    url: `${BASE_URL}/elevenlabs-cancel-booking`,
+    method: "POST",
+    parameters: [
+      {
+        name: "tenant_id",
+        type: "string",
+        required: true,
+        description: "Tenant identifier",
+        dynamicValue: "{{tenant_id}}",
+      },
+      {
+        name: "customer_name",
+        type: "string",
+        required: false,
+        description: "Customer's name to find the booking",
+      },
+      {
+        name: "customer_phone",
+        type: "string",
+        required: false,
+        description: "Customer's phone number to find the booking",
+        dynamicValue: "{{caller_phone}}",
+      },
+      {
+        name: "booking_id",
+        type: "string",
+        required: false,
+        description: "Direct booking ID if known",
+      },
+      {
+        name: "reason",
+        type: "string",
+        required: false,
+        description: "Reason for cancellation",
+      },
+      {
+        name: "conversation_id",
+        type: "string",
+        required: false,
+        description: "Conversation tracking",
+      },
+    ],
+  };
+}
+
+/**
+ * add_to_waitlist - Add caller to waitlist when preferred time is unavailable
+ * Used by: Service, Food (capability: booking, reservations)
+ */
+function createAddToWaitlistTool(): AgentTool {
+  return {
+    name: "add_to_waitlist",
+    description: `Add caller to waitlist when their preferred time is unavailable. Use when: waitlist_enabled is "true" AND the time they want is fully booked. Ask if they want to be notified if something opens up.`,
+    url: `${BASE_URL}/elevenlabs-add-to-waitlist`,
+    method: "POST",
+    parameters: [
+      {
+        name: "tenant_id",
+        type: "string",
+        required: true,
+        description: "Tenant identifier",
+        dynamicValue: "{{tenant_id}}",
+      },
+      {
+        name: "customer_name",
+        type: "string",
+        required: true,
+        description: "Customer's name",
+      },
+      {
+        name: "customer_phone",
+        type: "string",
+        required: false,
+        description: "Customer's phone number for callback",
+        dynamicValue: "{{caller_phone}}",
+      },
+      {
+        name: "preferred_date",
+        type: "string",
+        required: true,
+        description: "Date they wanted",
+      },
+      {
+        name: "preferred_time",
+        type: "string",
+        required: false,
+        description: "Time they wanted",
+      },
+      {
+        name: "service_name",
+        type: "string",
+        required: false,
+        description: "Service they're waiting for",
+      },
+      {
+        name: "notes",
+        type: "string",
+        required: false,
+        description: "Additional notes",
+      },
+      {
+        name: "conversation_id",
+        type: "string",
+        required: false,
+        description: "Conversation tracking",
+      },
+    ],
+  };
+}
+
+/**
+ * lookup_dispatch_status - Check status of an existing dispatch job
+ * Used by: Dispatch (capability: dispatch_queue)
+ */
+function createLookupDispatchStatusTool(): AgentTool {
+  return {
+    name: "lookup_dispatch_status",
+    description: `Check status of an existing dispatch job. Use when caller asks: "Where's my driver?", "Any update?", "How much longer?", "Checking on my tow", "Is someone on the way?", "ETA on my driver?". Requires at least 2 of: customer_name, customer_phone, pickup_address.`,
+    url: `${BASE_URL}/elevenlabs-lookup-dispatch-status`,
+    method: "POST",
+    parameters: [
+      {
+        name: "tenant_id",
+        type: "string",
+        required: true,
+        description: "Tenant identifier",
+        dynamicValue: "{{tenant_id}}",
+      },
+      {
+        name: "customer_name",
+        type: "string",
+        required: false,
+        description: "Customer's name to match against job records",
+      },
+      {
+        name: "customer_phone",
+        type: "string",
+        required: false,
+        description: "Customer's phone number for lookup",
+        dynamicValue: "{{caller_phone}}",
+      },
+      {
+        name: "pickup_address",
+        type: "string",
+        required: false,
+        description: "Pickup address to match against job records",
+      },
+      {
+        name: "conversation_id",
+        type: "string",
+        required: false,
+        description: "Conversation tracking",
+      },
+    ],
+  };
+}
+
 // ============= AGENT CONFIGURATIONS =============
 
 /**
@@ -1215,7 +1380,9 @@ export function buildToolsForCapabilities(
     check_service_area: () => createCheckServiceAreaTool(undefined, true, true),
     create_dispatch_job: () => createDispatchJobTool(undefined, true),
     create_callback: () => createCallbackTool(),
-    // Add other tools as needed
+    cancel_booking: () => createCancelBookingTool(),
+    add_to_waitlist: () => createAddToWaitlistTool(),
+    lookup_dispatch_status: () => createLookupDispatchStatusTool(),
   };
   
   // Inject bonus tools that aren't already in the base set

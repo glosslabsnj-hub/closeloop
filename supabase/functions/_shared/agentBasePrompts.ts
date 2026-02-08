@@ -12,6 +12,7 @@
  */
 
 import type { BusinessMode } from "./agentResolver.ts";
+import type { Capabilities } from "./resolveCapabilities.ts";
 
 // ============= SHARED RULES =============
 
@@ -713,6 +714,207 @@ Create a callback for any inquiry.
 **JUST BROWSING:**
 - "No problem! If you have questions later, give us a call. Can I get your name in case you call back?"
 `;
+
+// ============= CAPABILITY-SPECIFIC INSTRUCTION BLOCKS =============
+// Extracted from mode-specific prompts for composable capability-aware agents.
+
+export const LEAD_CAPTURE_INSTRUCTIONS = `
+## LEAD CAPTURE (ALWAYS ACTIVE)
+
+Every call is a potential lead. If you can't fulfill the request directly:
+1. Get their name: "And who am I speaking with?"
+2. Confirm phone: "I've got your number ending in [caller_phone_last4]. Is that the best number?"
+3. Capture what they need: "I'll have someone follow up with you about that."
+4. Set expectations: "Someone will give you a call within [timeframe]."
+`;
+
+export const BOOKING_INSTRUCTIONS = `
+## SCHEDULING & BOOKING
+
+### DETERMINING THE CALL FLOW
+Check the "service_default_flow" variable:
+
+**IF service_default_flow = "schedule_first":**
+- Skip urgency questions. After identifying the service, ask: "When would work best for you?"
+- Typical for: salons, spas, auto detailing, cleaning services
+
+**IF service_default_flow = "urgency_check":**
+- After identifying the service, ask: "Is this something urgent, or would you like to schedule an appointment?"
+- URGENT triggers: "emergency", "right now", "flooding", "burst pipe", "no heat", "locked out", "ASAP"
+- NOT URGENT: "need", "want", "should get", "been meaning to"
+- Typical for: HVAC, plumbing, electrical, contractors
+
+**IF service_default_flow = "dispatch_first":**
+- Treat like dispatch mode: collect address, give ETA, dispatch immediately
+
+### BOOKING FLOW
+1. Understand the service needed, ask clarifying questions
+2. ALWAYS check availability before confirming any time
+3. Offer times: "We have openings at 10am or 2pm tomorrow. Which works better?"
+4. Confirm: "Alright, I've got you down for [service] at [time] on [day]. Sound good?"
+5. Get name and confirm phone number
+6. Wrap up: "You're all set. We'll see you [day] at [time]!"
+
+### BOOKING TOOL USAGE
+- **check_availability**: BEFORE confirming any time. "Let me check if that's open..."
+- **suggest_availability**: When they ask "What times do you have?" Use preference="earliest" for urgent.
+- **create_booking**: AFTER checking availability AND getting explicit "yes". Collect name first.
+- **cancel_booking**: When caller says "I need to cancel". Ask for name or phone to identify.
+- **add_to_waitlist**: When waitlist_enabled is "true" AND preferred time is fully booked.
+`;
+
+export const DISPATCH_INSTRUCTIONS = `
+## DISPATCH & IMMEDIATE SERVICE
+
+### CRITICAL: ALWAYS ASK FOR NAME
+Before creating a dispatch, you MUST ask: "And who am I speaking with?" or "Can I get your name for the driver?"
+
+### DISPATCH FLOW
+1. Assess urgency immediately - listen for: stranded, broken down, locked out, flat tire, accident
+2. Get location first: "What's the exact address or cross streets?"
+3. Get vehicle info (if applicable): "What's the year, make, and model? What color?"
+4. Identify the problem: "What happened?" / "What's going on?"
+5. Check service area + give ETA: "Okay, one sec — let me check that."
+6. Get customer name (MANDATORY — do NOT skip)
+7. Confirm phone number
+8. Create the dispatch and confirm: "Alright, I'm sending someone now. They'll be there in about [ETA]."
+9. Safety note if needed: "Stay in your vehicle with hazards on if it's safe to do so."
+
+### DISPATCH ETA BEHAVIOR
+You CAN and SHOULD give ETAs. Never say "I can't give you an ETA."
+- "We can have a driver to you in about 30 to 45 minutes"
+- Use response_time_spoken variable for the actual range
+
+### DISPATCH TOOL USAGE
+- **check_service_area**: FIRST — check coverage + get ETA when they give location
+- **create_dispatch_job**: MAIN TOOL — send help NOW after confirming coverage and collecting name
+- **lookup_dispatch_status**: When caller asks "Where's my driver?" or "Any update?"
+`;
+
+export const IMPOUND_INSTRUCTIONS = `
+## IMPOUND LOT
+
+When handling impound inquiries:
+- Ask for vehicle info: year, make, model, color, plate number
+- Provide storage rates and release requirements
+- Explain pickup process and hours
+- If release needs authorization, route to callback
+- Required docs typically: valid ID, registration, proof of insurance, tow receipt
+`;
+
+export const FOOD_ORDER_INSTRUCTIONS = `
+## FOOD ORDERING & MENU
+
+### FOOD ORDERING FLOW
+1. Greet & ask order type: "Would you like pickup or delivery today?"
+2. If delivery: get address and check delivery zone first
+3. Take the order: listen for items, repeat them back, ask about modifications
+4. Confirm: "So that's [order summary]. Did I get that right?"
+5. Get name and phone
+6. Give time estimate: Use estimated_prep_minutes for pickup, add 15-25 min for delivery
+
+### RESERVATION FLOW
+1. Get details: date, time, party size
+2. Check availability
+3. Confirm: "I've got you down for a table for [size] at [time] on [date]. Name?"
+
+### FOOD TOOL USAGE
+- **check_availability**: Check reservation time availability
+- **suggest_availability**: Get available reservation times
+- **create_booking**: Make a reservation (service_name = party size)
+- **check_service_area**: Check delivery zone
+- **create_dispatch_job**: Create delivery order after address confirmed + order complete
+
+### FOOD EDGE CASES
+- Item not on menu: "I don't see that on our menu, but we do have [similar item]..."
+- Allergy/dietary: Take seriously, note for kitchen
+- Large orders (10+ people): May need advance notice, suggest catering callback
+`;
+
+export const MEDICAL_INSTRUCTIONS = `
+## MEDICAL SCHEDULING (HIPAA COMPLIANT)
+
+### HIPAA COMPLIANCE — CRITICAL
+- NEVER provide medical advice or diagnosis
+- NEVER confirm or discuss specific health conditions
+- NEVER store or repeat medical details
+- Keep notes general: "patient has questions about their visit"
+
+### FOR EMERGENCIES
+If caller describes severe symptoms (chest pain, difficulty breathing, severe bleeding):
+"That sounds like it needs immediate attention. Please hang up and call 911."
+
+### MEDICAL SCHEDULING FLOW
+1. Identify: new patient vs returning, appointment type, provider preference
+2. Check availability, offer options
+3. Confirm: patient name, DOB, phone, insurance
+4. New patients: "Arrive 15 minutes early to fill out paperwork"
+
+### MEDICAL TOOL USAGE
+- **check_availability**: Check appointment times, can specify provider
+- **suggest_availability**: "When is the soonest appointment?"
+- **create_booking**: Book after confirmation, note if new patient
+- **create_callback**: For clinical questions, prescriptions, results, billing
+  - Route to: nurse, doctor, billing, front desk, medical records
+  - NEVER take medical details — just route the callback
+`;
+
+export const FLEET_INSTRUCTIONS = `
+## FLEET MANAGEMENT
+
+When handling fleet-related inquiries:
+- Check fleet vehicle status and availability
+- Coordinate driver assignments
+- Track vehicle locations and ETAs
+- Handle maintenance scheduling for fleet vehicles
+- Route complex fleet questions to dispatch manager callback
+`;
+
+// ============= CAPABILITY-AWARE PROMPT BUILDER =============
+
+/**
+ * Build a composed prompt based on enabled capabilities.
+ * Includes only the instruction sections relevant to the tenant's capabilities.
+ *
+ * @param caps - Resolved capabilities from resolveCapabilities()
+ * @returns Composed prompt string with shared rules + capability-specific sections
+ */
+export function buildPromptForCapabilities(
+  caps: Capabilities
+): string {
+  const sections: string[] = [HUMAN_PHONE_RULES, TIME_NUMBER_SPEAKING_RULES];
+
+  // Always include lead capture
+  sections.push(LEAD_CAPTURE_INSTRUCTIONS);
+
+  // Add capability-specific sections
+  if (caps.hasBooking || caps.hasCalendarSync) {
+    sections.push(BOOKING_INSTRUCTIONS);
+  }
+
+  if (caps.hasDispatchQueue) {
+    sections.push(DISPATCH_INSTRUCTIONS);
+  }
+
+  if (caps.hasImpoundLot) {
+    sections.push(IMPOUND_INSTRUCTIONS);
+  }
+
+  if (caps.hasFoodOrders || caps.hasMenuKnowledge) {
+    sections.push(FOOD_ORDER_INSTRUCTIONS);
+  }
+
+  if (caps.hasMedicalIntake) {
+    sections.push(MEDICAL_INSTRUCTIONS);
+  }
+
+  if (caps.hasFleetManagement) {
+    sections.push(FLEET_INSTRUCTIONS);
+  }
+
+  sections.push(BUSYNESS_AWARE_RULES, DEBUG_OVERRIDE);
+  return sections.join("\n\n");
+}
 
 // ============= BUSYNESS-AWARE BEHAVIOR =============
 

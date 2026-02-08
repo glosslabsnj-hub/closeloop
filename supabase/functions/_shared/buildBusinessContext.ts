@@ -18,6 +18,7 @@ import {
 } from "./getBusinessBrainSnapshot.ts";
 import { getBasePromptForMode } from "./agentBasePrompts.ts";
 import type { BusinessMode } from "./agentResolver.ts";
+import { resolveCapabilities } from "./resolveCapabilities.ts";
 
 // ============= TYPE DEFINITIONS =============
 
@@ -1944,37 +1945,41 @@ export async function buildBusinessContext(
   const seasonalKnowledge = seasonalKnowledgeResult.data || [];
   
   // ===== DERIVE CAPABILITIES =====
-  const capabilities = (tenant.capabilities_json as Record<string, boolean>) || {};
-  
-  // If capabilities_json is empty, derive from business_mode (backward compat)
-  if (Object.keys(capabilities).length === 0) {
-    const mode = tenant.business_mode || "general";
-    if (mode === "dispatch") {
-      capabilities.dispatch_queue = true;
-      capabilities.emergency_dispatch = true;
-      capabilities.distance_pricing = true;
-      capabilities.mobile_service = true;
-    } else if (mode === "food") {
-      capabilities.food_orders = true;
-      capabilities.menu_knowledge = true;
-      capabilities.pickup = true;
-    } else if (mode === "medical") {
-      capabilities.booking = true;
-      capabilities.medical_intake = true;
-      capabilities.hipaa_compliance = tenant.hipaa_mode || false;
-    } else if (mode === "service") {
-      capabilities.booking = true;
-      capabilities.calendar_sync = true;
-    } else {
-      capabilities.callbacks = true;
-    }
-    capabilities.ai_voice = true;
-    capabilities.instant_text_back = true;
-  }
+  const caps = resolveCapabilities(
+    tenant.business_mode,
+    tenant.enabled_modules,
+    tenant.capabilities_json
+  );
+
+  // Build a flat boolean map for _meta.capabilities and conditional checks
+  const capabilities: Record<string, boolean> = {
+    ai_voice: caps.hasAiVoice,
+    instant_text_back: caps.hasInstantTextBack,
+    booking: caps.hasBooking,
+    dispatch_queue: caps.hasDispatchQueue,
+    impound_lot: caps.hasImpoundLot,
+    fleet_management: caps.hasFleetManagement,
+    food_orders: caps.hasFoodOrders,
+    menu_knowledge: caps.hasMenuKnowledge,
+    reservations: caps.hasReservations,
+    catering: caps.hasCatering,
+    medical_intake: caps.hasMedicalIntake,
+    estimates: caps.hasEstimates,
+    eta_tracking: caps.hasEtaTracking,
+    calendar_sync: caps.hasCalendarSync,
+    payment_processing: caps.hasPaymentProcessing,
+    wisetack_financing: caps.hasWisetackFinancing,
+    quickbooks: caps.hasQuickbooks,
+    after_hours_handling: caps.hasAfterHoursHandling,
+    sms_campaigns: caps.hasSmsCampaigns,
+    knowledge_base: caps.hasKnowledgeBase,
+    mobile_service: caps.hasDispatchQueue || caps.isDispatchBusiness,
+    emergency_dispatch: caps.hasDispatchQueue,
+  };
   
   // Track missing sections
-  if (services.length === 0 && tenant.business_mode !== "food") missingSections.push("services");
-  if (menuItems.length === 0 && tenant.business_mode === "food") missingSections.push("menu");
+  if (services.length === 0 && !caps.isFoodBusiness) missingSections.push("services");
+  if (menuItems.length === 0 && caps.isFoodBusiness) missingSections.push("menu");
   if (faqs.length === 0) missingSections.push("faqs");
   if (objections.length === 0) missingSections.push("objections");
   if (!tenant.hours_json) missingSections.push("hours");

@@ -115,35 +115,21 @@ export function validateAgentConfiguration(): {
 // CAPABILITY-BASED AGENT RESOLUTION
 // ============================================================================
 
+import { resolveCapabilities, type Capabilities } from "./resolveCapabilities.ts";
+
 /**
- * Derive primary mode from capabilities
- * Priority: medical > food > dispatch > service > general
+ * Derive primary mode from a raw capabilities record.
+ * Uses resolveCapabilities under the hood for consistent derivation.
+ *
+ * Priority: medical > dispatch > food > service > general
+ * (matches resolveCapabilities.ts derivedPrimaryMode)
  */
 export function derivePrimaryModeFromCapabilities(
   capabilities: Record<string, boolean>
 ): BusinessMode {
-  // Medical is highest priority (HIPAA implications)
-  if (capabilities.medical_intake || capabilities.hipaa_compliance) {
-    return "medical";
-  }
-  
-  // Food is next (specialized menu/ordering flow)
-  if (capabilities.food_orders || capabilities.menu_knowledge) {
-    return "food";
-  }
-  
-  // Dispatch for on-demand businesses
-  if (capabilities.dispatch_queue || capabilities.emergency_dispatch) {
-    return "dispatch";
-  }
-  
-  // Service for appointment-based
-  if (capabilities.booking || capabilities.calendar_sync) {
-    return "service";
-  }
-  
-  // Default to general
-  return "general";
+  // Use resolveCapabilities with capabilities_json to get consistent derivation
+  const caps = resolveCapabilities(null, null, capabilities);
+  return caps.derivedPrimaryMode;
 }
 
 /**
@@ -153,15 +139,25 @@ export function derivePrimaryModeFromCapabilities(
 export function isHybridCapabilitySet(
   capabilities: Record<string, boolean>
 ): boolean {
-  const hasScheduling = capabilities.booking || capabilities.calendar_sync || 
+  const hasScheduling = capabilities.booking || capabilities.calendar_sync ||
                         capabilities.reservations || capabilities.scheduled_dispatch;
   const hasDispatch = capabilities.dispatch_queue || capabilities.emergency_dispatch;
-  
+
   return hasScheduling && hasDispatch;
 }
 
 /**
- * Get agent ID based on capabilities and optional IVR selection
+ * Get agent ID based on capabilities and optional IVR selection.
+ *
+ * Routing rules:
+ * - IVR "1" → service agent (scheduling/booking path)
+ * - IVR "2" → dispatch agent (or impound agent if impound_lot capability set)
+ * - No IVR → derive primary mode from capabilities via resolveCapabilities
+ *
+ * Edge cases:
+ * - Locksmith: {dispatch_queue: true, booking: true} → dispatch agent (primary = dispatch)
+ * - HVAC: {booking: true, dispatch_queue: true, estimates: true} → dispatch agent
+ *   (dispatch takes precedence when both present, hybrid IVR handles the split)
  */
 export function getAgentIdForCapabilities(
   capabilities: Record<string, boolean>,
@@ -173,7 +169,7 @@ export function getAgentIdForCapabilities(
     return getAgentIdForMode("service");
   }
   if (ivrSelection === "2") {
-    // User pressed 2 = Emergency/Dispatch
+    // User pressed 2 = Emergency/Dispatch/Impound
     // Check for impound agent first
     const impoundAgentId = Deno.env.get("ELEVENLABS_AGENT_ID_IMPOUND");
     if (impoundAgentId && capabilities.impound_lot) {
@@ -185,8 +181,10 @@ export function getAgentIdForCapabilities(
     }
     return getAgentIdForMode("dispatch");
   }
-  
-  // No IVR selection - derive from capabilities
+
+  // No IVR selection - derive primary mode from capabilities
   const primaryMode = derivePrimaryModeFromCapabilities(capabilities);
+  console.log(`[agentResolver] Derived primary mode: ${primaryMode} from capabilities:`,
+    Object.keys(capabilities).filter(k => capabilities[k]).join(","));
   return getAgentIdForMode(primaryMode);
 }

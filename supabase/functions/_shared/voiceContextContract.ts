@@ -439,6 +439,175 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     category: "core",
   },
   {
+    key: "has_food_orders",
+    description: "Whether food ordering is enabled",
+    type: "string",
+    source: (ctx) => {
+      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
+      return caps.food_orders ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "core",
+  },
+  {
+    key: "has_medical_intake",
+    description: "Whether medical intake is enabled",
+    type: "string",
+    source: (ctx) => {
+      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
+      return caps.medical_intake ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "core",
+  },
+  {
+    key: "has_estimates",
+    description: "Whether estimates capability is enabled",
+    type: "string",
+    source: (ctx) => {
+      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
+      return caps.estimates ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "core",
+  },
+  {
+    key: "has_eta_tracking",
+    description: "Whether ETA tracking is enabled",
+    type: "string",
+    source: (ctx) => {
+      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
+      return caps.eta_tracking ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "core",
+  },
+  {
+    key: "has_calendar_sync",
+    description: "Whether calendar sync is enabled",
+    type: "string",
+    source: (ctx) => {
+      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
+      return caps.calendar_sync ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "core",
+  },
+  {
+    key: "has_wisetack_financing",
+    description: "Whether Wisetack financing is enabled",
+    type: "string",
+    source: (ctx) => {
+      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
+      return caps.wisetack_financing ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "core",
+  },
+  {
+    key: "has_quickbooks",
+    description: "Whether QuickBooks integration is enabled",
+    type: "string",
+    source: (ctx) => {
+      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
+      return caps.quickbooks ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "core",
+  },
+  {
+    key: "has_after_hours_handling",
+    description: "Whether after-hours handling is enabled",
+    type: "string",
+    source: (ctx) => {
+      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
+      return caps.after_hours_handling ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "core",
+  },
+  {
+    key: "has_sms_campaigns",
+    description: "Whether SMS campaigns are enabled",
+    type: "string",
+    source: (ctx) => {
+      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
+      return caps.sms_campaigns ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "core",
+  },
+  {
+    key: "has_knowledge_base",
+    description: "Whether knowledge base is enabled",
+    type: "string",
+    source: (ctx) => {
+      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
+      return caps.knowledge_base ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "core",
+  },
+  // Derived business type flags
+  {
+    key: "is_scheduling_business",
+    description: "Whether this is primarily a scheduling/booking business",
+    type: "string",
+    source: (ctx) => {
+      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
+      return (caps.booking || caps.reservations) ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "core",
+  },
+  {
+    key: "is_dispatch_business",
+    description: "Whether this is primarily a dispatch business",
+    type: "string",
+    source: (ctx) => {
+      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
+      return caps.dispatch_queue ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "core",
+  },
+  {
+    key: "is_food_business",
+    description: "Whether this is primarily a food/restaurant business",
+    type: "string",
+    source: (ctx) => {
+      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
+      return (caps.food_orders || caps.menu_knowledge) ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "core",
+  },
+  {
+    key: "is_medical_business",
+    description: "Whether this is primarily a medical business",
+    type: "string",
+    source: (ctx) => {
+      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
+      return caps.medical_intake ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "core",
+  },
+  {
+    key: "is_service_business",
+    description: "Whether this is primarily a service/appointment business",
+    type: "string",
+    source: (ctx) => {
+      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
+      const isFood = caps.food_orders || caps.menu_knowledge;
+      const isDispatch = caps.dispatch_queue;
+      const isMedical = caps.medical_intake;
+      return (caps.booking && !isFood && !isDispatch && !isMedical) ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "core",
+  },
+  {
     key: "capabilities_list",
     description: "Comma-separated list of enabled capabilities",
     type: "string",
