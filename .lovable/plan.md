@@ -1,13 +1,18 @@
 
-# Plan: Wire Impound Agent Variables
+# Plan: Wire Impound Agent Variables ✅ COMPLETED
 
-## Overview
-Add impound-specific context variables to `voiceContextContract.ts` and update `buildBusinessContext.ts` to populate them from the `impound_lots`, `impound_settings`, and capabilities data. This ensures the Impound Agent prompt can access lot address, hours, fee structure, and release requirements as dynamic variables.
+## Status: IMPLEMENTED
 
-## Technical Changes
+All impound-specific context variables have been added to the system.
 
-### 1. Update `BusinessContext` Interface (buildBusinessContext.ts)
-Add a new `impound` section to the interface to hold impound-specific data:
+## Summary of Changes Made
+
+### 1. Updated `BusinessContext` Interface (buildBusinessContext.ts)
+Added the `impound` section with all required fields:
+- Core: `lot_id`, `lot_name`, `lot_address`, `lot_phone`
+- Hours: `lot_hours_today`, `lot_hours_summary`, `is_open_now`, `next_open`
+- Fees: `base_tow_fee_cents`, `daily_storage_cents`, `admin_fee_cents`, `gate_fee_cents`, `fee_summary`
+- Release: `release_requirements`, `release_requirements_summary`, `accepted_payment_methods`, `accepted_payment_summary`
 
 ```typescript
 // Add to BusinessContext interface (around line 290)
