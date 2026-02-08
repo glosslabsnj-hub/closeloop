@@ -1,102 +1,212 @@
 
-# Security Hardening: Move Sensitive API Configuration to Backend
+# Business Brain Redesign Plan
 
-## Summary
-
-This plan addresses security vulnerabilities where sensitive configuration data is exposed in the frontend codebase. We'll move these to secure backend storage and create appropriate edge functions to serve them safely.
-
----
-
-## Issues Identified
-
-| Issue | Severity | Location | Risk |
-|-------|----------|----------|------|
-| Hardcoded admin secret | Critical | `admin-reset-password/index.ts` | Anyone can reset user passwords |
-| Hardcoded ElevenLabs voice IDs | Medium | `VoiceSelector.tsx` | Exposes vendor-specific IDs in client bundle |
-| Direct fetch pattern | Low | `VoiceSelector.tsx` | Less maintainable than SDK pattern |
+## Overview
+A complete visual and structural redesign of the Business Brain to make it dramatically easier for business owners to understand and configure their AI assistant — without changing any underlying logic or ElevenLabs integration.
 
 ---
 
-## Implementation Plan
+## Design Philosophy
 
-### Phase 1: Fix Critical Admin Secret
+### Core Principles
+1. **Progressive Disclosure**: Show essentials first, reveal advanced options on demand
+2. **Visual Clarity**: Clear visual hierarchy separating "must-do" from "optional" 
+3. **Guided Setup**: Wizard-like experience for first-time users, power-user mode for experienced owners
+4. **Contextual Help**: Inline help that doesn't overwhelm — hover/click to learn more
+5. **Industry-Native Language**: Every label, example, and hint speaks the user's industry
 
-**File:** `supabase/functions/admin-reset-password/index.ts`
+---
 
-Replace the hardcoded secret with the existing `ADMIN_CLEANUP_SECRET` environment variable:
+## Structural Changes
+
+### 1. Two-Mode Interface: Setup Mode vs Edit Mode
+
+**Setup Mode** (for new/incomplete tenants):
+- Step-by-step guided flow with progress indicator
+- One section at a time, "Next" button progression
+- Celebratory completion state with suggested next steps
+
+**Edit Mode** (for configured tenants):
+- Current tab-based navigation (refined)
+- Quick-access cards instead of collapsible accordions
+- Section summary previews without expanding
+
+### 2. Simplified Tab Structure (8 → 6 Tabs)
+
+Current tabs are good but can be consolidated:
+
+| Current | New | Reasoning |
+|---------|-----|-----------|
+| Identity | **About** | Simpler label |
+| Operations | **Hours** | Keep as-is |
+| Offerings | **Pricing** | More intuitive |
+| Coverage & ETA | **Service Area** | Combine display |
+| Calendar | (Merged into Service Area) | Related to availability |
+| Policies | **Rules** | Shorter label |
+| Knowledge | **Training** | More intuitive |
+| AI Setup | **Voice** | Clearer purpose |
+
+### 3. Card-Based Section Display (Replace Accordions)
+
+Instead of collapsible sections that hide content, use **summary cards** that show:
+- Section title with icon
+- 1-line status ("3 services configured" or "Not set up")
+- Quick-edit button that opens a modal/drawer
+- Completion indicator (checkmark or warning)
 
 ```text
-Before:
-  if (admin_secret !== "closeloop-admin-2024")
-
-After:
-  const ADMIN_RESET_SECRET = Deno.env.get("ADMIN_CLEANUP_SECRET");
-  if (!ADMIN_RESET_SECRET || admin_secret !== ADMIN_RESET_SECRET)
+┌──────────────────────────────────────────────────┐
+│ 🏷️ Your Services                    ✓ Complete  │
+│ 5 services • Starting at $85                    │
+│                                    [Edit →]     │
+└──────────────────────────────────────────────────┘
 ```
 
-This uses the already-configured `ADMIN_CLEANUP_SECRET` from the secrets store.
+### 4. Floating Help System (Replace Large Helper Boxes)
+
+Move the section helper content from a large box at the top to:
+- **Floating help icon** (?) next to each section title
+- **Tooltip on hover** with 1-line explanation
+- **"Learn more" link** that opens a slide-out panel with full details
+
+This reclaims ~100px of vertical space per section.
 
 ---
 
-### Phase 2: Move Voice Configuration to Backend
+## Visual Hierarchy Changes
 
-**Step 1: Create new edge function `get-voice-options`**
+### Essential vs Advanced Sections
 
-Create a new edge function that returns available voice options from a secure backend source:
+Group sections visually:
 
-```text
-supabase/functions/get-voice-options/index.ts
-```
+**Essential (Always Visible)**
+- Primary sections with full styling
+- Colored icons, clear labels
+- Progress indicators
 
-This function will:
-- Require authentication via JWT
-- Return voice options stored in the database or secrets
-- Never expose ElevenLabs voice IDs directly (use friendly IDs like "james", "sarah")
+**Advanced (Collapsed by Default)**
+- Grouped under "Advanced Settings" accordion
+- Muted styling until expanded
+- "Most businesses don't need to change these"
 
-**Step 2: Add voice configuration to database**
+### Industry-Specific Grouping
 
-Create a new table `voice_options` to store available voices:
+For dispatch mode, show sections in logical operation order:
+1. Services & Pricing → What you charge
+2. Service Area & ETA → Where you go, how long it takes  
+3. Dispatch Rules → How jobs get routed
+4. Impound Lot → Storage/release specifics
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | text | Friendly ID (e.g., "james") |
-| name | text | Display name |
-| description | text | Voice description |
-| provider_voice_id | text | Actual ElevenLabs ID |
-| is_active | boolean | Whether voice is available |
-
-RLS Policy: Read-only for authenticated users, write for service role only.
-
-**Step 3: Update VoiceSelector component**
-
-Refactor `VoiceSelector.tsx` to:
-- Fetch voice options from the new edge function
-- Remove hardcoded voice IDs
-- Use Supabase client's `functions.invoke()` pattern
-- Handle loading and error states
+For food mode:
+1. Menu Items → What you serve
+2. Ordering → Pickup, delivery, catering
+3. Specials & Deals → Promotions
+4. Hours → When you're open
 
 ---
 
-### Phase 3: Improve API Call Patterns
+## New Components
 
-**Update TTS preview call**
+### 1. BrainProgressRing
+A circular progress indicator showing overall setup completion:
+- Appears in header area
+- Shows percentage complete
+- Lists top 3 incomplete items on hover
 
-Replace direct fetch with Supabase SDK pattern:
+### 2. QuickSetupWizard
+A first-time-user experience:
+- Modal or full-page wizard
+- 5-7 essential steps only
+- Skips advanced configuration
+- "Finish basic setup" vs "Configure everything"
 
-```text
-Before:
-  const response = await fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
-    { method: "POST", headers: {...}, body: ... }
-  );
+### 3. SectionSummaryCard
+Replaces CollapsibleBrainSection with a status-focused card:
+- Shows current state at a glance
+- Click to edit (opens drawer/modal)
+- Inline validation warnings
+- Mode-aware terminology
 
-After:
-  const { data, error } = await supabase.functions.invoke("elevenlabs-tts", {
-    body: { text, voiceId }
-  });
-```
+### 4. InlineFieldHelp
+Replaces EditorExplainer with contextual tooltips:
+- Small (?) icon next to each field label
+- Hover shows brief explanation
+- Click shows example + AI usage
 
-This centralizes authentication handling and error management.
+### 5. AIPreviewBanner
+A persistent banner showing "What your AI will say":
+- Appears at bottom of each editor
+- Updates in real-time as you type
+- Shows actual script the AI will use
+
+---
+
+## Tab-by-Tab Redesign
+
+### About Tab (Identity)
+- **Hero section**: Business name + tagline preview
+- **Quick stats**: Years in business, location, phone
+- **Template selector**: Inline industry templates with preview
+
+### Hours Tab
+- **Visual weekly grid** (not just list)
+- **Quick toggle** for 24/7 vs custom hours
+- **Holiday exceptions** in separate accordion
+
+### Pricing Tab (Offerings)
+- **Quote Readiness** card at top (keep current)
+- **Service grid** with inline pricing (not accordion)
+- **"Add Service" prominent button**
+- **Price modifiers** collapsed by default
+
+### Service Area Tab (Coverage + Calendar merged)
+- **Map preview** showing coverage (even if static)
+- **ETA calculator** inline ("From your shop to [address]: ~X min")
+- **Calendar connection** as secondary section
+- **Busyness slider** inline
+
+### Rules Tab (Policies)
+- **Policy cards** with AI preview
+- **Required questions** as checklist
+- **Guardrails** simplified to switches
+
+### Training Tab (Knowledge)
+- **Review queue** prominent at top if items pending
+- **FAQ list** with quick-add
+- **Document uploads** in sidebar
+
+### Voice Tab (AI Setup)
+- **Live greeting preview** (audio player if available)
+- **Script editor** with character count
+- **Personality sliders** (friendly ↔ professional)
+
+---
+
+## Implementation Phases
+
+### Phase 1: Foundation (No Logic Changes)
+- Create new SectionSummaryCard component
+- Create InlineFieldHelp tooltip system
+- Create BrainProgressRing component
+- Refactor tab labels and consolidation
+
+### Phase 2: Layout Restructure
+- Replace CollapsibleBrainSection with SectionSummaryCard
+- Move content to modal/drawer editors
+- Implement floating help system
+- Add Essential vs Advanced grouping
+
+### Phase 3: Guided Experience
+- Build QuickSetupWizard for new tenants
+- Add completion detection logic
+- Create celebratory completion states
+- Add "suggested next steps" after setup
+
+### Phase 4: Visual Polish
+- Add AIPreviewBanner to all editors
+- Refine industry-specific language throughout
+- Add map preview for service area
+- Add visual weekly grid for hours
 
 ---
 
@@ -104,85 +214,44 @@ This centralizes authentication handling and error management.
 
 | File | Purpose |
 |------|---------|
-| `supabase/functions/get-voice-options/index.ts` | Secure voice options endpoint |
+| `src/components/brain/layout/SectionSummaryCard.tsx` | Status-focused section card |
+| `src/components/brain/layout/BrainProgressRing.tsx` | Circular progress indicator |
+| `src/components/brain/layout/InlineFieldHelp.tsx` | Tooltip help system |
+| `src/components/brain/layout/AIPreviewBanner.tsx` | Real-time AI preview |
+| `src/components/brain/wizard/QuickSetupWizard.tsx` | First-time user wizard |
+| `src/components/brain/wizard/WizardStep.tsx` | Individual wizard step |
+| `src/components/brain/layout/EssentialGroup.tsx` | Essential sections wrapper |
+| `src/components/brain/layout/AdvancedGroup.tsx` | Advanced settings accordion |
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `supabase/functions/admin-reset-password/index.ts` | Use environment secret instead of hardcoded |
-| `src/components/ai/VoiceSelector.tsx` | Fetch voices from backend, use SDK pattern |
-
-## Database Changes
-
-| Change | Details |
-|--------|---------|
-| New table `voice_options` | Stores voice configurations securely |
-| RLS policies | Read-only for authenticated users |
+| `BusinessBrainPage.tsx` | New layout structure, tab consolidation |
+| `businessBrainNavConfig.ts` | Updated categories, essential/advanced flags |
+| `CollapsibleBrainSection.tsx` | Deprecate in favor of SectionSummaryCard |
+| `SectionHelper.tsx` | Convert to floating tooltip system |
+| `industryHelpers.ts` | Add more mode-specific content |
+| All editor components | Add AIPreviewBanner integration |
 
 ---
 
-## Technical Details
+## Key UX Improvements
 
-### Edge Function: get-voice-options
-
-```text
-Flow:
-1. Verify JWT authentication
-2. Query voice_options table (is_active = true)
-3. Return only safe fields (id, name, description)
-4. Never return provider_voice_id to frontend
-```
-
-### Database Migration
-
-```sql
-CREATE TABLE public.voice_options (
-  id text PRIMARY KEY,
-  name text NOT NULL,
-  description text,
-  provider_voice_id text NOT NULL,
-  is_active boolean DEFAULT true,
-  created_at timestamptz DEFAULT now()
-);
-
--- Seed default voices
-INSERT INTO voice_options VALUES 
-  ('james', 'James', 'Professional and confident male voice', 'TX3LPaxmHKxFdv7VOQHJ', true),
-  ('sarah', 'Sarah', 'Warm and friendly female voice', 'EXAVITQu4vr4xnSDxMaL', true);
-
--- RLS
-ALTER TABLE voice_options ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Authenticated read" ON voice_options 
-  FOR SELECT TO authenticated USING (is_active = true);
-```
-
-### Updated VoiceSelector Flow
-
-```text
-1. Component mounts
-2. Call supabase.functions.invoke("get-voice-options")
-3. Display loading state while fetching
-4. Render voice options from response
-5. When preview clicked, call elevenlabs-tts with friendly voice ID
-6. Edge function resolves friendly ID -> provider ID on backend
-```
+1. **50% less scrolling** — summary cards show status without expanding
+2. **Immediate understanding** — every section shows its current state
+3. **No overwhelm** — advanced settings hidden until needed
+4. **Clear progress** — owners know exactly what's left to configure
+5. **Industry-native** — everything speaks their language (tow operators see "Dispatch Fees", restaurants see "Menu")
+6. **Preview everything** — see exactly what the AI will say before saving
 
 ---
 
-## Security Benefits
+## What Stays the Same
 
-- Admin password reset now requires proper secret from Supabase secrets
-- Voice provider IDs never exposed in client JavaScript bundle
-- All sensitive lookups happen server-side
-- Consistent authentication pattern across all API calls
-
----
-
-## Rollout
-
-1. Deploy edge functions first (they're backwards compatible)
-2. Run database migration
-3. Deploy frontend changes
-4. Verify voice preview still works
-5. Test admin password reset with proper secret
+- All database interactions and save logic
+- ElevenLabs integration and prompt building
+- Business Brain → AI context pipeline
+- Existing validation and error handling
+- Multi-tenant architecture
+- RLS and security policies
