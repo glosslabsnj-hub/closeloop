@@ -206,7 +206,8 @@ export function useCapabilities(): Capabilities {
     try {
       const modules = tenant.enabled_modules;
       if (Array.isArray(modules)) {
-        enabledModules = modules;
+        // Filter to only strings to satisfy TypeScript (Json[] can contain non-strings)
+        enabledModules = modules.filter((m): m is string => typeof m === "string");
       } else if (typeof modules === "string") {
         enabledModules = JSON.parse(modules);
       } else if (modules && typeof modules === "object") {

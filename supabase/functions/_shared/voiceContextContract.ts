@@ -1214,6 +1214,144 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     category: "debug",
   },
 
+  // ===== IMPOUND LOT VARIABLES =====
+  {
+    key: "impound_lot_id",
+    description: "Default impound lot UUID",
+    type: "string",
+    source: (ctx) => ctx.impound?.lot_id || "",
+    defaultValue: "",
+    category: "core",
+  },
+  {
+    key: "impound_lot_name",
+    description: "Impound lot name",
+    type: "string",
+    source: (ctx) => ctx.impound?.lot_name || "",
+    defaultValue: "",
+    category: "core",
+  },
+  {
+    key: "impound_lot_address",
+    description: "Full impound lot address",
+    type: "string",
+    source: (ctx) => ctx.impound?.lot_address || "",
+    defaultValue: "",
+    category: "core",
+  },
+  {
+    key: "impound_lot_phone",
+    description: "Impound lot phone number",
+    type: "string",
+    source: (ctx) => ctx.impound?.lot_phone || "",
+    defaultValue: "",
+    category: "core",
+  },
+  {
+    key: "impound_lot_hours_today",
+    description: "Today's hours for impound lot (e.g., '8 AM to 5 PM')",
+    type: "string",
+    source: (ctx) => ctx.impound?.lot_hours_today || "",
+    defaultValue: "",
+    category: "hours",
+  },
+  {
+    key: "impound_lot_hours_summary",
+    description: "Weekly hours summary for voice (e.g., 'Monday through Friday 8 to 5')",
+    type: "string",
+    source: (ctx) => ctx.impound?.lot_hours_summary || "",
+    defaultValue: "",
+    category: "hours",
+  },
+  {
+    key: "impound_is_open_now",
+    description: "Whether the impound lot is currently open",
+    type: "boolean",
+    source: (ctx) => ctx.impound?.is_open_now || false,
+    defaultValue: false,
+    category: "hours",
+  },
+  {
+    key: "impound_next_open",
+    description: "When the lot next opens (e.g., 'Tomorrow at 8 AM')",
+    type: "string",
+    source: (ctx) => ctx.impound?.next_open || "",
+    defaultValue: "",
+    category: "hours",
+  },
+  {
+    key: "impound_base_tow_fee",
+    description: "Base tow fee in dollars (e.g., '175')",
+    type: "string",
+    source: (ctx) => ctx.impound?.base_tow_fee_cents
+      ? String(ctx.impound.base_tow_fee_cents / 100)
+      : "",
+    defaultValue: "",
+    category: "pricing",
+  },
+  {
+    key: "impound_daily_storage_fee",
+    description: "Daily storage fee in dollars (e.g., '35')",
+    type: "string",
+    source: (ctx) => ctx.impound?.daily_storage_cents
+      ? String(ctx.impound.daily_storage_cents / 100)
+      : "",
+    defaultValue: "",
+    category: "pricing",
+  },
+  {
+    key: "impound_admin_fee",
+    description: "Admin fee in dollars",
+    type: "string",
+    source: (ctx) => ctx.impound?.admin_fee_cents
+      ? String(ctx.impound.admin_fee_cents / 100)
+      : "",
+    defaultValue: "",
+    category: "pricing",
+  },
+  {
+    key: "impound_gate_fee",
+    description: "Gate fee in dollars",
+    type: "string",
+    source: (ctx) => ctx.impound?.gate_fee_cents
+      ? String(ctx.impound.gate_fee_cents / 100)
+      : "",
+    defaultValue: "",
+    category: "pricing",
+  },
+  {
+    key: "impound_fee_summary",
+    description: "Speech-ready summary of all fees",
+    type: "string",
+    source: (ctx) => ctx.impound?.fee_summary || "",
+    defaultValue: "",
+    category: "pricing",
+  },
+  {
+    key: "impound_release_requirements",
+    description: "Comma-separated release requirements (raw keys)",
+    type: "string",
+    source: (ctx) => ctx.impound?.release_requirements?.join(", ") || "",
+    defaultValue: "",
+    category: "policies",
+  },
+  {
+    key: "impound_release_requirements_summary",
+    description: "Speech-ready release requirements",
+    type: "string",
+    source: (ctx) => ctx.impound?.release_requirements_summary || "",
+    defaultValue: "",
+    category: "policies",
+  },
+  {
+    key: "impound_accepted_payment",
+    description: "Accepted payment methods for release",
+    type: "string",
+    source: (ctx) => ctx.impound?.accepted_payment_summary || "",
+    defaultValue: "",
+    category: "policies",
+  },
+
   // ===== BUSINESS BRAIN SNAPSHOT =====
   {
     key: "business_brain_summary",

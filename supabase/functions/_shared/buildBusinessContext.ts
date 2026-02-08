@@ -291,6 +291,28 @@ export interface BusinessContext {
   business_brain_json: string;
   // Whether JSON was truncated due to size
   business_brain_json_truncated: boolean;
+  // Impound lot data (null if capability not enabled)
+  impound: {
+    lot_id: string;
+    lot_name: string;
+    lot_address: string;
+    lot_phone: string;
+    lot_hours_today: string;
+    lot_hours_summary: string;
+    is_open_now: boolean;
+    next_open: string;
+    // Fee structure from impound_settings
+    base_tow_fee_cents: number;
+    daily_storage_cents: number;
+    admin_fee_cents: number;
+    gate_fee_cents: number;
+    fee_summary: string;
+    // Release requirements
+    release_requirements: string[];
+    release_requirements_summary: string;
+    accepted_payment_methods: string[];
+    accepted_payment_summary: string;
+  } | null;
   // Metadata
   _meta: {
     channel: string;
@@ -432,6 +454,246 @@ function formatIntakeFieldsForVoice(fields: IntakeField[]): string {
 /**
  * Distance settings from tenant_distance_settings table
  */
+// ============= IMPOUND LOT HELPER FUNCTIONS =============
+
+interface ImpoundHoursEntry {
+  open: string | null;
+  close: string | null;
+}
+
+type DayOfWeek = "sunday" | "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday";
+
+const IMPOUND_DAY_ORDER: DayOfWeek[] = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+
+/**
+ * Get impound lot hours for today and compute open/next status
+ */
+function getImpoundLotHoursContext(
+  hoursJson: Record<string, ImpoundHoursEntry> | null,
+  timezone: string = "America/New_York"
+): {
+  hours_today: string;
+  is_open_now: boolean;
+  next_open: string;
+  hours_summary: string;
+} {
+  const defaultResult = {
+    hours_today: "",
+    is_open_now: false,
+    next_open: "",
+    hours_summary: "",
+  };
+
+  if (!hoursJson || Object.keys(hoursJson).length === 0) {
+    return defaultResult;
+  }
+
+  // Get current day
+  const now = new Date();
+  const days: DayOfWeek[] = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  const todayIndex = now.getDay();
+  const todayName = days[todayIndex];
+  const todayHours = hoursJson[todayName];
+
+  // Format time from 24h to speech-friendly
+  const formatTimeForSpeech = (time24: string): string => {
+    const [hours, minutes] = time24.split(":").map(Number);
+    const hours12 = hours % 12 || 12;
+    const period = hours >= 12 ? "PM" : "AM";
+    if (minutes === 0) {
+      return `${hours12} ${period}`;
+    }
+    return `${hours12}:${minutes.toString().padStart(2, "0")} ${period}`;
+  };
+
+  // Format hours for today
+  let hours_today = "";
+  if (todayHours?.open && todayHours?.close) {
+    hours_today = `${formatTimeForSpeech(todayHours.open)} to ${formatTimeForSpeech(todayHours.close)}`;
+  } else {
+    hours_today = "Closed today";
+  }
+
+  // Check if currently open
+  let is_open_now = false;
+  if (todayHours?.open && todayHours?.close) {
+    const [openHour, openMin] = todayHours.open.split(":").map(Number);
+    const [closeHour, closeMin] = todayHours.close.split(":").map(Number);
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const openMinutes = openHour * 60 + openMin;
+    const closeMinutes = closeHour * 60 + closeMin;
+    is_open_now = currentMinutes >= openMinutes && currentMinutes < closeMinutes;
+  }
+
+  // Compute next open time
+  let next_open = "";
+  if (!is_open_now) {
+    // Check if opens later today
+    if (todayHours?.open) {
+      const [openHour, openMin] = todayHours.open.split(":").map(Number);
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const openMinutes = openHour * 60 + openMin;
+      if (currentMinutes < openMinutes) {
+        next_open = `Today at ${formatTimeForSpeech(todayHours.open)}`;
+      }
+    }
+
+    // If not opening today, find next open day
+    if (!next_open) {
+      for (let i = 1; i <= 7; i++) {
+        const checkDayIndex = (todayIndex + i) % 7;
+        const checkDayName = days[checkDayIndex];
+        const checkHours = hoursJson[checkDayName];
+        if (checkHours?.open) {
+          const dayLabel = i === 1 ? "Tomorrow" : checkDayName.charAt(0).toUpperCase() + checkDayName.slice(1);
+          next_open = `${dayLabel} at ${formatTimeForSpeech(checkHours.open)}`;
+          break;
+        }
+      }
+    }
+  }
+
+  // Build weekly summary for speech
+  const parts: string[] = [];
+  const weekdays: DayOfWeek[] = ["monday", "tuesday", "wednesday", "thursday", "friday"];
+  const weekdayHours = weekdays.map(d => hoursJson[d]);
+  const allWeekdaysSame = weekdayHours.every(
+    h => h?.open === weekdayHours[0]?.open && h?.close === weekdayHours[0]?.close
+  );
+
+  if (allWeekdaysSame && weekdayHours[0]?.open && weekdayHours[0]?.close) {
+    const openTime = weekdayHours[0].open.split(":")[0];
+    const closeTime = weekdayHours[0].close.split(":")[0];
+    parts.push(`Monday through Friday ${openTime} to ${closeTime}`);
+  } else {
+    for (const day of weekdays) {
+      const h = hoursJson[day];
+      if (h?.open && h?.close) {
+        parts.push(`${day.charAt(0).toUpperCase() + day.slice(1)} ${h.open.split(":")[0]} to ${h.close.split(":")[0]}`);
+      }
+    }
+  }
+
+  const satHours = hoursJson["saturday"];
+  if (satHours?.open && satHours?.close) {
+    parts.push(`Saturdays ${satHours.open.split(":")[0]} to ${satHours.close.split(":")[0]}`);
+  } else {
+    parts.push("closed Saturdays");
+  }
+
+  const sunHours = hoursJson["sunday"];
+  if (sunHours?.open && sunHours?.close) {
+    parts.push(`Sundays ${sunHours.open.split(":")[0]} to ${sunHours.close.split(":")[0]}`);
+  } else {
+    parts.push("closed Sundays");
+  }
+
+  return {
+    hours_today,
+    is_open_now,
+    next_open,
+    hours_summary: parts.join(", "),
+  };
+}
+
+/**
+ * Build impound fee summary for speech
+ */
+function buildImpoundFeeSummary(settings: {
+  base_tow_fee_cents?: number;
+  daily_storage_cents?: number;
+  admin_fee_cents?: number;
+  gate_fee_cents?: number;
+} | null): string {
+  if (!settings) return "";
+  const parts: string[] = [];
+  if (settings.base_tow_fee_cents) {
+    parts.push(`$${(settings.base_tow_fee_cents / 100).toFixed(0)} base tow fee`);
+  }
+  if (settings.daily_storage_cents) {
+    parts.push(`$${(settings.daily_storage_cents / 100).toFixed(0)} per day storage`);
+  }
+  if (settings.admin_fee_cents) {
+    parts.push(`$${(settings.admin_fee_cents / 100).toFixed(0)} admin fee`);
+  }
+  if (settings.gate_fee_cents) {
+    parts.push(`$${(settings.gate_fee_cents / 100).toFixed(0)} gate fee`);
+  }
+  return parts.join(", ");
+}
+
+/**
+ * Format release requirements for speech
+ */
+function formatImpoundReleaseRequirements(reqs: string[] | null): string {
+  if (!reqs || reqs.length === 0) return "";
+  const REQUIREMENT_LABELS: Record<string, string> = {
+    valid_id: "valid government-issued ID",
+    registration: "vehicle registration or title",
+    insurance: "proof of insurance",
+    lien_release: "lien release from lienholder",
+    police_release: "police release authorization",
+    payment: "payment in full",
+    notarized_authorization: "notarized authorization if picking up for someone else",
+  };
+  return reqs.map(r => REQUIREMENT_LABELS[r] || r).join(", ");
+}
+
+/**
+ * Format payment methods for speech
+ */
+function formatImpoundPaymentMethods(methods: string[] | null): string {
+  if (!methods || methods.length === 0) return "";
+  const METHOD_LABELS: Record<string, string> = {
+    cash: "cash",
+    credit_card: "credit card",
+    debit_card: "debit card",
+    check: "check",
+    money_order: "money order",
+    certified_check: "certified check",
+  };
+  return methods.map(m => METHOD_LABELS[m] || m).join(", ");
+}
+
+/**
+ * Build impound context from lot and settings data
+ */
+function buildImpoundContext(
+  lot: any | null,
+  settings: any | null,
+  timezone: string
+): BusinessContext["impound"] {
+  if (!lot) return null;
+
+  const hoursContext = getImpoundLotHoursContext(lot.hours_json, timezone);
+  const addressParts = [lot.address, lot.city, lot.state, lot.zip].filter(Boolean);
+  const fullAddress = addressParts.join(", ");
+
+  return {
+    lot_id: lot.id,
+    lot_name: lot.name || "",
+    lot_address: fullAddress,
+    lot_phone: lot.phone || "",
+    lot_hours_today: hoursContext.hours_today,
+    lot_hours_summary: hoursContext.hours_summary,
+    is_open_now: hoursContext.is_open_now,
+    next_open: hoursContext.next_open,
+    // Fee structure
+    base_tow_fee_cents: settings?.base_tow_fee_cents || 0,
+    daily_storage_cents: settings?.daily_storage_cents || 0,
+    admin_fee_cents: settings?.admin_fee_cents || 0,
+    gate_fee_cents: settings?.gate_fee_cents || 0,
+    fee_summary: buildImpoundFeeSummary(settings),
+    // Release requirements
+    release_requirements: settings?.release_requirements || [],
+    release_requirements_summary: formatImpoundReleaseRequirements(settings?.release_requirements),
+    accepted_payment_methods: settings?.accepted_payment_methods || [],
+    accepted_payment_summary: formatImpoundPaymentMethods(settings?.accepted_payment_methods),
+  };
+}
+
+// ============= DISTANCE SETTINGS =============
+
 interface TenantDistanceSettings {
   tenant_id: string;
   distance_provider_enabled: boolean;
@@ -1530,9 +1792,43 @@ export async function buildBusinessContext(
     supabase.from("tenant_intelligence_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
     supabase.from("data_retention_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
     supabase.from("tenant_food_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
-    // NEW: Fetch ETA/distance settings from the canonical table
+    // Fetch ETA/distance settings from the canonical table
     supabase.from("tenant_distance_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
   ]);
+  
+  // ===== CONDITIONAL FETCH: IMPOUND LOT DATA =====
+  // Fetch impound data only after we know tenant capabilities
+  let impoundLotData: {
+    lot: any | null;
+    settings: any | null;
+  } = { lot: null, settings: null };
+  
+  // We need tenant data to check capabilities, so fetch impound data afterward
+  if (tenantResult.data) {
+    const tenantCaps = (tenantResult.data.capabilities_json as Record<string, boolean>) || {};
+    const hasImpoundCap = tenantCaps.impound_lot === true;
+    
+    if (hasImpoundCap) {
+      const [impoundLotResult, impoundSettingsResult] = await Promise.all([
+        supabase.from("impound_lots")
+          .select("*")
+          .eq("tenant_id", tenantId)
+          .eq("is_active", true)
+          .order("is_default", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase.from("impound_settings")
+          .select("*")
+          .eq("tenant_id", tenantId)
+          .maybeSingle(),
+      ]);
+      
+      impoundLotData = {
+        lot: impoundLotResult.data,
+        settings: impoundSettingsResult.data,
+      };
+    }
+  }
   
   if (tenantResult.error || !tenantResult.data) {
     throw new Error(`Tenant not found: ${tenantId}`);
@@ -1842,6 +2138,8 @@ export async function buildBusinessContext(
     business_brain_summary: "",
     business_brain_json: "{}",
     business_brain_json_truncated: false,
+    // Impound lot data (built from fetched impound data)
+    impound: buildImpoundContext(impoundLotData.lot, impoundLotData.settings, tenant.timezone || "America/New_York"),
     _meta: {
       channel,
       session_id: sessionId,
