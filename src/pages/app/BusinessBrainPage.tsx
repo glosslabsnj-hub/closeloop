@@ -8,11 +8,11 @@
  */
 
 import { useState, useEffect, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Menu, Wrench } from "lucide-react";
+import { Menu, Wrench, LayoutGrid, List } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 // Section editors (unchanged logic)
@@ -112,6 +112,7 @@ import {
   getModeGradient,
 } from "@/components/brain/layout";
 import { useBrainSummaries } from "@/hooks/useBrainSummaries";
+import { BrainDashboard } from "@/components/brain/dashboard";
 import { 
   FileText, Shield, MessageSquareText, Send, Truck, UtensilsCrossed, HeartPulse,
   Building2, Palette, Clock, DollarSign, Tag, MapPin, Navigation, Gauge,
@@ -138,12 +139,19 @@ const LEGACY_TAB_TO_SECTION: Record<string, { section: SectionId; hash?: string 
 
 export default function BusinessBrainPage() {
   const { tenant } = useAuth();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const reviewCount = useBrainReviewCount();
   const { businessMode, hipaaMode } = useTenantConfig();
   const { isFoodMode, hasFoodOrders } = useFoodMode();
   const { acceptsDelivery: foodAcceptsDelivery, acceptsCatering: foodAcceptsCatering, needsCoverageSettings: foodNeedsCoverage } = useFoodOrderSettings();
   const summaries = useBrainSummaries();
+
+  // View mode: "dashboard" (collapsed cards) or "detailed" (full sections)
+  const viewParam = searchParams.get("view");
+  const [viewMode, setViewMode] = useState<"dashboard" | "detailed">(
+    viewParam === "dashboard" ? "dashboard" : "detailed"
+  );
 
   const sectionParamRaw = searchParams.get("section");
   const legacyTab = searchParams.get("tab");
@@ -169,11 +177,29 @@ export default function BusinessBrainPage() {
   const [hoursExpanded, setHoursExpanded] = useState(true);
 
   const handleSectionChange = (section: string) => {
+    // When navigating from dashboard, switch to detailed view
+    if (viewMode === "dashboard") {
+      setViewMode("detailed");
+    }
     setSearchParams({ section }, { replace: true });
     setMobileNavOpen(false);
     // Reset expansion states when changing sections
     setHoursExpanded(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleStartInterview = () => {
+    navigate("/app/brain-setup");
+  };
+
+  const toggleViewMode = () => {
+    const newMode = viewMode === "dashboard" ? "detailed" : "dashboard";
+    setViewMode(newMode);
+    if (newMode === "dashboard") {
+      setSearchParams({ view: "dashboard" }, { replace: true });
+    } else {
+      setSearchParams({ section: activeSection }, { replace: true });
+    }
   };
 
   useEffect(() => {
@@ -219,14 +245,54 @@ export default function BusinessBrainPage() {
 
   const currentCategory = BRAIN_CATEGORIES.find(c => c.section === activeSection) ?? null;
 
+  // Dashboard view - simplified card layout
+  if (viewMode === "dashboard") {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container max-w-3xl py-6 px-4 sm:px-6">
+          <BrainDashboard
+            onNavigateToSection={handleSectionChange}
+            onStartInterview={handleStartInterview}
+          />
+          
+          {/* View toggle at bottom */}
+          <div className="mt-8 text-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleViewMode}
+              className="text-muted-foreground"
+            >
+              <List className="h-4 w-4 mr-2" />
+              Switch to Detailed View
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Desktop: Horizontal Tabs */}
       <div className="hidden md:block sticky top-0 z-30">
-        <BusinessBrainTabs
-          activeSection={activeSection}
-          onSectionChange={handleSectionChange}
-        />
+        <div className="flex items-center justify-between border-b bg-background/95 backdrop-blur-sm">
+          <BusinessBrainTabs
+            activeSection={activeSection}
+            onSectionChange={handleSectionChange}
+          />
+          <div className="pr-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleViewMode}
+              className="text-muted-foreground"
+            >
+              <LayoutGrid className="h-4 w-4 mr-2" />
+              Dashboard
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Mobile: Hamburger + Sheet */}
@@ -247,11 +313,19 @@ export default function BusinessBrainPage() {
           </Sheet>
 
           {currentCategory && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-1">
               <currentCategory.icon className="h-5 w-5 text-primary" />
               <h1 className="text-lg font-semibold">{currentCategory.title}</h1>
             </div>
           )}
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleViewMode}
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
