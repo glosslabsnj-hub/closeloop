@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { SuggestedFAQButtons } from "./SuggestedFAQButtons";
 import { KnowledgeSection } from "./shared/KnowledgeSection";
 import { KnowledgeItem } from "./shared/KnowledgeItem";
+import { InlineUploadButton } from "./InlineUploadButton";
 
 export function BusinessFAQEditor() {
   const { tenant } = useAuth();
@@ -106,6 +107,18 @@ export function BusinessFAQEditor() {
 
   return (
     <>
+      {/* Prominent Upload Banner */}
+      <div className="mb-4">
+        <InlineUploadButton 
+          contentType="faqs" 
+          variant="prominent"
+          onUploadComplete={() => {
+            fetchFAQs();
+            queryClient.invalidateQueries({ queryKey: ["business-context"] });
+          }}
+        />
+      </div>
+
       <KnowledgeSection
         title="FAQs"
         description="Common questions and answers. Your AI will use these to respond to customer inquiries."
@@ -116,7 +129,7 @@ export function BusinessFAQEditor() {
         emptyState={{
           icon: HelpCircle,
           title: "No FAQs yet",
-          description: "Add common questions and answers so your AI can help customers.",
+          description: "Use the upload button above to import FAQs, or add them manually.",
         }}
         headerActions={
           <SuggestedFAQButtons 

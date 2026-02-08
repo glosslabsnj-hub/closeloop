@@ -389,6 +389,13 @@ export function ServiceCatalogEditor() {
         </div>
       </div>
 
+      {/* Prominent Upload Banner - Always visible */}
+      <InlineUploadButton 
+        contentType="services" 
+        variant="prominent"
+        onUploadComplete={() => queryClient.invalidateQueries({ queryKey: ["services"] })}
+      />
+
       {/* AI Preview */}
       {services && services.length > 0 && (
         <div className="rounded-lg border bg-primary/5 border-primary/20 p-4">
@@ -416,17 +423,10 @@ export function ServiceCatalogEditor() {
             }
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <InlineUploadButton 
-            contentType="services" 
-            variant="compact"
-            onUploadComplete={() => queryClient.invalidateQueries({ queryKey: ["services"] })}
-          />
-          <Button onClick={startCreatingNew} disabled={isCreatingNew}>
-            <Plus className="h-4 w-4 mr-2" />
-            {terms.addService}
-          </Button>
-        </div>
+        <Button onClick={startCreatingNew} disabled={isCreatingNew}>
+          <Plus className="h-4 w-4 mr-2" />
+          {terms.addService}
+        </Button>
       </div>
 
       {/* New Service Form */}
@@ -544,22 +544,15 @@ export function ServiceCatalogEditor() {
                 <DollarSign className="h-8 w-8 text-muted-foreground" />
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-1">No services yet</h3>
+                <h3 className="font-semibold text-lg mb-1">No {terms.services} yet</h3>
                 <p className="text-sm text-muted-foreground">
-                  Start by adding your most popular services. The AI will use these to answer pricing questions and help customers book.
+                  Use the upload button above to import your {terms.services} list, or add them manually.
                 </p>
               </div>
-              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
-                <InlineUploadButton 
-                  contentType="services"
-                  onUploadComplete={() => queryClient.invalidateQueries({ queryKey: ["services"] })}
-                />
-                <span className="text-xs text-muted-foreground">or</span>
-                <Button onClick={startCreatingNew}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Service Manually
-                </Button>
-              </div>
+              <Button onClick={startCreatingNew}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Manually
+              </Button>
             </div>
           </CardContent>
         </Card>
