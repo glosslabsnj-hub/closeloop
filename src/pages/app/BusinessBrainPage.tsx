@@ -87,6 +87,7 @@ import {
 // Hooks
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useFoodMode } from "@/hooks/useFoodMode";
+import { useFoodOrderSettings } from "@/hooks/useFoodOrderSettings";
 
 // Layout components
 import {
@@ -140,6 +141,7 @@ export default function BusinessBrainPage() {
   const reviewCount = useBrainReviewCount();
   const { businessMode, hipaaMode } = useTenantConfig();
   const { isFoodMode, hasFoodOrders } = useFoodMode();
+  const { acceptsDelivery: foodAcceptsDelivery, acceptsCatering: foodAcceptsCatering, needsCoverageSettings: foodNeedsCoverage } = useFoodOrderSettings();
   const summaries = useBrainSummaries();
 
   const sectionParamRaw = searchParams.get("section");
@@ -544,36 +546,67 @@ export default function BusinessBrainPage() {
             {/* SERVICE AREA */}
             {activeSection === "service-area" && (
               <div className="space-y-4">
+                {/* Food business in-house only notice */}
+                {(businessMode === "food" || isFoodMode) && !foodNeedsCoverage && (
+                  <div className="rounded-lg border bg-muted/30 p-4">
+                    <div className="flex items-start gap-3">
+                      <UtensilsCrossed className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">No Coverage Settings Needed</p>
+                        <p className="text-sm text-muted-foreground">
+                          Since you only offer <strong>dine-in and/or pickup</strong>, you don't need to configure delivery zones or ETAs.
+                          If you start offering <strong>delivery</strong> or <strong>catering</strong>, enable them in{" "}
+                          <Button 
+                            variant="link" 
+                            className="h-auto p-0 text-primary" 
+                            onClick={() => handleSectionChange("services")}
+                          >
+                            Services → Order Settings
+                          </Button>{" "}
+                          and these options will appear.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <EssentialGroup 
                   title="Coverage Area" 
                   description="Where your business provides service"
-                  showBadge={["dispatch", "service", "food"].includes(businessMode)}
+                  showBadge={["dispatch", "service"].includes(businessMode) || ((businessMode === "food" || isFoodMode) && foodNeedsCoverage)}
                 >
-                  <SectionSummaryCard
-                    id="coverage"
-                    title="Where You Serve"
-                    icon={MapPin}
-                    status="incomplete"
-                    statusText={summaries.coverage}
-                    isEssential={["dispatch", "service", "food"].includes(businessMode)}
-                    mode={businessMode}
-                  >
-                    <ServiceAreaPreview />
-                    <div className="mt-4">
-                      <ServiceAreaManager />
-                    </div>
-                  </SectionSummaryCard>
+                  {/* Only show location/coverage for non-food or food with delivery/catering */}
+                  {(businessMode !== "food" && !isFoodMode) || foodNeedsCoverage ? (
+                    <>
+                      <SectionSummaryCard
+                        id="coverage"
+                        title="Where You Serve"
+                        icon={MapPin}
+                        status="incomplete"
+                        statusText={summaries.coverage}
+                        isEssential={["dispatch", "service"].includes(businessMode) || foodNeedsCoverage}
+                        mode={businessMode}
+                      >
+                        <ServiceAreaPreview />
+                        <div className="mt-4">
+                          <ServiceAreaManager />
+                        </div>
+                      </SectionSummaryCard>
 
-                  <SectionSummaryCard
-                    id="travel-times"
-                    title="Travel & Wait Times"
-                    icon={Navigation}
-                    status="incomplete"
-                    statusText={summaries.travelTimes}
-                    mode={businessMode}
-                  >
-                    {isDispatchMode ? <DispatchEtaSection /> : <DistanceEtaSection />}
-                  </SectionSummaryCard>
+                      <SectionSummaryCard
+                        id="travel-times"
+                        title={foodAcceptsDelivery && !foodAcceptsCatering ? "Delivery Times" : 
+                               !foodAcceptsDelivery && foodAcceptsCatering ? "Catering Coverage" :
+                               "Travel & Wait Times"}
+                        icon={Navigation}
+                        status="incomplete"
+                        statusText={summaries.travelTimes}
+                        mode={businessMode}
+                      >
+                        {isDispatchMode ? <DispatchEtaSection /> : <DistanceEtaSection />}
+                      </SectionSummaryCard>
+                    </>
+                  ) : null}
                 </EssentialGroup>
 
                 {/* Mode-specific coverage settings */}
@@ -608,7 +641,8 @@ export default function BusinessBrainPage() {
                     </SectionSummaryCard>
                   )}
 
-                  {(businessMode === "food" || isFoodMode) && (
+                  {/* Only show delivery zones when food business accepts delivery */}
+                  {(businessMode === "food" || isFoodMode) && foodAcceptsDelivery && (
                     <SectionSummaryCard
                       id="delivery-zones"
                       title="Delivery Zones"
@@ -618,6 +652,26 @@ export default function BusinessBrainPage() {
                       mode={businessMode}
                     >
                       <DeliveryZonesEditor />
+                    </SectionSummaryCard>
+                  )}
+
+                  {/* Catering coverage for food businesses that accept catering */}
+                  {(businessMode === "food" || isFoodMode) && foodAcceptsCatering && (
+                    <SectionSummaryCard
+                      id="catering-coverage"
+                      title="Catering Coverage"
+                      icon={Users}
+                      status="incomplete"
+                      statusText="Catering service areas and lead time requirements"
+                      mode={businessMode}
+                    >
+                      <div className="space-y-4">
+                        <p className="text-sm text-muted-foreground">
+                          Configure how far you'll travel for catering events and minimum lead time requirements.
+                          Your AI will use this to qualify catering inquiries.
+                        </p>
+                        <DistanceEtaSection />
+                      </div>
                     </SectionSummaryCard>
                   )}
 
