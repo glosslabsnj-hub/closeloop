@@ -282,6 +282,13 @@ export function MenuCatalogEditor() {
         </div>
       </div>
 
+      {/* Prominent Upload Banner - Always visible */}
+      <InlineUploadButton 
+        contentType="menu" 
+        variant="prominent"
+        onUploadComplete={() => queryClient.invalidateQueries({ queryKey: ["menu-items"] })}
+      />
+
       {/* AI Preview */}
       {menuItems && menuItems.length > 0 && (
         <div className="rounded-lg border bg-primary/5 border-primary/20 p-4">
@@ -309,17 +316,10 @@ export function MenuCatalogEditor() {
             }
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <InlineUploadButton 
-            contentType="menu" 
-            variant="compact"
-            onUploadComplete={() => queryClient.invalidateQueries({ queryKey: ["menu-items"] })}
-          />
-          <Button onClick={openCreateDialog}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Item
-          </Button>
-        </div>
+        <Button onClick={openCreateDialog}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Item
+        </Button>
       </div>
 
       {/* Menu Items by Category */}
@@ -447,20 +447,13 @@ export function MenuCatalogEditor() {
               <div>
                 <h3 className="font-semibold text-lg mb-1">No menu items yet</h3>
                 <p className="text-sm text-muted-foreground">
-                  Add your menu items so the AI can answer pricing questions and take orders from customers.
+                  Use the upload button above to import your menu, or add items manually.
                 </p>
               </div>
-              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
-                <InlineUploadButton 
-                  contentType="menu"
-                  onUploadComplete={() => queryClient.invalidateQueries({ queryKey: ["menu-items"] })}
-                />
-                <span className="text-xs text-muted-foreground">or</span>
-                <Button onClick={openCreateDialog}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Item Manually
-                </Button>
-              </div>
+              <Button onClick={openCreateDialog}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Item Manually
+              </Button>
             </div>
           </CardContent>
         </Card>

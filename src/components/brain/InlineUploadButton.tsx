@@ -14,8 +14,8 @@ interface InlineUploadButtonProps {
   contentType: "menu" | "services" | "faqs" | "policies" | "hours" | "general";
   /** Optional callback when upload completes successfully */
   onUploadComplete?: () => void;
-  /** Size variant */
-  variant?: "default" | "compact";
+  /** Size variant: compact (small button), default (dashed border), prominent (highlighted card) */
+  variant?: "default" | "compact" | "prominent";
   /** Custom class name */
   className?: string;
 }
@@ -144,16 +144,20 @@ export function InlineUploadButton({
     general: "document"
   };
 
+  const fileInput = (
+    <input
+      ref={fileInputRef}
+      type="file"
+      accept={acceptedFormats}
+      onChange={handleFileSelect}
+      className="hidden"
+    />
+  );
+
   if (variant === "compact") {
     return (
       <>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept={acceptedFormats}
-          onChange={handleFileSelect}
-          className="hidden"
-        />
+        {fileInput}
         <Button
           variant="outline"
           size="sm"
@@ -172,15 +176,50 @@ export function InlineUploadButton({
     );
   }
 
+  if (variant === "prominent") {
+    return (
+      <>
+        {fileInput}
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading}
+          className={cn(
+            "w-full flex items-center gap-4 p-4 rounded-xl border-2 border-dashed",
+            "border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50",
+            "text-left transition-all duration-200 group",
+            isUploading && "opacity-50 pointer-events-none",
+            className
+          )}
+        >
+          <div className="flex-shrink-0 h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+            {isUploading ? (
+              <Loader2 className="h-6 w-6 text-primary animate-spin" />
+            ) : (
+              <Wand2 className="h-6 w-6 text-primary" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-foreground">
+              {isUploading ? "Processing your upload..." : `Upload your ${contentTypeLabels[contentType]}`}
+            </p>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {isUploading 
+                ? "AI is extracting items - check Review Queue when done"
+                : "PDF, photo, or document — AI will extract and fill in the details"
+              }
+            </p>
+          </div>
+          {!isUploading && (
+            <Upload className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
+          )}
+        </button>
+      </>
+    );
+  }
+
   return (
     <>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept={acceptedFormats}
-        onChange={handleFileSelect}
-        className="hidden"
-      />
+      {fileInput}
       <button
         onClick={() => fileInputRef.current?.click()}
         disabled={isUploading}
