@@ -4,6 +4,7 @@
  * Editors for food business offerings customization.
  */
 
+export { FoodServiceTypesEditor } from "./FoodServiceTypesEditor";
 export { FoodSettingsEditor } from "./FoodSettingsEditor";
 export { MenuSizesEditor } from "./MenuSizesEditor";
 export { DailySpecialsEditor } from "./DailySpecialsEditor";
