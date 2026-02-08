@@ -1,291 +1,233 @@
 
-# Plan: Wire Impound Agent Variables ✅ COMPLETED
 
-## Status: IMPLEMENTED
+# Deep Dashboard & Onboarding Audit
 
-All impound-specific context variables have been added to the system.
+## Executive Summary
 
-## Summary of Changes Made
+After conducting a thorough audit of the entire onboarding-to-dashboard flow across all five business modes (Service, Dispatch, Food, Medical, General), I found that **the architecture is fundamentally sound** but there are **several gaps and inconsistencies** that could cause confusion for specific business types.
 
-### 1. Updated `BusinessContext` Interface (buildBusinessContext.ts)
-Added the `impound` section with all required fields:
-- Core: `lot_id`, `lot_name`, `lot_address`, `lot_phone`
-- Hours: `lot_hours_today`, `lot_hours_summary`, `is_open_now`, `next_open`
-- Fees: `base_tow_fee_cents`, `daily_storage_cents`, `admin_fee_cents`, `gate_fee_cents`, `fee_summary`
-- Release: `release_requirements`, `release_requirements_summary`, `accepted_payment_methods`, `accepted_payment_summary`
+---
 
-```typescript
-// Add to BusinessContext interface (around line 290)
-impound: {
-  lot_id: string;
-  lot_name: string;
-  lot_address: string;
-  lot_phone: string;
-  lot_hours_today: string;
-  lot_hours_summary: string;
-  is_open_now: boolean;
-  next_open: string;
-  // Fee structure from impound_settings
-  base_tow_fee_cents: number;
-  daily_storage_cents: number;
-  admin_fee_cents: number;
-  gate_fee_cents: number;
-  fee_summary: string;
-  // Release requirements
-  release_requirements: string[];
-  release_requirements_summary: string;
-  accepted_payment_methods: string[];
-  accepted_payment_summary: string;
-} | null;
+## Current Architecture Overview
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           ONBOARDING FLOW                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Step 1: Business Mode Selection (service/dispatch/food/medical/general)    │
+│  Step 2: Industry Selection (100+ industries with pre-configured templates) │
+│  Step 3: Module Selection (capabilities based on mode)                       │
+│  Step 4: Business Basics (name, hours, timezone, address)                    │
+│  Step 5: Offerings (services OR menu OR dispatch services)                   │
+│  Step 6: Policies & FAQs                                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           DASHBOARD EXPERIENCE                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  • LiveDashboard: Main view with mode-aware widgets                          │
+│  • SetupWizard: Pre-live 3-step checklist (Phone → AI → Go Live)            │
+│  • SetupProgressChecklist: 6-step checklist on dashboard                     │
+│  • MetricsGrid: Mode-aware metrics (Orders vs Bookings vs Jobs)             │
+│  • Navigation: Capability-driven nav items                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2. Fetch Impound Data (buildBusinessContext.ts)
-Add parallel fetch for impound lot and settings when capability is enabled:
+---
 
+## What's Working Well
+
+### 1. Industry → Mode → Capabilities Pipeline
+- Industry selection automatically sets `business_mode` and `enabled_modules`
+- `useCapabilities()` hook correctly resolves flags from `capabilities_json`
+- `useTerminology()` hook provides mode-aware labels (booking/job/order/appointment)
+- Navigation adapts based on capabilities (shows Dispatch Queue for dispatch, Orders for food, etc.)
+
+### 2. Dashboard Widget Visibility
+- `LeadRecoveryWidget` hidden for dispatch (correct - urgent leads don't wait)
+- `BusynessSlider` shown only for ETA-relevant businesses (dispatch, food, same-day service)
+- `MetricsGrid` shows mode-appropriate metrics (Jobs Pending vs Orders Today vs Bookings)
+
+### 3. AI Readiness System
+- Server-side RPC (`get_ai_readiness`) computes mode-aware score
+- P0/P1 flags are mode-specific (e.g., `no_menu_items` for food, `missing_pickup_intake` for dispatch)
+- Issue mapping routes users to correct Business Brain sections
+
+---
+
+## Issues Found
+
+### Issue 1: SetupProgressChecklist is Too Generic
+**Problem**: The 6-step checklist in `SetupProgressChecklist.tsx` is hardcoded and doesn't adapt to business mode:
+- Shows "Add your services" for Food businesses (should be "Add your menu")
+- Shows "Connect Phone → Test AI → Go Live" for all modes (dispatch may need different steps)
+- Calendar connection step shows for dispatch/food even though it's marked as auto-complete
+
+**Impact**: Food business owners see "Add your services" instead of "Add your menu items"
+
+### Issue 2: Missing Mode-Specific Onboarding Guidance for Food
+**Problem**: Food mode in Step 5 shows `FoodSetupEditor` but doesn't include:
+- Menu item upload/entry (only shows ordering settings like delivery radius)
+- Menu knowledge configuration
+- Menu Center CTA or explanation
+
+**Impact**: Food businesses complete onboarding without any actual menu items, then hit P0 blockers
+
+### Issue 3: Dispatch Mode Missing Impound Lot Setup
+**Problem**: Towing/dispatch businesses with `impound_lot` capability don't have:
+- Impound lot address entry in onboarding
+- Impound fee configuration in onboarding
+- Impound-specific checklist items on dashboard
+
+**Impact**: Towing businesses complete setup but can't answer impound-related calls until they manually find these settings
+
+### Issue 4: Medical Mode Missing HIPAA Acknowledgment
+**Problem**: Medical onboarding auto-enables HIPAA mode but:
+- No explicit acknowledgment or consent during onboarding
+- No explanation of what HIPAA mode means (no recordings, no transcripts)
+- `hipaa_mode` flag set silently
+
+**Impact**: Potential compliance concern; medical users should understand what they're enabling
+
+### Issue 5: ROIPerformanceWidget Empty State Steps Not Mode-Aware
+**Problem**: `ROIPerformanceWidget` has an empty state with 3 steps but these come from a hook that may not be mode-aware. If a food business has no orders, the messaging might not match their mental model.
+
+### Issue 6: NeedsAttentionBanner Uses Generic Labels
+**Problem**: The attention banner shows "new order" for food but uses `terms.pendingBooking` for bookings - this is working. However, knowledge gaps show generically as "knowledge gaps" regardless of mode.
+
+---
+
+## Recommended Fixes
+
+### Fix 1: Make SetupProgressChecklist Mode-Aware
+Update `SetupProgressChecklist.tsx` to:
+- Use `useTerminology()` for the "Add your services/menu" step label
+- Conditionally skip or auto-complete calendar step for dispatch/food
+- Show impound-specific step for businesses with `hasImpoundLot`
+- Show different step order for dispatch (Address → Services → ETA Rules → Test → Go Live)
+
+### Fix 2: Add Menu Entry to Food Onboarding
+In Step 5 for food mode:
+- After `FoodSetupEditor`, add a section for quick menu item entry
+- Allow uploading menu PDF or CSV
+- Or link to Menu Center with "You can add menu items now or after setup"
+
+### Fix 3: Add Impound Configuration to Dispatch Onboarding
+For industries with `impound_lot` capability:
+- Add impound lot address field to business basics
+- Add impound fee configuration (daily rate, release fee)
+- Show in setup checklist: "Configure impound lot"
+
+### Fix 4: Add HIPAA Acknowledgment for Medical
+In Step 3 (Modules) or Step 6 (Policies) for medical mode:
+- Show explicit HIPAA mode callout with checkbox
+- Explain: "For patient privacy, call recordings and full transcripts are disabled"
+- Require acknowledgment before proceeding
+
+### Fix 5: Mode-Aware ROI Empty State
+Update `useROIDashboard` hook to return mode-specific:
+- Steps (e.g., "Add menu items → Accept orders → See revenue" for food)
+- Encouragement text
+- Entity names
+
+### Fix 6: Enhance SetupWizard with Mode Context
+The current 3-step wizard (Phone → AI → Go Live) is fine but could benefit from:
+- Mode-specific tips in each step
+- Different readiness thresholds by mode (dispatch might need less FAQ coverage)
+
+---
+
+## Technical Implementation Plan
+
+### Phase 1: Quick Wins (Low Risk)
+
+#### 1.1 Update SetupProgressChecklist to use terminology
 ```typescript
-// Add to parallel fetch block (around line 1507-1535)
-// Fetch impound data only if capability enabled
-const impoundLotPromise = capabilities.impound_lot
-  ? supabase.from("impound_lots")
-      .select("*")
-      .eq("tenant_id", tenantId)
-      .eq("is_active", true)
-      .order("is_default", { ascending: false })
-      .limit(1)
-      .maybeSingle()
-  : Promise.resolve({ data: null, error: null });
+// In SetupProgressChecklist.tsx
+const terms = useTerminology();
 
-const impoundSettingsPromise = capabilities.impound_lot
-  ? supabase.from("impound_settings")
-      .select("*")
-      .eq("tenant_id", tenantId)
-      .maybeSingle()
-  : Promise.resolve({ data: null, error: null });
+const steps: SetupStep[] = [
+  {
+    id: "services",
+    label: terms.addServicesStep, // "Add your services" or "Add your menu"
+    description: terms.addServicesDescription,
+    ...
+  },
+  // ...rest
+];
 ```
 
-### 3. Build Impound Context Object (buildBusinessContext.ts)
-Add helper function and populate the impound section:
-
+#### 1.2 Add capability checks for calendar step
 ```typescript
-// Helper function to format impound hours for today
-function getImpoundLotHoursToday(hoursJson: Record<string, any> | null): { 
-  hours_today: string; 
-  is_open: boolean; 
-  next_open: string;
-  hours_summary: string;
-} {
-  // Similar logic to getTodayHours but for impound lots
-  // Returns formatted hours for voice AI
-}
-
-// Helper to build fee summary
-function buildImpoundFeeSummary(settings: any): string {
-  const parts: string[] = [];
-  if (settings.base_tow_fee_cents) 
-    parts.push(`$${(settings.base_tow_fee_cents / 100).toFixed(0)} base tow`);
-  if (settings.daily_storage_cents)
-    parts.push(`$${(settings.daily_storage_cents / 100).toFixed(0)} per day storage`);
-  if (settings.admin_fee_cents)
-    parts.push(`$${(settings.admin_fee_cents / 100).toFixed(0)} admin fee`);
-  if (settings.gate_fee_cents)
-    parts.push(`$${(settings.gate_fee_cents / 100).toFixed(0)} gate fee`);
-  return parts.join(", ");
-}
-
-// Helper to format release requirements
-function formatReleaseRequirements(reqs: string[]): string {
-  const REQUIREMENT_LABELS: Record<string, string> = {
-    valid_id: "valid government-issued ID",
-    registration: "vehicle registration or title",
-    insurance: "proof of insurance",
-    lien_release: "lien release from lienholder",
-    police_release: "police release authorization",
-    payment: "payment in full",
-  };
-  return reqs.map(r => REQUIREMENT_LABELS[r] || r).join(", ");
-}
+// Skip calendar step for dispatch/food businesses
+const skipCalendarStep = caps.isDispatchBusiness || caps.isFoodBusiness;
 ```
 
-### 4. Register Variables in voiceContextContract.ts
-Add new impound-specific variables to the registry (after the dispatch-specific section, around line 1160):
+### Phase 2: Mode-Specific Onboarding Enhancements
 
-```typescript
-// ===== IMPOUND LOT VARIABLES =====
-{
-  key: "impound_lot_id",
-  description: "Default impound lot UUID",
-  type: "string",
-  source: "impound.lot_id",
-  defaultValue: "",
-  category: "core",
-},
-{
-  key: "impound_lot_name",
-  description: "Impound lot name",
-  type: "string",
-  source: "impound.lot_name",
-  defaultValue: "",
-  category: "core",
-},
-{
-  key: "impound_lot_address",
-  description: "Full impound lot address",
-  type: "string",
-  source: "impound.lot_address",
-  defaultValue: "",
-  category: "core",
-},
-{
-  key: "impound_lot_phone",
-  description: "Impound lot phone number",
-  type: "string",
-  source: "impound.lot_phone",
-  defaultValue: "",
-  category: "core",
-},
-{
-  key: "impound_lot_hours_today",
-  description: "Today's hours for impound lot (e.g., '8 AM - 5 PM')",
-  type: "string",
-  source: "impound.lot_hours_today",
-  defaultValue: "",
-  category: "hours",
-},
-{
-  key: "impound_lot_hours_summary",
-  description: "Weekly hours summary for voice (e.g., 'Monday through Friday 8 to 5')",
-  type: "string",
-  source: "impound.lot_hours_summary",
-  defaultValue: "",
-  category: "hours",
-},
-{
-  key: "impound_is_open_now",
-  description: "Whether the impound lot is currently open",
-  type: "boolean",
-  source: "impound.is_open_now",
-  defaultValue: false,
-  category: "hours",
-},
-{
-  key: "impound_next_open",
-  description: "When the lot next opens (e.g., 'Tomorrow at 8 AM')",
-  type: "string",
-  source: "impound.next_open",
-  defaultValue: "",
-  category: "hours",
-},
-{
-  key: "impound_base_tow_fee",
-  description: "Base tow fee in dollars (e.g., '175')",
-  type: "string",
-  source: (ctx) => ctx.impound?.base_tow_fee_cents 
-    ? String(ctx.impound.base_tow_fee_cents / 100) : "",
-  defaultValue: "",
-  category: "pricing",
-},
-{
-  key: "impound_daily_storage_fee",
-  description: "Daily storage fee in dollars (e.g., '35')",
-  type: "string",
-  source: (ctx) => ctx.impound?.daily_storage_cents 
-    ? String(ctx.impound.daily_storage_cents / 100) : "",
-  defaultValue: "",
-  category: "pricing",
-},
-{
-  key: "impound_admin_fee",
-  description: "Admin fee in dollars",
-  type: "string",
-  source: (ctx) => ctx.impound?.admin_fee_cents 
-    ? String(ctx.impound.admin_fee_cents / 100) : "",
-  defaultValue: "",
-  category: "pricing",
-},
-{
-  key: "impound_gate_fee",
-  description: "Gate fee in dollars",
-  type: "string",
-  source: (ctx) => ctx.impound?.gate_fee_cents 
-    ? String(ctx.impound.gate_fee_cents / 100) : "",
-  defaultValue: "",
-  category: "pricing",
-},
-{
-  key: "impound_fee_summary",
-  description: "Speech-ready summary of all fees",
-  type: "string",
-  source: "impound.fee_summary",
-  defaultValue: "",
-  category: "pricing",
-},
-{
-  key: "impound_release_requirements",
-  description: "Comma-separated release requirements",
-  type: "string",
-  source: (ctx) => ctx.impound?.release_requirements?.join(", ") || "",
-  defaultValue: "",
-  category: "policies",
-},
-{
-  key: "impound_release_requirements_summary",
-  description: "Speech-ready release requirements",
-  type: "string",
-  source: "impound.release_requirements_summary",
-  defaultValue: "",
-  category: "policies",
-},
-{
-  key: "impound_accepted_payment",
-  description: "Accepted payment methods",
-  type: "string",
-  source: "impound.accepted_payment_summary",
-  defaultValue: "",
-  category: "policies",
-},
-```
+#### 2.1 Food Mode: Add menu section to Step 5
+Create a `MenuQuickAdd` component that allows:
+- Adding 3-5 sample menu items inline
+- Or uploading a menu file
+- "Skip for now - I'll add menu items later" option
 
-### 5. Variable Mapping for ElevenLabs Prompt
-The Impound Agent prompt will use these dynamic variables:
+#### 2.2 Dispatch Mode: Add impound config for towing industries
+In `OnboardingPage.tsx` Step 4:
+- Check if `caps.hasImpoundLot` or industry is towing-related
+- Show impound lot address and fee fields
+- Save to `tenants.impound_lot_address` and `tenants.impound_fees_json`
 
-| Prompt Variable | Context Path | Description |
-|-----------------|--------------|-------------|
-| `{{tenant_id}}` | Already exists | For tool calls |
-| `{{business_name}}` | Already exists | Business name |
-| `{{impound_lot_id}}` | `impound.lot_id` | For tool calls |
-| `{{impound_lot_address}}` | `impound.lot_address` | Full address |
-| `{{impound_lot_hours_today}}` | `impound.lot_hours_today` | Today's hours |
-| `{{impound_is_open_now}}` | `impound.is_open_now` | Open status |
-| `{{impound_next_open}}` | `impound.next_open` | Next open time |
-| `{{impound_base_tow_fee}}` | Computed | Base tow in dollars |
-| `{{impound_daily_storage_fee}}` | Computed | Daily storage in dollars |
-| `{{impound_admin_fee}}` | Computed | Admin fee in dollars |
-| `{{impound_gate_fee}}` | Computed | Gate fee in dollars |
-| `{{impound_fee_summary}}` | `impound.fee_summary` | All fees summary |
-| `{{impound_release_requirements_summary}}` | `impound.release_requirements_summary` | What to bring |
-| `{{impound_accepted_payment}}` | `impound.accepted_payment_summary` | Payment methods |
+#### 2.3 Medical Mode: Add HIPAA acknowledgment
+In Step 3 (ModuleSelector) or Step 6:
+- Show HIPAA warning card with checkbox
+- Store acknowledgment timestamp: `hipaa_acknowledged_at`
 
-### 6. Files to Modify
+### Phase 3: Dashboard Polish
+
+#### 3.1 Update ROI widget empty state
+Add `businessMode` awareness to `useROIDashboard`:
+- Food: "Add menu → Take orders → Track revenue"
+- Dispatch: "Add services → Complete jobs → Track earnings"
+- Medical: "Add services → Book patients → Track revenue"
+
+#### 3.2 Add mode-specific checklist items
+For dispatch with impound: "Configure impound lot fees"
+For food: "Upload your menu"
+For medical: "Set up patient intake forms"
+
+---
+
+## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `supabase/functions/_shared/buildBusinessContext.ts` | Add `impound` to interface, fetch impound data, populate section |
-| `supabase/functions/_shared/voiceContextContract.ts` | Register 14 new impound variables |
+| `src/components/dashboard/SetupProgressChecklist.tsx` | Use terminology, add capability checks |
+| `src/pages/app/OnboardingPage.tsx` | Add food menu section, impound config, HIPAA ack |
+| `src/components/onboarding/FoodSetupEditor.tsx` | Add menu quick-add section |
+| `src/components/onboarding/DispatchSetupEditor.tsx` | Add impound lot fields |
+| `src/components/onboarding/MedicalSetupEditor.tsx` | Add HIPAA acknowledgment |
+| `src/hooks/useROIDashboard.ts` | Add mode-aware empty state content |
 
-### 7. Edge Functions to Redeploy
-After changes:
-- `get-business-context`
-- `elevenlabs-init`
-- `twilio-inbound`
+---
 
-## Validation
-After implementation, calling `get-business-context` for a tenant with impound capability enabled should return:
-- All `impound_*` dynamic variables populated
-- Fee values converted from cents to dollars
-- Hours formatted for speech
-- Release requirements in natural language
+## Priority Order
 
-## Notes
-- Variables return empty strings when impound capability is disabled (safe fallback)
-- Fee values are stored in cents but exposed as dollars for speech
-- Hours use the same natural speech formatting as the main business hours
+1. **High Priority**: SetupProgressChecklist terminology fix (affects all users)
+2. **High Priority**: Food mode menu entry in onboarding (P0 blocker prevention)
+3. **Medium Priority**: Dispatch impound lot configuration
+4. **Medium Priority**: Medical HIPAA acknowledgment
+5. **Low Priority**: ROI widget mode-aware empty states
+
+---
+
+## Validation Approach
+
+After implementation, test each business type end-to-end:
+
+1. **Service (Salon)**: Onboard → Dashboard shows bookings, calendar step visible
+2. **Dispatch (Towing)**: Onboard → Dashboard shows jobs, impound config accessible
+3. **Food (Restaurant)**: Onboard → Menu entry available, dashboard shows orders
+4. **Medical (MedSpa)**: Onboard → HIPAA acknowledged, dashboard shows appointments
+5. **General (Consulting)**: Onboard → Generic flow, callback-focused dashboard
+
