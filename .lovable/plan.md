@@ -1,212 +1,282 @@
 
-# Business Brain Redesign Plan
+# Business Brain Redesign - Implementation Plan
 
-## Overview
-A complete visual and structural redesign of the Business Brain to make it dramatically easier for business owners to understand and configure their AI assistant — without changing any underlying logic or ElevenLabs integration.
+## Executive Summary
 
----
+This plan transforms the Business Brain into a dramatically more understandable interface for business owners while preserving 100% of the existing backend logic, database interactions, and ElevenLabs integration.
 
-## Design Philosophy
-
-### Core Principles
-1. **Progressive Disclosure**: Show essentials first, reveal advanced options on demand
-2. **Visual Clarity**: Clear visual hierarchy separating "must-do" from "optional" 
-3. **Guided Setup**: Wizard-like experience for first-time users, power-user mode for experienced owners
-4. **Contextual Help**: Inline help that doesn't overwhelm — hover/click to learn more
-5. **Industry-Native Language**: Every label, example, and hint speaks the user's industry
+The redesign focuses on three core improvements:
+1. **Immediate clarity** - Every section shows its purpose and current state at a glance
+2. **Progressive disclosure** - Essential settings visible first, advanced settings on demand
+3. **Real-time AI preview** - Business owners see exactly what their AI will say before saving
 
 ---
 
-## Structural Changes
+## Current State Analysis
 
-### 1. Two-Mode Interface: Setup Mode vs Edit Mode
+The existing Business Brain has:
+- **8 horizontal tabs** with collapsible accordion sections
+- **Mode-specific visibility** that hides irrelevant sections
+- **SectionHelper** boxes explaining each section
+- **CollapsibleBrainSection** components for all editors
+- **Mode-specific editors** under `dispatch/`, `food/`, `medical/`, `service/`, `general/`
+- **Industry helpers** in `industryHelpers.ts` and `industryExamples.ts`
 
-**Setup Mode** (for new/incomplete tenants):
-- Step-by-step guided flow with progress indicator
-- One section at a time, "Next" button progression
-- Celebratory completion state with suggested next steps
+### What Works Well (Keep)
+- Tab-based navigation structure
+- Mode-specific editor components
+- `businessBrainNavConfig.ts` card definitions
+- All database save logic in editors
+- `useBrainSummaries` hook for status text
+- Deep linking via URL parameters
 
-**Edit Mode** (for configured tenants):
-- Current tab-based navigation (refined)
-- Quick-access cards instead of collapsible accordions
-- Section summary previews without expanding
+### What Needs Improvement
+- Collapsible sections hide status - owners can't see what's configured at a glance
+- Helper boxes take up significant vertical space
+- No visual distinction between "must complete" vs "optional"
+- AI preview is inconsistent across editors
+- New users don't know where to start
 
-### 2. Simplified Tab Structure (8 → 6 Tabs)
+---
 
-Current tabs are good but can be consolidated:
+## Architecture Changes
 
-| Current | New | Reasoning |
-|---------|-----|-----------|
-| Identity | **About** | Simpler label |
-| Operations | **Hours** | Keep as-is |
-| Offerings | **Pricing** | More intuitive |
-| Coverage & ETA | **Service Area** | Combine display |
-| Calendar | (Merged into Service Area) | Related to availability |
-| Policies | **Rules** | Shorter label |
-| Knowledge | **Training** | More intuitive |
-| AI Setup | **Voice** | Clearer purpose |
-
-### 3. Card-Based Section Display (Replace Accordions)
-
-Instead of collapsible sections that hide content, use **summary cards** that show:
-- Section title with icon
-- 1-line status ("3 services configured" or "Not set up")
-- Quick-edit button that opens a modal/drawer
-- Completion indicator (checkmark or warning)
+### New Component Hierarchy
 
 ```text
-┌──────────────────────────────────────────────────┐
-│ 🏷️ Your Services                    ✓ Complete  │
-│ 5 services • Starting at $85                    │
-│                                    [Edit →]     │
-└──────────────────────────────────────────────────┘
+BusinessBrainPage
+├── BusinessBrainTabs (existing, minor styling updates)
+├── BrainSetupBanner (NEW - shows for incomplete tenants)
+│   └── Links to first incomplete section
+├── Section Content (per tab)
+│   ├── SectionSummaryCards (NEW - replaces CollapsibleBrainSection)
+│   │   ├── Status preview visible always
+│   │   ├── Click to expand OR open drawer
+│   │   ├── Essential vs Advanced grouping
+│   │   └── AIPreviewBanner at bottom when editing
+│   └── InlineFieldHelp (NEW - replaces large SectionHelper)
+└── BrainProgressIndicator (NEW - floating/sticky element)
 ```
 
-### 4. Floating Help System (Replace Large Helper Boxes)
+### Key New Components
 
-Move the section helper content from a large box at the top to:
-- **Floating help icon** (?) next to each section title
-- **Tooltip on hover** with 1-line explanation
-- **"Learn more" link** that opens a slide-out panel with full details
-
-This reclaims ~100px of vertical space per section.
+| Component | Purpose | Location |
+|-----------|---------|----------|
+| `SectionSummaryCard` | Status-focused card replacing accordions | `brain/layout/` |
+| `InlineFieldHelp` | Compact tooltip-based help system | `brain/layout/` |
+| `BrainProgressIndicator` | Shows overall completion status | `brain/layout/` |
+| `AIPreviewBanner` | Persistent "What AI will say" preview | `brain/layout/` |
+| `EssentialGroup` | Wrapper for must-complete sections | `brain/layout/` |
+| `AdvancedGroup` | Collapsible wrapper for optional sections | `brain/layout/` |
 
 ---
 
-## Visual Hierarchy Changes
+## Phase 1: Foundation Components
 
-### Essential vs Advanced Sections
+### 1.1 Create SectionSummaryCard
 
-Group sections visually:
+Replace `CollapsibleBrainSection` with a card that shows status at a glance:
 
-**Essential (Always Visible)**
-- Primary sections with full styling
-- Colored icons, clear labels
-- Progress indicators
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ 📍 Service Area                              ✓ Configured   │
+│ ────────────────────────────────────────────────────────────│
+│ 25-mile radius from Austin, TX • 45 min avg response       │
+│                                                              │
+│ [Edit →]                                                    │
+└──────────────────────────────────────────────────────────────┘
+```
+
+**Features:**
+- Icon + title always visible
+- 1-line status summary always visible
+- Completion indicator (checkmark, warning, or empty circle)
+- Click anywhere to expand inline OR open drawer/modal
+- Mode-aware styling (dispatch = amber, medical = rose, etc.)
+
+### 1.2 Create InlineFieldHelp
+
+Replace large `SectionHelper` boxes with compact tooltips:
+
+- Small (?) icon next to section title
+- Hover shows 1-line explanation
+- Click opens popover with full details + AI example
+- Mode-specific tips shown only when relevant
+
+### 1.3 Create BrainProgressIndicator
+
+Persistent progress display:
+
+- Shows "X of Y sections configured"
+- Color-coded by completion percentage
+- Lists top 3 incomplete items on hover
+- Sticky position at top of content area (mobile) or sidebar (desktop)
+
+### 1.4 Create AIPreviewBanner
+
+Real-time preview at bottom of each expanded editor:
+
+- Updates as user types
+- Shows actual phrasing AI will use
+- Mode-aware examples
+- Collapsible if user finds it distracting
+
+---
+
+## Phase 2: Layout Restructure
+
+### 2.1 Essential vs Advanced Grouping
+
+Group sections by importance:
+
+**Essential (Always Visible, Prominent Styling)**
+- Business Info
+- Hours
+- Services/Menu
+- Service Area (for dispatch/service modes)
+- Greeting & Scripts
 
 **Advanced (Collapsed by Default)**
-- Grouped under "Advanced Settings" accordion
-- Muted styling until expanded
-- "Most businesses don't need to change these"
+- Price Modifiers
+- Packages & Bundles
+- Custom Knowledge
+- AI Memory Settings
+- Call Flow Settings
 
-### Industry-Specific Grouping
+### 2.2 Mode-Specific Section Ordering
 
-For dispatch mode, show sections in logical operation order:
-1. Services & Pricing → What you charge
-2. Service Area & ETA → Where you go, how long it takes  
-3. Dispatch Rules → How jobs get routed
-4. Impound Lot → Storage/release specifics
+Reorder sections based on business mode:
 
-For food mode:
-1. Menu Items → What you serve
-2. Ordering → Pickup, delivery, catering
-3. Specials & Deals → Promotions
-4. Hours → When you're open
+**Dispatch Mode Priority:**
+1. Services & Rates
+2. Coverage & ETA
+3. Dispatch Fees
+4. Policies (payment, impound)
+5. Vehicle Knowledge
 
----
+**Food Mode Priority:**
+1. Menu
+2. Order Settings
+3. Delivery Zones
+4. Hours
+5. Specials
 
-## New Components
+**Medical Mode Priority:**
+1. Practice Info
+2. Hours
+3. Insurance & Pricing
+4. HIPAA Settings
+5. Calendar Sync
 
-### 1. BrainProgressRing
-A circular progress indicator showing overall setup completion:
-- Appears in header area
-- Shows percentage complete
-- Lists top 3 incomplete items on hover
+**Service Mode Priority:**
+1. Services
+2. Pricing Rules
+3. Calendar
+4. Service Area
+5. Policies
 
-### 2. QuickSetupWizard
-A first-time-user experience:
-- Modal or full-page wizard
-- 5-7 essential steps only
-- Skips advanced configuration
-- "Finish basic setup" vs "Configure everything"
+### 2.3 Refactor BusinessBrainPage Layout
 
-### 3. SectionSummaryCard
-Replaces CollapsibleBrainSection with a status-focused card:
-- Shows current state at a glance
-- Click to edit (opens drawer/modal)
-- Inline validation warnings
-- Mode-aware terminology
+Update the main page to use new components:
 
-### 4. InlineFieldHelp
-Replaces EditorExplainer with contextual tooltips:
-- Small (?) icon next to each field label
-- Hover shows brief explanation
-- Click shows example + AI usage
+```text
+// Replace:
+<CollapsibleBrainSection ... />
 
-### 5. AIPreviewBanner
-A persistent banner showing "What your AI will say":
-- Appears at bottom of each editor
-- Updates in real-time as you type
-- Shows actual script the AI will use
+// With:
+<EssentialGroup title="Core Setup">
+  <SectionSummaryCard ... status="complete" />
+  <SectionSummaryCard ... status="incomplete" />
+</EssentialGroup>
 
----
-
-## Tab-by-Tab Redesign
-
-### About Tab (Identity)
-- **Hero section**: Business name + tagline preview
-- **Quick stats**: Years in business, location, phone
-- **Template selector**: Inline industry templates with preview
-
-### Hours Tab
-- **Visual weekly grid** (not just list)
-- **Quick toggle** for 24/7 vs custom hours
-- **Holiday exceptions** in separate accordion
-
-### Pricing Tab (Offerings)
-- **Quote Readiness** card at top (keep current)
-- **Service grid** with inline pricing (not accordion)
-- **"Add Service" prominent button**
-- **Price modifiers** collapsed by default
-
-### Service Area Tab (Coverage + Calendar merged)
-- **Map preview** showing coverage (even if static)
-- **ETA calculator** inline ("From your shop to [address]: ~X min")
-- **Calendar connection** as secondary section
-- **Busyness slider** inline
-
-### Rules Tab (Policies)
-- **Policy cards** with AI preview
-- **Required questions** as checklist
-- **Guardrails** simplified to switches
-
-### Training Tab (Knowledge)
-- **Review queue** prominent at top if items pending
-- **FAQ list** with quick-add
-- **Document uploads** in sidebar
-
-### Voice Tab (AI Setup)
-- **Live greeting preview** (audio player if available)
-- **Script editor** with character count
-- **Personality sliders** (friendly ↔ professional)
+<AdvancedGroup title="Advanced Settings" defaultCollapsed>
+  <SectionSummaryCard ... />
+</AdvancedGroup>
+```
 
 ---
 
-## Implementation Phases
+## Phase 3: Enhanced User Guidance
 
-### Phase 1: Foundation (No Logic Changes)
-- Create new SectionSummaryCard component
-- Create InlineFieldHelp tooltip system
-- Create BrainProgressRing component
-- Refactor tab labels and consolidation
+### 3.1 First-Time User Banner
 
-### Phase 2: Layout Restructure
-- Replace CollapsibleBrainSection with SectionSummaryCard
-- Move content to modal/drawer editors
-- Implement floating help system
-- Add Essential vs Advanced grouping
+For tenants with < 50% completion:
 
-### Phase 3: Guided Experience
-- Build QuickSetupWizard for new tenants
-- Add completion detection logic
-- Create celebratory completion states
-- Add "suggested next steps" after setup
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│ 🎯 Getting Started                                    [Dismiss] │
+│ ───────────────────────────────────────────────────────────────│
+│ Your AI needs a few things to answer calls effectively.        │
+│ Complete these 4 essentials to go live:                        │
+│                                                                 │
+│ ○ Add business info  ○ Set hours  ● Add services  ○ Set area   │
+│                                                                 │
+│                                    [Continue Setup →]          │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-### Phase 4: Visual Polish
-- Add AIPreviewBanner to all editors
-- Refine industry-specific language throughout
-- Add map preview for service area
-- Add visual weekly grid for hours
+### 3.2 Contextual Next Steps
+
+After completing a section, suggest the next logical step:
+
+- After adding services → "Now add your service area"
+- After service area → "Configure pricing rules"
+- After pricing → "Set up your greeting script"
+
+### 3.3 Completion Celebration
+
+When all essentials are complete:
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│ 🎉 Your AI is ready!                                           │
+│ ───────────────────────────────────────────────────────────────│
+│ All essential sections are configured. Your AI can now:        │
+│ ✓ Answer pricing questions  ✓ Check availability              │
+│ ✓ Book appointments        ✓ Handle common questions           │
+│                                                                 │
+│ Want to take it further?                                       │
+│ • Add FAQs to reduce "I don't know" responses                  │
+│ • Configure objection handling for price pushback              │
+│ • Upload documents for detailed reference                      │
+│                                                                 │
+│                              [Go to Dashboard]  [Keep Editing] │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Phase 4: Visual Polish & Consistency
+
+### 4.1 Standardize All Editors
+
+Ensure every editor follows the same pattern:
+
+1. **InlineFieldHelp** at top (compact, expandable)
+2. **Form fields** with consistent styling
+3. **AIPreviewBanner** at bottom showing live preview
+4. **Save button** with loading state
+
+### 4.2 Consistent Status Indicators
+
+Use the same visual language everywhere:
+
+| Status | Icon | Color | Badge |
+|--------|------|-------|-------|
+| Complete | ✓ | Green | "Done" |
+| In Progress | ○ | Blue | "Started" |
+| Required | ! | Amber | "Required" |
+| Needs Attention | ⚠ | Red | "Review" |
+
+### 4.3 Mode-Specific Visual Themes
+
+Subtle color coding per mode:
+
+- **Service**: Blue accents
+- **Dispatch**: Amber accents
+- **Food**: Orange accents
+- **Medical**: Rose accents
+- **General**: Slate accents
 
 ---
 
@@ -215,43 +285,111 @@ A persistent banner showing "What your AI will say":
 | File | Purpose |
 |------|---------|
 | `src/components/brain/layout/SectionSummaryCard.tsx` | Status-focused section card |
-| `src/components/brain/layout/BrainProgressRing.tsx` | Circular progress indicator |
-| `src/components/brain/layout/InlineFieldHelp.tsx` | Tooltip help system |
-| `src/components/brain/layout/AIPreviewBanner.tsx` | Real-time AI preview |
-| `src/components/brain/wizard/QuickSetupWizard.tsx` | First-time user wizard |
-| `src/components/brain/wizard/WizardStep.tsx` | Individual wizard step |
+| `src/components/brain/layout/InlineFieldHelp.tsx` | Tooltip-based help system |
+| `src/components/brain/layout/BrainProgressIndicator.tsx` | Completion progress display |
+| `src/components/brain/layout/AIPreviewBanner.tsx` | Real-time AI preview banner |
 | `src/components/brain/layout/EssentialGroup.tsx` | Essential sections wrapper |
 | `src/components/brain/layout/AdvancedGroup.tsx` | Advanced settings accordion |
+| `src/components/brain/layout/BrainSetupBanner.tsx` | First-time user guidance |
+| `src/components/brain/layout/CompletionCelebration.tsx` | Success state component |
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `BusinessBrainPage.tsx` | New layout structure, tab consolidation |
-| `businessBrainNavConfig.ts` | Updated categories, essential/advanced flags |
-| `CollapsibleBrainSection.tsx` | Deprecate in favor of SectionSummaryCard |
-| `SectionHelper.tsx` | Convert to floating tooltip system |
-| `industryHelpers.ts` | Add more mode-specific content |
-| All editor components | Add AIPreviewBanner integration |
+| `src/pages/app/BusinessBrainPage.tsx` | New layout structure, section grouping |
+| `src/components/brain/layout/index.ts` | Export new components |
+| `src/components/brain/layout/businessBrainNavConfig.ts` | Add essential/advanced flags |
+| `src/components/brain/layout/BusinessBrainTabs.tsx` | Minor styling updates |
+| `src/components/brain/layout/SectionHelper.tsx` | Convert to InlineFieldHelp style |
+| `src/hooks/useBrainSummaries.ts` | Add completion percentage calc |
 
 ---
 
-## Key UX Improvements
+## What Stays the Same (Zero Changes)
 
-1. **50% less scrolling** — summary cards show status without expanding
-2. **Immediate understanding** — every section shows its current state
-3. **No overwhelm** — advanced settings hidden until needed
-4. **Clear progress** — owners know exactly what's left to configure
-5. **Industry-native** — everything speaks their language (tow operators see "Dispatch Fees", restaurants see "Menu")
-6. **Preview everything** — see exactly what the AI will say before saving
-
----
-
-## What Stays the Same
-
-- All database interactions and save logic
+- All database save/load logic in editors
 - ElevenLabs integration and prompt building
-- Business Brain → AI context pipeline
-- Existing validation and error handling
-- Multi-tenant architecture
-- RLS and security policies
+- `getBusinessBrainSnapshot.ts` and Business Brain → AI pipeline
+- RLS policies and multi-tenant architecture
+- Mode-specific editor components (`dispatch/`, `food/`, etc.)
+- Validation and error handling
+- Deep linking via URL parameters
+- Mobile navigation (Sheet component)
+
+---
+
+## Implementation Order
+
+1. **Phase 1**: Create foundation components (SectionSummaryCard, InlineFieldHelp, etc.)
+2. **Phase 2**: Refactor BusinessBrainPage to use new layout
+3. **Phase 3**: Add user guidance (setup banner, next steps, celebration)
+4. **Phase 4**: Polish and consistency pass across all editors
+
+---
+
+## Success Metrics
+
+After implementation, business owners should be able to:
+
+1. **Understand status at a glance** - See what's configured without expanding anything
+2. **Know where to start** - Clear guidance for first-time users
+3. **See AI behavior in real-time** - Preview what AI will say before saving
+4. **Find advanced settings easily** - Without being overwhelmed on first visit
+5. **Complete setup faster** - 50% reduction in time to first "AI ready" state
+
+---
+
+## Technical Details
+
+### SectionSummaryCard Props
+
+```typescript
+interface SectionSummaryCardProps {
+  id: string;
+  title: string;
+  icon: LucideIcon;
+  status: 'complete' | 'incomplete' | 'warning' | 'error';
+  statusText: string;
+  isEssential?: boolean;
+  mode: BusinessMode;
+  onEdit: () => void;
+  children?: ReactNode; // Expanded content
+}
+```
+
+### BrainProgressIndicator Props
+
+```typescript
+interface BrainProgressIndicatorProps {
+  completedSections: number;
+  totalSections: number;
+  incompleteItems: { section: string; label: string }[];
+  onNavigateToSection: (section: string) => void;
+}
+```
+
+### AIPreviewBanner Props
+
+```typescript
+interface AIPreviewBannerProps {
+  preview: string;
+  subtitle?: string;
+  mode: BusinessMode;
+  isLoading?: boolean;
+}
+```
+
+### Essential/Advanced Configuration
+
+```typescript
+// In businessBrainNavConfig.ts
+export interface CardConfig {
+  // ... existing fields
+  isEssential?: boolean; // NEW: true = always visible, false = in Advanced group
+  essentialForModes?: BusinessMode[]; // NEW: essential only for specific modes
+}
+```
+
+This redesign maintains complete backwards compatibility while dramatically improving the business owner experience.
+
