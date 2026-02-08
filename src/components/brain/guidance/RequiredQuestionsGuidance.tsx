@@ -26,11 +26,14 @@ interface RecommendedDefault {
 
 const RECOMMENDED_DEFAULTS: Record<BusinessMode, RecommendedDefault[]> = {
   dispatch: [
-    { question: "Exact pickup address (street + city + ZIP)" },
-    { question: "What service is needed (tow, jump, lockout, tire, fuel, etc.)" },
-    { question: "Vehicle year/make/model" },
-    { question: "Is the vehicle drivable? (yes/no)" },
-    { question: "Callback number" },
+    { question: "Exact pickup address (street + city + ZIP, or highway + mile marker)" },
+    { question: "Service needed: tow, jump start, lockout, tire change, or fuel delivery" },
+    { question: "Vehicle year, make, model (e.g., '2019 Honda Civic')" },
+    { question: "Vehicle color (so driver can identify you)" },
+    { question: "Is the vehicle drivable? (yes/no — determines equipment needed)" },
+    { question: "Where should we take it? (home, shop, or our lot)" },
+    { question: "Are you with the vehicle right now?" },
+    { question: "Your name and callback number" },
   ],
   food: [
     { question: "Pickup or delivery" },

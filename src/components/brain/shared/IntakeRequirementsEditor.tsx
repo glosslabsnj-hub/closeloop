@@ -51,19 +51,34 @@ const FIELD_TYPES = [
 const ALL_MODES: BusinessMode[] = ['service', 'dispatch', 'food', 'medical', 'general'];
 
 const SUGGESTED_FIELDS: Partial<IntakeRequirement>[] = [
+  // Universal fields
   { field_key: 'customer_name', field_label: "What's your name?", field_type: 'text', is_required: true, ai_prompt_hint: 'Ask for their full name' },
   { field_key: 'customer_phone', field_label: "What's the best number to reach you?", field_type: 'phone', is_required: true, ai_prompt_hint: 'Get their callback number' },
   { field_key: 'customer_email', field_label: "What's your email address?", field_type: 'email', is_required: false, ai_prompt_hint: 'Optional - for confirmation emails' },
-  { field_key: 'service_address', field_label: "What's the service address?", field_type: 'address', is_required: true, visible_modes: ['service', 'dispatch'], ai_prompt_hint: 'Get the location for service' },
-  { field_key: 'vehicle_year', field_label: "What year is the vehicle?", field_type: 'text', is_required: true, visible_modes: ['dispatch'], ai_prompt_hint: 'Get vehicle year' },
-  { field_key: 'vehicle_make', field_label: "What's the make of the vehicle?", field_type: 'text', is_required: true, visible_modes: ['dispatch'], ai_prompt_hint: 'Get vehicle manufacturer' },
-  { field_key: 'vehicle_model', field_label: "What's the model?", field_type: 'text', is_required: true, visible_modes: ['dispatch'], ai_prompt_hint: 'Get vehicle model' },
-  { field_key: 'vehicle_color', field_label: "What color is it?", field_type: 'text', is_required: false, visible_modes: ['dispatch'], ai_prompt_hint: 'Get vehicle color to identify' },
+  
+  // Dispatch-specific fields (P0 required for dispatch mode)
+  { field_key: 'pickup_address', field_label: "What's the exact address or cross streets where you are?", field_type: 'address', is_required: true, visible_modes: ['dispatch'], ai_prompt_hint: 'Get exact pickup location - street address, highway mile marker, or cross streets' },
+  { field_key: 'dropoff_address', field_label: "Where should we take the vehicle?", field_type: 'address', is_required: false, visible_modes: ['dispatch'], ai_prompt_hint: 'Destination - home, shop, or our lot' },
+  { field_key: 'vehicle_year', field_label: "What year is the vehicle?", field_type: 'text', is_required: true, visible_modes: ['dispatch'], ai_prompt_hint: 'Get vehicle year (e.g., 2019)' },
+  { field_key: 'vehicle_make', field_label: "What's the make of the vehicle?", field_type: 'text', is_required: true, visible_modes: ['dispatch'], ai_prompt_hint: 'Get vehicle manufacturer (e.g., Honda, Ford, Toyota)' },
+  { field_key: 'vehicle_model', field_label: "What's the model?", field_type: 'text', is_required: true, visible_modes: ['dispatch'], ai_prompt_hint: 'Get vehicle model (e.g., Civic, F-150, Camry)' },
+  { field_key: 'vehicle_color', field_label: "What color is it?", field_type: 'text', is_required: false, visible_modes: ['dispatch'], ai_prompt_hint: 'Get vehicle color so driver can identify it' },
+  { field_key: 'is_drivable', field_label: "Is the vehicle drivable or does it need to be towed?", field_type: 'select', is_required: true, visible_modes: ['dispatch'], ai_prompt_hint: 'Determines if we need flatbed or can do roadside' },
+  { field_key: 'service_needed', field_label: "What service do you need? (tow, jump, lockout, tire, fuel)", field_type: 'text', is_required: true, visible_modes: ['dispatch'], ai_prompt_hint: 'Type of roadside service or tow' },
+  { field_key: 'urgency', field_label: "Do you need someone right now or can this be scheduled?", field_type: 'select', is_required: false, visible_modes: ['dispatch'], ai_prompt_hint: 'Emergency vs. scheduled pickup' },
+  
+  // Service-specific fields
+  { field_key: 'service_address', field_label: "What's the service address?", field_type: 'address', is_required: true, visible_modes: ['service'], ai_prompt_hint: 'Get the location for service' },
+  { field_key: 'preferred_date', field_label: "When would you like to come in?", field_type: 'date', is_required: false, visible_modes: ['service', 'medical'], ai_prompt_hint: 'Preferred appointment date' },
+  { field_key: 'preferred_time', field_label: "What time works best?", field_type: 'text', is_required: false, visible_modes: ['service', 'medical'], ai_prompt_hint: 'Morning, afternoon, or specific time' },
+  
+  // Food-specific fields
   { field_key: 'party_size', field_label: "How many in your party?", field_type: 'number', is_required: true, visible_modes: ['food'], ai_prompt_hint: 'Number of guests' },
+  { field_key: 'delivery_address', field_label: "What's your delivery address?", field_type: 'address', is_required: false, visible_modes: ['food'], ai_prompt_hint: 'Only if delivery, not pickup' },
+  
+  // Medical-specific fields
   { field_key: 'reason_for_visit', field_label: "What brings you in today?", field_type: 'text', is_required: true, visible_modes: ['medical'], ai_prompt_hint: 'Brief reason for appointment' },
   { field_key: 'insurance_provider', field_label: "Who is your insurance provider?", field_type: 'text', is_required: true, visible_modes: ['medical'], ai_prompt_hint: 'Insurance company name' },
-  { field_key: 'preferred_date', field_label: "When would you like to come in?", field_type: 'date', is_required: false, ai_prompt_hint: 'Preferred appointment date' },
-  { field_key: 'preferred_time', field_label: "What time works best?", field_type: 'text', is_required: false, ai_prompt_hint: 'Morning, afternoon, or specific time' },
 ];
 
 interface IntakeRequirementsEditorProps {
