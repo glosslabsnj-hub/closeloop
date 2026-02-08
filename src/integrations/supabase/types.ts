@@ -1449,6 +1449,45 @@ export type Database = {
           },
         ]
       }
+      capability_definitions: {
+        Row: {
+          category: string
+          conflicts_with: string[] | null
+          created_at: string | null
+          default_enabled_for_modes: string[] | null
+          description: string | null
+          display_name: string
+          icon_name: string | null
+          id: string
+          requires: string[] | null
+          sort_order: number | null
+        }
+        Insert: {
+          category: string
+          conflicts_with?: string[] | null
+          created_at?: string | null
+          default_enabled_for_modes?: string[] | null
+          description?: string | null
+          display_name: string
+          icon_name?: string | null
+          id: string
+          requires?: string[] | null
+          sort_order?: number | null
+        }
+        Update: {
+          category?: string
+          conflicts_with?: string[] | null
+          created_at?: string | null
+          default_enabled_for_modes?: string[] | null
+          description?: string | null
+          display_name?: string
+          icon_name?: string | null
+          id?: string
+          requires?: string[] | null
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       catering_knowledge: {
         Row: {
           ai_script: string | null
@@ -8136,6 +8175,7 @@ export type Database = {
           calendar_sync_enabled: boolean | null
           calendar_sync_provider: string | null
           cancellation_policy: string | null
+          capabilities_json: Json | null
           closed_dates: Json | null
           context_fields_json: Json | null
           created_at: string
@@ -8180,6 +8220,7 @@ export type Database = {
           calendar_sync_enabled?: boolean | null
           calendar_sync_provider?: string | null
           cancellation_policy?: string | null
+          capabilities_json?: Json | null
           closed_dates?: Json | null
           context_fields_json?: Json | null
           created_at?: string
@@ -8224,6 +8265,7 @@ export type Database = {
           calendar_sync_enabled?: boolean | null
           calendar_sync_provider?: string | null
           cancellation_policy?: string | null
+          capabilities_json?: Json | null
           closed_dates?: Json | null
           context_fields_json?: Json | null
           created_at?: string
