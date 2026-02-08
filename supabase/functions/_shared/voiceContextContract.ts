@@ -310,6 +310,119 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     defaultValue: false,
     category: "core",
   },
+
+  // ===== CAPABILITY FLAGS =====
+  {
+    key: "has_booking",
+    description: "Whether booking capability is enabled",
+    type: "string",
+    source: (ctx) => {
+      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
+      return caps.booking ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "core",
+  },
+  {
+    key: "has_dispatch",
+    description: "Whether dispatch capability is enabled",
+    type: "string",
+    source: (ctx) => {
+      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
+      return caps.dispatch_queue ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "core",
+  },
+  {
+    key: "has_emergency_dispatch",
+    description: "Whether emergency/same-day dispatch is enabled",
+    type: "string",
+    source: (ctx) => {
+      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
+      return caps.emergency_dispatch ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "core",
+  },
+  {
+    key: "has_fleet",
+    description: "Whether fleet management is enabled",
+    type: "string",
+    source: (ctx) => {
+      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
+      return caps.fleet_management ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "core",
+  },
+  {
+    key: "has_impound",
+    description: "Whether impound lot capability is enabled",
+    type: "string",
+    source: (ctx) => {
+      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
+      return caps.impound_lot ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "core",
+  },
+  {
+    key: "has_reservations",
+    description: "Whether table reservations are enabled",
+    type: "string",
+    source: (ctx) => {
+      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
+      return caps.reservations ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "core",
+  },
+  {
+    key: "has_catering",
+    description: "Whether catering requests are enabled",
+    type: "string",
+    source: (ctx) => {
+      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
+      return caps.catering ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "core",
+  },
+  {
+    key: "has_delivery",
+    description: "Whether delivery service is enabled",
+    type: "string",
+    source: (ctx) => {
+      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
+      return caps.delivery ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "core",
+  },
+  {
+    key: "has_mobile_service",
+    description: "Whether mobile/on-site service is enabled",
+    type: "string",
+    source: (ctx) => {
+      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
+      return caps.mobile_service ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "core",
+  },
+  {
+    key: "capabilities_list",
+    description: "Comma-separated list of enabled capabilities",
+    type: "string",
+    source: (ctx) => {
+      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
+      return Object.keys(caps).filter(k => caps[k]).join(",");
+    },
+    defaultValue: "",
+    category: "core",
+  },
+
   {
     key: "timezone",
     description: "Business timezone",
