@@ -161,10 +161,15 @@ export default function BusinessBrainPage() {
   }, [legacyTab, normalizedSectionParam]);
 
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  
+  // Controlled expansion state for sections that need to collapse after save
+  const [hoursExpanded, setHoursExpanded] = useState(true);
 
   const handleSectionChange = (section: string) => {
     setSearchParams({ section }, { replace: true });
     setMobileNavOpen(false);
+    // Reset expansion states when changing sections
+    setHoursExpanded(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -346,9 +351,12 @@ export default function BusinessBrainPage() {
                     statusText={summaries.hours}
                     isEssential
                     mode={businessMode}
-                    defaultExpanded
+                    expanded={hoursExpanded}
+                    onExpandedChange={setHoursExpanded}
                   >
-                    <BusinessHoursManager />
+                    <BusinessHoursManager 
+                      onSaveComplete={() => setHoursExpanded(false)} 
+                    />
                   </SectionSummaryCard>
                 </EssentialGroup>
 
