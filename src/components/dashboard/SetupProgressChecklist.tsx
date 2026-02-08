@@ -46,7 +46,7 @@ export function SetupProgressChecklist() {
     queryFn: async () => {
       if (!tenant?.id) return { services: 0, faqs: 0, menuItems: 0, impoundConfigured: false };
 
-      const [servicesResult, faqsResult, menuResult] = await Promise.all([
+      const [servicesResult, faqsResult, menuResult, impoundSettingsResult, impoundLotsResult] = await Promise.all([
         supabase
           .from("services")
           .select("*", { count: "exact", head: true })
@@ -59,12 +59,24 @@ export function SetupProgressChecklist() {
           .from("menu_items")
           .select("*", { count: "exact", head: true })
           .eq("tenant_id", tenant.id),
+        supabase
+          .from("impound_settings")
+          .select("impound_handling_enabled, base_tow_fee_cents")
+          .eq("tenant_id", tenant.id)
+          .maybeSingle(),
+        supabase
+          .from("impound_lots")
+          .select("address")
+          .eq("tenant_id", tenant.id)
+          .eq("is_active", true)
+          .limit(1)
+          .maybeSingle(),
       ]);
 
-      // Check if impound lot is configured (for dispatch + impound)
+      // Check if impound lot is configured (has settings with fees OR has a lot address)
       const impoundConfigured = !!(
-        (tenant as any).impound_lot_address || 
-        (tenant as any).impound_fees_json
+        (impoundSettingsResult.data?.base_tow_fee_cents && impoundSettingsResult.data.base_tow_fee_cents > 0) || 
+        impoundLotsResult.data?.address
       );
 
       return {

@@ -483,7 +483,7 @@ export default function OnboardingPage() {
               tenant_id: tenantId,
               impound_handling_enabled: true,
               base_tow_fee_cents: Math.round((dispatchSetup.impoundBaseFee || 150) * 100),
-              daily_storage_fee_cents: Math.round((dispatchSetup.impoundDailyStorageFee || 35) * 100),
+              daily_storage_cents: Math.round((dispatchSetup.impoundDailyStorageFee || 35) * 100),
               admin_fee_cents: Math.round((dispatchSetup.impoundAdminFee || 75) * 100),
               gate_fee_cents: Math.round((dispatchSetup.impoundGateFee || 0) * 100),
               default_release_requirements: ["Valid ID", "Registration or Title", "Payment"],

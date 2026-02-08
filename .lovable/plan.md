@@ -91,12 +91,17 @@ All identified issues have been addressed with mode-aware onboarding and dashboa
 
 ---
 
-## Validation Checklist
+## Validation Checklist - COMPLETE ✅
 
-Test each business type end-to-end:
+All business types tested and verified:
 
-- [ ] **Service (Salon)**: Step 5 shows ServiceEditor, dashboard shows "Add services"
-- [ ] **Dispatch (Towing)**: Step 5 shows DispatchEditor with impound, dashboard shows impound step
-- [ ] **Food (Restaurant)**: Step 5 shows FoodEditor with Menu tab, dashboard shows "Add your menu"
-- [ ] **Medical (MedSpa)**: Step 5 shows MedicalEditor, cannot proceed without HIPAA ack
-- [ ] **General (Consulting)**: Step 5 shows ServiceEditor, dashboard shows generic steps
+- [x] **Service (Salon)**: Step 5 shows ServiceEditor, dashboard shows "Add services", services table populated
+- [x] **Dispatch (Towing)**: Step 5 shows DispatchEditor with impound, dashboard shows impound step when hasImpoundLot=true, impound_settings has fees configured
+- [x] **Food (Restaurant)**: Step 5 shows FoodEditor with Menu tab, dashboard shows "Add your menu", menu_items table has data
+- [x] **Medical (MedSpa)**: Step 5 shows MedicalEditor, hipaa_mode=true, HIPAA acknowledgment required to proceed
+- [x] **General (Consulting)**: Step 5 shows ServiceEditor, dashboard shows callback-focused steps
+
+## Bug Fixes Applied
+
+1. **SetupProgressChecklist.tsx**: Fixed impound configuration check to query `impound_settings` and `impound_lots` tables instead of non-existent `tenant.impound_lot_address`
+2. **OnboardingPage.tsx**: Fixed column name typo `daily_storage_fee_cents` → `daily_storage_cents` to match actual schema
