@@ -5,60 +5,32 @@ import { Loader2, Save } from "lucide-react";
 import { updateBusinessHours } from "@/lib/brain/writeBrainFact";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import BusinessHoursEditor, { BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
+import BusinessHoursEditor, { BusinessHours, normalizeHours } from "@/components/onboarding/BusinessHoursEditor";
 import { PreviewSentence } from "./layout/BusinessBrainSectionCard";
-
-const defaultHours: BusinessHours = {
-  monday: { open: "09:00", close: "17:00", closed: false },
-  tuesday: { open: "09:00", close: "17:00", closed: false },
-  wednesday: { open: "09:00", close: "17:00", closed: false },
-  thursday: { open: "09:00", close: "17:00", closed: false },
-  friday: { open: "09:00", close: "17:00", closed: false },
-  saturday: { open: "10:00", close: "14:00", closed: false },
-  sunday: { open: "09:00", close: "17:00", closed: true },
-};
-
-function formatTimeForDisplay(time: string): string {
-  const [hours, minutes] = time.split(":");
-  const h = parseInt(hours);
-  const suffix = h >= 12 ? "PM" : "AM";
-  const displayHour = h > 12 ? h - 12 : h === 0 ? 12 : h;
-  return `${displayHour}:${minutes} ${suffix}`;
-}
-
-function getTodayHoursPreview(hours: BusinessHours): string {
-  const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-  const today = days[new Date().getDay()];
-  const todayHours = hours[today];
-  if (!todayHours || todayHours.closed) return "We're closed today.";
-  return `We're open today from ${formatTimeForDisplay(todayHours.open)} to ${formatTimeForDisplay(todayHours.close)}.`;
-}
-
-function getIs24x7(hours: BusinessHours): boolean {
-  return Object.values(hours).every(
-    day => !day.closed && day.open === "00:00" && day.close === "23:59"
-  );
-}
+import { 
+  DEFAULT_BUSINESS_HOURS, 
+  TYPICAL_BUSINESS_HOURS, 
+  RESTAURANT_HOURS, 
+  RESTAURANT_SPLIT_HOURS,
+  HOURS_24_7,
+  getTodayHoursPreview,
+  getIs24x7
+} from "@/lib/hoursUtils";
 
 export function BusinessHoursManager() {
   const { tenant } = useAuth();
   const queryClient = useQueryClient();
 
-  const [hours, setHours] = useState<BusinessHours>(defaultHours);
+  const [hours, setHours] = useState<BusinessHours>(DEFAULT_BUSINESS_HOURS);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (tenant) {
-      const tenantHours = tenant.hours_json as Record<string, { open?: string; close?: string; closed?: boolean }> | null;
+      const tenantHours = tenant.hours_json as unknown as BusinessHours | null;
       if (tenantHours && typeof tenantHours === "object") {
-        const mergedHours: BusinessHours = { ...defaultHours };
-        Object.keys(tenantHours).forEach((day) => {
-          if (mergedHours[day]) {
-            mergedHours[day] = { ...mergedHours[day], ...tenantHours[day] };
-          }
-        });
-        setHours(mergedHours);
+        // Normalize to handle both legacy (open/close) and new (windows) format
+        setHours(normalizeHours({ ...DEFAULT_BUSINESS_HOURS, ...tenantHours }));
       }
       setIsLoading(false);
     }
@@ -89,39 +61,19 @@ export function BusinessHoursManager() {
   const is24x7 = getIs24x7(hours);
 
   const toggle24x7 = () => {
-    if (is24x7) {
-      setHours(defaultHours);
-    } else {
-      const allOpen: BusinessHours = {} as BusinessHours;
-      ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].forEach(day => {
-        allOpen[day] = { open: "00:00", close: "23:59", closed: false };
-      });
-      setHours(allOpen);
-    }
+    setHours(is24x7 ? DEFAULT_BUSINESS_HOURS : HOURS_24_7);
   };
 
   const setTypicalBusiness = () => {
-    setHours({
-      monday: { open: "09:00", close: "17:00", closed: false },
-      tuesday: { open: "09:00", close: "17:00", closed: false },
-      wednesday: { open: "09:00", close: "17:00", closed: false },
-      thursday: { open: "09:00", close: "17:00", closed: false },
-      friday: { open: "09:00", close: "17:00", closed: false },
-      saturday: { open: "09:00", close: "17:00", closed: true },
-      sunday: { open: "09:00", close: "17:00", closed: true },
-    });
+    setHours(TYPICAL_BUSINESS_HOURS);
   };
 
-  const setRestaurantHours = () => {
-    setHours({
-      monday: { open: "11:00", close: "22:00", closed: false },
-      tuesday: { open: "11:00", close: "22:00", closed: false },
-      wednesday: { open: "11:00", close: "22:00", closed: false },
-      thursday: { open: "11:00", close: "22:00", closed: false },
-      friday: { open: "11:00", close: "23:00", closed: false },
-      saturday: { open: "11:00", close: "23:00", closed: false },
-      sunday: { open: "12:00", close: "21:00", closed: false },
-    });
+  const setRestaurantHoursPreset = () => {
+    setHours(RESTAURANT_HOURS);
+  };
+
+  const setSplitShiftHours = () => {
+    setHours(RESTAURANT_SPLIT_HOURS);
   };
 
   return (
@@ -142,9 +94,16 @@ export function BusinessHoursManager() {
         <Button
           variant="outline"
           size="sm"
-          onClick={setRestaurantHours}
+          onClick={setRestaurantHoursPreset}
         >
-          Restaurant Hours
+          Restaurant
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={setSplitShiftHours}
+        >
+          Split Shift
         </Button>
         <Button
           variant={is24x7 ? "secondary" : "outline"}

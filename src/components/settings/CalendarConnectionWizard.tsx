@@ -47,15 +47,9 @@ interface CalendarConnectionWizardProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const DEFAULT_HOURS: BusinessHours = {
-  monday: { open: "09:00", close: "17:00", closed: false },
-  tuesday: { open: "09:00", close: "17:00", closed: false },
-  wednesday: { open: "09:00", close: "17:00", closed: false },
-  thursday: { open: "09:00", close: "17:00", closed: false },
-  friday: { open: "09:00", close: "17:00", closed: false },
-  saturday: { open: "10:00", close: "14:00", closed: true },
-  sunday: { open: "10:00", close: "14:00", closed: true },
-};
+import { DEFAULT_BUSINESS_HOURS } from "@/lib/hoursUtils";
+
+const DEFAULT_HOURS = DEFAULT_BUSINESS_HOURS;
 
 interface AvailableCalendar {
   id: string;
