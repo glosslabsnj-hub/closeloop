@@ -1,5 +1,34 @@
 
-# Business Brain Refactor Plan
+# Business Brain Refactor - Implementation Progress
+
+## ✅ Phase 1: Foundation (COMPLETE)
+- [x] Created `useBusinessCapabilities.ts` hook
+- [x] Created `essentialFields.ts` registry  
+- [x] Created `useBrainCompletion.ts` hook
+- [x] Updated `useBrainSummaries.ts` for dynamic completion
+
+## ✅ Phase 2 & 3: Capabilities Integration (COMPLETE)
+- [x] Updated `businessBrainNavConfig.ts` with `isVisibleWithCapabilities` functions
+- [x] Created `useEssentialFieldStatus.ts` for AI impact badges
+- [x] Updated `SectionSummaryCard.tsx` with Required/Recommended badges
+- [x] Added `getVisibleCardsWithCapabilities` helper function
+
+## 🔲 Phase 4: AI Preview Integration (PENDING)
+- [ ] Create global `AIPreviewPanel.tsx` component
+- [ ] Add per-section AI impact examples
+- [ ] Real-time preview updates
+
+## 🔲 Phase 5: Guided Setup Flow (PENDING)  
+- [ ] Create `ScenarioWizard.tsx` for initial setup
+- [ ] Create `GuidedSetupFlow.tsx` step-by-step onboarding
+- [ ] Enhanced industry templates
+
+## 🔲 Phase 6: Conditional Question Builder (PENDING)
+- [ ] Create `ConditionalQuestionBuilder.tsx`
+- [ ] "If X, Ask Y" rule builder UI
+- [ ] Wire to intake_requirements table
+
+---
 ## Goal: True Customization Without Breaking ElevenLabs Logic
 
 ## ✅ PHASE 1 COMPLETE (2026-02-08)

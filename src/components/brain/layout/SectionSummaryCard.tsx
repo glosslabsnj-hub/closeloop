@@ -2,14 +2,16 @@
  * SectionSummaryCard - Status-focused section card for Business Brain
  * 
  * Shows section status at a glance without requiring expansion.
- * Replaces CollapsibleBrainSection for the new layout.
+ * Now includes AI Impact badges (Required/Recommended) from essentialFields registry.
  */
 
 import { useState, useEffect, ReactNode, useCallback } from "react";
-import { ChevronDown, ChevronRight, Check, AlertCircle, Circle, LucideIcon } from "lucide-react";
+import { ChevronDown, ChevronRight, Check, AlertCircle, Circle, Sparkles, LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { BusinessMode } from "@/hooks/useTenantConfig";
+import type { FieldPriority } from "@/config/essentialFields";
 
 export type SectionStatus = "complete" | "incomplete" | "warning" | "error";
 
@@ -20,6 +22,10 @@ interface SectionSummaryCardProps {
   status: SectionStatus;
   statusText: string;
   isEssential?: boolean;
+  /** AI impact priority from essentialFields registry */
+  aiPriority?: FieldPriority;
+  /** Tooltip explaining AI impact if not configured */
+  aiImpactText?: string;
   mode?: BusinessMode;
   onEdit?: () => void;
   children: ReactNode;
@@ -46,6 +52,27 @@ const MODE_ACCENT: Record<BusinessMode, string> = {
   general: "border-l-slate-500",
 };
 
+const AI_PRIORITY_BADGE: Record<FieldPriority, { label: string; variant: "default" | "secondary" | "outline"; className: string; tooltip: string }> = {
+  required: { 
+    label: "Required for AI", 
+    variant: "default", 
+    className: "bg-amber-500 hover:bg-amber-600 text-white border-0 text-[10px] px-1.5 py-0",
+    tooltip: "AI will not work properly without this"
+  },
+  recommended: { 
+    label: "Recommended", 
+    variant: "secondary", 
+    className: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-0 text-[10px] px-1.5 py-0",
+    tooltip: "AI works better with this configured"
+  },
+  optional: { 
+    label: "Optional", 
+    variant: "outline", 
+    className: "text-muted-foreground border-muted text-[10px] px-1.5 py-0",
+    tooltip: "Nice to have but not essential"
+  },
+};
+
 export function SectionSummaryCard({
   id,
   title,
@@ -53,6 +80,8 @@ export function SectionSummaryCard({
   status,
   statusText,
   isEssential = false,
+  aiPriority,
+  aiImpactText,
   mode = "general",
   onEdit,
   children,
@@ -68,6 +97,10 @@ export function SectionSummaryCard({
   
   const statusConfig = STATUS_CONFIG[status];
   const StatusIcon = statusConfig.icon;
+
+  // Derive AI priority from isEssential if not explicitly provided
+  const effectivePriority: FieldPriority | undefined = aiPriority ?? (isEssential ? "required" : undefined);
+  const priorityConfig = effectivePriority ? AI_PRIORITY_BADGE[effectivePriority] : null;
 
   const toggleExpanded = useCallback(() => {
     const newValue = !isExpanded;
@@ -103,7 +136,8 @@ export function SectionSummaryCard({
         "rounded-lg border bg-card transition-all duration-200 border-l-4",
         MODE_ACCENT[mode],
         isExpanded && "ring-1 ring-primary/20 shadow-sm",
-        isEssential && !isExpanded && status === "incomplete" && "ring-1 ring-amber-200 dark:ring-amber-900/50",
+        // Highlight incomplete required fields
+        effectivePriority === "required" && !isExpanded && status === "incomplete" && "ring-1 ring-amber-300 dark:ring-amber-700/50",
         className
       )}
     >
@@ -119,12 +153,29 @@ export function SectionSummaryCard({
           </div>
           
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-medium text-sm">{title}</h3>
-              {isEssential && (
-                <span className="text-[10px] font-medium uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                  Essential
-                </span>
+              
+              {/* AI Priority Badge with Tooltip */}
+              {priorityConfig && status === "incomplete" && (
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge 
+                        variant={priorityConfig.variant} 
+                        className={cn("cursor-help", priorityConfig.className)}
+                      >
+                        <Sparkles className="h-2.5 w-2.5 mr-0.5" />
+                        {priorityConfig.label}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                      <p className="text-xs">
+                        {aiImpactText || priorityConfig.tooltip}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </div>
             <p className="text-xs text-muted-foreground truncate mt-0.5">

@@ -31,6 +31,7 @@ export {
   BRAIN_CATEGORIES,
   getOrderedCategories,
   getVisibleCards,
+  getVisibleCardsWithCapabilities,
   SECTION_TO_CATEGORY,
   CATEGORY_TO_SECTION,
   type CategoryConfig,
