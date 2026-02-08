@@ -33,6 +33,7 @@ import { DispatchDeliverySettings } from "@/components/settings/DispatchDelivery
 import { MedicalHIPAASettings } from "@/components/settings/MedicalHIPAASettings";
 import { BusinessProfileEditor } from "@/components/brain/BusinessProfileEditor";
 import { BusinessPoliciesEditor } from "@/components/brain/BusinessPoliciesEditor";
+import { CustomPoliciesEditor } from "@/components/brain/CustomPoliciesEditor";
 import { ServiceAreaManager } from "@/components/brain/ServiceAreaManager";
 import { BrainAssetsManager } from "@/components/brain/BrainAssetsManager";
 import { BrainReviewQueue, useBrainReviewCount } from "@/components/brain/BrainReviewQueue";
@@ -769,6 +770,16 @@ export default function BusinessBrainPage() {
                     mode={businessMode}
                   >
                     <RequiredQuestionsEditor />
+                  </SectionSummaryCard>
+                  <SectionSummaryCard
+                    id="custom-policies"
+                    title="Custom Policies"
+                    icon={FileText}
+                    status="incomplete"
+                    statusText="Additional policies for specific scenarios"
+                    mode={businessMode}
+                  >
+                    <CustomPoliciesEditor />
                   </SectionSummaryCard>
                 </EssentialGroup>
 
