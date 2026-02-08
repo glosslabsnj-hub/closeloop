@@ -10,7 +10,8 @@ const corsHeaders = {
 interface ExtractionRequest {
   sourceId: string;
   tenantId: string;
-  fileUrl: string;
+  fileUrl?: string;
+  rawText?: string;
   sourceType: string;
 }
 
@@ -129,11 +130,18 @@ serve(async (req) => {
       // Old format: knowledge_sources table
       sourceId = body.sourceId;
       tenantId = body.tenantId;
-      fileUrl = body.fileUrl;
+      fileUrl = body.fileUrl || "";
       sourceType = body.sourceType || "auto"; // Default to auto
 
-      if (!sourceId || !tenantId || !fileUrl) {
-        throw new Error("Missing required fields: sourceId, tenantId, fileUrl");
+      // Allow rawText as alternative to fileUrl
+      const rawText = body.rawText;
+
+      if (!sourceId || !tenantId) {
+        throw new Error("Missing required fields: sourceId, tenantId");
+      }
+
+      if (!fileUrl && !rawText) {
+        throw new Error("Missing required field: fileUrl or rawText");
       }
 
       // Update status to processing
@@ -145,26 +153,38 @@ serve(async (req) => {
 
     console.log(`Processing upload: ${sourceId}, type: ${sourceType}, autoDetect: ${autoDetect}, new table: ${useNewTable}`);
 
-    // Fetch the file from storage
-    const fileResponse = await fetch(fileUrl);
-    if (!fileResponse.ok) {
-      throw new Error(`Failed to fetch file: ${fileResponse.statusText}`);
-    }
-
-    const contentType = fileResponse.headers.get("content-type") || "";
     let fileContent: string;
     let isImage = false;
 
-    // Determine file type and extract content
-    if (contentType.includes("image") || ["png", "jpg", "jpeg"].some(ext => fileUrl.toLowerCase().includes(`.${ext}`))) {
-      // For images, we'll send as base64 to the AI for OCR
-      isImage = true;
-      const buffer = await fileResponse.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-      fileContent = `data:${contentType || "image/png"};base64,${base64}`;
+    // Check if we have rawText (pasted content) or need to fetch file
+    const rawText = body.rawText;
+    
+    if (rawText) {
+      // Direct text input - no file fetch needed
+      fileContent = rawText;
+      console.log(`Processing pasted text: ${rawText.length} characters`);
+    } else if (fileUrl) {
+      // Fetch the file from storage
+      const fileResponse = await fetch(fileUrl);
+      if (!fileResponse.ok) {
+        throw new Error(`Failed to fetch file: ${fileResponse.statusText}`);
+      }
+
+      const contentType = fileResponse.headers.get("content-type") || "";
+
+      // Determine file type and extract content
+      if (contentType.includes("image") || ["png", "jpg", "jpeg"].some(ext => fileUrl.toLowerCase().includes(`.${ext}`))) {
+        // For images, we'll send as base64 to the AI for OCR
+        isImage = true;
+        const buffer = await fileResponse.arrayBuffer();
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+        fileContent = `data:${contentType || "image/png"};base64,${base64}`;
+      } else {
+        // For text-based files (PDF text layer, DOCX, etc.)
+        fileContent = await fileResponse.text();
+      }
     } else {
-      // For text-based files (PDF text layer, DOCX, etc.)
-      fileContent = await fileResponse.text();
+      throw new Error("No content provided - need either rawText or fileUrl");
     }
 
     if (!lovableApiKey) {
