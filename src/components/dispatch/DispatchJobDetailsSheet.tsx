@@ -300,15 +300,22 @@ export function DispatchJobDetailsSheet({
           </div>
 
           {/* Distance & Pricing Section */}
-          {(job.dispatch_distance_miles || job.tow_distance_miles || job.price_breakdown || job.pricing_note) && (
-            <>
-              <Separator />
-              <div className="space-y-3">
-                <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-                  <Route className="h-4 w-4" />
-                  Distance & Pricing
-                </h4>
-                
+          <Separator />
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+              <Route className="h-4 w-4" />
+              Distance & Pricing
+            </h4>
+            
+            {/* Show guidance when no distance data is available */}
+            {!job.dispatch_distance_miles && !job.tow_distance_miles && !job.price_breakdown && !job.pricing_note ? (
+              <div className="p-3 rounded-lg bg-muted/50 border border-dashed border-muted-foreground/30">
+                <p className="text-sm text-muted-foreground">
+                  Distance and pricing data will appear here when jobs are created through AI calls with a base address configured in Business Brain → Coverage & ETA.
+                </p>
+              </div>
+            ) : (
+              <>
                 {/* Distance Breakdown */}
                 {(job.dispatch_distance_miles || job.tow_distance_miles) && (
                   <div className="p-3 rounded-lg bg-muted/50 space-y-2">
@@ -404,9 +411,9 @@ export function DispatchJobDetailsSheet({
                     <p className="text-sm text-foreground">{job.pricing_note}</p>
                   </div>
                 )}
-              </div>
-            </>
-          )}
+              </>
+            )}
+          </div>
 
           <Separator />
 
