@@ -1,6 +1,7 @@
 import { useState, useEffect, KeyboardEvent } from "react";
 import { useServiceArea, ServiceAreaConfig, CoverageMode, County, getServiceAreaSummary } from "@/hooks/useServiceArea";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -196,11 +197,85 @@ const modeLabels: Record<CoverageMode, string> = {
   hybrid: "Hybrid (Multiple Criteria)",
 };
 
+// Parse address string into components (e.g., "123 Main St, Springfield, IL 62701")
+function parseAddressString(address: string | null | undefined): {
+  line1: string;
+  city: string;
+  state: string;
+  zip: string;
+} {
+  if (!address) return { line1: "", city: "", state: "", zip: "" };
+  
+  // Try to parse common formats
+  const parts = address.split(",").map(p => p.trim());
+  
+  if (parts.length >= 3) {
+    // Format: "123 Main St, City, State ZIP" or "123 Main St, City, State, ZIP"
+    const line1 = parts[0];
+    const city = parts[1];
+    // Last part might be "State ZIP" or just "State"
+    const lastPart = parts[parts.length - 1];
+    const stateZipMatch = lastPart.match(/^([A-Z]{2})\s*(\d{5}(?:-\d{4})?)?$/i);
+    
+    if (stateZipMatch) {
+      return {
+        line1,
+        city,
+        state: stateZipMatch[1].toUpperCase(),
+        zip: stateZipMatch[2] || "",
+      };
+    }
+    
+    // If last part is just a ZIP
+    if (/^\d{5}(-\d{4})?$/.test(lastPart)) {
+      const statePart = parts[parts.length - 2];
+      return {
+        line1,
+        city,
+        state: statePart?.match(/^[A-Z]{2}$/i)?.[0]?.toUpperCase() || "",
+        zip: lastPart,
+      };
+    }
+    
+    return { line1, city, state: lastPart.slice(0, 2).toUpperCase(), zip: "" };
+  }
+  
+  if (parts.length === 2) {
+    // Format: "123 Main St, City State ZIP"
+    const line1 = parts[0];
+    const rest = parts[1];
+    const match = rest.match(/^(.+?)\s+([A-Z]{2})\s*(\d{5}(?:-\d{4})?)?$/i);
+    
+    if (match) {
+      return {
+        line1,
+        city: match[1].trim(),
+        state: match[2].toUpperCase(),
+        zip: match[3] || "",
+      };
+    }
+    
+    return { line1, city: rest, state: "", zip: "" };
+  }
+  
+  // Single part - just use as line1
+  return { line1: address, city: "", state: "", zip: "" };
+}
+
 export function ServiceAreaManager() {
   const { serviceArea, isLoading, isSaving, saveServiceArea } = useServiceArea();
   const { businessMode } = useTenantConfig();
+  const { tenant } = useAuth();
   const [formData, setFormData] = useState<ServiceAreaConfig>(serviceArea);
   const [hasChanges, setHasChanges] = useState(false);
+  
+  // Parse business identity address for preset option
+  const businessIdentityAddress = parseAddressString(tenant?.address as string | null);
+  const hasBusinessAddress = !!(
+    businessIdentityAddress.line1 || 
+    businessIdentityAddress.city || 
+    businessIdentityAddress.state
+  );
 
   useEffect(() => {
     setFormData(serviceArea);
@@ -366,10 +441,31 @@ export function ServiceAreaManager() {
 
           {/* Base Address - Required for radius, optional otherwise */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-medium">Base Address</Label>
-              {(formData.mode === "radius" || formData.mode === "hybrid") && (
-                <Badge variant="outline">Required for radius</Badge>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <Label className="text-base font-medium">Base Address</Label>
+                {(formData.mode === "radius" || formData.mode === "hybrid") && (
+                  <Badge variant="outline">Required for radius</Badge>
+                )}
+              </div>
+              {hasBusinessAddress && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    updateBaseAddress({
+                      line1: businessIdentityAddress.line1,
+                      city: businessIdentityAddress.city,
+                      state: businessIdentityAddress.state,
+                      zip: businessIdentityAddress.zip,
+                    });
+                  }}
+                  className="gap-1 text-xs"
+                >
+                  <MapPin className="h-3 w-3" />
+                  Use Business Address
+                </Button>
               )}
             </div>
             <div className="grid gap-4 md:grid-cols-2">
