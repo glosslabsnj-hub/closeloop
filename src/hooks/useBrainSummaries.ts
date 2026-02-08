@@ -1,11 +1,14 @@
 /**
  * Hook to fetch summary previews for all Business Brain sections
  * Used by CollapsibleBrainSection to show 1-line previews
+ * 
+ * Updated to use the new dynamic completion system from useBrainCompletion
  */
 
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useBrainCompletion, type CompletionStats } from "./useBrainCompletion";
 
 interface BrainSummaries {
   // Profile
@@ -49,17 +52,21 @@ interface BrainSummaries {
   custom: string;
   documents: string;
 
-  // NEW: Completion tracking
+  // NEW: Dynamic completion tracking (from useBrainCompletion)
   completionStats: {
     completed: number;
     total: number;
     percentage: number;
     incompleteItems: { section: string; label: string }[];
   };
+  
+  // Extended completion info
+  fullCompletionStats: CompletionStats;
 }
 
 export function useBrainSummaries(): BrainSummaries {
   const { tenant } = useAuth();
+  const fullCompletionStats = useBrainCompletion();
 
   // Fetch tenant data for multiple sections
   const { data: tenantData } = useQuery({
@@ -299,23 +306,25 @@ export function useBrainSummaries(): BrainSummaries {
       : "No custom knowledge yet",
     documents: "Uploaded files and references",
 
-    // NEW: Completion stats
+    // Completion stats - now using the dynamic completion system
+    // Keep legacy format for backward compatibility
     completionStats: (() => {
-      const essentialChecks = [
-        { section: "profile", label: "Business Info", complete: !!tenant?.name },
-        { section: "hours", label: "Operating Hours", complete: hasHoursConfigured },
-        { section: "services", label: "Services/Menu", complete: (counts?.services ?? 0) > 0 },
-        { section: "ai-behavior", label: "Greeting Script", complete: !!assistantData?.greeting_script },
+      const incompleteItems = [
+        ...fullCompletionStats.incompleteRequired.map(s => ({
+          section: s.field.section,
+          label: s.field.label,
+        })),
       ];
       
-      const completed = essentialChecks.filter(c => c.complete).length;
-      const total = essentialChecks.length;
-      const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-      const incompleteItems = essentialChecks
-        .filter(c => !c.complete)
-        .map(c => ({ section: c.section, label: c.label }));
-
-      return { completed, total, percentage, incompleteItems };
+      return {
+        completed: fullCompletionStats.completedRequired,
+        total: fullCompletionStats.totalRequired,
+        percentage: fullCompletionStats.requiredPercentage,
+        incompleteItems,
+      };
     })(),
+    
+    // Extended completion info from the new dynamic system
+    fullCompletionStats,
   };
 }
