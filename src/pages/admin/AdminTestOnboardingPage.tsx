@@ -5,50 +5,43 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAdminMode } from "@/contexts/AdminModeContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Building2, Clock, FileText, Loader2,
-  ChevronRight, ChevronLeft, Sparkles, Wrench, Sliders,
-  FlaskConical, ArrowLeft, CheckCircle2
+  Building2, CheckCircle2, Loader2,
+  ChevronRight, ChevronLeft, Sparkles, Sliders,
+  HelpCircle, FlaskConical, ArrowLeft
 } from "lucide-react";
 import { createDefaultWorkflowsForMode } from "@/lib/createDefaultWorkflows";
 import { getIndustryBySlug } from "@/data/industryCatalog";
 import { resolveIndustryTemplate } from "@/lib/templateResolver";
 import { BusinessModeSelector, type BusinessMode, getDefaultModulesForMode } from "@/components/onboarding/BusinessModeSelector";
-import { ModuleSelector } from "@/components/onboarding/ModuleSelector";
-import BusinessBasicsForm, { BusinessBasicsData, validateBusinessBasics } from "@/components/onboarding/BusinessBasicsForm";
-import ServiceEditorAdvanced, { AdvancedService } from "@/components/onboarding/ServiceEditorAdvanced";
-import FAQEditor, { FAQ } from "@/components/onboarding/FAQEditor";
-import ObjectionEditor, { ObjectionResponse } from "@/components/onboarding/ObjectionEditor";
-import PoliciesEditor, { BusinessPolicies } from "@/components/onboarding/PoliciesEditor";
-import { FoodSetupEditor, FoodSetupData } from "@/components/onboarding/FoodSetupEditor";
-import { DispatchSetupEditor, DispatchSetupData } from "@/components/onboarding/DispatchSetupEditor";
-import { MedicalSetupEditor, MedicalSetupData } from "@/components/onboarding/MedicalSetupEditor";
+import { ScenarioDiscovery } from "@/components/onboarding/ScenarioDiscovery";
+import { CommunicationPreferences, getDefaultCommunicationPrefs, type CommunicationPrefs } from "@/components/onboarding/CommunicationPreferences";
+import { ConfirmationSummary } from "@/components/onboarding/ConfirmationSummary";
 import { formatErrorForToast } from "@/lib/errorMessages";
 import { OnboardingProgress, type OnboardingStep } from "@/components/onboarding/OnboardingProgress";
 import { IndustrySelectorGrid } from "@/components/onboarding/IndustrySelectorGrid";
-import { cn } from "@/lib/utils";
+import { updateCapabilityFlags } from "@/hooks/useBusinessCapabilities";
+import { getQuestionsForMode, getDefaultAnswers, deriveModulesFromScenario } from "@/lib/scenarioQuestions";
 import { DEFAULT_BUSINESS_HOURS } from "@/lib/hoursUtils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { IndustryCatalogEntry } from "@/data/industryCatalog";
-
-const defaultBusinessHours = DEFAULT_BUSINESS_HOURS;
 
 const steps: OnboardingStep[] = [
-  { id: "mode", icon: Wrench, title: "Business Mode", description: "What type of business are you?" },
-  { id: "industry", icon: Building2, title: "Industry", description: "Choose your industry for smart defaults" },
-  { id: "features", icon: Sliders, title: "Features", description: "Select which modules to enable" },
-  { id: "basics", icon: Clock, title: "Business Info", description: "Name, phone, and hours" },
-  { id: "offerings", icon: Sparkles, title: "Offerings", description: "Your services or menu" },
-  { id: "policies", icon: FileText, title: "Policies & FAQs", description: "Business rules and common questions" },
+  { id: "identity", icon: Building2, title: "Identity", description: "Name your business" },
+  { id: "industry", icon: Sparkles, title: "Industry", description: "Choose your industry" },
+  { id: "scenarios", icon: HelpCircle, title: "Discovery", description: "How you operate" },
+  { id: "communication", icon: Sliders, title: "Communication", description: "AI behavior" },
+  { id: "confirm", icon: CheckCircle2, title: "Confirm", description: "Review and apply" },
 ];
 
 export default function AdminTestOnboardingPage() {
   const [searchParams] = useSearchParams();
   const initialMode = searchParams.get("mode") as BusinessMode || "service";
-  
+
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
@@ -57,85 +50,24 @@ export default function AdminTestOnboardingPage() {
   // Track if industry template has been initialized
   const initializedIndustryRef = useRef<string | null>(null);
 
-  // Step 1: Business Mode
+  // Step 1: Identity
+  const [businessName, setBusinessName] = useState("");
   const [businessMode, setBusinessMode] = useState<BusinessMode>(initialMode);
 
   // Step 2: Industry
   const [industrySlug, setIndustrySlug] = useState("");
 
-  // Step 3: Enabled Modules
+  // Modules (derived from industry + scenario answers)
   const [enabledModules, setEnabledModules] = useState<string[]>([]);
+  const baseModulesRef = useRef<string[]>([]);
 
-  // Step 4: Business Basics
-  const [businessBasics, setBusinessBasics] = useState<BusinessBasicsData>({
-    businessName: "",
-    tagline: "",
-    phoneNumber: "",
-    address: "",
-    timezone: "America/New_York",
-    hoursJson: defaultBusinessHours,
-  });
+  // Step 3: Scenario Discovery
+  const [scenarioAnswers, setScenarioAnswers] = useState<Record<string, boolean>>({});
 
-  // Step 5: Services
-  const [services, setServices] = useState<AdvancedService[]>([]);
-  const [faqs, setFaqs] = useState<FAQ[]>([]);
-  const [objections, setObjections] = useState<ObjectionResponse[]>([]);
-
-  // Step 5: Food Setup
-  const [foodSetup, setFoodSetup] = useState<FoodSetupData>({
-    acceptsPickup: true,
-    acceptsDelivery: false,
-    acceptsDineIn: false,
-    deliveryRadius: 5,
-    deliveryMinimumCents: 1500,
-    estimatedPrepMinutes: 15,
-    busyBufferMinutes: 30,
-    deliveryWindowMin: 20,
-    deliveryWindowMax: 40,
-    acceptsCatering: false,
-    cateringMinGuests: 10,
-    cateringLeadDays: 3,
-    menuNotes: "",
-  });
-
-  // Step 5: Dispatch Setup
-  const [dispatchSetup, setDispatchSetup] = useState<DispatchSetupData>({
-    serviceRadius: 25,
-    estimatedResponseMinutes: 30,
-    requiresDropoff: true,
-    jobTypes: [],
-    crews: [],
-    vehicles: [],
-    dispatchNotes: "",
-    hasImpoundLot: false,
-    impoundLotAddress: "",
-    impoundBaseFee: 150,
-    impoundDailyStorageFee: 35,
-    impoundAdminFee: 75,
-    impoundGateFee: 0,
-    impoundReleaseNotes: "",
-  });
-
-  // Step 5: Medical Setup
-  const [medicalSetup, setMedicalSetup] = useState<MedicalSetupData>({
-    requireVerbalConsent: true,
-    storeTranscripts: false,
-    storeRecordings: false,
-    retentionDays: 30,
-    urgentEscalationNumber: "",
-    intakeTypes: ["appointment_request"],
-    schedulingNotes: "",
-    hipaaAcknowledged: false,
-  });
-
-  // Step 6: Policies
-  const [policies, setPolicies] = useState<BusinessPolicies>({
-    cancellationPolicy: "",
-    depositPolicy: "",
-    refundPolicy: "",
-    paymentMethods: ["cash", "card"],
-    aiNeverPromise: [],
-  });
+  // Step 4: Communication Preferences
+  const [communicationPrefs, setCommunicationPrefs] = useState<CommunicationPrefs>(
+    getDefaultCommunicationPrefs(initialMode)
+  );
 
   const { user, isSuperAdmin, setActiveTenantId } = useAuth();
   const adminModeContext = useAdminMode();
@@ -152,82 +84,59 @@ export default function AdminTestOnboardingPage() {
     }
   }, [isSuperAdmin, navigate]);
 
-  // When industry changes, apply template
+  // Initialize data when industry changes
   useEffect(() => {
     if (!industrySlug) return;
     if (initializedIndustryRef.current === industrySlug) return;
 
-    // Get industry entry from catalog
     const industryEntry = getIndustryBySlug(industrySlug);
 
     // Auto-update business_mode from industry
     if (industryEntry?.businessMode) {
       setBusinessMode(industryEntry.businessMode);
+      setCommunicationPrefs(getDefaultCommunicationPrefs(industryEntry.businessMode));
+      setScenarioAnswers(getDefaultAnswers(industryEntry.businessMode));
     }
 
     // Auto-update enabled_modules from industry
-    if (industryEntry?.enabledModules) {
-      setEnabledModules(industryEntry.enabledModules);
-    } else {
-      setEnabledModules(getDefaultModulesForMode(businessMode));
-    }
+    const modules = industryEntry?.enabledModules ?? getDefaultModulesForMode(businessMode);
+    setEnabledModules(modules);
+    baseModulesRef.current = modules;
 
-    // Use the template resolver to get the correct config
-    const config = resolveIndustryTemplate(industrySlug);
-    console.log(`[AdminTestOnboarding] Loading template for industry: ${industrySlug}`, config.label);
-
-    // Update services from the resolved template
-    setServices(config.services.map(s => ({
-      ...s,
-      description: s.description || "",
-      preparationInstructions: "",
-      upsellSuggestions: [],
-      depositRequired: false,
-    })));
-
-    // Update FAQs
-    setFaqs(config.faqs.map(f => ({ ...f })));
-
-    // Update objections
-    setObjections(config.objections.map(o => ({ ...o })));
-
-    // Update policies
-    setPolicies({
-      cancellationPolicy: config.defaultPolicies.cancellation,
-      depositPolicy: config.defaultPolicies.deposit,
-      refundPolicy: config.defaultPolicies.refund,
-      paymentMethods: ["cash", "card"],
-      aiNeverPromise: [],
-    });
+    console.log(`[AdminTestOnboarding] Loading template for industry: ${industrySlug}`);
 
     // Mark this industry as initialized
     initializedIndustryRef.current = industrySlug;
   }, [industrySlug, businessMode]);
 
-  // When mode changes, update default modules if industry hasn't set them
+  // When scenario answers change, derive modules
   useEffect(() => {
-    if (!industrySlug) {
-      setEnabledModules(getDefaultModulesForMode(businessMode));
-    }
-  }, [businessMode, industrySlug]);
+    if (Object.keys(scenarioAnswers).length === 0) return;
+    const questions = getQuestionsForMode(businessMode);
+    const derived = deriveModulesFromScenario(baseModulesRef.current, scenarioAnswers, questions);
+    setEnabledModules(derived);
+  }, [scenarioAnswers, businessMode]);
 
-  const canProceed = (): boolean => {
-    switch (step) {
-      case 1: return !!businessMode;
-      case 2: return !!industrySlug;
-      case 3: return enabledModules.length > 0;
-      case 4: return validateBusinessBasics(businessBasics);
-      case 5: 
-        if (businessMode === "food") {
-          return foodSetup.acceptsPickup || foodSetup.acceptsDelivery || foodSetup.acceptsDineIn;
-        } else if (businessMode === "dispatch") {
-          return dispatchSetup.serviceRadius > 0;
-        } else if (businessMode === "medical") {
-          return medicalSetup.hipaaAcknowledged === true;
-        } else {
-          return services.length > 0 && services.every(s => s.name.trim().length > 0);
+  // When business mode changes (from Step 1 manual selection), reset scenario + comm prefs
+  const handleBusinessModeChange = (mode: BusinessMode) => {
+    setBusinessMode(mode);
+    setScenarioAnswers(getDefaultAnswers(mode));
+    setCommunicationPrefs(getDefaultCommunicationPrefs(mode));
+  };
+
+  // Step validation
+  const canProceed = (stepNum: number) => {
+    switch (stepNum) {
+      case 1: return businessName.trim().length > 0 && businessMode.length > 0;
+      case 2: return industrySlug.length > 0;
+      case 3: {
+        if (businessMode === "medical") {
+          return scenarioAnswers.requiresHIPAA === true;
         }
-      case 6: return true;
+        return true;
+      }
+      case 4: return true;
+      case 5: return true;
       default: return false;
     }
   };
@@ -244,30 +153,36 @@ export default function AdminTestOnboardingPage() {
     }
   };
 
-  // Handle industry selection
-  const handleIndustryChange = (slug: string, industry: IndustryCatalogEntry) => {
-    setIndustrySlug(slug);
-  };
-
   const handleComplete = async () => {
     if (!user) return;
-    
+
     setLoading(true);
     try {
-      // Step 1: Create the test tenant via edge function
+      const isFoodMode = businessMode === "food" || enabledModules.includes("food_orders");
+      const industryEntry = getIndustryBySlug(industrySlug);
+
+      // Build capabilities_json from modules + scenario answers
+      const capabilitiesJson: Record<string, boolean> = {};
+      for (const mod of enabledModules) {
+        capabilitiesJson[mod] = true;
+      }
+      for (const [key, val] of Object.entries(scenarioAnswers)) {
+        capabilitiesJson[key] = val;
+      }
+
+      // 1. Create tenant via edge function
       const { data: createResult, error: createError } = await supabase.functions.invoke(
         "create-tenant",
         {
           body: {
-            name: businessBasics.businessName.trim(),
+            name: businessName.trim(),
             business_mode: businessMode,
-            timezone: businessBasics.timezone,
-            enabled_modules: enabledModules,
-            hipaa_mode: businessMode === "medical",
-            tagline: businessBasics.tagline || null,
-            address: businessBasics.address || null,
-            hours_json: businessBasics.hoursJson || null,
+            timezone: "America/New_York",
+            hours_json: DEFAULT_BUSINESS_HOURS,
             industry: industrySlug || "general",
+            enabled_modules: enabledModules,
+            capabilities_json: capabilitiesJson,
+            hipaa_mode: businessMode === "medical",
           },
         }
       );
@@ -278,159 +193,152 @@ export default function AdminTestOnboardingPage() {
       const tenantId = createResult.tenant_id;
       if (!tenantId) throw new Error("No tenant ID returned");
 
-      setTestTenantName(businessBasics.businessName);
+      setTestTenantName(businessName);
 
-      // Create assistant_settings
+      // 2. Apply industry template data (services, FAQs, objections, policies)
+      const config = resolveIndustryTemplate(industrySlug);
+
+      // Insert services from template
+      const servicesToInsert = config.services
+        .filter(s => s.name.trim().length > 0)
+        .map(s => ({
+          tenant_id: tenantId,
+          name: s.name,
+          description: s.description || null,
+          duration_minutes: s.duration,
+          price_amount: s.price,
+          price_type: (s.priceType || "fixed") as "fixed" | "starting_at" | "quote_only",
+          is_active: true,
+        }));
+
+      if (servicesToInsert.length > 0) {
+        const { error: servicesError } = await supabase
+          .from("services")
+          .insert(servicesToInsert as any);
+        if (servicesError) {
+          console.error("Services creation error:", servicesError);
+        }
+      }
+
+      // Insert FAQs from template
+      const faqsToInsert = config.faqs
+        .filter(f => f.question.trim().length > 0 && f.answer.trim().length > 0)
+        .map((faq, index) => ({
+          tenant_id: tenantId,
+          question: faq.question,
+          answer: faq.answer,
+          priority_weight: index,
+        }));
+
+      if (faqsToInsert.length > 0) {
+        const { error: faqsError } = await supabase
+          .from("business_faqs")
+          .insert(faqsToInsert);
+        if (faqsError) {
+          console.error("FAQs creation error:", faqsError);
+        }
+      }
+
+      // Insert objections from template
+      const objectionsToInsert = config.objections
+        .filter(o => o.objection.trim().length > 0 && o.response.trim().length > 0)
+        .map((obj, index) => ({
+          tenant_id: tenantId,
+          objection: obj.objection,
+          response: obj.response,
+          priority_weight: index,
+        }));
+
+      if (objectionsToInsert.length > 0) {
+        const { error: objectionsError } = await supabase
+          .from("objection_responses")
+          .insert(objectionsToInsert);
+        if (objectionsError) {
+          console.error("Objections creation error:", objectionsError);
+        }
+      }
+
+      // Apply template policies
+      if (config.defaultPolicies) {
+        const { error: policyError } = await supabase
+          .from("tenants")
+          .update({
+            cancellation_policy: config.defaultPolicies.cancellation || null,
+            deposit_policy: config.defaultPolicies.deposit || null,
+            refund_policy: config.defaultPolicies.refund || null,
+          })
+          .eq("id", tenantId);
+        if (policyError) {
+          console.error("Policies update error:", policyError);
+        }
+      }
+
+      // 3. Save scenario flags
+      await updateCapabilityFlags(tenantId, scenarioAnswers);
+
+      // 4. Create food order settings for food mode
+      if (isFoodMode) {
+        const { error: foodSettingsError } = await supabase
+          .from("food_order_settings")
+          .insert({
+            tenant_id: tenantId,
+            accepts_pickup: true,
+            accepts_delivery: scenarioAnswers.offersDelivery ?? false,
+            accepts_dine_in: true,
+            accepts_catering: scenarioAnswers.offersCatering ?? false,
+            order_confirmation_mode: "auto_confirm",
+          });
+        if (foodSettingsError) {
+          console.error("Food order settings creation error:", foodSettingsError);
+        }
+      }
+
+      // 5. Create assistant settings and save communication prefs
       await supabase
         .from("assistant_settings")
         .insert({
           tenant_id: tenantId,
           voice_ai_enabled: true,
           instant_text_enabled: true,
+          ai_booking_mode: communicationPrefs.aiBookingMode,
+          missed_call_behavior: communicationPrefs.missedCallBehavior,
+          unknown_question_behavior: communicationPrefs.unknownQuestionBehavior,
         });
 
-      // Save services for service/general/medical modes
-      if (services.length > 0 && (businessMode === "service" || businessMode === "general" || businessMode === "medical")) {
-        const serviceRows = services.map((s, idx) => ({
+      // 6. Create default automations
+      const automationsToInsert = [
+        {
           tenant_id: tenantId,
-          name: s.name,
-          description: s.description || "",
-          duration_minutes: s.duration,
-          price_amount: s.price,
-          price_type: s.priceType,
-          is_active: true,
-        }));
-        await supabase.from("services").insert(serviceRows);
-      }
-
-      // Save FAQs
-      if (faqs.length > 0) {
-        const faqRows = faqs.map((f, idx) => ({
+          name: "Missed Call Follow-up",
+          trigger: "missed_call" as const,
+          is_enabled: true,
+          steps_json: [
+            { type: "send_message", body: "Hi! We noticed we missed your call. How can we help you today?" },
+          ],
+        },
+        {
           tenant_id: tenantId,
-          question: f.question,
-          answer: f.answer,
-          priority_weight: idx + 1,
-        }));
-        await supabase.from("business_faqs").insert(faqRows);
+          name: "Booking Confirmation",
+          trigger: "booking_created" as const,
+          is_enabled: true,
+          steps_json: [
+            { type: "send_message", body: "Your appointment is confirmed! We'll see you soon." },
+          ],
+        },
+      ];
+
+      const { error: autoError } = await supabase
+        .from("automations")
+        .insert(automationsToInsert);
+      if (autoError) {
+        console.error("Automations creation error:", autoError);
       }
 
-      // Save policies
-      await supabase.from("tenants").update({
-        cancellation_policy: policies.cancellationPolicy || null,
-        deposit_policy: policies.depositPolicy || null,
-        refund_policy: policies.refundPolicy || null,
-        payment_methods: policies.paymentMethods,
-        ai_never_promise: policies.aiNeverPromise,
-      }).eq("id", tenantId);
+      // 7. Create default workflows
+      const workflowBusinessMode = industryEntry?.businessMode || businessMode;
+      await createDefaultWorkflowsForMode(tenantId, workflowBusinessMode as any);
 
-      // Food mode saves
-      if (businessMode === "food") {
-        const { error: foodSettingsError } = await supabase
-          .from("food_order_settings")
-          .insert({
-            tenant_id: tenantId,
-            accepts_pickup: foodSetup.acceptsPickup,
-            accepts_delivery: foodSetup.acceptsDelivery,
-            accepts_dine_in: foodSetup.acceptsDineIn,
-            delivery_radius_miles: foodSetup.deliveryRadius,
-            delivery_minimum_cents: foodSetup.deliveryMinimumCents,
-            estimated_prep_minutes: foodSetup.estimatedPrepMinutes,
-            accepts_catering: foodSetup.acceptsCatering,
-            catering_min_guests: foodSetup.cateringMinGuests,
-            catering_lead_days: foodSetup.cateringLeadDays,
-            order_confirmation_mode: "auto_confirm",
-          });
-
-        if (foodSettingsError) {
-          console.error("Food order settings creation error:", foodSettingsError);
-        }
-
-        // Save busyness/ETA rules for food mode
-        const busynessRules = {
-          base_buffer_minutes: foodSetup.estimatedPrepMinutes,
-          busy_buffer_minutes: foodSetup.busyBufferMinutes,
-          delivery_window_min: foodSetup.deliveryWindowMin,
-          delivery_window_max: foodSetup.deliveryWindowMax,
-          manual_busyness_pct: 50,
-          use_queue_metrics: false,
-        };
-
-        await supabase
-          .from("tenants")
-          .update({ busyness_rules_jsonb: busynessRules } as any)
-          .eq("id", tenantId);
-
-        // Save food menu items from quick-add
-        if (foodSetup.quickMenuItems && foodSetup.quickMenuItems.length > 0) {
-          const menuItemsToInsert = foodSetup.quickMenuItems.map((item, index) => ({
-            tenant_id: tenantId,
-            name: item.name,
-            price_cents: Math.round(item.price * 100),
-            category: item.category,
-            is_available: true,
-            sort_order: index,
-          }));
-
-          await supabase.from("menu_items").insert(menuItemsToInsert);
-        }
-      }
-
-      // Dispatch mode saves
-      if (businessMode === "dispatch") {
-        // Create dispatch services from job types
-        if (dispatchSetup.jobTypes && dispatchSetup.jobTypes.length > 0) {
-          const dispatchServicesToInsert = dispatchSetup.jobTypes.map((jobType) => ({
-            tenant_id: tenantId,
-            name: jobType,
-            description: `${jobType} service`,
-            duration_minutes: dispatchSetup.estimatedResponseMinutes,
-            price_amount: 0,
-            price_type: "quote_only" as const,
-            is_active: true,
-          }));
-
-          await supabase.from("services").insert(dispatchServicesToInsert);
-        }
-
-        // Save impound lot data if configured
-        if (dispatchSetup.hasImpoundLot) {
-          await supabase.from("impound_lots").insert({
-            tenant_id: tenantId,
-            name: "Main Lot",
-            address: dispatchSetup.impoundLotAddress || null,
-            is_active: true,
-          });
-
-          await supabase.from("impound_settings").insert({
-            tenant_id: tenantId,
-            impound_handling_enabled: true,
-            base_tow_fee_cents: Math.round((dispatchSetup.impoundBaseFee || 150) * 100),
-            daily_storage_cents: Math.round((dispatchSetup.impoundDailyStorageFee || 35) * 100),
-            admin_fee_cents: Math.round((dispatchSetup.impoundAdminFee || 75) * 100),
-            gate_fee_cents: Math.round((dispatchSetup.impoundGateFee || 0) * 100),
-            default_release_requirements: ["Valid ID", "Registration or Title", "Payment"],
-          });
-        }
-      }
-
-      // Medical mode saves
-      if (businessMode === "medical") {
-        await supabase.from("medical_settings").upsert({
-          tenant_id: tenantId,
-          require_verbal_consent: medicalSetup.requireVerbalConsent,
-          store_transcripts: medicalSetup.storeTranscripts,
-          store_recordings: medicalSetup.storeRecordings,
-          retention_days: medicalSetup.retentionDays,
-          urgent_escalation_number: medicalSetup.urgentEscalationNumber || null,
-          intake_types: medicalSetup.intakeTypes,
-          scheduling_notes: medicalSetup.schedulingNotes || null,
-        }, { onConflict: "tenant_id" });
-      }
-
-      // Create default workflows
-      await createDefaultWorkflowsForMode(tenantId, businessMode);
-
-      // Set as active tenant for testing
+      // 8. Admin-specific: Set as active tenant for testing
       await setActiveTenantId(tenantId);
 
       // Update admin mode to match
@@ -439,10 +347,10 @@ export default function AdminTestOnboardingPage() {
       }
 
       setIsComplete(true);
-      
+
       toast({
         title: "Test tenant created!",
-        description: `${businessBasics.businessName} is ready for testing.`,
+        description: `${businessName} is ready for testing.`,
       });
     } catch (error: unknown) {
       console.error("Failed to create test tenant:", error);
@@ -507,101 +415,6 @@ export default function AdminTestOnboardingPage() {
     );
   }
 
-  const renderStepContent = () => {
-    switch (step) {
-      case 1:
-        return (
-          <BusinessModeSelector
-            value={businessMode}
-            onChange={setBusinessMode}
-          />
-        );
-
-      case 2:
-        return (
-          <IndustrySelectorGrid
-            value={industrySlug}
-            onChange={handleIndustryChange}
-          />
-        );
-
-      case 3:
-        return (
-          <ModuleSelector
-            businessMode={businessMode}
-            enabledModules={enabledModules}
-            onChange={setEnabledModules}
-          />
-        );
-
-      case 4:
-        return (
-          <BusinessBasicsForm
-            data={businessBasics}
-            onChange={setBusinessBasics}
-          />
-        );
-
-      case 5:
-        if (businessMode === "food") {
-          return (
-            <FoodSetupEditor
-              data={foodSetup}
-              onChange={setFoodSetup}
-            />
-          );
-        }
-        if (businessMode === "dispatch") {
-          return (
-            <DispatchSetupEditor
-              data={dispatchSetup}
-              onChange={setDispatchSetup}
-            />
-          );
-        }
-        if (businessMode === "medical") {
-          return (
-            <MedicalSetupEditor
-              data={medicalSetup}
-              onChange={setMedicalSetup}
-            />
-          );
-        }
-        return (
-          <div className="space-y-6">
-            <ServiceEditorAdvanced
-              services={services}
-              onChange={setServices}
-            />
-          </div>
-        );
-
-      case 6:
-        return (
-          <div className="space-y-8">
-            <PoliciesEditor
-              data={policies}
-              onChange={setPolicies}
-            />
-            <FAQEditor
-              faqs={faqs}
-              onChange={setFaqs}
-            />
-            <ObjectionEditor
-              objections={objections}
-              onChange={setObjections}
-            />
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  const currentStepData = steps[step - 1];
-  const StepIcon = currentStepData.icon;
-
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-gradient-to-b from-background to-secondary/20">
       {/* Admin Context Banner */}
@@ -642,18 +455,112 @@ export default function AdminTestOnboardingPage() {
             transition={{ duration: 0.2 }}
             className="min-h-[400px]"
           >
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {StepIcon && <StepIcon className="h-5 w-5 text-primary" />}
-                  {currentStepData.title}
-                </CardTitle>
-                <p className="text-muted-foreground">{currentStepData.description}</p>
-              </CardHeader>
-              <CardContent>
-                {renderStepContent()}
-              </CardContent>
-            </Card>
+            {/* Step 1: Identity */}
+            {step === 1 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5 text-primary" />
+                    Identity
+                  </CardTitle>
+                  <p className="text-muted-foreground">Name your business and choose how it operates.</p>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="business-name">Business Name</Label>
+                    <Input
+                      id="business-name"
+                      placeholder="e.g. Mike's Auto Detailing"
+                      value={businessName}
+                      onChange={(e) => setBusinessName(e.target.value)}
+                      autoFocus
+                    />
+                  </div>
+                  <BusinessModeSelector value={businessMode} onChange={handleBusinessModeChange} />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Step 2: Industry */}
+            {step === 2 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                    Industry
+                  </CardTitle>
+                  <p className="text-muted-foreground">Choose your industry for smart defaults.</p>
+                </CardHeader>
+                <CardContent>
+                  <IndustrySelectorGrid
+                    value={industrySlug}
+                    onChange={(slug) => setIndustrySlug(slug)}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Step 3: Scenario Discovery */}
+            {step === 3 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <HelpCircle className="h-5 w-5 text-primary" />
+                    Discovery
+                  </CardTitle>
+                  <p className="text-muted-foreground">Tell us how your business operates.</p>
+                </CardHeader>
+                <CardContent>
+                  <ScenarioDiscovery
+                    businessMode={businessMode}
+                    answers={scenarioAnswers}
+                    onChange={setScenarioAnswers}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Step 4: Communication Preferences */}
+            {step === 4 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sliders className="h-5 w-5 text-primary" />
+                    Communication
+                  </CardTitle>
+                  <p className="text-muted-foreground">Configure AI behavior.</p>
+                </CardHeader>
+                <CardContent>
+                  <CommunicationPreferences
+                    businessMode={businessMode}
+                    value={communicationPrefs}
+                    onChange={setCommunicationPrefs}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Step 5: Confirmation */}
+            {step === 5 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                    Confirm
+                  </CardTitle>
+                  <p className="text-muted-foreground">Review and create test tenant.</p>
+                </CardHeader>
+                <CardContent>
+                  <ConfirmationSummary
+                    businessName={businessName}
+                    businessMode={businessMode}
+                    industrySlug={industrySlug}
+                    scenarioAnswers={scenarioAnswers}
+                    communicationPrefs={communicationPrefs}
+                  />
+                </CardContent>
+              </Card>
+            )}
           </motion.div>
         </AnimatePresence>
 
@@ -671,7 +578,7 @@ export default function AdminTestOnboardingPage() {
           {step < totalSteps ? (
             <Button
               onClick={handleNext}
-              disabled={!canProceed() || loading}
+              disabled={!canProceed(step) || loading}
             >
               Next
               <ChevronRight className="h-4 w-4 ml-1" />
@@ -679,7 +586,7 @@ export default function AdminTestOnboardingPage() {
           ) : (
             <Button
               onClick={handleComplete}
-              disabled={!canProceed() || loading}
+              disabled={!canProceed(step) || loading}
               className="bg-success hover:bg-success/90"
             >
               {loading ? (
