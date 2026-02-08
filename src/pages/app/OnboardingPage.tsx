@@ -31,15 +31,9 @@ import { IndustrySelectorGrid } from "@/components/onboarding/IndustrySelectorGr
 import { cn } from "@/lib/utils";
 import type { PlanCode } from "@/types/database";
 
-const defaultBusinessHours: BusinessHours = {
-  monday: { open: "09:00", close: "17:00", closed: false },
-  tuesday: { open: "09:00", close: "17:00", closed: false },
-  wednesday: { open: "09:00", close: "17:00", closed: false },
-  thursday: { open: "09:00", close: "17:00", closed: false },
-  friday: { open: "09:00", close: "17:00", closed: false },
-  saturday: { open: "10:00", close: "14:00", closed: false },
-  sunday: { open: "00:00", close: "00:00", closed: true },
-};
+import { DEFAULT_BUSINESS_HOURS } from "@/lib/hoursUtils";
+
+const defaultBusinessHours = DEFAULT_BUSINESS_HOURS;
 
 const steps: OnboardingStep[] = [
   { id: "mode", icon: Wrench, title: "Business Mode", description: "What type of business are you?" },
