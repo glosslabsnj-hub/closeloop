@@ -5,12 +5,23 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Info } from "lucide-react";
 import { updateBusinessPolicies } from "@/lib/brain/writeBrainFact";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PolicyTemplateButtons } from "./PolicyTemplateButtons";
 import { PreviewSentence } from "./layout/BusinessBrainSectionCard";
+import { EditorExplainer } from "./shared/EditorExplainer";
+import type { BusinessMode } from "@/hooks/useTenantConfig";
+
+// Mode-specific tips for policies
+const POLICY_TIPS: Record<BusinessMode, string> = {
+  service: "Write policies as if speaking aloud — your AI reads them naturally to callers when explaining booking terms.",
+  dispatch: "Key policies for dispatch: payment timing, cancellation fees after driver dispatch, and storage rates if you have an impound lot.",
+  food: "Clear delivery minimums and fees prevent confusion. The AI will explain these when customers ask about delivery.",
+  medical: "Keep policies HIPAA-compliant. The AI won't discuss specific medical information but will explain appointment and billing policies.",
+  general: "Simple, clear policies help your AI answer questions confidently. Write them like you'd explain to a customer.",
+};
 
 const PAYMENT_METHODS = [
   { id: "cash", label: "Cash" },
@@ -24,6 +35,7 @@ const PAYMENT_METHODS = [
 
 export function BusinessPoliciesEditor() {
   const { tenant } = useAuth();
+  const { businessMode } = useTenantConfig();
   const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState({
@@ -100,6 +112,18 @@ export function BusinessPoliciesEditor() {
 
   return (
     <div className="space-y-6">
+      {/* Explanation */}
+      <EditorExplainer
+        whatItIs="Your cancellation, deposit, refund, and payment policies. These help your AI answer questions about booking terms and set clear expectations with customers."
+        howAIUsesIt={[
+          "Explains cancellation terms when customers ask about changing bookings",
+          "Mentions deposit requirements when confirming appointments",
+          "Lists accepted payment methods when customers ask how to pay",
+        ]}
+        tip={POLICY_TIPS[businessMode]}
+        mode={businessMode}
+      />
+
       {/* Preview */}
       <PreviewSentence sentence={buildPreview()} />
 

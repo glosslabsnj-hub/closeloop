@@ -134,14 +134,18 @@ export function TeachAISection() {
   const hasHours = context?.hours && Object.keys(context.hours).length > 0;
   const hasPolicies = !!(context?.policies.cancellation || context?.policies.deposit);
 
-  // Missing items
+  // Mode-aware labels
+  const serviceLabel = businessMode === 'food' ? 'Menu items' : 'Services';
+  const missingServiceLabel = businessMode === 'food' ? 'Menu items' : 'Services';
+  const minServicesNeeded = businessMode === 'food' ? 5 : 3;
+
+  // Missing items - industry aware
   const missingItems: string[] = [];
   if (!context?.business.name) missingItems.push("Business name");
   if (!hasHours) missingItems.push("Business hours");
   if (faqsCount < 3) missingItems.push("FAQs");
   if (!hasPolicies) missingItems.push("Policies");
-  if (businessMode === 'food' && servicesCount < 5) missingItems.push("Menu items");
-  if (businessMode !== 'food' && servicesCount < 3) missingItems.push("Services");
+  if (servicesCount < minServicesNeeded) missingItems.push(missingServiceLabel);
 
   const quickAddButtons = [
     {
@@ -226,7 +230,7 @@ export function TeachAISection() {
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline" className={servicesCount > 0 ? 'text-emerald-400 border-emerald-500/30' : ''}>
                 {servicesCount > 0 && <CheckCircle2 className="h-3 w-3 mr-1" />}
-                {servicesCount} {businessMode === 'food' ? 'Menu items' : 'Services'}
+                {servicesCount} {serviceLabel}
               </Badge>
               <Badge variant="outline" className={faqsCount > 0 ? 'text-emerald-400 border-emerald-500/30' : ''}>
                 {faqsCount > 0 && <CheckCircle2 className="h-3 w-3 mr-1" />}
