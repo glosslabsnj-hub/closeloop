@@ -48,6 +48,14 @@ interface BrainSummaries {
   objections: string;
   custom: string;
   documents: string;
+
+  // NEW: Completion tracking
+  completionStats: {
+    completed: number;
+    total: number;
+    percentage: number;
+    incompleteItems: { section: string; label: string }[];
+  };
 }
 
 export function useBrainSummaries(): BrainSummaries {
@@ -274,5 +282,24 @@ export function useBrainSummaries(): BrainSummaries {
       ? `${counts.knowledge} custom fact${counts.knowledge === 1 ? "" : "s"}` 
       : "No custom knowledge yet",
     documents: "Uploaded files and references",
+
+    // NEW: Completion stats
+    completionStats: (() => {
+      const essentialChecks = [
+        { section: "profile", label: "Business Info", complete: !!tenant?.name },
+        { section: "hours", label: "Operating Hours", complete: (counts?.slots ?? 0) > 0 },
+        { section: "services", label: "Services/Menu", complete: (counts?.services ?? 0) > 0 },
+        { section: "ai-behavior", label: "Greeting Script", complete: !!assistantData?.greeting_script },
+      ];
+      
+      const completed = essentialChecks.filter(c => c.complete).length;
+      const total = essentialChecks.length;
+      const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+      const incompleteItems = essentialChecks
+        .filter(c => !c.complete)
+        .map(c => ({ section: c.section, label: c.label }));
+
+      return { completed, total, percentage, incompleteItems };
+    })(),
   };
 }
