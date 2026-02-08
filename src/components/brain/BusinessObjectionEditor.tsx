@@ -6,12 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { MessageSquare, Loader2 } from "lucide-react";
+import { MessageSquare, Loader2, Plus, Lightbulb } from "lucide-react";
 import { createObjectionResponse, updateObjectionResponse, deleteObjectionResponse } from "@/lib/brain/writeBrainFact";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { KnowledgeSection } from "./shared/KnowledgeSection";
 import { KnowledgeItem } from "./shared/KnowledgeItem";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { getObjectionExamples } from "@/lib/industryExamples";
 
 interface ObjectionResponse {
   id: string;
@@ -24,7 +26,10 @@ interface ObjectionResponse {
 
 export function BusinessObjectionEditor() {
   const { tenant } = useAuth();
+  const { businessMode } = useTenantConfig();
   const queryClient = useQueryClient();
+  
+  const examples = getObjectionExamples(businessMode);
 
   const [objections, setObjections] = useState<ObjectionResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,6 +118,42 @@ export function BusinessObjectionEditor() {
     }
   };
 
+  // Suggested objection buttons for quick add
+  const SuggestedObjectionButtons = () => {
+    const availableSuggestions = examples.commonObjections.filter(
+      suggestion => !objections.some(o => o.objection.toLowerCase().includes(suggestion.objection.toLowerCase().slice(0, 15)))
+    );
+    
+    if (availableSuggestions.length === 0) return null;
+    
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Lightbulb className="h-3 w-3 shrink-0" />
+          <span className="truncate">Quick add:</span>
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-1 -mb-1 scrollbar-thin">
+          {availableSuggestions.slice(0, 3).map((suggestion) => (
+            <button
+              key={suggestion.objection}
+              type="button"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full border border-border bg-background hover:bg-muted/50 transition-colors whitespace-nowrap shrink-0"
+              onClick={() => {
+                setEditingItem(null);
+                setFormObjection(suggestion.objection);
+                setFormResponse(suggestion.response);
+                setIsDialogOpen(true);
+              }}
+            >
+              <Plus className="h-3 w-3" />
+              {suggestion.objection}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       <KnowledgeSection
@@ -127,6 +168,7 @@ export function BusinessObjectionEditor() {
           title: "No objection responses",
           description: "Add responses to common customer objections to help your AI close more leads.",
         }}
+        headerActions={<SuggestedObjectionButtons />}
         renderItem={(item) => (
           <KnowledgeItem
             onEdit={() => openEditDialog(item)}
@@ -154,7 +196,7 @@ export function BusinessObjectionEditor() {
               <Label htmlFor="objection">When customer says...</Label>
               <Input
                 id="objection"
-                placeholder="e.g., That's too expensive"
+                placeholder={examples.objectionPlaceholder}
                 value={formObjection}
                 onChange={(e) => setFormObjection(e.target.value)}
               />
@@ -163,7 +205,7 @@ export function BusinessObjectionEditor() {
               <Label htmlFor="response">AI should respond...</Label>
               <Textarea
                 id="response"
-                placeholder="Write it how you'd say it on the phone"
+                placeholder={examples.responsePlaceholder}
                 value={formResponse}
                 onChange={(e) => setFormResponse(e.target.value)}
                 rows={4}

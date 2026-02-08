@@ -1,0 +1,164 @@
+/**
+ * Industry-aware examples and placeholder text for Business Brain components
+ * Centralizes all industry-specific UI content for consistency
+ */
+
+import type { BusinessMode } from "@/hooks/useTenantConfig";
+
+/**
+ * Service/Offering examples by business mode
+ */
+export interface ServiceExamples {
+  serviceName: string;
+  serviceNamePlaceholder: string;
+  descriptionPlaceholder: string;
+  durationHint: string;
+  priceExamples: string;
+}
+
+export const SERVICE_EXAMPLES: Record<BusinessMode, ServiceExamples> = {
+  service: {
+    serviceName: "service",
+    serviceNamePlaceholder: "Haircut, Oil Change, Deep Cleaning, etc.",
+    descriptionPlaceholder: "What's included in this service...",
+    durationHint: "Helps AI suggest realistic timeframes",
+    priceExamples: "Example: Full Detail - $150, Starting at $99",
+  },
+  dispatch: {
+    serviceName: "service",
+    serviceNamePlaceholder: "Local Tow, Jump Start, Lockout, Tire Change, etc.",
+    descriptionPlaceholder: "What's included and any special requirements...",
+    durationHint: "Average time to complete this job",
+    priceExamples: "Example: Local Tow - $85, Long Distance - $150 base + $3.50/mi",
+  },
+  food: {
+    serviceName: "menu item",
+    serviceNamePlaceholder: "Margherita Pizza, Chicken Alfredo, Caesar Salad, etc.",
+    descriptionPlaceholder: "Ingredients, portion size, what it comes with...",
+    durationHint: "Prep time for this item",
+    priceExamples: "Example: Large Pizza - $18.99, Combo Meal - $12.99",
+  },
+  medical: {
+    serviceName: "service",
+    serviceNamePlaceholder: "Initial Consultation, Follow-Up, Botox, Chemical Peel, etc.",
+    descriptionPlaceholder: "What's included in this procedure or visit...",
+    durationHint: "Typical appointment length",
+    priceExamples: "Example: Consultation - $150, Botox - Starting at $12/unit",
+  },
+  general: {
+    serviceName: "offering",
+    serviceNamePlaceholder: "Consultation, Basic Package, Premium Service, etc.",
+    descriptionPlaceholder: "What's included in this offering...",
+    durationHint: "How long this typically takes",
+    priceExamples: "Example: Basic - $99, Premium - $199",
+  },
+};
+
+/**
+ * Objection handling examples by business mode
+ */
+export interface ObjectionExamples {
+  objectionPlaceholder: string;
+  responsePlaceholder: string;
+  commonObjections: Array<{ objection: string; response: string }>;
+}
+
+export const OBJECTION_EXAMPLES: Record<BusinessMode, ObjectionExamples> = {
+  service: {
+    objectionPlaceholder: "e.g., That's too expensive",
+    responsePlaceholder: "I understand. We use premium products and our work is guaranteed...",
+    commonObjections: [
+      { objection: "That's too expensive", response: "I understand budget is a concern. Our pricing reflects the quality of our work and materials. We also offer payment plans if that helps." },
+      { objection: "I'll call you back", response: "No problem! Just so you know, our schedule fills up quickly. Would you like me to pencil in a time that works for you?" },
+      { objection: "I need to think about it", response: "Of course, take your time. Is there anything specific I can help clarify to make your decision easier?" },
+    ],
+  },
+  dispatch: {
+    objectionPlaceholder: "e.g., That's more than the other company quoted",
+    responsePlaceholder: "I understand. We're fully licensed and insured, and our drivers are background-checked...",
+    commonObjections: [
+      { objection: "That's more than the other company quoted", response: "I hear you. We're licensed, insured, and our drivers are background-checked. Our price is all-in with no surprise fees when we arrive." },
+      { objection: "How long is the wait?", response: "I understand you need help fast. We're dispatching the closest available driver and I'll give you an exact ETA once they're assigned." },
+      { objection: "Can you match AAA's rate?", response: "We work with most roadside programs. If you have AAA, we can try to bill them directly. What's your member number?" },
+    ],
+  },
+  food: {
+    objectionPlaceholder: "e.g., The delivery takes too long",
+    responsePlaceholder: "I apologize for the wait. We're preparing everything fresh to order...",
+    commonObjections: [
+      { objection: "The delivery takes too long", response: "I understand, and I apologize. We make everything fresh to order. I can put a rush on it and have it to you as fast as possible." },
+      { objection: "That's expensive for delivery", response: "Our delivery fee helps us pay our drivers fairly and keep food prices reasonable. We also have a pickup option with no fee." },
+      { objection: "Do you have any specials?", response: "Great question! Let me tell you about today's specials..." },
+    ],
+  },
+  medical: {
+    objectionPlaceholder: "e.g., Do you take my insurance?",
+    responsePlaceholder: "We work with most major insurance providers. Can you tell me your plan so I can verify coverage?",
+    commonObjections: [
+      { objection: "Do you take my insurance?", response: "We accept most major insurance plans. Can you give me your insurance info so I can verify your coverage before your appointment?" },
+      { objection: "The wait time is too long", response: "I understand, and I apologize for the wait. Would you like me to check for an earlier cancellation or put you on our priority list?" },
+      { objection: "That's expensive without insurance", response: "I understand. We do offer payment plans and can discuss self-pay options. Many patients find our care is worth the investment." },
+    ],
+  },
+  general: {
+    objectionPlaceholder: "e.g., That's too expensive",
+    responsePlaceholder: "I understand. Let me explain what's included and why it's a good value...",
+    commonObjections: [
+      { objection: "That's too expensive", response: "I understand budget is a concern. Let me explain what's included and the value you're getting." },
+      { objection: "I need to think about it", response: "Of course, take your time. Is there anything I can clarify that would help with your decision?" },
+      { objection: "I'll call you back", response: "No problem! Is there a specific time I should expect your call, or would you like me to follow up with you?" },
+    ],
+  },
+};
+
+/**
+ * Business profile placeholder examples by mode
+ */
+export interface ProfileExamples {
+  businessNamePlaceholder: string;
+  taglinePlaceholder: string;
+  taglineHint: string;
+}
+
+export const PROFILE_EXAMPLES: Record<BusinessMode, ProfileExamples> = {
+  service: {
+    businessNamePlaceholder: "Acme Plumbing, Elite Detailing, Sunrise Cleaning",
+    taglinePlaceholder: "Fast, reliable service since 2010",
+    taglineHint: "Example: \"Licensed & insured pros\" or \"Same-day appointments available\"",
+  },
+  dispatch: {
+    businessNamePlaceholder: "FastTow 24/7, Reliable Roadside, City Towing",
+    taglinePlaceholder: "Fast response, fair prices, 24/7",
+    taglineHint: "Example: \"Average 30 min response\" or \"Licensed, insured, background-checked\"",
+  },
+  food: {
+    businessNamePlaceholder: "Bella's Pizza, Golden Dragon, Fresh Kitchen",
+    taglinePlaceholder: "Fresh, made-to-order food",
+    taglineHint: "Example: \"Family recipes since 1985\" or \"Fresh ingredients, fast delivery\"",
+  },
+  medical: {
+    businessNamePlaceholder: "Greenview Family Practice, Radiance Med Spa",
+    taglinePlaceholder: "Compassionate care you can trust",
+    taglineHint: "Example: \"Board-certified specialists\" or \"Accepting new patients\"",
+  },
+  general: {
+    businessNamePlaceholder: "Your Business Name",
+    taglinePlaceholder: "What makes you unique",
+    taglineHint: "Example: \"Trusted by 1000+ customers\" or \"Fast, friendly service\"",
+  },
+};
+
+/**
+ * Get examples for the current business mode with fallback
+ */
+export function getServiceExamples(mode: BusinessMode): ServiceExamples {
+  return SERVICE_EXAMPLES[mode] || SERVICE_EXAMPLES.general;
+}
+
+export function getObjectionExamples(mode: BusinessMode): ObjectionExamples {
+  return OBJECTION_EXAMPLES[mode] || OBJECTION_EXAMPLES.general;
+}
+
+export function getProfileExamples(mode: BusinessMode): ProfileExamples {
+  return PROFILE_EXAMPLES[mode] || PROFILE_EXAMPLES.general;
+}

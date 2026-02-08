@@ -1,5 +1,6 @@
-import { Button } from "@/components/ui/button";
 import { Plus, Lightbulb } from "lucide-react";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
+import type { BusinessMode } from "@/hooks/useTenantConfig";
 
 interface SuggestedFAQ {
   question: string;
@@ -11,44 +12,190 @@ interface SuggestedFAQButtonsProps {
   existingQuestions?: string[];
 }
 
-const SUGGESTED_FAQS: SuggestedFAQ[] = [
-  {
-    question: "What are your hours?",
-    answer: "We're open Monday through Friday from 9 AM to 5 PM, and Saturday from 10 AM to 2 PM. We're closed on Sundays."
-  },
-  {
-    question: "Where are you located?",
-    answer: "We're located at [your address]. You can find us easily by [landmark or directions]."
-  },
-  {
-    question: "Do you take insurance?",
-    answer: "Yes, we accept most major insurance providers. Please call us with your specific plan and we can verify coverage."
-  },
-  {
-    question: "How much does it cost?",
-    answer: "Our pricing depends on the specific service you need. We'd be happy to provide a quote once we understand your requirements."
-  },
-  {
-    question: "Do you offer free estimates?",
-    answer: "Yes, we offer free estimates for most services. We can schedule a time that works for you."
-  },
-  {
-    question: "How long does it take?",
-    answer: "The time varies depending on the specific service. We'll give you an accurate estimate when we assess your needs."
-  },
-  {
-    question: "Do you offer payment plans?",
-    answer: "Yes, we offer flexible payment options. We can discuss what works best for your situation."
-  },
-  {
-    question: "Are you licensed and insured?",
-    answer: "Yes, we are fully licensed and insured. We'd be happy to provide our credentials upon request."
-  },
-];
+/**
+ * Industry-aware FAQ suggestions based on business mode
+ */
+const MODE_FAQS: Record<BusinessMode, SuggestedFAQ[]> = {
+  service: [
+    {
+      question: "What are your hours?",
+      answer: "We're open Monday through Friday from 9 AM to 5 PM, and Saturday from 10 AM to 2 PM. We're closed on Sundays."
+    },
+    {
+      question: "Where are you located?",
+      answer: "We're located at [your address]. You can find us easily by [landmark or directions]."
+    },
+    {
+      question: "How much does it cost?",
+      answer: "Our pricing depends on the specific service you need. We'd be happy to provide a quote once we understand your requirements."
+    },
+    {
+      question: "Do you offer free estimates?",
+      answer: "Yes, we offer free estimates for most services. We can schedule a time that works for you."
+    },
+    {
+      question: "How long does it take?",
+      answer: "The time varies depending on the specific service. We'll give you an accurate estimate when we assess your needs."
+    },
+    {
+      question: "Are you licensed and insured?",
+      answer: "Yes, we are fully licensed and insured. We'd be happy to provide our credentials upon request."
+    },
+    {
+      question: "Do you offer payment plans?",
+      answer: "Yes, we offer flexible payment options. We can discuss what works best for your situation."
+    },
+    {
+      question: "Do you offer emergency services?",
+      answer: "Yes, we handle emergency calls. Let us know your situation and we'll get someone out as quickly as possible."
+    },
+  ],
+  dispatch: [
+    {
+      question: "How fast can you get here?",
+      answer: "Our average response time is about 30-45 minutes depending on your location and current demand. We'll give you an ETA when you call."
+    },
+    {
+      question: "What forms of payment do you accept?",
+      answer: "We accept cash, all major credit cards, and Apple Pay. Payment is due when the driver arrives."
+    },
+    {
+      question: "Do you tow all vehicle types?",
+      answer: "Yes, we can tow cars, trucks, SUVs, motorcycles, and most commercial vehicles. Just let us know what you're driving."
+    },
+    {
+      question: "Are you available 24/7?",
+      answer: "Yes, we're available 24 hours a day, 7 days a week, including holidays."
+    },
+    {
+      question: "Do you work with roadside assistance programs?",
+      answer: "Yes, we work with most major roadside assistance programs including AAA. We can bill them directly in most cases."
+    },
+    {
+      question: "What's included in a tow?",
+      answer: "The price includes hook-up, transport to your destination, and basic winching if needed. Long-distance or special equipment may have additional charges."
+    },
+    {
+      question: "Can you unlock my car?",
+      answer: "Yes, we offer lockout services. Our driver can get you back in your vehicle safely without damaging your locks."
+    },
+    {
+      question: "Do you store vehicles?",
+      answer: "Yes, we have a secure lot for vehicle storage. Daily and weekly rates are available."
+    },
+  ],
+  food: [
+    {
+      question: "What are your hours?",
+      answer: "We're open [days] from [open time] to [close time]. Kitchen closes 30 minutes before we close."
+    },
+    {
+      question: "Do you deliver?",
+      answer: "Yes, we deliver within a [X]-mile radius. Minimum order is $[amount] and delivery usually takes 30-45 minutes."
+    },
+    {
+      question: "Do you have vegetarian/vegan options?",
+      answer: "Yes, we have several vegetarian and vegan options on our menu. Just ask and we'll walk you through them."
+    },
+    {
+      question: "Can you accommodate allergies?",
+      answer: "Yes, please let us know about any allergies when you order. We take food allergies very seriously and can modify most dishes."
+    },
+    {
+      question: "Do you do catering?",
+      answer: "Yes, we offer catering for events of all sizes. We recommend ordering at least 48 hours in advance for catering orders."
+    },
+    {
+      question: "Can I make a reservation?",
+      answer: "Yes, we accept reservations. For parties of 6 or more, we recommend calling ahead."
+    },
+    {
+      question: "What's your most popular dish?",
+      answer: "Our [signature dish] is definitely a customer favorite! We also get lots of orders for our [second popular item]."
+    },
+    {
+      question: "Do you have a kids menu?",
+      answer: "Yes, we have a kids menu with smaller portions at lower prices. All kids meals come with a drink."
+    },
+  ],
+  medical: [
+    {
+      question: "Do you take insurance?",
+      answer: "Yes, we accept most major insurance providers. Please call us with your specific plan and we can verify coverage."
+    },
+    {
+      question: "How do I schedule an appointment?",
+      answer: "You can schedule by calling us or through our online booking system. We'll find a time that works for you."
+    },
+    {
+      question: "Are you accepting new patients?",
+      answer: "Yes, we're currently accepting new patients. We'd be happy to schedule your first appointment."
+    },
+    {
+      question: "What should I bring to my first visit?",
+      answer: "Please bring your ID, insurance card, and any relevant medical records or test results. Arrive 15 minutes early to complete paperwork."
+    },
+    {
+      question: "Do you offer telehealth appointments?",
+      answer: "Yes, we offer virtual visits for many types of appointments. Let us know if you'd prefer a telehealth option."
+    },
+    {
+      question: "What's your cancellation policy?",
+      answer: "We ask for 24 hours notice if you need to cancel or reschedule. This allows us to offer that time to other patients."
+    },
+    {
+      question: "Do you offer payment plans?",
+      answer: "Yes, we offer flexible payment options for patients without insurance or for services not covered by insurance."
+    },
+    {
+      question: "How long is an appointment?",
+      answer: "A typical appointment is 15-30 minutes. Initial consultations or complex visits may take longer."
+    },
+  ],
+  general: [
+    {
+      question: "What are your hours?",
+      answer: "We're open Monday through Friday from 9 AM to 5 PM, and Saturday from 10 AM to 2 PM. We're closed on Sundays."
+    },
+    {
+      question: "Where are you located?",
+      answer: "We're located at [your address]. You can find us easily by [landmark or directions]."
+    },
+    {
+      question: "How can I contact you?",
+      answer: "You can reach us by phone, email, or through our website. We typically respond within 24 hours."
+    },
+    {
+      question: "How much does it cost?",
+      answer: "Our pricing depends on your specific needs. We'd be happy to provide a quote once we understand what you're looking for."
+    },
+    {
+      question: "Do you offer consultations?",
+      answer: "Yes, we offer initial consultations to discuss your needs and how we can help."
+    },
+    {
+      question: "What areas do you serve?",
+      answer: "We serve [your service area]. Contact us to confirm we can help in your location."
+    },
+    {
+      question: "How do I get started?",
+      answer: "Just give us a call or send us a message and we'll walk you through the process."
+    },
+    {
+      question: "Do you offer payment plans?",
+      answer: "Yes, we offer flexible payment options. We can discuss what works best for your situation."
+    },
+  ],
+};
 
 export function SuggestedFAQButtons({ onAdd, existingQuestions = [] }: SuggestedFAQButtonsProps) {
+  const { businessMode } = useTenantConfig();
+  
+  // Get FAQs for current business mode
+  const suggestedFaqs = MODE_FAQS[businessMode] || MODE_FAQS.general;
+  
   // Filter out already-added FAQs
-  const availableFAQs = SUGGESTED_FAQS.filter(
+  const availableFAQs = suggestedFaqs.filter(
     faq => !existingQuestions.some(q => q.toLowerCase().includes(faq.question.toLowerCase().slice(0, 20)))
   );
 

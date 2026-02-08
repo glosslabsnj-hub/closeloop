@@ -35,6 +35,9 @@ import { InlineUploadButton } from "./InlineUploadButton";
 import { createService, updateService, deleteService } from "@/lib/brain/writeBrainFact";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { getServiceExamples } from "@/lib/industryExamples";
+import { useTerminology } from "@/hooks/useTerminology";
 
 type PriceType = "fixed" | "starting_at" | "quote_only";
 
@@ -61,7 +64,11 @@ const defaultFormData: ServiceFormData = {
 export function ServiceCatalogEditor() {
   const { tenant } = useAuth();
   const { services, isLoading } = useServices();
+  const { businessMode } = useTenantConfig();
+  const terms = useTerminology();
   const queryClient = useQueryClient();
+  
+  const serviceExamples = getServiceExamples(businessMode);
 
   const [expandedServiceId, setExpandedServiceId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -255,11 +262,11 @@ export function ServiceCatalogEditor() {
     <div className="p-4 space-y-4 border-t bg-muted/20">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="text-xs">Service Name *</Label>
+          <Label className="text-xs capitalize">{serviceExamples.serviceName} Name *</Label>
           <Input
             value={formData.name}
             onChange={(e) => onChange("name", e.target.value)}
-            placeholder="Haircut, Oil Change, etc."
+            placeholder={serviceExamples.serviceNamePlaceholder}
           />
         </div>
         <div className="space-y-2">
@@ -270,7 +277,7 @@ export function ServiceCatalogEditor() {
             onChange={(e) => onChange("duration_minutes", parseInt(e.target.value) || 60)}
             placeholder="60"
           />
-          <p className="text-xs text-muted-foreground">Helps AI suggest realistic timeframes</p>
+          <p className="text-xs text-muted-foreground">{serviceExamples.durationHint}</p>
         </div>
       </div>
 
@@ -279,7 +286,7 @@ export function ServiceCatalogEditor() {
         <Textarea
           value={formData.description}
           onChange={(e) => onChange("description", e.target.value)}
-          placeholder="What's included in this service..."
+          placeholder={serviceExamples.descriptionPlaceholder}
           rows={2}
         />
       </div>
@@ -368,14 +375,14 @@ export function ServiceCatalogEditor() {
           <div className="space-y-2">
             <p className="text-sm font-medium">What is this?</p>
             <p className="text-sm text-muted-foreground">
-              Your services are what your AI assistant uses to answer pricing questions and book appointments. 
-              Each service needs a <strong>name</strong>, <strong>duration</strong>, and <strong>price</strong>. 
-              The AI will use this to help customers understand what you offer.
+              Your {terms.services} are what your AI assistant uses to answer pricing questions and book {terms.bookings}. 
+              Each {serviceExamples.serviceName} needs a <strong>name</strong>, <strong>duration</strong>, and <strong>price</strong>. 
+              The AI will use this to help {terms.customers} understand what you offer.
             </p>
             <div className="flex items-center gap-2 pt-1">
               <Lightbulb className="h-4 w-4 text-amber-500" />
               <p className="text-xs text-muted-foreground">
-                <strong>Tip:</strong> Click on any service to expand and edit it directly.
+                <strong>Tip:</strong> {serviceExamples.priceExamples}
               </p>
             </div>
           </div>
@@ -388,10 +395,10 @@ export function ServiceCatalogEditor() {
           <div className="flex items-start gap-3">
             <DollarSign className="h-5 w-5 text-primary shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-primary mb-1">What the AI tells customers</p>
+              <p className="text-sm font-medium text-primary mb-1">What the AI tells {terms.customers}</p>
               <p className="text-sm italic">"{aiQuotePreview}"</p>
               <p className="text-xs text-muted-foreground mt-2">
-                The AI uses your service catalog to provide accurate pricing and duration info
+                The AI uses your {terms.services} catalog to provide accurate pricing and duration info
               </p>
             </div>
           </div>
@@ -401,11 +408,11 @@ export function ServiceCatalogEditor() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="text-lg font-semibold">Service Catalog</h3>
+          <h3 className="text-lg font-semibold capitalize">{terms.services} Catalog</h3>
           <p className="text-sm text-muted-foreground">
             {services?.length 
-              ? `${services.length} service${services.length !== 1 ? 's' : ''} • Click to expand and edit`
-              : "Add your services so the AI can quote prices and book appointments"
+              ? `${services.length} ${serviceExamples.serviceName}${services.length !== 1 ? 's' : ''} • Click to expand and edit`
+              : `Add your ${terms.services} so the AI can quote prices and book ${terms.bookings}`
             }
           </p>
         </div>
@@ -417,7 +424,7 @@ export function ServiceCatalogEditor() {
           />
           <Button onClick={startCreatingNew} disabled={isCreatingNew}>
             <Plus className="h-4 w-4 mr-2" />
-            Add Service
+            {terms.addService}
           </Button>
         </div>
       </div>
@@ -427,7 +434,7 @@ export function ServiceCatalogEditor() {
         <Card>
           <div className="px-4 py-3 flex items-center gap-3 bg-primary/5 border-b">
             <Plus className="h-4 w-4 text-primary" />
-            <span className="font-medium text-sm">New Service</span>
+            <span className="font-medium text-sm capitalize">New {serviceExamples.serviceName}</span>
           </div>
           <ServiceForm
             formData={newServiceData}
