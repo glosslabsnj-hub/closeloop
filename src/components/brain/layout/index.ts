@@ -23,6 +23,8 @@ export { EssentialGroup } from "./EssentialGroup";
 export { AdvancedGroup } from "./AdvancedGroup";
 export { BrainSetupBanner } from "./BrainSetupBanner";
 export { CompletionCelebration } from "./CompletionCelebration";
+export { NextStepSuggestion } from "./NextStepSuggestion";
+export { getModeTheme, getModeGradient, getModeDisplayName, type ModeThemeColors } from "./ModeTheme";
 
 // Config exports
 export {
