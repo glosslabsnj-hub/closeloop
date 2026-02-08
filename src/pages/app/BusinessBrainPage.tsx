@@ -60,7 +60,7 @@ import { DistanceBasisSettings } from "@/components/brain/dispatch/DistanceBasis
 import { PriceModifiersEditor } from "@/components/brain/PriceModifiersEditor";
 import { ServicePackagesEditor } from "@/components/brain/ServicePackagesEditor";
 import { DispatchPricingEditor, DispatchCoverageZonesEditor } from "@/components/brain/dispatch";
-import { FoodSettingsEditor, MenuSizesEditor, DailySpecialsEditor, DeliveryZonesEditor } from "@/components/brain/food";
+import { FoodServiceTypesEditor, FoodSettingsEditor, MenuSizesEditor, DailySpecialsEditor, DeliveryZonesEditor } from "@/components/brain/food";
 import { MedicalPricingEditor, MedicalCoverageEditor, MedicalPoliciesEditor } from "@/components/brain/medical";
 import { ServiceCoverageEditor, ServicePoliciesEditor } from "@/components/brain/service";
 import { ResponseTimeEditor, GeneralPoliciesEditor } from "@/components/brain/general";
@@ -380,7 +380,30 @@ export default function BusinessBrainPage() {
                 {/* Pricing Readiness - inline, not collapsible */}
                 <QuoteReadinessCard />
 
-                <EssentialGroup title="Core Offerings" description={isFoodMode ? "Your menu items" : "Services you provide"}>
+                <EssentialGroup title="Core Offerings" description={isFoodMode ? "Your menu items and service types" : "Services you provide"}>
+                  {/* Food mode: Service types first (what do you offer?) */}
+                  {isFoodMode && (
+                    <SectionSummaryCard
+                      id="food-service-types"
+                      title="Service Types"
+                      icon={UtensilsCrossed}
+                      status={foodNeedsCoverage ? "complete" : "incomplete"}
+                      statusText={
+                        foodAcceptsDelivery && foodAcceptsCatering 
+                          ? "Delivery & Catering enabled" 
+                          : foodAcceptsDelivery 
+                          ? "Delivery enabled" 
+                          : foodAcceptsCatering 
+                          ? "Catering enabled" 
+                          : "Dine-in & Pickup only"
+                      }
+                      isEssential
+                      mode={businessMode}
+                    >
+                      <FoodServiceTypesEditor />
+                    </SectionSummaryCard>
+                  )}
+
                   {!isDispatchMode && !isFoodMode && (
                     <SectionSummaryCard
                       id="pricing-rules"
@@ -553,18 +576,20 @@ export default function BusinessBrainPage() {
                     <div className="flex items-start gap-3">
                       <UtensilsCrossed className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                       <div className="space-y-2">
-                        <p className="text-sm font-medium">No Coverage Settings Needed</p>
+                        <p className="text-sm font-medium">Coverage Settings Not Configured</p>
                         <p className="text-sm text-muted-foreground">
-                          Since you only offer <strong>dine-in and/or pickup</strong>, you don't need to configure delivery zones or ETAs.
-                          If you start offering <strong>delivery</strong> or <strong>catering</strong>, enable them in{" "}
-                          <Button 
-                            variant="link" 
-                            className="h-auto p-0 text-primary" 
-                            onClick={() => handleSectionChange("services")}
-                          >
-                            Services → Order Settings
-                          </Button>{" "}
-                          and these options will appear.
+                          If you offer <strong>delivery</strong> or <strong>catering/private events</strong>, you'll need to configure your coverage area so your AI knows where you can serve.
+                        </p>
+                        <Button 
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleSectionChange("services")}
+                        >
+                          <UtensilsCrossed className="h-4 w-4 mr-2" />
+                          Configure Service Types
+                        </Button>
+                        <p className="text-xs text-muted-foreground pt-2">
+                          Enable Delivery or Catering in <strong>Services → Service Types</strong> and the coverage options will appear here.
                         </p>
                       </div>
                     </div>
