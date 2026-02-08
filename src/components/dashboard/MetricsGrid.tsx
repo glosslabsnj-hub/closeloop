@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useCapabilities } from "@/hooks/useCapabilities";
 import { useTerminology } from "@/hooks/useTerminology";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +31,7 @@ export function MetricsGrid() {
   const navigate = useNavigate();
   const { tenant } = useAuth();
   const { businessMode } = useTenantConfig();
+  const caps = useCapabilities();
   const terms = useTerminology();
 
   const todayStart = startOfDay(new Date()).toISOString();
@@ -93,7 +95,7 @@ export function MetricsGrid() {
         .gte("created_at", todayStart);
       return count || 0;
     },
-    enabled: !!tenant?.id && businessMode === "food",
+    enabled: !!tenant?.id && caps.hasFoodOrders,
   });
 
   const { data: jobsPending = 0 } = useQuery({
@@ -107,7 +109,7 @@ export function MetricsGrid() {
         .in("status", ["pending", "assigned"]);
       return count || 0;
     },
-    enabled: !!tenant?.id && businessMode === "dispatch",
+    enabled: !!tenant?.id && caps.hasDispatchQueue,
   });
 
   const { data: intakesToday = 0 } = useQuery({
@@ -121,7 +123,7 @@ export function MetricsGrid() {
         .gte("created_at", todayStart);
       return count || 0;
     },
-    enabled: !!tenant?.id && businessMode === "medical",
+    enabled: !!tenant?.id && caps.hasMedicalIntake,
   });
 
   // Build metrics based on mode

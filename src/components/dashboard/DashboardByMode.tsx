@@ -1,4 +1,5 @@
 import { useTenantConfig, type BusinessMode } from "@/hooks/useTenantConfig";
+import { useCapabilities } from "@/hooks/useCapabilities";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ interface TodayStats {
 
 export function DashboardByMode() {
   const { businessMode, hipaaMode } = useTenantConfig();
+  const caps = useCapabilities();
   const { tenant } = useAuth();
 
   const { data: stats, isLoading } = useQuery({
@@ -56,8 +58,8 @@ export function DashboardByMode() {
       let urgentItems = 0;
       let completedItems = 0;
 
-      // Mode-specific queries
-      if (businessMode === "service" || businessMode === "medical") {
+      // Capability-specific queries
+      if (caps.hasBooking) {
         const { data: bookings } = await supabase
           .from("bookings")
           .select("status, start_at")
@@ -69,7 +71,7 @@ export function DashboardByMode() {
         completedItems = bookings?.filter(b => b.status === "confirmed").length || 0;
       }
 
-      if (businessMode === "dispatch") {
+      if (caps.hasDispatchQueue) {
         const { data: jobs } = await supabase
           .from("dispatch_jobs")
           .select("status, priority, created_at")
@@ -81,7 +83,7 @@ export function DashboardByMode() {
         completedItems = jobs?.filter(j => j.status === "completed").length || 0;
       }
 
-      if (businessMode === "food") {
+      if (caps.hasFoodOrders) {
         const { data: orders } = await supabase
           .from("food_orders")
           .select("status, created_at")
@@ -93,7 +95,7 @@ export function DashboardByMode() {
         completedItems = orders?.filter(o => o.status === "ready" || o.status === "confirmed").length || 0;
       }
 
-      if (businessMode === "medical") {
+      if (caps.hasMedicalIntake) {
         const { data: intakes } = await supabase
           .from("medical_intakes")
           .select("status, urgency_level, created_at")
@@ -145,23 +147,23 @@ export function DashboardByMode() {
       )}
 
       {/* Mode-specific Today View */}
-      {businessMode === "service" && (
+      {caps.derivedPrimaryMode === "service" && (
         <ServiceTodayView stats={stats} />
       )}
-      
-      {businessMode === "dispatch" && (
+
+      {caps.derivedPrimaryMode === "dispatch" && (
         <DispatchTodayView stats={stats} />
       )}
-      
-      {businessMode === "food" && (
+
+      {caps.derivedPrimaryMode === "food" && (
         <FoodTodayView stats={stats} />
       )}
-      
-      {businessMode === "medical" && (
+
+      {caps.derivedPrimaryMode === "medical" && (
         <MedicalTodayView stats={stats} hipaaMode={hipaaMode} />
       )}
-      
-      {businessMode === "general" && (
+
+      {caps.derivedPrimaryMode === "general" && (
         <GeneralTodayView stats={stats} />
       )}
     </div>

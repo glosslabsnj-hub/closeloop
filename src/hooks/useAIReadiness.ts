@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useCapabilities } from "@/hooks/useCapabilities";
 
 export interface ReadinessItem {
   id: string;
@@ -42,6 +43,7 @@ export interface AIReadinessScore {
 export function useAIReadiness(): AIReadinessScore {
   const { tenant, assistantSettings } = useAuth();
   const { businessMode } = useTenantConfig();
+  const caps = useCapabilities();
 
   const query = useQuery({
     queryKey: ["ai-readiness-score", tenant?.id],
@@ -92,7 +94,7 @@ export function useAIReadiness(): AIReadinessScore {
     const hoursComplete = data?.hasHours || false;
 
     // Services/menu with prices (20 points)
-    const isFood = businessMode === 'food';
+    const isFood = caps.isFoodBusiness;
     const itemCount = isFood ? (data?.menuItemsCount || 0) : (data?.servicesCount || 0);
     const itemsComplete = isFood ? itemCount >= 5 : itemCount >= 3;
 
@@ -208,7 +210,7 @@ export function useAIReadiness(): AIReadinessScore {
         impact: 'Verifies your AI is working correctly before going live',
       },
     ];
-  }, [query.data, assistantSettings, businessMode]);
+  }, [query.data, assistantSettings, caps]);
 
   const score = useMemo(() => {
     return items.reduce((acc, item) => {

@@ -7,6 +7,7 @@
 import { useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useCapabilities } from "@/hooks/useCapabilities";
 import { useFoodMode } from "@/hooks/useFoodMode";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +24,7 @@ interface BusinessBrainHubProps {
 export function BusinessBrainHub({ onNavigateToSection }: BusinessBrainHubProps) {
   const { tenant } = useAuth();
   const { businessMode } = useTenantConfig();
+  const caps = useCapabilities();
   const { isFoodMode } = useFoodMode();
 
   // Check identity
@@ -125,7 +127,7 @@ export function BusinessBrainHub({ onNavigateToSection }: BusinessBrainHubProps)
       case "coverage":
         return !!(tenantData?.address);
       case "calendar":
-        if (businessMode === "dispatch" || businessMode === "food") return true;
+        if (caps.isDispatchBusiness || caps.isFoodBusiness) return true;
         return calendarData?.some(c => c.status === "active") ?? false;
       case "policies":
         return true;

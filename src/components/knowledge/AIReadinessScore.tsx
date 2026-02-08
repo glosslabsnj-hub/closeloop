@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useCapabilities } from "@/hooks/useCapabilities";
 import { useBusinessContext, calculateReadinessFromContext, getMissingKnowledge } from "@/hooks/useBusinessContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +32,7 @@ interface ScoreItem {
 export default function AIReadinessScore({ compact = false }: AIReadinessScoreProps) {
   const { tenant } = useAuth();
   const { businessMode } = useTenantConfig();
+  const caps = useCapabilities();
   const { context, loading } = useBusinessContext(tenant?.id || null);
   const navigate = useNavigate();
 
@@ -63,7 +65,7 @@ export default function AIReadinessScore({ compact = false }: AIReadinessScorePr
     ];
 
     // Industry-specific: Menu for food, Services for others
-    if (businessMode === 'food') {
+    if (caps.isFoodBusiness) {
       items.push({
         id: 'menu',
         label: 'Menu Items',

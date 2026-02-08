@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessContext, calculateReadinessFromContext } from "@/hooks/useBusinessContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useCapabilities } from "@/hooks/useCapabilities";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -32,6 +33,7 @@ export function KnowledgeStatusBar() {
   const navigate = useNavigate();
   const { tenant } = useAuth();
   const { businessMode } = useTenantConfig();
+  const caps = useCapabilities();
   const { context, loading } = useBusinessContext(tenant?.id || null);
 
   const score = calculateReadinessFromContext(context);
@@ -53,7 +55,7 @@ export function KnowledgeStatusBar() {
     ];
 
     // Mode-specific: Menu vs Services
-    if (businessMode === 'food') {
+    if (caps.isFoodBusiness) {
       items.push({
         id: 'menu',
         label: 'Menu',

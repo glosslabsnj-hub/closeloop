@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useCapabilities } from "@/hooks/useCapabilities";
 import { AgentControlPanel } from "./AgentControlPanel";
 import { BusynessSliderWidget } from "./BusynessSliderWidget";
 import { MetricsGrid } from "./MetricsGrid";
@@ -23,13 +24,14 @@ function getGreeting(): string {
 export function LiveDashboard() {
   const { tenant, assistantSettings } = useAuth();
   const { businessMode } = useTenantConfig();
+  const caps = useCapabilities();
   const [copilotOpen, setCopilotOpen] = useState(false);
 
   const businessName = tenant?.name?.split(' ')[0] || "there";
   const greeting = getGreeting();
   
   // Lead Recovery is not relevant for dispatch businesses
-  const showLeadRecovery = businessMode !== "dispatch";
+  const showLeadRecovery = !caps.isDispatchBusiness;
 
   // Busyness slider is only relevant for businesses that quote ETAs
   // - Dispatch/Food: Always (ETA is core to the flow)
@@ -38,7 +40,7 @@ export function LiveDashboard() {
   // - If same_day_enabled: Yes (they offer same-day service)
   const showBusynessSlider = useMemo(() => {
     // Always show for dispatch and food - ETAs are core
-    if (businessMode === "dispatch" || businessMode === "food") return true;
+    if (caps.isDispatchBusiness || caps.isFoodBusiness) return true;
     
     // For service/medical/general, only show if same-day/urgent flow is enabled
     const flow = assistantSettings?.service_default_flow;
@@ -49,7 +51,7 @@ export function LiveDashboard() {
     
     // Default: hide for appointment-first businesses (salons, etc.)
     return false;
-  }, [businessMode, assistantSettings?.service_default_flow, assistantSettings?.same_day_enabled]);
+  }, [caps, assistantSettings?.service_default_flow, assistantSettings?.same_day_enabled]);
 
   return (
     <div className="space-y-6 animate-fade-in">

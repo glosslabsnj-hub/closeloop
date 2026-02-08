@@ -2,6 +2,7 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { AdminModeProvider } from "@/contexts/AdminModeContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useCapabilities } from "@/hooks/useCapabilities";
 import { useTerminology } from "@/hooks/useTerminology";
 import { useKnowledgeConflicts } from "@/hooks/useKnowledgeConflicts";
 import { Button } from "@/components/ui/button";
@@ -68,6 +69,7 @@ const alwaysAccessibleRoutes = ["/app/settings", "/app/go-live"];
 function AppLayoutContent() {
   const { user, tenant, effectiveTenant, signOut, loading, hasActiveSubscription, isSuperAdmin } = useAuth();
   const { enabledModules } = useTenantConfig();
+  const caps = useCapabilities();
   const terms = useTerminology();
   const { unresolvedCount: conflictsCount } = useKnowledgeConflicts();
   const location = useLocation();
@@ -90,9 +92,13 @@ function AppLayoutContent() {
     if (enabledModules.includes("booking")) {
       items.push({ href: "/app/bookings", label: terms.bookingsPageTitle || "Bookings", icon: Calendar });
     }
-    if (enabledModules.includes("dispatch_queue")) {
+    if (caps.hasDispatchQueue) {
       items.push({ href: "/app/dispatch", label: "Dispatch", icon: Truck });
+    }
+    if (caps.hasImpoundLot) {
       items.push({ href: "/app/impound-lot", label: "Impound Lot", icon: Warehouse });
+    }
+    if (caps.hasFleetManagement) {
       items.push({ href: "/app/fleet", label: "Fleet", icon: Users });
     }
     if (enabledModules.includes("food_orders")) {
@@ -118,7 +124,7 @@ function AppLayoutContent() {
     items.push({ href: "/app/reports/roi", label: "Reports", icon: BarChart3 });
 
     return items;
-  }, [enabledModules, terms, conflictsCount]);
+  }, [enabledModules, caps, terms, conflictsCount]);
 
   const bottomNavItems: NavItem[] = [
     { href: "/app/help", label: "Help", icon: HelpCircle },
@@ -131,18 +137,17 @@ function AppLayoutContent() {
       { href: "/app/dashboard", label: "Home", icon: LayoutDashboard },
       { href: "/app/inbox", label: "Inbox", icon: MessageSquare },
     ];
-    const businessMode = (displayTenant as any)?.business_mode || "service";
-    if (businessMode === "food" && enabledModules.includes("food_orders")) {
+    if (caps.isFoodBusiness && caps.hasFoodOrders) {
       items.push({ href: "/app/orders", label: "Orders", icon: UtensilsCrossed });
-    } else if (businessMode === "dispatch" && enabledModules.includes("dispatch_queue")) {
+    } else if (caps.isDispatchBusiness && caps.hasDispatchQueue) {
       items.push({ href: "/app/dispatch", label: "Jobs", icon: Truck });
-    } else if (enabledModules.includes("booking")) {
+    } else if (caps.hasBooking) {
       items.push({ href: "/app/bookings", label: terms.bookingsPageTitle || "Bookings", icon: Calendar });
     }
     items.push({ href: "/app/business-brain", label: "Setup", icon: Bot });
     items.push({ href: "/app/settings", label: "Settings", icon: Settings });
     return items.slice(0, 5);
-  }, [enabledModules, displayTenant, terms]);
+  }, [enabledModules, caps, terms]);
 
   useEffect(() => {
     if (!loading && !user) navigate("/login");

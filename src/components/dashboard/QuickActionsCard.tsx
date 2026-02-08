@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useCapabilities } from "@/hooks/useCapabilities";
 import { useTerminology } from "@/hooks/useTerminology";
 import { 
   Calendar, 
@@ -25,32 +26,24 @@ interface QuickAction {
 export function QuickActionsCard() {
   const navigate = useNavigate();
   const { businessMode, enabledModules } = useTenantConfig();
+  const caps = useCapabilities();
   const terms = useTerminology();
 
   const getActions = (): QuickAction[] => {
     const actions: QuickAction[] = [];
 
-    // Mode-specific primary actions
-    switch (businessMode) {
-      case "food":
-        if (enabledModules.includes("food_orders")) {
-          actions.push({ label: terms.viewBookings, icon: UtensilsCrossed, href: "/app/orders" });
-        }
-        if (enabledModules.includes("reservations")) {
-          actions.push({ label: "Reservations", icon: Clock, href: "/app/reservations" });
-        }
-        break;
-      case "dispatch":
-        actions.push({ label: terms.viewBookings, icon: Truck, href: "/app/dispatch" });
-        break;
-      case "service":
-      case "medical":
-      case "general":
-      default:
-        if (enabledModules.includes("booking")) {
-          actions.push({ label: terms.viewBookings, icon: Calendar, href: "/app/bookings" });
-        }
-        break;
+    // Capability-based primary actions
+    if (caps.hasFoodOrders) {
+      actions.push({ label: terms.viewBookings, icon: UtensilsCrossed, href: "/app/orders" });
+    }
+    if (caps.hasReservations) {
+      actions.push({ label: "Reservations", icon: Clock, href: "/app/reservations" });
+    }
+    if (caps.hasDispatchQueue && !caps.hasFoodOrders) {
+      actions.push({ label: terms.viewBookings, icon: Truck, href: "/app/dispatch" });
+    }
+    if (caps.hasBooking && !caps.hasFoodOrders && !caps.hasDispatchQueue) {
+      actions.push({ label: terms.viewBookings, icon: Calendar, href: "/app/bookings" });
     }
 
     // Common actions

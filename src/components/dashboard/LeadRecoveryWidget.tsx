@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { useLeadRecoveryDashboard } from "@/hooks/useLeadRecoveryDashboard";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useCapabilities } from "@/hooks/useCapabilities";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -25,9 +26,10 @@ export function LeadRecoveryWidget() {
   const [period, setPeriod] = useState<"month" | "week">("month");
   const { data, isLoading } = useLeadRecoveryDashboard(period);
   const { businessMode } = useTenantConfig();
+  const caps = useCapabilities();
 
   // Don't show for dispatch - their leads are urgent and time-sensitive
-  if (businessMode === "dispatch") {
+  if (caps.isDispatchBusiness) {
     return null;
   }
 

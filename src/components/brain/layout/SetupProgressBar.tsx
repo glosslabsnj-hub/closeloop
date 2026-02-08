@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useCapabilities } from "@/hooks/useCapabilities";
 import { cn } from "@/lib/utils";
 
 interface SetupMilestone {
@@ -46,6 +47,7 @@ interface SetupProgressBarProps {
 export function SetupProgressBar({ onNavigateToSection, className }: SetupProgressBarProps) {
   const { tenant } = useAuth();
   const { businessMode } = useTenantConfig();
+  const caps = useCapabilities();
 
   const milestones = useMemo<SetupMilestone[]>(() => {
     if (!tenant) return [];
@@ -68,7 +70,7 @@ export function SetupProgressBar({ onNavigateToSection, className }: SetupProgre
       },
       {
         id: "offerings",
-        label: businessMode === "food" ? "Menu" : "Services",
+        label: caps.isFoodBusiness ? "Menu" : "Services",
         icon: Package,
         section: "services",
         // Basic check - would ideally count services
@@ -99,7 +101,7 @@ export function SetupProgressBar({ onNavigateToSection, className }: SetupProgre
         isComplete: false, // Requires assistant_settings query
       },
     ];
-  }, [tenant, businessMode]);
+  }, [tenant, businessMode, caps]);
 
   const completedCount = milestones.filter(m => m.isComplete).length;
   const progressPercent = milestones.length > 0 

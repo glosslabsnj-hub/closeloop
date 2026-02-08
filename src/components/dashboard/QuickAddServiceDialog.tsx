@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useCapabilities } from "@/hooks/useCapabilities";
 import {
   Dialog,
   DialogContent,
@@ -25,8 +26,9 @@ interface QuickAddServiceDialogProps {
 export function QuickAddServiceDialog({ open, onOpenChange }: QuickAddServiceDialogProps) {
   const navigate = useNavigate();
   const { businessMode } = useTenantConfig();
+  const caps = useCapabilities();
 
-  const isFood = businessMode === 'food';
+  const isFood = caps.isFoodBusiness;
   const entityName = isFood ? 'Menu Item' : 'Service';
   const Icon = isFood ? UtensilsCrossed : Briefcase;
 

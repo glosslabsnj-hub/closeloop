@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useCapabilities } from "@/hooks/useCapabilities";
 import { useTerminology } from "@/hooks/useTerminology";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +41,7 @@ export function TodaySnapshot() {
   const navigate = useNavigate();
   const { tenant } = useAuth();
   const { businessMode } = useTenantConfig();
+  const caps = useCapabilities();
   const terms = useTerminology();
 
   const todayStart = startOfDay(new Date()).toISOString();
@@ -90,7 +92,7 @@ export function TodaySnapshot() {
         .lte("created_at", todayEnd);
       return count || 0;
     },
-    enabled: !!tenant?.id && businessMode === "food",
+    enabled: !!tenant?.id && caps.hasFoodOrders,
   });
 
   // Fetch pending orders (for food mode)
@@ -105,7 +107,7 @@ export function TodaySnapshot() {
         .in("status", ["pending", "confirmed", "preparing"]);
       return count || 0;
     },
-    enabled: !!tenant?.id && businessMode === "food",
+    enabled: !!tenant?.id && caps.hasFoodOrders,
   });
 
   // Fetch dispatch jobs (for dispatch mode)
@@ -120,7 +122,7 @@ export function TodaySnapshot() {
         .in("status", ["pending", "assigned"]);
       return count || 0;
     },
-    enabled: !!tenant?.id && businessMode === "dispatch",
+    enabled: !!tenant?.id && caps.hasDispatchQueue,
   });
 
   // Fetch intakes today (for medical mode)
@@ -136,7 +138,7 @@ export function TodaySnapshot() {
         .lte("created_at", todayEnd);
       return count || 0;
     },
-    enabled: !!tenant?.id && businessMode === "medical",
+    enabled: !!tenant?.id && caps.hasMedicalIntake,
   });
 
   // Fetch AI readiness score

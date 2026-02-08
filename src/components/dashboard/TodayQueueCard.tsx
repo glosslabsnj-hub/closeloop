@@ -1,4 +1,5 @@
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useCapabilities } from "@/hooks/useCapabilities";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ interface TodayStats {
 
 export function TodayQueueCard() {
   const { businessMode, hipaaMode } = useTenantConfig();
+  const caps = useCapabilities();
   const { tenant } = useAuth();
 
   const { data: stats, isLoading } = useQuery({
@@ -39,49 +41,49 @@ export function TodayQueueCard() {
       let urgentItems = 0;
       let completedItems = 0;
 
-      if (businessMode === "service" || businessMode === "medical") {
+      if (caps.hasBooking) {
         const { data: bookings } = await supabase
           .from("bookings")
           .select("status, start_at")
           .eq("tenant_id", tenant.id)
           .gte("start_at", todayStart)
           .lte("start_at", todayEnd);
-        
+
         pendingItems = bookings?.filter(b => b.status === "pending_deposit").length || 0;
         completedItems = bookings?.filter(b => b.status === "confirmed").length || 0;
       }
 
-      if (businessMode === "dispatch") {
+      if (caps.hasDispatchQueue) {
         const { data: jobs } = await supabase
           .from("dispatch_jobs")
           .select("status, priority")
           .eq("tenant_id", tenant.id)
           .in("status", ["pending", "assigned", "en_route", "on_site"]);
-        
+
         pendingItems = jobs?.filter(j => j.status === "pending").length || 0;
         urgentItems = jobs?.filter(j => j.priority === "urgent" || j.priority === "high").length || 0;
         completedItems = jobs?.filter(j => j.status === "completed").length || 0;
       }
 
-      if (businessMode === "food") {
+      if (caps.hasFoodOrders) {
         const { data: orders } = await supabase
           .from("food_orders")
           .select("status, created_at")
           .eq("tenant_id", tenant.id)
           .gte("created_at", todayStart)
           .lte("created_at", todayEnd);
-        
+
         pendingItems = orders?.filter(o => o.status === "pending" || o.status === "confirmed").length || 0;
         completedItems = orders?.filter(o => o.status === "ready" || o.status === "completed").length || 0;
       }
 
-      if (businessMode === "medical") {
+      if (caps.hasMedicalIntake) {
         const { data: intakes } = await supabase
           .from("medical_intakes")
           .select("status, urgency_level")
           .eq("tenant_id", tenant.id)
           .eq("status", "pending");
-        
+
         pendingItems = intakes?.length || 0;
         urgentItems = intakes?.filter(i => i.urgency_level === "urgent").length || 0;
       }
@@ -154,7 +156,7 @@ export function TodayQueueCard() {
               </div>
 
               {/* Urgent (only show if mode supports it) */}
-              {(businessMode === "dispatch" || businessMode === "medical") && (
+              {(caps.hasDispatchQueue || caps.hasMedicalIntake) && (
                 <div className="flex items-center gap-2">
                   <div className={`flex items-center justify-center h-8 w-8 rounded-lg ${
                     stats?.urgentItems ? "bg-rose-500/15" : "bg-muted"

@@ -1,9 +1,9 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Phone, 
-  MessageSquare, 
+import {
+  Phone,
+  MessageSquare,
   Calendar,
   Truck,
   UtensilsCrossed,
@@ -11,7 +11,9 @@ import {
   Clock,
   Cake,
   Stethoscope,
-  Shield
+  Shield,
+  Warehouse,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -51,6 +53,20 @@ const allModules: ModuleDefinition[] = [
     label: "Dispatch Queue",
     description: "Manage same-day jobs with crew assignment",
     icon: Truck,
+    requiresMode: ["dispatch"],
+  },
+  {
+    id: "impound_lot",
+    label: "Impound Lot",
+    description: "Track impounded vehicles and releases",
+    icon: Warehouse,
+    requiresMode: ["dispatch"],
+  },
+  {
+    id: "fleet_management",
+    label: "Fleet Management",
+    description: "Manage drivers, trucks, and assignments",
+    icon: Users,
     requiresMode: ["dispatch"],
   },
   {

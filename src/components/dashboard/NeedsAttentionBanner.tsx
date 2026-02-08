@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useCapabilities } from "@/hooks/useCapabilities";
 import { useTerminology } from "@/hooks/useTerminology";
 import { useKnowledgeSuggestions } from "@/hooks/useKnowledgeSuggestions";
 import { useQuery } from "@tanstack/react-query";
@@ -26,6 +27,7 @@ export function NeedsAttentionBanner() {
   const navigate = useNavigate();
   const { tenant } = useAuth();
   const { businessMode } = useTenantConfig();
+  const caps = useCapabilities();
   const terms = useTerminology();
   const { pendingCount: knowledgeGaps } = useKnowledgeSuggestions();
 
@@ -41,7 +43,7 @@ export function NeedsAttentionBanner() {
         .eq("status", "pending");
       return count || 0;
     },
-    enabled: !!tenant?.id && businessMode === "food",
+    enabled: !!tenant?.id && caps.hasFoodOrders,
   });
 
   // Fetch pending bookings (pending_deposit status)

@@ -1,0 +1,234 @@
+import { useMemo } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import type { BusinessMode } from "./useTenantConfig";
+
+/**
+ * Capability flags derived from `capabilities_json` on the tenant,
+ * falling back to `enabled_modules` + `business_mode` defaults.
+ */
+export interface Capabilities {
+  // ── Individual module flags ──
+  hasAiVoice: boolean;
+  hasInstantTextBack: boolean;
+  hasBooking: boolean;
+  hasDispatchQueue: boolean;
+  hasImpoundLot: boolean;
+  hasFleetManagement: boolean;
+  hasFoodOrders: boolean;
+  hasMenuKnowledge: boolean;
+  hasReservations: boolean;
+  hasCatering: boolean;
+  hasMedicalIntake: boolean;
+  hasEstimates: boolean;
+  hasReviewRequests: boolean;
+  hasLeadFollowUp: boolean;
+  hasPricingRules: boolean;
+  hasEtaTracking: boolean;
+  hasCalendarSync: boolean;
+  hasPaymentProcessing: boolean;
+  hasWisetackFinancing: boolean;
+  hasQuickbooks: boolean;
+  hasAfterHoursHandling: boolean;
+  hasSmsCampaigns: boolean;
+  hasKnowledgeBase: boolean;
+
+  // ── Computed helpers (convenience) ──
+  isFoodBusiness: boolean;
+  isDispatchBusiness: boolean;
+  isMedicalBusiness: boolean;
+  isSchedulingBusiness: boolean;
+  isServiceBusiness: boolean;
+
+  // ── Derived primary mode (for agent routing / terminology) ──
+  derivedPrimaryMode: BusinessMode;
+}
+
+/** Module keys that map 1:1 to capability flags */
+const MODULE_TO_CAP: Record<string, keyof Capabilities> = {
+  ai_voice: "hasAiVoice",
+  instant_text_back: "hasInstantTextBack",
+  booking: "hasBooking",
+  dispatch_queue: "hasDispatchQueue",
+  impound_lot: "hasImpoundLot",
+  fleet_management: "hasFleetManagement",
+  food_orders: "hasFoodOrders",
+  menu_knowledge: "hasMenuKnowledge",
+  reservations: "hasReservations",
+  catering: "hasCatering",
+  medical_intake: "hasMedicalIntake",
+  estimates: "hasEstimates",
+  review_requests: "hasReviewRequests",
+  lead_follow_up: "hasLeadFollowUp",
+  pricing_rules: "hasPricingRules",
+  eta_tracking: "hasEtaTracking",
+  calendar_sync: "hasCalendarSync",
+  payment_processing: "hasPaymentProcessing",
+  wisetack_financing: "hasWisetackFinancing",
+  quickbooks: "hasQuickbooks",
+  after_hours_handling: "hasAfterHoursHandling",
+  sms_campaigns: "hasSmsCampaigns",
+  knowledge_base: "hasKnowledgeBase",
+};
+
+/** Default modules per business mode (mirrors useTenantConfig defaults) */
+const MODE_DEFAULTS: Record<BusinessMode, string[]> = {
+  service: ["ai_voice", "instant_text_back", "booking"],
+  dispatch: ["ai_voice", "instant_text_back", "dispatch_queue"],
+  food: ["ai_voice", "instant_text_back", "food_orders", "menu_knowledge", "reservations", "catering"],
+  medical: ["ai_voice", "instant_text_back", "booking", "medical_intake"],
+  general: ["ai_voice", "instant_text_back"],
+};
+
+/**
+ * Core resolution logic shared between React hook and edge function helper.
+ * Takes raw tenant data and returns resolved Capabilities.
+ */
+export function resolveCapabilitiesFromTenant(
+  businessMode: BusinessMode,
+  enabledModules: string[],
+  capabilitiesJson: Record<string, boolean> | null | undefined,
+): Capabilities {
+  // Build the base boolean flags.
+  // Priority: capabilities_json → enabled_modules → mode defaults
+  const hasExplicitCaps = capabilitiesJson && Object.keys(capabilitiesJson).length > 0;
+
+  const modules = enabledModules.length > 0
+    ? enabledModules
+    : MODE_DEFAULTS[businessMode] || MODE_DEFAULTS.service;
+
+  // Helper: resolve a single capability flag
+  function cap(key: string): boolean {
+    // Explicit capability takes priority
+    if (hasExplicitCaps && key in capabilitiesJson!) {
+      return capabilitiesJson![key];
+    }
+    // Fall back to module list
+    return modules.includes(key);
+  }
+
+  const hasAiVoice = cap("ai_voice");
+  const hasInstantTextBack = cap("instant_text_back");
+  const hasBooking = cap("booking");
+  const hasDispatchQueue = cap("dispatch_queue");
+  const hasImpoundLot = cap("impound_lot");
+  const hasFleetManagement = cap("fleet_management");
+  const hasFoodOrders = cap("food_orders");
+  const hasMenuKnowledge = cap("menu_knowledge");
+  const hasReservations = cap("reservations");
+  const hasCatering = cap("catering");
+  const hasMedicalIntake = cap("medical_intake");
+  const hasEstimates = cap("estimates");
+  const hasReviewRequests = cap("review_requests");
+  const hasLeadFollowUp = cap("lead_follow_up");
+  const hasPricingRules = cap("pricing_rules");
+  const hasEtaTracking = cap("eta_tracking");
+  const hasCalendarSync = cap("calendar_sync");
+  const hasPaymentProcessing = cap("payment_processing");
+  const hasWisetackFinancing = cap("wisetack_financing");
+  const hasQuickbooks = cap("quickbooks");
+  const hasAfterHoursHandling = cap("after_hours_handling");
+  const hasSmsCampaigns = cap("sms_campaigns");
+  const hasKnowledgeBase = cap("knowledge_base");
+
+  // Computed helpers
+  const isFoodBusiness = hasFoodOrders || hasMenuKnowledge || hasReservations || hasCatering;
+  const isDispatchBusiness = hasDispatchQueue;
+  const isMedicalBusiness = hasMedicalIntake;
+  const isSchedulingBusiness = hasBooking || hasReservations;
+  const isServiceBusiness = hasBooking && !isFoodBusiness && !isDispatchBusiness && !isMedicalBusiness;
+
+  // Derived primary mode — for agent routing and terminology.
+  // Uses explicit business_mode when no capabilities_json override exists,
+  // otherwise infers from capabilities.
+  let derivedPrimaryMode: BusinessMode = businessMode;
+  if (hasExplicitCaps) {
+    if (isMedicalBusiness) derivedPrimaryMode = "medical";
+    else if (isDispatchBusiness) derivedPrimaryMode = "dispatch";
+    else if (isFoodBusiness) derivedPrimaryMode = "food";
+    else if (isServiceBusiness) derivedPrimaryMode = "service";
+    else derivedPrimaryMode = "general";
+  }
+
+  return {
+    hasAiVoice,
+    hasInstantTextBack,
+    hasBooking,
+    hasDispatchQueue,
+    hasImpoundLot,
+    hasFleetManagement,
+    hasFoodOrders,
+    hasMenuKnowledge,
+    hasReservations,
+    hasCatering,
+    hasMedicalIntake,
+    hasEstimates,
+    hasReviewRequests,
+    hasLeadFollowUp,
+    hasPricingRules,
+    hasEtaTracking,
+    hasCalendarSync,
+    hasPaymentProcessing,
+    hasWisetackFinancing,
+    hasQuickbooks,
+    hasAfterHoursHandling,
+    hasSmsCampaigns,
+    hasKnowledgeBase,
+    isFoodBusiness,
+    isDispatchBusiness,
+    isMedicalBusiness,
+    isSchedulingBusiness,
+    isServiceBusiness,
+    derivedPrimaryMode,
+  };
+}
+
+/** Map from capability flag name to the module ID for enabledModules compat */
+export { MODULE_TO_CAP };
+
+/**
+ * React hook that resolves the current tenant's capabilities.
+ *
+ * Reads `capabilities_json` (cast from Supabase Json) with automatic
+ * fallback to `enabled_modules` + `business_mode` defaults.
+ */
+export function useCapabilities(): Capabilities {
+  const { tenant } = useAuth();
+
+  return useMemo(() => {
+    if (!tenant) {
+      return resolveCapabilitiesFromTenant("service", [], null);
+    }
+
+    const businessMode = (tenant.business_mode as BusinessMode) || "service";
+
+    // Parse enabled_modules
+    let enabledModules: string[] = [];
+    try {
+      const modules = tenant.enabled_modules;
+      if (Array.isArray(modules)) {
+        enabledModules = modules;
+      } else if (typeof modules === "string") {
+        enabledModules = JSON.parse(modules);
+      } else if (modules && typeof modules === "object") {
+        enabledModules = Object.keys(modules).filter(k => (modules as Record<string, boolean>)[k]);
+      }
+    } catch {
+      enabledModules = [];
+    }
+
+    // Parse capabilities_json — column may not exist yet (pre-migration)
+    let capabilitiesJson: Record<string, boolean> | null = null;
+    try {
+      const raw = (tenant as Record<string, unknown>).capabilities_json;
+      if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+        capabilitiesJson = raw as Record<string, boolean>;
+      } else if (typeof raw === "string") {
+        capabilitiesJson = JSON.parse(raw);
+      }
+    } catch {
+      capabilitiesJson = null;
+    }
+
+    return resolveCapabilitiesFromTenant(businessMode, enabledModules, capabilitiesJson);
+  }, [tenant]);
+}

@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import type { BusinessMode } from "@/hooks/useTenantConfig";
 import type { BusinessCapabilities } from "@/hooks/useBusinessCapabilities";
+import type { Capabilities } from "@/hooks/useCapabilities";
 
 export interface CardConfig {
   id: string;
@@ -33,8 +34,10 @@ export interface CardConfig {
   priority?: "default" | "warning" | "error" | "success";
   /** Function to determine visibility based on mode/modules (legacy) */
   isVisible?: (mode: BusinessMode, modules: string[]) => boolean;
-  /** NEW: Function to determine visibility based on capabilities */
+  /** NEW: Function to determine visibility based on business capabilities */
   isVisibleWithCapabilities?: (capabilities: BusinessCapabilities) => boolean;
+  /** Capability-based visibility (preferred over isVisible) */
+  isCapabilityVisible?: (caps: Capabilities) => boolean;
   /** Show mode-specific emphasis */
   emphasis?: BusinessMode[];
   /** Whether this is an essential section (must-complete for AI to work well) */
@@ -158,6 +161,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         ],
         isVisible: (mode) => mode !== "dispatch",
         isVisibleWithCapabilities: (caps) => caps.mode !== "dispatch",
+        isCapabilityVisible: (caps) => !caps.isDispatchBusiness,
       },
       {
         id: "catalog",
@@ -363,6 +367,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         ],
         isVisible: (mode) => ["service", "medical", "general"].includes(mode),
         isVisibleWithCapabilities: (caps) => ["service", "medical", "general"].includes(caps.mode),
+        isCapabilityVisible: (caps) => caps.isSchedulingBusiness,
       },
       {
         id: "food-delivery",
@@ -374,6 +379,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         ],
         isVisible: (mode, modules) => mode === "food" || modules.includes("food_orders"),
         isVisibleWithCapabilities: (caps) => caps.mode === "food",
+        isCapabilityVisible: (caps) => caps.hasFoodOrders,
       },
       {
         id: "dispatch-delivery",
@@ -384,6 +390,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         ],
         isVisible: (mode) => mode === "dispatch",
         isVisibleWithCapabilities: (caps) => caps.mode === "dispatch",
+        isCapabilityVisible: (caps) => caps.isDispatchBusiness,
       },
       {
         id: "hipaa-settings",
@@ -396,6 +403,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         priority: "warning",
         isVisible: (mode) => mode === "medical",
         isVisibleWithCapabilities: (caps) => caps.mode === "medical" && caps.medical.requiresHIPAA,
+        isCapabilityVisible: (caps) => caps.isMedicalBusiness,
       },
     ],
   },
@@ -523,15 +531,29 @@ export function getVisibleCardsWithCapabilities(
   capabilities: BusinessCapabilities
 ): CardConfig[] {
   return category.cards.filter(card => {
-    // Prefer capabilities-based visibility if available
     if (card.isVisibleWithCapabilities) {
       return card.isVisibleWithCapabilities(capabilities);
     }
-    // Fall back to legacy mode-based visibility
     if (card.isVisible) {
-      // We can't get modules here, so return true (show by default)
       return true;
     }
+    return true;
+  });
+}
+
+/**
+ * Filter cards using capabilities (preferred over getVisibleCards).
+ * Falls back to legacy isVisible when isCapabilityVisible is not defined.
+ */
+export function getVisibleCardsV2(
+  category: CategoryConfig,
+  capabilities: Capabilities,
+  mode: BusinessMode,
+  modules: string[]
+): CardConfig[] {
+  return category.cards.filter(card => {
+    if (card.isCapabilityVisible) return card.isCapabilityVisible(capabilities);
+    if (card.isVisible) return card.isVisible(mode, modules);
     return true;
   });
 }

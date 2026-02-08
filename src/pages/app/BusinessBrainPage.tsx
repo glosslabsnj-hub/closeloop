@@ -87,6 +87,7 @@ import {
 
 // Hooks
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useCapabilities } from "@/hooks/useCapabilities";
 import { useFoodMode } from "@/hooks/useFoodMode";
 import { useFoodOrderSettings } from "@/hooks/useFoodOrderSettings";
 
@@ -141,6 +142,7 @@ export default function BusinessBrainPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const reviewCount = useBrainReviewCount();
   const { businessMode, hipaaMode } = useTenantConfig();
+  const caps = useCapabilities();
   const { isFoodMode, hasFoodOrders } = useFoodMode();
   const { acceptsDelivery: foodAcceptsDelivery, acceptsCatering: foodAcceptsCatering, needsCoverageSettings: foodNeedsCoverage } = useFoodOrderSettings();
   const summaries = useBrainSummaries();
@@ -210,12 +212,12 @@ export default function BusinessBrainPage() {
     );
   }
 
-  // Mode-aware visibility
-  const showBookingDelivery = ["service", "medical", "general"].includes(businessMode);
-  const showDispatchDelivery = businessMode === "dispatch";
-  const showFoodDelivery = businessMode === "food" || hasFoodOrders;
-  const showMedicalSettings = businessMode === "medical";
-  const isDispatchMode = businessMode === "dispatch";
+  // Capability-aware visibility
+  const showBookingDelivery = caps.isSchedulingBusiness;
+  const showDispatchDelivery = caps.isDispatchBusiness;
+  const showFoodDelivery = caps.hasFoodOrders;
+  const showMedicalSettings = caps.isMedicalBusiness;
+  const isDispatchMode = caps.isDispatchBusiness;
 
   const currentCategory = BRAIN_CATEGORIES.find(c => c.section === activeSection) ?? null;
 
@@ -935,7 +937,7 @@ export default function BusinessBrainPage() {
             {activeSection === "ai-behavior" && (
               <div className="space-y-4">
                 {/* Service Call Flow - only for service/general modes */}
-                {(businessMode === "service" || businessMode === "general") && (
+                {(caps.isServiceBusiness || caps.derivedPrimaryMode === "general") && (
                   <ServiceCallFlowSettings />
                 )}
 

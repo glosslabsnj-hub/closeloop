@@ -257,6 +257,7 @@ export default function OnboardingPage() {
             hours_json: businessBasics.hoursJson,
             industry: industrySlug,
             enabled_modules: enabledModules,
+            capabilities_json: Object.fromEntries(enabledModules.map(m => [m, true])),
             cancellation_policy: policies.cancellationPolicy || null,
             deposit_policy: policies.depositPolicy || null,
             refund_policy: policies.refundPolicy || null,

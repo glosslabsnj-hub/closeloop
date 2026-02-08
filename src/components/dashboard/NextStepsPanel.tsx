@@ -16,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCapabilities } from "@/hooks/useCapabilities";
 import { formatDistanceToNow } from "date-fns";
 
 interface RecentOutcome {
@@ -30,6 +31,7 @@ interface RecentOutcome {
 export function NextStepsPanel() {
   const navigate = useNavigate();
   const { tenant } = useAuth();
+  const caps = useCapabilities();
   const businessMode = tenant?.business_mode || "service";
 
   const { data: recentOutcomes, isLoading } = useQuery({
@@ -40,7 +42,7 @@ export function NextStepsPanel() {
       const outcomes: RecentOutcome[] = [];
 
       // Fetch recent bookings
-      if (["service", "medical", "general"].includes(businessMode)) {
+      if (caps.hasBooking) {
         const { data: bookings } = await supabase
           .from("bookings")
           .select("id, status, start_at, created_at, leads(full_name)")
@@ -61,7 +63,7 @@ export function NextStepsPanel() {
       }
 
       // Fetch recent orders (food mode)
-      if (businessMode === "food") {
+      if (caps.hasFoodOrders) {
         // Orders table may not exist in all schemas, wrap in try-catch
         try {
           const { data: orders } = await supabase
@@ -87,7 +89,7 @@ export function NextStepsPanel() {
       }
 
       // Fetch recent dispatch jobs
-      if (businessMode === "dispatch") {
+      if (caps.hasDispatchQueue) {
         const { data: jobs } = await supabase
           .from("dispatch_jobs")
           .select("id, status, customer_name, job_type, created_at")

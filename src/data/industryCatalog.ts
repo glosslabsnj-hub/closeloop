@@ -52,6 +52,7 @@ export interface IndustryCatalogEntry {
     refund: string;
   };
   hipaaMode?: boolean; // Auto-enable for medical
+  defaultCapabilities?: Record<string, boolean>;
 }
 
 export type IndustryCategory = 

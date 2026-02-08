@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessContext } from "@/hooks/useBusinessContext";
 import { useKnowledgeUploads } from "@/hooks/useKnowledgeUploads";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useCapabilities } from "@/hooks/useCapabilities";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ export function TeachAISection() {
   const { tenant } = useAuth();
   const { toast } = useToast();
   const { businessMode } = useTenantConfig();
+  const caps = useCapabilities();
   const { context } = useBusinessContext(tenant?.id || null);
   const { createUpload, processingCount } = useKnowledgeUploads();
 
@@ -145,12 +147,13 @@ export function TeachAISection() {
   if (!hasHours) missingItems.push("Business hours");
   if (faqsCount < 3) missingItems.push("FAQs");
   if (!hasPolicies) missingItems.push("Policies");
-  if (servicesCount < minServicesNeeded) missingItems.push(missingServiceLabel);
+  if (caps.isFoodBusiness && servicesCount < 5) missingItems.push("Menu items");
+  if (!caps.isFoodBusiness && servicesCount < 3) missingItems.push("Services");
 
   const quickAddButtons = [
     {
-      icon: businessMode === 'food' ? UtensilsCrossed : Briefcase,
-      label: businessMode === 'food' ? 'Menu Item' : 'Service',
+      icon: caps.isFoodBusiness ? UtensilsCrossed : Briefcase,
+      label: caps.isFoodBusiness ? 'Menu Item' : 'Service',
       onClick: () => setServiceDialogOpen(true),
     },
     {
@@ -230,7 +233,7 @@ export function TeachAISection() {
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline" className={servicesCount > 0 ? 'text-emerald-400 border-emerald-500/30' : ''}>
                 {servicesCount > 0 && <CheckCircle2 className="h-3 w-3 mr-1" />}
-                {servicesCount} {serviceLabel}
+                {servicesCount} {caps.isFoodBusiness ? 'Menu items' : 'Services'}
               </Badge>
               <Badge variant="outline" className={faqsCount > 0 ? 'text-emerald-400 border-emerald-500/30' : ''}>
                 {faqsCount > 0 && <CheckCircle2 className="h-3 w-3 mr-1" />}

@@ -11,6 +11,8 @@ const routeModuleRequirements: Record<string, string[]> = {
   "/app/calls": ["ai_voice"],
   "/app/bookings": ["booking"],
   "/app/dispatch": ["dispatch_queue"],
+  "/app/impound-lot": ["impound_lot"],
+  "/app/fleet": ["fleet_management"],
   "/app/orders": ["food_orders"],
   "/app/menu-center": ["menu_knowledge"],
   "/app/reservations": ["reservations"],

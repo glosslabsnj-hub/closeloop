@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useCapabilities } from "@/hooks/useCapabilities";
 import { cn } from "@/lib/utils";
 
 interface BrainPreviewPanelProps {
@@ -42,6 +43,7 @@ interface PreviewSection {
 export function BrainPreviewPanel({ open, onOpenChange, activeSection }: BrainPreviewPanelProps) {
   const { tenant } = useAuth();
   const { businessMode } = useTenantConfig();
+  const caps = useCapabilities();
 
   // Build preview data from tenant
   const sections = useMemo<PreviewSection[]>(() => {
@@ -89,11 +91,11 @@ export function BrainPreviewPanel({ open, onOpenChange, activeSection }: BrainPr
       },
       {
         id: "services",
-        label: businessMode === "food" ? "Menu" : "Services",
+        label: caps.isFoodBusiness ? "Menu" : "Services",
         icon: Package,
         items: [
           {
-            label: businessMode === "food" ? "Menu Items" : "Services",
+            label: caps.isFoodBusiness ? "Menu Items" : "Services",
             value: "Check services tab for details",
             status: "partial",
           },

@@ -14,6 +14,7 @@
  */
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolveCapabilities } from "./resolveCapabilities.ts";
 
 // ============= TYPE DEFINITIONS =============
 
@@ -484,7 +485,12 @@ export async function getBusinessBrainSnapshot(
   }
 
   const businessMode = safeString(tenantData.business_mode) || "general";
-  const isFoodMode = businessMode === "food";
+  const caps = resolveCapabilities(
+    tenantData.business_mode,
+    tenantData.enabled_modules,
+    tenantData.capabilities_json,
+  );
+  const isFoodMode = caps.isFoodBusiness;
 
   // STEP 2: Fetch all Business Brain data in parallel (typed separately to avoid inference issues)
   const servicesQuery = supabase
