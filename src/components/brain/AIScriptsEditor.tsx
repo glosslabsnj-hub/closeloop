@@ -8,25 +8,59 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PreviewSentence } from "./layout/BusinessBrainSectionCard";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
+import type { BusinessMode } from "@/hooks/useTenantConfig";
 
 const defaultGreeting = "Hi, thanks for calling! How can I help you today?";
 const defaultFallback = "I'm sorry, I didn't quite catch that. Could you please repeat?";
 
-// Industry-specific greeting examples for helper text
-const greetingExamples = {
-  service: "Hi, thanks for calling [Business]! How can I help you today?",
-  food: "Thanks for calling [Business], ready to take your order!",
-  dispatch: "This is [Business] dispatch, do you need a tow?",
-  medical: "Thank you for calling [Practice], how may I direct your call?",
+/**
+ * Industry-aware greeting examples and helper text
+ */
+interface ModeContent {
+  greetingExample: string;
+  greetingTip: string;
+  fallbackExample: string;
+}
+
+const MODE_CONTENT: Record<BusinessMode, ModeContent> = {
+  service: {
+    greetingExample: "Hi, thanks for calling [Business]! How can I help you today?",
+    greetingTip: "Keep it friendly and professional. Let callers know they've reached the right place.",
+    fallbackExample: "I'm sorry, I missed that. Could you tell me more about what you need?",
+  },
+  dispatch: {
+    greetingExample: "This is [Business] dispatch. Do you need a tow or roadside assistance?",
+    greetingTip: "Keep it short and action-oriented — callers in emergencies need fast help.",
+    fallbackExample: "Sorry, I didn't catch that. Are you calling for a tow or roadside help?",
+  },
+  food: {
+    greetingExample: "Thanks for calling [Restaurant]! Ready to take your order whenever you are.",
+    greetingTip: "Sound welcoming and ready to help. Mention if you're taking orders or reservations.",
+    fallbackExample: "I'm sorry, I missed that. Are you looking to order or make a reservation?",
+  },
+  medical: {
+    greetingExample: "Thank you for calling [Practice]. How may I direct your call?",
+    greetingTip: "Keep it professional and HIPAA-aware. Avoid discussing medical details in the greeting.",
+    fallbackExample: "I'm sorry, I didn't catch that. Are you calling to schedule an appointment?",
+  },
+  general: {
+    greetingExample: "Hi, thanks for calling [Business]! How can I help you today?",
+    greetingTip: "Keep it simple and welcoming. Let callers know what kind of help you can provide.",
+    fallbackExample: "I'm sorry, I missed that. Could you repeat what you need?",
+  },
 };
 
 export function AIScriptsEditor() {
   const { tenant } = useAuth();
+  const { businessMode } = useTenantConfig();
   const queryClient = useQueryClient();
 
   const [scripts, setScripts] = useState({ greeting: "", fallback: "" });
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  const content = MODE_CONTENT[businessMode] || MODE_CONTENT.general;
 
   useEffect(() => {
     async function loadSettings() {
@@ -103,16 +137,16 @@ export function AIScriptsEditor() {
       <div className="space-y-2">
         <Label>How should your AI answer calls?</Label>
         <Textarea
-          placeholder={defaultGreeting}
+          placeholder={content.greetingExample}
           value={scripts.greeting}
           onChange={(e) => setScripts({ ...scripts, greeting: e.target.value })}
           rows={2}
         />
         <div className="text-xs text-muted-foreground space-y-1">
           <p className="font-medium text-foreground/80">This is the first thing your AI says when it picks up the phone.</p>
-          <p>Leave blank to use the default greeting shown above.</p>
+          <p>{content.greetingTip}</p>
           <p className="text-primary/70">
-            Examples: "{greetingExamples.service}" or "{greetingExamples.food}"
+            Example: "{content.greetingExample}"
           </p>
         </div>
       </div>
@@ -121,7 +155,7 @@ export function AIScriptsEditor() {
       <div className="space-y-2">
         <Label>What should AI say when confused?</Label>
         <Textarea
-          placeholder={defaultFallback}
+          placeholder={content.fallbackExample}
           value={scripts.fallback}
           onChange={(e) => setScripts({ ...scripts, fallback: e.target.value })}
           rows={2}

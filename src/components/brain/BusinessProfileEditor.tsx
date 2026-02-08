@@ -11,6 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PreviewSentence } from "./layout/BusinessBrainSectionCard";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { getProfileExamples } from "@/lib/industryExamples";
 
 const TIMEZONES = [
   { value: "America/New_York", label: "Eastern Time (ET)" },
@@ -59,7 +61,10 @@ function combineAddress(components: { line1: string; city: string; state: string
 
 export function BusinessProfileEditor() {
   const { tenant } = useAuth();
+  const { businessMode } = useTenantConfig();
   const queryClient = useQueryClient();
+  
+  const examples = getProfileExamples(businessMode);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -169,7 +174,7 @@ export function BusinessProfileEditor() {
               id="name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Acme Plumbing"
+              placeholder={examples.businessNamePlaceholder}
             />
             <p className="text-xs text-muted-foreground">AI introduces your business by this name on every call</p>
           </div>
@@ -180,9 +185,9 @@ export function BusinessProfileEditor() {
               id="tagline"
               value={formData.tagline}
               onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
-              placeholder="Fast, reliable service since 2010"
+              placeholder={examples.taglinePlaceholder}
             />
-            <p className="text-xs text-muted-foreground">Example: "Licensed & insured pros" or "Fresh, made-to-order food"</p>
+            <p className="text-xs text-muted-foreground">{examples.taglineHint}</p>
           </div>
         </div>
 
