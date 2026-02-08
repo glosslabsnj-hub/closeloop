@@ -239,6 +239,9 @@ serve(async (req) => {
       aftercareResult,
       competitorResult,
       seasonalResult,
+      intakeRequirementsResult,
+      intakeTemplatesResult,
+      seasonalResult,
     ] = await Promise.all([
       supabase.from("tenants").select("*").eq("id", tenantId).single(),
       supabase.from("services").select("*").eq("tenant_id", tenantId).eq("is_active", true),
@@ -263,6 +266,10 @@ serve(async (req) => {
       supabase.from("aftercare_instructions").select("*").eq("tenant_id", tenantId).order("service_name"),
       supabase.from("competitor_knowledge").select("*").eq("tenant_id", tenantId).order("competitor_name"),
       supabase.from("seasonal_knowledge").select("*").eq("tenant_id", tenantId).order("event_name"),
+      // Intake requirements (tenant-specific)
+      supabase.from("intake_requirements").select("*").eq("tenant_id", tenantId).eq("is_active", true).order("ask_order"),
+      // Intake field templates (global templates based on industry)
+      supabase.from("intake_field_templates").select("*").order("display_order"),
     ]);
 
     if (tenantResult.error) {
@@ -298,6 +305,35 @@ serve(async (req) => {
     const aftercareInstructions = aftercareResult.data || [];
     const competitorKnowledge = competitorResult.data || [];
     const seasonalKnowledge = seasonalResult.data || [];
+    const intakeRequirements = intakeRequirementsResult.data || [];
+    const intakeTemplates = intakeTemplatesResult.data || [];
+
+    // Build intake fields: combine tenant-specific requirements with industry templates
+    const tenantIndustry = tenant.industry?.toLowerCase().replace(/[\s-]/g, "_") || "";
+    const industryTemplateFields = intakeTemplates
+      .filter((t: any) => t.industry_key === tenantIndustry)
+      .map((t: any) => ({
+        key: t.field_key,
+        label: t.field_label,
+        type: t.field_type,
+        options: t.options_json,
+        required: t.is_required,
+        ai_prompt: t.ai_prompt_hint,
+      }));
+
+    // Merge tenant-specific intake requirements with template fields (tenant fields take precedence)
+    const tenantFieldKeys = intakeRequirements.map((r: any) => r.field_key);
+    const mergedIntakeFields = [
+      ...intakeRequirements.map((r: any) => ({
+        key: r.field_key,
+        label: r.field_label,
+        type: r.field_type || "text",
+        options: r.options_json,
+        required: r.is_required,
+        ai_prompt: r.ai_prompt_hint,
+      })),
+      ...industryTemplateFields.filter((f: any) => !tenantFieldKeys.includes(f.key)),
+    ];
 
     // Build intelligence section if enabled
     const hipaaMode = tenant.business_mode === "medical" && tenant.hipaa_mode === true;
@@ -437,7 +473,7 @@ serve(async (req) => {
         response: o.response,
         priority: o.priority_weight || 0,
       })),
-      intake_fields: Array.isArray(tenant.context_fields_json) ? tenant.context_fields_json : [],
+      intake_fields: mergedIntakeFields.length > 0 ? mergedIntakeFields : (Array.isArray(tenant.context_fields_json) ? tenant.context_fields_json : []),
       ai_settings: assistant ? {
         tone: assistant.tone,
         greeting: assistant.greeting_script,

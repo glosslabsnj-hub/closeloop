@@ -1709,6 +1709,347 @@ const medicalTransportTemplate: IndustryTemplate = {
 };
 
 // ============================================================================
+// NEW DISPATCH TEMPLATES - Universal Dispatch Support
+// ============================================================================
+
+const junkRemovalTemplate: IndustryTemplate = {
+  industry_key: "junk_removal",
+  name: "Junk Removal",
+  icon: "🗑️",
+  business_mode: "dispatch",
+  defaults: {
+    services: [
+      { name: "Single Item Pickup", description: "Remove one large item (couch, mattress, appliance)", base_price_model: "fixed", fixed_price_cents: 7500, duration_minutes: 30, tags: ["single", "pickup"] },
+      { name: "1/4 Truck Load", description: "Small load - a few items", base_price_model: "fixed", fixed_price_cents: 15000, duration_minutes: 45, tags: ["small", "load"] },
+      { name: "1/2 Truck Load", description: "Medium load - partial room cleanout", base_price_model: "fixed", fixed_price_cents: 25000, duration_minutes: 60, tags: ["medium", "load"] },
+      { name: "Full Truck Load", description: "Large load - full room or garage cleanout", base_price_model: "fixed", fixed_price_cents: 40000, duration_minutes: 90, tags: ["full", "load"] },
+      { name: "Estate Cleanout", description: "Complete property cleanout", base_price_model: "quote_only", duration_minutes: 480, tags: ["estate", "cleanout"] },
+      { name: "Construction Debris", description: "Removal of construction waste", base_price_model: "starting_at", starting_price_cents: 30000, duration_minutes: 120, tags: ["construction", "debris"] },
+      { name: "Appliance Removal", description: "Safe disposal of appliances (fridge, washer, etc.)", base_price_model: "fixed", fixed_price_cents: 8500, duration_minutes: 30, tags: ["appliance", "disposal"] },
+      { name: "Hot Tub Removal", description: "Disassemble and remove hot tub", base_price_model: "starting_at", starting_price_cents: 45000, duration_minutes: 180, tags: ["hot tub", "removal"] },
+    ],
+    required_questions: [
+      { intent: "dispatch", key: "items_description", label: "Items", ask_prompt: "What items do you need removed?", why_needed: "Determines truck size and pricing", required: true },
+      { intent: "dispatch", key: "volume_estimate", label: "Volume", ask_prompt: "About how much stuff is there - a few items, a partial truck, or a full truck load?", why_needed: "Pricing and scheduling", required: true },
+      { intent: "dispatch", key: "location", label: "Location", ask_prompt: "What's the address for pickup?", why_needed: "Dispatch location", required: true },
+      { intent: "dispatch", key: "item_location", label: "Item Location", ask_prompt: "Where are the items - curbside, garage, inside the house, upstairs?", why_needed: "Labor estimate", required: true },
+      { intent: "dispatch", key: "stairs", label: "Stairs Involved", ask_prompt: "Are there any stairs to navigate?", why_needed: "Additional labor fee", required: false },
+    ],
+    policies: [
+      { type: "cancellation", text: "Free cancellation with 24 hours notice. Same-day cancellations may incur a $50 trip fee." },
+      { type: "payment", text: "Payment is due upon completion. We accept cash, credit cards, and digital payments." },
+      { type: "refund", text: "If you're not satisfied with our service, please contact us within 24 hours." },
+    ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Do you recycle?", answer: "Yes! We donate and recycle as much as possible. Typically 60-80% stays out of landfills." },
+      { question: "Can you remove hazardous materials?", answer: "We cannot remove hazardous materials, chemicals, or asbestos. We can refer you to specialists." },
+      { question: "Do you clean up after?", answer: "Yes, we do a clean sweep of the area after removing items." },
+      { question: "Can you help with hoarding situations?", answer: "Yes, we handle estate cleanouts and hoarding situations with sensitivity and discretion." },
+    ],
+    objections: [
+      ...commonObjections,
+      { objection: "I can take it to the dump myself", response: "By the time you rent a truck, pay dump fees, and spend your day - we're often the same price or less. Plus, we do all the heavy lifting!" },
+    ],
+    service_area_defaults: { mode: "radius", radius_miles: 30, restrictions: { no_cross_state_lines: false }, notes: "Junk removal and cleanout services." },
+    scheduling_defaults: { lead_time_hours: 2, buffer_minutes: 30, default_slot_duration_minutes: 60 },
+  },
+};
+
+const movingTemplate: IndustryTemplate = {
+  industry_key: "moving",
+  name: "Moving Services",
+  icon: "📦",
+  business_mode: "dispatch",
+  defaults: {
+    services: [
+      { name: "Studio/Small Move", description: "Studio or small 1-bedroom", base_price_model: "starting_at", starting_price_cents: 35000, duration_minutes: 180, tags: ["studio", "small"] },
+      { name: "1-2 Bedroom Move", description: "Standard apartment or small house", base_price_model: "starting_at", starting_price_cents: 50000, duration_minutes: 240, tags: ["apartment", "medium"] },
+      { name: "3+ Bedroom Move", description: "Large home or multi-level", base_price_model: "starting_at", starting_price_cents: 80000, duration_minutes: 360, tags: ["house", "large"] },
+      { name: "Labor Only", description: "Load or unload your truck/pod", base_price_model: "starting_at", starting_price_cents: 20000, duration_minutes: 120, tags: ["labor", "load"] },
+      { name: "Packing Services", description: "Professional packing of your belongings", base_price_model: "starting_at", starting_price_cents: 30000, duration_minutes: 180, tags: ["packing", "prep"] },
+      { name: "Single Item Move", description: "Move one large or heavy item", base_price_model: "starting_at", starting_price_cents: 15000, duration_minutes: 60, tags: ["single", "item"] },
+      { name: "Long Distance Move", description: "Interstate or long-distance relocation", base_price_model: "quote_only", duration_minutes: 480, tags: ["long-distance", "interstate"] },
+    ],
+    required_questions: [
+      { intent: "dispatch", key: "move_size", label: "Move Size", ask_prompt: "Is this a studio, 1-bedroom, 2-bedroom, or larger?", why_needed: "Determines crew and truck size", required: true },
+      { intent: "dispatch", key: "origin_address", label: "Origin Address", ask_prompt: "What's the pickup address?", why_needed: "Route planning", required: true },
+      { intent: "dispatch", key: "destination_address", label: "Destination", ask_prompt: "What's the destination address?", why_needed: "Route and pricing", required: true },
+      { intent: "dispatch", key: "move_date", label: "Move Date", ask_prompt: "When do you need to move?", why_needed: "Scheduling", required: true },
+      { intent: "dispatch", key: "origin_floor", label: "Origin Floor", ask_prompt: "What floor are you moving from? Is there an elevator?", why_needed: "Labor estimate", required: true },
+      { intent: "dispatch", key: "large_items", label: "Large Items", ask_prompt: "Any large items like a piano, safe, or pool table?", why_needed: "Special equipment", required: false },
+    ],
+    policies: [
+      { type: "cancellation", text: "Free cancellation up to 48 hours before move. Less notice may incur a fee." },
+      { type: "deposit", text: "A $100 deposit is required to reserve your move date." },
+      { type: "refund", text: "Deposits are refundable with 48 hours notice." },
+    ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Do you provide packing materials?", answer: "Yes, we can provide boxes, tape, and packing materials at an additional cost." },
+      { question: "Are you insured?", answer: "Yes, we carry liability and cargo insurance. Additional coverage is available." },
+      { question: "How do you charge?", answer: "We charge by the hour with a minimum, plus any packing materials or specialty item fees." },
+      { question: "Can you store my stuff?", answer: "We can arrange short-term storage if there's a gap between your move-out and move-in dates." },
+    ],
+    objections: [
+      ...commonObjections,
+      { objection: "I'll just rent a truck", response: "Consider the cost of the truck, insurance, fuel, equipment, and the risk of injury. Our all-inclusive pricing often makes more sense!" },
+    ],
+    service_area_defaults: { mode: "radius", radius_miles: 50, restrictions: { no_cross_state_lines: false }, notes: "Local and regional moving services." },
+    scheduling_defaults: { lead_time_hours: 48, buffer_minutes: 30, default_slot_duration_minutes: 240 },
+  },
+};
+
+const petGroomingMobileTemplate: IndustryTemplate = {
+  industry_key: "pet_grooming",
+  name: "Mobile Pet Grooming",
+  icon: "🐕",
+  business_mode: "dispatch",
+  defaults: {
+    services: [
+      { name: "Full Groom - Small Dog", description: "Bath, haircut, nails, ears for dogs under 25 lbs", base_price_model: "fixed", fixed_price_cents: 6500, duration_minutes: 60, tags: ["small", "full groom"] },
+      { name: "Full Groom - Medium Dog", description: "Bath, haircut, nails, ears for dogs 25-50 lbs", base_price_model: "fixed", fixed_price_cents: 8500, duration_minutes: 75, tags: ["medium", "full groom"] },
+      { name: "Full Groom - Large Dog", description: "Bath, haircut, nails, ears for dogs 50-80 lbs", base_price_model: "fixed", fixed_price_cents: 10500, duration_minutes: 90, tags: ["large", "full groom"] },
+      { name: "Full Groom - Extra Large", description: "Bath, haircut, nails, ears for dogs over 80 lbs", base_price_model: "fixed", fixed_price_cents: 13500, duration_minutes: 120, tags: ["xl", "full groom"] },
+      { name: "Bath & Brush Only", description: "Bath, brush out, nails, no haircut", base_price_model: "starting_at", starting_price_cents: 4500, duration_minutes: 45, tags: ["bath", "basic"] },
+      { name: "Nail Trim Only", description: "Quick nail trim service", base_price_model: "fixed", fixed_price_cents: 2000, duration_minutes: 15, tags: ["nails", "quick"] },
+      { name: "De-matting Service", description: "Remove severe matting (charged in addition)", base_price_model: "starting_at", starting_price_cents: 2500, duration_minutes: 30, tags: ["dematting", "addon"] },
+      { name: "Cat Grooming", description: "Full groom for cats", base_price_model: "starting_at", starting_price_cents: 7500, duration_minutes: 60, tags: ["cat", "feline"] },
+    ],
+    required_questions: [
+      { intent: "dispatch", key: "pet_type", label: "Pet Type", ask_prompt: "Is this for a dog, cat, or another pet?", why_needed: "Service type", required: true },
+      { intent: "dispatch", key: "pet_breed", label: "Breed", ask_prompt: "What breed is your pet?", why_needed: "Determines grooming style", required: true },
+      { intent: "dispatch", key: "pet_size", label: "Size", ask_prompt: "How much does your pet weigh - under 25 lbs, 25-50, 50-80, or over 80 lbs?", why_needed: "Pricing and timing", required: true },
+      { intent: "dispatch", key: "service_type", label: "Service", ask_prompt: "What service do you need - full groom, bath only, or just nails?", why_needed: "Service selection", required: true },
+      { intent: "dispatch", key: "location", label: "Location", ask_prompt: "What's your address?", why_needed: "Dispatch location", required: true },
+      { intent: "dispatch", key: "pet_temperament", label: "Temperament", ask_prompt: "How does your pet do with grooming - calm, nervous, or needs extra patience?", why_needed: "Groomer preparation", required: false },
+    ],
+    policies: [
+      { type: "cancellation", text: "Please provide 24 hours notice. Late cancellations or no-shows may incur a $35 fee." },
+      { type: "payment", text: "Payment is due at the time of service." },
+      { type: "refund", text: "If you're not happy with the groom, contact us within 48 hours and we'll make it right." },
+    ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Where does grooming happen?", answer: "Right in our mobile grooming van parked in your driveway - complete with water and power!" },
+      { question: "How long does grooming take?", answer: "Typically 1-2 hours depending on size, coat condition, and services requested." },
+      { question: "Do you sedate dogs?", answer: "No, we never sedate. We use patience, treats, and calming techniques for nervous pets." },
+      { question: "What if my pet is matted?", answer: "Severe matting may require additional time and de-matting fees. In some cases, a shave-down is the humane option." },
+    ],
+    objections: [
+      ...commonObjections,
+      { objection: "It's cheaper at the pet store", response: "With mobile grooming, your pet gets one-on-one attention in a calm environment, with no cage time. Many pets are much less stressed!" },
+    ],
+    service_area_defaults: { mode: "radius", radius_miles: 20, restrictions: { no_cross_state_lines: false }, notes: "Mobile pet grooming comes to you!" },
+    scheduling_defaults: { lead_time_hours: 24, buffer_minutes: 15, default_slot_duration_minutes: 90 },
+  },
+};
+
+const restorationTemplate: IndustryTemplate = {
+  industry_key: "restoration",
+  name: "Water & Fire Restoration",
+  icon: "💧",
+  business_mode: "dispatch",
+  defaults: {
+    services: [
+      { name: "Water Extraction", description: "Emergency water removal", base_price_model: "starting_at", starting_price_cents: 50000, duration_minutes: 180, tags: ["water", "emergency"] },
+      { name: "Flood Damage Restoration", description: "Complete flood cleanup and restoration", base_price_model: "quote_only", duration_minutes: 480, tags: ["flood", "restoration"] },
+      { name: "Fire Damage Restoration", description: "Fire and smoke damage cleanup", base_price_model: "quote_only", duration_minutes: 480, tags: ["fire", "smoke"] },
+      { name: "Mold Remediation", description: "Professional mold removal and treatment", base_price_model: "quote_only", duration_minutes: 240, tags: ["mold", "remediation"] },
+      { name: "Storm Damage Cleanup", description: "Wind, hail, and storm damage repair", base_price_model: "quote_only", duration_minutes: 240, tags: ["storm", "wind"] },
+      { name: "Sewage Cleanup", description: "Biohazard sewage backup cleanup", base_price_model: "starting_at", starting_price_cents: 75000, duration_minutes: 240, tags: ["sewage", "biohazard"] },
+      { name: "Content Restoration", description: "Cleaning and restoring belongings", base_price_model: "quote_only", duration_minutes: 480, tags: ["contents", "belongings"] },
+    ],
+    required_questions: [
+      { intent: "dispatch", key: "damage_type", label: "Damage Type", ask_prompt: "What type of damage do you have - water, fire, mold, or storm?", why_needed: "Determines response team", required: true },
+      { intent: "dispatch", key: "damage_source", label: "Source", ask_prompt: "What caused the damage - pipe burst, flood, fire, etc.?", why_needed: "Determines approach", required: true },
+      { intent: "dispatch", key: "affected_area", label: "Affected Area", ask_prompt: "How large is the affected area - one room, multiple rooms, or the whole property?", why_needed: "Equipment and crew sizing", required: true },
+      { intent: "dispatch", key: "location", label: "Location", ask_prompt: "What's the property address?", why_needed: "Dispatch location", required: true },
+      { intent: "dispatch", key: "standing_water", label: "Standing Water", ask_prompt: "Is there standing water currently?", why_needed: "Emergency prioritization", required: true },
+      { intent: "dispatch", key: "insurance_claim", label: "Insurance", ask_prompt: "Will this be an insurance claim?", why_needed: "Documentation requirements", required: false },
+    ],
+    policies: [
+      { type: "cancellation", text: "Emergency services cannot be cancelled once teams are dispatched." },
+      { type: "payment", text: "We work directly with insurance companies. Out-of-pocket payments may be arranged." },
+      { type: "refund", text: "All work is documented and guaranteed. We work with your insurance adjuster." },
+    ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Do you work with insurance?", answer: "Yes, we work with all major insurance companies and can bill them directly." },
+      { question: "How fast can you get here?", answer: "For emergencies, we typically respond within 1-2 hours, 24/7." },
+      { question: "Will my belongings be saved?", answer: "We do everything possible to restore your belongings. Our content restoration team specializes in this." },
+      { question: "How long does restoration take?", answer: "It depends on the damage extent. We'll give you a timeline after the initial assessment." },
+    ],
+    objections: commonObjections,
+    service_area_defaults: { mode: "radius", radius_miles: 50, restrictions: { no_cross_state_lines: false }, notes: "24/7 emergency restoration services." },
+    scheduling_defaults: { lead_time_hours: 0, buffer_minutes: 0, default_slot_duration_minutes: 180 },
+  },
+};
+
+const treeServiceTemplate: IndustryTemplate = {
+  industry_key: "tree_service",
+  name: "Tree Service",
+  icon: "🌳",
+  business_mode: "dispatch",
+  defaults: {
+    services: [
+      { name: "Tree Trimming", description: "Professional pruning and shaping", base_price_model: "starting_at", starting_price_cents: 25000, duration_minutes: 120, tags: ["trimming", "pruning"] },
+      { name: "Tree Removal - Small", description: "Remove tree under 20 feet", base_price_model: "starting_at", starting_price_cents: 40000, duration_minutes: 180, tags: ["removal", "small"] },
+      { name: "Tree Removal - Medium", description: "Remove tree 20-40 feet", base_price_model: "starting_at", starting_price_cents: 75000, duration_minutes: 300, tags: ["removal", "medium"] },
+      { name: "Tree Removal - Large", description: "Remove tree over 40 feet", base_price_model: "quote_only", duration_minutes: 480, tags: ["removal", "large"] },
+      { name: "Stump Grinding", description: "Grind stump below ground level", base_price_model: "starting_at", starting_price_cents: 15000, duration_minutes: 60, tags: ["stump", "grinding"] },
+      { name: "Emergency Storm Damage", description: "Fallen tree removal and cleanup", base_price_model: "starting_at", starting_price_cents: 50000, duration_minutes: 180, tags: ["emergency", "storm"] },
+      { name: "Lot Clearing", description: "Clear trees from a property lot", base_price_model: "quote_only", duration_minutes: 480, tags: ["clearing", "lot"] },
+    ],
+    required_questions: [
+      { intent: "dispatch", key: "service_type", label: "Service", ask_prompt: "Do you need tree removal, trimming, stump grinding, or emergency service?", why_needed: "Determines equipment", required: true },
+      { intent: "dispatch", key: "tree_count", label: "Number of Trees", ask_prompt: "How many trees need service?", why_needed: "Pricing and scheduling", required: true },
+      { intent: "dispatch", key: "tree_size", label: "Tree Size", ask_prompt: "Approximately how tall is the tree - under 20 feet, 20-40 feet, or over 40 feet?", why_needed: "Equipment and crew", required: true },
+      { intent: "dispatch", key: "location", label: "Location", ask_prompt: "What's the property address?", why_needed: "Dispatch location", required: true },
+      { intent: "dispatch", key: "near_structures", label: "Near Structures", ask_prompt: "Is the tree near any buildings, power lines, or fences?", why_needed: "Safety planning", required: true },
+      { intent: "dispatch", key: "debris_removal", label: "Debris Removal", ask_prompt: "Do you need the debris hauled away or can we leave it for you?", why_needed: "Pricing", required: true },
+    ],
+    policies: [
+      { type: "cancellation", text: "Please provide 48 hours notice. Weather cancellations are free." },
+      { type: "deposit", text: "Large jobs may require a 50% deposit." },
+      { type: "payment", text: "Payment due upon completion. Credit cards accepted." },
+    ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Are you insured?", answer: "Yes, we carry full liability and workers' compensation insurance." },
+      { question: "Do you need to see it first?", answer: "For larger jobs, yes, we provide free on-site estimates." },
+      { question: "What happens to the wood?", answer: "We can chip it for mulch, cut it for firewood, or haul it away - your choice!" },
+      { question: "Can you plant a new tree?", answer: "Yes, we offer tree planting services and can recommend suitable species." },
+    ],
+    objections: commonObjections,
+    service_area_defaults: { mode: "radius", radius_miles: 35, restrictions: { no_cross_state_lines: false }, notes: "Professional tree service." },
+    scheduling_defaults: { lead_time_hours: 48, buffer_minutes: 30, default_slot_duration_minutes: 180 },
+  },
+};
+
+const septicTemplate: IndustryTemplate = {
+  industry_key: "septic",
+  name: "Septic & Pumping",
+  icon: "🚽",
+  business_mode: "dispatch",
+  defaults: {
+    services: [
+      { name: "Septic Tank Pumping", description: "Standard residential tank pumping", base_price_model: "starting_at", starting_price_cents: 35000, duration_minutes: 60, tags: ["pumping", "residential"] },
+      { name: "Commercial Pumping", description: "Commercial or large tank pumping", base_price_model: "starting_at", starting_price_cents: 50000, duration_minutes: 90, tags: ["pumping", "commercial"] },
+      { name: "Emergency Pumping", description: "Same-day emergency service", base_price_model: "starting_at", starting_price_cents: 50000, duration_minutes: 60, tags: ["emergency", "pumping"] },
+      { name: "Septic Inspection", description: "Full system inspection", base_price_model: "fixed", fixed_price_cents: 40000, duration_minutes: 90, tags: ["inspection", "diagnostic"] },
+      { name: "Grease Trap Cleaning", description: "Commercial grease trap service", base_price_model: "starting_at", starting_price_cents: 25000, duration_minutes: 45, tags: ["grease", "commercial"] },
+      { name: "Holding Tank Pumping", description: "RV or holding tank pump out", base_price_model: "fixed", fixed_price_cents: 25000, duration_minutes: 30, tags: ["holding", "rv"] },
+    ],
+    required_questions: [
+      { intent: "dispatch", key: "service_type", label: "Service", ask_prompt: "Do you need pumping, an inspection, or is this an emergency?", why_needed: "Service type", required: true },
+      { intent: "dispatch", key: "tank_size", label: "Tank Size", ask_prompt: "Do you know your tank size - 500, 750, 1000, or 1500 gallons?", why_needed: "Pricing and equipment", required: false },
+      { intent: "dispatch", key: "location", label: "Location", ask_prompt: "What's the property address?", why_needed: "Dispatch location", required: true },
+      { intent: "dispatch", key: "access_clear", label: "Tank Access", ask_prompt: "Is the tank lid accessible and uncovered?", why_needed: "Preparation", required: true },
+      { intent: "dispatch", key: "backup_present", label: "Backup Present", ask_prompt: "Are you experiencing any backups in the house right now?", why_needed: "Emergency prioritization", required: true },
+    ],
+    policies: [
+      { type: "cancellation", text: "Please provide 24 hours notice for cancellations." },
+      { type: "payment", text: "Payment is due upon completion of service." },
+      { type: "refund", text: "We guarantee our work. If there are issues, contact us immediately." },
+    ],
+    faqs: [
+      ...commonFAQs,
+      { question: "How often should I pump?", answer: "Most residential tanks should be pumped every 3-5 years, depending on usage." },
+      { question: "Do I need to be home?", answer: "It's helpful but not required if we can access the tank." },
+      { question: "What if I don't know where my tank is?", answer: "We can locate it for an additional fee." },
+      { question: "Can you fix a failing system?", answer: "We diagnose issues and can recommend repairs or replacement options." },
+    ],
+    objections: commonObjections,
+    service_area_defaults: { mode: "radius", radius_miles: 40, restrictions: { no_cross_state_lines: false }, notes: "Septic pumping and maintenance services." },
+    scheduling_defaults: { lead_time_hours: 24, buffer_minutes: 15, default_slot_duration_minutes: 60 },
+  },
+};
+
+const notaryTemplate: IndustryTemplate = {
+  industry_key: "notary",
+  name: "Mobile Notary",
+  icon: "📋",
+  business_mode: "dispatch",
+  defaults: {
+    services: [
+      { name: "General Notarization", description: "Standard document notarization", base_price_model: "fixed", fixed_price_cents: 5000, duration_minutes: 30, tags: ["general", "notary"] },
+      { name: "Loan Signing", description: "Complete loan document signing package", base_price_model: "fixed", fixed_price_cents: 15000, duration_minutes: 60, tags: ["loan", "signing"] },
+      { name: "Real Estate Documents", description: "Deeds, titles, and property documents", base_price_model: "fixed", fixed_price_cents: 7500, duration_minutes: 45, tags: ["real estate", "property"] },
+      { name: "Power of Attorney", description: "POA document notarization", base_price_model: "fixed", fixed_price_cents: 6000, duration_minutes: 30, tags: ["poa", "legal"] },
+      { name: "Affidavit/Oath", description: "Sworn statement notarization", base_price_model: "fixed", fixed_price_cents: 5000, duration_minutes: 20, tags: ["affidavit", "oath"] },
+      { name: "Hospital/Facility Visit", description: "Notarization at hospital or care facility", base_price_model: "starting_at", starting_price_cents: 10000, duration_minutes: 60, tags: ["hospital", "facility"] },
+      { name: "After Hours Service", description: "Evening or weekend notarization", base_price_model: "starting_at", starting_price_cents: 10000, duration_minutes: 45, tags: ["after hours", "weekend"] },
+    ],
+    required_questions: [
+      { intent: "dispatch", key: "document_type", label: "Document Type", ask_prompt: "What type of document needs to be notarized - loan, power of attorney, real estate, or general?", why_needed: "Service type", required: true },
+      { intent: "dispatch", key: "signer_count", label: "Signers", ask_prompt: "How many people need to sign?", why_needed: "Pricing and timing", required: true },
+      { intent: "dispatch", key: "location", label: "Location", ask_prompt: "Where would you like the notarization to take place?", why_needed: "Travel to location", required: true },
+      { intent: "dispatch", key: "appointment_time", label: "Time", ask_prompt: "When do you need this done?", why_needed: "Scheduling", required: true },
+      { intent: "dispatch", key: "document_count", label: "Documents", ask_prompt: "Approximately how many documents or signatures?", why_needed: "Pricing", required: false },
+    ],
+    policies: [
+      { type: "cancellation", text: "Please provide 2 hours notice for cancellations to avoid a trip fee." },
+      { type: "payment", text: "Payment is due at the time of service." },
+      { type: "refund", text: "Services completed cannot be refunded, but we'll address any concerns." },
+    ],
+    faqs: [
+      ...commonFAQs,
+      { question: "What ID do I need?", answer: "A valid, unexpired government-issued photo ID such as a driver's license or passport." },
+      { question: "Do you witness signatures?", answer: "Yes, we can serve as a signing witness when permitted by law." },
+      { question: "Can you notarize for someone in the hospital?", answer: "Yes, we regularly visit hospitals, care facilities, and homes for those who cannot travel." },
+      { question: "Do I need to have my own documents?", answer: "Yes, please have all documents ready. We notarize documents, we don't prepare them." },
+    ],
+    objections: [
+      ...commonObjections,
+      { objection: "I can go to the bank", response: "Banks have limited hours and you may wait in line. We come to you when it's convenient, even evenings and weekends." },
+    ],
+    service_area_defaults: { mode: "radius", radius_miles: 25, restrictions: { no_cross_state_lines: true }, notes: "Mobile notary services - we come to you!" },
+    scheduling_defaults: { lead_time_hours: 2, buffer_minutes: 15, default_slot_duration_minutes: 45 },
+  },
+};
+
+const securityPatrolTemplate: IndustryTemplate = {
+  industry_key: "security",
+  name: "Security Patrol",
+  icon: "🔒",
+  business_mode: "dispatch",
+  defaults: {
+    services: [
+      { name: "One-Time Property Check", description: "Single patrol visit and inspection", base_price_model: "fixed", fixed_price_cents: 7500, duration_minutes: 30, tags: ["one-time", "check"] },
+      { name: "Nightly Patrol Service", description: "Overnight patrol monitoring", base_price_model: "starting_at", starting_price_cents: 25000, duration_minutes: 480, tags: ["nightly", "ongoing"] },
+      { name: "Event Security", description: "Security presence for events", base_price_model: "starting_at", starting_price_cents: 35000, duration_minutes: 240, tags: ["event", "special"] },
+      { name: "Construction Site Patrol", description: "Patrol for active construction sites", base_price_model: "quote_only", duration_minutes: 480, tags: ["construction", "ongoing"] },
+      { name: "Vacation Watch", description: "Regular checks while you're away", base_price_model: "starting_at", starting_price_cents: 10000, duration_minutes: 60, tags: ["vacation", "residential"] },
+      { name: "Emergency Response", description: "Immediate dispatch for alarm or incident", base_price_model: "fixed", fixed_price_cents: 15000, duration_minutes: 60, tags: ["emergency", "response"] },
+      { name: "Lockup/Unlock Service", description: "Secure or unlock property on schedule", base_price_model: "fixed", fixed_price_cents: 5000, duration_minutes: 15, tags: ["lockup", "service"] },
+    ],
+    required_questions: [
+      { intent: "dispatch", key: "service_type", label: "Service", ask_prompt: "What type of service do you need - patrol, event security, or emergency response?", why_needed: "Service type", required: true },
+      { intent: "dispatch", key: "property_type", label: "Property Type", ask_prompt: "Is this for a home, business, construction site, or event?", why_needed: "Patrol approach", required: true },
+      { intent: "dispatch", key: "location", label: "Location", ask_prompt: "What's the property address?", why_needed: "Patrol location", required: true },
+      { intent: "dispatch", key: "frequency", label: "Frequency", ask_prompt: "Is this a one-time need or ongoing service?", why_needed: "Service plan", required: true },
+      { intent: "dispatch", key: "access_instructions", label: "Access", ask_prompt: "How should our officers access the property?", why_needed: "Patrol planning", required: false },
+    ],
+    policies: [
+      { type: "cancellation", text: "Ongoing services require 30 days notice to cancel." },
+      { type: "deposit", text: "Monthly patrol services require first month payment in advance." },
+      { type: "payment", text: "Invoiced monthly for ongoing services. One-time services due upon completion." },
+    ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Are your officers armed?", answer: "We offer both armed and unarmed patrol options based on your needs and location requirements." },
+      { question: "Do you work with alarm companies?", answer: "Yes, we can respond to alarm activations and coordinate with your monitoring company." },
+      { question: "What do you do if you find a problem?", answer: "We document everything, contact you immediately, and can coordinate with law enforcement if needed." },
+      { question: "Do you provide reports?", answer: "Yes, you'll receive detailed patrol reports with timestamps and any observations." },
+    ],
+    objections: commonObjections,
+    service_area_defaults: { mode: "radius", radius_miles: 30, restrictions: { no_cross_state_lines: true }, notes: "Professional security patrol services." },
+    scheduling_defaults: { lead_time_hours: 24, buffer_minutes: 15, default_slot_duration_minutes: 60 },
+  },
+};
+
+// ============================================================================
 // ADDITIONAL MEDICAL TEMPLATES
 // ============================================================================
 
@@ -1969,13 +2310,21 @@ export const industryTemplates: Record<string, IndustryTemplate> = {
   roofing: roofingTemplate,
   pool_service: poolServiceTemplate,
   salon: salonTemplate,
-  // Dispatch templates (6)
+  // Dispatch templates (14)
   towing: towingTemplate,
   locksmith: locksmithTemplate,
   courier: courierTemplate,
   mobile_mechanic: mobileMechanicTemplate,
   limo: limoTemplate,
   medical_transport: medicalTransportTemplate,
+  junk_removal: junkRemovalTemplate,
+  moving: movingTemplate,
+  pet_grooming: petGroomingMobileTemplate,
+  restoration: restorationTemplate,
+  tree_service: treeServiceTemplate,
+  septic: septicTemplate,
+  notary: notaryTemplate,
+  security: securityPatrolTemplate,
   // Food templates (6)
   food: foodTemplate,
   pizza: pizzaTemplate,
@@ -2052,13 +2401,13 @@ export function getTemplateOptionsForMode(
   const modeTemplateMap: Record<string, string[]> = {
     food: ["food", "pizza", "bakery", "food_truck", "bar", "catering"],
     medical: ["medical", "dental", "chiropractic", "optometry", "physical_therapy", "veterinary", "mental_health", "dermatology", "massage"],
-    dispatch: ["towing", "locksmith", "courier", "mobile_mechanic", "limo", "medical_transport"],
+    dispatch: ["towing", "locksmith", "courier", "mobile_mechanic", "limo", "medical_transport", "junk_removal", "moving", "pet_grooming", "restoration", "tree_service", "septic", "notary", "security"],
     service: ["detailing", "plumbing", "hvac", "electrical", "cleaning", "landscaping", "pest_control", "roofing", "pool_service", "salon"],
     general: [
       // Service (10)
       "detailing", "plumbing", "hvac", "electrical", "cleaning", "landscaping", "pest_control", "roofing", "pool_service", "salon",
-      // Dispatch (6)
-      "towing", "locksmith", "courier", "mobile_mechanic", "limo", "medical_transport",
+      // Dispatch (14)
+      "towing", "locksmith", "courier", "mobile_mechanic", "limo", "medical_transport", "junk_removal", "moving", "pet_grooming", "restoration", "tree_service", "septic", "notary", "security",
       // Food (6)
       "food", "pizza", "bakery", "food_truck", "bar", "catering",
       // Medical (9)

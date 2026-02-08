@@ -2308,6 +2308,8 @@ export type Database = {
       }
       dispatch_jobs: {
         Row: {
+          additional_stops: Json | null
+          affected_area_sqft: number | null
           arrived_at: string | null
           assigned_crew: string | null
           assigned_vehicle: string | null
@@ -2316,21 +2318,31 @@ export type Database = {
           customer_id: string
           customer_name: string | null
           customer_phone: string | null
+          damage_type: string | null
           description: string | null
           dispatch_distance_miles: number | null
           dispatched_at: string | null
+          document_type: string | null
           driver_id: string | null
           dropoff_address: string | null
           dropoff_lat: number | null
           dropoff_lng: number | null
+          dropoff_required: boolean | null
           en_route_at: string | null
+          equipment_required: string[] | null
           estimated_arrival_at: string | null
           estimated_duration_minutes: number | null
           id: string
+          inventory_items: Json | null
+          item_count: number | null
           job_number: string
           job_type: string | null
           notes: string | null
           on_site_at: string | null
+          passenger_count: number | null
+          patient_info: Json | null
+          pet_info: Json | null
+          photo_requested: boolean | null
           photos: Json | null
           pickup_address: string | null
           pickup_lat: number | null
@@ -2339,18 +2351,26 @@ export type Database = {
           price_cents: number | null
           pricing_note: string | null
           priority: Database["public"]["Enums"]["dispatch_priority"]
+          recurring_schedule: Json | null
           requested_at: string | null
           scheduled_at: string | null
+          service_category: string | null
           service_tier: string | null
           session_id: string | null
+          signer_count: number | null
+          special_requirements: string[] | null
           status: Database["public"]["Enums"]["dispatch_status"]
           tenant_id: string
           total_distance_miles: number | null
           tow_distance_miles: number | null
           updated_at: string
           vehicle_id: string | null
+          volume_estimate: string | null
+          weight_estimate: string | null
         }
         Insert: {
+          additional_stops?: Json | null
+          affected_area_sqft?: number | null
           arrived_at?: string | null
           assigned_crew?: string | null
           assigned_vehicle?: string | null
@@ -2359,21 +2379,31 @@ export type Database = {
           customer_id: string
           customer_name?: string | null
           customer_phone?: string | null
+          damage_type?: string | null
           description?: string | null
           dispatch_distance_miles?: number | null
           dispatched_at?: string | null
+          document_type?: string | null
           driver_id?: string | null
           dropoff_address?: string | null
           dropoff_lat?: number | null
           dropoff_lng?: number | null
+          dropoff_required?: boolean | null
           en_route_at?: string | null
+          equipment_required?: string[] | null
           estimated_arrival_at?: string | null
           estimated_duration_minutes?: number | null
           id?: string
+          inventory_items?: Json | null
+          item_count?: number | null
           job_number: string
           job_type?: string | null
           notes?: string | null
           on_site_at?: string | null
+          passenger_count?: number | null
+          patient_info?: Json | null
+          pet_info?: Json | null
+          photo_requested?: boolean | null
           photos?: Json | null
           pickup_address?: string | null
           pickup_lat?: number | null
@@ -2382,18 +2412,26 @@ export type Database = {
           price_cents?: number | null
           pricing_note?: string | null
           priority?: Database["public"]["Enums"]["dispatch_priority"]
+          recurring_schedule?: Json | null
           requested_at?: string | null
           scheduled_at?: string | null
+          service_category?: string | null
           service_tier?: string | null
           session_id?: string | null
+          signer_count?: number | null
+          special_requirements?: string[] | null
           status?: Database["public"]["Enums"]["dispatch_status"]
           tenant_id: string
           total_distance_miles?: number | null
           tow_distance_miles?: number | null
           updated_at?: string
           vehicle_id?: string | null
+          volume_estimate?: string | null
+          weight_estimate?: string | null
         }
         Update: {
+          additional_stops?: Json | null
+          affected_area_sqft?: number | null
           arrived_at?: string | null
           assigned_crew?: string | null
           assigned_vehicle?: string | null
@@ -2402,21 +2440,31 @@ export type Database = {
           customer_id?: string
           customer_name?: string | null
           customer_phone?: string | null
+          damage_type?: string | null
           description?: string | null
           dispatch_distance_miles?: number | null
           dispatched_at?: string | null
+          document_type?: string | null
           driver_id?: string | null
           dropoff_address?: string | null
           dropoff_lat?: number | null
           dropoff_lng?: number | null
+          dropoff_required?: boolean | null
           en_route_at?: string | null
+          equipment_required?: string[] | null
           estimated_arrival_at?: string | null
           estimated_duration_minutes?: number | null
           id?: string
+          inventory_items?: Json | null
+          item_count?: number | null
           job_number?: string
           job_type?: string | null
           notes?: string | null
           on_site_at?: string | null
+          passenger_count?: number | null
+          patient_info?: Json | null
+          pet_info?: Json | null
+          photo_requested?: boolean | null
           photos?: Json | null
           pickup_address?: string | null
           pickup_lat?: number | null
@@ -2425,16 +2473,22 @@ export type Database = {
           price_cents?: number | null
           pricing_note?: string | null
           priority?: Database["public"]["Enums"]["dispatch_priority"]
+          recurring_schedule?: Json | null
           requested_at?: string | null
           scheduled_at?: string | null
+          service_category?: string | null
           service_tier?: string | null
           session_id?: string | null
+          signer_count?: number | null
+          special_requirements?: string[] | null
           status?: Database["public"]["Enums"]["dispatch_status"]
           tenant_id?: string
           total_distance_miles?: number | null
           tow_distance_miles?: number | null
           updated_at?: string
           vehicle_id?: string | null
+          volume_estimate?: string | null
+          weight_estimate?: string | null
         }
         Relationships: [
           {
@@ -3741,6 +3795,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      intake_field_templates: {
+        Row: {
+          ai_prompt_hint: string | null
+          created_at: string
+          display_order: number | null
+          field_key: string
+          field_label: string
+          field_type: string
+          id: string
+          industry_key: string
+          is_required: boolean | null
+          options_json: Json | null
+          placeholder: string | null
+          validation_hint: string | null
+        }
+        Insert: {
+          ai_prompt_hint?: string | null
+          created_at?: string
+          display_order?: number | null
+          field_key: string
+          field_label: string
+          field_type?: string
+          id?: string
+          industry_key: string
+          is_required?: boolean | null
+          options_json?: Json | null
+          placeholder?: string | null
+          validation_hint?: string | null
+        }
+        Update: {
+          ai_prompt_hint?: string | null
+          created_at?: string
+          display_order?: number | null
+          field_key?: string
+          field_label?: string
+          field_type?: string
+          id?: string
+          industry_key?: string
+          is_required?: boolean | null
+          options_json?: Json | null
+          placeholder?: string | null
+          validation_hint?: string | null
+        }
+        Relationships: []
       }
       intake_requirements: {
         Row: {
@@ -8042,6 +8141,7 @@ export type Database = {
           created_at: string
           custom_industry: string | null
           deposit_policy: string | null
+          dispatch_config_json: Json | null
           enabled_modules: Json | null
           food_settings: Json | null
           google_review_url: string | null
@@ -8085,6 +8185,7 @@ export type Database = {
           created_at?: string
           custom_industry?: string | null
           deposit_policy?: string | null
+          dispatch_config_json?: Json | null
           enabled_modules?: Json | null
           food_settings?: Json | null
           google_review_url?: string | null
@@ -8128,6 +8229,7 @@ export type Database = {
           created_at?: string
           custom_industry?: string | null
           deposit_policy?: string | null
+          dispatch_config_json?: Json | null
           enabled_modules?: Json | null
           food_settings?: Json | null
           google_review_url?: string | null
