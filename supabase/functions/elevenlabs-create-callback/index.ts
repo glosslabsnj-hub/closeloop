@@ -11,7 +11,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "1.0.0";
+const VERSION = "1.1.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -105,9 +105,6 @@ serve(async (req: Request) => {
       }
     }
 
-    // P0-2: Removed cross-tenant fallback that queried most recent session
-    // across ALL tenants. This was a tenant isolation risk.
-
     if (!tenantId) {
       console.error("[create-callback] No tenant_id found");
       return new Response(
@@ -164,18 +161,25 @@ serve(async (req: Request) => {
     }
 
     // Create opportunity for callback
+    // Using only columns that exist in the opportunities table
     const { data: opportunity, error: opportunityError } = await supabase
       .from("opportunities")
       .insert({
         tenant_id: tenantId,
         customer_id: customerId,
-        caller_phone: phoneE164,
-        channel: "voice",
-        intent_tag: "callback",
-        urgency: preferredTime?.toLowerCase() === "asap" ? "high" : "medium",
+        source: "voice_callback",
         status: "pending",
-        notes: `Callback requested: ${reason}. Department: ${department}. Preferred time: ${preferredTime}. ${notes}`.trim(),
-        session_id: sessionId,
+        notes: `📞 CALLBACK REQUESTED: ${reason}\n\nDepartment: ${department}\nPreferred time: ${preferredTime}\nPhone: ${phoneE164}${notes ? `\nNotes: ${notes}` : ""}`.trim(),
+        context_json: {
+          type: "callback",
+          reason: reason,
+          department: department,
+          preferred_time: preferredTime,
+          caller_phone: phoneE164,
+          customer_name: customerName,
+          session_id: sessionId,
+          created_via: "voice_ai",
+        },
       })
       .select("id")
       .single();
@@ -193,6 +197,7 @@ serve(async (req: Request) => {
           opportunity_id: opportunity?.id,
           outcome: "callback",
           extracted_payload: {
+            intent: "callback",
             callback_reason: reason,
             customer_name: customerName,
             customer_phone: phoneE164,
@@ -206,7 +211,6 @@ serve(async (req: Request) => {
 
     // Trigger notification to business owner
     try {
-      // Get tenant notification settings
       const { data: tenant } = await supabase
         .from("tenants")
         .select("business_name, owner_email, owner_phone")

@@ -36,6 +36,21 @@ interface JobStatusResponse {
   job_count?: number;
 }
 
+/**
+ * Escape special characters for PostgREST ilike filters
+ * Commas, parentheses, and percent signs need special handling
+ */
+function escapeForPostgREST(value: string): string {
+  // Replace special PostgREST characters that break or() parsing
+  // The main issue is commas in addresses like "2968 Mercerville, Quaker"
+  return value
+    .replace(/,/g, " ")  // Replace commas with spaces (safer for address matching)
+    .replace(/\(/g, " ")
+    .replace(/\)/g, " ")
+    .replace(/\s+/g, " ") // Collapse multiple spaces
+    .trim();
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -70,6 +85,40 @@ serve(async (req) => {
       );
     }
 
+    // Build individual filter conditions
+    // We'll use separate ilike calls instead of combining with commas
+    const filterConditions: string[] = [];
+    
+    if (customer_phone) {
+      // Normalize phone for matching - just use last 10 digits
+      const normalizedPhone = customer_phone.replace(/\D/g, "").slice(-10);
+      if (normalizedPhone.length >= 7) {
+        filterConditions.push(`customer_phone.ilike.*${normalizedPhone}*`);
+      }
+    }
+    
+    if (customer_name) {
+      // Fuzzy match on first name only (safer)
+      const firstName = escapeForPostgREST(customer_name.toLowerCase().split(" ")[0]);
+      if (firstName.length >= 2) {
+        filterConditions.push(`customer_name.ilike.*${firstName}*`);
+      }
+    }
+    
+    if (pickup_address) {
+      // Extract just the street number and first word of street name for matching
+      // This avoids issues with commas in city names like "2968 Mercerville, Quaker Bridge Rd"
+      const cleanAddress = escapeForPostgREST(pickup_address.toLowerCase());
+      const addressWords = cleanAddress.split(" ").filter(w => w.length >= 2);
+      // Use first 2 significant words (usually street number + name)
+      const searchPattern = addressWords.slice(0, 2).join("*");
+      if (searchPattern.length >= 3) {
+        filterConditions.push(`pickup_address.ilike.*${searchPattern}*`);
+      }
+    }
+
+    console.log(`[lookup-dispatch-status] Searching with ${filterConditions.length} conditions:`, filterConditions);
+
     // Build query for active jobs
     let query = supabase
       .from("dispatch_jobs")
@@ -97,31 +146,9 @@ serve(async (req) => {
       .not("status", "in", '("completed","cancelled")')
       .order("created_at", { ascending: false });
 
-    // Add filters based on provided identifiers
-    // We use ilike for flexible matching
-    const filters: string[] = [];
-    
-    if (customer_phone) {
-      // Normalize phone for matching
-      const normalizedPhone = customer_phone.replace(/\D/g, "");
-      filters.push(`customer_phone.ilike.%${normalizedPhone.slice(-10)}%`);
-    }
-    
-    if (customer_name) {
-      // Fuzzy match on name
-      const nameParts = customer_name.toLowerCase().split(" ");
-      filters.push(`customer_name.ilike.%${nameParts[0]}%`);
-    }
-    
-    if (pickup_address) {
-      // Match key parts of address
-      const addressParts = pickup_address.toLowerCase().split(" ").slice(0, 3).join("%");
-      filters.push(`pickup_address.ilike.%${addressParts}%`);
-    }
-
-    // Apply OR filters
-    if (filters.length > 0) {
-      query = query.or(filters.join(","));
+    // Apply OR filters safely by joining with comma but using escaped values
+    if (filterConditions.length > 0) {
+      query = query.or(filterConditions.join(","));
     }
 
     const { data: jobs, error } = await query.limit(5);
@@ -130,6 +157,8 @@ serve(async (req) => {
       console.error("Query error:", error);
       throw error;
     }
+
+    console.log(`[lookup-dispatch-status] Found ${jobs?.length || 0} candidate jobs`);
 
     // Score jobs by how many identifiers match
     const scoredJobs = (jobs || []).map((job: any) => {

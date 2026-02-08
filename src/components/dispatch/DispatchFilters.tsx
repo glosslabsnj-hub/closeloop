@@ -1,7 +1,8 @@
-import { Search, LayoutGrid, List } from "lucide-react";
+import { Search, LayoutGrid, List, PhoneIncoming } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -19,6 +20,7 @@ interface DispatchFiltersProps {
   onSearchChange: (value: string) => void;
   viewMode: "table" | "grid";
   onViewModeChange: (mode: "table" | "grid") => void;
+  callbackCount?: number;
 }
 
 export function DispatchFilters({
@@ -30,6 +32,7 @@ export function DispatchFilters({
   onSearchChange,
   viewMode,
   onViewModeChange,
+  callbackCount = 0,
 }: DispatchFiltersProps) {
   return (
     <div className="flex flex-col gap-4">
@@ -40,6 +43,15 @@ export function DispatchFilters({
           <TabsTrigger value="pending">Pending</TabsTrigger>
           <TabsTrigger value="en_route">En Route</TabsTrigger>
           <TabsTrigger value="completed">Completed</TabsTrigger>
+          <TabsTrigger value="callbacks" className="flex items-center gap-1.5">
+            <PhoneIncoming className="h-3.5 w-3.5" />
+            Callbacks
+            {callbackCount > 0 && (
+              <Badge variant="secondary" className="h-5 px-1.5 text-xs ml-1">
+                {callbackCount}
+              </Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="all">All</TabsTrigger>
         </TabsList>
       </Tabs>
