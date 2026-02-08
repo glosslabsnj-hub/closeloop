@@ -241,7 +241,6 @@ serve(async (req) => {
       seasonalResult,
       intakeRequirementsResult,
       intakeTemplatesResult,
-      seasonalResult,
     ] = await Promise.all([
       supabase.from("tenants").select("*").eq("id", tenantId).single(),
       supabase.from("services").select("*").eq("tenant_id", tenantId).eq("is_active", true),
