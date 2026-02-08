@@ -472,7 +472,8 @@ export async function getBusinessBrainSnapshot(
       hours_json, service_area_json,
       cancellation_policy, deposit_policy, refund_policy, payment_methods,
       ai_never_promise, ai_policies_json, enabled_modules, hipaa_mode,
-      pricing_rules_jsonb, busyness_rules_jsonb, context_fields_json
+      pricing_rules_jsonb, busyness_rules_jsonb, context_fields_json,
+      capabilities_json
     `)
     .eq("id", tenantId)
     .single();
