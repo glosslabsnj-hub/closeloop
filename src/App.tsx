@@ -33,6 +33,7 @@ import SimulatorPage from "@/pages/app/SimulatorPage";
 import GoLivePage from "@/pages/app/GoLivePage";
 import BusinessBrainPage from "@/pages/app/BusinessBrainPage";
 import BusinessBrainGapsPage from "@/pages/app/BusinessBrainGapsPage";
+import BrainSetupPage from "@/pages/app/BrainSetupPage";
 import ReadinessFixCenterPage from "@/pages/app/ReadinessFixCenterPage";
 import UsagePage from "@/pages/app/UsagePage";
 import EstimatesPage from "@/pages/app/EstimatesPage";
@@ -128,8 +129,10 @@ const App = () => (
               {/* Legacy routes - redirect to integrations */}
               <Route path="/app/automations" element={<IntegrationsPage />} />
               <Route path="/app/simulator" element={<SimulatorPage />} />
+              <Route path="/app/brain-setup" element={<BrainSetupPage />} />
               <Route path="/app/business-brain" element={<BusinessBrainPage />} />
               <Route path="/app/business-brain/gaps" element={<BusinessBrainGapsPage />} />
+              <Route path="/app/readiness" element={<ReadinessFixCenterPage />} />
               <Route path="/app/readiness" element={<ReadinessFixCenterPage />} />
               <Route path="/app/usage" element={<UsagePage />} />
               <Route path="/app/estimates" element={<EstimatesPage />} />
