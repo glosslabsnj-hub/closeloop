@@ -275,6 +275,33 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     category: "core",
   },
   {
+    key: "business_tagline",
+    description: "Short tagline or slogan for the business",
+    type: "string",
+    source: "tenant.tagline",
+    defaultValue: "",
+    category: "core",
+  },
+  {
+    key: "years_in_business",
+    description: "How many years the business has been operating",
+    type: "string",
+    source: (ctx) => {
+      const years = ctx.tenant.years_in_business;
+      return years ? String(years) : "";
+    },
+    defaultValue: "",
+    category: "core",
+  },
+  {
+    key: "website_url",
+    description: "Business website URL",
+    type: "string",
+    source: "tenant.website",
+    defaultValue: "",
+    category: "core",
+  },
+  {
     key: "business_mode",
     description: "Operating mode (service, food, dispatch, general)",
     type: "string",
@@ -513,6 +540,17 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     description: "Matched customer ID if caller is recognized",
     type: "string",
     source: (ctx, _, customerId) => customerId || "",
+    defaultValue: "",
+    category: "caller",
+  },
+  {
+    key: "customer_order_count",
+    description: "Number of previous orders/jobs for this customer",
+    type: "string",
+    source: (ctx) => {
+      const count = ctx.intelligence?.customer_order_count;
+      return count ? String(count) : "";
+    },
     defaultValue: "",
     category: "caller",
   },

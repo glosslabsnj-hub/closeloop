@@ -148,6 +148,8 @@ export interface BusinessContext {
   pricing: {
     rules: any[]; // Array of PricingRule objects from computeQuote.ts
     rules_summary: string;
+    /** Summary of price modifiers (after-hours, vehicle-specific, etc.) */
+    price_modifiers_summary: string;
     busyness_config: {
       base_prep_minutes: number;
       busy_buffer_minutes: number;
@@ -215,6 +217,15 @@ export interface BusinessContext {
     faqs_summary: string;
     objections: Array<{ objection: string; response: string }>;
     supplementary: Array<{ type: string; title: string; content: string }>;
+    // Dispatch-specific knowledge
+    vehicle_knowledge_summary: string;
+    roadside_safety_scripts: string;
+    // Competitor knowledge
+    competitor_positioning_summary: string;
+    competitor_never_say: string[];
+    our_advantages: string[];
+    // Seasonal/promotional
+    seasonal_events_summary: string;
   };
   operations: {
     modules: {
@@ -246,6 +257,8 @@ export interface BusinessContext {
     required_questions_summary: string;
     memory_hints: MemoryHint[];
     memory_hints_summary: string;
+    // Customer context for repeat caller recognition
+    customer_order_count: number | null;
   };
   safety: {
     hipaa_mode: boolean;
@@ -1692,6 +1705,7 @@ export async function buildBusinessContext(
     pricing: {
       rules: tenant.pricing_rules_jsonb?.rules || pricingRules,
       rules_summary: buildPricingRulesSummary(tenant.pricing_rules_jsonb),
+      price_modifiers_summary: (tenant.context_fields_json as any)?.price_modifiers_summary || "",
       busyness_config: tenant.busyness_rules_jsonb || null,
     },
     eta: (() => {
@@ -1758,6 +1772,15 @@ export async function buildBusinessContext(
       faqs_summary: buildFaqsSummary(faqs),
       objections: objections.map(o => ({ objection: o.objection, response: o.response })),
       supplementary: knowledgeBase.map(k => ({ type: k.type, title: k.title, content: k.content })),
+      // Dispatch-specific knowledge (populated from tenant context_fields_json if available)
+      vehicle_knowledge_summary: (tenant.context_fields_json as any)?.vehicle_knowledge_summary || "",
+      roadside_safety_scripts: (tenant.context_fields_json as any)?.roadside_safety_scripts || "",
+      // Competitor knowledge
+      competitor_positioning_summary: (tenant.context_fields_json as any)?.competitor_positioning_summary || "",
+      competitor_never_say: (tenant.context_fields_json as any)?.competitor_never_say || [],
+      our_advantages: (tenant.context_fields_json as any)?.our_advantages || [],
+      // Seasonal/promotional
+      seasonal_events_summary: (tenant.context_fields_json as any)?.seasonal_events_summary || "",
     },
     operations: {
       modules: {
@@ -1789,6 +1812,8 @@ export async function buildBusinessContext(
       required_questions_summary: buildRequiredQuestionsSummary(requiredQuestions),
       memory_hints: memoryHints,
       memory_hints_summary: buildMemoryHintsSummary(memoryHints),
+      // Customer context (populated during call if customer is recognized)
+      customer_order_count: null, // Set by caller resolution during inbound call
     },
     safety: {
       hipaa_mode: hipaaMode,
