@@ -110,3 +110,83 @@ export function validateAgentConfiguration(): {
     missing
   };
 }
+
+// ============================================================================
+// CAPABILITY-BASED AGENT RESOLUTION
+// ============================================================================
+
+/**
+ * Derive primary mode from capabilities
+ * Priority: medical > food > dispatch > service > general
+ */
+export function derivePrimaryModeFromCapabilities(
+  capabilities: Record<string, boolean>
+): BusinessMode {
+  // Medical is highest priority (HIPAA implications)
+  if (capabilities.medical_intake || capabilities.hipaa_compliance) {
+    return "medical";
+  }
+  
+  // Food is next (specialized menu/ordering flow)
+  if (capabilities.food_orders || capabilities.menu_knowledge) {
+    return "food";
+  }
+  
+  // Dispatch for on-demand businesses
+  if (capabilities.dispatch_queue || capabilities.emergency_dispatch) {
+    return "dispatch";
+  }
+  
+  // Service for appointment-based
+  if (capabilities.booking || capabilities.calendar_sync) {
+    return "service";
+  }
+  
+  // Default to general
+  return "general";
+}
+
+/**
+ * Check if this is a "hybrid" capability set requiring IVR
+ * Hybrid = has both scheduling AND dispatch capabilities
+ */
+export function isHybridCapabilitySet(
+  capabilities: Record<string, boolean>
+): boolean {
+  const hasScheduling = capabilities.booking || capabilities.calendar_sync || 
+                        capabilities.reservations || capabilities.scheduled_dispatch;
+  const hasDispatch = capabilities.dispatch_queue || capabilities.emergency_dispatch;
+  
+  return hasScheduling && hasDispatch;
+}
+
+/**
+ * Get agent ID based on capabilities and optional IVR selection
+ */
+export function getAgentIdForCapabilities(
+  capabilities: Record<string, boolean>,
+  ivrSelection?: string
+): AgentResolution {
+  // If IVR selection provided, route based on selection
+  if (ivrSelection === "1") {
+    // User pressed 1 = Appointment/Scheduling
+    return getAgentIdForMode("service");
+  }
+  if (ivrSelection === "2") {
+    // User pressed 2 = Emergency/Dispatch
+    // Check for impound agent first
+    const impoundAgentId = Deno.env.get("ELEVENLABS_AGENT_ID_IMPOUND");
+    if (impoundAgentId && capabilities.impound_lot) {
+      return {
+        agentId: impoundAgentId,
+        source: "ivr:impound",
+        envKey: "ELEVENLABS_AGENT_ID_IMPOUND",
+      };
+    }
+    return getAgentIdForMode("dispatch");
+  }
+  
+  // No IVR selection - derive from capabilities
+  const primaryMode = derivePrimaryModeFromCapabilities(capabilities);
+  return getAgentIdForMode(primaryMode);
+}
