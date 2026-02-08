@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -19,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, FlaskConical } from "lucide-react";
+import { Loader2, FlaskConical, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import type { BusinessMode } from "@/types/database";
 
@@ -53,6 +54,7 @@ export function CreateTestTenantDialog({
   defaultMode
 }: CreateTestTenantDialogProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isCreating, setIsCreating] = useState(false);
   const [businessName, setBusinessName] = useState("");
   const [timezone, setTimezone] = useState("America/New_York");
@@ -60,7 +62,7 @@ export function CreateTestTenantDialog({
   // Use the defaultMode prop directly - mode is determined by admin mode selector
   const businessMode = defaultMode;
 
-  const handleCreate = async () => {
+  const handleQuickCreate = async () => {
     if (!user || !businessName.trim()) {
       toast.error("Business name is required");
       return;
@@ -126,6 +128,12 @@ export function CreateTestTenantDialog({
     }
   };
 
+  const handleFullOnboarding = () => {
+    // Navigate to the admin test onboarding page
+    onOpenChange(false);
+    navigate(`/admin/test-onboarding?mode=${businessMode}`);
+  };
+
   const getDefaultModules = (mode: BusinessMode): string[] => {
     switch (mode) {
       case "service":
@@ -144,7 +152,7 @@ export function CreateTestTenantDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FlaskConical className="h-5 w-5 text-warning" />
@@ -198,18 +206,31 @@ export function CreateTestTenantDialog({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="sm:flex-1">
             Cancel
           </Button>
-          <Button onClick={handleCreate} disabled={isCreating || !businessName.trim()}>
+          <Button 
+            variant="secondary"
+            onClick={handleFullOnboarding}
+            disabled={isCreating}
+            className="sm:flex-1"
+          >
+            <Wand2 className="h-4 w-4 mr-2" />
+            Full Onboarding
+          </Button>
+          <Button 
+            onClick={handleQuickCreate} 
+            disabled={isCreating || !businessName.trim()}
+            className="sm:flex-1"
+          >
             {isCreating ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Creating...
               </>
             ) : (
-              "Create Tenant"
+              "Quick Create"
             )}
           </Button>
         </DialogFooter>

@@ -75,6 +75,7 @@ import AdminDemoLibraryPage from "@/pages/admin/AdminDemoLibraryPage";
 import AdminGoldenPathPage from "@/pages/admin/AdminGoldenPathPage";
 import AdminSetupRequestsPage from "@/pages/admin/AdminSetupRequestsPage";
 import AdminAuditReportPage from "@/pages/admin/AdminAuditReportPage";
+import AdminTestOnboardingPage from "@/pages/admin/AdminTestOnboardingPage";
 
 // Debug Pages
 import TelephonyDebugPage from "@/pages/debug/TelephonyDebugPage";
@@ -171,6 +172,7 @@ const App = () => (
               <Route path="/admin/golden-path" element={<AdminGoldenPathPage />} />
               <Route path="/admin/setup-requests" element={<AdminSetupRequestsPage />} />
               <Route path="/admin/audit-report" element={<AdminAuditReportPage />} />
+              <Route path="/admin/test-onboarding" element={<AdminTestOnboardingPage />} />
             </Route>
 
             {/* Driver Portal Routes */}
