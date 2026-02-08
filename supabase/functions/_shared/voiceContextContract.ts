@@ -554,6 +554,15 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     defaultValue: "",
     category: "caller",
   },
+  {
+    key: "customer_name_from_lookup",
+    description: "Customer name from caller ID lookup (for returning caller recognition)",
+    type: "string",
+    source: "intelligence.customer_name_from_lookup",
+    defaultValue: "",
+    category: "caller",
+    isPhi: true,
+  },
 
   // ===== HOURS & AVAILABILITY =====
   {
@@ -657,6 +666,24 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     source: (ctx) => String(ctx.offerings.menu_summary?.length || 0),
     defaultValue: "0",
     category: "offerings",
+  },
+  {
+    key: "packages_summary",
+    description: "Service packages, memberships, and bundles summary for upselling",
+    type: "string",
+    source: "offerings.packages_summary",
+    defaultValue: "",
+    category: "offerings",
+    includeInCompactJson: true,
+  },
+  {
+    key: "active_promotions",
+    description: "Currently active promotions and seasonal offers",
+    type: "string",
+    source: "offerings.active_promotions",
+    defaultValue: "",
+    category: "offerings",
+    includeInCompactJson: true,
   },
 
   // ===== PRICING =====
