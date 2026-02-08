@@ -52,6 +52,35 @@ export interface ROIDashboardData {
   hasData: boolean;
 }
 
+// Mode-specific empty state configuration
+interface ModeEmptyStateConfig {
+  steps: [string, string, string];
+  encouragement: string;
+}
+
+const MODE_EMPTY_STATES: Record<string, ModeEmptyStateConfig> = {
+  service: {
+    steps: ["Add your services & pricing", "Connect your phone", "Book appointments via AI"],
+    encouragement: "Your AI is ready to book appointments and answer questions 24/7.",
+  },
+  dispatch: {
+    steps: ["Add service types & rates", "Connect your phone", "Dispatch jobs via AI calls"],
+    encouragement: "Your AI is ready to dispatch jobs and provide ETAs around the clock.",
+  },
+  food: {
+    steps: ["Add your menu items", "Configure order settings", "Take orders via AI calls"],
+    encouragement: "Your AI is ready to take orders, reservations, and answer menu questions.",
+  },
+  medical: {
+    steps: ["Add services & visit types", "Configure patient intake", "Schedule patients via AI"],
+    encouragement: "Your AI is ready to schedule appointments and handle patient inquiries securely.",
+  },
+  general: {
+    steps: ["Add your offerings", "Connect your phone", "Capture leads via AI calls"],
+    encouragement: "Your AI is ready to answer calls and capture leads for your business.",
+  },
+};
+
 async function fetchMonthStats(tenantId: string, monthStart: string, monthEnd: string) {
   // Fetch AI-attributed entities for this month
   const { data: attributions, error: attrError } = await supabase
@@ -88,6 +117,9 @@ export function useROIDashboard() {
   const { tenant, subscription } = useAuth();
   const { businessMode } = useTenantConfig();
   const config = getIndustryRevenueConfig(businessMode);
+
+  // Get mode-specific empty state config
+  const modeEmptyState = MODE_EMPTY_STATES[businessMode] || MODE_EMPTY_STATES.general;
 
   const query = useQuery({
     queryKey: ["roi-dashboard", tenant?.id, businessMode],
@@ -157,8 +189,9 @@ export function useROIDashboard() {
         callsLabel: config.callsLabel,
         heroIcon: config.heroIcon,
         celebratoryTone: config.celebratoryTone,
-        emptyStateSteps: config.emptyStateSteps,
-        emptyStateEncouragement: config.emptyStateEncouragement,
+        // Use mode-specific empty state config instead of generic config
+        emptyStateSteps: modeEmptyState.steps,
+        emptyStateEncouragement: modeEmptyState.encouragement,
         hasData: current.totalCalls > 0 || current.entitiesCreated > 0,
       };
     },
