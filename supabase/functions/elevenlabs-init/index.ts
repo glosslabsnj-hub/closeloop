@@ -3,9 +3,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 import { encode as encodeHex } from "https://deno.land/std@0.168.0/encoding/hex.ts";
 import { buildBusinessContext, storeContextSnapshot, buildDynamicVariables, type BusinessContext } from "../_shared/buildBusinessContext.ts";
+import { buildToolsForCapabilities } from "../_shared/agentToolsConfig.ts";
+import { derivePrimaryModeFromCapabilities } from "../_shared/agentResolver.ts";
 
 // Update this string when you want to verify a fresh deploy is running
-const VERSION = "elevenlabs-init@2026-02-06.1";
+const VERSION = "elevenlabs-init@2026-02-08.1";
 const DEPLOYED_AT = new Date().toISOString();
 
 /**
@@ -498,6 +500,7 @@ serve(async (req) => {
   // Build full business context
   let context: BusinessContext | null = null;
   let systemPrompt = "";
+  let capabilities: Record<string, boolean> = {};
   
   try {
     const result = await buildBusinessContext(supabase, {
@@ -511,6 +514,9 @@ serve(async (req) => {
     });
     context = result.context;
     systemPrompt = result.systemPrompt || "";
+    
+    // Extract capabilities from context meta
+    capabilities = context._meta?.capabilities || {};
 
     // Store context snapshot for debugging
     await storeContextSnapshot(supabase, context);
@@ -531,6 +537,7 @@ serve(async (req) => {
         missing_sections: context._meta.missing_sections,
         customer_id: customerId,
         from_number_prefix: callerPhoneE164?.substring(0, 8),
+        capabilities_count: Object.keys(capabilities).length,
       },
     });
 
@@ -543,6 +550,17 @@ serve(async (req) => {
       event_data: { session_id: sessionId },
     });
   }
+
+  // Derive primary mode and build tools from capabilities
+  const primaryMode = derivePrimaryModeFromCapabilities(capabilities);
+  const tools = buildToolsForCapabilities(primaryMode, capabilities);
+  
+  console.log(`[elevenlabs-init] Capability-based tools:`, {
+    primaryMode,
+    capabilitiesEnabled: Object.entries(capabilities).filter(([_, v]) => v).map(([k]) => k),
+    toolCount: tools.length,
+    toolNames: tools.map(t => t.name),
+  });
   // Build safe dynamic variables
   const dynamicVariables = buildSafeDynamicVars(context, callerPhoneE164, customerId);
 
