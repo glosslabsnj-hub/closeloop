@@ -16,6 +16,7 @@ import {
   Shield,
   Sparkles,
   BookOpen,
+  BarChart3,
   type LucideIcon
 } from "lucide-react";
 import type { BusinessMode } from "@/hooks/useTenantConfig";
@@ -481,6 +482,65 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
       },
     ],
   },
+  {
+    id: "intelligence",
+    title: "Intelligence",
+    description: "Insights & analytics",
+    icon: BarChart3,
+    section: "intelligence",
+    order: 6,
+    cards: [
+      {
+        id: "conversion-metrics",
+        title: "Call Performance",
+        purpose: "Conversion tracking and call outcome analytics",
+        usedByAI: [
+          "Tracks every call outcome automatically",
+          "Measures conversion rates over time",
+          "Estimates revenue from AI-handled calls",
+        ],
+        defaultCollapsed: false,
+      },
+      {
+        id: "insights",
+        title: "Insights & Recommendations",
+        purpose: "Actionable insights generated from call patterns",
+        usedByAI: [
+          "Detects when callers aren't getting answers",
+          "Finds services with low conversion rates",
+          "Identifies peak times and capacity issues",
+        ],
+        defaultCollapsed: false,
+      },
+      {
+        id: "patterns",
+        title: "Business Patterns",
+        purpose: "Trends detected across calls",
+        usedByAI: [
+          "Tracks peak call hours and conversion times",
+          "Monitors service request trends",
+          "Detects escalation patterns",
+        ],
+      },
+      {
+        id: "weekly-digest",
+        title: "Weekly Digest",
+        purpose: "Weekly performance summary",
+        usedByAI: [
+          "Summarizes call volume and conversion trends",
+          "Highlights top patterns discovered",
+        ],
+      },
+      {
+        id: "intelligence-settings",
+        title: "Learning Preferences",
+        purpose: "Control how your AI learns and adapts",
+        usedByAI: [
+          "Controls memory, learning, and adaptation features",
+        ],
+      },
+    ],
+  },
 ];
 
 /**
@@ -551,6 +611,7 @@ export const SECTION_TO_CATEGORY: Record<string, string> = {
   operations: "how-you-operate",
   "ai-voice": "ai-personality",
   training: "knowledge",
+  intelligence: "intelligence",
   // Legacy sections (for backward compatibility)
   profile: "your-business",
   hours: "your-business",
@@ -571,4 +632,5 @@ export const CATEGORY_TO_SECTION: Record<string, string> = {
   "how-you-operate": "operations",
   "ai-personality": "ai-voice",
   knowledge: "training",
+  intelligence: "intelligence",
 };

@@ -44,7 +44,6 @@ import { IndustryTemplateCard } from "@/components/brain/IndustryTemplateCard";
 import { ServiceAreaPreview } from "@/components/debug/ServiceAreaPreview";
 import { DistanceEtaSection } from "@/components/business-brain/DistanceEtaSection";
 import { DispatchEtaSection } from "@/components/business-brain/DispatchEtaSection";
-import { IntelligenceSettingsForm } from "@/components/settings/IntelligenceSettingsForm";
 import { BusinessHoursManager } from "@/components/brain/BusinessHoursManager";
 import { AINeverPromiseEditor } from "@/components/brain/AINeverPromiseEditor";
 import { AIScriptsEditor } from "@/components/brain/AIScriptsEditor";
@@ -113,9 +112,12 @@ import {
 import { BrainDashboard } from "@/components/brain/dashboard/BrainDashboard";
 import { BrainSectionDetail } from "@/components/brain/dashboard/BrainSectionDetail";
 
+// Intelligence components
+import { IntelligenceDashboard } from "@/components/intelligence";
+
 // ─── Section IDs ────────────────────────────────────────────────────────────
 
-const NEW_VALID_SECTIONS = ["business", "services", "operations", "ai-voice", "training"] as const;
+const NEW_VALID_SECTIONS = ["business", "services", "operations", "ai-voice", "training", "intelligence"] as const;
 type NewSectionId = typeof NEW_VALID_SECTIONS[number];
 
 /** All old section params still work — resolve to the new tab */
@@ -147,7 +149,7 @@ const LEGACY_TAB_TO_SECTION: Record<string, { section: NewSectionId; hash?: stri
   assets: { section: "training", hash: "documents" },
   uploads: { section: "training", hash: "documents" },
   overview: { section: "business" },
-  memory: { section: "ai-voice", hash: "intelligence" },
+  memory: { section: "intelligence" },
 };
 
 // ─── Animation variants ─────────────────────────────────────────────────────
@@ -1163,18 +1165,6 @@ function BrainSectionDetailWrapper({
                 <AIBusinessPolicies />
               </SectionSummaryCard>
 
-              <SectionSummaryCard
-                id="intelligence"
-                title="Learning Preferences"
-                icon={Brain}
-                status="incomplete"
-                statusText={summaries.intelligence}
-                mode={businessMode}
-                usedByAI={getUsedByAI("intelligence")}
-                {...getSectionGuidance("intelligence")}
-              >
-                <IntelligenceSettingsForm />
-              </SectionSummaryCard>
             </AdvancedGroup>
           </>
         )}
@@ -1382,6 +1372,11 @@ function BrainSectionDetailWrapper({
               <AddOnGroup items={knowledgeAddOns.addOnItems} onEnable={knowledgeAddOns.enableAddOn} />
             )}
           </>
+        )}
+
+        {/* ═══ INTELLIGENCE ═══ */}
+        {activeSection === "intelligence" && (
+          <IntelligenceDashboard businessMode={businessMode} />
         )}
       </div>
     </BrainSectionDetail>

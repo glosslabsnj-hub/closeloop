@@ -1002,6 +1002,27 @@ async function processCallData(
     console.warn(`[elevenlabs-webhook] enabled_modules is empty for tenant ${tenantId} - all intents will route to "none"`);
   }
 
+  // ===== RECORD CALL OUTCOME (Intelligence Layer) =====
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/process-call-outcome`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseKey}` },
+      body: JSON.stringify({
+        tenant_id: tenantId,
+        session_id: sessionId,
+        outcome,
+        intent: validatedPayload.intent,
+        service_requested: validatedPayload.booking.service_requested || validatedPayload.dispatch.vehicle_type || null,
+        duration_seconds: payload.metadata?.call_duration_secs || null,
+        customer_id: customerId,
+        business_mode: tenantBusinessMode,
+      }),
+    });
+  } catch (e) {
+    // Non-critical — don't fail the webhook for intelligence tracking
+    console.warn("[elevenlabs-webhook] Failed to record call outcome:", e);
+  }
+
   // ===== PERSIST DERIVED ENTITY =====
   await persistDerivedEntity(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, tenantBusinessMode, enabledModules, validatedPayload, validatedPayload.customer.name, customerId, callerPhoneE164, payload);
 }
