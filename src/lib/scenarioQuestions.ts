@@ -635,6 +635,69 @@ const generalQuestions: ScenarioQuestion[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Cross-mode questions (appear in multiple modes based on industry)
+// ---------------------------------------------------------------------------
+
+const crossModeQuestions: (ScenarioQuestion & { applicableModes: BusinessMode[] })[] = [
+  {
+    id: "walk-in-dropoffs",
+    capabilityKey: "acceptsDropOffs",
+    label: "Walk-In Drop-offs",
+    question: "Do you accept walk-in drop-offs or tow-ins?",
+    description: "Vehicles can be dropped off without a prior appointment",
+    defaultValue: false,
+    impliesModules: ["dispatch_queue"],
+    group: "advanced",
+    industryFilter: { categories: ["auto_services"] },
+    applicableModes: ["service"],
+  },
+  {
+    id: "collects-health-info",
+    capabilityKey: "collectsHealthInfo",
+    label: "Health/Medical Info",
+    question: "Do you collect client health or medical information?",
+    description: "Intake includes health history, allergies, or medical forms",
+    defaultValue: false,
+    impliesModules: ["medical_intake"],
+    group: "advanced",
+    industryFilter: { categories: ["beauty_wellness", "fitness", "pet_services"] },
+    applicableModes: ["service"],
+  },
+  {
+    id: "event-reservations",
+    capabilityKey: "offersEventBooking",
+    label: "Event Reservations",
+    question: "Do you take reservations for private events?",
+    description: "Private dining, parties, or event space booking",
+    defaultValue: false,
+    impliesModules: ["booking"],
+    group: "advanced",
+    applicableModes: ["food"],
+  },
+  {
+    id: "local-delivery",
+    capabilityKey: "offersLocalDelivery",
+    label: "Local Delivery",
+    question: "Do you deliver to customer locations?",
+    description: "You deliver products or goods to customers directly",
+    defaultValue: false,
+    impliesModules: ["dispatch_queue"],
+    group: "advanced",
+    applicableModes: ["general"],
+  },
+  {
+    id: "retail-products",
+    capabilityKey: "sellsRetailProducts",
+    label: "Retail Products",
+    question: "Do you sell retail products?",
+    description: "Supplements, skincare, or other products for purchase",
+    defaultValue: false,
+    group: "advanced",
+    applicableModes: ["medical"],
+  },
+];
+
+// ---------------------------------------------------------------------------
 // Question map
 // ---------------------------------------------------------------------------
 
@@ -665,7 +728,14 @@ export function getQuestionsForMode(
   mode: BusinessMode,
   industryContext?: { slug: string; category: string }
 ): ScenarioQuestion[] {
-  const all = questionsByMode[mode] ?? generalQuestions;
+  const modeQuestions = questionsByMode[mode] ?? generalQuestions;
+
+  // Append applicable cross-mode questions for this mode
+  const applicableCrossMode: ScenarioQuestion[] = crossModeQuestions
+    .filter((q) => q.applicableModes.includes(mode))
+    .map(({ applicableModes: _, ...rest }) => rest);
+
+  const all = [...modeQuestions, ...applicableCrossMode];
 
   if (!industryContext) return all;
 

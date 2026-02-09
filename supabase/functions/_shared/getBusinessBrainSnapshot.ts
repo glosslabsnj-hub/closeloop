@@ -117,6 +117,9 @@ export interface AssistantSettingsSnapshot {
   sms_first_delay_seconds: number;
   owner_forward_number: string;
   owner_forward_verified: boolean;
+  ai_tone: string;
+  followup_cadence: string;
+  unknown_question_behavior: string;
 }
 
 export interface IntelligenceSettingsSnapshot {
@@ -420,6 +423,9 @@ function getDefaultAssistantSettings(): AssistantSettingsSnapshot {
     sms_first_delay_seconds: 5,
     owner_forward_number: "",
     owner_forward_verified: false,
+    ai_tone: "",
+    followup_cadence: "moderate",
+    unknown_question_behavior: "try_help",
   };
 }
 
@@ -524,7 +530,7 @@ export async function getBusinessBrainSnapshot(
 
   const assistantSettingsQuery = supabase
     .from("assistant_settings")
-    .select("voice_ai_enabled, instant_text_enabled, go_live_enabled, missed_call_behavior, ai_booking_mode, booking_url, calendar_provider, busy_toggle, overflow_rings, sms_first_delay_seconds, owner_forward_number, owner_forward_verified")
+    .select("voice_ai_enabled, instant_text_enabled, go_live_enabled, missed_call_behavior, ai_booking_mode, booking_url, calendar_provider, busy_toggle, overflow_rings, sms_first_delay_seconds, owner_forward_number, owner_forward_verified, settings_json, unknown_question_behavior")
     .eq("tenant_id", tenantId)
     .maybeSingle();
 
@@ -750,6 +756,7 @@ export async function getBusinessBrainSnapshot(
   }));
 
   const assistantSettingsRaw = assistantSettingsResult?.data;
+  const settingsJsonRaw = (assistantSettingsRaw as any)?.settings_json as Record<string, string> | null;
   const assistant_settings: AssistantSettingsSnapshot = assistantSettingsRaw
     ? {
         voice_ai_enabled: safeBoolean(assistantSettingsRaw.voice_ai_enabled),
@@ -764,6 +771,9 @@ export async function getBusinessBrainSnapshot(
         sms_first_delay_seconds: safeNumber(assistantSettingsRaw.sms_first_delay_seconds, 5),
         owner_forward_number: safeString(assistantSettingsRaw.owner_forward_number),
         owner_forward_verified: safeBoolean(assistantSettingsRaw.owner_forward_verified),
+        ai_tone: safeString(settingsJsonRaw?.ai_tone),
+        followup_cadence: safeString(settingsJsonRaw?.followup_cadence) || "moderate",
+        unknown_question_behavior: safeString((assistantSettingsRaw as any)?.unknown_question_behavior || settingsJsonRaw?.unknown_question_behavior) || "try_help",
       }
     : getDefaultAssistantSettings();
 

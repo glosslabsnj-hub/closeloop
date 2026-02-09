@@ -42,6 +42,8 @@ export interface FoodCapabilities {
   acceptsOnlineOrders: boolean;
   offersMealPrep: boolean;
   handlesGroupOrders: boolean;
+  // Cross-mode capabilities
+  offersEventBooking: boolean;
 }
 
 export interface DispatchCapabilities {
@@ -84,6 +86,9 @@ export interface ServiceCapabilities {
   sendsReminders: boolean;
   hasMinimumCharge: boolean;
   offersAfterHours: boolean;
+  // Cross-mode capabilities
+  acceptsDropOffs: boolean;
+  collectsHealthInfo: boolean;
 }
 
 export interface MedicalCapabilities {
@@ -102,6 +107,8 @@ export interface MedicalCapabilities {
   offersSameDayAppointments: boolean;
   hasOnSiteLab: boolean;
   offersPaymentPlans: boolean;
+  // Cross-mode capabilities
+  sellsRetailProducts: boolean;
 }
 
 export interface GeneralCapabilities {
@@ -114,6 +121,8 @@ export interface GeneralCapabilities {
   needsAfterHoursContact: boolean;
   hasPhysicalOffice: boolean;
   providesWrittenQuotes: boolean;
+  // Cross-mode capabilities
+  offersLocalDelivery: boolean;
 }
 
 export interface BusinessCapabilities {
@@ -181,6 +190,7 @@ const defaultFoodCapabilities: FoodCapabilities = {
   acceptsOnlineOrders: false,
   offersMealPrep: false,
   handlesGroupOrders: false,
+  offersEventBooking: false,
 };
 
 const defaultDispatchCapabilities: DispatchCapabilities = {
@@ -223,6 +233,8 @@ const defaultServiceCapabilities: ServiceCapabilities = {
   sendsReminders: true,
   hasMinimumCharge: false,
   offersAfterHours: false,
+  acceptsDropOffs: false,
+  collectsHealthInfo: false,
 };
 
 const defaultMedicalCapabilities: MedicalCapabilities = {
@@ -241,6 +253,7 @@ const defaultMedicalCapabilities: MedicalCapabilities = {
   offersSameDayAppointments: false,
   hasOnSiteLab: false,
   offersPaymentPlans: false,
+  sellsRetailProducts: false,
 };
 
 const defaultGeneralCapabilities: GeneralCapabilities = {
@@ -253,6 +266,7 @@ const defaultGeneralCapabilities: GeneralCapabilities = {
   needsAfterHoursContact: false,
   hasPhysicalOffice: true,
   providesWrittenQuotes: false,
+  offersLocalDelivery: false,
 };
 
 // ============================================================================
@@ -375,6 +389,7 @@ export function useBusinessCapabilities(): BusinessCapabilities {
     acceptsOnlineOrders: additionalData?.scenarioFlags?.acceptsOnlineOrders ?? false,
     offersMealPrep: additionalData?.scenarioFlags?.offersMealPrep ?? false,
     handlesGroupOrders: additionalData?.scenarioFlags?.handlesGroupOrders ?? false,
+    offersEventBooking: additionalData?.scenarioFlags?.offersEventBooking ?? false,
   };
 
   const dispatch: DispatchCapabilities = {
@@ -417,6 +432,8 @@ export function useBusinessCapabilities(): BusinessCapabilities {
     sendsReminders: additionalData?.scenarioFlags?.sendsReminders ?? true,
     hasMinimumCharge: additionalData?.scenarioFlags?.hasMinimumCharge ?? false,
     offersAfterHours: additionalData?.scenarioFlags?.offersAfterHours ?? false,
+    acceptsDropOffs: additionalData?.scenarioFlags?.acceptsDropOffs ?? false,
+    collectsHealthInfo: additionalData?.scenarioFlags?.collectsHealthInfo ?? false,
   };
 
   const medical: MedicalCapabilities = {
@@ -435,6 +452,7 @@ export function useBusinessCapabilities(): BusinessCapabilities {
     offersSameDayAppointments: additionalData?.scenarioFlags?.offersSameDayAppointments ?? false,
     hasOnSiteLab: additionalData?.scenarioFlags?.hasOnSiteLab ?? false,
     offersPaymentPlans: additionalData?.scenarioFlags?.offersPaymentPlans ?? false,
+    sellsRetailProducts: additionalData?.scenarioFlags?.sellsRetailProducts ?? false,
   };
 
   const general: GeneralCapabilities = {
@@ -447,6 +465,7 @@ export function useBusinessCapabilities(): BusinessCapabilities {
     needsAfterHoursContact: additionalData?.scenarioFlags?.needsAfterHoursContact ?? false,
     hasPhysicalOffice: additionalData?.scenarioFlags?.hasPhysicalOffice ?? true,
     providesWrittenQuotes: additionalData?.scenarioFlags?.providesWrittenQuotes ?? false,
+    offersLocalDelivery: additionalData?.scenarioFlags?.offersLocalDelivery ?? false,
   };
 
   // Derive cross-cutting capabilities

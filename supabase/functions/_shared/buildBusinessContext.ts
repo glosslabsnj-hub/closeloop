@@ -279,6 +279,8 @@ export interface BusinessContext {
     tone: string;
     greeting_script: string;
     fallback_script: string;
+    unknown_question_behavior: string;  // "escalate" | "try_help" | "offer_callback"
+    followup_cadence: string;           // "aggressive" | "moderate" | "conservative"
     service_default_flow: "schedule_first" | "urgency_check" | "dispatch_first";
     ai_booking_mode: "pending" | "auto_confirm";
     same_day_enabled: boolean;
@@ -2229,6 +2231,9 @@ export async function buildBusinessContext(
       tone: assistant?.tone || "friendly",
       greeting_script: assistant?.greeting_script || "",
       fallback_script: assistant?.fallback_script || "",
+      unknown_question_behavior: (assistantSettings?.settings_json as any)?.unknown_question_behavior
+        || assistantSettings?.unknown_question_behavior || "try_help",
+      followup_cadence: (assistantSettings?.settings_json as any)?.followup_cadence || "moderate",
       service_default_flow: (assistantSettings?.service_default_flow as "schedule_first" | "urgency_check" | "dispatch_first") || "schedule_first",
       ai_booking_mode: (assistantSettings?.ai_booking_mode as "pending" | "auto_confirm") || "pending",
       same_day_enabled: assistantSettings?.same_day_enabled !== false,
@@ -2301,7 +2306,19 @@ function buildSystemPrompt(ctx: BusinessContext): string {
   prompt += `.\n\nBUSINESS INFORMATION:\n- Industry: ${ctx.tenant.industry_slug || "service business"}\n${ctx.tenant.address ? `- Location: ${ctx.tenant.address}` : ""}\n${ctx.tenant.phone_e164 ? `- Phone: ${ctx.tenant.phone_e164}` : ""}\n${ctx.tenant.website ? `- Website: ${ctx.tenant.website}` : ""}\n${ctx.tenant.years_in_business ? `- In business for ${ctx.tenant.years_in_business} years` : ""}\n\n`;
 
   if (ctx.ai_settings.tone) {
-    prompt += `COMMUNICATION STYLE: Be ${ctx.ai_settings.tone} in your interactions.\\n\\n`;
+    const toneInstructions: Record<string, string> = {
+      professional: "Maintain a professional, business-like tone. Be polished, precise, and use complete sentences.",
+      friendly: "Be warm and personable. Use a conversational, approachable tone. Feel like a helpful neighbor.",
+      casual: "Be relaxed and informal. Keep it simple and natural, like chatting with a friend.",
+    };
+    prompt += `COMMUNICATION STYLE: ${toneInstructions[ctx.ai_settings.tone] || `Be ${ctx.ai_settings.tone}.`}\n\n`;
+  }
+
+  // Unknown question behavior
+  if (ctx.ai_settings.unknown_question_behavior === "escalate") {
+    prompt += `UNKNOWN QUESTIONS: If you don't know the answer, immediately offer to take a message or transfer. Do not guess.\n\n`;
+  } else if (ctx.ai_settings.unknown_question_behavior === "offer_callback") {
+    prompt += `UNKNOWN QUESTIONS: If you don't know the answer, let the caller know someone will follow up.\n\n`;
   }
 
   // Services section with pricing

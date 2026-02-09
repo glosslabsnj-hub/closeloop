@@ -21,6 +21,7 @@ export { BrainProgressIndicator, BrainProgressRing } from "./BrainProgressIndica
 export { AIPreviewBanner, AIPreviewInline } from "./AIPreviewBanner";
 export { EssentialGroup } from "./EssentialGroup";
 export { AdvancedGroup } from "./AdvancedGroup";
+export { AddOnGroup } from "./AddOnGroup";
 export { BrainSetupBanner } from "./BrainSetupBanner";
 export { CompletionCelebration } from "./CompletionCelebration";
 export { NextStepSuggestion } from "./NextStepSuggestion";

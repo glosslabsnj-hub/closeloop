@@ -30,6 +30,7 @@ import { IndustrySelectorGrid } from "@/components/onboarding/IndustrySelectorGr
 import { updateCapabilityFlags } from "@/hooks/useBusinessCapabilities";
 import { getQuestionsForMode, getDefaultAnswers, deriveModulesFromScenario } from "@/lib/scenarioQuestions";
 import { DEFAULT_BUSINESS_HOURS, HOURS_24_7 } from "@/lib/hoursUtils";
+import { applyScenarioSeeds } from "@/lib/scenarioSeeding";
 import type { BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -308,6 +309,9 @@ export default function AdminTestOnboardingPage() {
       // 3. Save scenario flags
       await updateCapabilityFlags(tenantId, scenarioAnswers);
 
+      // 3b. Seed high-confidence content from scenario answers
+      await applyScenarioSeeds(tenantId, scenarioAnswers, businessMode);
+
       // 4. Create food order settings for food mode
       if (isFoodMode) {
         const { error: foodSettingsError } = await supabase
@@ -342,6 +346,21 @@ export default function AdminTestOnboardingPage() {
           unknown_question_behavior: communicationPrefs.unknownQuestionBehavior,
           ...(Object.keys(settingsJson).length > 0 ? { settings_json: settingsJson } : {}),
         });
+
+      // Save greeting and tone to ai_assistants (canonical source for AI behavior)
+      const assistantUpsertData: Record<string, unknown> = {};
+      if (communicationPrefs.aiTone) assistantUpsertData.tone = communicationPrefs.aiTone;
+      if (communicationPrefs.customGreeting) assistantUpsertData.greeting_script = communicationPrefs.customGreeting;
+
+      if (Object.keys(assistantUpsertData).length > 0) {
+        const { data: existingAssistant } = await supabase
+          .from("ai_assistants").select("id").eq("tenant_id", tenantId).maybeSingle();
+        if (existingAssistant) {
+          await supabase.from("ai_assistants").update(assistantUpsertData).eq("tenant_id", tenantId);
+        } else {
+          await supabase.from("ai_assistants").insert({ tenant_id: tenantId, ...assistantUpsertData });
+        }
+      }
 
       // 6. Create default automations
       const automationsToInsert = [

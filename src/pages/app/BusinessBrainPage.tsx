@@ -98,6 +98,7 @@ import {
   BusinessBrainNav,
   BusinessBrainSectionCard,
   CollapsibleBrainSection,
+  AddOnGroup,
   HIPAAWarning,
   SectionHelper,
   SectionGroupHeader,
@@ -114,6 +115,7 @@ import {
   getModeGradient,
 } from "@/components/brain/layout";
 import { useBrainSummaries } from "@/hooks/useBrainSummaries";
+import { useAddOnSections } from "@/hooks/useAddOnSections";
 import { 
   FileText, Shield, MessageSquareText, Send, Truck, UtensilsCrossed, HeartPulse,
   Building2, Palette, Clock, DollarSign, Tag, MapPin, Navigation, Gauge,
@@ -148,6 +150,12 @@ export default function BusinessBrainPage() {
   const { acceptsDelivery: foodAcceptsDelivery, acceptsCatering: foodAcceptsCatering, needsCoverageSettings: foodNeedsCoverage } = useFoodOrderSettings();
   const summaries = useBrainSummaries();
   const terms = getIndustryTerminology(businessMode);
+
+  // Add-on sections per tab
+  const servicesAddOns = useAddOnSections("services");
+  const coverageAddOns = useAddOnSections("service-area");
+  const policiesAddOns = useAddOnSections("policies");
+  const knowledgeAddOns = useAddOnSections("knowledge");
 
   const sectionParamRaw = searchParams.get("section");
   const legacyTab = searchParams.get("tab");
@@ -440,8 +448,8 @@ export default function BusinessBrainPage() {
                   </SectionSummaryCard>
                 </EssentialGroup>
 
-                {/* Mode-specific pricing sections */}
-                {(businessMode === "service" || businessMode === "general") && (
+                {/* Mode-specific pricing sections (relevance-gated) */}
+                {servicesAddOns.isRelevant("price-modifiers") && (
                   <AdvancedGroup title="Pricing Adjustments" collapsedDescription="Size, urgency, and package pricing">
                     <SectionSummaryCard
                       id="price-modifiers"
@@ -454,20 +462,22 @@ export default function BusinessBrainPage() {
                       <PriceModifiersEditor />
                     </SectionSummaryCard>
 
-                    <SectionSummaryCard
-                      id="service-packages"
-                      title="Packages & Bundles"
-                      icon={Package}
-                      status="incomplete"
-                      statusText="Discounted bundles and membership plans"
-                      mode={businessMode}
-                    >
-                      <ServicePackagesEditor />
-                    </SectionSummaryCard>
+                    {servicesAddOns.isRelevant("service-packages") && (
+                      <SectionSummaryCard
+                        id="service-packages"
+                        title="Packages & Bundles"
+                        icon={Package}
+                        status="incomplete"
+                        statusText="Discounted bundles and membership plans"
+                        mode={businessMode}
+                      >
+                        <ServicePackagesEditor />
+                      </SectionSummaryCard>
+                    )}
                   </AdvancedGroup>
                 )}
 
-                {isDispatchMode && (
+                {servicesAddOns.isRelevant("dispatch-pricing") && (
                   <AdvancedGroup title="Dispatch Pricing" collapsedDescription="Equipment fees and distance-based pricing">
                     <SectionSummaryCard
                       id="dispatch-pricing"
@@ -493,7 +503,7 @@ export default function BusinessBrainPage() {
                   </AdvancedGroup>
                 )}
 
-                {isFoodMode && (
+                {servicesAddOns.isRelevant("food-settings") && (
                   <AdvancedGroup title="Order Options" collapsedDescription="Sizes, specials, and delivery settings">
                     <SectionSummaryCard
                       id="food-settings"
@@ -530,7 +540,7 @@ export default function BusinessBrainPage() {
                   </AdvancedGroup>
                 )}
 
-                {businessMode === "medical" && (
+                {servicesAddOns.isRelevant("medical-pricing") && (
                   <AdvancedGroup title="Practice Pricing" collapsedDescription="Insurance, fees, and treatment packages">
                     <SectionSummaryCard
                       id="medical-pricing"
@@ -568,6 +578,11 @@ export default function BusinessBrainPage() {
                     <AdditionalServicesEditor />
                   </SectionSummaryCard>
                 </AdvancedGroup>
+
+                {/* Add-ons for services tab */}
+                {servicesAddOns.addOnItems.length > 0 && (
+                  <AddOnGroup items={servicesAddOns.addOnItems} onEnable={servicesAddOns.enableAddOn} />
+                )}
               </div>
             )}
 
@@ -639,9 +654,9 @@ export default function BusinessBrainPage() {
                   ) : null}
                 </EssentialGroup>
 
-                {/* Mode-specific coverage settings */}
-                <AdvancedGroup 
-                  title="Mode-Specific Settings" 
+                {/* Mode-specific coverage settings (relevance-gated) */}
+                <AdvancedGroup
+                  title="Mode-Specific Settings"
                   collapsedDescription="Additional coverage options for your business type"
                   defaultCollapsed={false}
                 >
@@ -658,7 +673,7 @@ export default function BusinessBrainPage() {
                     </SectionSummaryCard>
                   )}
 
-                  {isDispatchMode && (
+                  {coverageAddOns.isRelevant("dispatch-zones") && (
                     <SectionSummaryCard
                       id="dispatch-zones"
                       title="Coverage Zones & ETA"
@@ -671,8 +686,7 @@ export default function BusinessBrainPage() {
                     </SectionSummaryCard>
                   )}
 
-                  {/* Only show delivery zones when food business accepts delivery */}
-                  {(businessMode === "food" || isFoodMode) && foodAcceptsDelivery && (
+                  {coverageAddOns.isRelevant("delivery-zones") && foodAcceptsDelivery && (
                     <SectionSummaryCard
                       id="delivery-zones"
                       title="Delivery Zones"
@@ -685,8 +699,7 @@ export default function BusinessBrainPage() {
                     </SectionSummaryCard>
                   )}
 
-                  {/* Catering coverage for food businesses that accept catering */}
-                  {(businessMode === "food" || isFoodMode) && foodAcceptsCatering && (
+                  {coverageAddOns.isRelevant("delivery-zones") && foodAcceptsCatering && (
                     <SectionSummaryCard
                       id="catering-coverage"
                       title="Catering Coverage"
@@ -705,7 +718,7 @@ export default function BusinessBrainPage() {
                     </SectionSummaryCard>
                   )}
 
-                  {businessMode === "medical" && (
+                  {coverageAddOns.isRelevant("medical-coverage") && (
                     <SectionSummaryCard
                       id="medical-coverage"
                       title="Visit Options"
@@ -742,6 +755,11 @@ export default function BusinessBrainPage() {
                     <BusynessRulesEditor />
                   </SectionSummaryCard>
                 </AdvancedGroup>
+
+                {/* Add-ons for coverage tab */}
+                {coverageAddOns.addOnItems.length > 0 && (
+                  <AddOnGroup items={coverageAddOns.addOnItems} onEnable={coverageAddOns.enableAddOn} />
+                )}
               </div>
             )}
 
@@ -841,8 +859,8 @@ export default function BusinessBrainPage() {
                   )}
                 </AdvancedGroup>
 
-                {/* Dispatch Operations Group */}
-                {showDispatchDelivery && (
+                {/* Dispatch Operations Group (relevance-gated) */}
+                {policiesAddOns.isRelevant("dispatch-operations") && (
                   <AdvancedGroup title="Dispatch Operations" collapsedDescription="Distance pricing and call routing" defaultCollapsed={false}>
                     <SectionSummaryCard
                       id="dispatch-settings"
@@ -879,8 +897,8 @@ export default function BusinessBrainPage() {
                   </AdvancedGroup>
                 )}
 
-                {/* Impound Lot Group */}
-                {showDispatchDelivery && (
+                {/* Impound Lot Group (relevance-gated) */}
+                {policiesAddOns.isRelevant("impound-lot") && (
                   <AdvancedGroup title="Impound Lot" collapsedDescription="Lot details, fees, and release requirements">
                     <SectionSummaryCard
                       id="impound-lot"
@@ -917,8 +935,8 @@ export default function BusinessBrainPage() {
                   </AdvancedGroup>
                 )}
 
-                {/* Medical Compliance */}
-                {showMedicalSettings && (
+                {/* Medical Compliance (relevance-gated) */}
+                {policiesAddOns.isRelevant("hipaa") && (
                   <AdvancedGroup title="Compliance" collapsedDescription="HIPAA and data handling settings">
                     <SectionSummaryCard
                       id="hipaa"
@@ -931,6 +949,11 @@ export default function BusinessBrainPage() {
                       <MedicalHIPAASettings />
                     </SectionSummaryCard>
                   </AdvancedGroup>
+                )}
+
+                {/* Add-ons for policies tab */}
+                {policiesAddOns.addOnItems.length > 0 && (
+                  <AddOnGroup items={policiesAddOns.addOnItems} onEnable={policiesAddOns.enableAddOn} />
                 )}
               </div>
             )}
@@ -1025,8 +1048,8 @@ export default function BusinessBrainPage() {
                   </SectionSummaryCard>
                 </EssentialGroup>
 
-                {/* Mode-specific knowledge */}
-                {isFoodMode && (
+                {/* Mode-specific knowledge (relevance-gated) */}
+                {knowledgeAddOns.isRelevant("food-knowledge") && (
                   <AdvancedGroup title="Food Knowledge" collapsedDescription="Menu details and catering info" defaultCollapsed={false}>
                     <SectionSummaryCard
                       id="menu-knowledge"
@@ -1052,7 +1075,7 @@ export default function BusinessBrainPage() {
                   </AdvancedGroup>
                 )}
 
-                {isDispatchMode && (
+                {knowledgeAddOns.isRelevant("dispatch-knowledge") && (
                   <AdvancedGroup title="Dispatch Knowledge" collapsedDescription="Vehicle types and roadside situations" defaultCollapsed={false}>
                     <SectionSummaryCard
                       id="vehicle-knowledge"
@@ -1078,7 +1101,7 @@ export default function BusinessBrainPage() {
                   </AdvancedGroup>
                 )}
 
-                {businessMode === "medical" && (
+                {knowledgeAddOns.isRelevant("medical-knowledge") && (
                   <AdvancedGroup title="Medical Knowledge" collapsedDescription="Symptoms, triage, and insurance info" defaultCollapsed={false}>
                     <SectionSummaryCard
                       id="symptom-triage"
@@ -1104,7 +1127,7 @@ export default function BusinessBrainPage() {
                   </AdvancedGroup>
                 )}
 
-                {(businessMode === "service" || businessMode === "general") && (
+                {knowledgeAddOns.isRelevant("product-knowledge") && (
                   <AdvancedGroup title="Service Knowledge" collapsedDescription="Products and materials you use">
                     <SectionSummaryCard
                       id="product-knowledge"
@@ -1176,6 +1199,11 @@ export default function BusinessBrainPage() {
                     <BrainAssetsManager />
                   </SectionSummaryCard>
                 </AdvancedGroup>
+
+                {/* Add-ons for knowledge tab */}
+                {knowledgeAddOns.addOnItems.length > 0 && (
+                  <AddOnGroup items={knowledgeAddOns.addOnItems} onEnable={knowledgeAddOns.enableAddOn} />
+                )}
               </div>
             )}
 
