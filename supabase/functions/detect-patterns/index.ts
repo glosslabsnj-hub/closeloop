@@ -508,6 +508,6 @@ serve(async (req) => {
     });
   } catch (err) {
     console.error("[detect-patterns] Error:", err);
-    return errorResponse(`Internal error: ${err.message}`, 500);
+    return errorResponse(`Internal error: ${err instanceof Error ? err.message : "Unknown error"}`, 500);
   }
 });
