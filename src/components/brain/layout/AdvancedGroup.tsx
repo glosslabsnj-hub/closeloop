@@ -1,12 +1,12 @@
 /**
  * AdvancedGroup - Collapsible wrapper for optional/advanced sections
- * 
- * Groups advanced settings that most users won't need to modify,
- * keeping them out of the way while still accessible.
+ *
+ * Redesigned: Softer visual treatment, completion count display (e.g., "1/3 done"),
+ * subtle gradient header. Keeps collapsible behavior unchanged.
  */
 
 import { useState, ReactNode } from "react";
-import { ChevronDown, ChevronRight, Settings2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Settings2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Collapsible,
@@ -27,6 +27,10 @@ interface AdvancedGroupProps {
   className?: string;
   /** Number of items in this group (for badge) */
   itemCount?: number;
+  /** Number of completed items in this group */
+  completedCount?: number;
+  /** Total items (alternative to itemCount, used for "X/Y done" display) */
+  totalCount?: number;
 }
 
 export function AdvancedGroup({
@@ -36,8 +40,14 @@ export function AdvancedGroup({
   defaultCollapsed = true,
   className,
   itemCount,
+  completedCount,
+  totalCount,
 }: AdvancedGroupProps) {
   const [isOpen, setIsOpen] = useState(!defaultCollapsed);
+
+  // Determine what count to show
+  const effectiveTotal = totalCount ?? itemCount;
+  const hasCompletionInfo = completedCount !== undefined && effectiveTotal !== undefined && effectiveTotal > 0;
 
   return (
     <Collapsible
@@ -51,12 +61,13 @@ export function AdvancedGroup({
           type="button"
           className={cn(
             "w-full flex items-center gap-3 px-4 py-3 rounded-lg border transition-all",
-            "bg-muted/30 hover:bg-muted/50",
-            isOpen && "bg-muted/50"
+            "bg-gradient-to-r from-muted/40 to-muted/20 hover:from-muted/60 hover:to-muted/30",
+            "border-muted-foreground/10",
+            isOpen && "from-muted/50 to-muted/30"
           )}
         >
           {/* Icon */}
-          <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-muted shrink-0">
+          <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-muted/80 shrink-0">
             <Settings2 className="h-4 w-4 text-muted-foreground" />
           </div>
 
@@ -64,7 +75,20 @@ export function AdvancedGroup({
           <div className="flex-1 text-left">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">{title}</span>
-              {itemCount !== undefined && itemCount > 0 && (
+              {/* Completion count */}
+              {hasCompletionInfo && (
+                <span className={cn(
+                  "text-xs px-1.5 py-0.5 rounded inline-flex items-center gap-1",
+                  completedCount! > 0
+                    ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
+                    : "text-muted-foreground bg-muted"
+                )}>
+                  {completedCount! > 0 && <Check className="h-3 w-3" />}
+                  {completedCount}/{effectiveTotal} done
+                </span>
+              )}
+              {/* Legacy item count (when no completedCount) */}
+              {!hasCompletionInfo && itemCount !== undefined && itemCount > 0 && (
                 <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                   {itemCount}
                 </span>

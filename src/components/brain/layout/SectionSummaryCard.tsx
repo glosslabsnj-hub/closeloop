@@ -1,14 +1,13 @@
 /**
  * SectionSummaryCard - Status-focused section card for Business Brain
- * 
- * Shows section status at a glance without requiring expansion.
- * Now includes AI Impact badges (Required/Recommended) from essentialFields registry.
+ *
+ * Redesigned: Always shows "why" text, uses sparkle icon instead of jargon badges,
+ * displays "AI Uses This To..." bullets, and supports step numbering.
  */
 
 import { useState, useEffect, ReactNode, useCallback } from "react";
-import { ChevronDown, ChevronRight, Check, AlertCircle, Circle, Sparkles, Lightbulb, LucideIcon } from "lucide-react";
+import { ChevronDown, ChevronRight, Check, AlertCircle, Circle, Sparkles, Lightbulb, LucideIcon, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { BusinessMode } from "@/hooks/useTenantConfig";
 import type { FieldPriority } from "@/config/essentialFields";
@@ -39,6 +38,16 @@ interface SectionSummaryCardProps {
   guidanceText?: string;
   /** Helpful tip shown below guidance text */
   guidanceTip?: string;
+  /** Always-visible "why" explanation below title (from brainGuidance.why) */
+  whyText?: string;
+  /** "What this does" text shown in expanded header (from brainGuidance.what) */
+  whatText?: string;
+  /** Mode-specific tip shown in expanded callout (from brainGuidance.tips[mode]) */
+  tipText?: string;
+  /** How AI uses this data — shown as bullets in expanded header */
+  usedByAI?: string[];
+  /** Step number injected by EssentialGroup */
+  stepNumber?: number;
 }
 
 const STATUS_CONFIG: Record<SectionStatus, { icon: typeof Check; color: string; label: string }> = {
@@ -54,27 +63,6 @@ const MODE_ACCENT: Record<BusinessMode, string> = {
   food: "border-l-orange-500",
   medical: "border-l-rose-500",
   general: "border-l-slate-500",
-};
-
-const AI_PRIORITY_BADGE: Record<FieldPriority, { label: string; variant: "default" | "secondary" | "outline"; className: string; tooltip: string }> = {
-  required: { 
-    label: "Required for AI", 
-    variant: "default", 
-    className: "bg-amber-500 hover:bg-amber-600 text-white border-0 text-[10px] px-1.5 py-0",
-    tooltip: "AI will not work properly without this"
-  },
-  recommended: { 
-    label: "Recommended", 
-    variant: "secondary", 
-    className: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-0 text-[10px] px-1.5 py-0",
-    tooltip: "AI works better with this configured"
-  },
-  optional: { 
-    label: "Optional", 
-    variant: "outline", 
-    className: "text-muted-foreground border-muted text-[10px] px-1.5 py-0",
-    tooltip: "Nice to have but not essential"
-  },
 };
 
 export function SectionSummaryCard({
@@ -95,18 +83,24 @@ export function SectionSummaryCard({
   onExpandedChange,
   guidanceText,
   guidanceTip,
+  whyText,
+  whatText,
+  tipText,
+  usedByAI,
+  stepNumber,
 }: SectionSummaryCardProps) {
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
-  
+
   // Use controlled state if provided, otherwise use internal state
   const isExpanded = controlledExpanded !== undefined ? controlledExpanded : internalExpanded;
-  
+
   const statusConfig = STATUS_CONFIG[status];
   const StatusIcon = statusConfig.icon;
 
   // Derive AI priority from isEssential if not explicitly provided
   const effectivePriority: FieldPriority | undefined = aiPriority ?? (isEssential ? "required" : undefined);
-  const priorityConfig = effectivePriority ? AI_PRIORITY_BADGE[effectivePriority] : null;
+
+  const isComplete = status === "complete";
 
   const toggleExpanded = useCallback(() => {
     const newValue = !isExpanded;
@@ -135,6 +129,10 @@ export function SectionSummaryCard({
     }
   }, [id, isExpanded, onExpandedChange]);
 
+  // Determine effective guidance: new props take priority over legacy concatenated props
+  const effectiveWhatText = whatText || (guidanceText && !whyText ? guidanceText : undefined);
+  const effectiveTipText = tipText || guidanceTip;
+
   return (
     <div
       id={id}
@@ -149,6 +147,22 @@ export function SectionSummaryCard({
     >
       {/* Header - always visible */}
       <div className="flex items-center gap-3 p-4">
+        {/* Step number badge (from EssentialGroup) */}
+        {stepNumber !== undefined && (
+          <div className={cn(
+            "flex items-center justify-center h-6 w-6 rounded-full text-xs font-semibold shrink-0",
+            isComplete
+              ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
+              : "bg-primary/10 text-primary"
+          )}>
+            {isComplete ? (
+              <Check className="h-3.5 w-3.5" />
+            ) : (
+              stepNumber
+            )}
+          </div>
+        )}
+
         <button
           type="button"
           onClick={toggleExpanded}
@@ -157,27 +171,23 @@ export function SectionSummaryCard({
           <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-muted shrink-0">
             <Icon className="h-5 w-5 text-muted-foreground" />
           </div>
-          
+
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-medium text-sm">{title}</h3>
-              
-              {/* AI Priority Badge with Tooltip */}
-              {priorityConfig && status === "incomplete" && (
+
+              {/* Sparkle icon tooltip — replaces jargon "Required for AI" badge */}
+              {effectivePriority === "required" && status === "incomplete" && (
                 <TooltipProvider delayDuration={200}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Badge 
-                        variant={priorityConfig.variant} 
-                        className={cn("cursor-help", priorityConfig.className)}
-                      >
-                        <Sparkles className="h-2.5 w-2.5 mr-0.5" />
-                        {priorityConfig.label}
-                      </Badge>
+                      <span className="cursor-help">
+                        <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                      </span>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="max-w-xs">
                       <p className="text-xs">
-                        {aiImpactText || priorityConfig.tooltip}
+                        {aiImpactText || "Your AI needs this to work properly"}
                       </p>
                     </TooltipContent>
                   </Tooltip>
@@ -187,6 +197,12 @@ export function SectionSummaryCard({
             <p className="text-xs text-muted-foreground truncate mt-0.5">
               {statusText}
             </p>
+            {/* Why text — always visible below status, not just when expanded */}
+            {whyText && (
+              <p className="text-xs text-muted-foreground/80 mt-1 line-clamp-2">
+                {whyText}
+              </p>
+            )}
           </div>
         </button>
 
@@ -216,17 +232,37 @@ export function SectionSummaryCard({
       {/* Content - shown when expanded */}
       {isExpanded && (
         <div className="px-4 pb-4 pt-0">
-          <div className="border-t pt-4">
-            {/* Guidance callout - shown when section is empty/incomplete */}
-            {guidanceText && status === "incomplete" && (
-              <div className="mb-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-3 space-y-1.5">
-                <p className="text-sm text-blue-900 dark:text-blue-100">
-                  {guidanceText}
-                </p>
-                {guidanceTip && (
+          <div className="border-t pt-4 space-y-4">
+            {/* "AI Uses This To..." block */}
+            {usedByAI && usedByAI.length > 0 && (
+              <div className="rounded-lg bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-800/50 p-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Zap className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
+                  <span className="text-xs font-medium text-violet-700 dark:text-violet-300">Your AI uses this to...</span>
+                </div>
+                <ul className="space-y-1">
+                  {usedByAI.map((item, i) => (
+                    <li key={i} className="text-xs text-violet-900 dark:text-violet-200 flex items-start gap-1.5">
+                      <span className="text-violet-400 dark:text-violet-500 mt-0.5 shrink-0">&#8226;</span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Guidance callout — split what + tip (or fallback to legacy concatenated guidanceText) */}
+            {status === "incomplete" && (effectiveWhatText || effectiveTipText) && (
+              <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-3 space-y-1.5">
+                {effectiveWhatText && (
+                  <p className="text-sm text-blue-900 dark:text-blue-100">
+                    {effectiveWhatText}
+                  </p>
+                )}
+                {effectiveTipText && (
                   <p className="text-xs text-blue-700 dark:text-blue-300 flex items-start gap-1.5">
                     <Lightbulb className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                    {guidanceTip}
+                    {effectiveTipText}
                   </p>
                 )}
               </div>

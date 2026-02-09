@@ -271,15 +271,31 @@ export default function BusinessBrainPage() {
     }
   }, [activeSection, focusHash, legacyTab, sectionParamRaw, setSearchParams]);
 
-  // ─── Guidance helper ────────────────────────────────────────────────────
+  // ─── Guidance + card config helpers ─────────────────────────────────────
 
-  const getGuidance = (sectionId: string) => {
+  /** Returns separate whyText, whatText, tipText from brainGuidance */
+  const getSectionGuidance = (sectionId: string) => {
     const g = SECTION_GUIDANCE[sectionId];
     if (!g) return {};
     return {
-      guidanceText: `${g.what} ${g.why}`,
-      guidanceTip: g.tips[businessMode] || g.tips.default,
+      whyText: g.why,
+      whatText: g.what,
+      tipText: g.tips[businessMode] || g.tips.default,
     };
+  };
+
+  /** Finds the CardConfig from BRAIN_CATEGORIES by card id */
+  const getCardConfig = (cardId: string) => {
+    for (const cat of BRAIN_CATEGORIES) {
+      const card = cat.cards.find(c => c.id === cardId);
+      if (card) return card;
+    }
+    return undefined;
+  };
+
+  /** Returns usedByAI array for a given card id */
+  const getUsedByAI = (cardId: string): string[] | undefined => {
+    return getCardConfig(cardId)?.usedByAI;
   };
 
   if (!tenant) {
@@ -349,7 +365,8 @@ export default function BusinessBrainPage() {
                   reviewCount={reviewCount}
                   hoursExpanded={hoursExpanded}
                   setHoursExpanded={setHoursExpanded}
-                  getGuidance={getGuidance}
+                  getSectionGuidance={getSectionGuidance}
+                  getUsedByAI={getUsedByAI}
                   showBookingDelivery={showBookingDelivery}
                   showFoodDelivery={showFoodDelivery}
                   servicesAddOns={servicesAddOns}
@@ -391,7 +408,8 @@ interface SectionDetailWrapperProps {
   reviewCount: number;
   hoursExpanded: boolean;
   setHoursExpanded: (v: boolean) => void;
-  getGuidance: (sectionId: string) => Record<string, string | undefined>;
+  getSectionGuidance: (sectionId: string) => Record<string, string | undefined>;
+  getUsedByAI: (cardId: string) => string[] | undefined;
   showBookingDelivery: boolean;
   showFoodDelivery: boolean;
   servicesAddOns: ReturnType<typeof useAddOnSections>;
@@ -421,7 +439,8 @@ function BrainSectionDetailWrapper({
   reviewCount,
   hoursExpanded,
   setHoursExpanded,
-  getGuidance,
+  getSectionGuidance,
+  getUsedByAI,
   showBookingDelivery,
   showFoodDelivery,
   servicesAddOns,
@@ -488,7 +507,8 @@ function BrainSectionDetailWrapper({
                 statusText={summaries.businessInfo}
                 isEssential
                 mode={businessMode}
-                {...getGuidance("business-info")}
+                usedByAI={getUsedByAI("business-info")}
+                {...getSectionGuidance("business-info")}
               >
                 <BusinessProfileEditor />
               </SectionSummaryCard>
@@ -503,7 +523,8 @@ function BrainSectionDetailWrapper({
                 mode={businessMode}
                 expanded={hoursExpanded}
                 onExpandedChange={setHoursExpanded}
-                {...getGuidance("business-hours")}
+                usedByAI={getUsedByAI("business-hours")}
+                {...getSectionGuidance("business-hours")}
               >
                 <BusinessHoursManager
                   onSaveComplete={() => setHoursExpanded(false)}
@@ -521,7 +542,8 @@ function BrainSectionDetailWrapper({
                   statusText={summaries.calendar}
                   mode={businessMode}
                   defaultExpanded
-                  {...getGuidance("calendar-sync")}
+                  usedByAI={getUsedByAI("calendar-sync")}
+                  {...getSectionGuidance("calendar-sync")}
                 >
                   <AvailabilityHub />
                 </SectionSummaryCard>
@@ -544,7 +566,8 @@ function BrainSectionDetailWrapper({
                 status="incomplete"
                 statusText="Pre-built setups for common business types"
                 mode={businessMode}
-                {...getGuidance("templates")}
+                usedByAI={getUsedByAI("industry-templates")}
+                {...getSectionGuidance("templates")}
               >
                 <IndustryTemplateCard />
               </SectionSummaryCard>
@@ -588,6 +611,7 @@ function BrainSectionDetailWrapper({
                   status="incomplete"
                   statusText={summaries.pricingRules}
                   mode={businessMode}
+                  usedByAI={getUsedByAI("pricing-rules")}
                 >
                   <PricingRulesEditor />
                 </SectionSummaryCard>
@@ -601,7 +625,8 @@ function BrainSectionDetailWrapper({
                 statusText={summaries.catalog === "No services added yet" ? `No ${terms.serviceItemLabel}s added yet` : summaries.catalog}
                 isEssential
                 mode={businessMode}
-                {...getGuidance("catalog")}
+                usedByAI={getUsedByAI("catalog")}
+                {...getSectionGuidance("catalog")}
               >
                 {isFoodMode ? (
                   <MenuCatalogEditor />
@@ -622,6 +647,7 @@ function BrainSectionDetailWrapper({
                   status="incomplete"
                   statusText="Size, urgency, and after-hours rate adjustments"
                   mode={businessMode}
+                  usedByAI={getUsedByAI("price-modifiers")}
                 >
                   <PriceModifiersEditor />
                 </SectionSummaryCard>
@@ -634,6 +660,7 @@ function BrainSectionDetailWrapper({
                     status="incomplete"
                     statusText="Discounted bundles and membership plans"
                     mode={businessMode}
+                    usedByAI={getUsedByAI("service-packages")}
                   >
                     <ServicePackagesEditor />
                   </SectionSummaryCard>
@@ -650,6 +677,7 @@ function BrainSectionDetailWrapper({
                   status="incomplete"
                   statusText="Equipment, storage, release, and emergency fees"
                   mode={businessMode}
+                  usedByAI={getUsedByAI("dispatch-pricing")}
                 >
                   <DispatchPricingEditor />
                 </SectionSummaryCard>
@@ -676,6 +704,7 @@ function BrainSectionDetailWrapper({
                   status="incomplete"
                   statusText="Delivery, pickup, and catering configuration"
                   mode={businessMode}
+                  usedByAI={getUsedByAI("food-settings")}
                 >
                   <FoodSettingsEditor />
                 </SectionSummaryCard>
@@ -687,6 +716,7 @@ function BrainSectionDetailWrapper({
                   status="incomplete"
                   statusText="S/M/L or Personal/Family size variants"
                   mode={businessMode}
+                  usedByAI={getUsedByAI("menu-sizes")}
                 >
                   <MenuSizesEditor />
                 </SectionSummaryCard>
@@ -698,6 +728,7 @@ function BrainSectionDetailWrapper({
                   status="incomplete"
                   statusText="Happy hour, daily specials, limited-time offers"
                   mode={businessMode}
+                  usedByAI={getUsedByAI("daily-specials")}
                 >
                   <DailySpecialsEditor />
                 </SectionSummaryCard>
@@ -713,6 +744,7 @@ function BrainSectionDetailWrapper({
                   status="incomplete"
                   statusText="Insurance, consultation fees, and payment options"
                   mode={businessMode}
+                  usedByAI={getUsedByAI("medical-pricing")}
                 >
                   <MedicalPricingEditor />
                 </SectionSummaryCard>
@@ -738,6 +770,7 @@ function BrainSectionDetailWrapper({
                 status="incomplete"
                 statusText={`Secondary ${terms.serviceItemLabel}s beyond your core business`}
                 mode={businessMode}
+                usedByAI={getUsedByAI("additional-services")}
               >
                 <AdditionalServicesEditor />
               </SectionSummaryCard>
@@ -792,7 +825,8 @@ function BrainSectionDetailWrapper({
                     statusText={summaries.coverage}
                     isEssential={["dispatch", "service"].includes(businessMode) || foodNeedsCoverage}
                     mode={businessMode}
-                    {...getGuidance("coverage")}
+                    usedByAI={getUsedByAI("service-area-settings")}
+                    {...getSectionGuidance("coverage")}
                   >
                     <ServiceAreaPreview />
                     <div className="mt-4">
@@ -919,7 +953,8 @@ function BrainSectionDetailWrapper({
                 status={summaries.policies !== "No policies set yet" ? "complete" : "incomplete"}
                 statusText={summaries.policies}
                 mode={businessMode}
-                {...getGuidance("policies")}
+                usedByAI={getUsedByAI("business-policies")}
+                {...getSectionGuidance("policies")}
               >
                 <BusinessPoliciesEditor />
               </SectionSummaryCard>
@@ -931,7 +966,8 @@ function BrainSectionDetailWrapper({
                 status={summaries.guardrails !== "No limits set yet" ? "complete" : "incomplete"}
                 statusText={summaries.guardrails}
                 mode={businessMode}
-                {...getGuidance("never-promise")}
+                usedByAI={getUsedByAI("never-promise")}
+                {...getSectionGuidance("never-promise")}
               >
                 <AINeverPromiseEditor />
               </SectionSummaryCard>
@@ -943,7 +979,8 @@ function BrainSectionDetailWrapper({
                 status={summaries.requiredQuestions !== "Not set up yet" && summaries.requiredQuestions !== "No required fields set" ? "complete" : "incomplete"}
                 statusText={summaries.requiredQuestions}
                 mode={businessMode}
-                {...getGuidance("required-questions")}
+                usedByAI={getUsedByAI("required-questions")}
+                {...getSectionGuidance("required-questions")}
               >
                 <RequiredQuestionsEditor />
               </SectionSummaryCard>
@@ -955,9 +992,10 @@ function BrainSectionDetailWrapper({
                 status="incomplete"
                 statusText="Additional policies for specific scenarios"
                 mode={businessMode}
-                {...getGuidance("custom-policies")}
+                {...getSectionGuidance("custom-policies")}
               >
                 <CustomPoliciesEditor />
+
               </SectionSummaryCard>
             </EssentialGroup>
 
@@ -971,7 +1009,8 @@ function BrainSectionDetailWrapper({
                     status={summaries.bookingDelivery !== "Not set up yet" && summaries.bookingDelivery !== "No delivery method set" ? "complete" : "incomplete"}
                     statusText={summaries.bookingDelivery}
                     mode={businessMode}
-                    {...getGuidance("booking-delivery")}
+                    usedByAI={getUsedByAI("booking-delivery")}
+                    {...getSectionGuidance("booking-delivery")}
                   >
                     <BookingDeliverySettings />
                   </SectionSummaryCard>
@@ -1103,7 +1142,8 @@ function BrainSectionDetailWrapper({
                 statusText={summaries.scripts}
                 isEssential
                 mode={businessMode}
-                {...getGuidance("scripts")}
+                usedByAI={getUsedByAI("scripts")}
+                {...getSectionGuidance("scripts")}
               >
                 <AIScriptsEditor />
               </SectionSummaryCard>
@@ -1117,7 +1157,8 @@ function BrainSectionDetailWrapper({
                 status={summaries.guidelines !== "No special instructions yet" ? "complete" : "incomplete"}
                 statusText={summaries.guidelines}
                 mode={businessMode}
-                {...getGuidance("guidelines")}
+                usedByAI={getUsedByAI("business-rules")}
+                {...getSectionGuidance("guidelines")}
               >
                 <AIBusinessPolicies />
               </SectionSummaryCard>
@@ -1129,7 +1170,8 @@ function BrainSectionDetailWrapper({
                 status="incomplete"
                 statusText={summaries.intelligence}
                 mode={businessMode}
-                {...getGuidance("intelligence")}
+                usedByAI={getUsedByAI("intelligence")}
+                {...getSectionGuidance("intelligence")}
               >
                 <IntelligenceSettingsForm />
               </SectionSummaryCard>
@@ -1162,7 +1204,8 @@ function BrainSectionDetailWrapper({
                 status={summaries.faqs !== "No questions added yet — your AI says 'I'm not sure' to unknowns" ? "complete" : "incomplete"}
                 statusText={summaries.faqs}
                 mode={businessMode}
-                {...getGuidance("faqs")}
+                usedByAI={getUsedByAI("faqs")}
+                {...getSectionGuidance("faqs")}
               >
                 <BusinessFAQEditor />
               </SectionSummaryCard>
@@ -1174,7 +1217,8 @@ function BrainSectionDetailWrapper({
                 status={summaries.objections !== "No responses set — your AI uses generic replies to pushback" ? "complete" : "incomplete"}
                 statusText={summaries.objections}
                 mode={businessMode}
-                {...getGuidance("objections")}
+                usedByAI={getUsedByAI("objections")}
+                {...getSectionGuidance("objections")}
               >
                 <BusinessObjectionEditor />
               </SectionSummaryCard>
@@ -1314,7 +1358,8 @@ function BrainSectionDetailWrapper({
                 status={summaries.custom !== "Nothing extra added yet" ? "complete" : "incomplete"}
                 statusText={summaries.custom}
                 mode={businessMode}
-                {...getGuidance("custom")}
+                usedByAI={getUsedByAI("custom-knowledge")}
+                {...getSectionGuidance("custom")}
               >
                 <CustomKnowledgeEditor />
               </SectionSummaryCard>
@@ -1326,7 +1371,8 @@ function BrainSectionDetailWrapper({
                 status="incomplete"
                 statusText={summaries.documents}
                 mode={businessMode}
-                {...getGuidance("documents")}
+                usedByAI={getUsedByAI("documents")}
+                {...getSectionGuidance("documents")}
               >
                 <BrainAssetsManager />
               </SectionSummaryCard>
