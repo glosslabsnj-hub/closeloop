@@ -138,6 +138,18 @@ export function PoliciesGuidance({
             <li>• If a caller asks about policy, the AI reads from your policy text.</li>
             <li>• If policy is blank, the AI will keep it generic and offer a callback for specifics.</li>
             <li>• Customers often ask about these before booking—clear policies reduce hesitation.</li>
+            {businessMode === "medical" && (
+              <li>• Medical practices should mention insurance acceptance and copay requirements upfront.</li>
+            )}
+            {businessMode === "dispatch" && (
+              <li>• Towing customers need clear payment-at-service and cancellation-after-dispatch policies.</li>
+            )}
+            {businessMode === "food" && (
+              <li>• Restaurants should clarify delivery minimums and refund policies for order issues.</li>
+            )}
+            {businessMode === "service" && (
+              <li>• Service businesses should address deposit requirements and rescheduling windows.</li>
+            )}
           </ul>
         </div>
 

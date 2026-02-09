@@ -1,12 +1,20 @@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
+
+export type AITone = "professional" | "friendly" | "casual";
+export type FollowUpCadence = "aggressive" | "moderate" | "conservative";
 
 export interface CommunicationPrefs {
   aiBookingMode: "auto_book" | "pending_approval" | "callback_only";
   missedCallBehavior: "text_only" | "ai_callback" | "both";
   unknownQuestionBehavior: "escalate" | "try_help" | "offer_callback";
+  aiTone: AITone;
+  followUpCadence: FollowUpCadence;
+  customGreeting: string;
 }
 
 /** Sensible defaults per mode */
@@ -17,18 +25,27 @@ export function getDefaultCommunicationPrefs(mode: BusinessMode): CommunicationP
         aiBookingMode: "pending_approval",
         missedCallBehavior: "text_only",
         unknownQuestionBehavior: "escalate",
+        aiTone: "professional",
+        followUpCadence: "conservative",
+        customGreeting: "",
       };
     case "dispatch":
       return {
         aiBookingMode: "callback_only",
         missedCallBehavior: "both",
         unknownQuestionBehavior: "offer_callback",
+        aiTone: "friendly",
+        followUpCadence: "aggressive",
+        customGreeting: "",
       };
     default:
       return {
         aiBookingMode: "auto_book",
         missedCallBehavior: "both",
         unknownQuestionBehavior: "try_help",
+        aiTone: "friendly",
+        followUpCadence: "moderate",
+        customGreeting: "",
       };
   }
 }
@@ -133,6 +150,70 @@ export function CommunicationPreferences({
           },
         ]}
       />
+
+      {/* AI Personality Tone */}
+      <PreferenceSection
+        title="AI personality tone:"
+        value={value.aiTone}
+        onValueChange={(v) => onChange({ ...value, aiTone: v as AITone })}
+        options={[
+          {
+            value: "professional",
+            label: "Professional",
+            description: "Formal, polished, and business-like",
+          },
+          {
+            value: "friendly",
+            label: "Friendly",
+            description: "Warm, approachable, and conversational",
+            recommended: true,
+          },
+          {
+            value: "casual",
+            label: "Casual",
+            description: "Relaxed and laid-back, like a neighbor helping out",
+          },
+        ]}
+      />
+
+      {/* Follow-up Aggressiveness */}
+      <PreferenceSection
+        title="Follow-up frequency:"
+        value={value.followUpCadence}
+        onValueChange={(v) => onChange({ ...value, followUpCadence: v as FollowUpCadence })}
+        options={[
+          {
+            value: "aggressive",
+            label: "Aggressive",
+            description: "Quick, frequent follow-ups to maximize conversions",
+          },
+          {
+            value: "moderate",
+            label: "Moderate",
+            description: "Balanced follow-ups at reasonable intervals",
+            recommended: true,
+          },
+          {
+            value: "conservative",
+            label: "Conservative",
+            description: "Minimal follow-ups, only when clearly needed",
+          },
+        ]}
+      />
+
+      {/* Custom Greeting */}
+      <div className="space-y-2">
+        <Label htmlFor="custom-greeting">Custom greeting (optional)</Label>
+        <Input
+          id="custom-greeting"
+          placeholder="e.g. Thanks for calling Mike's Auto! How can I help you today?"
+          value={value.customGreeting}
+          onChange={(e) => onChange({ ...value, customGreeting: e.target.value })}
+        />
+        <p className="text-xs text-muted-foreground">
+          Leave blank to use the default greeting for your industry. You can customize this later in the Business Brain.
+        </p>
+      </div>
     </div>
   );
 }

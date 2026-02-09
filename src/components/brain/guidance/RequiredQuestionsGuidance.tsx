@@ -110,6 +110,18 @@ export function RequiredQuestionsGuidance({
             <li>• If any required answer is missing, the AI will keep asking until it has it (or it will take a callback request).</li>
             <li>• These questions prevent incomplete tickets.</li>
             <li>• Write questions exactly how you want them asked.</li>
+            {businessMode === "dispatch" && (
+              <li>• Towing dispatches need exact location, vehicle info, and service type to dispatch the right equipment.</li>
+            )}
+            {businessMode === "medical" && (
+              <li>• Medical practices should collect patient name, DOB, and insurance upfront for verification.</li>
+            )}
+            {businessMode === "food" && (
+              <li>• Food orders need at minimum: items, pickup/delivery preference, and contact info.</li>
+            )}
+            {businessMode === "service" && (
+              <li>• Service appointments need the job type, preferred time, and property address (if mobile).</li>
+            )}
           </ul>
         </div>
 

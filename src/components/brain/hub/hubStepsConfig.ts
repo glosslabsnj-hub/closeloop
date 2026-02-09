@@ -169,3 +169,39 @@ export function getOfferingsTitle(mode: BusinessMode): string {
       return "Services & Pricing";
   }
 }
+
+/**
+ * Get dynamic title for any brain step based on mode and optional industry context.
+ * Falls back to getOfferingsTitle for the "offerings" step for backward compat.
+ */
+export function getDynamicStepTitle(
+  stepId: string,
+  mode: BusinessMode,
+): string {
+  switch (stepId) {
+    case "offerings":
+      return getOfferingsTitle(mode);
+    case "calendar":
+      return mode === "medical" ? "Appointment Calendar" : "Schedule & Availability";
+    case "policies":
+      if (mode === "medical") return "Patient Intake & HIPAA";
+      if (mode === "dispatch") return "Dispatch Policies";
+      return "Booking Policies";
+    case "knowledge":
+      if (mode === "medical") return "Patient FAQs";
+      if (mode === "food") return "Menu FAQs";
+      return "Customer FAQs";
+    case "hours":
+      return "Operating Hours";
+    case "identity":
+      return "Business Identity";
+    case "coverage":
+      if (mode === "dispatch") return "Coverage & ETA";
+      if (mode === "food") return "Delivery Area";
+      return "Service Area & ETA";
+    case "ai-setup":
+      return "AI Scripts & Behavior";
+    default:
+      return "";
+  }
+}

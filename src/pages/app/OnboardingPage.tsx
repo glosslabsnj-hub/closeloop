@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Building2, CheckCircle2, Loader2,
   ChevronRight, ChevronLeft, Sparkles, Sliders,
-  HelpCircle, ExternalLink
+  HelpCircle, ExternalLink, Briefcase, Clock
 } from "lucide-react";
 import { createDefaultWorkflowsForMode } from "@/lib/createDefaultWorkflows";
 import { getIndustryBySlug } from "@/data/industryCatalog";
@@ -20,6 +20,8 @@ import { BusinessModeSelector, type BusinessMode, getDefaultModulesForMode } fro
 import { ScenarioDiscovery } from "@/components/onboarding/ScenarioDiscovery";
 import { CommunicationPreferences, getDefaultCommunicationPrefs, type CommunicationPrefs } from "@/components/onboarding/CommunicationPreferences";
 import { ConfirmationSummary } from "@/components/onboarding/ConfirmationSummary";
+import { BusinessDetailsForm, getDefaultBusinessDetails, type BusinessDetails } from "@/components/onboarding/BusinessDetailsForm";
+import { SchedulingSetup, getDefaultSchedulingPrefs, getDefaultHoursForMode, type SchedulingPrefs } from "@/components/onboarding/SchedulingSetup";
 import { formatErrorForToast } from "@/lib/errorMessages";
 import { OnboardingProgress, type OnboardingStep } from "@/components/onboarding/OnboardingProgress";
 import { OnboardingComplete } from "@/components/onboarding/OnboardingComplete";
@@ -27,12 +29,15 @@ import { IndustrySelectorGrid } from "@/components/onboarding/IndustrySelectorGr
 import { updateCapabilityFlags } from "@/hooks/useBusinessCapabilities";
 import { getQuestionsForMode, getDefaultAnswers, deriveModulesFromScenario } from "@/lib/scenarioQuestions";
 import { DEFAULT_BUSINESS_HOURS } from "@/lib/hoursUtils";
+import type { BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
 import type { PlanCode } from "@/types/database";
 
 const steps: OnboardingStep[] = [
   { id: "identity", icon: Building2, title: "Identity", description: "Name your business" },
   { id: "industry", icon: Sparkles, title: "Industry", description: "Choose your industry" },
+  { id: "details", icon: Briefcase, title: "Details", description: "Business info" },
   { id: "scenarios", icon: HelpCircle, title: "Discovery", description: "How you operate" },
+  { id: "scheduling", icon: Clock, title: "Scheduling", description: "Hours & availability" },
   { id: "communication", icon: Sliders, title: "Communication", description: "AI behavior" },
   { id: "confirm", icon: CheckCircle2, title: "Confirm", description: "Review and apply" },
 ];
@@ -57,10 +62,17 @@ export default function OnboardingPage() {
   // Keep a ref to the "base" modules from industry so scenario derivation can diff
   const baseModulesRef = useRef<string[]>([]);
 
-  // Step 3: Scenario Discovery
+  // Step 3: Business Details
+  const [businessDetails, setBusinessDetails] = useState<BusinessDetails>(getDefaultBusinessDetails());
+
+  // Step 4: Scenario Discovery
   const [scenarioAnswers, setScenarioAnswers] = useState<Record<string, boolean>>({});
 
-  // Step 4: Communication Preferences
+  // Step 5: Scheduling & Hours
+  const [businessHours, setBusinessHours] = useState<BusinessHours>(DEFAULT_BUSINESS_HOURS);
+  const [schedulingPrefs, setSchedulingPrefs] = useState<SchedulingPrefs>(getDefaultSchedulingPrefs("service"));
+
+  // Step 6: Communication Preferences
   const [communicationPrefs, setCommunicationPrefs] = useState<CommunicationPrefs>(
     getDefaultCommunicationPrefs("service")
   );
@@ -101,12 +113,16 @@ export default function OnboardingPage() {
 
     // Auto-update business_mode from industry
     if (industryEntry?.businessMode) {
-      setBusinessMode(industryEntry.businessMode);
+      const newMode = industryEntry.businessMode;
+      setBusinessMode(newMode);
       // Reset communication prefs to match new mode
-      setCommunicationPrefs(getDefaultCommunicationPrefs(industryEntry.businessMode));
+      setCommunicationPrefs(getDefaultCommunicationPrefs(newMode));
+      // Reset scheduling prefs to match new mode
+      setSchedulingPrefs(getDefaultSchedulingPrefs(newMode));
+      setBusinessHours(getDefaultHoursForMode(newMode));
       // Reset scenario answers to match new mode (with industry context for filtering)
       const ctx = { slug: industrySlug, category: industryEntry.category };
-      setScenarioAnswers(getDefaultAnswers(industryEntry.businessMode, ctx));
+      setScenarioAnswers(getDefaultAnswers(newMode, ctx));
     }
 
     // Auto-update enabled_modules from industry
@@ -137,6 +153,8 @@ export default function OnboardingPage() {
     const ctx = industryEntry ? { slug: industrySlug, category: industryEntry.category } : undefined;
     setScenarioAnswers(getDefaultAnswers(mode, ctx));
     setCommunicationPrefs(getDefaultCommunicationPrefs(mode));
+    setSchedulingPrefs(getDefaultSchedulingPrefs(mode));
+    setBusinessHours(getDefaultHoursForMode(mode));
   };
 
   // Step validation
@@ -144,15 +162,17 @@ export default function OnboardingPage() {
     switch (stepNum) {
       case 1: return businessName.trim().length > 0 && businessMode.length > 0;
       case 2: return industrySlug.length > 0;
-      case 3: {
+      case 3: return true; // Business details all have defaults
+      case 4: {
         // Medical mode requires HIPAA acknowledgment
         if (businessMode === "medical") {
           return scenarioAnswers.requiresHIPAA === true;
         }
         return true;
       }
-      case 4: return true; // Has defaults
-      case 5: return true; // Confirmation
+      case 5: return true; // Scheduling has defaults
+      case 6: return true; // Communication has defaults
+      case 7: return true; // Confirmation
       default: return false;
     }
   };
@@ -206,14 +226,25 @@ export default function OnboardingPage() {
         isFoodMode,
       });
 
-      // Build capabilities_json from modules + scenario answers
-      const capabilitiesJson: Record<string, boolean> = {};
+      // Build capabilities_json from modules + scenario answers + business details
+      const capabilitiesJson: Record<string, boolean | string> = {};
       for (const mod of enabledModules) {
         capabilitiesJson[mod] = true;
       }
       for (const [key, val] of Object.entries(scenarioAnswers)) {
         capabilitiesJson[key] = val;
       }
+      // Store business details as capability metadata
+      capabilitiesJson._teamSize = businessDetails.teamSize;
+      capabilitiesJson._pricingPosition = businessDetails.pricingPosition;
+      capabilitiesJson._customerType = businessDetails.customerType;
+      capabilitiesJson._expectedCallVolume = businessDetails.expectedCallVolume;
+      capabilitiesJson._yearsInBusiness = businessDetails.yearsInBusiness;
+
+      // Use the hours from scheduling step (not default)
+      const hoursToSave = schedulingPrefs.is24x7
+        ? (await import("@/lib/hoursUtils")).HOURS_24_7
+        : businessHours;
 
       // 1. Create tenant via edge function
       const { data: createResult, error: createError } = await supabase.functions.invoke(
@@ -223,11 +254,12 @@ export default function OnboardingPage() {
             name: businessName.trim(),
             business_mode: businessMode,
             timezone,
-            hours_json: DEFAULT_BUSINESS_HOURS,
+            hours_json: hoursToSave,
             industry: industrySlug,
             enabled_modules: enabledModules,
             capabilities_json: capabilitiesJson,
             hipaa_mode: businessMode === "medical",
+            location: businessDetails.location || undefined,
           },
         }
       );
@@ -404,14 +436,27 @@ export default function OnboardingPage() {
         console.error("Assistant settings error:", settingsError);
       }
 
-      // Save communication preferences
+      // Save communication preferences (including new fields)
+      const commUpdate: Record<string, unknown> = {
+        ai_booking_mode: communicationPrefs.aiBookingMode,
+        missed_call_behavior: communicationPrefs.missedCallBehavior,
+        unknown_question_behavior: communicationPrefs.unknownQuestionBehavior,
+      };
+
+      // Store AI tone, follow-up cadence, and custom greeting in settings_json
+      // (these may not have dedicated columns yet, so we merge into settings_json)
+      const settingsJson: Record<string, string> = {};
+      if (communicationPrefs.aiTone) settingsJson.ai_tone = communicationPrefs.aiTone;
+      if (communicationPrefs.followUpCadence) settingsJson.followup_cadence = communicationPrefs.followUpCadence;
+      if (communicationPrefs.customGreeting) settingsJson.custom_greeting = communicationPrefs.customGreeting;
+
+      if (Object.keys(settingsJson).length > 0) {
+        commUpdate.settings_json = settingsJson;
+      }
+
       const { error: commPrefsError } = await supabase
         .from("assistant_settings")
-        .update({
-          ai_booking_mode: communicationPrefs.aiBookingMode,
-          missed_call_behavior: communicationPrefs.missedCallBehavior,
-          unknown_question_behavior: communicationPrefs.unknownQuestionBehavior,
-        })
+        .update(commUpdate)
         .eq("tenant_id", tenantId);
 
       if (commPrefsError) {
@@ -614,8 +659,17 @@ export default function OnboardingPage() {
                     />
                   )}
 
-                  {/* Step 3: Scenario Discovery */}
+                  {/* Step 3: Business Details */}
                   {step === 3 && (
+                    <BusinessDetailsForm
+                      businessMode={businessMode}
+                      value={businessDetails}
+                      onChange={setBusinessDetails}
+                    />
+                  )}
+
+                  {/* Step 4: Scenario Discovery */}
+                  {step === 4 && (
                     <ScenarioDiscovery
                       businessMode={businessMode}
                       answers={scenarioAnswers}
@@ -625,8 +679,19 @@ export default function OnboardingPage() {
                     />
                   )}
 
-                  {/* Step 4: Communication Preferences */}
-                  {step === 4 && (
+                  {/* Step 5: Scheduling & Hours */}
+                  {step === 5 && (
+                    <SchedulingSetup
+                      businessMode={businessMode}
+                      hours={businessHours}
+                      onHoursChange={setBusinessHours}
+                      prefs={schedulingPrefs}
+                      onPrefsChange={setSchedulingPrefs}
+                    />
+                  )}
+
+                  {/* Step 6: Communication Preferences */}
+                  {step === 6 && (
                     <CommunicationPreferences
                       businessMode={businessMode}
                       value={communicationPrefs}
@@ -634,14 +699,16 @@ export default function OnboardingPage() {
                     />
                   )}
 
-                  {/* Step 5: Confirmation */}
-                  {step === 5 && (
+                  {/* Step 7: Confirmation */}
+                  {step === 7 && (
                     <ConfirmationSummary
                       businessName={businessName}
                       businessMode={businessMode}
                       industrySlug={industrySlug}
                       scenarioAnswers={scenarioAnswers}
                       communicationPrefs={communicationPrefs}
+                      businessDetails={businessDetails}
+                      schedulingPrefs={schedulingPrefs}
                     />
                   )}
                 </motion.div>

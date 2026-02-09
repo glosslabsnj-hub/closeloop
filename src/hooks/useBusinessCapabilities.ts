@@ -36,6 +36,12 @@ export interface FoodCapabilities {
   collectsDietaryRestrictions: boolean;
   offersCurbside: boolean;
   hasKDSIntegration: boolean;
+  servesAlcohol: boolean;
+  offersFamilyMeals: boolean;
+  hasLoyaltyProgram: boolean;
+  acceptsOnlineOrders: boolean;
+  offersMealPrep: boolean;
+  handlesGroupOrders: boolean;
 }
 
 export interface DispatchCapabilities {
@@ -51,6 +57,12 @@ export interface DispatchCapabilities {
   handlesPPITowing: boolean;
   offersRecovery: boolean;
   offersPhoneQuotes: boolean;
+  operates24Hours: boolean;
+  handlesHeavyDuty: boolean;
+  worksWithInsurance: boolean;
+  offersStorage: boolean;
+  offersLockoutJumpstart: boolean;
+  handlesAccidentTowing: boolean;
 }
 
 export interface ServiceCapabilities {
@@ -66,6 +78,12 @@ export interface ServiceCapabilities {
   offersPackages: boolean;
   collectsStylistPreference: boolean;
   requiresWarrantyCheck: boolean;
+  offersFreeEstimates: boolean;
+  chargesTripFee: boolean;
+  offersFinancing: boolean;
+  sendsReminders: boolean;
+  hasMinimumCharge: boolean;
+  offersAfterHours: boolean;
 }
 
 export interface MedicalCapabilities {
@@ -78,6 +96,12 @@ export interface MedicalCapabilities {
   requiresNewPatientForms: boolean;
   collectsReferralInfo: boolean;
   collectsMedications: boolean;
+  hasMultipleLocations: boolean;
+  handlesWorkersComp: boolean;
+  acceptsWalkIns: boolean;
+  offersSameDayAppointments: boolean;
+  hasOnSiteLab: boolean;
+  offersPaymentPlans: boolean;
 }
 
 export interface GeneralCapabilities {
@@ -85,6 +109,11 @@ export interface GeneralCapabilities {
   offersCallbacks: boolean;
   offersMessaging: boolean;
   handlesFAQs: boolean;
+  offersFreeConsultation: boolean;
+  servesResidentialCommercial: boolean;
+  needsAfterHoursContact: boolean;
+  hasPhysicalOffice: boolean;
+  providesWrittenQuotes: boolean;
 }
 
 export interface BusinessCapabilities {
@@ -146,6 +175,12 @@ const defaultFoodCapabilities: FoodCapabilities = {
   collectsDietaryRestrictions: false,
   offersCurbside: false,
   hasKDSIntegration: false,
+  servesAlcohol: false,
+  offersFamilyMeals: false,
+  hasLoyaltyProgram: false,
+  acceptsOnlineOrders: false,
+  offersMealPrep: false,
+  handlesGroupOrders: false,
 };
 
 const defaultDispatchCapabilities: DispatchCapabilities = {
@@ -161,6 +196,12 @@ const defaultDispatchCapabilities: DispatchCapabilities = {
   handlesPPITowing: false,
   offersRecovery: false,
   offersPhoneQuotes: true,
+  operates24Hours: false,
+  handlesHeavyDuty: false,
+  worksWithInsurance: false,
+  offersStorage: false,
+  offersLockoutJumpstart: true,
+  handlesAccidentTowing: false,
 };
 
 const defaultServiceCapabilities: ServiceCapabilities = {
@@ -176,6 +217,12 @@ const defaultServiceCapabilities: ServiceCapabilities = {
   offersPackages: false,
   collectsStylistPreference: false,
   requiresWarrantyCheck: false,
+  offersFreeEstimates: false,
+  chargesTripFee: false,
+  offersFinancing: false,
+  sendsReminders: true,
+  hasMinimumCharge: false,
+  offersAfterHours: false,
 };
 
 const defaultMedicalCapabilities: MedicalCapabilities = {
@@ -188,6 +235,12 @@ const defaultMedicalCapabilities: MedicalCapabilities = {
   requiresNewPatientForms: true,
   collectsReferralInfo: false,
   collectsMedications: false,
+  hasMultipleLocations: false,
+  handlesWorkersComp: false,
+  acceptsWalkIns: false,
+  offersSameDayAppointments: false,
+  hasOnSiteLab: false,
+  offersPaymentPlans: false,
 };
 
 const defaultGeneralCapabilities: GeneralCapabilities = {
@@ -195,6 +248,11 @@ const defaultGeneralCapabilities: GeneralCapabilities = {
   offersCallbacks: true,
   offersMessaging: true,
   handlesFAQs: true,
+  offersFreeConsultation: false,
+  servesResidentialCommercial: true,
+  needsAfterHoursContact: false,
+  hasPhysicalOffice: true,
+  providesWrittenQuotes: false,
 };
 
 // ============================================================================
@@ -311,6 +369,12 @@ export function useBusinessCapabilities(): BusinessCapabilities {
     collectsDietaryRestrictions: additionalData?.scenarioFlags?.collectsDietaryRestrictions ?? false,
     offersCurbside: additionalData?.scenarioFlags?.offersCurbside ?? false,
     hasKDSIntegration: additionalData?.scenarioFlags?.hasKDSIntegration ?? false,
+    servesAlcohol: additionalData?.scenarioFlags?.servesAlcohol ?? false,
+    offersFamilyMeals: additionalData?.scenarioFlags?.offersFamilyMeals ?? false,
+    hasLoyaltyProgram: additionalData?.scenarioFlags?.hasLoyaltyProgram ?? false,
+    acceptsOnlineOrders: additionalData?.scenarioFlags?.acceptsOnlineOrders ?? false,
+    offersMealPrep: additionalData?.scenarioFlags?.offersMealPrep ?? false,
+    handlesGroupOrders: additionalData?.scenarioFlags?.handlesGroupOrders ?? false,
   };
 
   const dispatch: DispatchCapabilities = {
@@ -326,6 +390,12 @@ export function useBusinessCapabilities(): BusinessCapabilities {
     handlesPPITowing: additionalData?.scenarioFlags?.handlesPPITowing ?? false,
     offersRecovery: additionalData?.scenarioFlags?.offersRecovery ?? false,
     offersPhoneQuotes: additionalData?.scenarioFlags?.offersPhoneQuotes ?? true,
+    operates24Hours: additionalData?.scenarioFlags?.operates24Hours ?? false,
+    handlesHeavyDuty: additionalData?.scenarioFlags?.handlesHeavyDuty ?? false,
+    worksWithInsurance: additionalData?.scenarioFlags?.worksWithInsurance ?? false,
+    offersStorage: additionalData?.scenarioFlags?.offersStorage ?? false,
+    offersLockoutJumpstart: additionalData?.scenarioFlags?.offersLockoutJumpstart ?? true,
+    handlesAccidentTowing: additionalData?.scenarioFlags?.handlesAccidentTowing ?? false,
   };
 
   const service: ServiceCapabilities = {
@@ -341,6 +411,12 @@ export function useBusinessCapabilities(): BusinessCapabilities {
     offersPackages: additionalData?.scenarioFlags?.offersPackages ?? false,
     collectsStylistPreference: additionalData?.scenarioFlags?.collectsStylistPreference ?? false,
     requiresWarrantyCheck: additionalData?.scenarioFlags?.requiresWarrantyCheck ?? false,
+    offersFreeEstimates: additionalData?.scenarioFlags?.offersFreeEstimates ?? false,
+    chargesTripFee: additionalData?.scenarioFlags?.chargesTripFee ?? false,
+    offersFinancing: additionalData?.scenarioFlags?.offersFinancing ?? false,
+    sendsReminders: additionalData?.scenarioFlags?.sendsReminders ?? true,
+    hasMinimumCharge: additionalData?.scenarioFlags?.hasMinimumCharge ?? false,
+    offersAfterHours: additionalData?.scenarioFlags?.offersAfterHours ?? false,
   };
 
   const medical: MedicalCapabilities = {
@@ -353,6 +429,12 @@ export function useBusinessCapabilities(): BusinessCapabilities {
     requiresNewPatientForms: additionalData?.scenarioFlags?.requiresNewPatientForms ?? true,
     collectsReferralInfo: additionalData?.scenarioFlags?.collectsReferralInfo ?? false,
     collectsMedications: additionalData?.scenarioFlags?.collectsMedications ?? false,
+    hasMultipleLocations: additionalData?.scenarioFlags?.hasMultipleLocations ?? false,
+    handlesWorkersComp: additionalData?.scenarioFlags?.handlesWorkersComp ?? false,
+    acceptsWalkIns: additionalData?.scenarioFlags?.acceptsWalkIns ?? false,
+    offersSameDayAppointments: additionalData?.scenarioFlags?.offersSameDayAppointments ?? false,
+    hasOnSiteLab: additionalData?.scenarioFlags?.hasOnSiteLab ?? false,
+    offersPaymentPlans: additionalData?.scenarioFlags?.offersPaymentPlans ?? false,
   };
 
   const general: GeneralCapabilities = {
@@ -360,6 +442,11 @@ export function useBusinessCapabilities(): BusinessCapabilities {
     offersCallbacks: true,
     offersMessaging: enabledModules.includes("instant_text_back"),
     handlesFAQs: additionalData?.scenarioFlags?.handlesFAQs ?? true,
+    offersFreeConsultation: additionalData?.scenarioFlags?.offersFreeConsultation ?? false,
+    servesResidentialCommercial: additionalData?.scenarioFlags?.servesResidentialCommercial ?? true,
+    needsAfterHoursContact: additionalData?.scenarioFlags?.needsAfterHoursContact ?? false,
+    hasPhysicalOffice: additionalData?.scenarioFlags?.hasPhysicalOffice ?? true,
+    providesWrittenQuotes: additionalData?.scenarioFlags?.providesWrittenQuotes ?? false,
   };
 
   // Derive cross-cutting capabilities

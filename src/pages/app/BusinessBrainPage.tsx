@@ -90,6 +90,7 @@ import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useCapabilities } from "@/hooks/useCapabilities";
 import { useFoodMode } from "@/hooks/useFoodMode";
 import { useFoodOrderSettings } from "@/hooks/useFoodOrderSettings";
+import { getIndustryTerminology } from "@/data/industryTerminology";
 
 // Layout components
 import {
@@ -146,6 +147,7 @@ export default function BusinessBrainPage() {
   const { isFoodMode, hasFoodOrders } = useFoodMode();
   const { acceptsDelivery: foodAcceptsDelivery, acceptsCatering: foodAcceptsCatering, needsCoverageSettings: foodNeedsCoverage } = useFoodOrderSettings();
   const summaries = useBrainSummaries();
+  const terms = getIndustryTerminology(businessMode);
 
   const sectionParamRaw = searchParams.get("section");
   const legacyTab = searchParams.get("tab");
@@ -288,7 +290,7 @@ export default function BusinessBrainPage() {
                     steps={[
                       { id: "business-info", label: "Business Info", section: "profile", isComplete: !!tenant?.name },
                       { id: "hours", label: "Set Hours", section: "hours", isComplete: summaries.hours !== "No hours set yet" },
-                      { id: "services", label: "Add Services", section: "services", isComplete: summaries.catalog !== "No items added yet" },
+                      { id: "services", label: `Add ${terms.servicesLabel}`, section: "services", isComplete: summaries.catalog !== "No items added yet" },
                       { id: "scripts", label: "Greeting Script", section: "ai-behavior", isComplete: summaries.scripts !== "Using default greeting" },
                     ]}
                     onContinue={handleSectionChange}
@@ -366,7 +368,7 @@ export default function BusinessBrainPage() {
                 </EssentialGroup>
 
                 {/* Next step suggestion after hours are set */}
-                {summaries.hours !== "No hours set yet" && summaries.catalog === "No items added yet" && (
+                {summaries.hours !== "No hours set yet" && (summaries.catalog === "No items added yet" || summaries.catalog === `No ${terms.serviceItemLabel}s added yet`) && (
                   <NextStepSuggestion
                     completedSection="hours"
                     mode={businessMode}
@@ -382,7 +384,7 @@ export default function BusinessBrainPage() {
                 {/* Pricing Readiness - inline, not collapsible */}
                 <QuoteReadinessCard />
 
-                <EssentialGroup title="Core Offerings" description={isFoodMode ? "Your menu items and service types" : "Services you provide"}>
+                <EssentialGroup title="Core Offerings" description={isFoodMode ? `Your ${terms.serviceItemLabel}s and service types` : `${terms.servicesLabel} you provide`}>
                   {/* Food mode: Service types first (what do you offer?) */}
                   {isFoodMode && (
                     <SectionSummaryCard
@@ -421,10 +423,10 @@ export default function BusinessBrainPage() {
 
                   <SectionSummaryCard
                     id="catalog"
-                    title={isFoodMode ? "Menu" : isDispatchMode ? "Tow Services" : "Services"}
+                    title={terms.servicesLabel}
                     icon={Tag}
                     status={summaries.catalog !== "No items added yet" ? "complete" : "incomplete"}
-                    statusText={summaries.catalog}
+                    statusText={summaries.catalog === "No items added yet" ? `No ${terms.serviceItemLabel}s added yet` : summaries.catalog}
                     isEssential
                     mode={businessMode}
                   >
@@ -554,13 +556,13 @@ export default function BusinessBrainPage() {
                   </AdvancedGroup>
                 )}
 
-                <AdvancedGroup title="Secondary Services" collapsedDescription="Additional offerings beyond your core business">
+                <AdvancedGroup title="Secondary Services" collapsedDescription={`Additional offerings beyond your core ${terms.serviceItemLabel}s`}>
                   <SectionSummaryCard
                     id="additional-services"
                     title="Additional Services"
                     icon={Wrench}
                     status="incomplete"
-                    statusText="Secondary services beyond your core business"
+                    statusText={`Secondary ${terms.serviceItemLabel}s beyond your core business`}
                     mode={businessMode}
                   >
                     <AdditionalServicesEditor />
@@ -598,9 +600,9 @@ export default function BusinessBrainPage() {
                   </div>
                 )}
 
-                <EssentialGroup 
-                  title="Coverage Area" 
-                  description="Where your business provides service"
+                <EssentialGroup
+                  title={terms.locationLabel.charAt(0).toUpperCase() + terms.locationLabel.slice(1)}
+                  description={`Where your ${terms.teamMemberLabel}s provide ${terms.serviceItemLabel}s`}
                   showBadge={["dispatch", "service"].includes(businessMode) || ((businessMode === "food" || isFoodMode) && foodNeedsCoverage)}
                 >
                   {/* Only show location/coverage for non-food or food with delivery/catering */}
@@ -608,7 +610,7 @@ export default function BusinessBrainPage() {
                     <>
                       <SectionSummaryCard
                         id="coverage"
-                        title="Where You Serve"
+                        title={`Your ${terms.locationLabel.charAt(0).toUpperCase() + terms.locationLabel.slice(1)}`}
                         icon={MapPin}
                         status="incomplete"
                         statusText={summaries.coverage}
@@ -765,7 +767,7 @@ export default function BusinessBrainPage() {
             {/* POLICIES */}
             {activeSection === "policies" && (
               <div className="space-y-4">
-                <EssentialGroup title="Core Policies" description="Rules your AI follows when talking to customers">
+                <EssentialGroup title="Core Policies" description={`Rules your AI follows when talking to ${terms.customerLabel}s`}>
                   <SectionSummaryCard
                     id="policies"
                     title="Business Policies"
@@ -999,7 +1001,7 @@ export default function BusinessBrainPage() {
                   </SectionSummaryCard>
                 )}
 
-                <EssentialGroup title="Core Knowledge" description="Common questions and objections" showBadge={false}>
+                <EssentialGroup title="Core Knowledge" description={`Common ${terms.customerLabel} questions and objections`} showBadge={false}>
                   <SectionSummaryCard
                     id="faqs"
                     title="FAQs"

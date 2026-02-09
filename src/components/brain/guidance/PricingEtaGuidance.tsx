@@ -57,6 +57,18 @@ export function PricingEtaGuidance({
               <li>• If pricing is fixed or "starting at," the AI will quote it using your service pricing.</li>
               <li>• If pricing isn't defined, the AI will collect details and route to a callback/quote.</li>
               <li>• ETAs are always spoken as ranges—never exact guarantees.</li>
+              {businessMode === "service" && (
+                <li>• Service businesses often use "starting at" prices for jobs that vary by scope or property size.</li>
+              )}
+              {businessMode === "dispatch" && (
+                <li>• Towing rates typically vary by distance — configure distance-based pricing tiers for accurate quotes.</li>
+              )}
+              {businessMode === "food" && (
+                <li>• Food prep times vary by order size — set realistic ranges and mention delivery time separately.</li>
+              )}
+              {businessMode === "medical" && (
+                <li>• Medical practices should clarify that fees may vary by insurance — direct pricing questions to billing.</li>
+              )}
             </ul>
           </div>
 

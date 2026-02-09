@@ -101,6 +101,22 @@ export function ServiceAreaGuidance({
 
   const previewFallback = "The AI will ask the caller for their ZIP and then offer a callback if out of area.";
 
+  // Industry-specific tips
+  const industryTips: string[] = [];
+  if (businessMode === "dispatch") {
+    industryTips.push("Towing companies typically cover a 25-50 mile radius from their base location.");
+    industryTips.push("Consider separate zones for local vs. long-distance towing rates.");
+  } else if (businessMode === "food") {
+    industryTips.push("Most restaurants cap delivery at 5-8 miles to keep food quality high.");
+    industryTips.push("Consider different delivery fees by zone distance.");
+  } else if (businessMode === "service") {
+    industryTips.push("Service businesses often define coverage by ZIP codes or a radius from their shop.");
+    industryTips.push("Mobile-only businesses should set a clear max travel distance.");
+  } else if (businessMode === "medical") {
+    industryTips.push("Patients may travel farther for specialists — consider a wider coverage area.");
+    industryTips.push("If you offer telehealth, you can serve patients statewide.");
+  }
+
   return (
     <SectionGuidanceCard
       title="Where you will and won't go"
@@ -109,6 +125,7 @@ export function ServiceAreaGuidance({
       howAIUsesIt={[
         "If a caller asks 'Do you serve my area?', the AI will ask for ZIP/city first and then check your service area rules.",
         "If the caller is outside your area, the AI will use your Out-of-Area Message (speech-ready) instead of arguing.",
+        ...industryTips,
       ]}
       examples={SERVICE_AREA_EXAMPLES}
       avoidList={[

@@ -6,6 +6,8 @@ import { resolveIndustryTemplate } from "@/lib/templateResolver";
 import { getQuestionsForMode } from "@/lib/scenarioQuestions";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 import type { CommunicationPrefs } from "./CommunicationPreferences";
+import type { BusinessDetails } from "./BusinessDetailsForm";
+import type { SchedulingPrefs } from "./SchedulingSetup";
 
 const modeLabels: Record<BusinessMode, string> = {
   service: "Service Business",
@@ -33,12 +35,45 @@ const unknownQuestionLabels: Record<string, string> = {
   offer_callback: "Offer Callback",
 };
 
+const toneLabels: Record<string, string> = {
+  professional: "Professional",
+  friendly: "Friendly",
+  casual: "Casual",
+};
+
+const cadenceLabels: Record<string, string> = {
+  aggressive: "Aggressive",
+  moderate: "Moderate",
+  conservative: "Conservative",
+};
+
+const teamSizeLabels: Record<string, string> = {
+  solo: "Solo Operator",
+  small: "Small Team (2-5)",
+  medium: "Medium (6-20)",
+  large: "Large (20+)",
+};
+
+const pricingLabels: Record<string, string> = {
+  budget: "Budget / Value",
+  mid: "Mid-Range",
+  premium: "Premium",
+};
+
+const customerTypeLabels: Record<string, string> = {
+  residential: "Residential",
+  commercial: "Commercial",
+  both: "Residential & Commercial",
+};
+
 interface ConfirmationSummaryProps {
   businessName: string;
   businessMode: BusinessMode;
   industrySlug: string;
   scenarioAnswers: Record<string, boolean>;
   communicationPrefs: CommunicationPrefs;
+  businessDetails?: BusinessDetails;
+  schedulingPrefs?: SchedulingPrefs;
 }
 
 export function ConfirmationSummary({
@@ -47,6 +82,8 @@ export function ConfirmationSummary({
   industrySlug,
   scenarioAnswers,
   communicationPrefs,
+  businessDetails,
+  schedulingPrefs,
 }: ConfirmationSummaryProps) {
   const industryEntry = getIndustryBySlug(industrySlug);
   const template = resolveIndustryTemplate(industrySlug);
@@ -76,7 +113,7 @@ export function ConfirmationSummary({
         <CardContent className="p-4 space-y-2">
           <p className="text-sm font-medium text-muted-foreground">Business</p>
           <p className="text-lg font-semibold">{businessName}</p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="secondary">{modeLabels[businessMode]}</Badge>
             {industryEntry && (
               <Badge variant="outline">
@@ -86,6 +123,41 @@ export function ConfirmationSummary({
           </div>
         </CardContent>
       </Card>
+
+      {/* Business Details */}
+      {businessDetails && (
+        <Card>
+          <CardContent className="p-4 space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">Business Details</p>
+            <div className="grid grid-cols-2 gap-1 text-sm">
+              {businessDetails.location && (
+                <div className="flex justify-between col-span-2">
+                  <span className="text-muted-foreground">Location</span>
+                  <span className="font-medium">{businessDetails.location}</span>
+                </div>
+              )}
+              <div className="flex justify-between col-span-2">
+                <span className="text-muted-foreground">Team size</span>
+                <span className="font-medium">{teamSizeLabels[businessDetails.teamSize]}</span>
+              </div>
+              <div className="flex justify-between col-span-2">
+                <span className="text-muted-foreground">Pricing</span>
+                <span className="font-medium">{pricingLabels[businessDetails.pricingPosition]}</span>
+              </div>
+              <div className="flex justify-between col-span-2">
+                <span className="text-muted-foreground">Call volume</span>
+                <span className="font-medium">{businessDetails.expectedCallVolume} calls/day</span>
+              </div>
+              {businessMode !== "food" && businessMode !== "medical" && (
+                <div className="flex justify-between col-span-2">
+                  <span className="text-muted-foreground">Customers</span>
+                  <span className="font-medium">{customerTypeLabels[businessDetails.customerType]}</span>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Capabilities */}
       {enabledCapabilities.length > 0 && (
@@ -99,6 +171,44 @@ export function ConfirmationSummary({
                   {q.label}
                 </Badge>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Scheduling */}
+      {schedulingPrefs && (
+        <Card>
+          <CardContent className="p-4 space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">Scheduling</p>
+            <div className="grid grid-cols-1 gap-1 text-sm">
+              {schedulingPrefs.is24x7 ? (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Hours</span>
+                  <span className="font-medium">24/7</span>
+                </div>
+              ) : (
+                <>
+                  {(businessMode === "service" || businessMode === "medical" || businessMode === "general") && (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Appointment duration</span>
+                        <span className="font-medium">{schedulingPrefs.defaultDurationMinutes} min</span>
+                      </div>
+                      {schedulingPrefs.bufferMinutes > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Buffer</span>
+                          <span className="font-medium">{schedulingPrefs.bufferMinutes} min</span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Same-day booking</span>
+                    <span className="font-medium">{schedulingPrefs.sameDayBooking ? "Yes" : "No"}</span>
+                  </div>
+                </>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -123,6 +233,20 @@ export function ConfirmationSummary({
               <span className="text-muted-foreground">Unknown questions</span>
               <span className="font-medium">{unknownQuestionLabels[communicationPrefs.unknownQuestionBehavior]}</span>
             </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">AI tone</span>
+              <span className="font-medium">{toneLabels[communicationPrefs.aiTone]}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Follow-ups</span>
+              <span className="font-medium">{cadenceLabels[communicationPrefs.followUpCadence]}</span>
+            </div>
+            {communicationPrefs.customGreeting && (
+              <div className="col-span-1 mt-2 p-2 bg-muted/50 rounded text-xs">
+                <span className="text-muted-foreground block mb-0.5">Custom greeting:</span>
+                <span className="italic">"{communicationPrefs.customGreeting}"</span>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -146,8 +270,8 @@ export function ConfirmationSummary({
           <div>
             <p className="text-sm font-medium">What's next?</p>
             <p className="text-[13px] text-muted-foreground mt-1">
-              After setup, head to the <strong>Business Brain</strong> to add
-              your hours, phone number, and customize your services.
+              After setup, head to the <strong>Business Brain</strong> to
+              customize your services, add your phone number, and fine-tune your AI.
             </p>
           </div>
         </div>
