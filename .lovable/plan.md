@@ -1,85 +1,114 @@
 
 
-# Wire Up BusinessBrainHub Component
+# Fix Build Errors — TypeScript 'unknown' Type Issues
 
 ## Overview
 
-Claude Code created a new **8-step Business Brain Hub** design that provides a simpler, more guided setup experience compared to the current 5-category dashboard. I'll replace the current `BrainDashboard` with the new `BusinessBrainHub` component while preserving all existing navigation and editor functionality.
+Three TypeScript errors need to be fixed where `err` is of type `unknown` but we're trying to access `.message` property directly.
 
-## What Changes
+## Changes Required
 
-### Current State
-- `BusinessBrainPage.tsx` renders `BrainDashboard` (5 category cards in a grid)
-- Navigation uses 5 categories: business, services, operations, ai-voice, training
+### Fix 1: `supabase/functions/detect-patterns/index.ts` (line 511)
 
-### New State
-- `BusinessBrainPage.tsx` will render `BusinessBrainHub` (8 step cards in a vertical list)
-- Navigation uses 8 step section IDs that map to existing legacy aliases
-
-## Technical Implementation
-
-### File: `src/pages/app/BusinessBrainPage.tsx`
-
-**Changes:**
-
-1. **Update imports:**
-   - Remove: `import { BrainDashboard } from "@/components/brain/dashboard/BrainDashboard"`
-   - Add: `import { BusinessBrainHub } from "@/components/brain/hub"`
-
-2. **Replace dashboard component:**
-   - Change the `!activeSection` case to render `BusinessBrainHub` instead of `BrainDashboard`
-   - Update prop: `onNavigate` → `onNavigateToSection` (the Hub uses a different prop name)
-
-3. **Keep everything else unchanged:**
-   - All section detail views remain the same
-   - Legacy section aliases still work (already mapped in `LEGACY_SECTION_ALIASES`)
-   - All editors and save logic preserved
-
-### Navigation Mapping
-
-The `BusinessBrainHub` uses these `sectionId` values from `hubStepsConfig.ts`:
-
-| Step | sectionId | Resolves via LEGACY_SECTION_ALIASES to |
-|------|-----------|----------------------------------------|
-| Identity | `profile` | `business` |
-| Hours | `hours` | `business` |
-| Offerings | `services` | (direct match) |
-| Coverage | `service-area` | `operations` |
-| Calendar | `availability` | `business` |
-| Policies | `policies` | `operations` |
-| AI Setup | `ai-behavior` | `ai-voice` |
-| Knowledge | `knowledge` | (direct match → training) |
-
-The existing `LEGACY_SECTION_ALIASES` in `BusinessBrainPage.tsx` already handles this mapping, so navigation will work correctly.
-
-## Code Changes
-
-```text
-Lines ~113-114: Update import
-Lines ~318-321: Replace BrainDashboard with BusinessBrainHub
+**Current code:**
+```typescript
+} catch (err) {
+  console.error("[detect-patterns] Error:", err);
+  return errorResponse(`Internal error: ${err.message}`, 500);
+}
 ```
 
-## What Stays the Same
+**Fixed code:**
+```typescript
+} catch (err) {
+  console.error("[detect-patterns] Error:", err);
+  return errorResponse(`Internal error: ${err instanceof Error ? err.message : "Unknown error"}`, 500);
+}
+```
 
-- All section detail views (`BrainSectionDetail`, `BrainSectionDetailWrapper`)
-- All editors (Services, Hours, Policies, etc.)
-- URL parameter handling and legacy aliases
-- Animation variants
-- HIPAA warnings
-- Add-on section logic
+---
 
-## Risk Assessment
+### Fix 2: `supabase/functions/process-call-outcome/index.ts` (line 147)
 
-**Low Risk:**
-- This is a UI-only change (dashboard hub component swap)
-- All navigation logic is already in place via legacy aliases
-- Section detail views are completely unchanged
-- No database or backend changes
+**Current code:**
+```typescript
+} catch (err) {
+  console.error("[process-call-outcome] Error:", err);
+  return errorResponse(`Internal error: ${err.message}`, 500);
+}
+```
 
-## Testing After Implementation
+**Fixed code:**
+```typescript
+} catch (err) {
+  console.error("[process-call-outcome] Error:", err);
+  return errorResponse(`Internal error: ${err instanceof Error ? err.message : "Unknown error"}`, 500);
+}
+```
 
-1. Open `/app/business-brain` → Should see 8 vertical step cards
-2. Click any step → Should navigate to the correct section editor
-3. Click back → Should return to the 8-step hub
-4. Verify progress tracking shows completion status
+---
+
+### Fix 3: `src/components/ai/VoiceAgentTest.tsx` (lines 32-48)
+
+**Current code:**
+```typescript
+const toSafeVars = (vars: Record<string, unknown> | null | undefined): Record<string, string | number | boolean> => {
+  if (!vars) return { businessname: "our business" };
+  
+  const safe = Object.fromEntries(
+    Object.entries(vars).map(([k, v]) => [k, v == null ? "" : v])
+  );
+  
+  // Ensure businessname alias is always present (ElevenLabs expects no underscore)
+  if (!safe.businessname && safe.business_name) {
+    safe.businessname = safe.business_name;
+  }
+  if (!safe.businessname) {
+    safe.businessname = "our business";
+  }
+  
+  return safe;
+};
+```
+
+**Fixed code:**
+```typescript
+const toSafeVars = (vars: Record<string, unknown> | null | undefined): Record<string, string | number | boolean> => {
+  if (!vars) return { businessname: "our business" };
+  
+  const safe: Record<string, string | number | boolean> = {};
+  for (const [k, v] of Object.entries(vars)) {
+    if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
+      safe[k] = v;
+    } else if (v == null) {
+      safe[k] = "";
+    } else {
+      safe[k] = String(v);
+    }
+  }
+  
+  // Ensure businessname alias is always present (ElevenLabs expects no underscore)
+  if (!safe.businessname && safe.business_name) {
+    safe.businessname = safe.business_name;
+  }
+  if (!safe.businessname) {
+    safe.businessname = "our business";
+  }
+  
+  return safe;
+};
+```
+
+---
+
+## Why These Fixes Work
+
+1. **Edge Functions (Fixes 1 & 2):** In TypeScript, caught errors are typed as `unknown`. We need to check if the error is an `Error` instance before accessing `.message`.
+
+2. **VoiceAgentTest (Fix 3):** `Object.fromEntries` returns `{ [k: string]: unknown }` which doesn't match the return type. By explicitly typing `safe` and using a for-loop with type guards, we ensure only valid types are assigned.
+
+## Files Changed
+- `supabase/functions/detect-patterns/index.ts` — 1 line
+- `supabase/functions/process-call-outcome/index.ts` — 1 line  
+- `src/components/ai/VoiceAgentTest.tsx` — ~10 lines
 
