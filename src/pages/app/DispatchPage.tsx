@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { AnimatedList, AnimatedListItem } from "@/components/ui/animated";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -432,17 +433,18 @@ export default function DispatchPage() {
               onViewDetails={handleViewDetails}
             />
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <AnimatedList className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filteredJobs.map((job) => (
-                <DispatchJobCard
-                  key={job.id}
-                  job={job}
-                  onAssign={handleAssign}
-                  onUpdateStatus={handleUpdateStatus}
-                  onCall={handleCall}
-                />
+                <AnimatedListItem key={job.id}>
+                  <DispatchJobCard
+                    job={job}
+                    onAssign={handleAssign}
+                    onUpdateStatus={handleUpdateStatus}
+                    onCall={handleCall}
+                  />
+                </AnimatedListItem>
               ))}
-            </div>
+            </AnimatedList>
           )}
         </div>
 

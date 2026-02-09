@@ -55,7 +55,7 @@ export function DispatchJobCard<T>({ job, onAssign, onUpdateStatus, onCall }: Di
   return (
     <div
       className={cn(
-        "rounded-lg border p-4 transition-colors hover:border-border/60",
+        "rounded-lg border p-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-border/60",
         job.priority === "urgent" && "border-destructive/40"
       )}
     >

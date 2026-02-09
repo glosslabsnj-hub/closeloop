@@ -147,7 +147,7 @@ export function DispatchCommandTable({
               <TableRow
                 key={job.id}
                 className={cn(
-                  "cursor-pointer transition-colors",
+                  "cursor-pointer transition-colors hover:bg-muted/20",
                   priority.rowClass
                 )}
                 onClick={() => onViewDetails(job)}

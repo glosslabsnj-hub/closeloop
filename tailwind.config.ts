@@ -99,7 +99,7 @@ export default {
         'DEFAULT': '0 2px 8px hsl(0 0% 0% / 0.08)',
         'md': '0 4px 16px hsl(0 0% 0% / 0.1)',
         'lg': '0 8px 32px hsl(0 0% 0% / 0.12)',
-        'focus': '0 0 0 3px hsl(var(--primary) / 0.15)',
+        'focus': '0 0 0 3px hsl(var(--primary) / 0.3)',
         // Keep glow variants for accent
         'glow': '0 0 12px -3px hsl(var(--primary) / 0.25)',
         'glow-lg': '0 0 24px -6px hsl(var(--primary) / 0.3)',

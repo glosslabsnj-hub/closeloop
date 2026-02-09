@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { AnimatedList, AnimatedListItem } from "@/components/ui/animated";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -152,16 +153,17 @@ export default function BookingsPage() {
             }
           />
         ) : (
-          <div className="divide-y divide-border/30 rounded-lg border border-border/30">
+          <AnimatedList className="divide-y divide-border/30 rounded-lg border border-border/30">
             {filteredBookings.map((booking) => (
-              <BookingCard
-                key={booking.id}
-                booking={booking}
-                onEdit={handleEditBooking}
-                onCancel={handleCancelBooking}
-              />
+              <AnimatedListItem key={booking.id}>
+                <BookingCard
+                  booking={booking}
+                  onEdit={handleEditBooking}
+                  onCancel={handleCancelBooking}
+                />
+              </AnimatedListItem>
             ))}
-          </div>
+          </AnimatedList>
         )}
 
         <CreateBookingDialog

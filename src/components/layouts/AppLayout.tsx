@@ -1,4 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { AdminModeProvider } from "@/contexts/AdminModeContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
@@ -210,7 +211,7 @@ function AppLayoutContent() {
                 ? "bg-white/[0.08] text-foreground"
                 : isLocked
                   ? "text-muted-foreground/30 cursor-not-allowed"
-                  : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
             )}
           >
             <Icon className={cn("h-[18px] w-[18px] shrink-0", isActive && "text-primary")} />
@@ -493,7 +494,16 @@ function AppLayoutContent() {
           "pb-16 md:pb-0" // Mobile bottom nav
         )}>
           {isRouteAccessible ? (
-            <Outlet />
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0, transition: { duration: 0.2, ease: "easeOut" } }}
+                exit={{ opacity: 0, y: -4, transition: { duration: 0.15 } }}
+              >
+                <Outlet />
+              </motion.div>
+            </AnimatePresence>
           ) : (
             <div className="p-6 flex items-center justify-center min-h-[60vh]">
               <Card className="max-w-md text-center">
