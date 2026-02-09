@@ -31,9 +31,17 @@ export function isPlaceholderName(name: string | null | undefined): boolean {
   
   const trimmed = name.trim();
   if (trimmed.length === 0) return true;
-  if (trimmed.length < 2) return true; // Single character names are suspicious
-  
-  return PLACEHOLDER_PATTERNS.some(pattern => pattern.test(trimmed));
+
+  // Check placeholder patterns first (catches "na", "NA" which are 2-char but placeholders)
+  if (PLACEHOLDER_PATTERNS.some(pattern => pattern.test(trimmed))) return true;
+
+  // Allow short (1-2 char) names if they are purely alphabetic (e.g. "Li", "Jo", "Al")
+  // Only block short strings that look like garbage (digits, punctuation, etc.)
+  if (trimmed.length <= 2) {
+    return !/^[a-zA-Z]+$/.test(trimmed);
+  }
+
+  return false;
 }
 
 /**

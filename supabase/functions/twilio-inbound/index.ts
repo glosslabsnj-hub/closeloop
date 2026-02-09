@@ -3,6 +3,7 @@
 const VERSION = "twilio-inbound@2026-02-08.1";
 const DEPLOYED_AT = new Date().toISOString();
 
+// Agent resolution uses getAgentIdForCapabilities() from agentResolver.ts (capabilities-based, replaces legacy mode-based routing)
 import { isHybridCapabilitySet, getAgentIdForCapabilities, derivePrimaryModeFromCapabilities } from "../_shared/agentResolver.ts";
 import { resolveCapabilities } from "../_shared/resolveCapabilities.ts";
 
@@ -191,33 +192,6 @@ async function updateSupabase(
   return response.ok;
 }
 
-
-// Get agent ID based on business mode and IVR selection
-function getAgentIdForMode(mode: string, ivrSelection?: string): string | null {
-  // Handle IVR selection for dispatch mode
-  if (ivrSelection === "2") {
-    // User pressed 2 for impound
-    const impoundAgentId = Deno.env.get("ELEVENLABS_AGENT_ID_IMPOUND");
-    if (impoundAgentId) {
-      console.log(`[getAgentIdForMode] IVR selection=2, using impound agent`);
-      return impoundAgentId;
-    }
-  }
-  
-  const modeEnvMap: Record<string, string> = {
-    service: "ELEVENLABS_AGENT_ID_SERVICE",
-    dispatch: "ELEVENLABS_AGENT_ID_DISPATCH",
-    food: "ELEVENLABS_AGENT_ID_FOOD",
-    medical: "ELEVENLABS_AGENT_ID_MEDICAL",
-    general: "ELEVENLABS_AGENT_ID_GENERAL",
-  };
-  
-  const envKey = modeEnvMap[mode] || modeEnvMap.general;
-  const agentId = Deno.env.get(envKey) || Deno.env.get("ELEVENLABS_AGENT_ID");
-  
-  console.log(`[getAgentIdForMode] mode=${mode}, ivrSelection=${ivrSelection}, envKey=${envKey}, found=${!!agentId}`);
-  return agentId || null;
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {

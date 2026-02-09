@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { normalizePhoneE164 } from "../_shared/phoneNormalize.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -175,29 +176,8 @@ Deno.serve(async (req) => {
   }
 });
 
-/**
- * Normalize phone number to E.164 format
- */
-function normalizePhoneNumber(phone: string): string {
-  if (!phone) return "";
-  
-  // Remove all non-digit characters except leading +
-  let cleaned = phone.replace(/[^\d+]/g, "");
-  
-  // Ensure it starts with +
-  if (!cleaned.startsWith("+")) {
-    // Assume US number if 10 digits
-    if (cleaned.length === 10) {
-      cleaned = "+1" + cleaned;
-    } else if (cleaned.length === 11 && cleaned.startsWith("1")) {
-      cleaned = "+" + cleaned;
-    } else {
-      cleaned = "+" + cleaned;
-    }
-  }
-  
-  return cleaned;
-}
+// Use shared phone normalization
+const normalizePhoneNumber = normalizePhoneE164;
 
 /**
  * Return a TwiML response for Twilio

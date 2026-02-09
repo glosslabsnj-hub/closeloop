@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Booking = Database["public"]["Tables"]["bookings"]["Row"];
@@ -47,7 +47,7 @@ export function useBookings() {
     if (!tenant?.id) return;
 
     const channel = supabase
-      .channel('bookings-realtime')
+      .channel(`bookings-realtime-${tenant.id}`)
       .on(
         'postgres_changes',
         { 
@@ -125,23 +125,25 @@ export function useBookings() {
     },
   });
 
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
-  const endOfWeek = new Date(startOfToday.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const stats = useMemo(() => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+    const endOfWeek = new Date(startOfToday.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-  const stats = {
-    today: bookingsQuery.data?.filter((b) => {
-      const start = new Date(b.start_at);
-      return start >= startOfToday && start < endOfToday;
-    }).length ?? 0,
-    thisWeek: bookingsQuery.data?.filter((b) => {
-      const start = new Date(b.start_at);
-      return start >= startOfToday && start < endOfWeek;
-    }).length ?? 0,
-    pendingDeposits: bookingsQuery.data?.filter((b) => b.status === "pending_deposit").length ?? 0,
-    completed: bookingsQuery.data?.filter((b) => b.status === "completed").length ?? 0,
-  };
+    return {
+      today: bookingsQuery.data?.filter((b) => {
+        const start = new Date(b.start_at);
+        return start >= startOfToday && start < endOfToday;
+      }).length ?? 0,
+      thisWeek: bookingsQuery.data?.filter((b) => {
+        const start = new Date(b.start_at);
+        return start >= startOfToday && start < endOfWeek;
+      }).length ?? 0,
+      pendingDeposits: bookingsQuery.data?.filter((b) => b.status === "pending_deposit").length ?? 0,
+      completed: bookingsQuery.data?.filter((b) => b.status === "completed").length ?? 0,
+    };
+  }, [bookingsQuery.data]);
 
   return {
     bookings: bookingsQuery.data ?? [],

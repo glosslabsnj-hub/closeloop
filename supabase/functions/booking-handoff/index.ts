@@ -298,9 +298,9 @@ serve(async (req) => {
             "x-closeloop-secret": Deno.env.get("CLOSELOOP_INTERNAL_SECRET") || supabaseServiceKey,
           },
           body: JSON.stringify({
-            tenantId: tenantId,
-            observationType: "service_pattern",
-            subjectKey: `service_${booking.service.id}`,
+            tenant_id: tenantId,
+            observation_type: "service_pattern",
+            subject_key: `service_${booking.service.id}`,
             observation: `${booking.service.name} booked at ${new Date(booking.start_at).toLocaleTimeString()}`,
           }),
         });

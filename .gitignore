@@ -24,6 +24,13 @@ dist-ssr
 *.sw?
 .claude/
 
+# Environment variables
+.env
+.env.local
+.env.production
+.env.staging
+.env.*.local
+
 # Supabase temp files
 supabase/.temp/
 

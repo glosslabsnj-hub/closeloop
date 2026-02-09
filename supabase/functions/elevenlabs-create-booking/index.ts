@@ -10,6 +10,7 @@
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { normalizePhoneE164 } from "../_shared/phoneNormalize.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -65,29 +66,43 @@ interface CreateBookingResponse {
   error?: string;
 }
 
-// Timezone offset map
-const TIMEZONE_OFFSETS: Record<string, string> = {
-  "America/New_York": "-05:00",
-  "America/Chicago": "-06:00",
-  "America/Denver": "-07:00",
-  "America/Los_Angeles": "-08:00",
-  "America/Phoenix": "-07:00",
-  "UTC": "+00:00",
-};
-
+/**
+ * Compute real timezone offset using Intl.DateTimeFormat.
+ * Handles DST automatically for any IANA timezone.
+ */
 function getTimezoneOffset(tz: string): string {
-  return TIMEZONE_OFFSETS[tz] || "-05:00";
+  try {
+    const now = new Date();
+    // Get the timezone offset in minutes using Intl
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      timeZoneName: "longOffset",
+    });
+    const parts = formatter.formatToParts(now);
+    const tzPart = parts.find((p) => p.type === "timeZoneName");
+    if (tzPart?.value) {
+      // Format is like "GMT-05:00" or "GMT+05:30"
+      const match = tzPart.value.match(/GMT([+-]\d{2}:\d{2})/);
+      if (match) return match[1];
+      // GMT with no offset means UTC
+      if (tzPart.value === "GMT") return "+00:00";
+    }
+    // Fallback: compute manually
+    const utcDate = new Date(now.toLocaleString("en-US", { timeZone: "UTC" }));
+    const tzDate = new Date(now.toLocaleString("en-US", { timeZone: tz }));
+    const diffMinutes = (tzDate.getTime() - utcDate.getTime()) / 60000;
+    const hours = Math.floor(Math.abs(diffMinutes) / 60);
+    const mins = Math.abs(diffMinutes) % 60;
+    const sign = diffMinutes >= 0 ? "+" : "-";
+    return `${sign}${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+  } catch {
+    // If timezone string is invalid, default to UTC
+    return "+00:00";
+  }
 }
 
-// Normalize phone to E.164
-function normalizePhone(phone: string): string {
-  if (!phone) return "";
-  const digits = phone.replace(/\D/g, "");
-  if (digits.length === 10) return `+1${digits}`;
-  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
-  if (phone.startsWith("+")) return phone;
-  return `+${digits}`;
-}
+// Use shared phone normalization
+const normalizePhone = normalizePhoneE164;
 
 // Parse time to HH:MM
 function parseTime(input: string): string {

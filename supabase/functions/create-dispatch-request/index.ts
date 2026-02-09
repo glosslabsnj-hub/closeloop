@@ -12,6 +12,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsResponse, jsonResponse } from "../_shared/cors.ts";
 import { sanitizeCustomerName, isPlaceholderName, shouldUpdateCustomerName } from "../_shared/sanitizeName.ts";
+import { normalizePhoneE164 } from "../_shared/phoneNormalize.ts";
 
 interface CreateDispatchRequest {
   // Customer info (name is optional; phone is required to link/create a customer)
@@ -39,15 +40,8 @@ interface CreateDispatchResponse {
   error?: string;
 }
 
-// Normalize phone to E.164 format
-function normalizePhone(phone: string): string {
-  if (!phone) return "";
-  const digits = phone.replace(/\D/g, "");
-  if (digits.length === 10) return `+1${digits}`;
-  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
-  if (digits.startsWith("+")) return phone;
-  return `+${digits}`;
-}
+// Use shared phone normalization
+const normalizePhone = normalizePhoneE164;
 
 // Generate job number
 function generateJobNumber(): string {

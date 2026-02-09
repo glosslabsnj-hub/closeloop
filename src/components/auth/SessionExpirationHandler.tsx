@@ -39,7 +39,7 @@ export function SessionExpirationHandler() {
         
         // Give user time to see the message, then redirect
         setTimeout(() => {
-          window.location.href = "/auth";
+          window.location.href = "/login";
         }, 2000);
         return;
       }
@@ -101,7 +101,7 @@ export function SessionExpirationHandler() {
               size="sm"
               onClick={() => {
                 toast.dismiss(t);
-                window.location.href = "/auth";
+                window.location.href = "/login";
               }}
               className="text-muted-foreground hover:text-foreground"
             >
@@ -139,7 +139,7 @@ export function SessionExpirationHandler() {
         if (event === "SIGNED_OUT") {
           // Only show toast if user was previously signed in and didn't manually sign out
           // We check this by seeing if the URL is not already on the auth page
-          if (!window.location.pathname.includes("/auth")) {
+          if (!window.location.pathname.includes("/login")) {
             showExpirationToast();
           }
         }
@@ -150,7 +150,7 @@ export function SessionExpirationHandler() {
     const checkSessionValidity = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session && !window.location.pathname.includes("/auth")) {
+      if (!session && !window.location.pathname.includes("/login")) {
         showExpirationToast();
       }
     };

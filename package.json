@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "ci": "npm run lint && npx tsc --noEmit && npm run test && npm run build"
   },
   "dependencies": {
     "@elevenlabs/react": "^0.13.1",

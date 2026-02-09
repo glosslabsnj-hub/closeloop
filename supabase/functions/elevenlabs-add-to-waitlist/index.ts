@@ -8,6 +8,7 @@
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { normalizePhoneE164 } from "../_shared/phoneNormalize.ts";
 
 const VERSION = "1.0.0";
 
@@ -52,15 +53,8 @@ interface AddToWaitlistResponse {
   _version?: string;
 }
 
-// Normalize phone to E.164
-function normalizePhone(phone: string): string {
-  if (!phone) return "";
-  const digits = phone.replace(/\D/g, "");
-  if (digits.length === 10) return `+1${digits}`;
-  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
-  if (phone.startsWith("+")) return phone;
-  return `+${digits}`;
-}
+// Use shared phone normalization
+const normalizePhone = normalizePhoneE164;
 
 // Parse date to YYYY-MM-DD
 function parseDate(input: string, timezone: string): string | null {

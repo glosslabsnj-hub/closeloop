@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SessionExpirationHandler } from "@/components/auth/SessionExpirationHandler";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Layouts
 import { PublicLayout } from "@/components/layouts/PublicLayout";
@@ -95,6 +96,7 @@ const App = () => (
           <Sonner />
           <SessionExpirationHandler />
           <BrowserRouter>
+          <ErrorBoundary>
           <Routes>
             {/* Public Routes */}
             <Route element={<PublicLayout />}>
@@ -192,6 +194,7 @@ const App = () => (
             <Route path="/debug/context" element={<ContextDebuggerPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </ErrorBoundary>
         </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>

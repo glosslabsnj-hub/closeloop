@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsResponse, errorResponse, jsonResponse } from "../_shared/cors.ts";
+import { normalizePhoneE164 } from "../_shared/phoneNormalize.ts";
 
 /**
  * Check Recovery Context
@@ -170,24 +171,6 @@ function buildAiContextAddition(campaign: any): string {
   return parts.join(" ");
 }
 
-/**
- * Normalize phone number to E.164 format
- */
-function normalizePhoneNumber(phone: string): string {
-  if (!phone) return "";
-  
-  let cleaned = phone.replace(/[^\d+]/g, "");
-  
-  if (!cleaned.startsWith("+")) {
-    if (cleaned.length === 10) {
-      cleaned = "+1" + cleaned;
-    } else if (cleaned.length === 11 && cleaned.startsWith("1")) {
-      cleaned = "+" + cleaned;
-    } else {
-      cleaned = "+" + cleaned;
-    }
-  }
-  
-  return cleaned;
-}
+// Use shared phone normalization
+const normalizePhoneNumber = normalizePhoneE164;
 

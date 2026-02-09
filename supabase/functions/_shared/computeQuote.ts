@@ -110,7 +110,16 @@ export function computePriceQuote(params: {
 
   // Find first matching rule
   for (const rule of sortedRules) {
-    const matches = checkRuleConditions(rule, inputs, offering);
+    // Skip malformed rules entirely
+    if (!rule || typeof rule !== "object") continue;
+
+    let matches: boolean;
+    try {
+      matches = checkRuleConditions(rule, inputs, offering);
+    } catch {
+      // Malformed rule — skip it rather than crashing the entire quote
+      continue;
+    }
     if (!matches) continue;
 
     // Check for missing required inputs
@@ -322,9 +331,18 @@ function checkRuleConditions(
   inputs: Record<string, any>,
   offering: OfferingContext
 ): boolean {
-  if (!rule.conditions) return true; // No conditions = always matches
+  // No conditions or malformed conditions = always matches
+  if (!rule.conditions || typeof rule.conditions !== "object") return true;
 
-  for (const [key, value] of Object.entries(rule.conditions)) {
+  let entries: [string, any][];
+  try {
+    entries = Object.entries(rule.conditions);
+  } catch {
+    // Malformed conditions — treat as no conditions (match everything)
+    return true;
+  }
+
+  for (const [key, value] of entries) {
     // Check inputs first
     if (inputs[key] !== undefined) {
       if (inputs[key] !== value) return false;

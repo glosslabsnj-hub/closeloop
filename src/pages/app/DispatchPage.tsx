@@ -124,7 +124,7 @@ export default function DispatchPage() {
     if (!tenant?.id) return;
 
     const channel = supabase
-      .channel("dispatch-jobs-realtime")
+      .channel(`dispatch-jobs-realtime-${tenant.id}`)
       .on(
         "postgres_changes",
         {
@@ -186,7 +186,7 @@ export default function DispatchPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["dispatch-jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["dispatch-jobs", tenant?.id] });
       toast({ title: "Job updated" });
       setDetailsOpen(false);
       setAssignDialogOpen(false);

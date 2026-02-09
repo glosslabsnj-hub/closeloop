@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { timingSafeEqual } from "./crypto.ts";
 
 export type AuthedContext = {
   userId: string;
@@ -76,7 +77,7 @@ export function requireInternalSecret(req: Request): void {
     throw new Error("CLOSELOOP_INTERNAL_SECRET not configured");
   }
   const provided = req.headers.get("x-closeloop-secret");
-  if (!provided || provided !== CLOSELOOP_INTERNAL_SECRET) {
+  if (!provided || !timingSafeEqual(provided, CLOSELOOP_INTERNAL_SECRET)) {
     throw new Error("Forbidden: invalid internal secret");
   }
 }
@@ -92,7 +93,7 @@ export function requireAdminSecret(req: Request): void {
     throw new Error("ADMIN_CLEANUP_SECRET not configured");
   }
   const provided = req.headers.get("x-admin-secret");
-  if (!provided || provided !== ADMIN_CLEANUP_SECRET) {
+  if (!provided || !timingSafeEqual(provided, ADMIN_CLEANUP_SECRET)) {
     throw new Error("Forbidden: invalid admin secret");
   }
 }

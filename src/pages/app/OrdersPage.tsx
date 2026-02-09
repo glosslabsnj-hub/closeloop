@@ -15,6 +15,8 @@ import type { Database } from "@/integrations/supabase/types";
    UtensilsCrossed,
    Plus,
    Loader2,
+   ChevronLeft,
+   ChevronRight,
  } from "lucide-react";
  import { useToast } from "@/hooks/use-toast";
  import { OrderDetailsDrawer } from "@/components/orders/OrderDetailsDrawer";
@@ -57,6 +59,8 @@ import type { Database } from "@/integrations/supabase/types";
    const [orderTypeFilter, setOrderTypeFilter] = useState<string>("all");
    const [selectedOrder, setSelectedOrder] = useState<FoodOrder | null>(null);
    const [drawerOpen, setDrawerOpen] = useState(false);
+  const [page, setPage] = useState(0);
+  const pageSize = 24;
  
    const { data: orders, isLoading } = useQuery({
      queryKey: ["food-orders", tenant?.id],
@@ -84,7 +88,7 @@ import type { Database } from "@/integrations/supabase/types";
        if (error) throw error;
      },
      onSuccess: () => {
-       queryClient.invalidateQueries({ queryKey: ["food-orders"] });
+       queryClient.invalidateQueries({ queryKey: ["food-orders", tenant?.id] });
        toast({ title: "Order status updated" });
      },
      onError: (error: Error) => {
@@ -114,7 +118,21 @@ import type { Database } from "@/integrations/supabase/types";
        return true;
      });
    }, [orders, statusFilter, orderTypeFilter]);
- 
+
+  // Reset page when filters change
+  const handleStatusFilter = (v: string) => {
+    setStatusFilter(v as StatusFilter);
+    setPage(0);
+  };
+  const handleTypeFilter = (v: string) => {
+    setOrderTypeFilter(v);
+    setPage(0);
+  };
+
+  // Pagination
+  const totalPages = Math.ceil(filteredOrders.length / pageSize);
+  const paginatedOrders = filteredOrders.slice(page * pageSize, (page + 1) * pageSize);
+
    // Stats
    const pendingCount = orders?.filter(o => ["pending", "confirmed"].includes(o.status)).length || 0;
    const preparingCount = orders?.filter(o => o.status === "preparing").length || 0;
@@ -153,7 +171,7 @@ import type { Database } from "@/integrations/supabase/types";
  
          {/* Filters */}
          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-           <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+           <Tabs value={statusFilter} onValueChange={handleStatusFilter}>
              <TabsList>
                <TabsTrigger value="all">All</TabsTrigger>
                <TabsTrigger value="pending" className="gap-1.5">
@@ -184,7 +202,7 @@ import type { Database } from "@/integrations/supabase/types";
              </TabsList>
            </Tabs>
  
-           <Select value={orderTypeFilter} onValueChange={setOrderTypeFilter}>
+           <Select value={orderTypeFilter} onValueChange={handleTypeFilter}>
              <SelectTrigger className="w-32">
                <SelectValue placeholder="Type" />
              </SelectTrigger>
@@ -214,17 +232,37 @@ import type { Database } from "@/integrations/supabase/types";
              }
            />
          ) : (
-           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-             {filteredOrders.map((order) => (
-               <OrderCard
-                 key={order.id}
-                 order={order}
-                 onView={() => handleViewOrder(order)}
-                 onStatusChange={(status) => updateStatusMutation.mutate({ orderId: order.id, status })}
-                 isUpdating={updateStatusMutation.isPending}
-               />
-             ))}
-           </div>
+           <>
+             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+               {paginatedOrders.map((order) => (
+                 <OrderCard
+                   key={order.id}
+                   order={order}
+                   onView={() => handleViewOrder(order)}
+                   onStatusChange={(status) => updateStatusMutation.mutate({ orderId: order.id, status })}
+                   isUpdating={updateStatusMutation.isPending}
+                 />
+               ))}
+             </div>
+             {totalPages > 1 && (
+               <div className="flex items-center justify-between pt-4">
+                 <p className="text-sm text-muted-foreground">
+                   Showing {page * pageSize + 1}–{Math.min((page + 1) * pageSize, filteredOrders.length)} of {filteredOrders.length}
+                 </p>
+                 <div className="flex items-center gap-2">
+                   <Button variant="outline" size="sm" onClick={() => setPage(p => p - 1)} disabled={page === 0}>
+                     <ChevronLeft className="h-4 w-4" />
+                   </Button>
+                   <span className="text-sm text-muted-foreground">
+                     {page + 1} / {totalPages}
+                   </span>
+                   <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1}>
+                     <ChevronRight className="h-4 w-4" />
+                   </Button>
+                 </div>
+               </div>
+             )}
+           </>
          )}
        </div>
  
