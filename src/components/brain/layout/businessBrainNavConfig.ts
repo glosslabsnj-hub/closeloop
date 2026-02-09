@@ -1,23 +1,21 @@
 /**
  * Business Brain Navigation Configuration
- * 
+ *
  * Single source of truth for:
  * - Navigation categories and cards
  * - Mode-aware visibility rules
  * - Speech-ready field indicators
  * - Component references
+ *
+ * REDESIGNED: 8 tabs → 5 tabs with business-language naming
  */
 
-import { 
-  Building2, 
-  Clock, 
-  Package, 
-  MapPin, 
-  Calendar, 
-  Shield, 
-  Sparkles, 
+import {
+  Building2,
+  DollarSign,
+  Shield,
+  Sparkles,
   BookOpen,
-  Truck,
   type LucideIcon
 } from "lucide-react";
 import type { BusinessMode } from "@/hooks/useTenantConfig";
@@ -59,19 +57,20 @@ export interface CategoryConfig {
 }
 
 /**
- * Complete navigation structure with mode-aware visibility
+ * Complete navigation structure — 5 consolidated tabs
  */
 export const BRAIN_CATEGORIES: CategoryConfig[] = [
   {
-    id: "identity",
-    title: "Identity",
-    description: "Who you are",
+    id: "your-business",
+    title: "Your Business",
+    description: "Name, hours & calendar",
     icon: Building2,
-    section: "profile",
+    section: "business",
     cards: [
+      // Merged from: identity + operations + calendar
       {
         id: "business-info",
-        title: "Business Information",
+        title: "About Your Business",
         purpose: "Name, contact, timezone, and location your AI introduces",
         usedByAI: [
           "Introduces your business by name on every call",
@@ -80,11 +79,34 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         ],
         speechReadyFields: ["tagline", "location_summary"],
         defaultCollapsed: false,
-        isEssential: true, // Essential for all modes
+        isEssential: true,
+      },
+      {
+        id: "business-hours",
+        title: "Your Hours",
+        purpose: "When your business is open for calls and appointments",
+        usedByAI: [
+          "Tells callers if you're open or closed",
+          "Suggests available booking times",
+          "Explains hours when asked",
+        ],
+        defaultCollapsed: false,
+        isEssential: true,
+      },
+      {
+        id: "calendar-sync",
+        title: "Calendar & Availability",
+        purpose: "Connect external calendars for real-time availability",
+        usedByAI: [
+          "Checks your calendar before offering appointment times",
+          "Avoids double-booking automatically",
+          "Respects blocked times and buffers",
+        ],
+        defaultCollapsed: false,
       },
       {
         id: "industry-templates",
-        title: "Quick Start Templates",
+        title: "Quick Setup Templates",
         purpose: "Pre-built setups for common business types",
         usedByAI: [
           "Applies industry best practices automatically",
@@ -94,56 +116,16 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
     ],
   },
   {
-    id: "operations",
-    title: "Operations",
-    description: "Business hours",
-    icon: Clock,
-    section: "hours",
-    cards: [
-      {
-        id: "business-hours",
-        title: "Weekly Schedule",
-        purpose: "When your business is open for calls and appointments",
-        usedByAI: [
-          "Tells callers if you're open or closed",
-          "Suggests available booking times",
-          "Explains hours when asked",
-        ],
-        defaultCollapsed: false,
-        isEssential: true, // Essential for all modes
-      },
-    ],
-  },
-  {
-    id: "calendar",
-    title: "Calendar",
-    description: "Availability sync",
-    icon: Calendar,
-    section: "availability",
-    cards: [
-      {
-        id: "calendar-sync",
-        title: "Calendar Connections",
-        purpose: "Connect external calendars for real-time availability",
-        usedByAI: [
-          "Checks your calendar before offering appointment times",
-          "Avoids double-booking automatically",
-          "Respects blocked times and buffers",
-        ],
-        defaultCollapsed: false,
-      },
-    ],
-  },
-  {
-    id: "offerings",
-    title: "Offerings",
+    id: "services-pricing",
+    title: "Services & Pricing",
     description: "What you sell",
-    icon: Package,
+    icon: DollarSign,
     section: "services",
+    emphasis: ["service", "food", "dispatch"],
     cards: [
       {
         id: "pricing-readiness",
-        title: "Pricing Readiness",
+        title: "Can Your AI Quote Prices?",
         purpose: "Check if your AI can accurately quote prices",
         usedByAI: [
           "Determines if AI can give quotes vs. 'callback for pricing'",
@@ -153,7 +135,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
       },
       {
         id: "pricing-rules",
-        title: "Pricing Rules",
+        title: "How You Price Things",
         purpose: "How your AI quotes prices — fixed, ranges, or callback",
         usedByAI: [
           "Decides between exact quote vs. 'starting at' vs. 'I'll have someone call you'",
@@ -173,11 +155,11 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
           "Matches caller needs to the right service",
         ],
         defaultCollapsed: false,
-        isEssential: true, // Essential for all modes
+        isEssential: true,
       },
       {
         id: "price-modifiers",
-        title: "Price Adjustments",
+        title: "Extra Fees & Surcharges",
         purpose: "Size, urgency, and after-hours rate adjustments",
         usedByAI: [
           "Applies vehicle/property size adjustments to quotes",
@@ -189,7 +171,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
       },
       {
         id: "service-packages",
-        title: "Packages & Bundles",
+        title: "Service Packages",
         purpose: "Discounted bundles and membership plans",
         usedByAI: [
           "Suggests packages when relevant to customer needs",
@@ -259,7 +241,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
       },
       {
         id: "additional-services",
-        title: "Additional Services",
+        title: "Other Things You Offer",
         purpose: "Secondary services you offer beyond your core business",
         usedByAI: [
           "Mentions these when relevant (e.g., 'We also offer body work')",
@@ -269,19 +251,20 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         defaultCollapsed: true,
       },
     ],
-    emphasis: ["service", "food", "dispatch"],
   },
   {
-    id: "coverage",
-    title: "Coverage & ETA",
-    description: "Where you serve",
-    icon: MapPin,
-    section: "service-area",
+    id: "how-you-operate",
+    title: "How You Operate",
+    description: "Coverage & rules",
+    icon: Shield,
+    section: "operations",
     emphasis: ["dispatch", "service"],
     cards: [
+      // Merged from: coverage + rules
+      // Coverage cards first
       {
         id: "coverage-summary",
-        title: "Current Coverage",
+        title: "Where You Serve",
         purpose: "Quick view of where you currently serve",
         usedByAI: [
           "Checks if caller location is in your service area",
@@ -291,7 +274,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
       },
       {
         id: "service-area-settings",
-        title: "Service Area Rules",
+        title: "Your Service Area",
         purpose: "Define exactly where your business provides service",
         usedByAI: [
           "Uses radius, ZIP codes, or counties to determine coverage",
@@ -299,11 +282,11 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         ],
         speechReadyFields: ["out_of_area_message"],
         isEssential: true,
-        essentialForModes: ["dispatch", "service", "food"], // Essential for location-based modes
+        essentialForModes: ["dispatch", "service", "food"],
       },
       {
         id: "eta-settings",
-        title: "ETA & Travel Times",
+        title: "Arrival Estimates",
         purpose: "How long it takes to reach customers",
         usedByAI: [
           "Calculates arrival estimates based on distance",
@@ -312,25 +295,17 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
       },
       {
         id: "busyness",
-        title: "Busy Level",
+        title: "How Busy Are You Right Now?",
         purpose: "Adjust wait times based on how busy you are right now",
         usedByAI: [
           "Adds wait time to ETAs when you're busy",
           "Manages caller expectations realistically",
         ],
       },
-    ],
-  },
-  {
-    id: "rules",
-    title: "Policies",
-    description: "Rules & settings",
-    icon: Shield,
-    section: "policies",
-    cards: [
+      // Policy cards
       {
         id: "business-policies",
-        title: "Business Policies",
+        title: "Cancellation, Deposits & Payments",
         purpose: "Cancellations, deposits, and payment terms",
         usedByAI: [
           "Explains policies before they become objections",
@@ -341,7 +316,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
       },
       {
         id: "never-promise",
-        title: "What AI Should Never Promise",
+        title: "What Your AI Should Never Promise",
         purpose: "Hard limits on what your AI can commit to",
         usedByAI: [
           "Prevents over-promising on pricing or timelines",
@@ -350,7 +325,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
       },
       {
         id: "required-questions",
-        title: "Required Questions",
+        title: "Info to Collect on Every Call",
         purpose: "Information your AI must collect from every caller",
         usedByAI: [
           "Ensures every call captures the essentials (name, phone, etc.)",
@@ -360,7 +335,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
       },
       {
         id: "booking-delivery",
-        title: "Where Bookings Go",
+        title: "Where to Send New Bookings",
         purpose: "Where new bookings get sent after confirmation",
         usedByAI: [
           "Routes confirmed bookings to your preferred destination",
@@ -371,7 +346,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
       },
       {
         id: "food-delivery",
-        title: "Order Settings",
+        title: "How Orders Are Handled",
         purpose: "Pickup, delivery, and order handling",
         usedByAI: [
           "Determines if delivery is available and minimums",
@@ -383,7 +358,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
       },
       {
         id: "dispatch-delivery",
-        title: "Where Jobs Go",
+        title: "Where to Send New Jobs",
         purpose: "Where new jobs get routed after booking",
         usedByAI: [
           "Sends new jobs to your dispatch queue or system",
@@ -394,7 +369,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
       },
       {
         id: "hipaa-settings",
-        title: "HIPAA & Compliance",
+        title: "HIPAA Compliance",
         purpose: "Medical practice compliance settings",
         usedByAI: [
           "Applies HIPAA-safe language and data handling",
@@ -408,15 +383,53 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
     ],
   },
   {
+    id: "ai-personality",
+    title: "AI Personality",
+    description: "Voice & behavior",
+    icon: Sparkles,
+    section: "ai-voice",
+    cards: [
+      {
+        id: "scripts",
+        title: "How Your AI Answers the Phone",
+        purpose: "How your AI starts and ends calls",
+        usedByAI: [
+          "Delivers your custom greeting on every call",
+          "Uses your fallback script when uncertain",
+        ],
+        speechReadyFields: ["greeting_script", "fallback_script"],
+        defaultCollapsed: false,
+        isEssential: true,
+      },
+      {
+        id: "business-rules",
+        title: "Special Instructions for Your AI",
+        purpose: "High-level instructions for your AI",
+        usedByAI: [
+          "Follows your rules about when to offer vs. require callbacks",
+          "Adjusts tone and approach per your preferences",
+        ],
+      },
+      {
+        id: "intelligence",
+        title: "Learning Preferences",
+        purpose: "How your AI remembers and adapts",
+        usedByAI: [
+          "Controls memory, learning, and adaptation features",
+        ],
+      },
+    ],
+  },
+  {
     id: "knowledge",
     title: "Knowledge",
     description: "FAQs & training",
     icon: BookOpen,
-    section: "knowledge",
+    section: "training",
     cards: [
       {
         id: "review-queue",
-        title: "Review Queue",
+        title: "Items Needing Your Approval",
         purpose: "Items needing your approval before the AI uses them",
         usedByAI: [
           "Pending items won't be used until you approve",
@@ -426,7 +439,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
       },
       {
         id: "faqs",
-        title: "Frequently Asked Questions",
+        title: "Common Questions & Answers",
         purpose: "Common questions and your approved answers",
         usedByAI: [
           "Answers FAQs instantly without guessing",
@@ -436,7 +449,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
       },
       {
         id: "objections",
-        title: "Handling Objections",
+        title: "When Customers Push Back",
         purpose: "How to respond when customers push back",
         usedByAI: [
           "Addresses 'too expensive' or 'not sure' concerns",
@@ -445,7 +458,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
       },
       {
         id: "custom-knowledge",
-        title: "Custom Knowledge",
+        title: "Extra Info for Your AI",
         purpose: "Additional facts and information",
         usedByAI: [
           "Provides extra context for unusual questions",
@@ -453,48 +466,10 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
       },
       {
         id: "documents",
-        title: "Uploaded Documents",
+        title: "Reference Documents",
         purpose: "PDFs, menus, and reference materials",
         usedByAI: [
           "References uploaded files for detailed info",
-        ],
-      },
-    ],
-  },
-  {
-    id: "ai-setup",
-    title: "AI Setup",
-    description: "Voice & behavior",
-    icon: Sparkles,
-    section: "ai-behavior",
-    cards: [
-      {
-        id: "scripts",
-        title: "Greeting & Scripts",
-        purpose: "How your AI starts and ends calls",
-        usedByAI: [
-          "Delivers your custom greeting on every call",
-          "Uses your fallback script when uncertain",
-        ],
-        speechReadyFields: ["greeting_script", "fallback_script"],
-        defaultCollapsed: false,
-        isEssential: true, // Essential for all modes
-      },
-      {
-        id: "business-rules",
-        title: "Business Guidelines",
-        purpose: "High-level instructions for your AI",
-        usedByAI: [
-          "Follows your rules about when to offer vs. require callbacks",
-          "Adjusts tone and approach per your preferences",
-        ],
-      },
-      {
-        id: "intelligence",
-        title: "AI Memory & Learning",
-        purpose: "How your AI remembers and adapts",
-        usedByAI: [
-          "Controls memory, learning, and adaptation features",
         ],
       },
     ],
@@ -559,29 +534,34 @@ export function getVisibleCardsV2(
 }
 
 /**
- * Map old section IDs to new category IDs for deep link compatibility
+ * Map section URL params to category IDs
+ * Includes both new and legacy section params for backward compatibility
  */
 export const SECTION_TO_CATEGORY: Record<string, string> = {
-  profile: "identity",
-  hours: "operations",
-  services: "offerings",
-  "service-area": "coverage",
-  availability: "calendar",
-  policies: "rules",
-  "ai-behavior": "ai-setup",
+  // New sections
+  business: "your-business",
+  services: "services-pricing",
+  operations: "how-you-operate",
+  "ai-voice": "ai-personality",
+  training: "knowledge",
+  // Legacy sections (for backward compatibility)
+  profile: "your-business",
+  hours: "your-business",
+  availability: "your-business",
+  "calendar-sync": "your-business",
+  "service-area": "how-you-operate",
+  policies: "how-you-operate",
+  "ai-behavior": "ai-personality",
   knowledge: "knowledge",
 };
 
 /**
- * Map category IDs to section params for URL
+ * Map category IDs to section URL params
  */
 export const CATEGORY_TO_SECTION: Record<string, string> = {
-  identity: "profile",
-  operations: "hours",
-  offerings: "services",
-  coverage: "service-area",
-  calendar: "availability",
-  rules: "policies",
-  "ai-setup": "ai-behavior",
-  knowledge: "knowledge",
+  "your-business": "business",
+  "services-pricing": "services",
+  "how-you-operate": "operations",
+  "ai-personality": "ai-voice",
+  knowledge: "training",
 };

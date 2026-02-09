@@ -1,7 +1,7 @@
 /**
  * Business Brain Tabs - Horizontal tab navigation
- * 
- * A clean horizontal tab bar showing all 8 sections.
+ *
+ * A clean horizontal tab bar showing all 5 consolidated sections.
  * Replaces the left sidebar for a simpler, more scannable layout.
  */
 
@@ -48,7 +48,7 @@ export function BusinessBrainTabs({
           <Brain className="h-5 w-5 text-primary" />
           <h1 className="text-lg font-semibold">Business Brain</h1>
           <span className="text-sm text-muted-foreground">
-            — Everything your AI needs to know
+            — Set up your AI receptionist
           </span>
         </div>
       </div>
@@ -61,7 +61,7 @@ export function BusinessBrainTabs({
               const Icon = category.icon;
               const isActive = activeSection === category.section;
               const isEmphasized = category.emphasis?.includes(businessMode);
-              const showBadge = category.section === "knowledge" && reviewCount > 0;
+              const showBadge = category.section === "training" && reviewCount > 0;
 
               return (
                 <button

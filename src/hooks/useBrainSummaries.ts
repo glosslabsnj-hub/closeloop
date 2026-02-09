@@ -207,7 +207,7 @@ export function useBrainSummaries(): BrainSummaries {
 
   return {
     // Profile
-    businessInfo: tenant?.name ? `${tenant.name} — Your business identity` : "Not configured yet",
+    businessInfo: tenant?.name ? `${tenant.name} — Your business identity` : "Not set up yet",
     templates: "Pre-built setups for common business types",
 
     // Hours - check hours_json instead of availability_slots
@@ -218,9 +218,9 @@ export function useBrainSummaries(): BrainSummaries {
     // Services
     pricingReadiness: "Check if your AI can quote prices",
     pricingRules: "Configure how prices are calculated",
-    catalog: counts?.services 
-      ? `${counts.services} item${counts.services === 1 ? "" : "s"} in catalog` 
-      : "No items added yet",
+    catalog: counts?.services
+      ? `${counts.services} item${counts.services === 1 ? "" : "s"} in catalog`
+      : "No services added yet",
 
     // Service Area
     coverage: "Define where you can serve customers",
@@ -241,17 +241,17 @@ export function useBrainSummaries(): BrainSummaries {
       if (tenantData?.cancellation_policy) parts.push("Cancellation");
       if (tenantData?.deposit_policy) parts.push("Deposit");
       if (tenantData?.refund_policy) parts.push("Refund");
-      return parts.length > 0 ? `${parts.join(", ")} policies set` : "No policies configured yet";
+      return parts.length > 0 ? `${parts.join(", ")} policies set` : "No policies set yet";
     })(),
     guardrails: (() => {
       const neverPromise = tenantData?.ai_never_promise;
       if (Array.isArray(neverPromise) && neverPromise.length > 0) {
         return `${neverPromise.length} guardrail${neverPromise.length === 1 ? "" : "s"} set`;
       }
-      return "No guardrails configured yet";
+      return "No limits set yet";
     })(),
     requiredQuestions: (() => {
-      if (!intentRules || intentRules.length === 0) return "Not configured yet";
+      if (!intentRules || intentRules.length === 0) return "Not set up yet";
       let totalRequired = 0;
       for (const rule of intentRules) {
         const action = rule.action_json as { required_inputs?: string[] } | null;
@@ -264,7 +264,7 @@ export function useBrainSummaries(): BrainSummaries {
         : "No required fields set";
     })(),
     bookingDelivery: (() => {
-      if (!bookingDelivery) return "Not configured yet";
+      if (!bookingDelivery) return "Not set up yet";
       const methods: string[] = [];
       if (bookingDelivery.notify_email) methods.push("Email");
       if (bookingDelivery.webhook_url) methods.push("Webhook");
@@ -273,7 +273,7 @@ export function useBrainSummaries(): BrainSummaries {
     })(),
     foodSettings: "Order pickup and delivery settings",
     dispatchSettings: (() => {
-      if (!dispatchDelivery) return "Not configured yet";
+      if (!dispatchDelivery) return "Not set up yet";
       const methods: string[] = [];
       if (dispatchDelivery.notify_email) methods.push("Email");
       if (dispatchDelivery.urgent_sms_phone) methods.push("SMS");
@@ -283,27 +283,27 @@ export function useBrainSummaries(): BrainSummaries {
     hipaa: "HIPAA compliance and data retention",
 
     // AI Behavior
-    scripts: assistantData?.greeting_script ? "Custom greeting configured" : "Using default greeting",
+    scripts: assistantData?.greeting_script ? "Custom greeting configured" : "Using the default — customize to match your style",
     guidelines: (() => {
       const policies = tenantData?.ai_policies_json;
       if (Array.isArray(policies) && policies.length > 0) {
         return `${policies.length} guideline${policies.length === 1 ? "" : "s"} set`;
       }
-      return "No guidelines configured yet";
+      return "No special instructions yet";
     })(),
     intelligence: "How your AI remembers and improves",
 
     // Knowledge
     review: "Items needing your approval",
-    faqs: counts?.faqs 
-      ? `${counts.faqs} FAQ${counts.faqs === 1 ? "" : "s"} added` 
-      : "No FAQs added yet",
-    objections: counts?.objections 
-      ? `${counts.objections} response${counts.objections === 1 ? "" : "s"} configured` 
-      : "No objection responses yet",
-    custom: counts?.knowledge 
-      ? `${counts.knowledge} custom fact${counts.knowledge === 1 ? "" : "s"}` 
-      : "No custom knowledge yet",
+    faqs: counts?.faqs
+      ? `${counts.faqs} question${counts.faqs === 1 ? "" : "s"} added`
+      : "No questions added yet — your AI says 'I'm not sure' to unknowns",
+    objections: counts?.objections
+      ? `${counts.objections} response${counts.objections === 1 ? "" : "s"} configured`
+      : "No responses set — your AI uses generic replies to pushback",
+    custom: counts?.knowledge
+      ? `${counts.knowledge} custom fact${counts.knowledge === 1 ? "" : "s"}`
+      : "Nothing extra added yet",
     documents: "Uploaded files and references",
 
     // Completion stats - now using the dynamic completion system

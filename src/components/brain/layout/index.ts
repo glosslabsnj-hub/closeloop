@@ -33,6 +33,7 @@ export {
   getOrderedCategories,
   getVisibleCards,
   getVisibleCardsWithCapabilities,
+  getVisibleCardsV2,
   SECTION_TO_CATEGORY,
   CATEGORY_TO_SECTION,
   type CategoryConfig,

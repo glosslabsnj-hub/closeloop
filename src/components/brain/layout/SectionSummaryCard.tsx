@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, ReactNode, useCallback } from "react";
-import { ChevronDown, ChevronRight, Check, AlertCircle, Circle, Sparkles, LucideIcon } from "lucide-react";
+import { ChevronDown, ChevronRight, Check, AlertCircle, Circle, Sparkles, Lightbulb, LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -35,6 +35,10 @@ interface SectionSummaryCardProps {
   expanded?: boolean;
   /** Callback when expansion state changes */
   onExpandedChange?: (expanded: boolean) => void;
+  /** Guidance text shown at the top of expanded content when section is incomplete */
+  guidanceText?: string;
+  /** Helpful tip shown below guidance text */
+  guidanceTip?: string;
 }
 
 const STATUS_CONFIG: Record<SectionStatus, { icon: typeof Check; color: string; label: string }> = {
@@ -89,6 +93,8 @@ export function SectionSummaryCard({
   defaultExpanded = false,
   expanded: controlledExpanded,
   onExpandedChange,
+  guidanceText,
+  guidanceTip,
 }: SectionSummaryCardProps) {
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
   
@@ -211,6 +217,20 @@ export function SectionSummaryCard({
       {isExpanded && (
         <div className="px-4 pb-4 pt-0">
           <div className="border-t pt-4">
+            {/* Guidance callout - shown when section is empty/incomplete */}
+            {guidanceText && status === "incomplete" && (
+              <div className="mb-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-3 space-y-1.5">
+                <p className="text-sm text-blue-900 dark:text-blue-100">
+                  {guidanceText}
+                </p>
+                {guidanceTip && (
+                  <p className="text-xs text-blue-700 dark:text-blue-300 flex items-start gap-1.5">
+                    <Lightbulb className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                    {guidanceTip}
+                  </p>
+                )}
+              </div>
+            )}
             {children}
           </div>
         </div>

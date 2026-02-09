@@ -41,7 +41,7 @@ export function BusinessBrainNav({
           <h2 className="font-semibold">Business Brain</h2>
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          Everything your AI needs to know
+          Set up your AI receptionist
         </p>
       </div>
 
@@ -52,7 +52,7 @@ export function BusinessBrainNav({
             const Icon = category.icon;
             const isActive = activeSection === category.section;
             const isEmphasized = category.emphasis?.includes(businessMode);
-            const showBadge = category.section === "knowledge" && reviewCount > 0;
+            const showBadge = category.section === "training" && reviewCount > 0;
 
             return (
               <button
