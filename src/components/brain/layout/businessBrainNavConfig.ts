@@ -51,6 +51,8 @@ export interface CategoryConfig {
   icon: LucideIcon;
   /** URL section parameter */
   section: string;
+  /** Display order (1-based) */
+  order: number;
   cards: CardConfig[];
   /** Modes where this category should be emphasized */
   emphasis?: BusinessMode[];
@@ -66,6 +68,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
     description: "Name, hours & calendar",
     icon: Building2,
     section: "business",
+    order: 1,
     cards: [
       // Merged from: identity + operations + calendar
       {
@@ -121,6 +124,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
     description: "What you sell",
     icon: DollarSign,
     section: "services",
+    order: 2,
     emphasis: ["service", "food", "dispatch"],
     cards: [
       {
@@ -258,6 +262,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
     description: "Coverage & rules",
     icon: Shield,
     section: "operations",
+    order: 3,
     emphasis: ["dispatch", "service"],
     cards: [
       // Merged from: coverage + rules
@@ -388,6 +393,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
     description: "Voice & behavior",
     icon: Sparkles,
     section: "ai-voice",
+    order: 4,
     cards: [
       {
         id: "scripts",
@@ -426,6 +432,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
     description: "FAQs & training",
     icon: BookOpen,
     section: "training",
+    order: 5,
     cards: [
       {
         id: "review-queue",

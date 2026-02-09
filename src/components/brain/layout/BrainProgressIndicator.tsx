@@ -145,41 +145,54 @@ export function BrainProgressIndicator({
 }
 
 /**
+ * Size presets for the progress ring
+ */
+const RING_SIZES = {
+  sm: { svgClass: "h-8 w-8", radius: 12, cx: 16, cy: 16, strokeWidth: 2.5, textClass: "text-[10px]" },
+  md: { svgClass: "h-12 w-12", radius: 18, cx: 24, cy: 24, strokeWidth: 3, textClass: "text-xs" },
+  lg: { svgClass: "h-16 w-16", radius: 24, cx: 32, cy: 32, strokeWidth: 3.5, textClass: "text-sm" },
+} as const;
+
+/**
  * Compact variant for mobile or sidebar
  */
 export function BrainProgressRing({
   completedSections,
   totalSections,
+  size = "md",
   className,
-}: Pick<BrainProgressIndicatorProps, "completedSections" | "totalSections" | "className">) {
-  const percentage = totalSections > 0 
-    ? Math.round((completedSections / totalSections) * 100) 
+}: Pick<BrainProgressIndicatorProps, "completedSections" | "totalSections" | "className"> & {
+  size?: "sm" | "md" | "lg";
+}) {
+  const percentage = totalSections > 0
+    ? Math.round((completedSections / totalSections) * 100)
     : 0;
 
-  const circumference = 2 * Math.PI * 18; // radius = 18
+  const s = RING_SIZES[size];
+  const circumference = 2 * Math.PI * s.radius;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
   return (
     <div className={cn("relative inline-flex items-center justify-center", className)}>
-      <svg className="h-12 w-12 -rotate-90">
+      <svg className={cn(s.svgClass, "-rotate-90")}>
         {/* Background circle */}
         <circle
-          cx="24"
-          cy="24"
-          r="18"
+          cx={s.cx}
+          cy={s.cy}
+          r={s.radius}
           fill="none"
           stroke="currentColor"
-          strokeWidth="3"
+          strokeWidth={s.strokeWidth}
           className="text-muted"
         />
         {/* Progress circle */}
         <circle
-          cx="24"
-          cy="24"
-          r="18"
+          cx={s.cx}
+          cy={s.cy}
+          r={s.radius}
           fill="none"
           stroke="currentColor"
-          strokeWidth="3"
+          strokeWidth={s.strokeWidth}
           strokeLinecap="round"
           className={cn(
             percentage === 100 ? "text-green-500" : "text-primary"
@@ -191,7 +204,7 @@ export function BrainProgressRing({
           }}
         />
       </svg>
-      <span className="absolute text-xs font-medium">
+      <span className={cn("absolute font-medium", s.textClass)}>
         {percentage}%
       </span>
     </div>
