@@ -10,7 +10,7 @@ interface FoodOrder {
   customer_name: string | null;
   total_cents: number | null;
   created_at: string;
-  estimated_ready_at: string | null;
+  scheduled_at: string | null;
 }
 
 interface FoodDashboardData {
@@ -38,7 +38,7 @@ export function useFoodDashboard(): {
       // Fetch today's active orders
       const { data: orders, error } = await supabase
         .from("food_orders")
-        .select("id, status, order_type, customer_name, total_cents, created_at, estimated_ready_at")
+        .select("id, status, order_type, customer_name, total_cents, created_at, scheduled_at")
         .eq("tenant_id", tenant.id)
         .gte("created_at", todayStart)
         .lte("created_at", todayEnd)

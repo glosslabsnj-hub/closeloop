@@ -9,10 +9,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface Intake {
   id: string;
-  patient_name: string | null;
   status: string;
   created_at: string;
   intake_type: string | null;
+  customers: { name: string | null } | null;
 }
 
 export function PatientIntakeQueue() {
@@ -24,12 +24,12 @@ export function PatientIntakeQueue() {
       if (!tenant?.id) return [];
       const { data } = await supabase
         .from("medical_intakes")
-        .select("id, patient_name, status, created_at, intake_type")
+        .select("id, status, created_at, intake_type, customers(name)")
         .eq("tenant_id", tenant.id)
         .in("status", ["pending", "in_review"])
         .order("created_at", { ascending: true })
         .limit(8);
-      return (data || []) as Intake[];
+      return (data || []) as unknown as Intake[];
     },
     enabled: !!tenant?.id,
   });
@@ -69,7 +69,7 @@ export function PatientIntakeQueue() {
               <div key={intake.id} className="flex items-center gap-3 p-2.5 rounded-lg border">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">
-                    {intake.patient_name || "New Patient"}
+                    {intake.customers?.name || "New Patient"}
                   </p>
                   <div className="flex items-center gap-1 mt-0.5">
                     <Clock className="h-3 w-3 text-muted-foreground" />

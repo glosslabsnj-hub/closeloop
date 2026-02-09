@@ -17,7 +17,7 @@ import {
   type AddOnItem,
 } from "@/config/brainSectionRelevance";
 
-interface UseAddOnSectionsReturn {
+export interface UseAddOnSectionsReturn {
   /** Check if a section should show in the main area */
   isRelevant: (sectionId: string) => boolean;
   /** Items that should appear in the "Available Add-ons" group */
@@ -25,6 +25,8 @@ interface UseAddOnSectionsReturn {
   /** Enable an add-on (updates capabilities + optionally modules) */
   enableAddOn: (item: AddOnItem) => Promise<void>;
 }
+
+export type { AddOnItem };
 
 export function useAddOnSections(tab: BrainTab): UseAddOnSectionsReturn {
   const { tenant } = useAuth();

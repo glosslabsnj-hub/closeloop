@@ -261,8 +261,9 @@ Deno.serve(async (req) => {
 });
 
 // Helper: seed services, FAQs, and sample data
+// deno-lint-ignore no-explicit-any
 async function seedTenantData(
-  client: ReturnType<typeof createClient>,
+  client: any,
   tenantId: string,
   config: SeedRequest["config"]
 ) {

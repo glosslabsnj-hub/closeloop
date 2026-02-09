@@ -100,7 +100,7 @@ import {
   NextStepSuggestion,
 } from "@/components/brain/layout";
 import { useBrainSummaries } from "@/hooks/useBrainSummaries";
-import { useAddOnSections } from "@/hooks/useAddOnSections";
+import { useAddOnSections, type AddOnItem } from "@/hooks/useAddOnSections";
 import { SECTION_GUIDANCE } from "@/config/brainGuidance";
 import {
   FileText, Shield, MessageSquareText, Send, Truck, UtensilsCrossed, HeartPulse,
@@ -154,8 +154,8 @@ const LEGACY_TAB_TO_SECTION: Record<string, { section: NewSectionId; hash?: stri
 
 const pageVariants = {
   initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.25, ease: "easeOut" } },
-  exit: { opacity: 0, y: -8, transition: { duration: 0.15, ease: "easeIn" } },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.25 } },
+  exit: { opacity: 0, y: -8, transition: { duration: 0.15 } },
 };
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -179,7 +179,7 @@ export default function BusinessBrainPage() {
 
   // Merge add-on items from both coverage and policies for the operations tab
   const operationsAddOnItems = [...coverageAddOns.addOnItems, ...policiesAddOns.addOnItems];
-  const operationsEnableAddOn = async (item: { id: string; label: string; description: string }) => {
+  const operationsEnableAddOn = async (item: AddOnItem) => {
     const coverageIds = new Set(coverageAddOns.addOnItems.map(i => i.id));
     if (coverageIds.has(item.id)) {
       await coverageAddOns.enableAddOn(item);
@@ -398,8 +398,8 @@ interface SectionDetailWrapperProps {
   coverageAddOns: ReturnType<typeof useAddOnSections>;
   policiesAddOns: ReturnType<typeof useAddOnSections>;
   knowledgeAddOns: ReturnType<typeof useAddOnSections>;
-  operationsAddOnItems: ReturnType<typeof useAddOnSections>["addOnItems"];
-  operationsEnableAddOn: (item: { id: string; label: string; description: string }) => Promise<void>;
+  operationsAddOnItems: AddOnItem[];
+  operationsEnableAddOn: (item: AddOnItem) => Promise<void>;
   handleSectionChange: (section: string) => void;
 }
 
