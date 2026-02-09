@@ -436,6 +436,67 @@ export type Database = {
           },
         ]
       }
+      ai_response_quality: {
+        Row: {
+          created_at: string | null
+          customer_satisfied: boolean | null
+          id: string
+          knowledge_gap_id: string | null
+          question_asked: string
+          required_human_assist: boolean | null
+          response_given: string | null
+          response_source: string | null
+          session_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          customer_satisfied?: boolean | null
+          id?: string
+          knowledge_gap_id?: string | null
+          question_asked: string
+          required_human_assist?: boolean | null
+          response_given?: string | null
+          response_source?: string | null
+          session_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string | null
+          customer_satisfied?: boolean | null
+          id?: string
+          knowledge_gap_id?: string | null
+          question_asked?: string
+          required_human_assist?: boolean | null
+          response_given?: string | null
+          response_source?: string | null
+          session_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_response_quality_knowledge_gap_id_fkey"
+            columns: ["knowledge_gap_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_gaps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_response_quality_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_call_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_response_quality_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assistant_settings: {
         Row: {
           ai_booking_mode: string | null
@@ -1279,6 +1340,68 @@ export type Database = {
           },
         ]
       }
+      business_patterns: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          data_json: Json | null
+          description: string
+          dismissed_at: string | null
+          first_observed_at: string | null
+          id: string
+          is_actionable: boolean | null
+          is_dismissed: boolean | null
+          last_observed_at: string | null
+          observation_count: number | null
+          pattern_key: string
+          pattern_type: string
+          suggested_action: string | null
+          tenant_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          data_json?: Json | null
+          description: string
+          dismissed_at?: string | null
+          first_observed_at?: string | null
+          id?: string
+          is_actionable?: boolean | null
+          is_dismissed?: boolean | null
+          last_observed_at?: string | null
+          observation_count?: number | null
+          pattern_key: string
+          pattern_type: string
+          suggested_action?: string | null
+          tenant_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          data_json?: Json | null
+          description?: string
+          dismissed_at?: string | null
+          first_observed_at?: string | null
+          id?: string
+          is_actionable?: boolean | null
+          is_dismissed?: boolean | null
+          last_observed_at?: string | null
+          observation_count?: number | null
+          pattern_key?: string
+          pattern_type?: string
+          suggested_action?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_patterns_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       busy_blocks: {
         Row: {
           block_type: string
@@ -1442,6 +1565,63 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "calendar_tokens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      call_outcomes: {
+        Row: {
+          ai_handled_fully: boolean | null
+          conversion_value_cents: number | null
+          created_at: string | null
+          duration_seconds: number | null
+          escalation_reason: string | null
+          id: string
+          intent: string | null
+          outcome_type: string
+          service_requested: string | null
+          session_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          ai_handled_fully?: boolean | null
+          conversion_value_cents?: number | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          escalation_reason?: string | null
+          id?: string
+          intent?: string | null
+          outcome_type: string
+          service_requested?: string | null
+          session_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          ai_handled_fully?: boolean | null
+          conversion_value_cents?: number | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          escalation_reason?: string | null
+          id?: string
+          intent?: string | null
+          outcome_type?: string
+          service_requested?: string | null
+          session_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_outcomes_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_call_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_outcomes_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -4131,6 +4311,125 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "integrations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intelligence_digest: {
+        Row: {
+          created_at: string | null
+          digest_type: string | null
+          gaps_identified: number | null
+          highlights_json: Json
+          id: string
+          metrics_json: Json
+          patterns_discovered: number | null
+          period_end: string
+          period_start: string
+          recommendations_json: Json
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          digest_type?: string | null
+          gaps_identified?: number | null
+          highlights_json?: Json
+          id?: string
+          metrics_json?: Json
+          patterns_discovered?: number | null
+          period_end: string
+          period_start: string
+          recommendations_json?: Json
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string | null
+          digest_type?: string | null
+          gaps_identified?: number | null
+          highlights_json?: Json
+          id?: string
+          metrics_json?: Json
+          patterns_discovered?: number | null
+          period_end?: string
+          period_start?: string
+          recommendations_json?: Json
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intelligence_digest_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intelligence_insights: {
+        Row: {
+          action_link: string | null
+          actioned_at: string | null
+          created_at: string | null
+          description: string
+          expires_at: string | null
+          id: string
+          impact_estimate: string | null
+          insight_type: string
+          is_actioned: boolean | null
+          is_read: boolean | null
+          recommended_action: string | null
+          severity: string | null
+          source_pattern_id: string | null
+          tenant_id: string
+          title: string
+        }
+        Insert: {
+          action_link?: string | null
+          actioned_at?: string | null
+          created_at?: string | null
+          description: string
+          expires_at?: string | null
+          id?: string
+          impact_estimate?: string | null
+          insight_type: string
+          is_actioned?: boolean | null
+          is_read?: boolean | null
+          recommended_action?: string | null
+          severity?: string | null
+          source_pattern_id?: string | null
+          tenant_id: string
+          title: string
+        }
+        Update: {
+          action_link?: string | null
+          actioned_at?: string | null
+          created_at?: string | null
+          description?: string
+          expires_at?: string | null
+          id?: string
+          impact_estimate?: string | null
+          insight_type?: string
+          is_actioned?: boolean | null
+          is_read?: boolean | null
+          recommended_action?: string | null
+          severity?: string | null
+          source_pattern_id?: string | null
+          tenant_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intelligence_insights_source_pattern_id_fkey"
+            columns: ["source_pattern_id"]
+            isOneToOne: false
+            referencedRelation: "business_patterns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intelligence_insights_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
