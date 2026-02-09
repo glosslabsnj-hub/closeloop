@@ -1,107 +1,131 @@
-# Deep Dashboard & Onboarding Audit - IMPLEMENTED ✅
 
-## Summary
 
-All identified issues have been addressed with mode-aware onboarding and dashboard experiences.
+# Build Error Fixes for CloseLoop
 
----
+## Overview
 
-## Implementation Status
+Claude Code created new components and hooks for the mode-aware dashboards and test tenant seeding, but introduced several TypeScript errors. These need to be fixed here in Lovable since they involve:
 
-### ✅ Phase 1: Quick Wins (Complete)
-
-| Issue | Status | Solution |
-|-------|--------|----------|
-| SetupProgressChecklist too generic | ✅ Done | Uses `useTerminology()` and `useCapabilities()` hooks |
-| Food businesses see "Add services" | ✅ Done | Shows "Add your menu" for food mode |
-| Calendar step shows for all modes | ✅ Done | Logic updated based on business type |
-
-### ✅ Phase 2: Mode-Specific Onboarding (Complete)
-
-| Issue | Status | Solution |
-|-------|--------|----------|
-| Food mode missing menu entry | ✅ Done | Added Menu tab with quick-add in FoodSetupEditor |
-| Dispatch missing impound config | ✅ Done | Added impound fields in DispatchSetupEditor |
-| Medical missing HIPAA ack | ✅ Done | Added HIPAA acknowledgment in MedicalSetupEditor |
-
-### ✅ Phase 3: Dashboard Polish (Complete)
-
-| Issue | Status | Solution |
-|-------|--------|----------|
-| ROI empty state not mode-aware | ✅ Done | Added mode-specific steps in useROIDashboard |
-| Checklist missing mode items | ✅ Done | Shows "Configure impound lot" for dispatch+impound |
+1. **Database schema mismatches** - Components referencing columns that don't exist
+2. **Type errors in edge functions** - Supabase client typing issues
+3. **Framer Motion type issues** - Incorrect variant definitions
+4. **AddOnItem type mismatch** - Missing required properties
 
 ---
 
-## Files Modified
+## Error Analysis
+
+### Group 1: Database Column Mismatches
+
+The new dashboard widgets reference columns that don't exist in the actual database schema:
+
+| File | Missing Column | Actual Column |
+|------|---------------|---------------|
+| `TodayCalendarStrip.tsx` | `starts_at` | `start_at` |
+| `TodayCalendarStrip.tsx` | `service_name` | Need to join `services` table |
+| `TodayCalendarStrip.tsx` | `customer_name` | Need to join `customers` table via `lead_id` |
+| `PatientIntakeQueue.tsx` | `patient_name` | Need to join `customers` table via `customer_id` |
+| `useDispatchDashboard.ts` | `eta_minutes` | `estimated_arrival_at` (timestamp, not minutes) |
+| `useDispatchDashboard.ts` | `in_progress` status | Valid statuses are: pending, assigned, en_route, on_site, completed, cancelled |
+| `useFoodDashboard.ts` | `estimated_ready_at` | Column doesn't exist |
+
+### Group 2: Edge Function Type Errors
+
+`seed-test-tenants/index.ts` has Supabase client typing issues. The function parameter needs to use `any` type for the client since we're not importing the full Database type in edge functions.
+
+### Group 3: BusinessBrainPage Type Errors
+
+The `operationsEnableAddOn` function uses a simplified type `{ id: string; label: string; description: string }` but `AddOnItem` requires:
+- `title` (not `label`)
+- `icon: LucideIcon`
+- `capabilityKey: string`
+
+### Group 4: Framer Motion Variants
+
+The `ease` property in motion variants should be a typed easing value, not a string literal.
+
+---
+
+## Fix Plan
+
+### Phase 1: Fix Database Column Queries
+
+**TodayCalendarStrip.tsx**
+- Change `starts_at` to `start_at`
+- Join with `services` table for service name
+- Join with `customers` table via `lead_id` for customer name
+
+**PatientIntakeQueue.tsx**
+- Join with `customers` table via `customer_id` for patient name
+
+**useDispatchDashboard.ts**
+- Remove `eta_minutes` from select (use `estimated_arrival_at`)
+- Change `in_progress` status to valid enum values
+
+**useFoodDashboard.ts**
+- Remove `estimated_ready_at` from select (column doesn't exist)
+
+### Phase 2: Fix Edge Function Types
+
+**seed-test-tenants/index.ts**
+- Change function parameter type to accept `any` client
+- Use `as any` cast for insert operations to bypass strict typing
+
+### Phase 3: Fix BusinessBrainPage Types
+
+**BusinessBrainPage.tsx**
+- Change `operationsEnableAddOn` to accept full `AddOnItem` type
+- Or cast the items appropriately when calling the function
+
+### Phase 4: Fix Framer Motion Variants
+
+**BusinessBrainPage.tsx**
+- Change `ease: "easeOut"` to `ease: [0, 0, 0.2, 1]` (valid easing array)
+- Or remove the `ease` property entirely (default is fine)
+
+---
+
+## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/components/dashboard/SetupProgressChecklist.tsx` | Mode-aware steps, terminology, capability checks |
-| `src/components/onboarding/FoodSetupEditor.tsx` | Added Menu tab with quick-add form |
-| `src/components/onboarding/DispatchSetupEditor.tsx` | Added impound lot configuration section |
-| `src/components/onboarding/MedicalSetupEditor.tsx` | Added HIPAA acknowledgment with checkbox |
-| `src/pages/app/OnboardingPage.tsx` | Mode-aware Step 5 rendering and data saving |
-| `src/hooks/useROIDashboard.ts` | Mode-specific empty state steps and encouragement |
+| `src/components/dashboard/widgets/TodayCalendarStrip.tsx` | Fix column names and joins |
+| `src/components/dashboard/widgets/PatientIntakeQueue.tsx` | Add customer join for patient name |
+| `src/hooks/useDispatchDashboard.ts` | Fix column names and status values |
+| `src/hooks/useFoodDashboard.ts` | Remove non-existent column |
+| `supabase/functions/seed-test-tenants/index.ts` | Fix TypeScript types |
+| `src/pages/app/BusinessBrainPage.tsx` | Fix AddOnItem type and motion variants |
+| `src/components/dashboard/widgets/LeadFunnelSummary.tsx` | Fix excessive type depth issue |
 
 ---
 
-## Key Changes Summary
+## Technical Details
 
-### SetupProgressChecklist
-- Uses `useTerminology()` for dynamic step labels
-- Uses `useCapabilities()` for business mode detection
-- Shows appropriate icons (UtensilsCrossed for food, Truck for dispatch)
-- Adds "Configure impound lot" step for dispatch+impound businesses
-- Queries `menu_items` table for food businesses
+### Database Schema Reference
 
-### FoodSetupEditor
-- New "Menu" tab as first tab (before Order Types)
-- Quick menu item entry form with name, price, category
-- Visual feedback for recommended item count
-- Saves to `menu_items` table on completion
+**bookings table:**
+- `id`, `tenant_id`, `lead_id`, `service_id`, `start_at`, `end_at`, `status`, `notes`, `created_at`
+- No `starts_at`, `service_name`, or `customer_name` columns
 
-### DispatchSetupEditor
-- New `showImpound` prop for conditional display
-- Impound lot address field
-- Fee configuration (base, daily storage, admin, gate)
-- Release requirements notes
-- Saves to `impound_lots` and `impound_settings` tables
+**medical_intakes table:**
+- `id`, `tenant_id`, `customer_id`, `status`, `intake_type`, `urgency_level`, `reason_for_visit`, etc.
+- No `patient_name` column - must join with `customers`
 
-### MedicalSetupEditor
-- HIPAA acknowledgment card with checkbox
-- Clear explanation of privacy protections
-- Visual confirmation when acknowledged (green styling)
-- Validation requires acknowledgment to proceed
-- Saves to `medical_settings` table
+**dispatch_jobs table:**
+- Has `estimated_arrival_at` (timestamptz) but not `eta_minutes`
+- Valid statuses: `pending`, `assigned`, `en_route`, `on_site`, `completed`, `cancelled`
 
-### OnboardingPage
-- Mode-aware Step 5 titles and descriptions
-- Renders appropriate editor based on businessMode
-- Mode-aware validation logic
-- Saves all mode-specific data to correct tables
-
-### useROIDashboard
-- Mode-specific empty state steps:
-  - **Service**: "Add services → Book appointments → Track revenue"
-  - **Dispatch**: "Add service types → Dispatch jobs → Track earnings"
-  - **Food**: "Add menu items → Take orders → Track revenue"
-  - **Medical**: "Add services → Schedule patients → Track revenue"
-  - **General**: "Add offerings → Capture leads → Track revenue"
+**food_orders table:**
+- Has `scheduled_at` for pickup time, but no `estimated_ready_at`
 
 ---
 
-## Validation Checklist - COMPLETE ✅
+## Implementation Order
 
-All business types tested and verified:
+1. Fix simpler type errors first (edge function, motion variants)
+2. Fix database query issues (requires understanding joins)
+3. Verify each component works in isolation
+4. Test end-to-end with real data
 
-- [x] **Service (Salon)**: Step 5 shows ServiceEditor, dashboard shows "Add services", services table populated
-- [x] **Dispatch (Towing)**: Step 5 shows DispatchEditor with impound, dashboard shows impound step when hasImpoundLot=true, impound_settings has fees configured
-- [x] **Food (Restaurant)**: Step 5 shows FoodEditor with Menu tab, dashboard shows "Add your menu", menu_items table has data
-- [x] **Medical (MedSpa)**: Step 5 shows MedicalEditor, hipaa_mode=true, HIPAA acknowledgment required to proceed
-- [x] **General (Consulting)**: Step 5 shows ServiceEditor, dashboard shows callback-focused steps
+This will unblock the build and allow Claude Code's onboarding refactor to work properly.
 
-## Bug Fixes Applied
-
-1. **SetupProgressChecklist.tsx**: Fixed impound configuration check to query `impound_settings` and `impound_lots` tables instead of non-existent `tenant.impound_lot_address`
-2. **OnboardingPage.tsx**: Fixed column name typo `daily_storage_fee_cents` → `daily_storage_cents` to match actual schema
