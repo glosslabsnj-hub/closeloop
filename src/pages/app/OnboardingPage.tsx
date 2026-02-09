@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import {
   Building2, CheckCircle2, Loader2,
@@ -23,7 +22,7 @@ import { ConfirmationSummary } from "@/components/onboarding/ConfirmationSummary
 import { BusinessDetailsForm, getDefaultBusinessDetails, type BusinessDetails } from "@/components/onboarding/BusinessDetailsForm";
 import { SchedulingSetup, getDefaultSchedulingPrefs, getDefaultHoursForMode, type SchedulingPrefs } from "@/components/onboarding/SchedulingSetup";
 import { formatErrorForToast } from "@/lib/errorMessages";
-import { OnboardingProgress, type OnboardingStep } from "@/components/onboarding/OnboardingProgress";
+import { OnboardingProgress, OnboardingProgressMobile, type OnboardingStep } from "@/components/onboarding/OnboardingProgress";
 import { OnboardingComplete } from "@/components/onboarding/OnboardingComplete";
 import { IndustrySelectorGrid } from "@/components/onboarding/IndustrySelectorGrid";
 import { updateCapabilityFlags } from "@/hooks/useBusinessCapabilities";
@@ -34,19 +33,20 @@ import type { BusinessHours } from "@/components/onboarding/BusinessHoursEditor"
 import type { PlanCode } from "@/types/database";
 
 const steps: OnboardingStep[] = [
-  { id: "identity", icon: Building2, title: "Identity", description: "Name your business" },
-  { id: "industry", icon: Sparkles, title: "Industry", description: "Choose your industry" },
-  { id: "details", icon: Briefcase, title: "Details", description: "Business info" },
-  { id: "scenarios", icon: HelpCircle, title: "Discovery", description: "How you operate" },
+  { id: "identity", icon: Building2, title: "Business Name", description: "What your AI will call itself" },
+  { id: "industry", icon: Sparkles, title: "Industry", description: "Customize your setup" },
+  { id: "details", icon: Briefcase, title: "Details", description: "Size, pricing & volume" },
+  { id: "scenarios", icon: HelpCircle, title: "Discovery", description: "How your business operates" },
   { id: "scheduling", icon: Clock, title: "Scheduling", description: "Hours & availability" },
-  { id: "communication", icon: Sliders, title: "Communication", description: "AI behavior" },
-  { id: "confirm", icon: CheckCircle2, title: "Confirm", description: "Review and apply" },
+  { id: "communication", icon: Sliders, title: "AI Behavior", description: "Tone, booking & follow-ups" },
+  { id: "confirm", icon: CheckCircle2, title: "Review", description: "Confirm and launch" },
 ];
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [provisionedPhone, setProvisionedPhone] = useState<string | undefined>();
 
   // Track if industry template has been initialized
   const initializedIndustryRef = useRef<string | null>(null);
@@ -497,6 +497,9 @@ export default function OnboardingPage() {
           if (provisionError) {
             console.error("TwilioProvision: error", { message: provisionError.message });
           } else if (provisionData?.success) {
+            if (provisionData.phone_number) {
+              setProvisionedPhone(provisionData.phone_number);
+            }
             console.log("TwilioProvision: success", {
               phone_e164: provisionData.phone_number,
               twilio_sid: provisionData.phone_sid,
@@ -614,11 +617,12 @@ export default function OnboardingPage() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-h-screen">
         {/* Mobile Progress Bar */}
-        <div className="lg:hidden p-4 border-b bg-card">
-          <Progress value={progress} className="h-2" />
-          <p className="text-sm text-muted-foreground mt-2">
-            Step {step} of {totalSteps}: {currentStepInfo?.title}
-          </p>
+        <div className="lg:hidden">
+          <OnboardingProgressMobile
+            currentStep={step}
+            totalSteps={totalSteps}
+            stepTitle={currentStepInfo?.title || ""}
+          />
         </div>
 
         {/* Step Content - Centered */}
@@ -633,7 +637,7 @@ export default function OnboardingPage() {
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <OnboardingComplete businessName={businessName} />
+                  <OnboardingComplete businessName={businessName} phoneNumber={provisionedPhone} />
                 </motion.div>
               ) : (
                 <motion.div
@@ -649,10 +653,10 @@ export default function OnboardingPage() {
                     <div className="space-y-6">
                       <div>
                         <h2 className="text-2xl font-semibold tracking-tight">
-                          Let's set up your AI receptionist
+                          What's your business called?
                         </h2>
                         <p className="mt-2 text-muted-foreground">
-                          Name your business and choose how it operates.
+                          This is how your AI will introduce itself on calls.
                         </p>
                       </div>
                       <div className="space-y-2">

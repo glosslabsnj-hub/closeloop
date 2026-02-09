@@ -49,21 +49,21 @@ export function HeroSection() {
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/signup">
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="w-full sm:w-auto gap-2 h-14 px-8 text-base font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:scale-[1.02] transition-all"
               >
-                Get Started
+                Start Free Trial
                 <ArrowRight className="h-5 w-5" />
               </Button>
             </Link>
             <a href="#demo">
-              <Button 
-                size="lg" 
-                variant="outline" 
+              <Button
+                size="lg"
+                variant="outline"
                 className="w-full sm:w-auto gap-2 h-14 px-8 text-base font-medium hover:bg-muted/50 transition-all"
               >
-                <Play className="h-5 w-5" />
+                <Play className="h-4 w-4 fill-current" />
                 Hear a Real Call
               </Button>
             </a>

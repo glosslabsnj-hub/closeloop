@@ -1,7 +1,7 @@
 /**
- * BusinessBrainHub - Clean landing for Business Brain setup
- * 
- * Simple, scannable layout showing setup progress and 8 areas to configure.
+ * BusinessBrainHub - Compact landing for Business Brain setup
+ *
+ * Scannable layout: header with inline progress, then step list.
  */
 
 import { useCallback } from "react";
@@ -12,10 +12,10 @@ import { useFoodMode } from "@/hooks/useFoodMode";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Brain } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 import { StepCard } from "./StepCard";
-import { HubProgress } from "./HubProgress";
-import { getOrderedSteps, isStepEmphasized, getOfferingsTitle } from "./hubStepsConfig";
+import { getOrderedSteps, getStepTitle, isStepEmphasized } from "./hubStepsConfig";
 
 interface BusinessBrainHubProps {
   onNavigateToSection: (sectionId: string) => void;
@@ -120,10 +120,11 @@ export function BusinessBrainHub({ onNavigateToSection }: BusinessBrainHubProps)
         return !!(tenantData?.name && tenantData?.timezone);
       case "hours":
         return (hoursData?.length || 0) > 0;
-      case "offerings":
+      case "offerings": {
         const minServices = isFoodMode ? 3 : 1;
         const servicesWithPrices = servicesData?.filter(s => s.price_amount && s.price_amount > 0) || [];
         return servicesWithPrices.length >= minServices;
+      }
       case "coverage":
         return !!(tenantData?.address);
       case "calendar":
@@ -138,42 +139,47 @@ export function BusinessBrainHub({ onNavigateToSection }: BusinessBrainHubProps)
       default:
         return false;
     }
-  }, [tenantData, hoursData, servicesData, faqsData, assistantData, calendarData, isFoodMode, businessMode]);
+  }, [tenantData, hoursData, servicesData, faqsData, assistantData, calendarData, isFoodMode, caps.isDispatchBusiness, caps.isFoodBusiness]);
 
   const orderedSteps = getOrderedSteps(businessMode);
   const completedCount = orderedSteps.filter(step => getStepCompletion(step.id)).length;
   const totalSteps = orderedSteps.length;
+  const percentage = Math.round((completedCount / totalSteps) * 100);
+  const isAllComplete = completedCount >= totalSteps;
 
   return (
     <div className="pb-12">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-            <Brain className="h-5 w-5 text-primary" />
-          </div>
+      {/* Header: icon + title left, progress right */}
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          <Brain className="h-6 w-6 text-primary" />
           <div>
-            <h1 className="text-xl font-bold">Business Brain</h1>
-            <p className="text-sm text-muted-foreground">
-              Teach your AI about your business
-            </p>
+            <h1 className="text-lg font-semibold">Business Brain</h1>
+            <p className="text-sm text-muted-foreground">Teach your AI about your business</p>
           </div>
         </div>
 
-        {/* Progress */}
-        <HubProgress
-          completedSteps={completedCount}
-          totalSteps={totalSteps}
-          mode={businessMode}
-        />
+        {/* Progress indicator */}
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium whitespace-nowrap">{percentage}% Complete</span>
+          <div className="w-24 h-1.5 rounded-full bg-muted overflow-hidden">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all duration-500",
+                isAllComplete ? "bg-emerald-500" : "bg-primary"
+              )}
+              style={{ width: `${percentage}%` }}
+            />
+          </div>
+        </div>
       </div>
 
-      {/* Steps */}
-      <div className="space-y-2">
+      {/* Steps list */}
+      <div className="space-y-0.5">
         {orderedSteps.map((step, index) => {
           const isComplete = getStepCompletion(step.id);
-          const isEmphasized = isStepEmphasized(step, businessMode);
-          const title = step.id === "offerings" ? getOfferingsTitle(businessMode) : step.title;
+          const emphasized = isStepEmphasized(step, businessMode);
+          const title = getStepTitle(step.id, businessMode);
 
           return (
             <StepCard
@@ -185,7 +191,7 @@ export function BusinessBrainHub({ onNavigateToSection }: BusinessBrainHubProps)
               icon={step.icon}
               usedByAI={step.usedByAI}
               isComplete={isComplete}
-              isEmphasized={isEmphasized}
+              isEmphasized={emphasized}
               mode={businessMode}
               onEdit={onNavigateToSection}
             />

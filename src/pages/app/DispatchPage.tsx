@@ -302,19 +302,19 @@ export default function DispatchPage() {
       <PageContainer maxWidth="full">
         <div className="space-y-6">
           <PageHeader
-            icon={<Truck className="h-5 w-5" />}
+            icon={Truck}
             title="Dispatch Command Center"
-            description={`${filteredJobs.length} ${statusFilter === "active" ? "active" : ""} jobs in queue`}
+            description={`${filteredJobs.length} ${statusFilter === "active" ? "active " : ""}jobs in queue`}
             action={
               <div className="flex items-center gap-2">
                 <Button variant="outline" asChild>
                   <Link to="/app/dispatch-map">
-                    <Map className="h-4 w-4 mr-2" />
+                    <Map className="h-4 w-4" />
                     Map View
                   </Link>
                 </Button>
                 <Button>
-                  <Plus className="h-4 w-4 mr-2" />
+                  <Plus className="h-4 w-4" />
                   New Job
                 </Button>
               </div>
@@ -411,15 +411,15 @@ export default function DispatchPage() {
           ) : filteredJobs.length === 0 ? (
             <EmptyState
               icon={Truck}
-              title="No dispatch jobs"
+              title="No active jobs"
               description={
                 statusFilter !== "all" || priorityFilter !== "all" || searchQuery
                   ? "Try adjusting your filters to see more results."
-                  : "When your AI creates dispatch requests, they'll appear here for assignment."
+                  : "When dispatch requests come in, you'll see them here for assignment."
               }
               action={
                 statusFilter === "all" && priorityFilter === "all" && !searchQuery
-                  ? { label: "Create Job", onClick: () => {} }
+                  ? { label: "Create job", onClick: () => {} }
                   : undefined
               }
             />

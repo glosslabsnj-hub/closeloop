@@ -1,5 +1,7 @@
 import { cn } from "@/lib/utils";
-import { ReactNode } from "react";
+import { type LucideIcon, ArrowLeft } from "lucide-react";
+import { Link } from "react-router-dom";
+import React, { type ReactNode } from "react";
 
 interface PageHeaderProps {
   title: string;
@@ -7,56 +9,56 @@ interface PageHeaderProps {
   action?: ReactNode;
   className?: string;
   badge?: ReactNode;
-  /** Breadcrumb path before title */
-  breadcrumb?: string;
-  /** Icon to show before title */
-  icon?: ReactNode;
-  /** Compact variant with less spacing */
-  compact?: boolean;
+  /** Back navigation link */
+  backHref?: string;
+  /** Lucide icon component (preferred) or ReactNode (legacy) */
+  icon?: LucideIcon | ReactNode;
 }
 
-/**
- * Clean, minimal page header.
- * Linear/Notion-inspired design.
- */
 export function PageHeader({
   title,
   description,
   action,
   className,
   badge,
-  breadcrumb,
+  backHref,
   icon,
-  compact = false,
 }: PageHeaderProps) {
-  return (
-    <header className={cn(
-      "sticky top-0 z-20 bg-background/95 backdrop-blur-sm",
-      compact ? "py-4 mb-4" : "py-6 mb-6",
-      "-mx-6 md:-mx-8 lg:-mx-12 px-6 md:px-8 lg:px-12",
-      "border-b border-white/[0.04]",
-      className
-    )}>
-      {/* Breadcrumb */}
-      {breadcrumb && (
-        <p className="text-[11px] font-medium text-muted-foreground/50 uppercase tracking-wider mb-1">
-          {breadcrumb}
-        </p>
-      )}
+  // Support both LucideIcon components and ReactNode (backward compat)
+  const renderIcon = () => {
+    if (!icon) return null;
+    if (React.isValidElement(icon)) return icon;
+    const Icon = icon as LucideIcon;
+    return <Icon className="h-5 w-5" />;
+  };
 
-      <div className="flex items-start justify-between gap-4">
+  return (
+    <header
+      className={cn(
+        "sticky top-0 z-20 bg-background/95 backdrop-blur-sm",
+        "py-4 px-6",
+        "border-b border-border/30",
+        className
+      )}
+    >
+      <div className="flex items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
           {/* Title row */}
           <div className="flex items-center gap-2.5">
+            {backHref && (
+              <Link
+                to={backHref}
+                className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors -ml-1 p-1 rounded-md hover:bg-muted/40"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Link>
+            )}
             {icon && (
               <div className="flex-shrink-0 text-muted-foreground">
-                {icon}
+                {renderIcon()}
               </div>
             )}
-            <h1 className={cn(
-              "font-semibold tracking-tight text-foreground truncate",
-              compact ? "text-lg" : "text-xl"
-            )}>
+            <h1 className="text-lg font-semibold tracking-tight text-foreground truncate">
               {title}
             </h1>
             {badge && <div className="flex-shrink-0">{badge}</div>}
@@ -64,10 +66,7 @@ export function PageHeader({
 
           {/* Description */}
           {description && (
-            <p className={cn(
-              "text-muted-foreground/70 mt-1 truncate",
-              compact ? "text-xs" : "text-sm"
-            )}>
+            <p className="text-sm text-muted-foreground mt-1 truncate">
               {description}
             </p>
           )}

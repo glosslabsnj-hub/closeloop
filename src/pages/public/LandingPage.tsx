@@ -4,6 +4,7 @@ import { WhoItsForSection } from "@/components/landing/WhoItsForSection";
 import { IndustryDemoPlayer } from "@/components/landing/IndustryDemoPlayer";
 import { IntegrationsSection } from "@/components/landing/IntegrationsSection";
 import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
+import { PricingSection } from "@/components/landing/PricingSection";
 import { FAQSection } from "@/components/landing/FAQSection";
 import { FinalCTASection } from "@/components/landing/FinalCTASection";
 import { MobileStickyBar } from "@/components/landing/MobileStickyBar";
@@ -37,6 +38,9 @@ export default function LandingPage() {
 
       {/* Testimonials & Trust */}
       <TestimonialsSection />
+
+      {/* Pricing */}
+      <PricingSection />
 
       {/* FAQ */}
       <FAQSection />

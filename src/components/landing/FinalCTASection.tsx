@@ -17,18 +17,25 @@ export function FinalCTASection() {
           Every unanswered call is lost revenue. Start capturing every lead today.
         </p>
         
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
           <Link to="/signup">
-            <Button 
-              size="lg" 
-              variant="secondary" 
+            <Button
+              size="lg"
+              variant="secondary"
               className="w-full sm:w-auto gap-2 h-14 px-10 text-base font-semibold shadow-xl hover:scale-[1.02] transition-all"
             >
-              Get Started
+              Start Free Trial
               <ArrowRight className="h-5 w-5" />
             </Button>
           </Link>
         </div>
+
+        <p className="text-sm opacity-80 mb-12">
+          Or call us:{" "}
+          <a href="tel:+18005551234" className="font-semibold underline underline-offset-2 hover:opacity-100">
+            (800) 555-1234
+          </a>
+        </p>
         
         <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-6 sm:gap-8 text-sm opacity-90">
           {["Setup in minutes", "No commitment", "Cancel anytime"].map((text) => (
