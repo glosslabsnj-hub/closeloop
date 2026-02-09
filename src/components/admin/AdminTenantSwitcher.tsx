@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { CreateTestTenantDialog } from "./CreateTestTenantDialog";
+import { isTestTenantName, getTestTenantByName } from "@/data/testTenantMatrix";
 import type { Tenant, BusinessMode } from "@/types/database";
 
 export function AdminTenantSwitcher() {
@@ -157,29 +158,80 @@ export function AdminTenantSwitcher() {
               <span className="font-mono">+1 (855) 329-7357</span>
             </div>
             
-            {tenants?.map((tenant) => (
-              <DropdownMenuItem
-                key={tenant.id}
-                onSelect={(e) => {
-                  e.preventDefault();
-                  handleTenantSelect(tenant.id);
-                }}
-                onPointerDown={(e) => e.stopPropagation()}
-                className="flex items-center gap-2 cursor-pointer"
-                disabled={isLoading}
-              >
-                {tenant.id === effectiveTenantId && (
-                  <Check className="h-4 w-4 text-primary" />
-                )}
-                <div className={`flex-1 ${tenant.id !== effectiveTenantId ? "ml-6" : ""}`}>
-                  <div className="font-medium truncate">{tenant.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {getModeLabel(tenant.business_mode)}
-                    {tenant.industry && ` · ${tenant.industry}`}
-                  </div>
+            {/* Test Tenants group */}
+            {tenants?.some(t => isTestTenantName(t.name)) && (
+              <>
+                <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Test Tenants
                 </div>
-              </DropdownMenuItem>
-            ))}
+                {tenants
+                  .filter(t => isTestTenantName(t.name))
+                  .map((tenant) => {
+                    const testConfig = getTestTenantByName(tenant.name);
+                    return (
+                      <DropdownMenuItem
+                        key={tenant.id}
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          handleTenantSelect(tenant.id);
+                        }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        className="flex items-center gap-2 cursor-pointer"
+                        disabled={isLoading}
+                      >
+                        {tenant.id === effectiveTenantId && (
+                          <Check className="h-4 w-4 text-primary" />
+                        )}
+                        <div className={`flex-1 ${tenant.id !== effectiveTenantId ? "ml-6" : ""}`}>
+                          <div className="font-medium truncate">{tenant.name}</div>
+                          <div className="text-xs text-muted-foreground flex items-center gap-1">
+                            {getModeLabel(tenant.business_mode)}
+                            {testConfig?.scenarioTags?.slice(0, 2).map(tag => (
+                              <span key={tag} className="inline-block px-1 py-0 rounded text-[9px] bg-muted">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </DropdownMenuItem>
+                    );
+                  })}
+              </>
+            )}
+
+            {/* Real Tenants group */}
+            {tenants?.some(t => !isTestTenantName(t.name)) && (
+              <>
+                <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mt-1">
+                  Real Tenants
+                </div>
+                {tenants
+                  .filter(t => !isTestTenantName(t.name))
+                  .map((tenant) => (
+                    <DropdownMenuItem
+                      key={tenant.id}
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        handleTenantSelect(tenant.id);
+                      }}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      className="flex items-center gap-2 cursor-pointer"
+                      disabled={isLoading}
+                    >
+                      {tenant.id === effectiveTenantId && (
+                        <Check className="h-4 w-4 text-primary" />
+                      )}
+                      <div className={`flex-1 ${tenant.id !== effectiveTenantId ? "ml-6" : ""}`}>
+                        <div className="font-medium truncate">{tenant.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {getModeLabel(tenant.business_mode)}
+                          {tenant.industry && ` · ${tenant.industry}`}
+                        </div>
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+              </>
+            )}
             
             <DropdownMenuSeparator />
             

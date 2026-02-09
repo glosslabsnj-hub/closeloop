@@ -95,7 +95,8 @@ export default function AdminTestOnboardingPage() {
     if (industryEntry?.businessMode) {
       setBusinessMode(industryEntry.businessMode);
       setCommunicationPrefs(getDefaultCommunicationPrefs(industryEntry.businessMode));
-      setScenarioAnswers(getDefaultAnswers(industryEntry.businessMode));
+      const ctx = { slug: industrySlug, category: industryEntry.category };
+      setScenarioAnswers(getDefaultAnswers(industryEntry.businessMode, ctx));
     }
 
     // Auto-update enabled_modules from industry
@@ -112,15 +113,19 @@ export default function AdminTestOnboardingPage() {
   // When scenario answers change, derive modules
   useEffect(() => {
     if (Object.keys(scenarioAnswers).length === 0) return;
-    const questions = getQuestionsForMode(businessMode);
+    const industryEntry = industrySlug ? getIndustryBySlug(industrySlug) : undefined;
+    const ctx = industryEntry ? { slug: industrySlug, category: industryEntry.category } : undefined;
+    const questions = getQuestionsForMode(businessMode, ctx);
     const derived = deriveModulesFromScenario(baseModulesRef.current, scenarioAnswers, questions);
     setEnabledModules(derived);
-  }, [scenarioAnswers, businessMode]);
+  }, [scenarioAnswers, businessMode, industrySlug]);
 
   // When business mode changes (from Step 1 manual selection), reset scenario + comm prefs
   const handleBusinessModeChange = (mode: BusinessMode) => {
     setBusinessMode(mode);
-    setScenarioAnswers(getDefaultAnswers(mode));
+    const industryEntry = industrySlug ? getIndustryBySlug(industrySlug) : undefined;
+    const ctx = industryEntry ? { slug: industrySlug, category: industryEntry.category } : undefined;
+    setScenarioAnswers(getDefaultAnswers(mode, ctx));
     setCommunicationPrefs(getDefaultCommunicationPrefs(mode));
   };
 
@@ -515,6 +520,8 @@ export default function AdminTestOnboardingPage() {
                     businessMode={businessMode}
                     answers={scenarioAnswers}
                     onChange={setScenarioAnswers}
+                    industrySlug={industrySlug}
+                    industryCategory={getIndustryBySlug(industrySlug)?.category}
                   />
                 </CardContent>
               </Card>

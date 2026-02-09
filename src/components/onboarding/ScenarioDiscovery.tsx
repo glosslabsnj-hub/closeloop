@@ -1,20 +1,70 @@
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Shield } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Shield, Bot } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { getQuestionsForMode, type ScenarioQuestion } from "@/lib/scenarioQuestions";
+import {
+  getQuestionsForMode,
+  groupLabels,
+  type ScenarioQuestion,
+  type QuestionGroup,
+} from "@/lib/scenarioQuestions";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 
 interface ScenarioDiscoveryProps {
   businessMode: BusinessMode;
   answers: Record<string, boolean>;
   onChange: (answers: Record<string, boolean>) => void;
+  industrySlug?: string;
+  industryCategory?: string;
 }
 
-export function ScenarioDiscovery({ businessMode, answers, onChange }: ScenarioDiscoveryProps) {
-  const questions = getQuestionsForMode(businessMode);
+export function ScenarioDiscovery({
+  businessMode,
+  answers,
+  onChange,
+  industrySlug,
+  industryCategory,
+}: ScenarioDiscoveryProps) {
+  const industryContext = industrySlug && industryCategory
+    ? { slug: industrySlug, category: industryCategory }
+    : undefined;
+
+  const questions = getQuestionsForMode(businessMode, industryContext);
+
+  // Filter by showWhen condition
+  const visibleQuestions = useMemo(() => {
+    return questions.filter((q) => {
+      if (!q.showWhen) return true;
+      return answers[q.showWhen.capabilityKey] === q.showWhen.value;
+    });
+  }, [questions, answers]);
+
+  // Group questions
+  const grouped = useMemo(() => {
+    const groups: { group: QuestionGroup; questions: ScenarioQuestion[] }[] = [];
+    const byGroup = new Map<QuestionGroup, ScenarioQuestion[]>();
+
+    for (const q of visibleQuestions) {
+      const g = q.group || "core";
+      if (!byGroup.has(g)) byGroup.set(g, []);
+      byGroup.get(g)!.push(q);
+    }
+
+    // Preserve order: core → ai_behavior → advanced
+    const order: QuestionGroup[] = ["core", "ai_behavior", "advanced"];
+    for (const g of order) {
+      const qs = byGroup.get(g);
+      if (qs && qs.length > 0) {
+        groups.push({ group: g, questions: qs });
+      }
+    }
+
+    return groups;
+  }, [visibleQuestions]);
 
   const toggle = (capabilityKey: string, blocking?: boolean) => {
     if (blocking) return; // Blocking questions cannot be toggled off
@@ -23,6 +73,8 @@ export function ScenarioDiscovery({ businessMode, answers, onChange }: ScenarioD
       [capabilityKey]: !answers[capabilityKey],
     });
   };
+
+  let globalIndex = 0;
 
   return (
     <div className="space-y-6">
@@ -35,16 +87,28 @@ export function ScenarioDiscovery({ businessMode, answers, onChange }: ScenarioD
         </p>
       </div>
 
-      <ScrollArea className="h-[380px]">
-        <div className="space-y-3 pr-4">
-          {questions.map((q, index) => (
-            <QuestionCard
-              key={q.id}
-              question={q}
-              checked={answers[q.capabilityKey] ?? q.defaultValue}
-              onToggle={() => toggle(q.capabilityKey, q.blocking)}
-              index={index}
-            />
+      <ScrollArea className="h-[460px]">
+        <div className="space-y-5 pr-4">
+          {grouped.map(({ group, questions: groupQuestions }) => (
+            <div key={group} className="space-y-3">
+              {grouped.length > 1 && (
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground px-1">
+                  {groupLabels[group]}
+                </p>
+              )}
+              {groupQuestions.map((q) => {
+                const index = globalIndex++;
+                return (
+                  <QuestionCard
+                    key={q.id}
+                    question={q}
+                    checked={answers[q.capabilityKey] ?? q.defaultValue}
+                    onToggle={() => toggle(q.capabilityKey, q.blocking)}
+                    index={index}
+                  />
+                );
+              })}
+            </div>
           ))}
         </div>
       </ScrollArea>
@@ -87,7 +151,15 @@ function QuestionCard({
             )}
 
             <div className="flex-1 min-w-0">
-              <h4 className="font-medium">{question.question}</h4>
+              <div className="flex items-center gap-2">
+                <h4 className="font-medium">{question.question}</h4>
+                {question.requiredForAI && (
+                  <Badge variant="secondary" className="text-[10px] gap-1 shrink-0">
+                    <Bot className="h-3 w-3" />
+                    AI uses this
+                  </Badge>
+                )}
+              </div>
               {question.description && (
                 <p className="text-sm text-muted-foreground mt-0.5">
                   {question.description}

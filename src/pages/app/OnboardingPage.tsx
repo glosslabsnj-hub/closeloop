@@ -104,8 +104,9 @@ export default function OnboardingPage() {
       setBusinessMode(industryEntry.businessMode);
       // Reset communication prefs to match new mode
       setCommunicationPrefs(getDefaultCommunicationPrefs(industryEntry.businessMode));
-      // Reset scenario answers to match new mode
-      setScenarioAnswers(getDefaultAnswers(industryEntry.businessMode));
+      // Reset scenario answers to match new mode (with industry context for filtering)
+      const ctx = { slug: industrySlug, category: industryEntry.category };
+      setScenarioAnswers(getDefaultAnswers(industryEntry.businessMode, ctx));
     }
 
     // Auto-update enabled_modules from industry
@@ -122,15 +123,19 @@ export default function OnboardingPage() {
   // When scenario answers change, derive modules
   useEffect(() => {
     if (Object.keys(scenarioAnswers).length === 0) return;
-    const questions = getQuestionsForMode(businessMode);
+    const industryEntry = industrySlug ? getIndustryBySlug(industrySlug) : undefined;
+    const ctx = industryEntry ? { slug: industrySlug, category: industryEntry.category } : undefined;
+    const questions = getQuestionsForMode(businessMode, ctx);
     const derived = deriveModulesFromScenario(baseModulesRef.current, scenarioAnswers, questions);
     setEnabledModules(derived);
-  }, [scenarioAnswers, businessMode]);
+  }, [scenarioAnswers, businessMode, industrySlug]);
 
   // When business mode changes (from Step 1 manual selection), reset scenario + comm prefs
   const handleBusinessModeChange = (mode: BusinessMode) => {
     setBusinessMode(mode);
-    setScenarioAnswers(getDefaultAnswers(mode));
+    const industryEntry = industrySlug ? getIndustryBySlug(industrySlug) : undefined;
+    const ctx = industryEntry ? { slug: industrySlug, category: industryEntry.category } : undefined;
+    setScenarioAnswers(getDefaultAnswers(mode, ctx));
     setCommunicationPrefs(getDefaultCommunicationPrefs(mode));
   };
 
@@ -615,6 +620,8 @@ export default function OnboardingPage() {
                       businessMode={businessMode}
                       answers={scenarioAnswers}
                       onChange={setScenarioAnswers}
+                      industrySlug={industrySlug}
+                      industryCategory={getIndustryBySlug(industrySlug)?.category}
                     />
                   )}
 

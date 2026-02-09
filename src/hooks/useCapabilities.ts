@@ -31,6 +31,19 @@ export interface Capabilities {
   hasAfterHoursHandling: boolean;
   hasSmsCampaigns: boolean;
   hasKnowledgeBase: boolean;
+  // ── New module flags ──
+  hasStaffScheduling: boolean;
+  hasPackages: boolean;
+  hasPoliceImpound: boolean;
+  hasPPITowing: boolean;
+  hasRecoveryServices: boolean;
+  hasPhoneQuotes: boolean;
+  hasDietaryIntake: boolean;
+  hasCurbside: boolean;
+  hasKDSIntegration: boolean;
+  hasNewPatientForms: boolean;
+  hasReferrals: boolean;
+  hasMedicationsIntake: boolean;
 
   // ── Computed helpers (convenience) ──
   isFoodBusiness: boolean;
@@ -68,6 +81,18 @@ const MODULE_TO_CAP: Record<string, keyof Capabilities> = {
   after_hours_handling: "hasAfterHoursHandling",
   sms_campaigns: "hasSmsCampaigns",
   knowledge_base: "hasKnowledgeBase",
+  staff_scheduling: "hasStaffScheduling",
+  packages: "hasPackages",
+  police_impound: "hasPoliceImpound",
+  ppi_towing: "hasPPITowing",
+  recovery_services: "hasRecoveryServices",
+  phone_quotes: "hasPhoneQuotes",
+  dietary_intake: "hasDietaryIntake",
+  curbside: "hasCurbside",
+  kds_integration: "hasKDSIntegration",
+  new_patient_forms: "hasNewPatientForms",
+  referrals: "hasReferrals",
+  medications_intake: "hasMedicationsIntake",
 };
 
 /** Default modules per business mode (mirrors useTenantConfig defaults) */
@@ -129,6 +154,18 @@ export function resolveCapabilitiesFromTenant(
   const hasAfterHoursHandling = cap("after_hours_handling");
   const hasSmsCampaigns = cap("sms_campaigns");
   const hasKnowledgeBase = cap("knowledge_base");
+  const hasStaffScheduling = cap("staff_scheduling");
+  const hasPackages = cap("packages");
+  const hasPoliceImpound = cap("police_impound");
+  const hasPPITowing = cap("ppi_towing");
+  const hasRecoveryServices = cap("recovery_services");
+  const hasPhoneQuotes = cap("phone_quotes");
+  const hasDietaryIntake = cap("dietary_intake");
+  const hasCurbside = cap("curbside");
+  const hasKDSIntegration = cap("kds_integration");
+  const hasNewPatientForms = cap("new_patient_forms");
+  const hasReferrals = cap("referrals");
+  const hasMedicationsIntake = cap("medications_intake");
 
   // Computed helpers
   const isFoodBusiness = hasFoodOrders || hasMenuKnowledge || hasReservations || hasCatering;
@@ -173,6 +210,18 @@ export function resolveCapabilitiesFromTenant(
     hasAfterHoursHandling,
     hasSmsCampaigns,
     hasKnowledgeBase,
+    hasStaffScheduling,
+    hasPackages,
+    hasPoliceImpound,
+    hasPPITowing,
+    hasRecoveryServices,
+    hasPhoneQuotes,
+    hasDietaryIntake,
+    hasCurbside,
+    hasKDSIntegration,
+    hasNewPatientForms,
+    hasReferrals,
+    hasMedicationsIntake,
     isFoodBusiness,
     isDispatchBusiness,
     isMedicalBusiness,

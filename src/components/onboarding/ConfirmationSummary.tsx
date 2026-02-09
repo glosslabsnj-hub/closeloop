@@ -50,7 +50,10 @@ export function ConfirmationSummary({
 }: ConfirmationSummaryProps) {
   const industryEntry = getIndustryBySlug(industrySlug);
   const template = resolveIndustryTemplate(industrySlug);
-  const questions = getQuestionsForMode(businessMode);
+  const industryCtx = industryEntry
+    ? { slug: industrySlug, category: industryEntry.category }
+    : undefined;
+  const questions = getQuestionsForMode(businessMode, industryCtx);
 
   // Collect "yes" answers with their labels
   const enabledCapabilities = questions.filter(

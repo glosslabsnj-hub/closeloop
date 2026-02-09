@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTerminology } from "@/hooks/useTerminology";
 import { useCapabilities } from "@/hooks/useCapabilities";
+import { useBusinessCapabilities } from "@/hooks/useBusinessCapabilities";
 import { cn } from "@/lib/utils";
 import {
   CheckCircle2,
@@ -20,6 +21,10 @@ import {
   UtensilsCrossed,
   Truck,
   Warehouse,
+  Users,
+  Car,
+  ClipboardList,
+  FileText,
 } from "lucide-react";
 
 interface SetupStep {
@@ -39,6 +44,7 @@ export function SetupProgressChecklist() {
   const { tenant, assistantSettings } = useAuth();
   const terms = useTerminology();
   const caps = useCapabilities();
+  const bizCaps = useBusinessCapabilities();
 
   // Fetch counts for completion checks
   const { data: counts } = useQuery({
@@ -149,6 +155,40 @@ export function SetupProgressChecklist() {
       href: "/app/business-brain?section=impound",
       icon: Warehouse,
       completed: counts?.impoundConfigured || false,
+    });
+  }
+
+  // Mode-specific steps based on new capabilities
+  if (bizCaps.showStaffSection) {
+    steps.push({
+      id: "staff",
+      label: "Add your staff members",
+      description: "Set up technicians or team members for scheduling",
+      href: "/app/business-brain?section=staff",
+      icon: Users,
+      completed: false, // Will be wired to staff count later
+    });
+  }
+
+  if (bizCaps.showCurbsideSection) {
+    steps.push({
+      id: "curbside",
+      label: "Set up curbside pickup",
+      description: "Configure curbside pickup instructions",
+      href: "/app/business-brain?section=ordering",
+      icon: Car,
+      completed: false,
+    });
+  }
+
+  if (bizCaps.showNewPatientFormsSection) {
+    steps.push({
+      id: "patient-forms",
+      label: "Upload patient forms",
+      description: "Add new patient intake forms for your practice",
+      href: "/app/business-brain?section=forms",
+      icon: FileText,
+      completed: false,
     });
   }
 

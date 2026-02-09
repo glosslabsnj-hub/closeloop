@@ -33,6 +33,9 @@ export interface FoodCapabilities {
   hasMenuItems: boolean;
   needsDeliveryZones: boolean;
   needsCateringSettings: boolean;
+  collectsDietaryRestrictions: boolean;
+  offersCurbside: boolean;
+  hasKDSIntegration: boolean;
 }
 
 export interface DispatchCapabilities {
@@ -44,6 +47,10 @@ export interface DispatchCapabilities {
   needsDistancePricing: boolean;
   needsEquipmentFees: boolean;
   needsStorageRates: boolean;
+  handlesPoliceImpound: boolean;
+  handlesPPITowing: boolean;
+  offersRecovery: boolean;
+  offersPhoneQuotes: boolean;
 }
 
 export interface ServiceCapabilities {
@@ -55,6 +62,10 @@ export interface ServiceCapabilities {
   requiresDeposits: boolean;
   needsServiceArea: boolean;
   needsTravelTimes: boolean;
+  hasMultipleStaff: boolean;
+  offersPackages: boolean;
+  collectsStylistPreference: boolean;
+  requiresWarrantyCheck: boolean;
 }
 
 export interface MedicalCapabilities {
@@ -64,12 +75,16 @@ export interface MedicalCapabilities {
   requiresInsurance: boolean;
   requiresHIPAA: boolean;
   needsSymptomTriage: boolean;
+  requiresNewPatientForms: boolean;
+  collectsReferralInfo: boolean;
+  collectsMedications: boolean;
 }
 
 export interface GeneralCapabilities {
   offersAppointments: boolean;
   offersCallbacks: boolean;
   offersMessaging: boolean;
+  handlesFAQs: boolean;
 }
 
 export interface BusinessCapabilities {
@@ -105,6 +120,11 @@ export interface BusinessCapabilities {
   showCateringSection: boolean;
   showMedicalIntakeSection: boolean;
   showFleetSection: boolean;
+  showStaffSection: boolean;
+  showRecoverySection: boolean;
+  showPoliceImpoundSection: boolean;
+  showCurbsideSection: boolean;
+  showNewPatientFormsSection: boolean;
   
   // Loading state
   isLoading: boolean;
@@ -123,6 +143,9 @@ const defaultFoodCapabilities: FoodCapabilities = {
   hasMenuItems: false,
   needsDeliveryZones: false,
   needsCateringSettings: false,
+  collectsDietaryRestrictions: false,
+  offersCurbside: false,
+  hasKDSIntegration: false,
 };
 
 const defaultDispatchCapabilities: DispatchCapabilities = {
@@ -134,6 +157,10 @@ const defaultDispatchCapabilities: DispatchCapabilities = {
   needsDistancePricing: true,
   needsEquipmentFees: true,
   needsStorageRates: false,
+  handlesPoliceImpound: false,
+  handlesPPITowing: false,
+  offersRecovery: false,
+  offersPhoneQuotes: true,
 };
 
 const defaultServiceCapabilities: ServiceCapabilities = {
@@ -145,6 +172,10 @@ const defaultServiceCapabilities: ServiceCapabilities = {
   requiresDeposits: false,
   needsServiceArea: false,
   needsTravelTimes: false,
+  hasMultipleStaff: false,
+  offersPackages: false,
+  collectsStylistPreference: false,
+  requiresWarrantyCheck: false,
 };
 
 const defaultMedicalCapabilities: MedicalCapabilities = {
@@ -154,12 +185,16 @@ const defaultMedicalCapabilities: MedicalCapabilities = {
   requiresInsurance: true,
   requiresHIPAA: true,
   needsSymptomTriage: false,
+  requiresNewPatientForms: true,
+  collectsReferralInfo: false,
+  collectsMedications: false,
 };
 
 const defaultGeneralCapabilities: GeneralCapabilities = {
   offersAppointments: true,
   offersCallbacks: true,
   offersMessaging: true,
+  handlesFAQs: true,
 };
 
 // ============================================================================
@@ -273,6 +308,9 @@ export function useBusinessCapabilities(): BusinessCapabilities {
     hasMenuItems: (additionalData?.serviceCount ?? 0) > 0,
     needsDeliveryZones: foodSettings?.accepts_delivery ?? false,
     needsCateringSettings: foodSettings?.accepts_catering ?? false,
+    collectsDietaryRestrictions: additionalData?.scenarioFlags?.collectsDietaryRestrictions ?? false,
+    offersCurbside: additionalData?.scenarioFlags?.offersCurbside ?? false,
+    hasKDSIntegration: additionalData?.scenarioFlags?.hasKDSIntegration ?? false,
   };
 
   const dispatch: DispatchCapabilities = {
@@ -284,6 +322,10 @@ export function useBusinessCapabilities(): BusinessCapabilities {
     needsDistancePricing: true, // Always needed for dispatch
     needsEquipmentFees: true,
     needsStorageRates: additionalData?.scenarioFlags?.hasImpoundLot ?? false,
+    handlesPoliceImpound: additionalData?.scenarioFlags?.handlesPoliceImpound ?? false,
+    handlesPPITowing: additionalData?.scenarioFlags?.handlesPPITowing ?? false,
+    offersRecovery: additionalData?.scenarioFlags?.offersRecovery ?? false,
+    offersPhoneQuotes: additionalData?.scenarioFlags?.offersPhoneQuotes ?? true,
   };
 
   const service: ServiceCapabilities = {
@@ -295,6 +337,10 @@ export function useBusinessCapabilities(): BusinessCapabilities {
     requiresDeposits: additionalData?.bookingDelivery?.enabled ?? false,
     needsServiceArea: additionalData?.scenarioFlags?.offersMobileService ?? false,
     needsTravelTimes: additionalData?.scenarioFlags?.offersMobileService ?? false,
+    hasMultipleStaff: additionalData?.scenarioFlags?.hasMultipleStaff ?? false,
+    offersPackages: additionalData?.scenarioFlags?.offersPackages ?? false,
+    collectsStylistPreference: additionalData?.scenarioFlags?.collectsStylistPreference ?? false,
+    requiresWarrantyCheck: additionalData?.scenarioFlags?.requiresWarrantyCheck ?? false,
   };
 
   const medical: MedicalCapabilities = {
@@ -304,12 +350,16 @@ export function useBusinessCapabilities(): BusinessCapabilities {
     requiresInsurance: additionalData?.scenarioFlags?.requiresInsurance ?? true,
     requiresHIPAA: hipaaMode,
     needsSymptomTriage: additionalData?.scenarioFlags?.needsSymptomTriage ?? false,
+    requiresNewPatientForms: additionalData?.scenarioFlags?.requiresNewPatientForms ?? true,
+    collectsReferralInfo: additionalData?.scenarioFlags?.collectsReferralInfo ?? false,
+    collectsMedications: additionalData?.scenarioFlags?.collectsMedications ?? false,
   };
 
   const general: GeneralCapabilities = {
     offersAppointments: enabledModules.includes("booking"),
     offersCallbacks: true,
     offersMessaging: enabledModules.includes("instant_text_back"),
+    handlesFAQs: additionalData?.scenarioFlags?.handlesFAQs ?? true,
   };
 
   // Derive cross-cutting capabilities
@@ -353,8 +403,23 @@ export function useBusinessCapabilities(): BusinessCapabilities {
   const showMedicalIntakeSection = 
     businessMode === "medical" && medical.hasNewPatientIntake;
 
-  const showFleetSection = 
+  const showFleetSection =
     businessMode === "dispatch" && dispatch.hasFleet;
+
+  const showStaffSection =
+    businessMode === "service" && service.hasMultipleStaff;
+
+  const showRecoverySection =
+    businessMode === "dispatch" && dispatch.offersRecovery;
+
+  const showPoliceImpoundSection =
+    businessMode === "dispatch" && dispatch.handlesPoliceImpound && dispatch.hasImpoundLot;
+
+  const showCurbsideSection =
+    businessMode === "food" && food.offersCurbside;
+
+  const showNewPatientFormsSection =
+    businessMode === "medical" && medical.requiresNewPatientForms;
 
   return {
     mode: businessMode,
@@ -385,7 +450,12 @@ export function useBusinessCapabilities(): BusinessCapabilities {
     showCateringSection,
     showMedicalIntakeSection,
     showFleetSection,
-    
+    showStaffSection,
+    showRecoverySection,
+    showPoliceImpoundSection,
+    showCurbsideSection,
+    showNewPatientFormsSection,
+
     isLoading,
   };
 }
