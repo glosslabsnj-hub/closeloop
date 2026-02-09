@@ -84,8 +84,8 @@ export function GoLiveStep({ onComplete, isComplete, canActivate }: GoLiveStepPr
       setShowConfirm(false);
       
       toast({
-        title: "🎉 You're Live!",
-        description: "Your AI is now answering calls and booking appointments.",
+        title: "AI is now live",
+        description: "Your AI is handling incoming calls.",
       });
       onComplete();
     } catch (error: any) {
@@ -115,10 +115,10 @@ export function GoLiveStep({ onComplete, isComplete, canActivate }: GoLiveStepPr
 
       await refreshTenant();
       toast({
-        title: enabled ? "AI Activated" : "AI Paused",
+        title: enabled ? "AI is now live" : "AI paused",
         description: enabled 
-          ? "Your AI is now answering calls" 
-          : "Your AI is paused and won't answer calls",
+          ? "Your AI is handling incoming calls." 
+          : "Your AI won't answer calls until you turn it back on.",
       });
     } catch (error: any) {
       toast({

@@ -67,14 +67,14 @@ export function BusinessFAQEditor() {
           question: formQuestion,
           answer: formAnswer,
         });
-        toast.success("FAQ updated");
+        toast.success("FAQ saved — Your AI will now use this.");
       } else {
         await createFAQ(tenant.id, {
           question: formQuestion,
           answer: formAnswer,
           priority_weight: faqs.length,
         });
-        toast.success("FAQ added");
+        toast.success("FAQ added — Your AI can now answer this question.");
       }
       setIsDialogOpen(false);
       fetchFAQs();
@@ -91,7 +91,7 @@ export function BusinessFAQEditor() {
     try {
       await deleteFAQ(id, tenant.id);
       setFaqs(faqs.filter(f => f.id !== id));
-      toast.success("FAQ deleted");
+      toast.success("FAQ removed");
       queryClient.invalidateQueries({ queryKey: ["business-context"] });
     } catch (error: any) {
       toast.error(error.message || "Failed to delete");
@@ -129,7 +129,7 @@ export function BusinessFAQEditor() {
         emptyState={{
           icon: HelpCircle,
           title: "No FAQs yet",
-          description: "Use the upload button above to import FAQs, or add them manually.",
+          description: "Add the questions your customers ask most so your AI can answer them instantly.",
         }}
         headerActions={
           <SuggestedFAQButtons 

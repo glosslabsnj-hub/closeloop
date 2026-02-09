@@ -145,7 +145,7 @@ export default function BookingsPage() {
             action={
               statusFilter === "all" && !searchQuery
                 ? {
-                    label: "Create booking",
+                    label: "Create Booking",
                     onClick: () => setCreateDialogOpen(true),
                   }
                 : undefined

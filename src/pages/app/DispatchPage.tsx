@@ -419,7 +419,7 @@ export default function DispatchPage() {
               }
               action={
                 statusFilter === "all" && priorityFilter === "all" && !searchQuery
-                  ? { label: "Create job", onClick: () => {} }
+                  ? { label: "Create Job", onClick: () => {} }
                   : undefined
               }
             />

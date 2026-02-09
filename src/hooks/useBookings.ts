@@ -83,10 +83,10 @@ export function useBookings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings", tenant?.id] });
-      toast({ title: "Booking created", description: "Appointment scheduled successfully." });
+      toast({ title: "Booking confirmed", description: "Customer has been notified." });
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: "Try again?", variant: "destructive" });
     },
   });
 
@@ -104,10 +104,10 @@ export function useBookings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings", tenant?.id] });
-      toast({ title: "Booking updated", description: "Changes saved successfully." });
+      toast({ title: "Booking updated", description: "Changes saved." });
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: "Try again?", variant: "destructive" });
     },
   });
 
