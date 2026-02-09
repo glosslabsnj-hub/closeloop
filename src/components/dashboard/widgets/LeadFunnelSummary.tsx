@@ -13,27 +13,32 @@ const stages = [
   { key: "won", label: "Won", color: "bg-primary" },
 ] as const;
 
+type StageCounts = Record<string, number>;
+
+async function fetchStageCounts(tenantId: string): Promise<StageCounts> {
+  const counts: StageCounts = {};
+  
+  for (const stage of stages) {
+    // Use RPC-style approach to avoid deep type instantiation on customers table
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tableRef = supabase.from("customers") as any;
+    const response = await tableRef
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .eq("lead_status", stage.key);
+    
+    counts[stage.key] = response.error ? 0 : (response.count ?? 0);
+  }
+  
+  return counts;
+}
+
 export function LeadFunnelSummary() {
   const { tenant } = useAuth();
 
   const { data: counts } = useQuery({
     queryKey: ["lead-funnel", tenant?.id],
-    queryFn: async () => {
-      if (!tenant?.id) return null;
-
-      const results = await Promise.all(
-        stages.map(async (stage) => {
-          const { count } = await supabase
-            .from("customers")
-            .select("*", { count: "exact", head: true })
-            .eq("tenant_id", tenant.id)
-            .eq("lead_status", stage.key);
-          return { key: stage.key, count: count || 0 };
-        })
-      );
-
-      return Object.fromEntries(results.map(r => [r.key, r.count])) as Record<string, number>;
-    },
+    queryFn: () => fetchStageCounts(tenant!.id),
     enabled: !!tenant?.id,
   });
 

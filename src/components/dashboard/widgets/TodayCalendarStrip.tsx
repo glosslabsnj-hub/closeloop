@@ -9,10 +9,10 @@ import { cn } from "@/lib/utils";
 
 interface Booking {
   id: string;
-  starts_at: string;
-  service_name: string | null;
-  customer_name: string | null;
+  start_at: string;
   status: string;
+  services: { name: string } | null;
+  leads: { customers: { name: string | null } | null } | null;
 }
 
 export function TodayCalendarStrip() {
@@ -26,13 +26,13 @@ export function TodayCalendarStrip() {
       if (!tenant?.id) return [];
       const { data } = await supabase
         .from("bookings")
-        .select("id, starts_at, service_name, customer_name, status")
+        .select("id, start_at, status, services(name), leads(customers(name))")
         .eq("tenant_id", tenant.id)
-        .gte("starts_at", todayStart)
-        .lte("starts_at", todayEnd)
-        .order("starts_at", { ascending: true })
+        .gte("start_at", todayStart)
+        .lte("start_at", todayEnd)
+        .order("start_at", { ascending: true })
         .limit(12);
-      return (data || []) as Booking[];
+      return (data || []) as unknown as Booking[];
     },
     enabled: !!tenant?.id,
   });
@@ -62,8 +62,10 @@ export function TodayCalendarStrip() {
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1">
           {bookings.map((b) => {
-            const time = parseISO(b.starts_at);
+            const time = parseISO(b.start_at);
             const isPast = time < now;
+            const customerName = b.leads?.customers?.name;
+            const serviceName = b.services?.name;
             return (
               <div
                 key={b.id}
@@ -78,9 +80,9 @@ export function TodayCalendarStrip() {
                     {format(time, "h:mm a")}
                   </span>
                 </div>
-                <p className="text-xs font-medium truncate">{b.customer_name || "Walk-in"}</p>
-                {b.service_name && (
-                  <p className="text-[11px] text-muted-foreground truncate">{b.service_name}</p>
+                <p className="text-xs font-medium truncate">{customerName || "Walk-in"}</p>
+                {serviceName && (
+                  <p className="text-[11px] text-muted-foreground truncate">{serviceName}</p>
                 )}
               </div>
             );

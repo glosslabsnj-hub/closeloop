@@ -12,7 +12,7 @@ interface DispatchJob {
   customer_name: string | null;
   customer_phone: string | null;
   created_at: string;
-  eta_minutes: number | null;
+  estimated_arrival_at: string | null;
 }
 
 interface DispatchDashboardData {
@@ -41,9 +41,9 @@ export function useDispatchDashboard(): {
       // Fetch active jobs (not completed or cancelled)
       const { data: jobs, error } = await supabase
         .from("dispatch_jobs")
-        .select("id, status, priority, pickup_address, dropoff_address, customer_name, customer_phone, created_at, eta_minutes")
+        .select("id, status, priority, pickup_address, dropoff_address, customer_name, customer_phone, created_at, estimated_arrival_at")
         .eq("tenant_id", tenant.id)
-        .in("status", ["pending", "assigned", "in_progress", "en_route"])
+        .in("status", ["pending", "assigned", "en_route", "on_site"])
         .order("created_at", { ascending: false })
         .limit(20);
 
@@ -65,7 +65,7 @@ export function useDispatchDashboard(): {
         urgentCount: activeJobs.filter(j => j.priority === "urgent" || j.priority === "emergency").length,
         pendingCount: activeJobs.filter(j => j.status === "pending").length,
         assignedCount: activeJobs.filter(j => j.status === "assigned").length,
-        inProgressCount: activeJobs.filter(j => j.status === "in_progress" || j.status === "en_route").length,
+        inProgressCount: activeJobs.filter(j => j.status === "en_route" || j.status === "on_site").length,
         completedTodayCount: completedCount || 0,
       };
     },
