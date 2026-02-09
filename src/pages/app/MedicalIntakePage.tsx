@@ -220,8 +220,16 @@ export default function MedicalIntakePage() {
             <TableBody>
               {filteredIntakes.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                    No intakes found
+                  <TableCell colSpan={8} className="h-24">
+                    <div className="flex flex-col items-center justify-center text-center">
+                      <Stethoscope className="h-8 w-8 text-muted-foreground/40 mb-2" />
+                      <p className="text-sm font-medium">No patient intakes yet</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {statusFilter !== "all"
+                          ? "Try adjusting your filters."
+                          : "When patients call and provide intake information, it will appear here."}
+                      </p>
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (
@@ -251,7 +259,7 @@ export default function MedicalIntakePage() {
                     </TableCell>
                     <TableCell>
                       {intake.verbal_consent_given ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        <CheckCircle2 className="h-4 w-4 text-success" />
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
