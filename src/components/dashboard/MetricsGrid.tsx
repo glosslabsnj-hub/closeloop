@@ -174,7 +174,7 @@ export function MetricsGrid() {
         return (
           <Card
             key={metric.label}
-            interactive
+            variant="interactive"
             onClick={() => navigate(metric.href)}
             className="cursor-pointer"
           >
