@@ -13,6 +13,20 @@ export default {
       },
     },
     extend: {
+      // Standardized spacing scale (4px base)
+      spacing: {
+        '0': '0',
+        '1': '4px',
+        '2': '8px',
+        '3': '12px',
+        '4': '16px',
+        '5': '20px',
+        '6': '24px',
+        '8': '32px',
+        '10': '40px',
+        '12': '48px',
+        '16': '64px',
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -79,25 +93,16 @@ export default {
         xl: "calc(var(--radius) + 4px)",
         "2xl": "calc(var(--radius) + 8px)",
       },
+      // Simplified 4-level shadow system + focus
       boxShadow: {
-        'soft': '0 1px 3px -1px rgba(0, 0, 0, 0.2), 0 1px 4px -1px rgba(0, 0, 0, 0.15)',
-        'soft-lg': '0 4px 12px -4px rgba(0, 0, 0, 0.25), 0 2px 6px -2px rgba(0, 0, 0, 0.15)',
-        'soft-xl': '0 8px 24px -8px rgba(0, 0, 0, 0.3), 0 4px 12px -4px rgba(0, 0, 0, 0.2)',
+        'sm': '0 1px 2px hsl(0 0% 0% / 0.06)',
+        'DEFAULT': '0 2px 8px hsl(0 0% 0% / 0.08)',
+        'md': '0 4px 16px hsl(0 0% 0% / 0.1)',
+        'lg': '0 8px 32px hsl(0 0% 0% / 0.12)',
+        'focus': '0 0 0 3px hsl(var(--primary) / 0.15)',
+        // Keep glow variants for accent
         'glow': '0 0 12px -3px hsl(var(--primary) / 0.25)',
         'glow-lg': '0 0 24px -6px hsl(var(--primary) / 0.3)',
-        'inner-soft': 'inset 0 1px 2px 0 rgba(0, 0, 0, 0.1)',
-        // Glass morphism shadows
-        'glass': '0 8px 32px hsl(var(--shadow-dark) / var(--shadow-opacity-dark))',
-        'glass-lg': '0 16px 48px hsl(var(--shadow-dark) / var(--shadow-opacity-dark))',
-        'glass-xl': '0 24px 64px hsl(var(--shadow-dark) / var(--shadow-opacity-dark))',
-        // Neumorphic shadows
-        'neu': '6px 6px 12px hsl(var(--shadow-dark) / var(--shadow-opacity-dark)), -6px -6px 12px hsl(var(--shadow-light) / var(--shadow-opacity-light))',
-        'neu-sm': '3px 3px 6px hsl(var(--shadow-dark) / var(--shadow-opacity-dark)), -3px -3px 6px hsl(var(--shadow-light) / var(--shadow-opacity-light))',
-        'neu-inset': 'inset 4px 4px 8px hsl(var(--shadow-dark) / var(--shadow-opacity-dark)), inset -4px -4px 8px hsl(var(--shadow-light) / var(--shadow-opacity-light))',
-        'neu-inset-sm': 'inset 2px 2px 4px hsl(var(--shadow-dark) / var(--shadow-opacity-dark)), inset -2px -2px 4px hsl(var(--shadow-light) / var(--shadow-opacity-light))',
-        // Inner glow for glass cards
-        'inner-glow': 'inset 0 1px 0 hsl(var(--inner-glow) / var(--inner-glow-opacity))',
-        'inner-glow-strong': 'inset 0 1px 1px hsl(var(--inner-glow) / calc(var(--inner-glow-opacity) * 1.5))',
       },
       keyframes: {
         "accordion-down": {
@@ -143,11 +148,11 @@ export default {
         '3xl': '64px',
         '4xl': '80px',
       },
-      // Transition durations for smooth animations
+      // Standardized animation timing
       transitionDuration: {
-        '250': '250ms',
-        '350': '350ms',
-        '400': '400ms',
+        'fast': '150ms',
+        'DEFAULT': '200ms',
+        'slow': '300ms',
       },
       // Custom timing functions
       transitionTimingFunction: {
