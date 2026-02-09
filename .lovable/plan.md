@@ -1,131 +1,85 @@
 
 
-# Build Error Fixes for CloseLoop
+# Wire Up BusinessBrainHub Component
 
 ## Overview
 
-Claude Code created new components and hooks for the mode-aware dashboards and test tenant seeding, but introduced several TypeScript errors. These need to be fixed here in Lovable since they involve:
+Claude Code created a new **8-step Business Brain Hub** design that provides a simpler, more guided setup experience compared to the current 5-category dashboard. I'll replace the current `BrainDashboard` with the new `BusinessBrainHub` component while preserving all existing navigation and editor functionality.
 
-1. **Database schema mismatches** - Components referencing columns that don't exist
-2. **Type errors in edge functions** - Supabase client typing issues
-3. **Framer Motion type issues** - Incorrect variant definitions
-4. **AddOnItem type mismatch** - Missing required properties
+## What Changes
 
----
+### Current State
+- `BusinessBrainPage.tsx` renders `BrainDashboard` (5 category cards in a grid)
+- Navigation uses 5 categories: business, services, operations, ai-voice, training
 
-## Error Analysis
+### New State
+- `BusinessBrainPage.tsx` will render `BusinessBrainHub` (8 step cards in a vertical list)
+- Navigation uses 8 step section IDs that map to existing legacy aliases
 
-### Group 1: Database Column Mismatches
+## Technical Implementation
 
-The new dashboard widgets reference columns that don't exist in the actual database schema:
+### File: `src/pages/app/BusinessBrainPage.tsx`
 
-| File | Missing Column | Actual Column |
-|------|---------------|---------------|
-| `TodayCalendarStrip.tsx` | `starts_at` | `start_at` |
-| `TodayCalendarStrip.tsx` | `service_name` | Need to join `services` table |
-| `TodayCalendarStrip.tsx` | `customer_name` | Need to join `customers` table via `lead_id` |
-| `PatientIntakeQueue.tsx` | `patient_name` | Need to join `customers` table via `customer_id` |
-| `useDispatchDashboard.ts` | `eta_minutes` | `estimated_arrival_at` (timestamp, not minutes) |
-| `useDispatchDashboard.ts` | `in_progress` status | Valid statuses are: pending, assigned, en_route, on_site, completed, cancelled |
-| `useFoodDashboard.ts` | `estimated_ready_at` | Column doesn't exist |
+**Changes:**
 
-### Group 2: Edge Function Type Errors
+1. **Update imports:**
+   - Remove: `import { BrainDashboard } from "@/components/brain/dashboard/BrainDashboard"`
+   - Add: `import { BusinessBrainHub } from "@/components/brain/hub"`
 
-`seed-test-tenants/index.ts` has Supabase client typing issues. The function parameter needs to use `any` type for the client since we're not importing the full Database type in edge functions.
+2. **Replace dashboard component:**
+   - Change the `!activeSection` case to render `BusinessBrainHub` instead of `BrainDashboard`
+   - Update prop: `onNavigate` → `onNavigateToSection` (the Hub uses a different prop name)
 
-### Group 3: BusinessBrainPage Type Errors
+3. **Keep everything else unchanged:**
+   - All section detail views remain the same
+   - Legacy section aliases still work (already mapped in `LEGACY_SECTION_ALIASES`)
+   - All editors and save logic preserved
 
-The `operationsEnableAddOn` function uses a simplified type `{ id: string; label: string; description: string }` but `AddOnItem` requires:
-- `title` (not `label`)
-- `icon: LucideIcon`
-- `capabilityKey: string`
+### Navigation Mapping
 
-### Group 4: Framer Motion Variants
+The `BusinessBrainHub` uses these `sectionId` values from `hubStepsConfig.ts`:
 
-The `ease` property in motion variants should be a typed easing value, not a string literal.
+| Step | sectionId | Resolves via LEGACY_SECTION_ALIASES to |
+|------|-----------|----------------------------------------|
+| Identity | `profile` | `business` |
+| Hours | `hours` | `business` |
+| Offerings | `services` | (direct match) |
+| Coverage | `service-area` | `operations` |
+| Calendar | `availability` | `business` |
+| Policies | `policies` | `operations` |
+| AI Setup | `ai-behavior` | `ai-voice` |
+| Knowledge | `knowledge` | (direct match → training) |
 
----
+The existing `LEGACY_SECTION_ALIASES` in `BusinessBrainPage.tsx` already handles this mapping, so navigation will work correctly.
 
-## Fix Plan
+## Code Changes
 
-### Phase 1: Fix Database Column Queries
+```text
+Lines ~113-114: Update import
+Lines ~318-321: Replace BrainDashboard with BusinessBrainHub
+```
 
-**TodayCalendarStrip.tsx**
-- Change `starts_at` to `start_at`
-- Join with `services` table for service name
-- Join with `customers` table via `lead_id` for customer name
+## What Stays the Same
 
-**PatientIntakeQueue.tsx**
-- Join with `customers` table via `customer_id` for patient name
+- All section detail views (`BrainSectionDetail`, `BrainSectionDetailWrapper`)
+- All editors (Services, Hours, Policies, etc.)
+- URL parameter handling and legacy aliases
+- Animation variants
+- HIPAA warnings
+- Add-on section logic
 
-**useDispatchDashboard.ts**
-- Remove `eta_minutes` from select (use `estimated_arrival_at`)
-- Change `in_progress` status to valid enum values
+## Risk Assessment
 
-**useFoodDashboard.ts**
-- Remove `estimated_ready_at` from select (column doesn't exist)
+**Low Risk:**
+- This is a UI-only change (dashboard hub component swap)
+- All navigation logic is already in place via legacy aliases
+- Section detail views are completely unchanged
+- No database or backend changes
 
-### Phase 2: Fix Edge Function Types
+## Testing After Implementation
 
-**seed-test-tenants/index.ts**
-- Change function parameter type to accept `any` client
-- Use `as any` cast for insert operations to bypass strict typing
-
-### Phase 3: Fix BusinessBrainPage Types
-
-**BusinessBrainPage.tsx**
-- Change `operationsEnableAddOn` to accept full `AddOnItem` type
-- Or cast the items appropriately when calling the function
-
-### Phase 4: Fix Framer Motion Variants
-
-**BusinessBrainPage.tsx**
-- Change `ease: "easeOut"` to `ease: [0, 0, 0.2, 1]` (valid easing array)
-- Or remove the `ease` property entirely (default is fine)
-
----
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/components/dashboard/widgets/TodayCalendarStrip.tsx` | Fix column names and joins |
-| `src/components/dashboard/widgets/PatientIntakeQueue.tsx` | Add customer join for patient name |
-| `src/hooks/useDispatchDashboard.ts` | Fix column names and status values |
-| `src/hooks/useFoodDashboard.ts` | Remove non-existent column |
-| `supabase/functions/seed-test-tenants/index.ts` | Fix TypeScript types |
-| `src/pages/app/BusinessBrainPage.tsx` | Fix AddOnItem type and motion variants |
-| `src/components/dashboard/widgets/LeadFunnelSummary.tsx` | Fix excessive type depth issue |
-
----
-
-## Technical Details
-
-### Database Schema Reference
-
-**bookings table:**
-- `id`, `tenant_id`, `lead_id`, `service_id`, `start_at`, `end_at`, `status`, `notes`, `created_at`
-- No `starts_at`, `service_name`, or `customer_name` columns
-
-**medical_intakes table:**
-- `id`, `tenant_id`, `customer_id`, `status`, `intake_type`, `urgency_level`, `reason_for_visit`, etc.
-- No `patient_name` column - must join with `customers`
-
-**dispatch_jobs table:**
-- Has `estimated_arrival_at` (timestamptz) but not `eta_minutes`
-- Valid statuses: `pending`, `assigned`, `en_route`, `on_site`, `completed`, `cancelled`
-
-**food_orders table:**
-- Has `scheduled_at` for pickup time, but no `estimated_ready_at`
-
----
-
-## Implementation Order
-
-1. Fix simpler type errors first (edge function, motion variants)
-2. Fix database query issues (requires understanding joins)
-3. Verify each component works in isolation
-4. Test end-to-end with real data
-
-This will unblock the build and allow Claude Code's onboarding refactor to work properly.
+1. Open `/app/business-brain` → Should see 8 vertical step cards
+2. Click any step → Should navigate to the correct section editor
+3. Click back → Should return to the 8-step hub
+4. Verify progress tracking shows completion status
 
