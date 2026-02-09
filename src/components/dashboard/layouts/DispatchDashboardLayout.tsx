@@ -20,7 +20,7 @@ export function DispatchDashboardLayout() {
         <QuickActionButton
           label="Quick Dispatch"
           description="Create a new dispatch job"
-          href="/app/dispatch/new"
+          href="/app/dispatch"
           icon={Truck}
         />
       </div>

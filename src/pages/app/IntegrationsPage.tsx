@@ -116,6 +116,17 @@ const QUICK_PRESETS: QuickPreset[] = [
     color: "text-amber-500 bg-amber-500/10",
   },
   {
+    id: "dispatch-webhook",
+    icon: <Webhook className="h-5 w-5" />,
+    label: "Send dispatch jobs to webhook",
+    description: "POST dispatch job data to ServiceTitan, Towbook, or your external system",
+    trigger: "dispatch_job.created",
+    action: "send_webhook",
+    provider: "webhook",
+    modes: ["dispatch"],
+    color: "text-violet-500 bg-violet-500/10",
+  },
+  {
     id: "lead-sheets",
     icon: <FileSpreadsheet className="h-5 w-5" />,
     label: "Send leads to Google Sheets",
@@ -161,6 +172,8 @@ export default function IntegrationsPage() {
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [webhookConfigDialog, setWebhookConfigDialog] = useState<QuickPreset | null>(null);
   const [webhookUrl, setWebhookUrl] = useState("");
+  const [showFieldMapping, setShowFieldMapping] = useState(false);
+  const [fieldMappings, setFieldMappings] = useState<Record<string, string>>({});
   const [moreIntegrationsOpen, setMoreIntegrationsOpen] = useState(false);
   const [conciergePrefilledSystem, setConciergePrefilledSystem] = useState<string | null>(null);
 
@@ -296,9 +309,18 @@ export default function IntegrationsPage() {
     }
   };
 
-  // Create webhook automation with URL
+  // Create webhook automation with URL + optional field mapping
   const handleCreateWebhookRule = async () => {
     if (!webhookConfigDialog || !webhookUrl) return;
+
+    // Build field_mapping_json — always includes url, optionally includes custom field mappings
+    const mappingJson: Record<string, unknown> = { url: webhookUrl };
+    const nonEmptyMappings = Object.fromEntries(
+      Object.entries(fieldMappings).filter(([, v]) => v.trim() !== "")
+    );
+    if (Object.keys(nonEmptyMappings).length > 0) {
+      mappingJson.field_mapping = nonEmptyMappings;
+    }
 
     await createRule.mutateAsync({
       name: webhookConfigDialog.label,
@@ -306,7 +328,7 @@ export default function IntegrationsPage() {
       trigger_event: webhookConfigDialog.trigger,
       action_type: webhookConfigDialog.action,
       destination_provider: webhookConfigDialog.provider,
-      field_mapping_json: { url: webhookUrl },
+      field_mapping_json: mappingJson,
     });
 
     toast({
@@ -316,6 +338,8 @@ export default function IntegrationsPage() {
 
     setWebhookConfigDialog(null);
     setWebhookUrl("");
+    setShowFieldMapping(false);
+    setFieldMappings({});
   };
 
   // Test automation
@@ -731,6 +755,46 @@ export default function IntegrationsPage() {
               <p className="text-xs text-muted-foreground">
                 We'll POST event data to this URL whenever the trigger fires
               </p>
+            </div>
+
+            {/* Field Mapping (Advanced) */}
+            <div className="space-y-2">
+              <button
+                type="button"
+                className="text-xs text-muted-foreground hover:text-foreground underline"
+                onClick={() => setShowFieldMapping(!showFieldMapping)}
+              >
+                {showFieldMapping ? "Hide" : "Show"} Advanced: Field Mapping
+              </button>
+              {showFieldMapping && (
+                <div className="space-y-3 p-3 rounded-lg bg-muted/50 border">
+                  <p className="text-xs text-muted-foreground">
+                    Map CloseLoop fields to your external system's field names. Leave blank to use defaults.
+                  </p>
+                  {[
+                    { source: "job_number", label: "Job Number" },
+                    { source: "customer_name", label: "Customer Name" },
+                    { source: "customer_phone", label: "Phone" },
+                    { source: "pickup_address", label: "Pickup Address" },
+                    { source: "dropoff_address", label: "Dropoff Address" },
+                    { source: "job_type", label: "Job Type" },
+                    { source: "priority", label: "Priority" },
+                    { source: "notes", label: "Notes" },
+                    { source: "price_cents", label: "Price (cents)" },
+                  ].map(({ source, label }) => (
+                    <div key={source} className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-muted-foreground w-32 shrink-0">{label}</span>
+                      <span className="text-xs text-muted-foreground">→</span>
+                      <Input
+                        className="h-7 text-xs"
+                        placeholder={source}
+                        value={fieldMappings[source] || ""}
+                        onChange={(e) => setFieldMappings(prev => ({ ...prev, [source]: e.target.value }))}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

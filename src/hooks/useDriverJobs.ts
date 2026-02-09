@@ -1,7 +1,9 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { toast as sonnerToast } from "sonner";
 
 export interface DriverJob {
   id: string;
@@ -33,6 +35,7 @@ export interface DriverJob {
   arrived_at: string | null;
   completed_at: string | null;
   tenant_id: string;
+  photos: string[] | null;
 }
 
 export function useDriverJobs() {
@@ -76,6 +79,37 @@ export function useDriverJobs() {
     },
     enabled: !!driverRecord?.id,
   });
+
+  // Real-time subscription for driver job updates
+  useEffect(() => {
+    if (!driverRecord?.id) return;
+
+    const channel = supabase
+      .channel(`driver-jobs-realtime-${driverRecord.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "dispatch_jobs",
+          filter: `driver_id=eq.${driverRecord.id}`,
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT" || (payload.eventType === "UPDATE" && payload.new.status === "assigned")) {
+            sonnerToast.info("New job assigned!", {
+              description: (payload.new as DriverJob).pickup_address?.slice(0, 50) || "Check your jobs",
+              duration: 15000,
+            });
+          }
+          refetch();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [driverRecord?.id, refetch]);
 
   const updateJobStatus = useMutation({
     mutationFn: async ({ jobId, status }: { jobId: string; status: string }) => {

@@ -1206,6 +1206,50 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     category: "intelligence",
   },
 
+  // ===== DISPATCH / INTAKE FIELDS =====
+  {
+    key: "dispatch_intake_fields_summary",
+    description: "Industry-specific intake fields the AI must collect for dispatch",
+    type: "string",
+    source: (ctx) => {
+      const fields = (ctx as any).dispatch_intake_fields;
+      if (!fields || !Array.isArray(fields) || fields.length === 0) return "";
+      const required = fields.filter((f: any) => f.is_required);
+      const optional = fields.filter((f: any) => !f.is_required);
+      const parts: string[] = [];
+      if (required.length > 0) {
+        parts.push("MUST collect: " + required.map((f: any) => f.ai_prompt_hint || f.field_label).join("; "));
+      }
+      if (optional.length > 0) {
+        parts.push("Ask if relevant: " + optional.map((f: any) => f.ai_prompt_hint || f.field_label).join("; "));
+      }
+      return parts.join(". ");
+    },
+    defaultValue: "",
+    category: "intelligence",
+    includeInCompactJson: true,
+  },
+  {
+    key: "dispatch_default_flow",
+    description: "Dispatch timing flow: immediate_first, scheduled_first, or hybrid",
+    type: "string",
+    source: (ctx) => {
+      const slug = (ctx as any).tenant?.industry_slug || "";
+      const flowMap: Record<string, string> = {
+        towing: "immediate_first", locksmith: "immediate_first",
+        courier: "hybrid", medical_transport: "scheduled_first",
+        field_service: "hybrid", cleaning: "scheduled_first",
+        landscaping: "scheduled_first", pest_control: "scheduled_first",
+        junk_removal: "scheduled_first", mobile_detailing: "scheduled_first",
+        mobile_mechanic: "hybrid", delivery: "hybrid", moving: "scheduled_first",
+      };
+      return flowMap[slug] || "immediate_first";
+    },
+    defaultValue: "immediate_first",
+    category: "intelligence",
+    includeInCompactJson: true,
+  },
+
   // ===== FOOD SETTINGS =====
   {
     key: "estimated_prep_minutes",

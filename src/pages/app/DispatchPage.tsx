@@ -15,7 +15,18 @@ import { DispatchCommandStats } from "@/components/dispatch/DispatchCommandStats
 import { DispatchFilters } from "@/components/dispatch/DispatchFilters";
 import { DispatchJobDetailsSheet } from "@/components/dispatch/DispatchJobDetailsSheet";
 import { AssignJobDialog } from "@/components/dispatch/AssignJobDialog";
+import { CreateDispatchJobDialog } from "@/components/dispatch/CreateDispatchJobDialog";
 import { EmptyState } from "@/components/ui/empty-state";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Link } from "react-router-dom";
 import { toast as sonnerToast } from "sonner";
@@ -75,28 +86,39 @@ export default function DispatchPage() {
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+  const [page, setPage] = useState(0);
+  const pageSize = 50;
   
   // Sheet and Dialog state
   const [selectedJob, setSelectedJob] = useState<DispatchJob | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [jobToAssign, setJobToAssign] = useState<DispatchJob | null>(null);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{ job: DispatchJob; status: string } | null>(null);
 
-  const { data: jobs, isLoading, refetch } = useQuery({
-    queryKey: ["dispatch-jobs", tenant?.id],
+  const { data: jobsData, isLoading, refetch } = useQuery({
+    queryKey: ["dispatch-jobs", tenant?.id, page],
     queryFn: async () => {
-      if (!tenant?.id) return [];
-      const { data, error } = await supabase
+      if (!tenant?.id) return { jobs: [] as DispatchJob[], totalCount: 0 };
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+      const { data, error, count } = await supabase
         .from("dispatch_jobs")
-        .select("*, customers(full_name, phone_e164)")
+        .select("*, customers(full_name, phone_e164)", { count: "exact" })
         .eq("tenant_id", tenant.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
-      return (data || []) as DispatchJob[];
+      return { jobs: (data || []) as DispatchJob[], totalCount: count || 0 };
     },
     enabled: !!tenant?.id,
   });
+
+  const jobs = jobsData?.jobs;
+  const totalCount = jobsData?.totalCount || 0;
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   // Fetch callback requests from opportunities
   const { data: callbacks, refetch: refetchCallbacks } = useQuery({
@@ -196,6 +218,23 @@ export default function DispatchPage() {
     },
   });
 
+  const markCallbackDoneMutation = useMutation({
+    mutationFn: async (callbackId: string) => {
+      const { error } = await supabase
+        .from("opportunities")
+        .update({ status: "contacted" })
+        .eq("id", callbackId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["dispatch-callbacks", tenant?.id] });
+      toast({ title: "Callback marked as done" });
+    },
+    onError: (error: Error) => {
+      toast({ variant: "destructive", title: "Error", description: error.message });
+    },
+  });
+
   const activeStatuses = ["pending", "assigned", "en_route", "on_site"];
 
   const filteredJobs = useMemo(() => {
@@ -259,7 +298,7 @@ export default function DispatchPage() {
     updateJobMutation.mutate({ jobId, updates });
   };
 
-  const handleUpdateStatus = (job: DispatchJob, newStatus: string) => {
+  const executeStatusUpdate = useCallback((job: DispatchJob, newStatus: string) => {
     const updates: Record<string, unknown> = { status: newStatus };
     if (newStatus === "completed") {
       updates.completed_at = new Date().toISOString();
@@ -268,6 +307,15 @@ export default function DispatchPage() {
       updates.arrived_at = new Date().toISOString();
     }
     updateJobMutation.mutate({ jobId: job.id, updates });
+  }, [updateJobMutation]);
+
+  const handleUpdateStatus = (job: DispatchJob, newStatus: string) => {
+    // Require confirmation for destructive status changes
+    if (newStatus === "cancelled" || newStatus === "completed") {
+      setConfirmAction({ job, status: newStatus });
+      return;
+    }
+    executeStatusUpdate(job, newStatus);
   };
 
   const handleCall = (job: DispatchJob) => {
@@ -314,7 +362,7 @@ export default function DispatchPage() {
                     Map View
                   </Link>
                 </Button>
-                <Button>
+                <Button onClick={() => setCreateDialogOpen(true)}>
                   <Plus className="h-4 w-4" />
                   New Job
                 </Button>
@@ -387,13 +435,8 @@ export default function DispatchPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={async () => {
-                            await supabase
-                              .from("opportunities")
-                              .update({ status: "contacted" })
-                              .eq("id", callback.id);
-                            refetchCallbacks();
-                          }}
+                          onClick={() => markCallbackDoneMutation.mutate(callback.id)}
+                          disabled={markCallbackDoneMutation.isPending}
                         >
                           Mark Done
                         </Button>
@@ -420,7 +463,7 @@ export default function DispatchPage() {
               }
               action={
                 statusFilter === "all" && priorityFilter === "all" && !searchQuery
-                  ? { label: "Create Job", onClick: () => {} }
+                  ? { label: "Create Job", onClick: () => setCreateDialogOpen(true) }
                   : undefined
               }
             />
@@ -446,6 +489,33 @@ export default function DispatchPage() {
               ))}
             </AnimatedList>
           )}
+
+          {/* Pagination */}
+          {totalPages > 1 && statusFilter !== "callbacks" && (
+            <div className="flex items-center justify-between pt-4">
+              <p className="text-sm text-muted-foreground">
+                Showing {page * pageSize + 1}–{Math.min((page + 1) * pageSize, totalCount)} of {totalCount} jobs
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page === 0}
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages - 1}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Job Details Sheet */}
@@ -466,6 +536,45 @@ export default function DispatchPage() {
           onAssign={handleAssignSubmit}
           isLoading={updateJobMutation.isPending}
         />
+
+        {/* Create Job Dialog */}
+        <CreateDispatchJobDialog
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+        />
+
+        {/* Confirm destructive status changes */}
+        <AlertDialog
+          open={!!confirmAction}
+          onOpenChange={(open) => { if (!open) setConfirmAction(null); }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {confirmAction?.status === "cancelled" ? "Cancel this job?" : "Mark as completed?"}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {confirmAction?.status === "cancelled"
+                  ? `This will cancel job ${confirmAction.job.job_number || confirmAction.job.id.slice(0, 8)} for ${confirmAction.job.customer_name || "Unknown Customer"}. This action cannot be undone.`
+                  : `This will mark job ${confirmAction?.job.job_number || confirmAction?.job.id.slice(0, 8)} as completed.`}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Go Back</AlertDialogCancel>
+              <AlertDialogAction
+                className={confirmAction?.status === "cancelled" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
+                onClick={() => {
+                  if (confirmAction) {
+                    executeStatusUpdate(confirmAction.job, confirmAction.status);
+                    setConfirmAction(null);
+                  }
+                }}
+              >
+                {confirmAction?.status === "cancelled" ? "Cancel Job" : "Complete Job"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </PageContainer>
     </TooltipProvider>
   );

@@ -202,11 +202,12 @@ export function DispatchDeliverySettings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              Dispatch jobs are always saved internally in CloseLoop first. External delivery methods 
-              push a copy to your existing dispatch systems.
+          <Alert className="border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/30">
+            <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <AlertDescription className="text-blue-900 dark:text-blue-100">
+              <strong>Dual-track model:</strong> Every dispatch job is always saved in CloseLoop's internal queue first —
+              your dispatchers can manage jobs right here. External delivery (webhook, SMS, email) sends a <em>copy</em> to
+              your existing tools like ServiceTitan, Towbook, or Housecall Pro. You can use both, or just CloseLoop.
             </AlertDescription>
           </Alert>
 

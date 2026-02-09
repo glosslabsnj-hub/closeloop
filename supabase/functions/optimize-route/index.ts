@@ -61,6 +61,15 @@ serve(async (req) => {
   }
 
   try {
+    // Auth: require Authorization header (service key or JWT)
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: missing authorization header" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const payload: OptimizeRouteRequest = await req.json();
     const { jobs, start_location, end_location, profile = "driving", roundtrip = false } = payload;
 
