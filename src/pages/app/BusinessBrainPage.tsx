@@ -110,7 +110,7 @@ import {
 } from "lucide-react";
 
 // Dashboard components
-import { BrainDashboard } from "@/components/brain/dashboard/BrainDashboard";
+import { BusinessBrainHub } from "@/components/brain/hub";
 import { BrainSectionDetail } from "@/components/brain/dashboard/BrainSectionDetail";
 
 // ─── Section IDs ────────────────────────────────────────────────────────────
@@ -333,7 +333,7 @@ export default function BusinessBrainPage() {
                 animate="animate"
                 exit="exit"
               >
-                <BrainDashboard onNavigate={handleSectionChange} />
+                <BusinessBrainHub onNavigateToSection={handleSectionChange} />
               </motion.div>
             )}
 
