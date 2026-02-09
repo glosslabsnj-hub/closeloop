@@ -30,8 +30,6 @@ export interface Capabilities {
   hasEtaTracking: boolean;
   hasCalendarSync: boolean;
   hasPaymentProcessing: boolean;
-  hasWisetackFinancing: boolean;
-  hasQuickbooks: boolean;
   hasAfterHoursHandling: boolean;
   hasSmsCampaigns: boolean;
   hasKnowledgeBase: boolean;
@@ -129,8 +127,6 @@ export function resolveCapabilities(
   const hasEtaTracking = cap("eta_tracking");
   const hasCalendarSync = cap("calendar_sync");
   const hasPaymentProcessing = cap("payment_processing");
-  const hasWisetackFinancing = cap("wisetack_financing");
-  const hasQuickbooks = cap("quickbooks");
   const hasAfterHoursHandling = cap("after_hours_handling");
   const hasSmsCampaigns = cap("sms_campaigns");
   const hasKnowledgeBase = cap("knowledge_base");
@@ -169,8 +165,6 @@ export function resolveCapabilities(
     hasEtaTracking,
     hasCalendarSync,
     hasPaymentProcessing,
-    hasWisetackFinancing,
-    hasQuickbooks,
     hasAfterHoursHandling,
     hasSmsCampaigns,
     hasKnowledgeBase,

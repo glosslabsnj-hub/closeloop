@@ -1972,8 +1972,6 @@ export async function buildBusinessContext(
     eta_tracking: caps.hasEtaTracking,
     calendar_sync: caps.hasCalendarSync,
     payment_processing: caps.hasPaymentProcessing,
-    wisetack_financing: caps.hasWisetackFinancing,
-    quickbooks: caps.hasQuickbooks,
     after_hours_handling: caps.hasAfterHoursHandling,
     sms_campaigns: caps.hasSmsCampaigns,
     knowledge_base: caps.hasKnowledgeBase,

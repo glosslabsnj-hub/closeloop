@@ -2133,7 +2133,21 @@ async function persistReservation(
   } catch (e) {
     console.error("[persistReservation] Failed to trigger workflow:", e);
   }
-  
+
+  // Trigger order handoff for reservation (handles notifications)
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/order-handoff`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({ order_id: reservation.id, tenant_id: tenantId, type: "reservation" }),
+    });
+  } catch (e) {
+    console.warn("[persistReservation] Failed to trigger reservation handoff:", e);
+  }
+
   return reservation;
 }
 
@@ -2370,7 +2384,21 @@ async function persistDispatchJob(
   } catch (e) {
     console.error("[persistDispatchJob] Failed to trigger workflow:", e);
   }
-  
+
+  // Trigger dispatch handoff (handles notifications, SMS, etc.)
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/dispatch-handoff`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({ dispatch_id: job.id, tenant_id: tenantId }),
+    });
+  } catch (e) {
+    console.warn("[persistDispatchJob] Failed to trigger dispatch handoff:", e);
+  }
+
   return job;
 }
 

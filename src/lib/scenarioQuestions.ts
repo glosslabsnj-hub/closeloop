@@ -128,16 +128,6 @@ const serviceQuestions: ScenarioQuestion[] = [
     group: "core",
   },
   {
-    id: "financing",
-    capabilityKey: "offersFinancing",
-    label: "Financing Available",
-    question: "Do you offer financing for large jobs?",
-    description: "AI will mention financing options for bigger quotes",
-    defaultValue: false,
-    impliesModules: ["wisetack_financing"],
-    group: "core",
-  },
-  {
     id: "reminders",
     capabilityKey: "sendsReminders",
     label: "Appointment Reminders",

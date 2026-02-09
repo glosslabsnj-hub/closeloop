@@ -12,7 +12,7 @@ import { DynamicVariablesDebugPanel } from "@/components/admin/DynamicVariablesD
 interface DebugEvent {
   timestamp: number;
   type: string;
-  data: any;
+  data: unknown;
 }
 
 export default function VoiceAgentTest() {
@@ -22,14 +22,14 @@ export default function VoiceAgentTest() {
   const [isMuted, setIsMuted] = useState(false);
   const [debugEvents, setDebugEvents] = useState<DebugEvent[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [lastDynamicVars, setLastDynamicVars] = useState<Record<string, any> | null>(null);
+  const [lastDynamicVars, setLastDynamicVars] = useState<Record<string, unknown> | null>(null);
 
-  const addDebugEvent = useCallback((type: string, data: any) => {
+  const addDebugEvent = useCallback((type: string, data: unknown) => {
     setDebugEvents(prev => [...prev.slice(-19), { timestamp: Date.now(), type, data }]);
   }, []);
 
   // Helper to ensure dynamic variables are safe (no nulls) and include businessname alias
-  const toSafeVars = (vars: Record<string, any> | null | undefined): Record<string, string | number | boolean> => {
+  const toSafeVars = (vars: Record<string, unknown> | null | undefined): Record<string, string | number | boolean> => {
     if (!vars) return { businessname: "our business" };
     
     const safe = Object.fromEntries(
@@ -99,7 +99,7 @@ export default function VoiceAgentTest() {
       addDebugEvent("MIC_GRANTED", { status: "granted" });
 
       // Try WebRTC first, fallback to WebSocket
-      let connectionMode: "webrtc" | "websocket" = "webrtc";
+      const connectionMode: "webrtc" | "websocket" = "webrtc";
 
       console.log("🎙️ [VoiceTest] Step 2: Fetching token (WebRTC mode)...");
       addDebugEvent("TOKEN_REQUEST", { mode: "webrtc", tenantId: effectiveTenantId });
@@ -178,13 +178,14 @@ export default function VoiceAgentTest() {
 
       console.log("🎙️ [VoiceTest] ✓ Session started");
       addDebugEvent("SESSION_STARTED", { status: "success" });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("🎙️ [VoiceTest] ✗ Failed:", error);
-      addDebugEvent("SESSION_ERROR", { error: error.message });
+      const message = error instanceof Error ? error.message : "Could not start voice conversation";
+      addDebugEvent("SESSION_ERROR", { error: message });
       toast({
         variant: "destructive",
         title: "Failed to Start",
-        description: error.message || "Could not start voice conversation",
+        description: message,
       });
     } finally {
       setIsConnecting(false);

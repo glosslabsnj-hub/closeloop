@@ -11,7 +11,6 @@ import {
   LADDER_STEPS,
   LOCATION_ADD_ONS,
   INCLUDED_IN_ALL_PLANS,
-  TOP_UP_OPTIONS,
   formatPrice,
   calculateMonthlyTotal,
   type PlanSku,
@@ -216,33 +215,6 @@ export default function PricingPage() {
             </Card>
           </div>
         )}
-
-        {/* Top-ups Section */}
-        <div className="max-w-2xl mx-auto mb-12">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Need More Minutes?</CardTitle>
-              <CardDescription>Purchase additional minutes anytime or set up auto top-up</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {TOP_UP_OPTIONS.map((option) => (
-                  <div key={option.id} className="p-4 rounded-lg border text-center">
-                    <div className="font-bold text-lg">{option.minutes.toLocaleString()}</div>
-                    <div className="text-sm text-muted-foreground mb-2">minutes</div>
-                    <div className="font-semibold">{formatPrice(option.price)}</div>
-                    {option.savings && (
-                      <Badge variant="secondary" className="mt-2 text-xs">{option.savings}</Badge>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <p className="text-sm text-muted-foreground text-center">
-                Top-ups available in your billing settings after signup
-              </p>
-            </CardContent>
-          </Card>
-        </div>
 
         {/* Included in all plans */}
         <div className="max-w-4xl mx-auto text-center mb-12 p-6 rounded-2xl bg-secondary/30">

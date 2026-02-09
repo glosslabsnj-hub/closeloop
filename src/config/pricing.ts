@@ -6,7 +6,6 @@
  * - Base Plan: AI Voice Receptionist Platform ($249/mo, 200 pooled minutes, 1 location)
  * - Minute Bundles: Growth (2,000), Scale (5,000), Power (10,000), Enterprise (20,000+)
  * - Multi-location Add-on: $99/mo per additional location
- * - Top-ups: Optional minute purchases
  */
 
 // Plan type - voice only (SMS coming soon)
@@ -48,13 +47,6 @@ export interface TierInfo {
   features: string[];
   highlight?: boolean;
   icon: "MessageSquare" | "Phone" | "Sparkles";
-}
-
-export interface TopUpOption {
-  id: string;
-  minutes: number;
-  price: number;
-  savings?: string; // e.g., "Save 10%"
 }
 
 // Tier definitions - Only Voice tier available (SMS coming soon)
@@ -155,17 +147,6 @@ export const LADDER_STEPS: PlanLadderStep[] = [
 export const LOCATION_ADD_ONS = {
   voice: 99, // per month - extra location with dedicated number
 };
-
-// Top-up options for purchasing additional minutes
-export const TOP_UP_OPTIONS: TopUpOption[] = [
-  { id: "topup-500", minutes: 500, price: 249 },
-  { id: "topup-2000", minutes: 2000, price: 799, savings: "Save 20%" },
-  { id: "topup-5000", minutes: 5000, price: 1699, savings: "Save 32%" },
-];
-
-// Auto top-up threshold (triggers when below this many minutes)
-export const AUTO_TOPUP_THRESHOLD = 200;
-export const AUTO_TOPUP_AMOUNT = 2000; // Minutes added when auto top-up triggers
 
 // What's included in all plans
 export const INCLUDED_IN_ALL_PLANS = [
@@ -301,11 +282,6 @@ export function calculateMonthlyTotal(sku: PlanSku, additionalLocations: number 
   return step.price + (additionalLocations * LOCATION_ADD_ONS.voice);
 }
 
-// Get top-up option by ID
-export function getTopUpOption(id: string): TopUpOption | undefined {
-  return TOP_UP_OPTIONS.find((t) => t.id === id);
-}
-
 // Check if a plan requires contacting sales
 export function requiresSalesContact(sku: PlanSku): boolean {
   const step = getLadderStep(sku);
@@ -317,8 +293,5 @@ export const PRICING_CONFIG = {
   tiers: TIERS,
   ladderSteps: LADDER_STEPS,
   locationAddOns: LOCATION_ADD_ONS,
-  topUpOptions: TOP_UP_OPTIONS,
   includedInAllPlans: INCLUDED_IN_ALL_PLANS,
-  autoTopUpThreshold: AUTO_TOPUP_THRESHOLD,
-  autoTopUpAmount: AUTO_TOPUP_AMOUNT,
 };

@@ -1,6 +1,7 @@
  import { useState, useMemo } from "react";
  import { useAuth } from "@/contexts/AuthContext";
  import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
  import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
  import { useModuleRequired } from "@/hooks/useModuleRequired";
  import { Card, CardContent } from "@/components/ui/card";
@@ -78,7 +79,7 @@
      mutationFn: async ({ orderId, status }: { orderId: string; status: string }) => {
        const { error } = await supabase
          .from("food_orders")
-         .update({ status: status as any })
+         .update({ status: status as Database["public"]["Enums"]["order_status"] })
          .eq("id", orderId);
        if (error) throw error;
      },

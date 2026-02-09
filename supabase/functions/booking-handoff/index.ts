@@ -446,8 +446,12 @@ serve(async (req) => {
       console.error("Failed to trigger workflow:", e);
     }
 
-    // Push confirmed bookings to Google Calendar
-    if (booking.status === "confirmed" && !booking.external_event_id) {
+    // Push bookings to Google Calendar (confirmed or pending_deposit without deposit required)
+    const shouldSyncCalendar = !booking.external_event_id && (
+      booking.status === "confirmed" ||
+      (booking.status === "pending_deposit" && !booking.deposit_required)
+    );
+    if (shouldSyncCalendar) {
       try {
         const calendarResponse = await fetch(`${supabaseUrl}/functions/v1/create-calendar-event`, {
           method: "POST",

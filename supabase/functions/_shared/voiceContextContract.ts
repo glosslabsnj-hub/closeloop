@@ -494,28 +494,6 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     category: "core",
   },
   {
-    key: "has_wisetack_financing",
-    description: "Whether Wisetack financing is enabled",
-    type: "string",
-    source: (ctx) => {
-      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
-      return caps.wisetack_financing ? "true" : "false";
-    },
-    defaultValue: "false",
-    category: "core",
-  },
-  {
-    key: "has_quickbooks",
-    description: "Whether QuickBooks integration is enabled",
-    type: "string",
-    source: (ctx) => {
-      const caps = (ctx._meta?.capabilities || {}) as Record<string, boolean>;
-      return caps.quickbooks ? "true" : "false";
-    },
-    defaultValue: "false",
-    category: "core",
-  },
-  {
     key: "has_after_hours_handling",
     description: "Whether after-hours handling is enabled",
     type: "string",

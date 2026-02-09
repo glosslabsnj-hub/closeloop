@@ -301,7 +301,7 @@ export default function OnboardingPage() {
       if (servicesToInsert.length > 0) {
         const { error: servicesError } = await supabase
           .from("services")
-          .insert(servicesToInsert as any);
+          .insert(servicesToInsert);
         if (servicesError) {
           console.error("Services creation error:", servicesError);
         }
@@ -504,8 +504,8 @@ export default function OnboardingPage() {
           } else {
             console.error("TwilioProvision: failed", { error: provisionData?.error });
           }
-        } catch (provErr: any) {
-          console.error("TwilioProvision: exception", { message: provErr?.message });
+        } catch (provErr: unknown) {
+          console.error("TwilioProvision: exception", { message: provErr instanceof Error ? provErr.message : String(provErr) });
         }
       } else {
         console.log("TwilioProvision: skipped", { reason: "no-voice-feature", planCode });
@@ -518,7 +518,7 @@ export default function OnboardingPage() {
 
         const { success, workflowIds, error: workflowError } = await createDefaultWorkflowsForMode(
           tenantId,
-          workflowBusinessMode as any
+          workflowBusinessMode as BusinessMode
         );
 
         if (success) {
@@ -526,8 +526,8 @@ export default function OnboardingPage() {
         } else {
           console.error("WorkflowsAutoCreate: failed", { error: workflowError });
         }
-      } catch (wfErr: any) {
-        console.error("WorkflowsAutoCreate: exception", { message: wfErr?.message });
+      } catch (wfErr: unknown) {
+        console.error("WorkflowsAutoCreate: exception", { message: wfErr instanceof Error ? wfErr.message : String(wfErr) });
       }
 
       // 10. Mark onboarding as complete
