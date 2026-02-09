@@ -15,7 +15,7 @@ export function QuickActionButton({ label, description, href, icon: Icon }: Quic
 
   return (
     <Card
-      interactive
+      variant="interactive"
       onClick={() => navigate(href)}
       className="cursor-pointer h-full"
     >

@@ -213,7 +213,7 @@ export function TodaySnapshot() {
           const cardContent = (
             <Card 
               key={metric.label}
-              interactive
+              variant="interactive"
               className={cn(
                 "group animate-fade-in",
                 `stagger-${index + 1}`
