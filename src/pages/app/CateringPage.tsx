@@ -195,8 +195,16 @@ export default function CateringPage() {
             <TableBody>
               {filteredRequests.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                    No catering requests found
+                  <TableCell colSpan={8} className="h-24">
+                    <div className="flex flex-col items-center justify-center text-center">
+                      <Cake className="h-8 w-8 text-muted-foreground/40 mb-2" />
+                      <p className="text-sm font-medium">No catering requests yet</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {statusFilter !== "all"
+                          ? "Try adjusting your filters."
+                          : "When customers inquire about catering, their requests will appear here."}
+                      </p>
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (

@@ -185,6 +185,17 @@ export default function ReservationsPage() {
       {/* Reservations Table */}
       <Card>
         <CardContent className="p-0">
+          {filteredReservations.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+              <Clock className="h-10 w-10 mx-auto text-muted-foreground/40 mb-4" />
+              <h3 className="text-base font-semibold mb-1">No reservations found</h3>
+              <p className="text-sm text-muted-foreground max-w-sm">
+                {statusFilter !== "all"
+                  ? "Try adjusting your filters to see more results."
+                  : "When customers make reservations through your AI or you create them manually, they'll appear here."}
+              </p>
+            </div>
+          ) : (
           <Table>
             <TableHeader>
               <TableRow>
@@ -197,14 +208,7 @@ export default function ReservationsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredReservations.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                    No reservations found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredReservations.map((reservation) => (
+                {filteredReservations.map((reservation) => (
                   <TableRow key={reservation.id}>
                     <TableCell>
                       <div>
@@ -262,10 +266,10 @@ export default function ReservationsPage() {
                       </Select>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
             </TableBody>
           </Table>
+          )}
         </CardContent>
       </Card>
     </div>
