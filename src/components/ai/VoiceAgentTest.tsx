@@ -32,9 +32,16 @@ export default function VoiceAgentTest() {
   const toSafeVars = (vars: Record<string, unknown> | null | undefined): Record<string, string | number | boolean> => {
     if (!vars) return { businessname: "our business" };
     
-    const safe = Object.fromEntries(
-      Object.entries(vars).map(([k, v]) => [k, v == null ? "" : v])
-    );
+    const safe: Record<string, string | number | boolean> = {};
+    for (const [k, v] of Object.entries(vars)) {
+      if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
+        safe[k] = v;
+      } else if (v == null) {
+        safe[k] = "";
+      } else {
+        safe[k] = String(v);
+      }
+    }
     
     // Ensure businessname alias is always present (ElevenLabs expects no underscore)
     if (!safe.businessname && safe.business_name) {
