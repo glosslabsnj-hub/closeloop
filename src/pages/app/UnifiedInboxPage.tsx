@@ -242,11 +242,11 @@
                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
              </div>
            ) : filteredCalls.length === 0 ? (
-             <EmptyState
-               icon={Phone}
-               title="No calls yet"
-               description="When your AI handles calls, they'll appear here with full transcripts and extracted data."
-             />
+              <EmptyState
+                icon={Phone}
+                title="No messages yet"
+                description="When customers text or call, their conversations will appear here."
+              />
            ) : (
              <div className="space-y-3">
                {filteredCalls.map((call) => (

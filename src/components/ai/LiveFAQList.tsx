@@ -56,9 +56,9 @@ export default function LiveFAQList() {
       });
 
     if (error) {
-      toast({ variant: "destructive", title: "Failed to add FAQ" });
+      toast({ variant: "destructive", title: "Something went wrong", description: "Try again?" });
     } else {
-      toast({ title: "FAQ added!" });
+      toast({ title: "FAQ added", description: "Your AI can now answer this question." });
       setNewQuestion('');
       setNewAnswer('');
       fetchFAQs();
@@ -73,7 +73,7 @@ export default function LiveFAQList() {
       .eq('id', id);
 
     if (error) {
-      toast({ variant: "destructive", title: "Failed to update FAQ" });
+      toast({ variant: "destructive", title: "Something went wrong", description: "Try again?" });
     }
   };
 
@@ -84,7 +84,7 @@ export default function LiveFAQList() {
       .eq('id', id);
 
     if (error) {
-      toast({ variant: "destructive", title: "Failed to delete FAQ" });
+      toast({ variant: "destructive", title: "Something went wrong", description: "Try again?" });
     } else {
       setFaqs(faqs.filter(f => f.id !== id));
     }
@@ -142,7 +142,7 @@ export default function LiveFAQList() {
         {/* Existing FAQs */}
         {faqs.length === 0 ? (
           <p className="text-center text-muted-foreground py-4">
-            No FAQs configured. Add some above!
+            No FAQs yet. Add the questions your customers ask most so your AI can answer them instantly.
           </p>
         ) : (
           <div className="space-y-3">

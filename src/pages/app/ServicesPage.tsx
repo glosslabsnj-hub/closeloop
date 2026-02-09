@@ -131,10 +131,10 @@ export default function ServicesPage() {
             <EmptyState
               icon={Briefcase}
               title="No services yet"
-              description="Go to Business Brain to add your first service."
+              description="Add what you offer so your AI can quote accurate prices."
               action={{
-                label: "Go to Business Brain",
-                onClick: () => window.location.href = "/app/business-brain",
+                label: "Add Service",
+                onClick: () => window.location.href = "/app/business-brain?section=offerings",
               }}
             />
           </CardContent>

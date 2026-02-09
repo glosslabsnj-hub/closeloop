@@ -178,23 +178,23 @@ const errorMessages: Record<ErrorCode, Omit<ErrorInfo, "code">> = {
 
   // Generic errors
   NETWORK_ERROR: {
-    title: "Connection problem",
-    description: "We're having trouble connecting to our servers.",
-    suggestion: "Check your internet connection and try again.",
+    title: "Couldn't connect",
+    description: "Check your internet?",
+    suggestion: "We're having trouble reaching our servers.",
   },
   SERVER_ERROR: {
-    title: "Server error",
-    description: "Something went wrong on our end.",
-    suggestion: "Please try again in a moment. If this persists, contact support.",
+    title: "Something went wrong",
+    description: "Try again?",
+    suggestion: "If this keeps happening, contact support.",
   },
   VALIDATION_ERROR: {
-    title: "Invalid input",
-    description: "Please check your input and try again.",
+    title: "Please check this field",
+    description: "Something doesn't look right.",
   },
   UNKNOWN_ERROR: {
     title: "Something went wrong",
-    description: "An unexpected error occurred.",
-    suggestion: "Please try again. If this continues, contact support.",
+    description: "Try again?",
+    suggestion: "If this continues, contact support.",
   },
 };
 

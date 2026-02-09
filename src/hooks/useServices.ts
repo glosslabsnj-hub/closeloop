@@ -45,10 +45,10 @@ export function useServices() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["services", tenant?.id] });
-      toast({ title: "Service created", description: "New service added successfully." });
+      toast({ title: "Service saved", description: "Your AI will now use this information." });
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: "Try again?", variant: "destructive" });
     },
   });
 
@@ -66,10 +66,10 @@ export function useServices() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["services", tenant?.id] });
-      toast({ title: "Service updated", description: "Changes saved successfully." });
+      toast({ title: "Service saved", description: "Your AI will now use this information." });
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: "Try again?", variant: "destructive" });
     },
   });
 
@@ -80,10 +80,10 @@ export function useServices() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["services", tenant?.id] });
-      toast({ title: "Service deleted", description: "Service removed successfully." });
+      toast({ title: "Service removed", description: "Your AI has been updated." });
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: "Try again?", variant: "destructive" });
     },
   });
 
