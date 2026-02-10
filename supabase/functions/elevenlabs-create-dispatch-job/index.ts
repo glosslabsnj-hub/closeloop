@@ -27,6 +27,7 @@ interface CreateDispatchJobRequest {
   // Dispatch mode specific
   vehicle_info?: string;
   dropoff_address?: string;
+  drivable?: boolean | string;
   // Common
   customer_name?: string;
   customer_phone?: string;
@@ -54,6 +55,10 @@ interface ServiceAreaResponse {
   service_tier: string;
   pricing_note: string;
   distance_basis_used: string;
+  pickup_lat?: number | null;
+  pickup_lng?: number | null;
+  dropoff_lat?: number | null;
+  dropoff_lng?: number | null;
   price_breakdown: {
     base_price?: number;
     per_mile_rate?: number;
@@ -105,17 +110,18 @@ serve(async (req: Request) => {
       customer_phone: body.customer_phone ? "[REDACTED]" : undefined,
     }));
 
-    const { 
-      pickup_address, 
+    const {
+      pickup_address,
       service_type,
       vehicle_info,
       dropoff_address,
+      drivable,
       customer_name,
-      customer_phone, 
+      customer_phone,
       urgency,
       notes,
       tenant_id,
-      conversation_id 
+      conversation_id
     } = body;
 
     // Validate required fields
@@ -197,6 +203,26 @@ serve(async (req: Request) => {
           success: false,
           message: "I'm having trouble connecting to the dispatch system. Let me take your information and have someone call you right back.",
           error: "No active voice session found - could not determine tenant"
+        } as CreateDispatchJobResponse),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Module gating: never create entities for disabled modules
+    const { data: tenantRow } = await supabase
+      .from("tenants")
+      .select("enabled_modules")
+      .eq("id", resolvedTenantId)
+      .maybeSingle();
+
+    const enabledModules: string[] = tenantRow?.enabled_modules || [];
+    if (!enabledModules.includes("dispatch_queue")) {
+      console.warn(`[elevenlabs-create-dispatch-job] dispatch_queue not enabled for tenant ${resolvedTenantId.substring(0, 8)}...`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "I'm sorry, dispatch isn't available right now. Let me take your info and have someone call you back to help.",
+          error: "dispatch_queue module not enabled for this tenant"
         } as CreateDispatchJobResponse),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -291,10 +317,14 @@ serve(async (req: Request) => {
     // Generate job number
     const jobNumber = generateJobNumber();
 
-    // Build description from vehicle_info and service_type
+    // Build description from vehicle_info, service_type, and drivable status
     const descriptionParts: string[] = [];
     if (service_type) descriptionParts.push(`Service: ${service_type}`);
     if (vehicle_info) descriptionParts.push(`Vehicle: ${vehicle_info}`);
+    if (drivable !== undefined && drivable !== null) {
+      const isDrivable = drivable === true || drivable === "true" || drivable === "yes";
+      descriptionParts.push(`Drivable: ${isDrivable ? "Yes" : "No"}`);
+    }
     const description = descriptionParts.join(". ") || null;
 
     // === NEW: Calculate distance & pricing by calling check_service_area ===
@@ -305,6 +335,11 @@ serve(async (req: Request) => {
     let pricingNote: string | null = null;
     let priceBreakdown: Record<string, unknown> | null = null;
     let etaRange: string | null = null;
+    let priceCents: number | null = null;
+    let pickupLat: number | null = null;
+    let pickupLng: number | null = null;
+    let dropoffLat: number | null = null;
+    let dropoffLng: number | null = null;
 
     try {
       const checkServiceAreaUrl = `${supabaseUrl}/functions/v1/elevenlabs-check-service-area`;
@@ -324,29 +359,40 @@ serve(async (req: Request) => {
 
       if (checkResponse.ok) {
         const areaData: ServiceAreaResponse = await checkResponse.json();
-        
+
         dispatchDistanceMiles = areaData.distance_miles;
         towDistanceMiles = areaData.tow_distance_miles;
         totalDistanceMiles = (dispatchDistanceMiles || 0) + (towDistanceMiles || 0);
         serviceTier = areaData.service_tier || null;
         pricingNote = areaData.pricing_note || null;
         etaRange = areaData.eta_range || null;
-        
-        // Format price_breakdown for storage
+
+        // Extract coordinates if available
+        pickupLat = areaData.pickup_lat ?? null;
+        pickupLng = areaData.pickup_lng ?? null;
+        dropoffLat = areaData.dropoff_lat ?? null;
+        dropoffLng = areaData.dropoff_lng ?? null;
+
+        // Format price_breakdown for storage and extract price_cents
         if (areaData.price_breakdown) {
           const pb = areaData.price_breakdown;
+          const totalEstimate = pb.total_estimate || pb.total || null;
           priceBreakdown = {
             base_price: pb.base_price || null,
             per_mile_rate: pb.per_mile_rate || null,
             distance_charge: pb.distance_charge || null,
             vehicle_modifier: pb.vehicle_modifier || null,
             urgency_modifier: pb.urgency_modifier || null,
-            total: pb.total_estimate || pb.total || null,
+            total: totalEstimate,
             description: pb.description || null,
           };
+          // Convert dollars to cents for price_cents column (revenue attribution reads this)
+          if (totalEstimate && typeof totalEstimate === "number" && totalEstimate > 0) {
+            priceCents = Math.round(totalEstimate * 100);
+          }
         }
 
-        console.log(`[elevenlabs-create-dispatch-job] Distance/pricing: dispatch=${dispatchDistanceMiles?.toFixed(1) || 'null'}mi, tow=${towDistanceMiles?.toFixed(1) || 'null'}mi, tier=${serviceTier}, pricing="${pricingNote?.substring(0, 50) || 'null'}..."`);
+        console.log(`[elevenlabs-create-dispatch-job] Distance/pricing: dispatch=${dispatchDistanceMiles?.toFixed(1) || 'null'}mi, tow=${towDistanceMiles?.toFixed(1) || 'null'}mi, tier=${serviceTier}, price_cents=${priceCents || 'null'}, pricing="${pricingNote?.substring(0, 50) || 'null'}..."`);
       } else {
         console.warn("[elevenlabs-create-dispatch-job] check_service_area returned non-OK status:", checkResponse.status);
       }
@@ -365,7 +411,11 @@ serve(async (req: Request) => {
         customer_name: sanitizedName,
         customer_phone: phoneE164 || customer_phone || null,
         pickup_address: pickup_address,
+        pickup_lat: pickupLat,
+        pickup_lng: pickupLng,
         dropoff_address: dropoff_address || null,
+        dropoff_lat: dropoffLat,
+        dropoff_lng: dropoffLng,
         job_type: service_type || "Tow",
         priority: urgencyToPriority(urgency),
         status: "pending",
@@ -373,6 +423,8 @@ serve(async (req: Request) => {
         notes: notes || null,
         session_id: sessionId,
         requested_at: new Date().toISOString(),
+        // Revenue attribution reads price_cents
+        price_cents: priceCents,
         // Distance & pricing fields
         dispatch_distance_miles: dispatchDistanceMiles,
         tow_distance_miles: towDistanceMiles,

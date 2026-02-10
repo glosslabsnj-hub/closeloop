@@ -1,7 +1,17 @@
 /**
+ * @deprecated Use elevenlabs-create-dispatch-job instead.
+ * This function is the older dispatch creation endpoint that lacks:
+ * - Distance/pricing calculation via check-service-area
+ * - price_cents storage for revenue attribution
+ * - Geocoded coordinate storage
+ * - Module gating check (dispatch_queue)
+ *
+ * Kept for backward compatibility until confirmed no active tool configs reference it.
+ * Plan for removal in next major cleanup.
+ *
  * create-dispatch-request: ElevenLabs tool endpoint for creating dispatch jobs
  * during voice calls.
- * 
+ *
  * Called by ElevenLabs agent when it has collected enough dispatch intake info:
  * - customer_name, customer_phone
  * - pickup_address, dropoff_address (optional)

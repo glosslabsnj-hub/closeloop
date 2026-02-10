@@ -727,6 +727,185 @@ Create a callback for any inquiry.
 - "No problem! If you have questions later, give us a call. Can I get your name in case you call back?"
 `;
 
+// ============= INDUSTRY-SPECIFIC DISPATCH PROMPT BLOCKS =============
+// Injected into dispatch prompts based on tenant industry slug.
+
+export const DISPATCH_INDUSTRY_PROMPT_BLOCKS: Record<string, string> = {
+  towing: `
+### TOWING / ROADSIDE SPECIFICS
+- Ask for vehicle info: year, make, model, color
+- Ask if the vehicle is drivable or needs to be loaded/winched
+- Ask if they have the keys
+- Get both pickup AND dropoff (their shop, their home, etc.)
+- Highway safety: "Stay in your vehicle with hazards on"
+- Clarify service: tow, jump start, lockout, tire change, fuel delivery, winchout
+`,
+
+  locksmith: `
+### LOCKSMITH SPECIFICS
+- Determine lockout type: car lockout, house lockout, or commercial
+- For car lockout: get year/make/model (some require special tools)
+- For residential: ask if it's a standard deadbolt or smart lock
+- Ask if they need rekey, new locks, or just to get in
+- Proof of ownership may be required — mention this: "The tech may ask to see ID or proof of residency"
+- No dropoff address needed — service is on-site only
+`,
+
+  courier: `
+### COURIER / DELIVERY SPECIFICS
+- Ask what they're sending: document, package, fragile item, etc.
+- Get package size and approximate weight
+- Get both pickup AND delivery addresses
+- Ask about timing: same-day rush, standard same-day, or scheduled
+- Ask if signature is required on delivery
+- For fragile items: note special handling needed
+- Multi-stop deliveries: collect all stops in order
+`,
+
+  medical_transport: `
+### MEDICAL TRANSPORT SPECIFICS
+- Ask about mobility level: ambulatory (can walk), wheelchair, or stretcher
+- Ask about the appointment time — we need to arrive BEFORE the appointment
+- Ask if this is a round trip (need a return ride)
+- Get the medical facility name and address
+- Ask if oxygen or any medical equipment is needed
+- HIPAA: Do NOT ask about medical conditions. Only ask logistics questions.
+- Insurance/Medicaid: "Will this be covered by insurance or Medicaid?"
+`,
+
+  field_service: `
+### FIELD SERVICE / REPAIR SPECIFICS
+- Ask what equipment or system needs service (HVAC, appliance, etc.)
+- Ask them to describe the symptoms: "What's it doing?"
+- Determine urgency: completely broken vs. not working well
+- Ask about access: gate code, lockbox, pets, alarm system
+- For scheduled service: "When works best for you — morning or afternoon?"
+- Note if this is warranty or recall work
+`,
+
+  cleaning: `
+### CLEANING SERVICE SPECIFICS
+- Ask property type: house, apartment, office, commercial
+- Ask about square footage or number of rooms
+- Determine service type: one-time deep clean, move-in/move-out, or regular recurring
+- Ask about access: lockbox code, alarm code, key under mat
+- Ask about pets (some cleaners need to know for allergies/safety)
+- For recurring: "Would you like weekly, bi-weekly, or monthly?"
+- This is primarily SCHEDULED — ask "When would you like us to come?" not "How fast can you get here?"
+`,
+
+  landscaping: `
+### LANDSCAPING SPECIFICS
+- Ask about property size (rough estimate is fine)
+- Determine service: mowing, trimming, full maintenance, one-time cleanup, tree work
+- Ask about gate access or backyard access
+- For recurring: "We offer weekly and bi-weekly. Which works better?"
+- This is primarily SCHEDULED — ask "When would you like us to start?"
+- Seasonal note: mention leaf removal in fall, snow in winter if applicable
+`,
+
+  pest_control: `
+### PEST CONTROL SPECIFICS
+- Ask what type of pest: ants, roaches, rodents, termites, bed bugs, mosquitoes, wasps
+- Ask about severity: "Have you seen just a few, or is it a bigger problem?"
+- Ask if the issue is indoors, outdoors, or both
+- Safety: "Are there children or pets in the home?" — this affects treatment
+- Ask if they want one-time treatment or recurring prevention
+- This is primarily SCHEDULED — emergency exceptions for active infestations
+- For bed bugs/termites: these require inspection first, may need callback
+`,
+
+  junk_removal: `
+### JUNK REMOVAL SPECIFICS
+- Ask what items need removal: furniture, appliances, construction debris, yard waste, etc.
+- Estimate the load size: "Is it a few items, about a pickup truck load, or more?"
+- Ask where the items are: curb, garage, inside the house, upstairs
+- Ask about stairs — affects pricing and crew size
+- Hazardous materials check: "Any paint, chemicals, or hazardous materials?"
+- Heavy items: "Anything over 100 pounds like a piano or safe?"
+`,
+
+  mobile_detailing: `
+### MOBILE DETAILING SPECIFICS
+- Ask vehicle type: car, truck, SUV, van, boat
+- Ask about service level: basic wash, interior detail, full detail, ceramic coating
+- Ask about vehicle condition: daily driver, heavily soiled, pet hair, etc.
+- Location: "Where will the vehicle be? Is there water access and shade?"
+- This is primarily SCHEDULED — "When would you like us to come out?"
+`,
+
+  mobile_mechanic: `
+### MOBILE MECHANIC SPECIFICS
+- Ask for vehicle info: year, make, model
+- Ask them to describe the problem: "What's going on with it?"
+- Ask if the vehicle starts: "Does it turn over at all, or is it completely dead?"
+- Ask about warning lights on the dashboard
+- Ask about recent repairs or work done
+- Determine if this can be fixed on-site or needs to be towed to a shop
+`,
+
+  delivery: `
+### DELIVERY SERVICE SPECIFICS
+- Ask what's being delivered
+- Get both pickup and delivery addresses
+- Ask about delivery window: "When does this need to arrive?"
+- For food delivery: note any temperature requirements
+- For large items: ask about access (elevator, stairs, narrow doorways)
+- Ask if the recipient will be home to accept delivery
+`,
+
+  moving: `
+### MOVING SPECIFICS
+- Ask about move size: studio, 1-bed, 2-bed, house, office
+- Get both origin and destination addresses
+- Ask about floor levels and elevator availability at both locations
+- Ask about large/heavy items: piano, safe, pool table, gun safe
+- Ask if they need packing services or just moving
+- Get the move date: "When do you need to move?"
+- This is SCHEDULED — often weeks in advance
+`,
+};
+
+/** Default dispatch flow per industry: immediate, scheduled, or hybrid */
+export const DISPATCH_DEFAULT_FLOW: Record<string, "immediate_first" | "scheduled_first" | "hybrid"> = {
+  towing: "immediate_first",
+  locksmith: "immediate_first",
+  courier: "hybrid",
+  medical_transport: "scheduled_first",
+  field_service: "hybrid",
+  cleaning: "scheduled_first",
+  landscaping: "scheduled_first",
+  pest_control: "scheduled_first",
+  junk_removal: "scheduled_first",
+  mobile_detailing: "scheduled_first",
+  mobile_mechanic: "hybrid",
+  delivery: "hybrid",
+  moving: "scheduled_first",
+};
+
+export const DISPATCH_FLOW_INSTRUCTIONS: Record<string, string> = {
+  immediate_first: `
+### DISPATCH TIMING (IMMEDIATE-FIRST)
+Most callers need help NOW. Default to immediate dispatch.
+- Start with: "I can get someone to you. Where are you right now?"
+- If they want to schedule instead: "Sure, when works best?"
+`,
+  scheduled_first: `
+### DISPATCH TIMING (SCHEDULED)
+Most callers are scheduling in advance, not emergencies.
+- Start with: "When would you like us to come out?"
+- Offer day and time options: "We have mornings and afternoons available."
+- If they say it's urgent: "I understand — let me see if we can get someone out today."
+`,
+  hybrid: `
+### DISPATCH TIMING (COULD BE EITHER)
+Some callers need help now, others want to schedule.
+- Ask: "Is this something you need right away, or would you like to schedule a time?"
+- For immediate: proceed with dispatch flow
+- For scheduled: ask for preferred date and time
+`,
+};
+
 // ============= CAPABILITY-SPECIFIC INSTRUCTION BLOCKS =============
 // Extracted from mode-specific prompts for composable capability-aware agents.
 
@@ -892,7 +1071,8 @@ When handling fleet-related inquiries:
  * @returns Composed prompt string with shared rules + capability-specific sections
  */
 export function buildPromptForCapabilities(
-  caps: Capabilities
+  caps: Capabilities,
+  industrySlug?: string
 ): string {
   const sections: string[] = [HUMAN_PHONE_RULES, TIME_NUMBER_SPEAKING_RULES];
 
@@ -906,6 +1086,20 @@ export function buildPromptForCapabilities(
 
   if (caps.hasDispatchQueue) {
     sections.push(DISPATCH_INSTRUCTIONS);
+
+    // Inject industry-specific dispatch instructions
+    const slug = industrySlug || "";
+    const industryBlock = DISPATCH_INDUSTRY_PROMPT_BLOCKS[slug];
+    if (industryBlock) {
+      sections.push(industryBlock);
+    }
+
+    // Inject timing flow instructions
+    const flowType = DISPATCH_DEFAULT_FLOW[slug] || "immediate_first";
+    const flowBlock = DISPATCH_FLOW_INSTRUCTIONS[flowType];
+    if (flowBlock) {
+      sections.push(flowBlock);
+    }
   }
 
   if (caps.hasImpoundLot) {
