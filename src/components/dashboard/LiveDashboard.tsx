@@ -8,6 +8,7 @@ import { Copilot, CopilotTrigger } from "./Copilot";
 import { SetupProgressChecklist } from "./SetupProgressChecklist";
 import { ModeContentArea } from "./ModeContentArea";
 import { MetricsGrid } from "./MetricsGrid";
+import { BusynessSliderWidget } from "./BusynessSliderWidget";
 import { SoundManager } from "@/components/notifications/SoundManager";
 
 export function LiveDashboard() {
@@ -18,8 +19,9 @@ export function LiveDashboard() {
     <div className="space-y-8 animate-fade-in">
       <SoundManager />
 
-      {/* ═══ TIER 1: Agent Status Hero ═══ */}
+      {/* ═══ TIER 1: Agent Status Hero + Busyness ═══ */}
       <AgentControlPanel />
+      <BusynessSliderWidget />
 
       {/* ═══ TIER 2: Alerts (only when present) ═══ */}
       <UnifiedAlertBanner />

@@ -4,7 +4,6 @@ import { QuickActionButton } from "../widgets/QuickActionButton";
 import { FleetStatusCard } from "../widgets/FleetStatusCard";
 import { ImpoundCountCard } from "../widgets/ImpoundCountCard";
 import { ROIPerformanceWidget } from "../ROIPerformanceWidget";
-import { BusynessSliderWidget } from "../BusynessSliderWidget";
 import { useCapabilities } from "@/hooks/useCapabilities";
 
 export function DispatchDashboardLayout() {
@@ -15,7 +14,6 @@ export function DispatchDashboardLayout() {
       <ActiveJobQueue />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
-        <BusynessSliderWidget />
         <QuickActionButton
           label="Quick Dispatch"
           description="Create a new dispatch job"
