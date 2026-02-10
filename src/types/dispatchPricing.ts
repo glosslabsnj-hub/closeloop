@@ -376,6 +376,20 @@ export function generatePricingSummary(config: DispatchPricingConfig | null, ser
 }
 
 /**
+ * Calculate sample quotes at various distances for display in the editor.
+ */
+export function calculateScenarioQuotes(
+  config: DispatchPricingConfig,
+  serviceName: string,
+): { distance: number; price: number; label: string }[] {
+  const distances = [5, 15, 30, 50];
+  return distances.map((d) => {
+    const result = calculateDispatchPrice(config, d);
+    return { distance: d, price: result.min, label: `${d}-mile job → $${result.min}` };
+  });
+}
+
+/**
  * Calculate estimated price based on config and variables
  */
 export function calculateDispatchPrice(
