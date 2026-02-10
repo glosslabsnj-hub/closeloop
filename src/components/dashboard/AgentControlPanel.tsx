@@ -286,6 +286,17 @@ export function AgentControlPanel() {
                 )}>
                   {readinessPercent}%
                 </span>
+                {!canGoLive && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-[11px] text-warning hover:text-warning gap-1"
+                    onClick={() => navigate("/app/business-brain")}
+                  >
+                    <AlertCircle className="h-3 w-3" />
+                    Setup incomplete
+                  </Button>
+                )}
               </div>
 
               {/* Spacer */}
@@ -323,31 +334,6 @@ export function AgentControlPanel() {
               </div>
             </div>
           </div>
-
-          {/* Readiness Detail (when blocked) */}
-          {!isActive && !canGoLive && (
-            <div className="px-6 py-4 border-t border-border/50 bg-muted/20">
-              <div className="flex items-center gap-3">
-                <AlertCircle className="h-4 w-4 text-warning shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">
-                    AI Readiness at {readinessPercent}% — needs 85% to go live
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Complete your setup in Business Brain to unlock your AI agent.
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="shrink-0 h-8 text-xs"
-                  onClick={() => navigate("/app/business-brain")}
-                >
-                  Fix Issues
-                </Button>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 
