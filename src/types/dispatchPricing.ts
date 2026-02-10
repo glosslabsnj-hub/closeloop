@@ -91,6 +91,18 @@ export interface DispatchPricingConfig {
   
   // Destination-based pricing rules
   destination_rules?: DestinationRule[];
+  
+  /**
+   * For flat-rate services: miles included in the base price before overage kicks in.
+   * Example: 25 means the first 25 miles are included in the flat rate.
+   */
+  included_miles?: number;
+  
+  /**
+   * Per-mile rate charged beyond included_miles.
+   * Example: 3 means $3/mile beyond the included distance.
+   */
+  overage_per_mile?: number;
 }
 
 // Service categories for dispatch businesses
@@ -127,6 +139,8 @@ export interface DispatchServicePreset {
   icon: string;
   defaultDuration: number;
   defaultPricingConfig: DispatchPricingConfig;
+  /** Whether this service type requires a dropoff/destination location */
+  requires_dropoff: boolean;
 }
 
 // Vehicle type options for towing
@@ -167,6 +181,7 @@ export const DISPATCH_SERVICE_PRESETS: DispatchServicePreset[] = [
     category: "towing",
     icon: "truck",
     defaultDuration: 60,
+    requires_dropoff: true,
     defaultPricingConfig: {
       pricing_model: "distance_tiered",
       distance_tiers: [
@@ -195,6 +210,7 @@ export const DISPATCH_SERVICE_PRESETS: DispatchServicePreset[] = [
     category: "towing",
     icon: "truck",
     defaultDuration: 180,
+    requires_dropoff: true,
     defaultPricingConfig: {
       pricing_model: "distance_tiered",
       distance_tiers: [
@@ -220,6 +236,7 @@ export const DISPATCH_SERVICE_PRESETS: DispatchServicePreset[] = [
     category: "roadside",
     icon: "zap",
     defaultDuration: 30,
+    requires_dropoff: false,
     defaultPricingConfig: {
       pricing_model: "flat",
       min_price: 65,
@@ -232,6 +249,7 @@ export const DISPATCH_SERVICE_PRESETS: DispatchServicePreset[] = [
     category: "roadside",
     icon: "key",
     defaultDuration: 30,
+    requires_dropoff: false,
     defaultPricingConfig: {
       pricing_model: "flat",
       min_price: 75,
@@ -244,6 +262,7 @@ export const DISPATCH_SERVICE_PRESETS: DispatchServicePreset[] = [
     category: "roadside",
     icon: "circle",
     defaultDuration: 30,
+    requires_dropoff: false,
     defaultPricingConfig: {
       pricing_model: "flat",
       min_price: 85,
@@ -256,6 +275,7 @@ export const DISPATCH_SERVICE_PRESETS: DispatchServicePreset[] = [
     category: "roadside",
     icon: "fuel",
     defaultDuration: 45,
+    requires_dropoff: false,
     defaultPricingConfig: {
       pricing_model: "variable",
       variables: [
@@ -279,6 +299,7 @@ export const DISPATCH_SERVICE_PRESETS: DispatchServicePreset[] = [
     category: "recovery",
     icon: "anchor",
     defaultDuration: 60,
+    requires_dropoff: false,
     defaultPricingConfig: {
       pricing_model: "variable",
       min_price: 100,
@@ -292,6 +313,7 @@ export const DISPATCH_SERVICE_PRESETS: DispatchServicePreset[] = [
     category: "towing",
     icon: "truck",
     defaultDuration: 120,
+    requires_dropoff: true,
     defaultPricingConfig: {
       pricing_model: "distance_tiered",
       distance_tiers: [
@@ -314,7 +336,11 @@ export function generatePricingSummary(config: DispatchPricingConfig | null, ser
   const parts: string[] = [];
   
   if (config.pricing_model === "flat" && config.min_price) {
-    parts.push(`${serviceName} is $${config.min_price} flat rate`);
+    let flatText = `${serviceName} is $${config.min_price} flat rate`;
+    if (config.included_miles && config.overage_per_mile) {
+      flatText += ` within ${config.included_miles} miles, +$${config.overage_per_mile}/mile beyond`;
+    }
+    parts.push(flatText);
   } else if (config.pricing_model === "distance_tiered" && config.distance_tiers?.length) {
     const firstTier = config.distance_tiers[0];
     parts.push(`${serviceName} starts at $${firstTier.base_price}`);
@@ -323,7 +349,6 @@ export function generatePricingSummary(config: DispatchPricingConfig | null, ser
       parts.push(`for the first ${firstTier.max_miles} miles`);
     }
     
-    // Check for per-mile rates
     const tiersWithPerMile = config.distance_tiers.filter(t => t.per_mile_price && t.per_mile_price > 0);
     if (tiersWithPerMile.length > 0) {
       const avgRate = tiersWithPerMile.reduce((sum, t) => sum + (t.per_mile_price || 0), 0) / tiersWithPerMile.length;
@@ -339,7 +364,6 @@ export function generatePricingSummary(config: DispatchPricingConfig | null, ser
     }
   }
   
-  // Add vehicle type note if applicable
   const vehicleVar = config.variables?.find(v => v.key === "vehicle_type");
   if (vehicleVar && vehicleVar.modifiers.length > 0) {
     const maxAdjustment = Math.max(...vehicleVar.modifiers.map(m => Math.abs(m.price_adjustment)));

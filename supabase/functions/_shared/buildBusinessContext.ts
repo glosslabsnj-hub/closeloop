@@ -32,6 +32,8 @@ export interface DistanceTier {
 export interface PricingConfig {
   model: "flat" | "distance_tiered" | "variable";
   distance_tiers?: DistanceTier[];
+  included_miles?: number;
+  overage_per_mile?: number;
 }
 
 export interface NormalizedService {
@@ -50,6 +52,8 @@ export interface NormalizedService {
   service_category: string;
   /** Type: "primary" (core business) or "secondary" (additional services) */
   service_type: string;
+  /** Whether this service requires a dropoff/destination location */
+  requires_dropoff: boolean;
 }
 
 export interface NormalizedMenuItem {
@@ -994,6 +998,7 @@ function normalizeServices(services: Array<{
   deposit_amount?: number | null;
   preparation_instructions?: string | null;
   pricing_config_json?: Record<string, unknown> | null;
+  requires_dropoff?: boolean | null;
 }> | null): NormalizedService[] {
   if (!services || services.length === 0) return [];
   
@@ -1040,7 +1045,11 @@ function normalizeServices(services: Array<{
       } else if (model === "variable") {
         pricingConfig = { model: "variable" };
       } else if (model === "flat") {
-        pricingConfig = { model: "flat" };
+        pricingConfig = {
+          model: "flat",
+          included_miles: configJson.included_miles != null ? Number(configJson.included_miles) : undefined,
+          overage_per_mile: configJson.overage_per_mile != null ? Number(configJson.overage_per_mile) : undefined,
+        };
       }
     }
     
@@ -1056,10 +1065,9 @@ function normalizeServices(services: Array<{
       prep_instructions: s.preparation_instructions || "",
       synonyms,
       pricing_config: pricingConfig,
-      // service_category and service_type are not in the DB schema yet
-      // They would need a migration to add these fields
       service_category: "",
       service_type: "primary",
+      requires_dropoff: s.requires_dropoff !== false,
     };
   });
 }
@@ -1164,6 +1172,12 @@ function buildServicesForPrompt(services: NormalizedService[]): string {
         return `${rangeText}: $${tier.base_price}`;
       });
       priceText = `Distance-tiered:\n    - ${tierDescriptions.join("\n    - ")}`;
+    } else if (s.pricing_config?.model === "flat" && s.price_amount) {
+      // Flat rate with optional distance surcharge
+      priceText = `$${s.price_amount} flat rate`;
+      if (s.pricing_config.included_miles && s.pricing_config.overage_per_mile) {
+        priceText += ` (${s.pricing_config.included_miles} mi included, +$${s.pricing_config.overage_per_mile}/mi beyond)`;
+      }
     } else if (s.pricing_config?.model === "variable") {
       priceText = s.price_amount ? `Starting at $${s.price_amount} (varies by job)` : "Price varies by job";
     } else if (s.price_type === "fixed" && s.price_amount) {
@@ -1174,7 +1188,10 @@ function buildServicesForPrompt(services: NormalizedService[]): string {
       priceText = "Quote required";
     }
     
-    let line = `• ${s.name}: ${priceText}`;
+    // Add dropoff requirement tag
+    const dropoffTag = s.requires_dropoff ? "[REQUIRES DROPOFF]" : "[ON-SITE ONLY]";
+    
+    let line = `• ${s.name}: ${priceText} ${dropoffTag}`;
     if (s.duration_minutes) line += `\n  Duration: ${s.duration_minutes} min`;
     if (s.synonyms.length > 0) line += ` [also: ${s.synonyms.slice(0, 3).join(", ")}]`;
     return line;

@@ -64,6 +64,7 @@ interface DispatchServiceFormData {
   pricing_config: DispatchPricingConfig;
   price_amount: number | null;
   price_type: "fixed" | "starting_at" | "quote_only";
+  requires_dropoff: boolean;
 }
 
 const defaultFormData: DispatchServiceFormData = {
@@ -78,6 +79,7 @@ const defaultFormData: DispatchServiceFormData = {
   },
   price_amount: null,
   price_type: "starting_at",
+  requires_dropoff: true,
 };
 
 const PRESET_ICONS: Record<string, React.ReactNode> = {
@@ -127,6 +129,7 @@ export function DispatchServiceEditor({
         pricing_config: pricingConfig || { pricing_model: "flat", min_price: editingService.price_amount || 0 },
         price_amount: editingService.price_amount,
         price_type: editingService.price_type || "starting_at",
+        requires_dropoff: editingService.requires_dropoff !== false,
       });
       setStep(2);
     } else {
@@ -156,6 +159,7 @@ export function DispatchServiceEditor({
       pricing_config: preset.defaultPricingConfig,
       price_amount: preset.defaultPricingConfig.min_price || null,
       price_type: preset.defaultPricingConfig.pricing_model === "flat" ? "fixed" : "starting_at",
+      requires_dropoff: preset.requires_dropoff,
     });
     setStep(2);
   };
@@ -218,6 +222,7 @@ export function DispatchServiceEditor({
         service_category: formData.service_category,
         service_type: formData.service_type,
         pricing_config_json: pricingConfigForApi,
+        requires_dropoff: formData.requires_dropoff,
       };
 
       if (editingService) {
@@ -356,6 +361,20 @@ export function DispatchServiceEditor({
 
             <Separator />
 
+            {/* Requires Dropoff Toggle */}
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium">This service requires a drop-off location</Label>
+                <p className="text-xs text-muted-foreground">
+                  Turn this on for towing services where the vehicle goes somewhere else. Leave off for on-site services like jumpstarts or lockouts.
+                </p>
+              </div>
+              <Switch
+                checked={formData.requires_dropoff}
+                onCheckedChange={(checked) => setFormData({ ...formData, requires_dropoff: checked })}
+              />
+            </div>
+
             {/* Pricing Model */}
             <div className="space-y-4">
               <div className="flex items-center gap-2">
@@ -401,19 +420,85 @@ export function DispatchServiceEditor({
 
               {/* Flat Rate Pricing */}
               {formData.pricing_config.pricing_model === "flat" && (
-                <div className="space-y-2">
-                  <Label>Price ($)</Label>
-                  <Input
-                    type="number"
-                    value={formData.pricing_config.min_price || ""}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      pricing_config: { ...formData.pricing_config, min_price: parseFloat(e.target.value) || 0 },
-                      price_amount: parseFloat(e.target.value) || null,
-                    })}
-                    placeholder="75.00"
-                    step="0.01"
-                  />
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Price ($)</Label>
+                    <Input
+                      type="number"
+                      value={formData.pricing_config.min_price || ""}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        pricing_config: { ...formData.pricing_config, min_price: parseFloat(e.target.value) || 0 },
+                        price_amount: parseFloat(e.target.value) || null,
+                      })}
+                      placeholder="75.00"
+                      step="0.01"
+                    />
+                  </div>
+
+                  {/* Distance Surcharge */}
+                  <div className="rounded-lg border p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-sm font-medium">Add distance surcharge beyond service area</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Charge extra per mile if the customer is outside your normal range
+                        </p>
+                      </div>
+                      <Switch
+                        checked={!!(formData.pricing_config.included_miles && formData.pricing_config.overage_per_mile)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setFormData({
+                              ...formData,
+                              pricing_config: {
+                                ...formData.pricing_config,
+                                included_miles: 25,
+                                overage_per_mile: 3,
+                              },
+                            });
+                          } else {
+                            const { included_miles, overage_per_mile, ...rest } = formData.pricing_config;
+                            setFormData({
+                              ...formData,
+                              pricing_config: rest as DispatchPricingConfig,
+                            });
+                          }
+                        }}
+                      />
+                    </div>
+                    {formData.pricing_config.included_miles != null && formData.pricing_config.overage_per_mile != null && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Included miles</Label>
+                          <Input
+                            type="number"
+                            value={formData.pricing_config.included_miles}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              pricing_config: { ...formData.pricing_config, included_miles: parseInt(e.target.value) || 0 },
+                            })}
+                            placeholder="25"
+                            min={0}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Per-mile rate beyond ($)</Label>
+                          <Input
+                            type="number"
+                            value={formData.pricing_config.overage_per_mile}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              pricing_config: { ...formData.pricing_config, overage_per_mile: parseFloat(e.target.value) || 0 },
+                            })}
+                            placeholder="3.00"
+                            step="0.01"
+                            min={0}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
