@@ -80,7 +80,11 @@ function AppLayoutContent() {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => {
-    try { return localStorage.getItem(SIDEBAR_KEY) === "true"; } catch { return false; }
+    try {
+      const stored = localStorage.getItem(SIDEBAR_KEY);
+      // Default to collapsed if no preference saved
+      return stored === null ? true : stored === "true";
+    } catch { return true; }
   });
 
   const effectiveHasSubscription = isSuperAdmin || hasActiveSubscription;
@@ -109,7 +113,7 @@ function AppLayoutContent() {
     if (caps.hasImpoundLot) {
       items.push({ href: "/app/impound-lot", label: "Impound Lot", icon: Warehouse });
     }
-    if (caps.hasFleetManagement) {
+    if (caps.hasFleetManagement || caps.isDispatchBusiness) {
       items.push({ href: "/app/fleet", label: "Fleet", icon: Users });
     }
     if (enabledModules.includes("food_orders")) {
@@ -294,22 +298,32 @@ function AppLayoutContent() {
           {/* Bottom: Settings + Collapse Toggle */}
           <div className="border-t border-border/10 py-2 px-2 space-y-0.5">
             <SidebarLink item={{ href: "/app/settings", label: "Settings", icon: Settings }} />
-            <button
-              onClick={toggleCollapsed}
-              className={cn(
-                "flex items-center gap-3 w-full rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-all duration-150",
-                collapsed ? "justify-center px-2 py-2.5" : "px-3 py-2"
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={toggleCollapsed}
+                  className={cn(
+                    "flex items-center gap-3 w-full rounded-lg text-sm font-medium transition-all duration-150",
+                    collapsed ? "justify-center px-2 py-2.5" : "px-3 py-2",
+                    "text-muted-foreground hover:text-foreground hover:bg-primary/10"
+                  )}
+                >
+                  {collapsed ? (
+                    <PanelLeftOpen className="h-[18px] w-[18px] shrink-0" />
+                  ) : (
+                    <>
+                      <PanelLeftClose className="h-[18px] w-[18px] shrink-0" />
+                      <span className="truncate">Collapse</span>
+                    </>
+                  )}
+                </button>
+              </TooltipTrigger>
+              {collapsed && (
+                <TooltipContent side="right" sideOffset={8}>
+                  <p>Expand sidebar</p>
+                </TooltipContent>
               )}
-            >
-              {collapsed ? (
-                <PanelLeftOpen className="h-[18px] w-[18px] shrink-0" />
-              ) : (
-                <>
-                  <PanelLeftClose className="h-[18px] w-[18px] shrink-0" />
-                  <span className="truncate">Collapse</span>
-                </>
-              )}
-            </button>
+            </Tooltip>
           </div>
         </aside>
 
