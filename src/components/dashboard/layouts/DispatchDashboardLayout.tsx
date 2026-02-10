@@ -1,5 +1,4 @@
 import { Truck } from "lucide-react";
-import { ActiveJobQueue } from "../widgets/ActiveJobQueue";
 import { QuickActionButton } from "../widgets/QuickActionButton";
 import { FleetStatusCard } from "../widgets/FleetStatusCard";
 import { ImpoundCountCard } from "../widgets/ImpoundCountCard";
@@ -11,7 +10,6 @@ export function DispatchDashboardLayout() {
 
   return (
     <div className="space-y-6">
-      <ActiveJobQueue />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
         <QuickActionButton
