@@ -86,20 +86,7 @@ export function UnifiedAlertBanner() {
     });
   }
 
-  // 3. AI Readiness issues (setup completion)
-  const criticalReadinessItems = readinessItems?.filter((item) => !item.complete && item.weight >= 15) || [];
-  if (criticalReadinessItems.length > 0 && readinessScore < 85) {
-    alerts.push({
-      id: "readiness",
-      type: readinessScore < 60 ? "critical" : "warning",
-      icon: Brain,
-      title: "AI setup incomplete",
-      description: `${criticalReadinessItems.length} important item${criticalReadinessItems.length > 1 ? "s" : ""} need attention for optimal AI performance.`,
-      actionLabel: "Fix Issues",
-      actionLink: "/app/readiness",
-      count: criticalReadinessItems.length,
-    });
-  }
+  // 3. AI Readiness — handled inline in AgentControlPanel, skip here
 
   // 4. Pending uploads (lowest priority)
   if (pendingUploads && pendingUploads.length > 0) {
