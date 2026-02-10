@@ -7,6 +7,7 @@ import { UnifiedAlertBanner } from "./UnifiedAlertBanner";
 import { Copilot, CopilotTrigger } from "./Copilot";
 import { SetupProgressChecklist } from "./SetupProgressChecklist";
 import { ModeContentArea } from "./ModeContentArea";
+import { MetricsGrid } from "./MetricsGrid";
 import { SoundManager } from "@/components/notifications/SoundManager";
 
 function getGreeting(): string {
@@ -25,29 +26,33 @@ export function LiveDashboard() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Audio notification manager */}
       <SoundManager />
 
-      {/* Greeting + Alerts inline */}
+      {/* Header row: greeting + alerts */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <p className="text-lg font-medium text-muted-foreground">
-          {greeting}, <span className="text-foreground">{businessName}</span>
-        </p>
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight">
+            {greeting}, <span className="text-foreground">{businessName}</span>
+          </h2>
+          <p className="text-sm text-muted-foreground mt-0.5">Here's what's happening today</p>
+        </div>
         <UnifiedAlertBanner />
       </div>
 
-      {/* Attention Items */}
+      {/* Agent control — full width, prominent */}
+      <AgentControlPanel />
+
+      {/* Attention items */}
       <NeedsAttentionBanner />
 
-      {/* Bento Grid: Primary + Sidebar */}
-      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-        {/* Primary Column */}
+      {/* Main grid: content + sidebar */}
+      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+        {/* Primary column */}
         <div className="space-y-6 min-w-0">
-          <AgentControlPanel />
           <ModeContentArea />
         </div>
 
-        {/* Sidebar Column */}
+        {/* Sidebar column */}
         <div className="space-y-6 min-w-0">
           <LiveActivityFeed />
           <SetupProgressChecklist />
