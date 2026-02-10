@@ -91,7 +91,7 @@ export function HowToGuide() {
                 </h4>
                 <p className="text-sm text-muted-foreground">
                   When someone calls your business number and you don't answer (busy, away, or after hours), 
-                  the call automatically forwards to your CloseLoop AI. Your AI answers professionally, 
+                  the call automatically forwards to your Voxly AI. Your AI answers professionally, 
                   qualifies the lead, and books appointments directly into your calendar.
                 </p>
               </div>
@@ -121,9 +121,9 @@ export function HowToGuide() {
                       2
                     </div>
                     <div className="space-y-3">
-                      <h5 className="font-medium">Get Your CloseLoop Forwarding Number</h5>
+                      <h5 className="font-medium">Get Your Voxly Forwarding Number</h5>
                       <p className="text-sm text-muted-foreground">
-                        After connecting, you'll receive a CloseLoop number. This is where your calls 
+                        After connecting, you'll receive a Voxly number. This is where your calls 
                         will forward to when you can't answer.
                       </p>
                       <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/20">
@@ -148,7 +148,7 @@ export function HowToGuide() {
                     <div className="space-y-3">
                       <h5 className="font-medium">Set Up Call Forwarding on Your Phone</h5>
                       <p className="text-sm text-muted-foreground">
-                        Configure your phone carrier to forward calls to your CloseLoop number when you're 
+                        Configure your phone carrier to forward calls to your Voxly number when you're 
                         busy or don't answer. Choose your carrier below:
                       </p>
                       
@@ -254,7 +254,7 @@ export function HowToGuide() {
                               </li>
                               <li className="flex gap-2">
                                 <Badge variant="outline" className="shrink-0">4</Badge>
-                                Enter your CloseLoop number: <code className="bg-muted px-1 rounded">{exampleNumber}</code>
+                                Enter your Voxly number: <code className="bg-muted px-1 rounded">{exampleNumber}</code>
                               </li>
                             </ol>
                             <p className="text-xs text-muted-foreground mt-3">
@@ -290,7 +290,7 @@ export function HowToGuide() {
                               </li>
                               <li className="flex gap-2">
                                 <Badge variant="outline" className="shrink-0">5</Badge>
-                                Enter your CloseLoop number and save
+                                Enter your Voxly number and save
                               </li>
                             </ol>
                           </AccordionContent>
@@ -369,7 +369,7 @@ export function HowToGuide() {
                   <Phone className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <CardTitle>Get a New CloseLoop Number</CardTitle>
+                  <CardTitle>Get a New Voxly Number</CardTitle>
                   <CardDescription>
                     Get a dedicated AI phone number for your business
                   </CardDescription>
@@ -433,7 +433,7 @@ export function HowToGuide() {
                       1
                     </div>
                     <div className="space-y-2">
-                      <h5 className="font-medium">Choose "Get a New CloseLoop Number"</h5>
+                      <h5 className="font-medium">Choose "Get a New Voxly Number"</h5>
                       <p className="text-sm text-muted-foreground">
                         In the Setup Wizard, select the option to get a new number. We'll provision 
                         a number with your preferred area code instantly.
@@ -449,7 +449,7 @@ export function HowToGuide() {
                     <div className="space-y-2">
                       <h5 className="font-medium">Receive Your New Number</h5>
                       <p className="text-sm text-muted-foreground">
-                        Your new CloseLoop number will be displayed immediately. This is the number 
+                        Your new Voxly number will be displayed immediately. This is the number 
                         customers will call to reach your AI.
                       </p>
                     </div>
@@ -569,7 +569,7 @@ export function HowToGuide() {
                   How It Works
                 </h4>
                 <p className="text-sm text-muted-foreground">
-                  When a customer calls and you can't answer, CloseLoop automatically sends them a 
+                  When a customer calls and you can't answer, Voxly automatically sends them a 
                   personalized text message. The AI crafts the message based on your business context, 
                   and can continue the conversation via SMS to qualify leads and book appointments.
                 </p>

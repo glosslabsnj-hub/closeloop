@@ -1,4 +1,4 @@
-// Extended types for CloseLoop application
+// Extended types for Voxly application
 import type { Tables, Enums } from "@/integrations/supabase/types";
 import type { PlanSku, PlanTier } from "@/config/pricing";
 

@@ -7,7 +7,7 @@ interface ErrorContext {
 }
 
 /**
- * Centralized error handler for the CloseLoop frontend.
+ * Centralized error handler for the Voxly frontend.
  *
  * Logs to console, shows toast to user (unless silent), and
  * provides a single place to wire up external error reporting.

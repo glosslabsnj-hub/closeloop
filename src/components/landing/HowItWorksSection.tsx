@@ -19,7 +19,7 @@ const steps = [
     number: "3",
     icon: BarChart3,
     title: "Jobs appear instantly",
-    description: "Bookings flow to CloseLoop or your system",
+    description: "Bookings flow to Voxly or your system",
     detail: "Real-time delivery",
   },
 ];

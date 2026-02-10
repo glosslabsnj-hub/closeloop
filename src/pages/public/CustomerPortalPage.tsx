@@ -526,7 +526,7 @@ export default function CustomerPortalPage() {
       {/* Footer */}
       <footer className="border-t mt-auto py-4 bg-white">
         <div className="max-w-4xl mx-auto px-4 text-center text-sm text-muted-foreground">
-          Powered by CloseLoop
+          Powered by Voxly
         </div>
       </footer>
     </div>

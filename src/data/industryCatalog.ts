@@ -1,5 +1,5 @@
 /**
- * Industry Catalog for CloseLoop
+ * Industry Catalog for Voxly
  *
  * This file defines 100+ industries using a template family approach:
  * - Base templates define shared configurations per business mode

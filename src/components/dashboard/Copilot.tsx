@@ -386,7 +386,7 @@ function generateResponse(query: string, ctx: CopilotContext): Message {
   
   return {
     role: 'assistant',
-    content: `I'm here to help you use CloseLoop. You're in ${mode} mode (${modeFeatures}).`,
+    content: `I'm here to help you use Voxly. You're in ${mode} mode (${modeFeatures}).`,
     steps: [
       "Ask 'Where is [feature]?' to navigate",
       "Ask 'How do I [task]?' for step-by-step help",

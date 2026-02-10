@@ -551,7 +551,7 @@ export default function IntegrationsPage() {
                 <div>
                   <h3 className="font-medium mb-1">How Integrations Work</h3>
                   <p className="text-sm text-muted-foreground">
-                    Connect CloseLoop to your existing tools. Some integrations you can set up yourself in minutes — others our team will configure for you (usually within 24 hours).
+                    Connect Voxly to your existing tools. Some integrations you can set up yourself in minutes — others our team will configure for you (usually within 24 hours).
                   </p>
                 </div>
               </div>

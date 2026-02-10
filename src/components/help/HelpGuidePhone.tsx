@@ -59,7 +59,7 @@ export function HelpGuidePhone({ searchQuery = "" }: HelpGuidePhoneProps) {
       content: (
         <div className="space-y-4">
           <p className="text-muted-foreground">
-            CloseLoop gives you a dedicated AI phone number. When customers call this number, 
+            Voxly gives you a dedicated AI phone number. When customers call this number, 
             your AI answers professionally, handles inquiries, and can book appointments or take messages.
           </p>
           <div className="grid sm:grid-cols-2 gap-4">
@@ -74,7 +74,7 @@ export function HelpGuidePhone({ searchQuery = "" }: HelpGuidePhoneProps) {
               <Phone className="h-5 w-5 text-primary mb-2" />
               <h4 className="font-medium mb-1">Dedicated AI Line</h4>
               <p className="text-sm text-muted-foreground">
-                Use your CloseLoop number as a dedicated booking line
+                Use your Voxly number as a dedicated booking line
               </p>
             </div>
           </div>
@@ -83,7 +83,7 @@ export function HelpGuidePhone({ searchQuery = "" }: HelpGuidePhoneProps) {
     },
     {
       id: "your-number",
-      title: "Your CloseLoop Number",
+      title: "Your Voxly Number",
       content: (
         <div className="space-y-4">
           <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/10 border border-primary/20">
@@ -220,7 +220,7 @@ export function HelpGuidePhone({ searchQuery = "" }: HelpGuidePhoneProps) {
       content: (
         <div className="space-y-4">
           <p className="text-muted-foreground">
-            When someone calls and you can't answer, CloseLoop can automatically send them a 
+            When someone calls and you can't answer, Voxly can automatically send them a 
             personalized text message within seconds.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 p-4 rounded-lg bg-muted/30">

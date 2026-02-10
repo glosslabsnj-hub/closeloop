@@ -32,7 +32,7 @@ export default function DashboardPage() {
           </div>
           <div>
             <h1 className="text-lg font-semibold text-foreground">
-              Welcome to CloseLoop
+              Welcome to Voxly
             </h1>
             <p className="text-sm text-muted-foreground mt-2">
               Complete your subscription to start using your AI assistant.

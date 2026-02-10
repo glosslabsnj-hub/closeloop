@@ -1,5 +1,5 @@
 /**
- * Quote Engine - Deterministic Quoting for CloseLoop
+ * Quote Engine - Deterministic Quoting for Voxly
  *
  * This is the main entry point for the quote calculation system.
  * It orchestrates area checking, pricing rules, and provides safe fallbacks.

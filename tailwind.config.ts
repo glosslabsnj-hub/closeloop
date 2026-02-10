@@ -95,17 +95,16 @@ export default {
         "2xl": "calc(var(--radius) + 8px)",
         "3xl": "calc(var(--radius) + 12px)",
       },
-      // Softer shadow system with more spread, less opacity
+      // Crisp shadow system — defined, professional
       boxShadow: {
-        'sm': '0 1px 3px hsl(0 0% 0% / 0.04), 0 1px 2px hsl(0 0% 0% / 0.03)',
-        'DEFAULT': '0 2px 8px hsl(0 0% 0% / 0.06), 0 1px 3px hsl(0 0% 0% / 0.04)',
-        'md': '0 4px 16px hsl(0 0% 0% / 0.08), 0 2px 4px hsl(0 0% 0% / 0.04)',
-        'lg': '0 8px 32px hsl(0 0% 0% / 0.1), 0 4px 8px hsl(0 0% 0% / 0.04)',
-        'xl': '0 16px 48px hsl(0 0% 0% / 0.12), 0 8px 16px hsl(0 0% 0% / 0.06)',
-        'soft': '0 2px 12px hsl(0 0% 0% / 0.04)',
+        'sm': '0 1px 2px hsl(0 0% 0% / 0.05), 0 1px 1px hsl(0 0% 0% / 0.04)',
+        'DEFAULT': '0 1px 4px hsl(0 0% 0% / 0.07), 0 1px 2px hsl(0 0% 0% / 0.05)',
+        'md': '0 3px 12px hsl(0 0% 0% / 0.09), 0 2px 4px hsl(0 0% 0% / 0.05)',
+        'lg': '0 6px 24px hsl(0 0% 0% / 0.11), 0 3px 6px hsl(0 0% 0% / 0.05)',
+        'xl': '0 12px 40px hsl(0 0% 0% / 0.14), 0 6px 12px hsl(0 0% 0% / 0.07)',
+        'soft': '0 2px 8px hsl(0 0% 0% / 0.04)',
         'focus': '0 0 0 3px hsl(var(--primary) / 0.25)',
-        'glow': '0 0 12px -3px hsl(var(--primary) / 0.2)',
-        'glow-lg': '0 0 24px -6px hsl(var(--primary) / 0.25)',
+        'inner': 'inset 0 1px 0 0 hsl(0 0% 100% / 0.05)',
       },
       keyframes: {
         "accordion-down": {

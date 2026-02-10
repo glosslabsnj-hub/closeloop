@@ -160,7 +160,7 @@ export function RecoverySettingsSection() {
             <div className="space-y-0.5">
               <Label>Automatically follow up with leads</Label>
               <p className="text-sm text-muted-foreground">
-                When enabled, CloseLoop will follow up with callers who don't book.
+                When enabled, Voxly will follow up with callers who don't book.
               </p>
             </div>
             <Switch
@@ -431,7 +431,7 @@ export function RecoverySettingsSection() {
             <div className="space-y-0.5">
               <Label>Enable AI callback</Label>
               <p className="text-sm text-muted-foreground">
-                Allow CloseLoop to call leads back automatically
+                Allow Voxly to call leads back automatically
               </p>
             </div>
             <Switch

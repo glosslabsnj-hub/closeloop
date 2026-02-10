@@ -25,7 +25,7 @@ const SETUP_GUIDES: Record<string, GuideContent> = {
     steps: [
       { step: 1, text: 'Click "Connect" below' },
       { step: 2, text: "Sign in with your Google account" },
-      { step: 3, text: "Allow CloseLoop to access your calendar" },
+      { step: 3, text: "Allow Voxly to access your calendar" },
       { step: 4, text: "Choose which calendar to use for bookings" },
     ],
     tip: "New bookings will automatically appear on your calendar once connected.",

@@ -38,7 +38,7 @@ const HANDOFF_METHODS: Array<{
   icon: React.ComponentType<{ className?: string }>;
   always?: boolean;
 }> = [
-  { id: "internal", label: "Show on CloseLoop calendar", description: "Always saved here first", icon: Calendar, always: true },
+  { id: "internal", label: "Show on Voxly calendar", description: "Always saved here first", icon: Calendar, always: true },
   { id: "webhook", label: "Send to my software (API)", description: "For CRMs, scheduling tools, etc.", icon: Webhook, always: false },
   { id: "email", label: "Email me", description: "Get an email for each booking", icon: Mail, always: false },
   { id: "sms", label: "Text me", description: "Get a text for each booking", icon: Phone, always: false },
@@ -201,7 +201,7 @@ export function BookingDeliverySettings() {
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              Bookings are always saved internally in CloseLoop first. External delivery methods 
+              Bookings are always saved internally in Voxly first. External delivery methods 
               push a copy to your existing systems (calendar, CRM, etc).
             </AlertDescription>
           </Alert>

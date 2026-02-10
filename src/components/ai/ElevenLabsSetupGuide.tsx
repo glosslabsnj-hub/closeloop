@@ -108,7 +108,7 @@ export function ElevenLabsSetupGuide() {
           <div>
             <CardTitle>ElevenLabs Agent Setup</CardTitle>
             <CardDescription>
-              Configure your ElevenLabs agent's Data Collection fields to work with CloseLoop
+              Configure your ElevenLabs agent's Data Collection fields to work with Voxly
             </CardDescription>
           </div>
         </div>
@@ -121,7 +121,7 @@ export function ElevenLabsSetupGuide() {
             <div>
               <p className="font-medium">Universal Agent Configuration</p>
               <p className="text-sm text-muted-foreground">
-                CloseLoop uses a single ElevenLabs agent that handles all business modes (service, food, dispatch, medical, general). 
+                Voxly uses a single ElevenLabs agent that handles all business modes (service, food, dispatch, medical, general). 
                 Configure these Data Collection fields in your ElevenLabs dashboard to enable automatic extraction.
               </p>
             </div>
@@ -273,8 +273,8 @@ export function ElevenLabsSetupGuide() {
                 <div className="space-y-2 flex-1">
                   <h4 className="font-medium">Configure Webhook</h4>
                   <p className="text-sm text-muted-foreground">
-                    In agent settings, enable the "Post Call Transcription" webhook and point it to CloseLoop's endpoint.
-                    Copy your webhook secret to the CloseLoop secrets configuration.
+                    In agent settings, enable the "Post Call Transcription" webhook and point it to Voxly's endpoint.
+                    Copy your webhook secret to the Voxly secrets configuration.
                   </p>
                 </div>
               </div>
@@ -307,7 +307,7 @@ export function ElevenLabsSetupGuide() {
                   <div>
                     <p className="font-medium">Make a test call</p>
                     <p className="text-sm text-muted-foreground">
-                      Call your CloseLoop number and provide test information (name, service request, etc.)
+                      Call your Voxly number and provide test information (name, service request, etc.)
                     </p>
                   </div>
                 </div>
@@ -354,7 +354,7 @@ export function ElevenLabsSetupGuide() {
                 <div className="p-3 border rounded">
                   <p className="font-medium">❌ Dates/times not normalized</p>
                   <p className="text-muted-foreground">
-                    CloseLoop automatically normalizes natural language dates ("next Friday" → YYYY-MM-DD). Check the original_date_phrase field.
+                    Voxly automatically normalizes natural language dates ("next Friday" → YYYY-MM-DD). Check the original_date_phrase field.
                   </p>
                 </div>
               </div>

@@ -164,7 +164,7 @@ export function useGoldenPathRunner() {
         description: "Tenant resolved from To number",
         passed: hasInbound,
         details: hasInbound ? `${twilioLogs?.length || 0} events logged` : "No inbound calls logged",
-        fixSuggestion: !hasInbound ? "Make a test call to the CloseLoop number" : undefined,
+        fixSuggestion: !hasInbound ? "Make a test call to the Voxly number" : undefined,
         fixLink: "/debug/telephony",
       });
 

@@ -118,7 +118,7 @@ export function DispatchIvrSettings() {
     <div className="space-y-6">
       {/* Intro Text */}
       <p className="text-sm text-muted-foreground">
-        Choose how inbound calls are routed when someone calls your CloseLoop number. This controls whether they reach your towing dispatcher, impound assistant, or an IVR menu.
+        Choose how inbound calls are routed when someone calls your Voxly number. This controls whether they reach your towing dispatcher, impound assistant, or an IVR menu.
       </p>
 
       {/* AI Preview */}

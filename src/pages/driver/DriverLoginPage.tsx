@@ -128,7 +128,7 @@ export default function DriverLoginPage() {
 
       {/* Footer */}
       <footer className="p-4 text-center text-slate-500 text-xs">
-        Powered by CloseLoop
+        Powered by Voxly
       </footer>
     </div>
   );

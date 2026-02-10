@@ -3,7 +3,7 @@ import { Star, Shield, Lock, Quote } from "lucide-react";
 
 const testimonials = [
   {
-    quote: "CloseLoop recovered $12,000 in just the first month. My AI assistant books more than my receptionist ever did.",
+    quote: "Voxly recovered $12,000 in just the first month. My AI assistant books more than my receptionist ever did.",
     author: "Mike Rodriguez",
     business: "Mike's Auto Detailing",
     role: "Owner",
@@ -26,7 +26,7 @@ const testimonials = [
 ];
 
 const featured = {
-  quote: "We went from losing 15 calls a week to capturing every single one. CloseLoop paid for itself in the first 3 days.",
+  quote: "We went from losing 15 calls a week to capturing every single one. Voxly paid for itself in the first 3 days.",
   author: "David Martinez",
   business: "Martinez Towing & Recovery",
   role: "Operations Manager",
