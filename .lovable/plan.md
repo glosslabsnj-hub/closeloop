@@ -1,47 +1,69 @@
 
 
-# Simplify Dispatch Service Pricing + Fix Food Settings Bug
+# Three Improvements for Dispatch Business Brain
 
-## Two Issues
+## 1. Remove Food and Medical Sections from Dispatch Mode (Bug Fix)
 
-### 1. Food "Order Settings" showing in Dispatch mode (Bug)
-The "Order Settings" item appears under the Services tab even for dispatch-only tenants. This is a visibility bug in how section relevance is merged across tabs. When checking if `food-settings` is relevant, the system asks each tab's add-on hook. The services tab correctly says "no" (not a food business), but the coverage tab has no rule for `food-settings` at all, so it defaults to "yes" (no rule = always relevant). Since the merge uses OR logic, the section incorrectly shows up.
+The previous fix updated the `isRelevant` logic, but some food/medical items are still appearing. The root cause is that the `SECTION_RELEVANCE` rules correctly gate `food-settings` and `medical-pricing`, but the `brainSectionRegistry.ts` entries reference these rules via `flags.isRelevant("food-settings")`. If your tenant has any food-related capability flag set (even accidentally from onboarding), those sections will show.
 
-**Fix:** Change the merged `isRelevant` function to only return `true` if a section explicitly has a rule AND passes it, rather than defaulting to `true` when no rule exists in a different tab's context.
+**Fix:**
+- In `src/config/brainSectionRegistry.ts`, add an explicit mode check to the `isVisible` function for food and medical items, so they ONLY show when the primary mode matches (not just when a capability flag happens to be set)
+- Items affected: `food-settings-svc`, `menu-sizes`, `daily-specials` (food), and `medical-pricing` (medical)
+- Change from: `flags.isRelevant("food-settings")` 
+- Change to: Also check that the business mode is `food` or that the business explicitly has food capabilities enabled
 
-### 2. Dispatch Service Pricing is Confusing (UX Improvement)
-The current service editor has good building blocks (flat rate, distance-tiered, variable/quote) but the flow needs clearer guidance so a towing business owner can set things up without guessing.
+## 2. After-Hours, Weekend, and Holiday Pricing
 
-**Improvements:**
-- Add a plain-English summary at the top of each pricing model explaining what it means in towing terms
-- Add real-world towing examples inline (e.g., "Lockout: Flat $85" or "Local Tow: $125 base + $5/mile after 10 miles")
-- Show a live "What the AI will quote" preview that updates as they fill in the pricing, using actual scenario examples (e.g., "A 15-mile tow would be quoted at $150")
-- Add a "Common Setups" quick-action section at the top of pricing that lets owners pick from typical towing pricing patterns:
-  - Flat rate (same price regardless)
-  - Base + per mile (e.g., $125 + $5/mi after included miles)
-  - Distance tiers (different rates for local vs. long-distance)
-  - Quote required (owner calls back with price)
-- Improve the distance tier UI with clearer labels and an automatic "catch-all" tier suggestion
+The Price Modifiers editor already exists (`src/components/brain/PriceModifiersEditor.tsx`) with after-hours, weekend, and holiday surcharges built in. However, it's not prominently surfaced for dispatch businesses.
+
+**Changes:**
+- Ensure the "Price Adjustments" section appears by default for dispatch businesses (currently gated behind a capability flag `chargesTripFee` in `brainSectionRelevance.ts`)
+- Update the relevance rule for `price-modifiers` to always show for dispatch mode, since after-hours and holiday surcharges are standard for towing
+- No new components needed — the existing editor already supports time-of-day, urgency, equipment, and vehicle size modifiers with towing-specific suggestions
+
+## 3. Service Area Configuration for Dropoff Locations
+
+This is the most significant change. Currently `check_service_area` only validates the pickup address. For towing, the dropoff could be far away or outside the service area entirely.
+
+**Changes:**
+
+### Frontend (Configuration UI)
+- Add a "Dropoff Coverage" setting to `DistanceBasisSettings.tsx` or a new small component in the Coverage/ETA section
+- Three options the business can configure:
+  1. **No dropoff check** — We'll tow anywhere the customer wants (default for most)
+  2. **Same service area** — Dropoff must also be within our coverage radius
+  3. **Extended radius** — Dropoff can be up to X miles beyond our normal area (with surcharge)
+- Store this in `tenant_distance_settings` as `dropoff_coverage_mode` and `dropoff_max_miles`
+
+### Backend (check-service-area edge function)
+- Accept an optional `dropoff_address` parameter
+- When provided AND the tenant has dropoff coverage rules configured, run a second geocode + distance check
+- Return `dropoff_in_area: true/false` and `dropoff_distance_miles` in the response
+- The AI agent prompt already asks for dropoff on towing services — this just validates it
+
+### AI Context
+- Update `build-business-brain` to include the dropoff coverage rule so the AI knows whether to warn callers about out-of-area dropoffs
+- The AI can say things like "We can pick you up, but that dropoff is outside our normal area — there'd be an extra mileage charge"
 
 ## Technical Details
 
-### Files Modified
+### Files to Modify
 
-**Bug Fix:**
-- `src/pages/app/BusinessBrainPage.tsx` (lines ~178-184): Change `isRelevant` merge logic. Instead of OR-ing all tabs (where missing rules default to true), only return true if the section's owning tab confirms it.
+| File | Change |
+|------|--------|
+| `src/config/brainSectionRegistry.ts` | Add mode guard to food/medical `isVisible` functions |
+| `src/config/brainSectionRelevance.ts` | Make `price-modifiers` always relevant for dispatch |
+| `src/components/brain/dispatch/DistanceBasisSettings.tsx` | Add dropoff coverage mode selector |
+| `src/hooks/useTenantDistanceSettings.ts` | Support new `dropoff_coverage_mode` and `dropoff_max_miles` fields |
+| `supabase/functions/check-service-area/index.ts` | Accept and validate optional `dropoff_address` |
+| `supabase/functions/_shared/getBusinessBrainSnapshot.ts` | Include dropoff coverage config in AI context |
 
-**UX Improvements:**
-- `src/components/brain/dispatch/DispatchServiceEditor.tsx`: 
-  - Add scenario-based pricing examples that update live as the owner configures pricing
-  - Add helper text explaining each pricing model in plain English with towing examples
-  - Improve the distance tier section with better labels, auto-suggest for open-ended tiers, and inline example calculations
-  - Show a "Sample Quote" card that computes what the AI would say for a 5-mile, 15-mile, and 30-mile job based on current settings
+### Database Migration
+- Add columns to `tenant_distance_settings`:
+  - `dropoff_coverage_mode` (text, default `'none'`) — values: `none`, `same_area`, `extended`
+  - `dropoff_max_miles` (integer, nullable) — only used when mode is `extended`
 
-- `src/types/dispatchPricing.ts`: Update `generatePricingSummary` to produce richer example scenarios with actual dollar amounts for multiple distances
-
-### No Database Changes
-All changes are frontend-only. The existing `pricing_config_json` schema in the services table already supports all the pricing models needed.
-
-### No Edge Function Changes
-The backend pricing engine (`check_service_area`, `elevenlabs-create-dispatch-job`) already reads and applies these pricing configs correctly. This is purely about making the setup UI clearer for the business owner.
-
+### No Breaking Changes
+- Existing dispatch jobs and pricing logic are unaffected
+- The dropoff check is additive — if not configured, behavior stays the same
+- Food/medical sections simply stop appearing for dispatch tenants
