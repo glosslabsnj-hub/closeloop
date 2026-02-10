@@ -14,23 +14,31 @@ interface EmptyStateProps {
   };
   className?: string;
   compact?: boolean;
+  /** Optional SVG illustration component — renders instead of the icon square when provided */
+  illustration?: React.ReactNode;
 }
 
-export function EmptyState({ icon: Icon, title, description, action, className, compact = false }: EmptyStateProps) {
+export function EmptyState({ icon: Icon, title, description, action, className, compact = false, illustration }: EmptyStateProps) {
   const ActionIcon = action?.icon || Plus;
-  
+
   return (
     <div className={cn(
       "flex flex-col items-center justify-center text-center",
       compact ? "py-8 px-4" : "py-16 px-4",
       className
     )}>
-      <div className={cn(
-        "flex items-center justify-center rounded-2xl bg-muted",
-        compact ? "h-12 w-12 mb-4" : "h-16 w-16 mb-6"
-      )}>
-        <Icon className={cn("text-muted-foreground", compact ? "h-6 w-6" : "h-8 w-8")} />
-      </div>
+      {illustration ? (
+        <div className={cn("mb-6", compact && "mb-4")}>
+          {illustration}
+        </div>
+      ) : (
+        <div className={cn(
+          "flex items-center justify-center rounded-2xl bg-muted",
+          compact ? "h-12 w-12 mb-4" : "h-16 w-16 mb-6"
+        )}>
+          <Icon className={cn("text-muted-foreground", compact ? "h-6 w-6" : "h-8 w-8")} />
+        </div>
+      )}
       <h3 className={cn("font-semibold mb-2", compact ? "text-base" : "text-lg")}>{title}</h3>
       <p className="text-muted-foreground max-w-sm mb-6 text-sm">{description}</p>
       {action && (

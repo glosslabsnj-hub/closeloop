@@ -7,16 +7,16 @@ export function HeroSection() {
   return (
     <section className="relative overflow-hidden pt-16 pb-24 md:pt-24 md:pb-32 lg:pt-28 lg:pb-40">
       {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/6 via-background to-accent/10 pointer-events-none" />
-      
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-background to-accent-signature/5 pointer-events-none" />
+
       {/* Decorative elements */}
-      <div className="absolute top-20 left-10 w-80 h-80 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-20 right-10 w-[500px] h-[500px] bg-accent/8 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-20 left-10 w-80 h-80 bg-primary/6 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-20 right-10 w-[500px] h-[500px] bg-accent-signature/6 rounded-full blur-3xl pointer-events-none" />
       
       <div className="container relative">
         <div className="mx-auto max-w-4xl text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-5 py-2 text-sm font-medium text-primary mb-10 animate-fade-in border border-primary/20 shadow-sm">
+          <div className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary/10 to-accent-signature/10 px-5 py-2 text-sm font-medium text-primary mb-10 animate-fade-in border border-primary/20 shadow-sm">
             <Sparkles className="h-4 w-4" />
             AI-Powered for Local Businesses
           </div>
@@ -25,7 +25,7 @@ export function HeroSection() {
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl mb-8 leading-[1.08]">
             Every call answered.
             <br />
-            <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary via-primary/80 to-accent-signature/90 bg-clip-text text-transparent">
               Every lead captured.
             </span>
           </h1>

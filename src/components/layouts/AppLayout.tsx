@@ -208,10 +208,10 @@ function AppLayoutContent() {
               "group relative flex items-center rounded-lg transition-all duration-200",
               sidebarExpanded ? "px-3 py-2.5 gap-3" : "p-2.5 justify-center",
               isActive
-                ? "bg-white/[0.08] text-foreground"
+                ? "bg-primary/10 text-foreground border-l-2 border-l-primary"
                 : isLocked
-                  ? "text-muted-foreground/30 cursor-not-allowed"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                  ? "text-muted-foreground/30 cursor-not-allowed border-l-2 border-l-transparent"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30 border-l-2 border-l-transparent"
             )}
           >
             <Icon className={cn("h-[18px] w-[18px] shrink-0", isActive && "text-primary")} />
@@ -250,7 +250,7 @@ function AppLayoutContent() {
       <div className="min-h-screen bg-background flex flex-col">
         {/* Desktop Header - Admin controls in top-right */}
         {isSuperAdmin && (
-          <header className="hidden md:flex fixed top-0 left-[60px] right-0 z-50 h-12 bg-background/95 backdrop-blur-lg border-b border-white/[0.06] items-center justify-end px-4 gap-3">
+          <header className="hidden md:flex fixed top-0 left-[60px] right-0 z-50 h-12 bg-background/95 backdrop-blur-lg border-b border-border/20 items-center justify-end px-4 gap-3">
             <div className="flex items-center gap-2 text-warning mr-2">
               <FlaskConical className="h-3.5 w-3.5" />
               <span className="text-[11px] font-semibold uppercase tracking-wider">Admin Testing</span>
@@ -267,14 +267,14 @@ function AppLayoutContent() {
             onMouseLeave={() => setSidebarHovered(false)}
             className={cn(
               "hidden md:flex flex-col fixed left-0 top-0 bottom-0 z-40",
-              "bg-[hsl(222,25%,7%)] border-r border-white/[0.06]",
+              "bg-sidebar border-r border-sidebar-border",
               "transition-all duration-200 ease-out",
               sidebarExpanded ? "w-56" : "w-[60px]"
             )}
           >
             {/* Logo */}
             <div className={cn(
-              "flex items-center h-14 border-b border-white/[0.06]",
+              "flex items-center h-14 border-b border-sidebar-border",
               sidebarExpanded ? "px-4 gap-3" : "justify-center"
             )}>
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary shrink-0">
@@ -293,15 +293,15 @@ function AppLayoutContent() {
               className={cn(
                 "w-full flex items-center gap-2 rounded-lg text-muted-foreground/60 hover:text-muted-foreground transition-colors",
                 sidebarExpanded
-                  ? "px-3 py-2 bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05]"
-                  : "p-2.5 justify-center hover:bg-white/[0.04]"
+                  ? "px-3 py-2 bg-sidebar-accent/50 border border-sidebar-border hover:bg-sidebar-accent"
+                  : "p-2.5 justify-center hover:bg-sidebar-accent/50"
               )}
             >
               <Search className="h-4 w-4 shrink-0" />
               {sidebarExpanded && (
                 <>
                   <span className="text-[13px]">Search...</span>
-                  <kbd className="ml-auto text-[10px] bg-white/[0.06] px-1.5 py-0.5 rounded font-mono">
+                  <kbd className="ml-auto text-[10px] bg-sidebar-accent px-1.5 py-0.5 rounded font-mono">
                     <Command className="h-2.5 w-2.5 inline mr-0.5" />K
                   </kbd>
                 </>
@@ -317,7 +317,7 @@ function AppLayoutContent() {
           </nav>
 
           {/* Divider */}
-          <div className="mx-3 h-px bg-white/[0.06]" />
+          <div className="mx-3 h-px bg-sidebar-border" />
 
           {/* Bottom Navigation */}
           <nav className="p-2 space-y-0.5">
@@ -328,14 +328,14 @@ function AppLayoutContent() {
 
           {/* User Section */}
           <div className={cn(
-            "p-2 border-t border-white/[0.06]",
+            "p-2 border-t border-sidebar-border",
             sidebarExpanded ? "px-3" : ""
           )}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   className={cn(
-                    "w-full flex items-center gap-3 rounded-lg transition-colors hover:bg-white/[0.04]",
+                    "w-full flex items-center gap-3 rounded-lg transition-colors hover:bg-sidebar-accent/50",
                     sidebarExpanded ? "px-2 py-2" : "p-2 justify-center"
                   )}
                 >
@@ -375,7 +375,7 @@ function AppLayoutContent() {
         </aside>
 
         {/* Mobile Header */}
-        <header className="md:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-background/95 backdrop-blur-lg border-b border-white/[0.06] flex items-center justify-between px-4">
+        <header className="md:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-background/95 backdrop-blur-lg border-b border-border/20 flex items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
@@ -422,8 +422,8 @@ function AppLayoutContent() {
         {mobileMenuOpen && (
           <div className="md:hidden fixed inset-0 z-50">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
-            <aside className="absolute left-0 top-0 bottom-0 w-72 bg-background border-r border-white/[0.06] overflow-y-auto">
-              <div className="p-4 border-b border-white/[0.06] flex items-center justify-between">
+            <aside className="absolute left-0 top-0 bottom-0 w-72 bg-background border-r border-border/20 overflow-y-auto">
+              <div className="p-4 border-b border-border/20 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
                     <Phone className="h-4 w-4 text-primary-foreground" />
@@ -444,7 +444,7 @@ function AppLayoutContent() {
                       to={item.href}
                       className={cn(
                         "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium",
-                        isActive ? "bg-white/[0.08] text-foreground" : "text-muted-foreground hover:bg-white/[0.04]"
+                        isActive ? "bg-primary/10 text-foreground" : "text-muted-foreground hover:bg-muted/30"
                       )}
                     >
                       <Icon className={cn("h-[18px] w-[18px]", isActive && "text-primary")} />
@@ -463,7 +463,7 @@ function AppLayoutContent() {
         )}
 
         {/* Mobile Bottom Nav */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 h-16 bg-background/95 backdrop-blur-lg border-t border-white/[0.06] safe-area-pb">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 h-16 bg-background/95 backdrop-blur-lg border-t border-border/20 safe-area-pb">
           <div className="grid grid-cols-5 h-full">
             {mobileNavItems.map((item) => {
               const Icon = item.icon;

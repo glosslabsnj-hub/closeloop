@@ -9,7 +9,7 @@ export function PublicLayout() {
       <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 md:h-18 items-center justify-between">
           <Link to="/" className="flex items-center gap-3 hover-lift transition-transform">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-sm">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-sm">
               <Phone className="h-5 w-5 text-primary-foreground" />
             </div>
             <span className="text-xl font-bold">CloseLoop</span>
@@ -59,7 +59,7 @@ export function PublicLayout() {
         <div className="container">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80">
                 <Phone className="h-4 w-4 text-primary-foreground" />
               </div>
               <span className="font-semibold text-lg">CloseLoop</span>

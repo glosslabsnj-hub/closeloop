@@ -11,36 +11,28 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: [
-          "bg-primary text-primary-foreground",
-          "shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.15)]",
-          "hover:bg-primary/90",
-          "hover:shadow-[0_4px_12px_hsl(var(--primary)/0.3),inset_0_1px_0_rgba(255,255,255,0.15)]",
-          "active:shadow-[inset_0_1px_2px_rgba(0,0,0,0.2)]",
+          "bg-primary text-primary-foreground shadow-sm",
+          "hover:bg-primary/90 hover:shadow-md",
           "active:scale-[0.98]",
         ].join(" "),
         destructive: [
-          "bg-destructive/80 text-destructive-foreground",
-          "shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.1)]",
-          "hover:bg-destructive/70",
-          "hover:shadow-[0_4px_12px_hsl(var(--destructive)/0.25)]",
+          "bg-destructive/80 text-destructive-foreground shadow-sm",
+          "hover:bg-destructive/70 hover:shadow-md",
         ].join(" "),
         outline: [
-          "border border-white/[0.1] bg-transparent backdrop-blur-sm",
+          "border border-border/40 bg-transparent",
           "text-foreground/80",
-          "hover:bg-muted/30 hover:border-white/[0.15]",
+          "hover:bg-muted/40 hover:border-border/60",
         ].join(" "),
         secondary: [
-          "bg-muted/50 backdrop-blur-sm text-muted-foreground",
+          "bg-muted/50 text-muted-foreground",
           "hover:bg-muted/70 hover:text-foreground/80",
         ].join(" "),
         ghost: "text-muted-foreground hover:bg-muted/40 hover:text-foreground/80",
-        glass: [
-          "bg-white/10 dark:bg-white/5 backdrop-blur-xl",
-          "border border-white/20 dark:border-white/10",
-          "text-foreground",
-          "shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]",
-          "hover:bg-white/15 dark:hover:bg-white/10",
-          "hover:border-white/25 dark:hover:border-white/15",
+        accent: [
+          "bg-accent-signature/10 text-accent-signature",
+          "border border-accent-signature/20",
+          "hover:bg-accent-signature/15 hover:border-accent-signature/30",
         ].join(" "),
         link: "text-foreground/70 underline-offset-4 hover:underline hover:text-foreground",
       },

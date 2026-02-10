@@ -43,12 +43,9 @@ const DialogContent = React.forwardRef<
       ref={ref}
       className={cn(
         "fixed left-[50%] top-[50%] z-50 grid w-full translate-x-[-50%] translate-y-[-50%] gap-5 p-6 duration-200",
-        // Glass morphism styling
         "rounded-2xl",
-        "bg-card/95 dark:bg-card/90 backdrop-blur-2xl",
-        "border border-white/10 dark:border-white/[0.06]",
-        // Glass shadow with inner glow
-        "shadow-[0_24px_80px_rgba(0,0,0,0.25),inset_0_1px_0_hsl(var(--inner-glow)/var(--inner-glow-opacity))]",
+        "bg-card border border-border/30",
+        "shadow-xl",
         // Animations
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",

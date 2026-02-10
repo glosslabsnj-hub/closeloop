@@ -17,7 +17,7 @@ const TableHeader = React.forwardRef<HTMLTableSectionElement, React.HTMLAttribut
       ref={ref}
       className={cn(
         "sticky top-0 z-10 [&_tr]:border-b [&_tr]:border-border/50",
-        "bg-muted/70",
+        "bg-muted/30",
         className
       )}
       {...props}
@@ -50,7 +50,7 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
       ref={ref}
       className={cn(
         "border-b border-border/30 transition-colors duration-100",
-        "hover:bg-muted/40",
+        "hover:bg-primary/[0.03]",
         "data-[state=selected]:bg-primary/8",
         zebra && "even:bg-muted/20",
         className
@@ -81,7 +81,7 @@ const TableCell = React.forwardRef<HTMLTableCellElement, React.TdHTMLAttributes<
     <td
       ref={ref}
       className={cn(
-        "px-4 py-3 align-middle [&:has([role=checkbox])]:pr-0",
+        "px-4 py-3.5 align-middle [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}

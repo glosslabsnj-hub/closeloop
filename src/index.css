@@ -4,83 +4,83 @@
 
 /* =====================================================
    CloseLoop Design System - 2026
-   Theme: "Confident Calm" - Premium, Clean, Trustworthy
-   Inspired by Square's design philosophy
+   Theme: "Warm Indigo" - Modern, Premium, Confident
+   Inspired by Linear, Raycast, Arc
    ===================================================== */
 
 @layer base {
   /* =====================================================
      DARK MODE (Default)
-     Modern Glass/Neumorphic - iOS/macOS Inspired
+     Warm Indigo palette with coral accent
      ===================================================== */
   :root,
   .dark {
-    /* Core Background - Deep, rich foundation for glass effects */
-    --background: 222 30% 8%;
-    --foreground: 210 20% 98%;
+    /* Core Background - Deep, warm foundation */
+    --background: 240 15% 6%;
+    --foreground: 240 10% 98%;
 
-    /* Cards - Semi-transparent for glass morphism */
-    --card: 222 25% 11%;
-    --card-foreground: 210 15% 95%;
+    /* Cards - Subtle warmth */
+    --card: 240 12% 10%;
+    --card-foreground: 240 8% 95%;
 
-    --popover: 222 25% 13%;
-    --popover-foreground: 210 20% 98%;
+    --popover: 240 12% 12%;
+    --popover-foreground: 240 10% 98%;
 
-    /* Primary - Rich sapphire blue */
-    --primary: 220 75% 55%;
+    /* Primary - Warm indigo */
+    --primary: 252 70% 60%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Subtle navy panel */
-    --secondary: 222 20% 14%;
-    --secondary-foreground: 210 10% 70%;
+    /* Secondary - Muted indigo panel */
+    --secondary: 240 10% 13%;
+    --secondary-foreground: 240 8% 70%;
 
-    /* Muted - Soft navy gray */
-    --muted: 222 15% 16%;
-    --muted-foreground: 210 10% 55%;
+    /* Muted - Soft warm gray */
+    --muted: 240 8% 15%;
+    --muted-foreground: 240 6% 55%;
 
-    /* Accent - Warm gold for emphasis */
-    --accent: 42 40% 14%;
-    --accent-foreground: 42 50% 80%;
-    --accent-signature: 42 70% 55%;
+    /* Accent - Coral/Rose for emphasis */
+    --accent: 350 40% 14%;
+    --accent-foreground: 350 60% 85%;
+    --accent-signature: 350 75% 60%;
 
     /* Status Colors */
     --destructive: 0 65% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 160 60% 45%;
+    --success: 155 65% 48%;
     --success-foreground: 0 0% 100%;
 
     --warning: 38 90% 55%;
     --warning-foreground: 38 95% 10%;
 
     /* Borders & Inputs */
-    --border: 222 15% 18%;
-    --input: 222 20% 12%;
-    --ring: 220 75% 55%;
+    --border: 240 10% 17%;
+    --input: 240 12% 12%;
+    --ring: 252 70% 60%;
 
-    /* Radius - Larger for softer, modern feel */
-    --radius: 0.75rem;
+    /* Radius - Slightly rounder for modern feel */
+    --radius: 0.875rem;
 
-    /* Sidebar */
-    --sidebar-background: 222 30% 6%;
-    --sidebar-foreground: 210 10% 60%;
-    --sidebar-primary: 220 75% 55%;
+    /* Sidebar - Warm charcoal */
+    --sidebar-background: 240 15% 5%;
+    --sidebar-foreground: 240 6% 60%;
+    --sidebar-primary: 252 70% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 20% 12%;
-    --sidebar-accent-foreground: 210 15% 80%;
-    --sidebar-border: 222 20% 14%;
-    --sidebar-ring: 220 75% 55%;
+    --sidebar-accent: 240 10% 11%;
+    --sidebar-accent-foreground: 240 8% 80%;
+    --sidebar-border: 240 10% 13%;
+    --sidebar-ring: 252 70% 60%;
 
     /* Glass Morphism Variables - Dark Mode */
-    --glass-bg: 222 25% 11%;
+    --glass-bg: 240 12% 10%;
     --glass-opacity: 0.75;
     --glass-border: 0 0% 100%;
     --glass-border-opacity: 0.08;
     --glass-blur: 20px;
 
     /* Neumorphic Shadow Variables - Dark Mode */
-    --shadow-light: 222 20% 18%;
-    --shadow-dark: 222 35% 4%;
+    --shadow-light: 240 12% 18%;
+    --shadow-dark: 240 20% 4%;
     --shadow-opacity-light: 0.05;
     --shadow-opacity-dark: 0.25;
 
@@ -91,64 +91,64 @@
 
   /* =====================================================
      LIGHT MODE
-     Modern Glass/Neumorphic - Clean, Bright, Premium
+     Warm whites with indigo primary, coral accent
      ===================================================== */
   .light {
-    /* Core Background - Soft warm white */
-    --background: 220 20% 97%;
-    --foreground: 222 25% 15%;
+    /* Core Background - Warm off-white */
+    --background: 240 20% 97%;
+    --foreground: 240 20% 12%;
 
-    /* Cards - White with transparency for glass */
+    /* Cards - Clean white */
     --card: 0 0% 100%;
-    --card-foreground: 222 25% 15%;
+    --card-foreground: 240 20% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 25% 15%;
+    --popover-foreground: 240 20% 12%;
 
-    /* Primary - Rich sapphire blue (slightly deeper for contrast) */
-    --primary: 220 75% 50%;
+    /* Primary - Rich warm indigo */
+    --primary: 252 70% 55%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Soft gray */
-    --secondary: 220 15% 92%;
-    --secondary-foreground: 222 20% 40%;
+    /* Secondary - Soft lavender gray */
+    --secondary: 240 12% 92%;
+    --secondary-foreground: 240 15% 40%;
 
-    /* Muted - Subtle gray */
-    --muted: 220 15% 94%;
-    --muted-foreground: 222 15% 45%;
+    /* Muted - Warm light gray */
+    --muted: 240 12% 94%;
+    --muted-foreground: 240 10% 45%;
 
-    /* Accent - Warm gold (adjusted for light) */
-    --accent: 42 80% 95%;
-    --accent-foreground: 42 60% 30%;
-    --accent-signature: 42 70% 50%;
+    /* Accent - Coral/Rose (adjusted for light) */
+    --accent: 350 80% 96%;
+    --accent-foreground: 350 60% 30%;
+    --accent-signature: 350 75% 55%;
 
     /* Status Colors (adjusted for light mode readability) */
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 160 65% 38%;
+    --success: 155 70% 36%;
     --success-foreground: 0 0% 100%;
 
     --warning: 38 95% 45%;
     --warning-foreground: 38 95% 15%;
 
     /* Borders & Inputs */
-    --border: 220 15% 88%;
-    --input: 220 15% 96%;
-    --ring: 220 75% 50%;
+    --border: 240 12% 88%;
+    --input: 240 12% 96%;
+    --ring: 252 70% 55%;
 
     /* Radius - Same as dark */
-    --radius: 0.75rem;
+    --radius: 0.875rem;
 
-    /* Sidebar - Light variant */
-    --sidebar-background: 220 20% 98%;
-    --sidebar-foreground: 222 15% 45%;
-    --sidebar-primary: 220 75% 50%;
+    /* Sidebar - Light lavender */
+    --sidebar-background: 240 18% 98%;
+    --sidebar-foreground: 240 10% 45%;
+    --sidebar-primary: 252 70% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 15% 94%;
-    --sidebar-accent-foreground: 222 20% 25%;
-    --sidebar-border: 220 15% 90%;
-    --sidebar-ring: 220 75% 50%;
+    --sidebar-accent: 240 12% 94%;
+    --sidebar-accent-foreground: 240 15% 25%;
+    --sidebar-border: 240 12% 90%;
+    --sidebar-ring: 252 70% 55%;
 
     /* Glass Morphism Variables - Light Mode */
     --glass-bg: 0 0% 100%;
@@ -159,7 +159,7 @@
 
     /* Neumorphic Shadow Variables - Light Mode */
     --shadow-light: 0 0% 100%;
-    --shadow-dark: 220 20% 80%;
+    --shadow-dark: 240 15% 80%;
     --shadow-opacity-light: 0.8;
     --shadow-opacity-dark: 0.15;
 
@@ -176,18 +176,17 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.011em;
   }
 
   /* Typography - Clean, Premium Hierarchy */
   h1 {
-    @apply text-2xl md:text-3xl font-semibold tracking-tight leading-tight;
-    letter-spacing: -0.025em;
+    @apply text-2xl md:text-3xl font-bold tracking-tight leading-tight;
+    letter-spacing: -0.03em;
   }
 
   h2 {
@@ -196,7 +195,7 @@
   }
 
   h3 {
-    @apply text-lg font-medium tracking-tight leading-snug;
+    @apply text-lg font-semibold tracking-tight leading-snug;
     letter-spacing: -0.015em;
   }
 
@@ -227,8 +226,8 @@
      6-step scale for consistent hierarchy
      ===================================================== */
   .text-display {
-    font-size: 36px;
-    font-weight: 700;
+    font-size: 40px;
+    font-weight: 800;
     letter-spacing: -0.03em;
   }
 
@@ -244,9 +243,9 @@
 
   .text-micro {
     font-size: 11px;
-    font-weight: 500;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.04em;
   }
 }
 
@@ -316,7 +315,7 @@
      Generous whitespace, clear hierarchy
      ========================================== */
   .page-container {
-    @apply max-w-6xl mx-auto px-6 md:px-8 lg:px-10 py-8 md:py-10;
+    @apply max-w-6xl mx-auto px-6 md:px-10 lg:px-14 py-8 md:py-10 pb-14;
   }
 
   .page-container-narrow {
@@ -494,7 +493,7 @@
      STAT CARDS - Dashboard Metrics
      ========================================== */
   .stat-card {
-    @apply p-6 rounded-xl;
+    @apply p-7 rounded-xl;
     background: hsl(var(--card));
     border: 1px solid hsl(var(--border) / 0.5);
   }
@@ -505,7 +504,7 @@
   }
 
   .stat-value {
-    @apply text-3xl font-semibold mt-1;
+    @apply text-3xl font-extrabold mt-1;
     color: hsl(var(--foreground));
     letter-spacing: -0.02em;
   }
@@ -532,11 +531,11 @@
      EMPTY STATES
      ========================================== */
   .empty-state {
-    @apply flex flex-col items-center justify-center py-16 text-center;
+    @apply flex flex-col items-center justify-center py-20 text-center;
   }
 
   .empty-state-icon {
-    @apply h-12 w-12 mb-4;
+    @apply h-14 w-14 mb-4;
     color: hsl(var(--muted-foreground) / 0.4);
   }
 
@@ -704,13 +703,13 @@
 
   /* Glass overlay for modals */
   .glass-overlay {
-    background: hsl(222 30% 5% / 0.6);
+    background: hsl(240 15% 4% / 0.6);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
   }
 
   .light .glass-overlay {
-    background: hsl(220 20% 10% / 0.4);
+    background: hsl(240 15% 10% / 0.4);
   }
 
   /* ==========================================
@@ -950,6 +949,22 @@
       hsl(var(--background)),
       hsl(var(--card) / 0.5)
     );
+  }
+
+  /* Brand gradient utilities */
+  .gradient-brand {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent-signature)));
+  }
+
+  .gradient-brand-subtle {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.1), hsl(var(--accent-signature) / 0.08));
+  }
+
+  .text-gradient-brand {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent-signature)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   /* ==========================================

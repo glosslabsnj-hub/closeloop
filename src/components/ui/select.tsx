@@ -18,14 +18,10 @@ const SelectTrigger = React.forwardRef<
     ref={ref}
     className={cn(
       "flex h-10 w-full items-center justify-between rounded-xl px-4 py-2 text-sm ring-offset-background transition-all duration-150",
-      // Glass morphism background
-      "bg-muted/50 dark:bg-black/20 backdrop-blur-sm",
-      "border border-white/[0.08]",
-      // Neumorphic inset shadow
-      "shadow-[inset_0_1px_2px_hsl(var(--shadow-dark)/calc(var(--shadow-opacity-dark)*0.3))]",
+      "bg-muted/30",
+      "border border-border/40",
       "placeholder:text-muted-foreground/50",
-      // Focus state with glow
-      "focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20",
+      "focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/15",
       "disabled:cursor-not-allowed disabled:opacity-50",
       "[&>span]:line-clamp-1",
       className,
@@ -77,10 +73,9 @@ const SelectContent = React.forwardRef<
       ref={ref}
       className={cn(
         "relative z-[100] max-h-96 min-w-[8rem] overflow-hidden rounded-xl text-popover-foreground",
-        // Glass morphism styling
-        "bg-popover/95 backdrop-blur-2xl",
-        "border border-white/10 dark:border-white/[0.06]",
-        "shadow-[0_16px_48px_rgba(0,0,0,0.2),inset_0_1px_0_hsl(var(--inner-glow)/var(--inner-glow-opacity))]",
+        "bg-popover/95 backdrop-blur-xl",
+        "border border-border/30",
+        "shadow-xl",
         // Animations
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",

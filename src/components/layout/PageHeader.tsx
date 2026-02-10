@@ -36,8 +36,8 @@ export function PageHeader({
     <header
       className={cn(
         "sticky top-0 z-20 bg-background/95 backdrop-blur-sm",
-        "py-4 px-6",
-        "border-b border-border/30",
+        "py-5 px-6",
+        "shadow-[0_1px_0_0_hsl(var(--border)/0.15)]",
         className
       )}
     >
@@ -58,7 +58,7 @@ export function PageHeader({
                 {renderIcon()}
               </div>
             )}
-            <h1 className="text-lg font-semibold tracking-tight text-foreground truncate">
+            <h1 className="text-xl font-semibold tracking-tight text-foreground truncate">
               {title}
             </h1>
             {badge && <div className="flex-shrink-0">{badge}</div>}
