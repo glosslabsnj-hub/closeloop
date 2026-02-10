@@ -1,15 +1,12 @@
 import { CalendarPlus } from "lucide-react";
 import { TodayCalendarStrip } from "../widgets/TodayCalendarStrip";
 import { QuickActionButton } from "../widgets/QuickActionButton";
-import { MetricsGrid } from "../MetricsGrid";
 import { ROIPerformanceWidget } from "../ROIPerformanceWidget";
 import { LeadRecoveryWidget } from "../LeadRecoveryWidget";
 
 export function ServiceDashboardLayout() {
   return (
     <div className="space-y-6">
-      <MetricsGrid />
-
       <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
         <TodayCalendarStrip />
         <QuickActionButton

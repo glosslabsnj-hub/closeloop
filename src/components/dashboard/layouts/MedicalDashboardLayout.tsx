@@ -2,7 +2,6 @@ import { Badge } from "@/components/ui/badge";
 import { Shield } from "lucide-react";
 import { TodayCalendarStrip } from "../widgets/TodayCalendarStrip";
 import { PatientIntakeQueue } from "../widgets/PatientIntakeQueue";
-import { MetricsGrid } from "../MetricsGrid";
 import { ROIPerformanceWidget } from "../ROIPerformanceWidget";
 
 export function MedicalDashboardLayout() {
@@ -14,8 +13,6 @@ export function MedicalDashboardLayout() {
           HIPAA Compliant
         </Badge>
       </div>
-
-      <MetricsGrid />
 
       <TodayCalendarStrip />
 
