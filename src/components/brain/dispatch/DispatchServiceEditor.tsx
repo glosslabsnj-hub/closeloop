@@ -53,6 +53,8 @@ import {
   type DispatchServiceCategory,
   type DispatchServiceType,
   generatePricingSummary,
+  calculateScenarioQuotes,
+  calculateDispatchPrice,
 } from "@/types/dispatchPricing";
 
 interface DispatchServiceFormData {
@@ -383,7 +385,7 @@ export function DispatchServiceEditor({
               </div>
 
               <div className="space-y-2">
-                <Label>Pricing Model</Label>
+                <Label>How do you price this service?</Label>
                 <Select
                   value={formData.pricing_config.pricing_model}
                   onValueChange={(v) => setFormData({
@@ -396,26 +398,27 @@ export function DispatchServiceEditor({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="flat">
-                      <div className="flex flex-col">
-                        <span>Flat Rate</span>
-                        <span className="text-xs text-muted-foreground">Same price regardless of distance</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="distance_tiered">
-                      <div className="flex flex-col">
-                        <span>Distance-Based</span>
-                        <span className="text-xs text-muted-foreground">Price varies by mileage</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="variable">
-                      <div className="flex flex-col">
-                        <span>Quote Required</span>
-                        <span className="text-xs text-muted-foreground">Needs assessment for pricing</span>
-                      </div>
-                    </SelectItem>
+                    <SelectItem value="flat">Flat Rate</SelectItem>
+                    <SelectItem value="distance_tiered">Base + Mileage</SelectItem>
+                    <SelectItem value="variable">Quote Required</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Pricing model explanation */}
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 text-sm">
+                <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                <div className="text-muted-foreground">
+                  {formData.pricing_config.pricing_model === "flat" && (
+                    <span><strong>Flat Rate</strong> — Same price every time, regardless of distance. Best for on-site services like lockouts ($75), jump starts ($65), or tire changes ($85). You can optionally add a per-mile surcharge for customers outside your normal service area.</span>
+                  )}
+                  {formData.pricing_config.pricing_model === "distance_tiered" && (
+                    <span><strong>Base + Mileage</strong> — A base fee plus per-mile charges. Most towing companies use this. Example: $125 for the first 10 miles, then $5/mile after that. You can set up multiple tiers for local vs. long-distance rates.</span>
+                  )}
+                  {formData.pricing_config.pricing_model === "variable" && (
+                    <span><strong>Quote Required</strong> — The AI tells the caller you'll provide a custom quote. Best for complex jobs like winch-outs or heavy-duty recovery where pricing depends on the situation. Set a price range so the caller knows the ballpark.</span>
+                  )}
+                </div>
               </div>
 
               {/* Flat Rate Pricing */}
@@ -673,12 +676,33 @@ export function DispatchServiceEditor({
             <div className="rounded-lg border bg-primary/5 border-primary/20 p-4">
               <div className="flex items-start gap-3">
                 <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-primary mb-1">What the AI will say</p>
+                <div className="space-y-2 flex-1">
+                  <p className="text-sm font-medium text-primary">What the AI will say</p>
                   <p className="text-sm italic">"{aiPreview}"</p>
                 </div>
               </div>
             </div>
+
+            {/* Sample Quotes at Various Distances */}
+            {formData.pricing_config.pricing_model !== "variable" && (
+              <div className="rounded-lg border p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  <p className="text-sm font-medium">Sample Quotes by Distance</p>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {calculateScenarioQuotes(formData.pricing_config, formData.name || "Service").map((q) => (
+                    <div key={q.distance} className="rounded-md bg-muted/50 p-2.5 text-center">
+                      <p className="text-xs text-muted-foreground">{q.distance} miles</p>
+                      <p className="text-lg font-semibold">${q.price}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  These are estimates based on your current pricing setup. The AI uses these to quote callers.
+                </p>
+              </div>
+            )}
           </div>
         )}
 

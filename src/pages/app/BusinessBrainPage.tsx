@@ -22,6 +22,7 @@ import { useCapabilities } from "@/hooks/useCapabilities";
 import { useFoodMode } from "@/hooks/useFoodMode";
 import { useFoodOrderSettings } from "@/hooks/useFoodOrderSettings";
 import { getIndustryTerminology } from "@/data/industryTerminology";
+import { SECTION_RELEVANCE } from "@/config/brainSectionRelevance";
 import { useCategoryCompletion } from "@/hooks/useCategoryCompletion";
 import { useBrainSummaries } from "@/hooks/useBrainSummaries";
 import { useAddOnSections, type AddOnItem } from "@/hooks/useAddOnSections";
@@ -176,12 +177,11 @@ export default function BusinessBrainPage() {
     showBookingDelivery: caps.isSchedulingBusiness,
     showFoodDelivery: caps.hasFoodOrders,
     isRelevant: (id: string) => {
-      // Merge relevance checks from all add-on sections
-      if (servicesAddOns.isRelevant(id)) return true;
-      if (coverageAddOns.isRelevant(id)) return true;
-      if (policiesAddOns.isRelevant(id)) return true;
-      if (knowledgeAddOns.isRelevant(id)) return true;
-      return false;
+      // Check if this section has a relevance rule in ANY tab
+      const rule = SECTION_RELEVANCE.find(s => s.sectionId === id);
+      if (!rule) return true; // No rule = always relevant
+      // Delegate to the owning tab's rule directly
+      return rule.isRelevant(caps, (tenant?.capabilities_json as Record<string, boolean>) || {});
     },
     reviewCount,
   }), [isFoodMode, foodAcceptsDelivery, foodAcceptsCatering, foodNeedsCoverage, caps, servicesAddOns, coverageAddOns, policiesAddOns, knowledgeAddOns, reviewCount]);
