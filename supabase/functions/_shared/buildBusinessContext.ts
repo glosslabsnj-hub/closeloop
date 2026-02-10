@@ -2192,6 +2192,11 @@ export async function buildBusinessContext(
     })(),
     // Dispatch industry-specific intake fields (for dynamic variable injection)
     dispatch_intake_fields: dispatchIntakeFields.length > 0 ? dispatchIntakeFields : undefined,
+    // Dropoff coverage configuration (for dispatch businesses)
+    dropoff_coverage: distanceSettings ? {
+      mode: (distanceSettings as any).dropoff_coverage_mode || "none",
+      max_miles: (distanceSettings as any).dropoff_max_miles || null,
+    } : { mode: "none", max_miles: null },
 
     food_settings: foodSettings ? {
       estimated_prep_minutes: foodSettings.estimated_prep_minutes || 15,

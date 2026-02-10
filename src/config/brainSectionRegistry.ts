@@ -177,7 +177,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     groupLabel: "PRICING OPTIONS",
     order: 5,
     tab: "services",
-    isVisible: (_mode, _caps, flags) => flags.isRelevant("food-settings"),
+    isVisible: (mode, caps, flags) => (mode === "food" || caps.isFoodBusiness || caps.hasFoodOrders) && flags.isRelevant("food-settings"),
   },
   {
     id: "menu-sizes",
@@ -187,7 +187,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     groupLabel: "PRICING OPTIONS",
     order: 6,
     tab: "services",
-    isVisible: (_mode, _caps, flags) => flags.isRelevant("food-settings"),
+    isVisible: (mode, caps, flags) => (mode === "food" || caps.isFoodBusiness || caps.hasFoodOrders) && flags.isRelevant("food-settings"),
   },
   {
     id: "daily-specials",
@@ -197,7 +197,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     groupLabel: "PRICING OPTIONS",
     order: 7,
     tab: "services",
-    isVisible: (_mode, _caps, flags) => flags.isRelevant("food-settings"),
+    isVisible: (mode, caps, flags) => (mode === "food" || caps.isFoodBusiness || caps.hasFoodOrders) && flags.isRelevant("food-settings"),
   },
   {
     id: "medical-pricing",
@@ -207,7 +207,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     groupLabel: "PRICING OPTIONS",
     order: 8,
     tab: "services",
-    isVisible: (_mode, _caps, flags) => flags.isRelevant("medical-pricing"),
+    isVisible: (mode, caps) => mode === "medical" || caps.isMedicalBusiness,
   },
   {
     id: "additional-services",
