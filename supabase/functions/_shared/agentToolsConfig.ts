@@ -254,8 +254,8 @@ function createCheckServiceAreaTool(modeSpecificDescription?: string, includeVeh
     params.push({
       name: "vehicle_type",
       type: "string",
-      required: true,
-      description: "Vehicle type: 'car', 'truck', 'suv', 'motorcycle', 'rv', 'commercial'. Affects pricing and equipment needed.",
+      required: false,
+      description: "Vehicle type: 'car', 'truck', 'suv', 'motorcycle', 'rv', 'commercial'. Helps with pricing but NOT required to check service area. Only ask if naturally provided.",
     });
   }
 
