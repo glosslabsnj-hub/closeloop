@@ -9,7 +9,6 @@ const corsHeaders = {
 interface LotInfoRequest {
   tenant_id: string;
   lot_id?: string;
-  tenant_timezone?: string;
 }
 
 interface HoursEntry {
@@ -96,42 +95,21 @@ function formatTimeForSpeech(time24: string): string {
   return `${hours12}:${minutes.toString().padStart(2, "0")}`;
 }
 
-// Get current time parts in a specific timezone
-function getNowInTimezone(tz: string): { dayIndex: number; hours: number; minutes: number } {
-  const fmt = new Intl.DateTimeFormat("en-US", {
-    timeZone: tz,
-    hour12: false,
-    weekday: "short",
-    hour: "numeric",
-    minute: "numeric",
-  });
-  const parts = fmt.formatToParts(new Date());
-  const weekday = parts.find((p) => p.type === "weekday")?.value || "";
-  const hour = Number(parts.find((p) => p.type === "hour")?.value || 0);
-  const minute = Number(parts.find((p) => p.type === "minute")?.value || 0);
-  const dayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
-  return { dayIndex: dayMap[weekday] ?? new Date().getDay(), hours: hour === 24 ? 0 : hour, minutes: minute };
-}
-
 // Get current day name
-function getCurrentDayName(tz?: string): DayOfWeek {
+function getCurrentDayName(): DayOfWeek {
   const days: DayOfWeek[] = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-  if (tz) {
-    const { dayIndex } = getNowInTimezone(tz);
-    return days[dayIndex];
-  }
   return days[new Date().getDay()];
 }
 
 // Check if current time is within hours
-function isOpenNow(hours: HoursEntry | null, tz?: string): boolean {
+function isOpenNow(hours: HoursEntry | null): boolean {
   if (!hours || !hours.open || !hours.close) return false;
 
-  const { hours: nowH, minutes: nowM } = tz ? getNowInTimezone(tz) : { hours: new Date().getHours(), minutes: new Date().getMinutes() };
+  const now = new Date();
   const [openHour, openMin] = hours.open.split(":").map(Number);
   const [closeHour, closeMin] = hours.close.split(":").map(Number);
 
-  const currentMinutes = nowH * 60 + nowM;
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const openMinutes = openHour * 60 + openMin;
   const closeMinutes = closeHour * 60 + closeMin;
 
@@ -139,19 +117,19 @@ function isOpenNow(hours: HoursEntry | null, tz?: string): boolean {
 }
 
 // Get current status message
-function getCurrentStatus(hoursJson: Record<string, HoursEntry>, tz?: string): string {
-  const todayName = getCurrentDayName(tz);
+function getCurrentStatus(hoursJson: Record<string, HoursEntry>): string {
+  const todayName = getCurrentDayName();
   const todayHours = hoursJson[todayName];
 
   if (!todayHours?.open || !todayHours?.close) {
     return "Closed today";
   }
 
-  const { hours: nowH, minutes: nowM } = tz ? getNowInTimezone(tz) : { hours: new Date().getHours(), minutes: new Date().getMinutes() };
+  const now = new Date();
   const [openHour, openMin] = todayHours.open.split(":").map(Number);
   const [closeHour, closeMin] = todayHours.close.split(":").map(Number);
 
-  const currentMinutes = nowH * 60 + nowM;
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const openMinutes = openHour * 60 + openMin;
   const closeMinutes = closeHour * 60 + closeMin;
 
@@ -226,21 +204,12 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Auth: require Authorization header (service key or JWT from ElevenLabs tools)
-  const authHeader = req.headers.get("authorization");
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return new Response(
-      JSON.stringify({ error: "Unauthorized", message: "I'm having trouble accessing the system." }),
-      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
   try {
     const body: LotInfoRequest = await req.json();
-    const { tenant_id, lot_id, tenant_timezone } = body;
+    const { tenant_id, lot_id } = body;
 
     if (!tenant_id) {
       return new Response(
@@ -274,22 +243,6 @@ Deno.serve(async (req) => {
       console.log(`[get-impound-lot-info] Resolved "${tenant_id}" to tenant ${resolvedTenantId}`);
     }
 
-    // Resolve timezone from param or tenant record
-    let tz = tenant_timezone || "";
-    if (!tz) {
-      try {
-        const tzResp = await fetch(
-          `${SUPABASE_URL}/rest/v1/tenants?id=eq.${resolvedTenantId}&select=timezone`,
-          { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" } }
-        );
-        if (tzResp.ok) {
-          const tzData = await tzResp.json();
-          tz = tzData?.[0]?.timezone || "";
-        }
-      } catch { /* continue without timezone */ }
-    }
-    const effectiveTz = tz || undefined;
-
     // Fetch lot(s)
     const lots = await fetchImpoundLots(SUPABASE_URL, SUPABASE_KEY, resolvedTenantId, lot_id);
 
@@ -311,10 +264,10 @@ Deno.serve(async (req) => {
     const fullAddress = addressParts.join(", ");
 
     // Get current status
-    const todayName = getCurrentDayName(effectiveTz);
+    const todayName = getCurrentDayName();
     const todayHours = hoursJson[todayName];
-    const isOpen = isOpenNow(todayHours, effectiveTz);
-    const currentStatus = getCurrentStatus(hoursJson, effectiveTz);
+    const isOpen = isOpenNow(todayHours);
+    const currentStatus = getCurrentStatus(hoursJson);
 
     // Format hours
     const formattedHours = formatHoursForDisplay(hoursJson);
@@ -332,9 +285,9 @@ Deno.serve(async (req) => {
     if (isOpen && todayHours?.close) {
       messageParts.push(`We're open today until ${formatTime(todayHours.close)}.`);
     } else if (!isOpen && todayHours?.open) {
-      const { hours: nowH } = effectiveTz ? getNowInTimezone(effectiveTz) : { hours: new Date().getHours() };
+      const now = new Date();
       const [openHour] = todayHours.open.split(":").map(Number);
-      if (nowH < openHour) {
+      if (now.getHours() < openHour) {
         messageParts.push(`We open today at ${formatTime(todayHours.open)}.`);
       } else {
         messageParts.push(`We're closed for today.`);

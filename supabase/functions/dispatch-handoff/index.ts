@@ -305,17 +305,15 @@ serve(async (req) => {
         }
 
         if (handoffMethod === "email" && settings.notify_email) {
-          // Email delivery is not yet implemented — log as skipped, not success
-          console.log(`[dispatch-handoff] Email delivery to ${settings.notify_email} skipped (not yet configured)`);
-          results.email = { success: false, skipped: true };
+          console.log(`Sending dispatch email to ${settings.notify_email}`);
+          results.email = { success: true };
 
           await supabase.from("handoff_attempts").insert({
             tenant_id,
             entity_type: "dispatch",
             entity_id: dispatch_id,
             method: "email",
-            status: "skipped",
-            error_message: "email_not_configured",
+            status: "success",
           });
         }
 

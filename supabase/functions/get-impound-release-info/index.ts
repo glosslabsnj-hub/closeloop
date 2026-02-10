@@ -9,7 +9,6 @@ const corsHeaders = {
 interface ReleaseInfoRequest {
   tenant_id: string;
   vehicle_id: string;
-  tenant_timezone?: string;
 }
 
 interface HoursEntry {
@@ -129,30 +128,9 @@ function daysBetween(date1: Date, date2: Date): number {
   return Math.max(0, Math.floor((date2.getTime() - date1.getTime()) / oneDay));
 }
 
-// Get current time parts in a specific timezone
-function getNowInTimezone(tz: string): { dayIndex: number; hours: number; minutes: number } {
-  const fmt = new Intl.DateTimeFormat("en-US", {
-    timeZone: tz,
-    hour12: false,
-    weekday: "short",
-    hour: "numeric",
-    minute: "numeric",
-  });
-  const parts = fmt.formatToParts(new Date());
-  const weekday = parts.find((p) => p.type === "weekday")?.value || "";
-  const hour = Number(parts.find((p) => p.type === "hour")?.value || 0);
-  const minute = Number(parts.find((p) => p.type === "minute")?.value || 0);
-  const dayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
-  return { dayIndex: dayMap[weekday] ?? new Date().getDay(), hours: hour === 24 ? 0 : hour, minutes: minute };
-}
-
 // Get current day name
-function getCurrentDayName(tz?: string): DayOfWeek {
+function getCurrentDayName(): DayOfWeek {
   const days: DayOfWeek[] = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-  if (tz) {
-    const { dayIndex } = getNowInTimezone(tz);
-    return days[dayIndex];
-  }
   return days[new Date().getDay()];
 }
 
@@ -168,14 +146,14 @@ function formatTime(time24: string): string {
 }
 
 // Check if current time is within hours
-function isOpenNow(hours: HoursEntry | null, tz?: string): boolean {
+function isOpenNow(hours: HoursEntry | null): boolean {
   if (!hours || !hours.open || !hours.close) return false;
 
-  const { hours: nowH, minutes: nowM } = tz ? getNowInTimezone(tz) : { hours: new Date().getHours(), minutes: new Date().getMinutes() };
+  const now = new Date();
   const [openHour, openMin] = hours.open.split(":").map(Number);
   const [closeHour, closeMin] = hours.close.split(":").map(Number);
 
-  const currentMinutes = nowH * 60 + nowM;
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const openMinutes = openHour * 60 + openMin;
   const closeMinutes = closeHour * 60 + closeMin;
 
@@ -183,18 +161,18 @@ function isOpenNow(hours: HoursEntry | null, tz?: string): boolean {
 }
 
 // Find next open time
-function findNextOpen(hoursJson: Record<string, HoursEntry>, tz?: string): string | null {
+function findNextOpen(hoursJson: Record<string, HoursEntry>): string | null {
   const days: DayOfWeek[] = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
   const dayLabels = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  const today = tz ? getNowInTimezone(tz).dayIndex : new Date().getDay();
+  const today = new Date().getDay();
 
   const todayName = days[today];
   const todayHours = hoursJson[todayName];
   if (todayHours?.open && todayHours?.close) {
-    const { hours: nowH, minutes: nowM } = tz ? getNowInTimezone(tz) : { hours: new Date().getHours(), minutes: new Date().getMinutes() };
+    const now = new Date();
     const [openHour, openMin] = todayHours.open.split(":").map(Number);
     const openMinutes = openHour * 60 + openMin;
-    const currentMinutes = nowH * 60 + nowM;
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
     if (currentMinutes < openMinutes) {
       return `Today at ${formatTime(todayHours.open)}`;
     }
@@ -219,21 +197,12 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Auth: require Authorization header (service key or JWT from ElevenLabs tools)
-  const authHeader = req.headers.get("authorization");
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return new Response(
-      JSON.stringify({ error: "Unauthorized", message: "I'm having trouble accessing the system." }),
-      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
   try {
     const body: ReleaseInfoRequest = await req.json();
-    const { tenant_id, vehicle_id, tenant_timezone } = body;
+    const { tenant_id, vehicle_id } = body;
 
     if (!tenant_id || !vehicle_id) {
       return new Response(
@@ -266,22 +235,6 @@ Deno.serve(async (req) => {
       resolvedTenantId = resolved;
       console.log(`[get-impound-release-info] Resolved "${tenant_id}" to tenant ${resolvedTenantId}`);
     }
-
-    // Resolve timezone from param or tenant record
-    let tz = tenant_timezone || "";
-    if (!tz) {
-      try {
-        const tzResp = await fetch(
-          `${SUPABASE_URL}/rest/v1/tenants?id=eq.${resolvedTenantId}&select=timezone`,
-          { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" } }
-        );
-        if (tzResp.ok) {
-          const tzData = await tzResp.json();
-          tz = tzData?.[0]?.timezone || "";
-        }
-      } catch { /* continue without timezone */ }
-    }
-    const effectiveTz = tz || undefined;
 
     // Load vehicle with lot info
     const vehicle = await fetchVehicleWithLot(SUPABASE_URL, SUPABASE_KEY, vehicle_id, resolvedTenantId);
@@ -352,9 +305,9 @@ Deno.serve(async (req) => {
     // Get lot info and hours
     const lot = vehicle.impound_lots;
     const releaseHours = effectiveSettings.release_hours_json || lot?.hours_json;
-    const todayName = getCurrentDayName(effectiveTz);
+    const todayName = getCurrentDayName();
     const todayHours: HoursEntry | null = releaseHours?.[todayName] || null;
-    const isOpen = isOpenNow(todayHours, effectiveTz);
+    const isOpen = isOpenNow(todayHours);
 
     // Format hours for today
     let hoursToday = "Closed";
@@ -365,7 +318,7 @@ Deno.serve(async (req) => {
     // Find next open if currently closed
     let nextOpen: string | null = null;
     if (!isOpen && releaseHours) {
-      nextOpen = findNextOpen(releaseHours, effectiveTz);
+      nextOpen = findNextOpen(releaseHours);
     }
 
     // Format lot address

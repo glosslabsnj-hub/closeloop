@@ -268,12 +268,6 @@ serve(async (req) => {
       return json(405, { error: "POST only" });
     }
 
-    // Auth: require Authorization header (service key or JWT)
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return json(401, { error: "Unauthorized: missing authorization header" });
-    }
-
     const body: EtaRouteRequest = await req.json();
     const { origin_address, destination_address, tenant_id, skip_cache } = body;
 

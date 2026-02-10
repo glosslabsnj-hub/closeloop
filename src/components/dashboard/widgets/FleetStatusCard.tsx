@@ -16,7 +16,7 @@ export function FleetStatusCard() {
           .from("fleet_vehicles")
           .select("*", { count: "exact", head: true })
           .eq("tenant_id", tenant.id)
-          .in("status", ["available", "in_use"]),
+          .eq("status", "active"),
         supabase
           .from("fleet_vehicles")
           .select("*", { count: "exact", head: true })

@@ -86,7 +86,7 @@ export default function DriverJobDetail() {
     setSavingPhotos(true);
     try {
       // Get existing photos
-      const existingPhotos = job.photos || [];
+      const existingPhotos = (job as any).photos || [];
       const allPhotos = [...existingPhotos, ...photos];
       
       const { error } = await supabase
@@ -159,7 +159,7 @@ export default function DriverJobDetail() {
   const nextStatus = getNextStatus(job.status);
   const isCompleted = job.status === "completed";
   const isOnSite = job.status === "on_site";
-  const existingPhotos = job.photos || [];
+  const existingPhotos = ((job as any).photos as string[]) || [];
 
   const formatPrice = (cents: number | null) => {
     if (!cents) return null;

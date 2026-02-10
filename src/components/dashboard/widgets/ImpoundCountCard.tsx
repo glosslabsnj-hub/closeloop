@@ -15,7 +15,7 @@ export function ImpoundCountCard() {
         .from("impound_vehicles")
         .select("*", { count: "exact", head: true })
         .eq("tenant_id", tenant.id)
-        .eq("status", "in_lot");
+        .eq("status", "stored");
       return { current: count || 0 };
     },
     enabled: !!tenant?.id,

@@ -131,50 +131,6 @@ export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
     ],
   },
 
-  {
-    id: "dispatch-en-route",
-    name: "Driver En Route Notification",
-    description: "When driver starts heading out, SMS the customer with ETA",
-    category: "dispatch",
-    businessModes: ["dispatch"],
-    steps: [
-      { order: 1, action: "send_sms", provider: "sms", description: "SMS customer with driver ETA" },
-    ],
-  },
-  {
-    id: "dispatch-escalation",
-    name: "Job Escalation Alert",
-    description: "Alert manager when a job stays pending too long",
-    category: "dispatch",
-    businessModes: ["dispatch"],
-    steps: [
-      { order: 1, action: "send_sms_to_owner", provider: "sms", description: "Alert manager about stuck job" },
-      { order: 2, action: "send_webhook", provider: "webhook", description: "Log escalation event" },
-    ],
-  },
-  {
-    id: "dispatch-customer-eta",
-    name: "Customer ETA Update",
-    description: "Send updated ETA to customer when driver status changes",
-    category: "dispatch",
-    businessModes: ["dispatch"],
-    steps: [
-      { order: 1, action: "send_sms", provider: "sms", description: "SMS customer with updated ETA" },
-    ],
-  },
-  {
-    id: "dispatch-no-show",
-    name: "Customer No-Show",
-    description: "When driver arrives but customer isn't there, notify team and log it",
-    category: "dispatch",
-    businessModes: ["dispatch"],
-    steps: [
-      { order: 1, action: "send_sms_to_owner", provider: "sms", description: "Alert dispatch about no-show" },
-      { order: 2, action: "send_webhook", provider: "webhook", description: "Log no-show to external system" },
-      { order: 3, action: "send_sms", provider: "sms", description: "SMS customer about missed arrival" },
-    ],
-  },
-
   // Medical Templates
   {
     id: "appointment-booked",

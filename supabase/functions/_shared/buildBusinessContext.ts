@@ -2064,23 +2064,6 @@ export async function buildBusinessContext(
   const normalizedMenu = normalizeMenuItems(menuItems);
   const enabledModules: string[] = Array.isArray(tenant.enabled_modules) ? tenant.enabled_modules as string[] : [];
   
-  // ===== FETCH DISPATCH INTAKE FIELDS (industry-specific) =====
-  let dispatchIntakeFields: Array<{ field_key: string; field_label: string; ai_prompt_hint: string; is_required: boolean }> = [];
-  if (businessMode === "dispatch" && tenant.industry) {
-    try {
-      const { data: intakeFields } = await supabase
-        .from("intake_field_templates")
-        .select("field_key, field_label, ai_prompt_hint, is_required, display_order")
-        .eq("industry_key", tenant.industry)
-        .order("display_order", { ascending: true });
-      if (intakeFields && intakeFields.length > 0) {
-        dispatchIntakeFields = intakeFields;
-      }
-    } catch {
-      // Don't block context build if intake fields fail
-    }
-  }
-
   // ===== BUILD CONTEXT OBJECT =====
   const pricingRules = Array.isArray(tenant.pricing_rules_jsonb) ? tenant.pricing_rules_jsonb : [];
   const busynessRules = tenant.busyness_rules_jsonb && typeof tenant.busyness_rules_jsonb === 'object' ? tenant.busyness_rules_jsonb : {};
@@ -2173,9 +2156,6 @@ export async function buildBusinessContext(
         ai_guidelines_summary: buildAiGuidelinesSummary(tenant.ai_policies_json),
       };
     })(),
-    // Dispatch industry-specific intake fields (for dynamic variable injection)
-    dispatch_intake_fields: dispatchIntakeFields.length > 0 ? dispatchIntakeFields : undefined,
-
     food_settings: foodSettings ? {
       estimated_prep_minutes: foodSettings.estimated_prep_minutes || 15,
       accepts_pickup: foodSettings.accepts_pickup !== false,
@@ -2992,7 +2972,7 @@ IMPORTANT GUIDELINES:
     null, // enabled_modules is already resolved into capabilities_json
     ctx._meta.capabilities
   );
-  const capabilityPrompt = buildPromptForCapabilities(caps, ctx.tenant.industry_slug);
+  const capabilityPrompt = buildPromptForCapabilities(caps);
   prompt += `\n\n${capabilityPrompt}`;
   
   // Also append the mode-specific base prompt for backward compatibility
