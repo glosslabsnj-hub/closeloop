@@ -1,26 +1,43 @@
 /**
- * BrainSectionDetail - Wrapper for the detail view of a single category
+ * BrainSectionDetail - Sidebar + Content split layout for section detail views
  *
- * Shows:
- * - Back button to return to the dashboard hub
- * - Category icon + title + progress bar
- * - Children (the existing section content)
- * - Prev / Next category navigation at the bottom
+ * Hosts:
+ * - Breadcrumb navigation (Business Brain / {Title})
+ * - Editorial title + inline icon + progress bar
+ * - Banner content (QuoteReadinessCard, food notice, etc.)
+ * - Sidebar + Content panel split (desktop) or mobile list/editor
+ * - Add-on content (AddOnGroup, if any)
+ * - Prev / Next category navigation
  */
 
-import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
 import { BRAIN_CATEGORIES, type CategoryConfig } from "@/components/brain/layout/businessBrainNavConfig";
+import { BrainSectionSidebar } from "@/components/brain/layout/BrainSectionSidebar";
+import { BrainMobileItemList } from "@/components/brain/layout/BrainMobileItemList";
+import { BrainContentPanel } from "@/components/brain/layout/BrainContentPanel";
 import type { CategoryCompletionStats } from "@/hooks/useCategoryCompletion";
+import type { SectionGroup, BrainSectionItem } from "@/config/brainSectionRegistry";
+import type { ItemStatusInfo } from "@/hooks/useBrainItemStatuses";
 
 interface BrainSectionDetailProps {
   category: CategoryConfig;
   completion: CategoryCompletionStats;
   onBack: () => void;
   onNavigate: (section: string) => void;
-  children: React.ReactNode;
+  // Sidebar + content props
+  activeItemId: string | null;
+  onItemChange: (itemId: string) => void;
+  groups: SectionGroup[];
+  statuses: Record<string, ItemStatusInfo>;
+  activeItem: BrainSectionItem | null;
+  usedByAI?: string[];
+  guidance?: { whyText?: string; whatText?: string; tipText?: string };
+  // Slot content
+  bannerContent?: React.ReactNode;
+  addOnContent?: React.ReactNode;
+  editorContent: React.ReactNode;
 }
 
 function getAdjacentCategories(section: string) {
@@ -37,53 +54,99 @@ export function BrainSectionDetail({
   completion,
   onBack,
   onNavigate,
-  children,
+  activeItemId,
+  onItemChange,
+  groups,
+  statuses,
+  activeItem,
+  usedByAI,
+  guidance,
+  bannerContent,
+  addOnContent,
+  editorContent,
 }: BrainSectionDetailProps) {
   const Icon = category.icon;
   const { prev, next } = getAdjacentCategories(category.section);
+  const activeStatus = activeItemId ? statuses[activeItemId] : undefined;
+
+  const handleMobileBack = () => {
+    // Clear item selection to show list
+    onItemChange("");
+  };
 
   return (
     <div className="space-y-5">
-      {/* Top bar: back + title + progress */}
+      {/* Breadcrumb + editorial header */}
       <div className="space-y-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onBack}
-          className="gap-1.5 -ml-2 text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Dashboard
-        </Button>
-
-        <div className="flex items-center gap-3">
-          <div
-            className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-lg",
-              completion.percentage === 100
-                ? "bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400"
-                : "bg-primary/10 text-primary",
-            )}
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-1.5 text-sm">
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-muted-foreground hover:text-foreground transition-colors"
           >
-            <Icon className="h-5 w-5" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold tracking-tight">{category.title}</h1>
-            <p className="text-xs text-muted-foreground">{category.description}</p>
-          </div>
-          <span className="text-sm font-medium tabular-nums shrink-0">
-            {completion.percentage}%
+            Business Brain
+          </button>
+          <span className="text-muted-foreground/50">/</span>
+          <span className="flex items-center gap-1.5 text-foreground font-medium">
+            <Icon className="h-4 w-4" />
+            {category.title}
           </span>
+        </nav>
+
+        {/* Title + progress */}
+        <div>
+          <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">{category.description}</p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold tracking-tight flex-1">{category.title}</h1>
+            <span className="text-sm font-medium tabular-nums shrink-0">
+              {completion.percentage}%
+            </span>
+          </div>
         </div>
 
-        <Progress value={completion.percentage} className="h-1.5" />
+        <Progress value={completion.percentage} className="h-1" />
       </div>
 
-      {/* Section content (passed as children) */}
-      {children}
+      {/* Banner content */}
+      {bannerContent}
+
+      {/* Sidebar + Content split */}
+      <div className="flex gap-0 min-h-[60vh]">
+        {/* Desktop sidebar */}
+        <BrainSectionSidebar
+          groups={groups}
+          activeItemId={activeItemId}
+          onItemChange={onItemChange}
+          statuses={statuses}
+        />
+
+        {/* Mobile: show list when no item selected, editor when item selected */}
+        {!activeItemId ? (
+          <BrainMobileItemList
+            groups={groups}
+            onItemSelect={onItemChange}
+            statuses={statuses}
+          />
+        ) : (
+          /* Content panel — always visible on desktop, conditional on mobile */
+          <BrainContentPanel
+            activeItem={activeItem}
+            status={activeStatus}
+            usedByAI={usedByAI}
+            guidance={guidance}
+            onMobileBack={handleMobileBack}
+          >
+            {editorContent}
+          </BrainContentPanel>
+        )}
+      </div>
+
+      {/* Add-on content */}
+      {addOnContent}
 
       {/* Prev / Next nav */}
-      <div className="flex items-center justify-between pt-4 border-t">
+      <div className="flex items-center justify-between mt-8">
         {prev ? (
           <Button
             variant="ghost"

@@ -1,8 +1,8 @@
 /**
  * SectionSummaryCard - Status-focused section card for Business Brain
  *
- * Redesigned: Always shows "why" text, uses sparkle icon instead of jargon badges,
- * displays "AI Uses This To..." bullets, and supports step numbering.
+ * Redesigned: Borderless rounded-2xl, clean expand/collapse, inline icons,
+ * no icon boxes, no mode accent borders. Elevated shadow when expanded.
  */
 
 import { useState, useEffect, ReactNode, useCallback } from "react";
@@ -55,14 +55,6 @@ const STATUS_CONFIG: Record<SectionStatus, { icon: typeof Check; color: string; 
   incomplete: { icon: Circle, color: "text-muted-foreground bg-muted", label: "Set up" },
   warning: { icon: AlertCircle, color: "text-amber-600 bg-amber-100 dark:bg-amber-900/30", label: "Needs attention" },
   error: { icon: AlertCircle, color: "text-red-600 bg-red-100 dark:bg-red-900/30", label: "Required" },
-};
-
-const MODE_ACCENT: Record<BusinessMode, string> = {
-  service: "border-l-blue-500",
-  dispatch: "border-l-amber-500",
-  food: "border-l-orange-500",
-  medical: "border-l-rose-500",
-  general: "border-l-slate-500",
 };
 
 export function SectionSummaryCard({
@@ -137,11 +129,8 @@ export function SectionSummaryCard({
     <div
       id={id}
       className={cn(
-        "rounded-lg border bg-card transition-all duration-200 border-l-4",
-        MODE_ACCENT[mode],
-        isExpanded && "ring-1 ring-primary/20 shadow-sm",
-        // Highlight incomplete required fields
-        effectivePriority === "required" && !isExpanded && status === "incomplete" && "ring-1 ring-amber-300 dark:ring-amber-700/50",
+        "rounded-2xl bg-card transition-all duration-200 shadow-sm",
+        isExpanded && "shadow-md",
         className
       )}
     >
@@ -168,9 +157,7 @@ export function SectionSummaryCard({
           onClick={toggleExpanded}
           className="flex-1 flex items-center gap-3 text-left hover:bg-muted/30 -m-2 p-2 rounded-lg transition-colors"
         >
-          <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-muted shrink-0">
-            <Icon className="h-5 w-5 text-muted-foreground" />
-          </div>
+          <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -208,34 +195,29 @@ export function SectionSummaryCard({
 
         {/* Status Badge */}
         <div className={cn(
-          "flex items-center justify-center h-7 w-7 rounded-full shrink-0",
+          "flex items-center justify-center h-6 w-6 rounded-full shrink-0",
           statusConfig.color
         )}>
-          <StatusIcon className="h-4 w-4" />
+          <StatusIcon className="h-3.5 w-3.5" />
         </div>
 
-        {/* Expand Toggle */}
-        <button
-          type="button"
-          onClick={toggleExpanded}
-          className="shrink-0 text-muted-foreground hover:text-foreground transition-colors p-1"
-          aria-label={isExpanded ? "Collapse section" : "Expand section"}
-        >
+        {/* Expand indicator via chevron on the clickable header area */}
+        <span className="shrink-0 text-muted-foreground">
           {isExpanded ? (
-            <ChevronDown className="h-5 w-5" />
+            <ChevronDown className="h-4 w-4" />
           ) : (
-            <ChevronRight className="h-5 w-5" />
+            <ChevronRight className="h-4 w-4" />
           )}
-        </button>
+        </span>
       </div>
 
       {/* Content - shown when expanded */}
       {isExpanded && (
         <div className="px-4 pb-4 pt-0">
-          <div className="border-t pt-4 space-y-4">
+          <div className="mt-4 space-y-4">
             {/* "AI Uses This To..." block */}
             {usedByAI && usedByAI.length > 0 && (
-              <div className="rounded-lg bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-800/50 p-3">
+              <div className="rounded-xl bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-800/50 p-3">
                 <div className="flex items-center gap-1.5 mb-2">
                   <Zap className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
                   <span className="text-xs font-medium text-violet-700 dark:text-violet-300">Your AI uses this to...</span>
@@ -253,7 +235,7 @@ export function SectionSummaryCard({
 
             {/* Guidance callout — split what + tip (or fallback to legacy concatenated guidanceText) */}
             {status === "incomplete" && (effectiveWhatText || effectiveTipText) && (
-              <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-3 space-y-1.5">
+              <div className="rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-3 space-y-1.5">
                 {effectiveWhatText && (
                   <p className="text-sm text-blue-900 dark:text-blue-100">
                     {effectiveWhatText}

@@ -1,13 +1,11 @@
 /**
  * EssentialGroup - Wrapper for must-complete sections
  *
- * Redesigned: Numbered step badges on each child card with a vertical
- * connecting line (progress rail). Green checkmark replaces number when
- * step is complete. Group header shows title + description.
+ * Redesigned: Micro-label uppercase header, subtler connecting rail,
+ * more breathing room between cards.
  */
 
 import { ReactNode, Children, isValidElement, cloneElement, ReactElement } from "react";
-import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface EssentialGroupProps {
@@ -50,14 +48,9 @@ export function EssentialGroup({
       {/* Header */}
       {(title || showBadge) && (
         <div className="flex items-center gap-2 px-1 mb-3">
-          {showBadge && (
-            <div className="flex items-center justify-center h-5 w-5 rounded-full bg-amber-100 dark:bg-amber-900/50">
-              <Star className="h-3 w-3 text-amber-600 fill-amber-600" />
-            </div>
-          )}
           <div className="flex items-center gap-3 flex-1">
             {title && (
-              <h2 className="text-sm font-semibold text-foreground">
+              <h2 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
                 {title}
               </h2>
             )}
@@ -71,15 +64,15 @@ export function EssentialGroup({
       {/* Section Cards with progress rail */}
       {numbered ? (
         <div className="relative">
-          {/* Vertical connecting line */}
-          <div className="absolute left-[27px] top-4 bottom-4 w-px bg-border z-0" />
+          {/* Vertical connecting line — subtler */}
+          <div className="absolute left-[27px] top-4 bottom-4 w-px bg-border/40 z-0" />
           {/* Cards with spacing */}
-          <div className="relative z-10 space-y-3">
+          <div className="relative z-10 space-y-4">
             {numberedChildren}
           </div>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {children}
         </div>
       )}

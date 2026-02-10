@@ -3,9 +3,10 @@
  *
  * Shows icon, title, description, progress ring, summary text, and
  * navigates to the detail view on click.
+ *
+ * Redesigned: Borderless with left-accent hover, inline icon, no icon boxes.
  */
 
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { BrainProgressRing } from "@/components/brain/layout/BrainProgressIndicator";
 import type { CategoryConfig } from "@/components/brain/layout/businessBrainNavConfig";
@@ -29,30 +30,25 @@ export function BrainCategoryCard({
   const hasWarning = completion.hasRequiredIncomplete;
 
   return (
-    <motion.button
+    <button
       type="button"
       onClick={() => onNavigate(category.section)}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
       className={cn(
-        "flex flex-col items-start gap-3 rounded-xl border bg-card p-5 text-left shadow-sm transition-shadow hover:shadow-md w-full",
-        hasWarning && "border-amber-300 dark:border-amber-700",
-        isComplete && "border-green-200 dark:border-green-800",
+        "flex flex-col items-start gap-3 rounded-2xl bg-card p-5 text-left shadow-sm transition-all duration-200 w-full",
+        "border-l-2 border-l-transparent hover:border-l-primary hover:shadow-md",
+        hasWarning && "border-l-amber-400 dark:border-l-amber-600",
+        isComplete && "border-l-green-400 dark:border-l-green-600",
       )}
     >
-      {/* Top row: icon + progress ring */}
-      <div className="flex w-full items-center justify-between">
-        <div
-          className={cn(
-            "flex h-10 w-10 items-center justify-center rounded-lg",
-            isComplete
-              ? "bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400"
-              : "bg-primary/10 text-primary",
-          )}
-        >
-          <Icon className="h-5 w-5" />
-        </div>
-
+      {/* Title row: icon + title + progress ring */}
+      <div className="flex w-full items-center gap-2">
+        <Icon className={cn(
+          "h-4 w-4 shrink-0",
+          isComplete
+            ? "text-green-600 dark:text-green-400"
+            : "text-primary",
+        )} />
+        <h3 className="text-sm font-semibold leading-tight flex-1">{category.title}</h3>
         <BrainProgressRing
           completedSections={completion.completedFields}
           totalSections={completion.totalFields}
@@ -60,14 +56,11 @@ export function BrainCategoryCard({
         />
       </div>
 
-      {/* Title & description */}
-      <div className="space-y-0.5">
-        <h3 className="text-sm font-semibold leading-tight">{category.title}</h3>
-        <p className="text-xs text-muted-foreground">{category.description}</p>
-      </div>
+      {/* Description */}
+      <p className="text-xs text-muted-foreground">{category.description}</p>
 
       {/* Summary line */}
       <p className="text-xs text-muted-foreground line-clamp-2">{summaryText}</p>
-    </motion.button>
+    </button>
   );
 }

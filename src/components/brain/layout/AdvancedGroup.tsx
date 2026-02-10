@@ -1,8 +1,7 @@
 /**
  * AdvancedGroup - Collapsible wrapper for optional/advanced sections
  *
- * Redesigned: Softer visual treatment, completion count display (e.g., "1/3 done"),
- * subtle gradient header. Keeps collapsible behavior unchanged.
+ * Redesigned: Borderless trigger, no gradient, inline icon, cleaner styling.
  */
 
 import { useState, ReactNode } from "react";
@@ -60,16 +59,13 @@ export function AdvancedGroup({
         <button
           type="button"
           className={cn(
-            "w-full flex items-center gap-3 px-4 py-3 rounded-lg border transition-all",
-            "bg-gradient-to-r from-muted/40 to-muted/20 hover:from-muted/60 hover:to-muted/30",
-            "border-muted-foreground/10",
-            isOpen && "from-muted/50 to-muted/30"
+            "w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all",
+            "bg-muted/20 hover:bg-muted/40",
+            isOpen && "bg-muted/30"
           )}
         >
-          {/* Icon */}
-          <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-muted/80 shrink-0">
-            <Settings2 className="h-4 w-4 text-muted-foreground" />
-          </div>
+          {/* Inline icon */}
+          <Settings2 className="h-4 w-4 text-muted-foreground shrink-0" />
 
           {/* Title & Description */}
           <div className="flex-1 text-left">

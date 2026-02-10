@@ -1,81 +1,20 @@
 /**
  * Business Brain - Centralized hub for ALL business knowledge editing
  *
- * REDESIGNED: Dashboard Hub + Section Detail pattern
- * - Level 1: Dashboard with 5 category cards, progress rings, summaries
- * - Level 2: Detail view with back button, section content, prev/next nav
+ * REDESIGNED: Sidebar + Content Panel layout
+ * - Level 1: Dashboard with 5 category cards, progress rings, summaries (unchanged)
+ * - Level 2: Sidebar + content panel split (replaces card-wall pattern)
  *
- * All existing save logic, editors, and hooks preserved.
+ * All existing editors, hooks, and save logic preserved.
  * Backward-compatible URL aliases for all legacy section params.
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Wrench } from "lucide-react";
-
-// Section editors (unchanged logic)
-import { PricingRulesEditor } from "@/components/settings/PricingRulesEditor";
-import { BusynessRulesEditor } from "@/components/settings/BusynessRulesEditor";
-import { ServiceCatalogEditor } from "@/components/brain/ServiceCatalogEditor";
-import { AdditionalServicesEditor } from "@/components/brain/AdditionalServicesEditor";
-import { MenuCatalogEditor } from "@/components/brain/MenuCatalogEditor";
-import { DispatchServiceCatalog } from "@/components/brain/dispatch/DispatchServiceCatalog";
-import { RequiredQuestionsEditor } from "@/components/settings/RequiredQuestionsEditor";
-import { AIBusinessPolicies } from "@/components/settings/AIBusinessPolicies";
-import { AvailabilityHub } from "@/components/availability/AvailabilityHub";
-import { BusinessFAQEditor } from "@/components/brain/BusinessFAQEditor";
-import { BusinessObjectionEditor } from "@/components/brain/BusinessObjectionEditor";
-import { BookingDeliverySettings } from "@/components/settings/BookingDeliverySettings";
-import { FoodOrderSettings } from "@/components/settings/FoodOrderSettings";
-import { DispatchDeliverySettings } from "@/components/settings/DispatchDeliverySettings";
-import { MedicalHIPAASettings } from "@/components/settings/MedicalHIPAASettings";
-import { BusinessProfileEditor } from "@/components/brain/BusinessProfileEditor";
-import { BusinessPoliciesEditor } from "@/components/brain/BusinessPoliciesEditor";
-import { CustomPoliciesEditor } from "@/components/brain/CustomPoliciesEditor";
-import { ServiceAreaManager } from "@/components/brain/ServiceAreaManager";
-import { BrainAssetsManager } from "@/components/brain/BrainAssetsManager";
-import { BrainReviewQueue, useBrainReviewCount } from "@/components/brain/BrainReviewQueue";
-import { CustomKnowledgeEditor } from "@/components/brain/CustomKnowledgeEditor";
-import { QuoteReadinessCard } from "@/components/brain/QuoteReadinessCard";
-import { IndustryTemplateCard } from "@/components/brain/IndustryTemplateCard";
-import { ServiceAreaPreview } from "@/components/debug/ServiceAreaPreview";
-import { DistanceEtaSection } from "@/components/business-brain/DistanceEtaSection";
-import { DispatchEtaSection } from "@/components/business-brain/DispatchEtaSection";
-import { BusinessHoursManager } from "@/components/brain/BusinessHoursManager";
-import { AINeverPromiseEditor } from "@/components/brain/AINeverPromiseEditor";
-import { AIScriptsEditor } from "@/components/brain/AIScriptsEditor";
-import ServiceCallFlowSettings from "@/components/ai/ServiceCallFlowSettings";
-import {
-  ImpoundLotEditor,
-  ImpoundFeesEditor,
-  ImpoundReleaseEditor,
-  DispatchIvrSettings
-} from "@/components/brain/dispatch/impound";
-import { DistanceBasisSettings } from "@/components/brain/dispatch/DistanceBasisSettings";
-
-// New mode-specific offerings editors
-import { PriceModifiersEditor } from "@/components/brain/PriceModifiersEditor";
-import { ServicePackagesEditor } from "@/components/brain/ServicePackagesEditor";
-import { DispatchPricingEditor, DispatchCoverageZonesEditor } from "@/components/brain/dispatch";
-import { FoodServiceTypesEditor, FoodSettingsEditor, MenuSizesEditor, DailySpecialsEditor, DeliveryZonesEditor } from "@/components/brain/food";
-import { MedicalPricingEditor, MedicalCoverageEditor } from "@/components/brain/medical";
-import { ServiceCoverageEditor } from "@/components/brain/service";
-import { ResponseTimeEditor } from "@/components/brain/general";
-import {
-  MenuKnowledgeEditor,
-  CateringKnowledgeEditor,
-  VehicleKnowledgeEditor,
-  RoadsideKnowledgeEditor,
-  SymptomTriageEditor,
-  InsuranceKnowledgeEditor,
-  ProductKnowledgeEditor,
-  AftercareInstructionsEditor,
-  CompetitorKnowledgeEditor,
-  SeasonalKnowledgeEditor,
-} from "@/components/brain/knowledge";
+import { UtensilsCrossed } from "lucide-react";
 
 // Hooks
 import { useTenantConfig } from "@/hooks/useTenantConfig";
@@ -84,29 +23,33 @@ import { useFoodMode } from "@/hooks/useFoodMode";
 import { useFoodOrderSettings } from "@/hooks/useFoodOrderSettings";
 import { getIndustryTerminology } from "@/data/industryTerminology";
 import { useCategoryCompletion } from "@/hooks/useCategoryCompletion";
+import { useBrainSummaries } from "@/hooks/useBrainSummaries";
+import { useAddOnSections, type AddOnItem } from "@/hooks/useAddOnSections";
+import { useBrainReviewCount } from "@/components/brain/BrainReviewQueue";
+import { useBrainItemStatuses } from "@/hooks/useBrainItemStatuses";
+
+// Registry + renderer
+import {
+  getVisibleItems,
+  groupSectionItems,
+  findItemById,
+  findItemForHash,
+  type NewSectionId,
+  type VisibilityFlags,
+} from "@/config/brainSectionRegistry";
+import { SECTION_GUIDANCE } from "@/config/brainGuidance";
+import { BrainEditorRenderer } from "@/components/brain/layout/BrainEditorRenderer";
 
 // Layout components
 import {
   AddOnGroup,
   HIPAAWarning,
   BRAIN_CATEGORIES,
-  SectionSummaryCard,
   BrainProgressIndicator,
-  EssentialGroup,
-  AdvancedGroup,
   BrainSetupBanner,
   CompletionCelebration,
   NextStepSuggestion,
 } from "@/components/brain/layout";
-import { useBrainSummaries } from "@/hooks/useBrainSummaries";
-import { useAddOnSections, type AddOnItem } from "@/hooks/useAddOnSections";
-import { SECTION_GUIDANCE } from "@/config/brainGuidance";
-import {
-  FileText, Shield, MessageSquareText, Send, Truck, UtensilsCrossed, HeartPulse,
-  Building2, Palette, Clock, DollarSign, Tag, MapPin, Navigation, Gauge,
-  Calendar, Mic, BookOpen, Brain, HelpCircle, MessageCircle, Lightbulb, FileUp, AlertCircle,
-  Warehouse, Phone, FileCheck, Package, Heart, Users
-} from "lucide-react";
 
 // Dashboard components
 import { BrainDashboard } from "@/components/brain/dashboard/BrainDashboard";
@@ -115,10 +58,13 @@ import { BrainSectionDetail } from "@/components/brain/dashboard/BrainSectionDet
 // Intelligence components
 import { IntelligenceDashboard } from "@/components/intelligence";
 
+// Tab-specific banner components
+import { QuoteReadinessCard } from "@/components/brain/QuoteReadinessCard";
+import ServiceCallFlowSettings from "@/components/ai/ServiceCallFlowSettings";
+
 // ─── Section IDs ────────────────────────────────────────────────────────────
 
 const NEW_VALID_SECTIONS = ["business", "services", "operations", "ai-voice", "training", "intelligence"] as const;
-type NewSectionId = typeof NEW_VALID_SECTIONS[number];
 
 /** All old section params still work — resolve to the new tab */
 const LEGACY_SECTION_ALIASES: Record<string, NewSectionId> = {
@@ -133,8 +79,8 @@ const LEGACY_SECTION_ALIASES: Record<string, NewSectionId> = {
   knowledge: "training",
 };
 
-/** Scroll targets when navigating to merged tabs via legacy section IDs */
-const SCROLL_TARGETS: Record<string, string> = {
+/** Scroll/item targets when navigating to merged tabs via legacy section IDs */
+const LEGACY_ITEM_TARGETS: Record<string, string> = {
   hours: "business-hours",
   availability: "calendar-sync",
   "calendar-sync": "calendar-sync",
@@ -143,11 +89,11 @@ const SCROLL_TARGETS: Record<string, string> = {
 };
 
 /** Legacy tab param mapping (from old ?tab= format) */
-const LEGACY_TAB_TO_SECTION: Record<string, { section: NewSectionId; hash?: string }> = {
-  review: { section: "training", hash: "review" },
-  updates: { section: "training", hash: "review" },
-  assets: { section: "training", hash: "documents" },
-  uploads: { section: "training", hash: "documents" },
+const LEGACY_TAB_TO_SECTION: Record<string, { section: NewSectionId; item?: string }> = {
+  review: { section: "training", item: "review" },
+  updates: { section: "training", item: "review" },
+  assets: { section: "training", item: "documents" },
+  uploads: { section: "training", item: "documents" },
   overview: { section: "business" },
   memory: { section: "intelligence" },
 };
@@ -172,76 +118,143 @@ export default function BusinessBrainPage() {
   const { acceptsDelivery: foodAcceptsDelivery, acceptsCatering: foodAcceptsCatering, needsCoverageSettings: foodNeedsCoverage } = useFoodOrderSettings();
   const summaries = useBrainSummaries();
   const terms = getIndustryTerminology(businessMode);
+  const statuses = useBrainItemStatuses();
 
-  // Add-on sections per (old) tab — combined for operations
+  // Add-on sections per tab
   const servicesAddOns = useAddOnSections("services");
   const coverageAddOns = useAddOnSections("service-area");
   const policiesAddOns = useAddOnSections("policies");
   const knowledgeAddOns = useAddOnSections("knowledge");
 
-  // Merge add-on items from both coverage and policies for the operations tab
+  // Merge add-on items for operations tab
   const operationsAddOnItems = [...coverageAddOns.addOnItems, ...policiesAddOns.addOnItems];
-  const operationsEnableAddOn = async (item: AddOnItem) => {
+  const operationsEnableAddOn = useCallback(async (item: AddOnItem) => {
     const coverageIds = new Set(coverageAddOns.addOnItems.map(i => i.id));
     if (coverageIds.has(item.id)) {
       await coverageAddOns.enableAddOn(item);
     } else {
       await policiesAddOns.enableAddOn(item);
     }
-  };
+  }, [coverageAddOns, policiesAddOns]);
 
   const sectionParamRaw = searchParams.get("section");
   const legacyTab = searchParams.get("tab");
+  const itemParamRaw = searchParams.get("item");
 
-  // Resolve legacy section aliases to new section IDs
+  // Resolve legacy section aliases
   const normalizedSectionParam = sectionParamRaw
     ? (LEGACY_SECTION_ALIASES[sectionParamRaw] ?? sectionParamRaw)
     : null;
 
   // Determine active section — null means dashboard hub
-  const { activeSection, focusHash } = useMemo(() => {
-    // Legacy ?tab= params always resolve to a section detail
+  const { activeSection, defaultItemId } = useMemo(() => {
+    // Legacy ?tab= params
     if (legacyTab && LEGACY_TAB_TO_SECTION[legacyTab]) {
       const mapped = LEGACY_TAB_TO_SECTION[legacyTab];
-      return { activeSection: mapped.section as NewSectionId, focusHash: mapped.hash ?? null };
+      return { activeSection: mapped.section as NewSectionId, defaultItemId: mapped.item ?? null };
     }
-    // If there's a ?section= param, resolve it
+    // ?section= param
     if (normalizedSectionParam && NEW_VALID_SECTIONS.includes(normalizedSectionParam as NewSectionId)) {
-      const scrollTarget = sectionParamRaw ? SCROLL_TARGETS[sectionParamRaw] : null;
-      return { activeSection: normalizedSectionParam as NewSectionId, focusHash: scrollTarget as string | null };
+      const legacyItemTarget = sectionParamRaw ? LEGACY_ITEM_TARGETS[sectionParamRaw] : null;
+      return { activeSection: normalizedSectionParam as NewSectionId, defaultItemId: legacyItemTarget ?? null };
     }
-    // If there's a raw section param that's not valid, it's still a legacy one needing rewrite — handled in useEffect
+    // Legacy section needing alias rewrite
     if (sectionParamRaw && LEGACY_SECTION_ALIASES[sectionParamRaw]) {
       const resolved = LEGACY_SECTION_ALIASES[sectionParamRaw];
-      const scrollTarget = SCROLL_TARGETS[sectionParamRaw] ?? null;
-      return { activeSection: resolved, focusHash: scrollTarget };
+      const legacyItemTarget = LEGACY_ITEM_TARGETS[sectionParamRaw] ?? null;
+      return { activeSection: resolved, defaultItemId: legacyItemTarget };
     }
-    // No params → show dashboard hub
-    return { activeSection: null as NewSectionId | null, focusHash: null as string | null };
+    return { activeSection: null as NewSectionId | null, defaultItemId: null as string | null };
   }, [legacyTab, normalizedSectionParam, sectionParamRaw]);
 
-  // Controlled expansion state for sections that need to collapse after save
-  const [hoursExpanded, setHoursExpanded] = useState(true);
+  // Build visibility flags for the registry
+  const visibilityFlags: VisibilityFlags = useMemo(() => ({
+    isFoodMode,
+    foodAcceptsDelivery,
+    foodAcceptsCatering,
+    foodNeedsCoverage,
+    showBookingDelivery: caps.isSchedulingBusiness,
+    showFoodDelivery: caps.hasFoodOrders,
+    isRelevant: (id: string) => {
+      // Merge relevance checks from all add-on sections
+      if (servicesAddOns.isRelevant(id)) return true;
+      if (coverageAddOns.isRelevant(id)) return true;
+      if (policiesAddOns.isRelevant(id)) return true;
+      if (knowledgeAddOns.isRelevant(id)) return true;
+      return false;
+    },
+    reviewCount,
+  }), [isFoodMode, foodAcceptsDelivery, foodAcceptsCatering, foodNeedsCoverage, caps, servicesAddOns, coverageAddOns, policiesAddOns, knowledgeAddOns, reviewCount]);
 
-  const handleSectionChange = (section: string) => {
+  // Get visible items for active tab
+  const visibleItems = useMemo(() => {
+    if (!activeSection) return [];
+    return getVisibleItems(activeSection, businessMode, caps, visibilityFlags);
+  }, [activeSection, businessMode, caps, visibilityFlags]);
+
+  // Group items for sidebar
+  const groups = useMemo(() => groupSectionItems(visibleItems), [visibleItems]);
+
+  // Resolve active item ID
+  const activeItemId = useMemo(() => {
+    if (!activeSection || activeSection === "intelligence") return null;
+
+    // 1. Explicit ?item= param
+    if (itemParamRaw) {
+      const match = visibleItems.find(i => i.id === itemParamRaw);
+      if (match) return match.id;
+    }
+
+    // 2. Hash deep-link
+    const hash = window.location.hash.replace(/^#/, "");
+    if (hash) {
+      const resolved = findItemForHash(activeSection, hash);
+      if (resolved) {
+        const match = visibleItems.find(i => i.id === resolved);
+        if (match) return match.id;
+      }
+    }
+
+    // 3. Legacy default item from section alias
+    if (defaultItemId) {
+      const match = visibleItems.find(i => i.id === defaultItemId);
+      if (match) return match.id;
+    }
+
+    // 4. Default to first visible item on desktop, null on mobile
+    // We always default to first item — mobile handles the list/editor toggle in BrainSectionDetail
+    return visibleItems[0]?.id ?? null;
+  }, [activeSection, itemParamRaw, defaultItemId, visibleItems]);
+
+  // Find the active item object
+  const activeItem = useMemo(() => {
+    if (!activeSection || !activeItemId) return null;
+    return findItemById(activeSection, activeItemId) ?? null;
+  }, [activeSection, activeItemId]);
+
+  // ─── Navigation handlers ─────────────────────────────────────────────────
+
+  const handleSectionChange = useCallback((section: string) => {
     if (!section) {
-      // Navigate to dashboard hub
       setSearchParams({}, { replace: true });
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     const resolved = LEGACY_SECTION_ALIASES[section] || section;
-    const scrollTarget = SCROLL_TARGETS[section];
     setSearchParams({ section: resolved }, { replace: true });
-    if (scrollTarget) {
-      setTimeout(() => {
-        document.getElementById(scrollTarget)?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 150);
-    }
-    // Reset expansion states when changing sections
-    setHoursExpanded(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, [setSearchParams]);
+
+  const handleItemChange = useCallback((itemId: string) => {
+    if (!activeSection) return;
+    if (!itemId) {
+      // Mobile back — clear item param
+      setSearchParams({ section: activeSection }, { replace: true });
+      return;
+    }
+    setSearchParams({ section: activeSection, item: itemId }, { replace: true });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [activeSection, setSearchParams]);
 
   // Rewrite legacy params on mount
   useEffect(() => {
@@ -249,33 +262,31 @@ export default function BusinessBrainPage() {
 
     if (legacyTab && LEGACY_TAB_TO_SECTION[legacyTab]) {
       const mapped = LEGACY_TAB_TO_SECTION[legacyTab];
-      setSearchParams({ section: mapped.section }, { replace: true });
+      const params: Record<string, string> = { section: mapped.section };
+      if (mapped.item) params.item = mapped.item;
+      setSearchParams(params, { replace: true });
       return;
     }
 
     if (sectionNeedsAliasRewrite && activeSection) {
-      setSearchParams({ section: activeSection }, { replace: true });
+      const params: Record<string, string> = { section: activeSection };
+      const itemTarget = sectionParamRaw ? LEGACY_ITEM_TARGETS[sectionParamRaw] : null;
+      if (itemTarget) params.item = itemTarget;
+      setSearchParams(params, { replace: true });
     }
 
-    // Handle hash scrolling
-    const hashToUse = focusHash || window.location.hash.replace(/^#/, "");
-    if (hashToUse) {
-      setTimeout(() => {
-        const element = document.getElementById(hashToUse);
-        if (element) {
-          element.scrollIntoView({ behavior: "smooth", block: "start" });
-          element.classList.add("ring-2", "ring-primary", "ring-offset-2");
-          setTimeout(() => {
-            element.classList.remove("ring-2", "ring-primary", "ring-offset-2");
-          }, 2000);
-        }
-      }, 100);
+    // Handle hash → item param
+    const hash = window.location.hash.replace(/^#/, "");
+    if (hash && activeSection && activeSection !== "intelligence") {
+      const resolved = findItemForHash(activeSection, hash);
+      if (resolved) {
+        setSearchParams({ section: activeSection, item: resolved }, { replace: true });
+      }
     }
-  }, [activeSection, focusHash, legacyTab, sectionParamRaw, setSearchParams]);
+  }, [activeSection, legacyTab, sectionParamRaw, setSearchParams]);
 
-  // ─── Guidance + card config helpers ─────────────────────────────────────
+  // ─── Guidance helpers ──────────────────────────────────────────────────────
 
-  /** Returns separate whyText, whatText, tipText from brainGuidance */
   const getSectionGuidance = (sectionId: string) => {
     const g = SECTION_GUIDANCE[sectionId];
     if (!g) return {};
@@ -286,7 +297,6 @@ export default function BusinessBrainPage() {
     };
   };
 
-  /** Finds the CardConfig from BRAIN_CATEGORIES by card id */
   const getCardConfig = (cardId: string) => {
     for (const cat of BRAIN_CATEGORIES) {
       const card = cat.cards.find(c => c.id === cardId);
@@ -295,10 +305,11 @@ export default function BusinessBrainPage() {
     return undefined;
   };
 
-  /** Returns usedByAI array for a given card id */
   const getUsedByAI = (cardId: string): string[] | undefined => {
     return getCardConfig(cardId)?.usedByAI;
   };
+
+  // ─── Early returns ─────────────────────────────────────────────────────────
 
   if (!tenant) {
     return (
@@ -308,20 +319,145 @@ export default function BusinessBrainPage() {
     );
   }
 
-  // Capability-aware visibility
-  const showBookingDelivery = caps.isSchedulingBusiness;
-  const showFoodDelivery = caps.hasFoodOrders;
   const isDispatchMode = caps.isDispatchBusiness;
 
   const currentCategory = activeSection
     ? BRAIN_CATEGORIES.find(c => c.section === activeSection) ?? null
     : null;
 
+  // ─── Build banner content per tab ──────────────────────────────────────────
+
+  const buildBannerContent = () => {
+    if (!activeSection) return undefined;
+
+    switch (activeSection) {
+      case "business":
+        return (
+          <>
+            {summaries.completionStats.percentage >= 100 && (
+              <CompletionCelebration
+                enhancements={[
+                  { id: "faqs", label: "Add FAQs", description: "Reduce \"I don't know\" responses", section: "training" },
+                  { id: "objections", label: "Handle objections", description: "Address price pushback", section: "training" },
+                  { id: "documents", label: "Upload documents", description: "Reference materials for AI", section: "training" },
+                ]}
+                onNavigate={handleSectionChange}
+                onGoToDashboard={() => window.location.href = "/app"}
+              />
+            )}
+            {summaries.completionStats.percentage < 100 && summaries.completionStats.percentage < 50 && (
+              <BrainSetupBanner
+                steps={[
+                  { id: "business-info", label: "Business Info", section: "business", isComplete: !!tenant?.name },
+                  { id: "hours", label: "Set Hours", section: "business", isComplete: summaries.hours !== "No hours set yet" },
+                  { id: "services", label: `Add ${terms.servicesLabel}`, section: "services", isComplete: summaries.catalog !== "No services added yet" },
+                  { id: "scripts", label: "Greeting Script", section: "ai-voice", isComplete: summaries.scripts !== "Using the default — customize to match your style" },
+                ]}
+                onContinue={handleSectionChange}
+                dismissible
+              />
+            )}
+            {summaries.completionStats.percentage < 100 && (
+              <BrainProgressIndicator
+                completedSections={summaries.completionStats.completed}
+                totalSections={summaries.completionStats.total}
+                incompleteItems={summaries.completionStats.incompleteItems}
+                onNavigateToSection={handleSectionChange}
+              />
+            )}
+            {tenant?.name && summaries.hours !== "No hours set yet" && (summaries.catalog === "No services added yet") && (
+              <NextStepSuggestion
+                completedSection="business"
+                mode={businessMode}
+                onNavigate={handleSectionChange}
+              />
+            )}
+          </>
+        );
+
+      case "services":
+        return <QuoteReadinessCard />;
+
+      case "operations":
+        if ((businessMode === "food" || isFoodMode) && !foodNeedsCoverage) {
+          return (
+            <div className="rounded-lg border bg-muted/30 p-4">
+              <div className="flex items-start gap-3">
+                <UtensilsCrossed className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Coverage Settings Not Configured</p>
+                  <p className="text-sm text-muted-foreground">
+                    If you offer <strong>delivery</strong> or <strong>catering/private events</strong>, you'll need to configure your coverage area so your AI knows where you can serve.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleSectionChange("services")}
+                  >
+                    <UtensilsCrossed className="h-4 w-4 mr-2" />
+                    Configure Service Types
+                  </Button>
+                  <p className="text-xs text-muted-foreground pt-2">
+                    Enable Delivery or Catering in <strong>Services &amp; Pricing</strong> and the coverage options will appear here.
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        }
+        return undefined;
+
+      case "ai-voice":
+        if (caps.isServiceBusiness || caps.derivedPrimaryMode === "general") {
+          return <ServiceCallFlowSettings />;
+        }
+        return undefined;
+
+      default:
+        return undefined;
+    }
+  };
+
+  // ─── Build add-on content per tab ──────────────────────────────────────────
+
+  const buildAddOnContent = () => {
+    if (!activeSection) return undefined;
+
+    switch (activeSection) {
+      case "services":
+        if (servicesAddOns.addOnItems.length > 0) {
+          return <AddOnGroup items={servicesAddOns.addOnItems} onEnable={servicesAddOns.enableAddOn} />;
+        }
+        return undefined;
+
+      case "operations":
+        if (operationsAddOnItems.length > 0) {
+          return <AddOnGroup items={operationsAddOnItems} onEnable={operationsEnableAddOn} />;
+        }
+        return undefined;
+
+      case "training":
+        if (knowledgeAddOns.addOnItems.length > 0) {
+          return <AddOnGroup items={knowledgeAddOns.addOnItems} onEnable={knowledgeAddOns.enableAddOn} />;
+        }
+        return undefined;
+
+      default:
+        return undefined;
+    }
+  };
+
+  // ─── Resolve usedByAI + guidance for active item ───────────────────────────
+
+  const activeUsedByAI = activeItemId ? getUsedByAI(activeItemId) : undefined;
+  const activeGuidance = activeItemId ? getSectionGuidance(activeItemId) : undefined;
+
+  // ─── Render ────────────────────────────────────────────────────────────────
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Main Content */}
       <main className="flex-1">
-        <div className="container max-w-3xl py-6 px-4 sm:px-6">
+        <div className="container max-w-6xl py-8 px-4 sm:px-6 lg:px-8">
           {/* HIPAA Warning */}
           {hipaaMode && <HIPAAWarning className="mb-4" />}
 
@@ -339,8 +475,21 @@ export default function BusinessBrainPage() {
               </motion.div>
             )}
 
-            {/* ═══ SECTION DETAIL VIEWS ═══ */}
-            {activeSection && currentCategory && (
+            {/* ═══ INTELLIGENCE (bypasses sidebar layout) ═══ */}
+            {activeSection === "intelligence" && currentCategory && (
+              <motion.div
+                key="section-intelligence"
+                variants={pageVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+              >
+                <IntelligenceDashboard businessMode={businessMode} />
+              </motion.div>
+            )}
+
+            {/* ═══ SECTION DETAIL VIEWS (sidebar + content) ═══ */}
+            {activeSection && activeSection !== "intelligence" && currentCategory && (
               <motion.div
                 key={`section-${activeSection}`}
                 variants={pageVariants}
@@ -348,36 +497,24 @@ export default function BusinessBrainPage() {
                 animate="animate"
                 exit="exit"
               >
-                <BrainSectionDetailWrapper
+                <BrainSectionDetailHost
                   activeSection={activeSection}
                   currentCategory={currentCategory}
                   onBack={() => handleSectionChange("")}
                   onNavigate={handleSectionChange}
-                  // Pass down all props needed for section content
-                  tenant={tenant}
+                  activeItemId={activeItemId}
+                  onItemChange={handleItemChange}
+                  groups={groups}
+                  statuses={statuses}
+                  activeItem={activeItem}
+                  usedByAI={activeUsedByAI}
+                  guidance={activeGuidance}
+                  bannerContent={buildBannerContent()}
+                  addOnContent={buildAddOnContent()}
                   businessMode={businessMode}
                   caps={caps}
                   isFoodMode={isFoodMode}
                   isDispatchMode={isDispatchMode}
-                  foodAcceptsDelivery={foodAcceptsDelivery}
-                  foodAcceptsCatering={foodAcceptsCatering}
-                  foodNeedsCoverage={foodNeedsCoverage}
-                  summaries={summaries}
-                  terms={terms}
-                  reviewCount={reviewCount}
-                  hoursExpanded={hoursExpanded}
-                  setHoursExpanded={setHoursExpanded}
-                  getSectionGuidance={getSectionGuidance}
-                  getUsedByAI={getUsedByAI}
-                  showBookingDelivery={showBookingDelivery}
-                  showFoodDelivery={showFoodDelivery}
-                  servicesAddOns={servicesAddOns}
-                  coverageAddOns={coverageAddOns}
-                  policiesAddOns={policiesAddOns}
-                  knowledgeAddOns={knowledgeAddOns}
-                  operationsAddOnItems={operationsAddOnItems}
-                  operationsEnableAddOn={operationsEnableAddOn}
-                  handleSectionChange={handleSectionChange}
                 />
               </motion.div>
             )}
@@ -388,71 +525,48 @@ export default function BusinessBrainPage() {
   );
 }
 
-// ─── Section Detail Wrapper ─────────────────────────────────────────────────
-// Extracts the BrainSectionDetail + section-specific content to keep the main
-// component readable. All existing editor trees are preserved verbatim.
+// ─── Section Detail Host ─────────────────────────────────────────────────────
+// Thin wrapper that adds completion stats and renders the editor.
 
-interface SectionDetailWrapperProps {
+interface SectionDetailHostProps {
   activeSection: NewSectionId;
   currentCategory: (typeof BRAIN_CATEGORIES)[number];
   onBack: () => void;
   onNavigate: (section: string) => void;
-  tenant: NonNullable<ReturnType<typeof useAuth>["tenant"]>;
+  activeItemId: string | null;
+  onItemChange: (itemId: string) => void;
+  groups: ReturnType<typeof groupSectionItems>;
+  statuses: ReturnType<typeof useBrainItemStatuses>;
+  activeItem: ReturnType<typeof findItemById> | null;
+  usedByAI?: string[];
+  guidance?: { whyText?: string; whatText?: string; tipText?: string };
+  bannerContent?: React.ReactNode;
+  addOnContent?: React.ReactNode;
   businessMode: ReturnType<typeof useTenantConfig>["businessMode"];
   caps: ReturnType<typeof useCapabilities>;
   isFoodMode: boolean;
   isDispatchMode: boolean;
-  foodAcceptsDelivery: boolean;
-  foodAcceptsCatering: boolean;
-  foodNeedsCoverage: boolean;
-  summaries: ReturnType<typeof useBrainSummaries>;
-  terms: ReturnType<typeof getIndustryTerminology>;
-  reviewCount: number;
-  hoursExpanded: boolean;
-  setHoursExpanded: (v: boolean) => void;
-  getSectionGuidance: (sectionId: string) => Record<string, string | undefined>;
-  getUsedByAI: (cardId: string) => string[] | undefined;
-  showBookingDelivery: boolean;
-  showFoodDelivery: boolean;
-  servicesAddOns: ReturnType<typeof useAddOnSections>;
-  coverageAddOns: ReturnType<typeof useAddOnSections>;
-  policiesAddOns: ReturnType<typeof useAddOnSections>;
-  knowledgeAddOns: ReturnType<typeof useAddOnSections>;
-  operationsAddOnItems: AddOnItem[];
-  operationsEnableAddOn: (item: AddOnItem) => Promise<void>;
-  handleSectionChange: (section: string) => void;
 }
 
-function BrainSectionDetailWrapper({
+function BrainSectionDetailHost({
   activeSection,
   currentCategory,
   onBack,
   onNavigate,
-  tenant,
+  activeItemId,
+  onItemChange,
+  groups,
+  statuses,
+  activeItem,
+  usedByAI,
+  guidance,
+  bannerContent,
+  addOnContent,
   businessMode,
   caps,
   isFoodMode,
   isDispatchMode,
-  foodAcceptsDelivery,
-  foodAcceptsCatering,
-  foodNeedsCoverage,
-  summaries,
-  terms,
-  reviewCount,
-  hoursExpanded,
-  setHoursExpanded,
-  getSectionGuidance,
-  getUsedByAI,
-  showBookingDelivery,
-  showFoodDelivery,
-  servicesAddOns,
-  coverageAddOns,
-  policiesAddOns,
-  knowledgeAddOns,
-  operationsAddOnItems,
-  operationsEnableAddOn,
-  handleSectionChange,
-}: SectionDetailWrapperProps) {
+}: SectionDetailHostProps) {
   const completion = useCategoryCompletion(activeSection);
 
   return (
@@ -461,924 +575,26 @@ function BrainSectionDetailWrapper({
       completion={completion}
       onBack={onBack}
       onNavigate={onNavigate}
-    >
-      <div className="space-y-4">
-        {/* ═══ YOUR BUSINESS ═══ */}
-        {activeSection === "business" && (
-          <>
-            {summaries.completionStats.percentage >= 100 && (
-              <CompletionCelebration
-                enhancements={[
-                  { id: "faqs", label: "Add FAQs", description: "Reduce \"I don't know\" responses", section: "training" },
-                  { id: "objections", label: "Handle objections", description: "Address price pushback", section: "training" },
-                  { id: "documents", label: "Upload documents", description: "Reference materials for AI", section: "training" },
-                ]}
-                onNavigate={handleSectionChange}
-                onGoToDashboard={() => window.location.href = "/app"}
-              />
-            )}
-
-            {summaries.completionStats.percentage < 100 && summaries.completionStats.percentage < 50 && (
-              <BrainSetupBanner
-                steps={[
-                  { id: "business-info", label: "Business Info", section: "business", isComplete: !!tenant?.name },
-                  { id: "hours", label: "Set Hours", section: "business", isComplete: summaries.hours !== "No hours set yet" },
-                  { id: "services", label: `Add ${terms.servicesLabel}`, section: "services", isComplete: summaries.catalog !== "No services added yet" },
-                  { id: "scripts", label: "Greeting Script", section: "ai-voice", isComplete: summaries.scripts !== "Using the default — customize to match your style" },
-                ]}
-                onContinue={handleSectionChange}
-                dismissible
-              />
-            )}
-
-            {summaries.completionStats.percentage < 100 && (
-              <BrainProgressIndicator
-                completedSections={summaries.completionStats.completed}
-                totalSections={summaries.completionStats.total}
-                incompleteItems={summaries.completionStats.incompleteItems}
-                onNavigateToSection={handleSectionChange}
-              />
-            )}
-
-            <EssentialGroup title="Must-Have Setup" description="How your AI introduces your business">
-              <SectionSummaryCard
-                id="business-info"
-                title="About Your Business"
-                icon={Building2}
-                status={tenant?.name ? "complete" : "incomplete"}
-                statusText={summaries.businessInfo}
-                isEssential
-                mode={businessMode}
-                usedByAI={getUsedByAI("business-info")}
-                {...getSectionGuidance("business-info")}
-              >
-                <BusinessProfileEditor />
-              </SectionSummaryCard>
-
-              <SectionSummaryCard
-                id="business-hours"
-                title="Your Hours"
-                icon={Clock}
-                status={summaries.hours !== "No hours set yet" ? "complete" : "incomplete"}
-                statusText={summaries.hours}
-                isEssential
-                mode={businessMode}
-                expanded={hoursExpanded}
-                onExpandedChange={setHoursExpanded}
-                usedByAI={getUsedByAI("business-hours")}
-                {...getSectionGuidance("business-hours")}
-              >
-                <BusinessHoursManager
-                  onSaveComplete={() => setHoursExpanded(false)}
-                />
-              </SectionSummaryCard>
-            </EssentialGroup>
-
-            {caps.isSchedulingBusiness && (
-              <EssentialGroup title="Availability" description="Real-time availability from your calendar">
-                <SectionSummaryCard
-                  id="calendar-sync"
-                  title="Calendar & Availability"
-                  icon={Calendar}
-                  status={summaries.calendar.includes("connected") ? "complete" : "incomplete"}
-                  statusText={summaries.calendar}
-                  mode={businessMode}
-                  defaultExpanded
-                  usedByAI={getUsedByAI("calendar-sync")}
-                  {...getSectionGuidance("calendar-sync")}
-                >
-                  <AvailabilityHub />
-                </SectionSummaryCard>
-              </EssentialGroup>
-            )}
-
-            {tenant?.name && summaries.hours !== "No hours set yet" && (summaries.catalog === "No services added yet") && (
-              <NextStepSuggestion
-                completedSection="business"
-                mode={businessMode}
-                onNavigate={handleSectionChange}
-              />
-            )}
-
-            <AdvancedGroup title="Quick Setup Templates" collapsedDescription="Pre-built templates for common industries">
-              <SectionSummaryCard
-                id="templates"
-                title="Quick Setup Templates"
-                icon={Palette}
-                status="incomplete"
-                statusText="Pre-built setups for common business types"
-                mode={businessMode}
-                usedByAI={getUsedByAI("industry-templates")}
-                {...getSectionGuidance("templates")}
-              >
-                <IndustryTemplateCard />
-              </SectionSummaryCard>
-            </AdvancedGroup>
-          </>
-        )}
-
-        {/* ═══ SERVICES & PRICING ═══ */}
-        {activeSection === "services" && (
-          <>
-            <QuoteReadinessCard />
-
-            <EssentialGroup title="What You Sell" description={isFoodMode ? `Your ${terms.serviceItemLabel}s and service types` : `${terms.servicesLabel} you provide`}>
-              {isFoodMode && (
-                <SectionSummaryCard
-                  id="food-service-types"
-                  title="Service Types"
-                  icon={UtensilsCrossed}
-                  status={foodNeedsCoverage ? "complete" : "incomplete"}
-                  statusText={
-                    foodAcceptsDelivery && foodAcceptsCatering
-                      ? "Delivery & Catering enabled"
-                      : foodAcceptsDelivery
-                      ? "Delivery enabled"
-                      : foodAcceptsCatering
-                      ? "Catering enabled"
-                      : "Dine-in & Pickup only"
-                  }
-                  isEssential
-                  mode={businessMode}
-                >
-                  <FoodServiceTypesEditor />
-                </SectionSummaryCard>
-              )}
-
-              {!isDispatchMode && !isFoodMode && (
-                <SectionSummaryCard
-                  id="pricing-rules"
-                  title="How You Price Things"
-                  icon={DollarSign}
-                  status="incomplete"
-                  statusText={summaries.pricingRules}
-                  mode={businessMode}
-                  usedByAI={getUsedByAI("pricing-rules")}
-                >
-                  <PricingRulesEditor />
-                </SectionSummaryCard>
-              )}
-
-              <SectionSummaryCard
-                id="catalog"
-                title={terms.servicesLabel}
-                icon={Tag}
-                status={summaries.catalog !== "No services added yet" ? "complete" : "incomplete"}
-                statusText={summaries.catalog === "No services added yet" ? `No ${terms.serviceItemLabel}s added yet` : summaries.catalog}
-                isEssential
-                mode={businessMode}
-                usedByAI={getUsedByAI("catalog")}
-                {...getSectionGuidance("catalog")}
-              >
-                {isFoodMode ? (
-                  <MenuCatalogEditor />
-                ) : isDispatchMode ? (
-                  <DispatchServiceCatalog />
-                ) : (
-                  <ServiceCatalogEditor />
-                )}
-              </SectionSummaryCard>
-            </EssentialGroup>
-
-            {servicesAddOns.isRelevant("price-modifiers") && (
-              <AdvancedGroup title="Extra Fees & Surcharges" collapsedDescription="Size, urgency, and package pricing">
-                <SectionSummaryCard
-                  id="price-modifiers"
-                  title="Extra Fees & Surcharges"
-                  icon={DollarSign}
-                  status="incomplete"
-                  statusText="Size, urgency, and after-hours rate adjustments"
-                  mode={businessMode}
-                  usedByAI={getUsedByAI("price-modifiers")}
-                >
-                  <PriceModifiersEditor />
-                </SectionSummaryCard>
-
-                {servicesAddOns.isRelevant("service-packages") && (
-                  <SectionSummaryCard
-                    id="service-packages"
-                    title="Service Packages"
-                    icon={Package}
-                    status="incomplete"
-                    statusText="Discounted bundles and membership plans"
-                    mode={businessMode}
-                    usedByAI={getUsedByAI("service-packages")}
-                  >
-                    <ServicePackagesEditor />
-                  </SectionSummaryCard>
-                )}
-              </AdvancedGroup>
-            )}
-
-            {servicesAddOns.isRelevant("dispatch-pricing") && (
-              <AdvancedGroup title="Dispatch Pricing" collapsedDescription="Equipment fees and distance-based pricing">
-                <SectionSummaryCard
-                  id="dispatch-pricing"
-                  title="Dispatch Fees"
-                  icon={DollarSign}
-                  status="incomplete"
-                  statusText="Equipment, storage, release, and emergency fees"
-                  mode={businessMode}
-                  usedByAI={getUsedByAI("dispatch-pricing")}
-                >
-                  <DispatchPricingEditor />
-                </SectionSummaryCard>
-
-                <SectionSummaryCard
-                  id="distance-basis"
-                  title="Distance Pricing"
-                  icon={Navigation}
-                  status="incomplete"
-                  statusText="How mileage affects your quotes"
-                  mode={businessMode}
-                >
-                  <DistanceBasisSettings />
-                </SectionSummaryCard>
-              </AdvancedGroup>
-            )}
-
-            {servicesAddOns.isRelevant("food-settings") && (
-              <AdvancedGroup title="Order Options" collapsedDescription="Sizes, specials, and delivery settings">
-                <SectionSummaryCard
-                  id="food-settings"
-                  title="Order Settings"
-                  icon={UtensilsCrossed}
-                  status="incomplete"
-                  statusText="Delivery, pickup, and catering configuration"
-                  mode={businessMode}
-                  usedByAI={getUsedByAI("food-settings")}
-                >
-                  <FoodSettingsEditor />
-                </SectionSummaryCard>
-
-                <SectionSummaryCard
-                  id="menu-sizes"
-                  title="Size Options"
-                  icon={Tag}
-                  status="incomplete"
-                  statusText="S/M/L or Personal/Family size variants"
-                  mode={businessMode}
-                  usedByAI={getUsedByAI("menu-sizes")}
-                >
-                  <MenuSizesEditor />
-                </SectionSummaryCard>
-
-                <SectionSummaryCard
-                  id="daily-specials"
-                  title="Specials & Deals"
-                  icon={Lightbulb}
-                  status="incomplete"
-                  statusText="Happy hour, daily specials, limited-time offers"
-                  mode={businessMode}
-                  usedByAI={getUsedByAI("daily-specials")}
-                >
-                  <DailySpecialsEditor />
-                </SectionSummaryCard>
-              </AdvancedGroup>
-            )}
-
-            {servicesAddOns.isRelevant("medical-pricing") && (
-              <AdvancedGroup title="Practice Pricing" collapsedDescription="Insurance, fees, and treatment packages">
-                <SectionSummaryCard
-                  id="medical-pricing"
-                  title="Practice Pricing"
-                  icon={HeartPulse}
-                  status="incomplete"
-                  statusText="Insurance, consultation fees, and payment options"
-                  mode={businessMode}
-                  usedByAI={getUsedByAI("medical-pricing")}
-                >
-                  <MedicalPricingEditor />
-                </SectionSummaryCard>
-
-                <SectionSummaryCard
-                  id="service-packages"
-                  title="Treatment Packages"
-                  icon={Package}
-                  status="incomplete"
-                  statusText="Series treatments and bundled services"
-                  mode={businessMode}
-                >
-                  <ServicePackagesEditor />
-                </SectionSummaryCard>
-              </AdvancedGroup>
-            )}
-
-            <AdvancedGroup title="Other Things You Offer" collapsedDescription={`Additional offerings beyond your core ${terms.serviceItemLabel}s`}>
-              <SectionSummaryCard
-                id="additional-services"
-                title="Other Things You Offer"
-                icon={Wrench}
-                status="incomplete"
-                statusText={`Secondary ${terms.serviceItemLabel}s beyond your core business`}
-                mode={businessMode}
-                usedByAI={getUsedByAI("additional-services")}
-              >
-                <AdditionalServicesEditor />
-              </SectionSummaryCard>
-            </AdvancedGroup>
-
-            {servicesAddOns.addOnItems.length > 0 && (
-              <AddOnGroup items={servicesAddOns.addOnItems} onEnable={servicesAddOns.enableAddOn} />
-            )}
-          </>
-        )}
-
-        {/* ═══ HOW YOU OPERATE ═══ */}
-        {activeSection === "operations" && (
-          <>
-            {(businessMode === "food" || isFoodMode) && !foodNeedsCoverage && (
-              <div className="rounded-lg border bg-muted/30 p-4">
-                <div className="flex items-start gap-3">
-                  <UtensilsCrossed className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Coverage Settings Not Configured</p>
-                    <p className="text-sm text-muted-foreground">
-                      If you offer <strong>delivery</strong> or <strong>catering/private events</strong>, you'll need to configure your coverage area so your AI knows where you can serve.
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleSectionChange("services")}
-                    >
-                      <UtensilsCrossed className="h-4 w-4 mr-2" />
-                      Configure Service Types
-                    </Button>
-                    <p className="text-xs text-muted-foreground pt-2">
-                      Enable Delivery or Catering in <strong>Services &amp; Pricing</strong> and the coverage options will appear here.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <EssentialGroup
-              title="Where You Work"
-              description={`Where your ${terms.teamMemberLabel}s provide ${terms.serviceItemLabel}s`}
-              showBadge={["dispatch", "service"].includes(businessMode) || ((businessMode === "food" || isFoodMode) && foodNeedsCoverage)}
-            >
-              {(businessMode !== "food" && !isFoodMode) || foodNeedsCoverage ? (
-                <>
-                  <SectionSummaryCard
-                    id="coverage"
-                    title="Your Service Area"
-                    icon={MapPin}
-                    status="incomplete"
-                    statusText={summaries.coverage}
-                    isEssential={["dispatch", "service"].includes(businessMode) || foodNeedsCoverage}
-                    mode={businessMode}
-                    usedByAI={getUsedByAI("service-area-settings")}
-                    {...getSectionGuidance("coverage")}
-                  >
-                    <ServiceAreaPreview />
-                    <div className="mt-4">
-                      <ServiceAreaManager />
-                    </div>
-                  </SectionSummaryCard>
-
-                  <SectionSummaryCard
-                    id="travel-times"
-                    title={foodAcceptsDelivery && !foodAcceptsCatering ? "Delivery Times" :
-                           !foodAcceptsDelivery && foodAcceptsCatering ? "Catering Coverage" :
-                           "Arrival Estimates"}
-                    icon={Navigation}
-                    status="incomplete"
-                    statusText={summaries.travelTimes}
-                    mode={businessMode}
-                  >
-                    {isDispatchMode ? <DispatchEtaSection /> : <DistanceEtaSection />}
-                  </SectionSummaryCard>
-                </>
-              ) : null}
-
-              {businessMode === "service" && (
-                <SectionSummaryCard
-                  id="service-coverage"
-                  title="Service Scheduling"
-                  icon={Clock}
-                  status="incomplete"
-                  statusText="Same-day service, travel buffers, and duration settings"
-                  mode={businessMode}
-                >
-                  <ServiceCoverageEditor />
-                </SectionSummaryCard>
-              )}
-
-              {coverageAddOns.isRelevant("dispatch-zones") && (
-                <SectionSummaryCard
-                  id="dispatch-zones"
-                  title="Coverage Zones & ETA"
-                  icon={MapPin}
-                  status="incomplete"
-                  statusText="Distance zones, highway coverage, and ETA rules"
-                  mode={businessMode}
-                >
-                  <DispatchCoverageZonesEditor />
-                </SectionSummaryCard>
-              )}
-
-              {coverageAddOns.isRelevant("delivery-zones") && foodAcceptsDelivery && (
-                <SectionSummaryCard
-                  id="delivery-zones"
-                  title="Delivery Zones"
-                  icon={Truck}
-                  status="incomplete"
-                  statusText="Delivery areas, fees by zone, and peak hour adjustments"
-                  mode={businessMode}
-                >
-                  <DeliveryZonesEditor />
-                </SectionSummaryCard>
-              )}
-
-              {coverageAddOns.isRelevant("delivery-zones") && foodAcceptsCatering && (
-                <SectionSummaryCard
-                  id="catering-coverage"
-                  title="Catering Coverage"
-                  icon={Users}
-                  status="incomplete"
-                  statusText="Catering service areas and lead time requirements"
-                  mode={businessMode}
-                >
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      Configure how far you'll travel for catering events and minimum lead time requirements.
-                      Your AI will use this to qualify catering inquiries.
-                    </p>
-                    <DistanceEtaSection />
-                  </div>
-                </SectionSummaryCard>
-              )}
-
-              {coverageAddOns.isRelevant("medical-coverage") && (
-                <SectionSummaryCard
-                  id="medical-coverage"
-                  title="Visit Options"
-                  icon={HeartPulse}
-                  status="incomplete"
-                  statusText="Telehealth, home visits, and appointment scheduling"
-                  mode={businessMode}
-                >
-                  <MedicalCoverageEditor />
-                </SectionSummaryCard>
-              )}
-
-              {businessMode === "general" && (
-                <SectionSummaryCard
-                  id="response-times"
-                  title="Response Times"
-                  icon={Phone}
-                  status="incomplete"
-                  statusText="Callback targets and priority zones"
-                  mode={businessMode}
-                >
-                  <ResponseTimeEditor />
-                </SectionSummaryCard>
-              )}
-
-              <SectionSummaryCard
-                id="workload"
-                title="How Busy Are You Right Now?"
-                icon={Gauge}
-                status="incomplete"
-                statusText={summaries.workload}
-                mode={businessMode}
-              >
-                <BusynessRulesEditor />
-              </SectionSummaryCard>
-            </EssentialGroup>
-
-            <EssentialGroup title="Your Business Rules" description={`Rules your AI follows when talking to ${terms.customerLabel}s`}>
-              <SectionSummaryCard
-                id="policies"
-                title="Cancellation, Deposits & Payments"
-                icon={FileText}
-                status={summaries.policies !== "No policies set yet" ? "complete" : "incomplete"}
-                statusText={summaries.policies}
-                mode={businessMode}
-                usedByAI={getUsedByAI("business-policies")}
-                {...getSectionGuidance("policies")}
-              >
-                <BusinessPoliciesEditor />
-              </SectionSummaryCard>
-
-              <SectionSummaryCard
-                id="never-promise"
-                title="What Your AI Should Never Promise"
-                icon={Shield}
-                status={summaries.guardrails !== "No limits set yet" ? "complete" : "incomplete"}
-                statusText={summaries.guardrails}
-                mode={businessMode}
-                usedByAI={getUsedByAI("never-promise")}
-                {...getSectionGuidance("never-promise")}
-              >
-                <AINeverPromiseEditor />
-              </SectionSummaryCard>
-
-              <SectionSummaryCard
-                id="required-questions"
-                title="Info to Collect on Every Call"
-                icon={MessageSquareText}
-                status={summaries.requiredQuestions !== "Not set up yet" && summaries.requiredQuestions !== "No required fields set" ? "complete" : "incomplete"}
-                statusText={summaries.requiredQuestions}
-                mode={businessMode}
-                usedByAI={getUsedByAI("required-questions")}
-                {...getSectionGuidance("required-questions")}
-              >
-                <RequiredQuestionsEditor />
-              </SectionSummaryCard>
-
-              <SectionSummaryCard
-                id="custom-policies"
-                title="Other Rules for Your AI"
-                icon={FileText}
-                status="incomplete"
-                statusText="Additional policies for specific scenarios"
-                mode={businessMode}
-                {...getSectionGuidance("custom-policies")}
-              >
-                <CustomPoliciesEditor />
-
-              </SectionSummaryCard>
-            </EssentialGroup>
-
-            {(showBookingDelivery || showFoodDelivery) && (
-              <AdvancedGroup title="Where Bookings Go" collapsedDescription="Where bookings and orders get sent">
-                {showBookingDelivery && (
-                  <SectionSummaryCard
-                    id="booking-delivery"
-                    title="Where to Send New Bookings"
-                    icon={Send}
-                    status={summaries.bookingDelivery !== "Not set up yet" && summaries.bookingDelivery !== "No delivery method set" ? "complete" : "incomplete"}
-                    statusText={summaries.bookingDelivery}
-                    mode={businessMode}
-                    usedByAI={getUsedByAI("booking-delivery")}
-                    {...getSectionGuidance("booking-delivery")}
-                  >
-                    <BookingDeliverySettings />
-                  </SectionSummaryCard>
-                )}
-
-                {showFoodDelivery && (
-                  <SectionSummaryCard
-                    id="food-settings"
-                    title="How Orders Are Handled"
-                    icon={UtensilsCrossed}
-                    status="incomplete"
-                    statusText={summaries.foodSettings}
-                    mode={businessMode}
-                  >
-                    <FoodOrderSettings />
-                  </SectionSummaryCard>
-                )}
-              </AdvancedGroup>
-            )}
-
-            {policiesAddOns.isRelevant("dispatch-operations") && (
-              <AdvancedGroup title="Dispatch Settings" collapsedDescription="Distance pricing and call routing" defaultCollapsed={false}>
-                <SectionSummaryCard
-                  id="dispatch-settings"
-                  title="Where to Send New Jobs"
-                  icon={Truck}
-                  status={summaries.dispatchSettings !== "Not set up yet" && summaries.dispatchSettings !== "No notifications set" ? "complete" : "incomplete"}
-                  statusText={summaries.dispatchSettings}
-                  mode={businessMode}
-                >
-                  <DispatchDeliverySettings />
-                </SectionSummaryCard>
-
-                <SectionSummaryCard
-                  id="distance-pricing"
-                  title="How You Charge for Distance"
-                  icon={Navigation}
-                  status="incomplete"
-                  statusText="Configure default distance pricing method"
-                  mode={businessMode}
-                >
-                  <DistanceBasisSettings />
-                </SectionSummaryCard>
-
-                <SectionSummaryCard
-                  id="ivr-routing"
-                  title="Call Routing (IVR)"
-                  icon={Phone}
-                  status="incomplete"
-                  statusText="Configure towing vs impound call routing"
-                  mode={businessMode}
-                >
-                  <DispatchIvrSettings />
-                </SectionSummaryCard>
-              </AdvancedGroup>
-            )}
-
-            {policiesAddOns.isRelevant("impound-lot") && (
-              <AdvancedGroup title="Impound Lot" collapsedDescription="Lot details, fees, and release requirements">
-                <SectionSummaryCard
-                  id="impound-lot"
-                  title="Impound Lot Details"
-                  icon={Warehouse}
-                  status="incomplete"
-                  statusText="Lot location, hours, and directions"
-                  mode={businessMode}
-                >
-                  <ImpoundLotEditor />
-                </SectionSummaryCard>
-
-                <SectionSummaryCard
-                  id="impound-fees"
-                  title="Impound Fee Structure"
-                  icon={DollarSign}
-                  status="incomplete"
-                  statusText="Tow fees, storage, and payment methods"
-                  mode={businessMode}
-                >
-                  <ImpoundFeesEditor />
-                </SectionSummaryCard>
-
-                <SectionSummaryCard
-                  id="impound-release"
-                  title="Release Requirements"
-                  icon={FileCheck}
-                  status="incomplete"
-                  statusText="Documents needed to release vehicles"
-                  mode={businessMode}
-                >
-                  <ImpoundReleaseEditor />
-                </SectionSummaryCard>
-              </AdvancedGroup>
-            )}
-
-            {policiesAddOns.isRelevant("hipaa") && (
-              <AdvancedGroup title="HIPAA Compliance" collapsedDescription="HIPAA and data handling settings">
-                <SectionSummaryCard
-                  id="hipaa"
-                  title="HIPAA Compliance"
-                  icon={HeartPulse}
-                  status="warning"
-                  statusText={summaries.hipaa}
-                  mode={businessMode}
-                >
-                  <MedicalHIPAASettings />
-                </SectionSummaryCard>
-              </AdvancedGroup>
-            )}
-
-            {operationsAddOnItems.length > 0 && (
-              <AddOnGroup items={operationsAddOnItems} onEnable={operationsEnableAddOn} />
-            )}
-          </>
-        )}
-
-        {/* ═══ AI PERSONALITY ═══ */}
-        {activeSection === "ai-voice" && (
-          <>
-            {(caps.isServiceBusiness || caps.derivedPrimaryMode === "general") && (
-              <ServiceCallFlowSettings />
-            )}
-
-            <EssentialGroup title="How Your AI Sounds" description="How your AI sounds and what it says">
-              <SectionSummaryCard
-                id="scripts"
-                title="How Your AI Answers the Phone"
-                icon={Mic}
-                status={summaries.scripts !== "Using the default — customize to match your style" ? "complete" : "incomplete"}
-                statusText={summaries.scripts}
-                isEssential
-                mode={businessMode}
-                usedByAI={getUsedByAI("scripts")}
-                {...getSectionGuidance("scripts")}
-              >
-                <AIScriptsEditor />
-              </SectionSummaryCard>
-            </EssentialGroup>
-
-            <AdvancedGroup title="Behind the Scenes" collapsedDescription="Guidelines and learning settings">
-              <SectionSummaryCard
-                id="guidelines"
-                title="Special Instructions for Your AI"
-                icon={BookOpen}
-                status={summaries.guidelines !== "No special instructions yet" ? "complete" : "incomplete"}
-                statusText={summaries.guidelines}
-                mode={businessMode}
-                usedByAI={getUsedByAI("business-rules")}
-                {...getSectionGuidance("guidelines")}
-              >
-                <AIBusinessPolicies />
-              </SectionSummaryCard>
-
-            </AdvancedGroup>
-          </>
-        )}
-
-        {/* ═══ KNOWLEDGE ═══ */}
-        {activeSection === "training" && (
-          <>
-            {reviewCount > 0 && (
-              <SectionSummaryCard
-                id="review"
-                title="Items Needing Your Approval"
-                icon={AlertCircle}
-                status="error"
-                statusText={`${reviewCount} item${reviewCount === 1 ? "" : "s"} need${reviewCount === 1 ? "s" : ""} review`}
-                mode={businessMode}
-                defaultExpanded
-              >
-                <BrainReviewQueue />
-              </SectionSummaryCard>
-            )}
-
-            <EssentialGroup title="Common Customer Questions" description={`Common ${terms.customerLabel} questions and objections`} showBadge={false}>
-              <SectionSummaryCard
-                id="faqs"
-                title="Common Questions & Answers"
-                icon={HelpCircle}
-                status={summaries.faqs !== "No questions added yet — your AI says 'I'm not sure' to unknowns" ? "complete" : "incomplete"}
-                statusText={summaries.faqs}
-                mode={businessMode}
-                usedByAI={getUsedByAI("faqs")}
-                {...getSectionGuidance("faqs")}
-              >
-                <BusinessFAQEditor />
-              </SectionSummaryCard>
-
-              <SectionSummaryCard
-                id="objections"
-                title="When Customers Push Back"
-                icon={MessageCircle}
-                status={summaries.objections !== "No responses set — your AI uses generic replies to pushback" ? "complete" : "incomplete"}
-                statusText={summaries.objections}
-                mode={businessMode}
-                usedByAI={getUsedByAI("objections")}
-                {...getSectionGuidance("objections")}
-              >
-                <BusinessObjectionEditor />
-              </SectionSummaryCard>
-            </EssentialGroup>
-
-            {knowledgeAddOns.isRelevant("food-knowledge") && (
-              <AdvancedGroup title="Food Knowledge" collapsedDescription="Menu details and catering info" defaultCollapsed={false}>
-                <SectionSummaryCard
-                  id="menu-knowledge"
-                  title="Menu Item Details"
-                  icon={UtensilsCrossed}
-                  status="incomplete"
-                  statusText="Detailed descriptions, allergens, and pairings"
-                  mode={businessMode}
-                >
-                  <MenuKnowledgeEditor />
-                </SectionSummaryCard>
-
-                <SectionSummaryCard
-                  id="catering-knowledge"
-                  title="Catering by Event Type"
-                  icon={Tag}
-                  status="incomplete"
-                  statusText="Event-specific requirements and pricing"
-                  mode={businessMode}
-                >
-                  <CateringKnowledgeEditor />
-                </SectionSummaryCard>
-              </AdvancedGroup>
-            )}
-
-            {knowledgeAddOns.isRelevant("dispatch-knowledge") && (
-              <AdvancedGroup title="Dispatch Knowledge" collapsedDescription="Vehicle types and roadside situations" defaultCollapsed={false}>
-                <SectionSummaryCard
-                  id="vehicle-knowledge"
-                  title="Vehicle Requirements"
-                  icon={Truck}
-                  status="incomplete"
-                  statusText="Equipment and procedures by vehicle type"
-                  mode={businessMode}
-                >
-                  <VehicleKnowledgeEditor />
-                </SectionSummaryCard>
-
-                <SectionSummaryCard
-                  id="roadside-knowledge"
-                  title="Roadside Situations"
-                  icon={AlertCircle}
-                  status="incomplete"
-                  statusText="Safety scripts and escalation triggers"
-                  mode={businessMode}
-                >
-                  <RoadsideKnowledgeEditor />
-                </SectionSummaryCard>
-              </AdvancedGroup>
-            )}
-
-            {knowledgeAddOns.isRelevant("medical-knowledge") && (
-              <AdvancedGroup title="Medical Knowledge" collapsedDescription="Symptoms, triage, and insurance info" defaultCollapsed={false}>
-                <SectionSummaryCard
-                  id="symptom-triage"
-                  title="Symptom Triage Scripts"
-                  icon={HeartPulse}
-                  status="incomplete"
-                  statusText="HIPAA-safe responses and escalation rules"
-                  mode={businessMode}
-                >
-                  <SymptomTriageEditor />
-                </SectionSummaryCard>
-
-                <SectionSummaryCard
-                  id="insurance-knowledge"
-                  title="Insurance Carrier Info"
-                  icon={Shield}
-                  status="incomplete"
-                  statusText="Carrier-specific scripts and coverage"
-                  mode={businessMode}
-                >
-                  <InsuranceKnowledgeEditor />
-                </SectionSummaryCard>
-              </AdvancedGroup>
-            )}
-
-            {knowledgeAddOns.isRelevant("product-knowledge") && (
-              <AdvancedGroup title="Service Knowledge" collapsedDescription="Products and materials you use">
-                <SectionSummaryCard
-                  id="product-knowledge"
-                  title="Product & Material Knowledge"
-                  icon={Package}
-                  status="incomplete"
-                  statusText="Products you use and their benefits"
-                  mode={businessMode}
-                >
-                  <ProductKnowledgeEditor />
-                </SectionSummaryCard>
-              </AdvancedGroup>
-            )}
-
-            <AdvancedGroup title="More Options" collapsedDescription="Aftercare, competitors, and seasonal info">
-              <SectionSummaryCard
-                id="aftercare"
-                title="Aftercare Instructions"
-                icon={Heart}
-                status="incomplete"
-                statusText="Post-service care instructions"
-                mode={businessMode}
-              >
-                <AftercareInstructionsEditor />
-              </SectionSummaryCard>
-
-              <SectionSummaryCard
-                id="competitors"
-                title="Competitor Positioning"
-                icon={Users}
-                status="incomplete"
-                statusText="How to respond when competitors are mentioned"
-                mode={businessMode}
-              >
-                <CompetitorKnowledgeEditor />
-              </SectionSummaryCard>
-
-              <SectionSummaryCard
-                id="seasonal"
-                title="Seasonal & Events"
-                icon={Calendar}
-                status="incomplete"
-                statusText="Holiday and event-specific info"
-                mode={businessMode}
-              >
-                <SeasonalKnowledgeEditor />
-              </SectionSummaryCard>
-
-              <SectionSummaryCard
-                id="custom"
-                title="Extra Info for Your AI"
-                icon={Lightbulb}
-                status={summaries.custom !== "Nothing extra added yet" ? "complete" : "incomplete"}
-                statusText={summaries.custom}
-                mode={businessMode}
-                usedByAI={getUsedByAI("custom-knowledge")}
-                {...getSectionGuidance("custom")}
-              >
-                <CustomKnowledgeEditor />
-              </SectionSummaryCard>
-
-              <SectionSummaryCard
-                id="documents"
-                title="Reference Documents"
-                icon={FileUp}
-                status="incomplete"
-                statusText={summaries.documents}
-                mode={businessMode}
-                usedByAI={getUsedByAI("documents")}
-                {...getSectionGuidance("documents")}
-              >
-                <BrainAssetsManager />
-              </SectionSummaryCard>
-            </AdvancedGroup>
-
-            {knowledgeAddOns.addOnItems.length > 0 && (
-              <AddOnGroup items={knowledgeAddOns.addOnItems} onEnable={knowledgeAddOns.enableAddOn} />
-            )}
-          </>
-        )}
-
-        {/* ═══ INTELLIGENCE ═══ */}
-        {activeSection === "intelligence" && (
-          <IntelligenceDashboard businessMode={businessMode} />
-        )}
-      </div>
-    </BrainSectionDetail>
+      activeItemId={activeItemId}
+      onItemChange={onItemChange}
+      groups={groups}
+      statuses={statuses}
+      activeItem={activeItem ?? null}
+      usedByAI={usedByAI}
+      guidance={guidance}
+      bannerContent={bannerContent}
+      addOnContent={addOnContent}
+      editorContent={
+        activeItemId ? (
+          <BrainEditorRenderer
+            itemId={activeItemId}
+            businessMode={businessMode}
+            caps={caps}
+            isFoodMode={isFoodMode}
+            isDispatchMode={isDispatchMode}
+          />
+        ) : null
+      }
+    />
   );
 }

@@ -27,6 +27,23 @@ export { CompletionCelebration } from "./CompletionCelebration";
 export { NextStepSuggestion } from "./NextStepSuggestion";
 export { getModeTheme, getModeGradient, getModeDisplayName, type ModeThemeColors } from "./ModeTheme";
 
+// Sub-section navigation
+export { TabSubNav } from "./TabSubNav";
+export {
+  findSubSectionForCard,
+  getVisibleSubSections,
+  OPERATIONS_SUB_SECTIONS,
+  TRAINING_SUB_SECTIONS,
+  SERVICES_SUB_SECTIONS,
+} from "./tabSubSectionConfig";
+
+// Sidebar + Content Panel layout (Phase 2)
+export { BrainSidebarItem } from "./BrainSidebarItem";
+export { BrainSectionSidebar } from "./BrainSectionSidebar";
+export { BrainMobileItemList } from "./BrainMobileItemList";
+export { BrainContentPanel } from "./BrainContentPanel";
+export { BrainEditorRenderer } from "./BrainEditorRenderer";
+
 // Config exports
 export {
   BRAIN_CATEGORIES,

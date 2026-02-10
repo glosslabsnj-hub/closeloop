@@ -2,12 +2,11 @@
  * BrainDashboard - Dashboard hub showing 5 category cards
  *
  * This is the Level 1 view of the Business Brain. It shows:
- * - Hero header with overall completion
+ * - Editorial micro-label header with overall completion
  * - Suggested next step banner
- * - 5 responsive category cards with per-card progress rings
+ * - 2-col responsive category cards with per-card progress rings
  */
 
-import { Brain } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { BRAIN_CATEGORIES } from "@/components/brain/layout/businessBrainNavConfig";
@@ -86,22 +85,19 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
 
   return (
     <div className="space-y-6">
-      {/* Hero header */}
+      {/* Editorial header */}
       <div className="space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <Brain className="h-5 w-5" />
-          </div>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold tracking-tight">Business Brain</h1>
-            <p className="text-sm text-muted-foreground">Set up your AI receptionist</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Knowledge Base</p>
+            <h1 className="text-2xl font-bold tracking-tight">Business Brain</h1>
           </div>
           <div className="text-right">
             <span className="text-sm font-medium">{overallPercent}%</span>
             <span className="text-xs text-muted-foreground ml-1">complete</span>
           </div>
         </div>
-        <Progress value={overallPercent} className="h-2" />
+        <Progress value={overallPercent} className="h-1" />
       </div>
 
       {/* Suggested next step */}
@@ -122,11 +118,11 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
         />
       )}
 
-      {/* Category cards grid */}
+      {/* Category cards grid — 2-col with more breathing room */}
       <div
         className={cn(
-          "grid gap-4",
-          "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
+          "grid gap-5",
+          "grid-cols-1 sm:grid-cols-2",
         )}
       >
         {[...BRAIN_CATEGORIES]
