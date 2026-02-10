@@ -164,8 +164,11 @@ export function getAgentIdForCapabilities(
   ivrSelection?: string
 ): AgentResolution {
   // If IVR selection provided, route based on selection
+  // NOTE: ivrSelection "1" is ONLY for hybrid IVR (scheduling path).
+  // Dispatch IVR "1" (towing) is handled upstream in twilio-inbound by NOT setting ivrSelection,
+  // allowing capability-based resolution to pick the dispatch agent.
   if (ivrSelection === "1") {
-    // User pressed 1 = Appointment/Scheduling
+    // Hybrid IVR: User pressed 1 = Appointment/Scheduling
     return getAgentIdForMode("service");
   }
   if (ivrSelection === "2") {
