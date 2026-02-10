@@ -320,7 +320,7 @@ function createDispatchJobTool(modeSpecificDescription?: string, isDispatchMode 
       name: "dropoff_address",
       type: "string",
       required: false,
-      description: "Where to tow the vehicle (shop, home, dealer)",
+      description: "Where to take the vehicle/item. REQUIRED if the service says [REQUIRES DROPOFF] (towing, flatbed, transport). Do NOT ask for this on [ON-SITE ONLY] services (jumpstart, lockout, tire change, fuel delivery).",
     });
   }
 

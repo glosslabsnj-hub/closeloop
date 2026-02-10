@@ -7791,6 +7791,7 @@ export type Database = {
           price_amount: number | null
           price_type: Database["public"]["Enums"]["price_type"]
           pricing_config_json: Json | null
+          requires_dropoff: boolean | null
           service_category: string | null
           service_type: string | null
           tenant_id: string
@@ -7810,6 +7811,7 @@ export type Database = {
           price_amount?: number | null
           price_type?: Database["public"]["Enums"]["price_type"]
           pricing_config_json?: Json | null
+          requires_dropoff?: boolean | null
           service_category?: string | null
           service_type?: string | null
           tenant_id: string
@@ -7829,6 +7831,7 @@ export type Database = {
           price_amount?: number | null
           price_type?: Database["public"]["Enums"]["price_type"]
           pricing_config_json?: Json | null
+          requires_dropoff?: boolean | null
           service_category?: string | null
           service_type?: string | null
           tenant_id?: string

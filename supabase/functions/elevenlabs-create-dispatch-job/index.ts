@@ -455,7 +455,7 @@ serve(async (req: Request) => {
       success: true,
       job_number: dispatch.job_number,
       dispatch_id: dispatch.id,
-      message: `Got it — I've submitted your request and our dispatch team is assigning a driver now. Your job number is ${dispatch.job_number}.${etaMessage} You'll get a call or text when they're on the way.`
+      message: `Got it — we've got you in the system and our dispatch team is assigning a driver now.${etaMessage} You'll get a call or text when they're on the way.`
     };
 
     return new Response(JSON.stringify(response), {
