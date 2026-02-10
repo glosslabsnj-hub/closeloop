@@ -5,26 +5,33 @@ import { useCapabilities } from "@/hooks/useCapabilities";
 import { useTerminology } from "@/hooks/useTerminology";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent } from "@/components/ui/card";
 import {
-  Phone, 
-  Calendar, 
+  Phone,
+  Calendar,
   Users,
   UtensilsCrossed,
   Truck,
   Stethoscope,
+  TrendingUp,
+  TrendingDown,
+  ArrowRight,
 } from "lucide-react";
 import { startOfDay, startOfWeek, endOfDay } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface Metric {
   label: string;
   value: number | string;
   icon: React.ElementType;
   href: string;
+  change?: number;
+  changeLabel?: string;
 }
 
 /**
- * MetricsGrid - Clean, scannable business metrics
- * Designed to be glanced at, not studied
+ * MetricsGrid - Stripe-inspired stat cards
+ * Clean, scannable, clickable
  */
 export function MetricsGrid() {
   const navigate = useNavigate();
@@ -125,13 +132,13 @@ export function MetricsGrid() {
     enabled: !!tenant?.id && caps.hasMedicalIntake,
   });
 
-  // Build metrics based on mode
+  // Build metrics
   const getMetrics = (): Metric[] => {
-    const baseMetrics: Metric[] = [
-      { 
-        label: "Calls Today", 
-        value: callsToday, 
-        icon: Phone, 
+    const base: Metric[] = [
+      {
+        label: "Calls Today",
+        value: callsToday,
+        icon: Phone,
         href: "/app/inbox?tab=calls",
       },
     ];
@@ -140,24 +147,24 @@ export function MetricsGrid() {
       case "food":
         return [
           { label: "Orders Today", value: ordersToday, icon: UtensilsCrossed, href: "/app/orders" },
-          ...baseMetrics,
+          ...base,
           { label: "Customers", value: totalCustomers, icon: Users, href: "/app/customers" },
         ];
       case "dispatch":
         return [
-          { label: "Jobs Pending", value: jobsPending, icon: Truck, href: "/app/dispatch" },
-          ...baseMetrics,
+          { label: "Active Jobs", value: jobsPending, icon: Truck, href: "/app/dispatch" },
+          ...base,
           { label: "Customers", value: totalCustomers, icon: Users, href: "/app/customers" },
         ];
       case "medical":
         return [
           { label: "Intakes Today", value: intakesToday, icon: Stethoscope, href: "/app/medical-intake" },
           { label: terms.bookingsMetricLabel, value: bookingsWeek, icon: Calendar, href: "/app/bookings" },
-          ...baseMetrics,
+          ...base,
         ];
       default:
         return [
-          ...baseMetrics,
+          ...base,
           { label: terms.bookingsMetricLabel, value: bookingsWeek, icon: Calendar, href: "/app/bookings" },
           { label: "Customers", value: totalCustomers, icon: Users, href: "/app/customers" },
         ];
@@ -167,25 +174,30 @@ export function MetricsGrid() {
   const metrics = getMetrics();
 
   return (
-    <div className="flex items-center divide-x divide-border/30">
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
       {metrics.slice(0, 3).map((metric) => {
         const Icon = metric.icon;
         return (
-          <div
+          <Card
             key={metric.label}
-            className="flex-1 px-6 first:pl-0 py-3 group cursor-pointer"
+            className="group cursor-pointer hover:shadow-md transition-all duration-200 hover:border-primary/20"
             onClick={() => navigate(metric.href)}
           >
-            <div className="flex items-center gap-1.5 mb-1">
-              <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-              <p className="text-xs font-medium text-muted-foreground">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="h-9 w-9 rounded-xl bg-primary/8 flex items-center justify-center">
+                  <Icon className="h-4 w-4 text-primary" />
+                </div>
+                <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/0 group-hover:text-muted-foreground transition-all" />
+              </div>
+              <p className="text-2xl font-bold tracking-tight tabular-nums text-foreground">
+                {metric.value}
+              </p>
+              <p className="text-xs font-medium text-muted-foreground mt-1">
                 {metric.label}
               </p>
-            </div>
-            <p className="text-2xl font-semibold tracking-tight tabular-nums group-hover:text-primary transition-colors">
-              {metric.value}
-            </p>
-          </div>
+            </CardContent>
+          </Card>
         );
       })}
     </div>

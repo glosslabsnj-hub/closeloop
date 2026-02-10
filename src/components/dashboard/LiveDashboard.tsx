@@ -10,49 +10,32 @@ import { ModeContentArea } from "./ModeContentArea";
 import { MetricsGrid } from "./MetricsGrid";
 import { SoundManager } from "@/components/notifications/SoundManager";
 
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-}
-
 export function LiveDashboard() {
   const { tenant } = useAuth();
   const [copilotOpen, setCopilotOpen] = useState(false);
 
-  const businessName = tenant?.name?.split(' ')[0] || "there";
-  const greeting = getGreeting();
-
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-8 animate-fade-in">
       <SoundManager />
 
-      {/* Header row: greeting + alerts */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h2 className="text-xl font-semibold tracking-tight">
-            {greeting}, <span className="text-foreground">{businessName}</span>
-          </h2>
-          <p className="text-sm text-muted-foreground mt-0.5">Here's what's happening today</p>
-        </div>
-        <UnifiedAlertBanner />
-      </div>
-
-      {/* Agent control — full width, prominent */}
+      {/* ═══ TIER 1: Agent Status Hero ═══ */}
       <AgentControlPanel />
 
-      {/* Attention items */}
+      {/* ═══ TIER 2: Alerts (only when present) ═══ */}
+      <UnifiedAlertBanner />
       <NeedsAttentionBanner />
 
-      {/* Main grid: content + sidebar */}
-      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-        {/* Primary column */}
+      {/* ═══ TIER 3: Key Metrics Strip ═══ */}
+      <MetricsGrid />
+
+      {/* ═══ TIER 4: Main Content Grid ═══ */}
+      <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
+        {/* Primary: Mode-specific operational content */}
         <div className="space-y-6 min-w-0">
           <ModeContentArea />
         </div>
 
-        {/* Sidebar column */}
+        {/* Secondary: Activity + Setup */}
         <div className="space-y-6 min-w-0">
           <LiveActivityFeed />
           <SetupProgressChecklist />
