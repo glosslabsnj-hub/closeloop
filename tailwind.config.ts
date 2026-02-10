@@ -81,16 +81,10 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Glass morphism colors
         glass: {
           DEFAULT: "hsl(var(--glass-bg) / var(--glass-opacity))",
           border: "hsl(var(--glass-border) / var(--glass-border-opacity))",
-        },
-        chart: {
-          "1": "hsl(var(--chart-1))",
-          "2": "hsl(var(--chart-2))",
-          "3": "hsl(var(--chart-3))",
-          "4": "hsl(var(--chart-4))",
-          "5": "hsl(var(--chart-5))",
         },
       },
       borderRadius: {

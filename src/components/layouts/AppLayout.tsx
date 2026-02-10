@@ -6,11 +6,9 @@ import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useCapabilities } from "@/hooks/useCapabilities";
 import { useTerminology } from "@/hooks/useTerminology";
 import { useKnowledgeConflicts } from "@/hooks/useKnowledgeConflicts";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,13 +17,34 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  LayoutDashboard, MessageSquare, Calendar, Settings, LogOut, Bot,
-  Route, FlaskConical, Lock, CreditCard, Truck, UtensilsCrossed, Clock, Cake,
-  Stethoscope, HelpCircle, Search, Menu, X, FileText, BarChart3,
-  Warehouse, Users, AudioWaveform, PanelLeft,
+  LayoutDashboard,
+  MessageSquare,
+  Calendar,
+  Settings,
+  LogOut,
+  Bot,
+  Route,
+  FlaskConical,
+  Lock,
+  CreditCard,
+  Truck,
+  UtensilsCrossed,
+  Clock,
+  Cake,
+  Stethoscope,
+  HelpCircle,
+  Search,
+  Menu,
+  X,
+  FileText,
+  BarChart3,
+  Warehouse,
+  Users,
+  AudioWaveform,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AdminModeSwitcher } from "@/components/admin/AdminModeSwitcher";
 import { AdminTenantSwitcher } from "@/components/admin/AdminTenantSwitcher";
 import { AdminModeSelector } from "@/components/admin/AdminModeSelector";
@@ -38,15 +57,12 @@ interface NavItem {
   label: string;
   icon: React.ElementType;
   badge?: number;
-  separator?: "before";
 }
 
+// Routes that are always accessible (even without subscription)
 const alwaysAccessibleRoutes = ["/app/settings", "/app/go-live"];
 
-const SIDEBAR_WIDTH = 240;
-const SIDEBAR_COLLAPSED_WIDTH = 48;
-const TOPBAR_HEIGHT = 44;
-const AUTO_COLLAPSE_BREAKPOINT = 1280;
+const MAX_VISIBLE_NAV = 8;
 
 function AppLayoutContent() {
   const { user, tenant, effectiveTenant, signOut, loading, hasActiveSubscription, isSuperAdmin } = useAuth();
@@ -56,87 +72,62 @@ function AppLayoutContent() {
   const { unresolvedCount: conflictsCount } = useKnowledgeConflicts();
   const location = useLocation();
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
 
-  const [sidebarExpanded, setSidebarExpanded] = useState(() => {
-    if (typeof window !== "undefined") return window.innerWidth >= AUTO_COLLAPSE_BREAKPOINT;
-    return true;
-  });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const effectiveHasSubscription = isSuperAdmin || hasActiveSubscription;
   const displayTenant = isSuperAdmin ? (effectiveTenant ?? tenant) : tenant;
 
-  // Auto-collapse sidebar on resize
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < AUTO_COLLAPSE_BREAKPOINT) {
-        setSidebarExpanded(false);
-      }
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  // Build nav items
+  // Flatten navigation - no groups, just a clean list
   const navItems = useMemo<NavItem[]>(() => {
     const items: NavItem[] = [
       { href: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { href: "/app/inbox", label: "Inbox", icon: MessageSquare },
     ];
 
-    // Module-gated items — with separator before
-    const moduleItems: NavItem[] = [];
+    // Add enabled modules
     if (enabledModules.includes("booking")) {
-      moduleItems.push({ href: "/app/bookings", label: terms.bookingsPageTitle || "Bookings", icon: Calendar });
+      items.push({ href: "/app/bookings", label: terms.bookingsPageTitle || "Bookings", icon: Calendar });
     }
     if (caps.hasDispatchQueue) {
-      moduleItems.push({ href: "/app/dispatch", label: "Dispatch", icon: Truck });
+      items.push({ href: "/app/dispatch", label: "Dispatch", icon: Truck });
     }
     if (caps.hasImpoundLot) {
-      moduleItems.push({ href: "/app/impound-lot", label: "Impound Lot", icon: Warehouse });
+      items.push({ href: "/app/impound-lot", label: "Impound Lot", icon: Warehouse });
     }
     if (caps.hasFleetManagement) {
-      moduleItems.push({ href: "/app/fleet", label: "Fleet", icon: Users });
+      items.push({ href: "/app/fleet", label: "Fleet", icon: Users });
     }
     if (enabledModules.includes("food_orders")) {
-      moduleItems.push({ href: "/app/orders", label: "Orders", icon: UtensilsCrossed });
+      items.push({ href: "/app/orders", label: "Orders", icon: UtensilsCrossed });
     }
     if (enabledModules.includes("reservations")) {
-      moduleItems.push({ href: "/app/reservations", label: "Reservations", icon: Clock });
+      items.push({ href: "/app/reservations", label: "Reservations", icon: Clock });
     }
     if (enabledModules.includes("catering")) {
-      moduleItems.push({ href: "/app/catering", label: "Catering", icon: Cake });
+      items.push({ href: "/app/catering", label: "Catering", icon: Cake });
     }
     if (enabledModules.includes("medical_intake")) {
-      moduleItems.push({ href: "/app/medical-intake", label: "Patients", icon: Stethoscope });
+      items.push({ href: "/app/medical-intake", label: "Patients", icon: Stethoscope });
     }
-    moduleItems.push({ href: "/app/estimates", label: "Estimates", icon: FileText });
 
-    if (moduleItems.length > 0) {
-      moduleItems[0].separator = "before";
-    }
-    items.push(...moduleItems);
+    // Business features
+    items.push({ href: "/app/estimates", label: "Estimates", icon: FileText });
 
-    // Configure section — with separator
-    const configItems: NavItem[] = [
-      { href: "/app/business-brain", label: "Business Brain", icon: Bot, badge: conflictsCount || undefined, separator: "before" },
-      { href: "/app/integrations", label: "Integrations", icon: Route },
-      { href: "/app/simulator", label: "Test Calls", icon: FlaskConical },
-      { href: "/app/reports/roi", label: "Reports", icon: BarChart3 },
-    ];
-    items.push(...configItems);
+    // Configure items
+    items.push({ href: "/app/business-brain", label: "Business Brain", icon: Bot, badge: conflictsCount || undefined });
+    items.push({ href: "/app/integrations", label: "Integrations", icon: Route });
+    items.push({ href: "/app/simulator", label: "Test Calls", icon: FlaskConical });
+    items.push({ href: "/app/reports/roi", label: "Reports", icon: BarChart3 });
 
     return items;
   }, [enabledModules, caps, terms, conflictsCount]);
 
-  // Footer items (pinned to bottom)
-  const footerItems: NavItem[] = [
-    { href: "/app/settings", label: "Settings", icon: Settings },
-    { href: "/app/help", label: "Help", icon: HelpCircle },
-  ];
+  // Split nav items into visible + overflow
+  const visibleNavItems = navItems.length > MAX_VISIBLE_NAV ? navItems.slice(0, MAX_VISIBLE_NAV - 1) : navItems;
+  const overflowNavItems = navItems.length > MAX_VISIBLE_NAV ? navItems.slice(MAX_VISIBLE_NAV - 1) : [];
 
-  // Mobile bottom nav
+  // Mobile nav - simplified
   const mobileNavItems = useMemo(() => {
     const items: NavItem[] = [
       { href: "/app/dashboard", label: "Home", icon: LayoutDashboard },
@@ -185,8 +176,6 @@ function AppLayoutContent() {
     navigate("/");
   };
 
-  const toggleSidebar = useCallback(() => setSidebarExpanded(prev => !prev), []);
-
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -199,146 +188,118 @@ function AppLayoutContent() {
 
   const isRouteAccessible = effectiveHasSubscription || alwaysAccessibleRoutes.some(route => location.pathname.startsWith(route));
 
-  // ─── Sidebar Nav Link ───
-  const SidebarLink = ({ item }: { item: NavItem }) => {
+  const TopNavLink = ({ item }: { item: NavItem }) => {
     const Icon = item.icon;
-    const isActive = location.pathname === item.href || (item.href !== "/app/dashboard" && location.pathname.startsWith(item.href));
+    const isActive = location.pathname === item.href;
     const isLocked = !effectiveHasSubscription && !alwaysAccessibleRoutes.some(route => item.href.startsWith(route));
 
-    const linkContent = (
+    return (
       <Link
         to={isLocked ? "/app/go-live" : item.href}
         className={cn(
-          "nav-item group",
-          isActive && "nav-item-active",
-          isLocked && "opacity-40 pointer-events-auto",
-          !sidebarExpanded && "justify-center px-0"
+          "relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
+          isActive
+            ? "bg-primary/10 text-foreground"
+            : isLocked
+              ? "text-muted-foreground/30 cursor-not-allowed"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
         )}
       >
-        <Icon className={cn("h-4 w-4 shrink-0", isActive && "text-primary")} strokeWidth={1.75} />
-        {sidebarExpanded && (
-          <>
-            <span className="truncate text-[13px]">{item.label}</span>
-            {item.badge && item.badge > 0 && (
-              <span className="count-badge ml-auto">{item.badge}</span>
-            )}
-            {isLocked && <Lock className="h-3 w-3 ml-auto opacity-40" />}
-          </>
+        <Icon className={cn("h-4 w-4 shrink-0", isActive && "text-primary")} />
+        <span className="truncate">{item.label}</span>
+        {item.badge && item.badge > 0 && (
+          <span className="flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-semibold">
+            {item.badge}
+          </span>
         )}
+        {isLocked && <Lock className="h-3 w-3 opacity-40" />}
       </Link>
     );
-
-    if (!sidebarExpanded) {
-      return (
-        <Tooltip delayDuration={0}>
-          <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-          <TooltipContent side="right" sideOffset={8}>
-            <span className="text-xs">{item.label}</span>
-            {item.badge && item.badge > 0 && (
-              <span className="count-badge ml-2">{item.badge}</span>
-            )}
-          </TooltipContent>
-        </Tooltip>
-      );
-    }
-
-    return linkContent;
   };
-
-  const adminBarHeight = isSuperAdmin ? 40 : 0;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* ─── Super Admin Bar ─── */}
+      {/* Super Admin Bar — slim bar above main nav */}
       {isSuperAdmin && (
         <header className="hidden md:flex fixed top-0 left-0 right-0 z-50 h-10 bg-background/95 backdrop-blur-lg border-b border-border/20 items-center justify-end px-4 gap-3">
           <div className="flex items-center gap-2 text-warning mr-2">
             <FlaskConical className="h-3.5 w-3.5" />
-            <span className="text-micro">Admin Testing</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wider">Admin Testing</span>
           </div>
           <AdminModeSelector />
           <AdminTenantSwitcher />
         </header>
       )}
 
-      {/* ─── Desktop Sidebar ─── */}
-      <aside
-        className={cn(
-          "hidden md:flex fixed left-0 z-40 flex-col border-r border-border/30 bg-sidebar transition-all duration-200 ease-out overflow-hidden",
-          sidebarExpanded ? "w-[240px]" : "w-[48px]"
-        )}
-        style={{
-          top: `${adminBarHeight}px`,
-          height: `calc(100vh - ${adminBarHeight}px)`,
-        }}
-      >
-        {/* Sidebar Header — Logo + tenant */}
-        <div className={cn(
-          "flex items-center shrink-0 border-b border-sidebar-border/50",
-          sidebarExpanded ? "px-4 py-4 gap-3" : "px-0 py-4 justify-center"
-        )}>
+      {/* Desktop Top Navigation Bar */}
+      <header className={cn(
+        "hidden md:flex fixed left-0 right-0 z-40 h-14 bg-background/95 backdrop-blur-lg border-b border-border/20 items-center px-4 gap-4",
+        isSuperAdmin ? "top-10" : "top-0"
+      )}>
+        {/* Left: Logo */}
+        <Link to="/app/dashboard" className="flex items-center gap-2.5 shrink-0 mr-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary shrink-0">
             <AudioWaveform className="h-4 w-4 text-primary-foreground" />
           </div>
-          {sidebarExpanded && (
-            <span className="text-sm font-semibold text-foreground truncate">
-              {displayTenant?.name || BRAND.name}
-            </span>
-          )}
-        </div>
+          <span className="text-sm font-semibold">{displayTenant?.name || BRAND.name}</span>
+        </Link>
 
-        {/* Nav Items */}
-        <nav className="flex-1 overflow-y-auto scrollbar-thin py-2 px-2 space-y-0.5">
-          {navItems.map((item, idx) => (
-            <div key={item.href}>
-              {item.separator === "before" && (
-                <div className={cn("nav-divider", !sidebarExpanded && "mx-1")} />
-              )}
-              <SidebarLink item={item} />
-            </div>
+        {/* Center: Nav links */}
+        <nav className="flex items-center gap-0.5 flex-1 min-w-0 overflow-x-auto scrollbar-thin">
+          {visibleNavItems.map((item) => (
+            <TopNavLink key={item.href} item={item} />
           ))}
+
+          {/* More dropdown for overflow items */}
+          {overflowNavItems.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className={cn(
+                  "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
+                  overflowNavItems.some(i => location.pathname === i.href)
+                    ? "bg-primary/10 text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                )}>
+                  More
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                {overflowNavItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location.pathname === item.href;
+                  return (
+                    <DropdownMenuItem
+                      key={item.href}
+                      onClick={() => navigate(item.href)}
+                      className={cn("cursor-pointer", isActive && "bg-primary/10")}
+                    >
+                      <Icon className={cn("mr-2 h-4 w-4", isActive && "text-primary")} />
+                      {item.label}
+                      {item.badge && item.badge > 0 && (
+                        <span className="ml-auto flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-semibold">
+                          {item.badge}
+                        </span>
+                      )}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </nav>
 
-        {/* Footer — Settings + Help */}
-        <div className="shrink-0 border-t border-sidebar-border/50 py-2 px-2 space-y-0.5">
-          {footerItems.map((item) => (
-            <SidebarLink key={item.href} item={item} />
-          ))}
-        </div>
-      </aside>
-
-      {/* ─── Desktop Top Bar (slim, 44px) ─── */}
-      <header
-        className={cn(
-          "hidden md:flex fixed right-0 z-30 h-[44px] bg-background/80 backdrop-blur-xl border-b border-border/20 items-center px-4 gap-3"
-        )}
-        style={{
-          top: `${adminBarHeight}px`,
-          left: sidebarExpanded ? `${SIDEBAR_WIDTH}px` : `${SIDEBAR_COLLAPSED_WIDTH}px`,
-          transition: "left 200ms ease-out",
-        }}
-      >
-        {/* Collapse toggle */}
-        <button
-          onClick={toggleSidebar}
-          className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
-        >
-          <PanelLeft className="h-4 w-4" />
-        </button>
-
-        <div className="flex-1" />
-
-        {/* Right actions */}
-        <div className="flex items-center gap-1">
-          <button className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/30 transition-colors">
+        {/* Right: Search, Notifications, Avatar */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/30 transition-colors">
             <Search className="h-4 w-4" />
           </button>
           <NotificationBell />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center rounded-full transition-colors hover:bg-muted/30 p-0.5 ml-1">
+              <button className="flex items-center rounded-full transition-colors hover:bg-muted/30 p-1">
                 <Avatar className="h-7 w-7">
-                  <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold">
+                  <AvatarFallback className="bg-primary/20 text-primary text-xs font-semibold">
                     {user.email?.[0].toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
@@ -367,10 +328,15 @@ function AppLayoutContent() {
         </div>
       </header>
 
-      {/* ─── Mobile Header ─── */}
+      {/* Mobile Header */}
       <header className="md:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-background/95 backdrop-blur-lg border-b border-border/20 flex items-center justify-between px-4">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="h-9 w-9">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="h-9 w-9"
+          >
             {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
           <div className="flex items-center gap-2">
@@ -386,7 +352,9 @@ function AppLayoutContent() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
                 <Avatar className="h-7 w-7">
-                  <AvatarFallback className="bg-primary/15 text-primary text-xs">{user.email?.[0].toUpperCase()}</AvatarFallback>
+                  <AvatarFallback className="bg-primary/20 text-primary text-xs">
+                    {user.email?.[0].toUpperCase()}
+                  </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
@@ -396,88 +364,60 @@ function AppLayoutContent() {
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
-                <LogOut className="mr-2 h-4 w-4" /> Sign out
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </header>
 
-      {/* ─── Mobile Slide Menu (hamburger sheet) ─── */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <div className="md:hidden fixed inset-0 z-50">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setMobileMenuOpen(false)}
-            />
-            <motion.aside
-              initial={{ x: -280 }}
-              animate={{ x: 0 }}
-              exit={{ x: -280 }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="absolute left-0 top-0 bottom-0 w-72 bg-background border-r border-border/20 overflow-y-auto"
-            >
-              <div className="p-4 border-b border-border/20 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                    <AudioWaveform className="h-4 w-4 text-primary-foreground" />
-                  </div>
-                  <span className="font-semibold">{displayTenant?.name || BRAND.name}</span>
+      {/* Mobile Slide Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
+          <aside className="absolute left-0 top-0 bottom-0 w-72 bg-background border-r border-border/20 overflow-y-auto">
+            <div className="p-4 border-b border-border/20 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                  <AudioWaveform className="h-4 w-4 text-primary-foreground" />
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)} className="h-8 w-8">
-                  <X className="h-4 w-4" />
-                </Button>
+                <span className="font-semibold">{displayTenant?.name || BRAND.name}</span>
               </div>
-              <nav className="p-3 space-y-0.5">
-                {navItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = location.pathname === item.href;
-                  return (
-                    <div key={item.href}>
-                      {item.separator === "before" && <div className="nav-divider" />}
-                      <Link
-                        to={item.href}
-                        className={cn(
-                          "nav-item",
-                          isActive && "nav-item-active"
-                        )}
-                      >
-                        <Icon className={cn("h-4 w-4", isActive && "text-primary")} strokeWidth={1.75} />
-                        <span className="text-[13px]">{item.label}</span>
-                        {item.badge && item.badge > 0 && (
-                          <span className="count-badge ml-auto">{item.badge}</span>
-                        )}
-                      </Link>
-                    </div>
-                  );
-                })}
-                <div className="nav-divider" />
-                {footerItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = location.pathname === item.href;
-                  return (
-                    <Link
-                      key={item.href}
-                      to={item.href}
-                      className={cn("nav-item", isActive && "nav-item-active")}
-                    >
-                      <Icon className={cn("h-4 w-4", isActive && "text-primary")} strokeWidth={1.75} />
-                      <span className="text-[13px]">{item.label}</span>
-                    </Link>
-                  );
-                })}
-              </nav>
-            </motion.aside>
-          </div>
-        )}
-      </AnimatePresence>
+              <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)} className="h-8 w-8">
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <nav className="p-3 space-y-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    to={item.href}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium",
+                      isActive ? "bg-primary/10 text-foreground" : "text-muted-foreground hover:bg-muted/30"
+                    )}
+                  >
+                    <Icon className={cn("h-[18px] w-[18px]", isActive && "text-primary")} />
+                    {item.label}
+                    {item.badge && item.badge > 0 && (
+                      <span className="ml-auto h-5 min-w-5 px-1.5 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-semibold">
+                        {item.badge}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
+          </aside>
+        </div>
+      )}
 
-      {/* ─── Mobile Bottom Nav ─── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 mobile-nav">
+      {/* Mobile Bottom Nav */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 h-16 bg-background/95 backdrop-blur-lg border-t border-border/20 safe-area-pb">
         <div className="grid grid-cols-5 h-full">
           {mobileNavItems.map((item) => {
             const Icon = item.icon;
@@ -487,11 +427,11 @@ function AppLayoutContent() {
                 key={item.href}
                 to={item.href}
                 className={cn(
-                  "mobile-nav-item",
-                  isActive && "mobile-nav-item-active"
+                  "flex flex-col items-center justify-center gap-0.5",
+                  isActive ? "text-primary" : "text-muted-foreground"
                 )}
               >
-                <Icon className="h-5 w-5" strokeWidth={isActive ? 2 : 1.75} />
+                <Icon className="h-5 w-5" />
                 <span className="text-[10px] font-medium">{item.label}</span>
               </Link>
             );
@@ -499,22 +439,20 @@ function AppLayoutContent() {
         </div>
       </nav>
 
-      {/* ─── Main Content ─── */}
-      <main
-        className={cn("flex-1 min-h-screen transition-[margin] duration-200 ease-out")}
-        style={{
-          marginLeft: isMobile ? 0 : (sidebarExpanded ? SIDEBAR_WIDTH : SIDEBAR_COLLAPSED_WIDTH),
-          paddingTop: isMobile ? 56 : (adminBarHeight + TOPBAR_HEIGHT),
-          paddingBottom: isMobile ? 72 : 0,
-        }}
-      >
+      {/* Main Content */}
+      <main className={cn(
+        "flex-1 min-h-screen",
+        isSuperAdmin ? "md:pt-24" : "md:pt-14", // top nav bar height (+ admin bar if super admin)
+        "pt-14", // Mobile header
+        "pb-16 md:pb-0" // Mobile bottom nav
+      )}>
         {isRouteAccessible ? (
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={location.pathname}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0, transition: { duration: 0.2, ease: [0.16, 1, 0.3, 1] } }}
-              exit={{ opacity: 0, transition: { duration: 0.1 } }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0, transition: { duration: 0.2, ease: "easeOut" } }}
+              exit={{ opacity: 0, y: -4, transition: { duration: 0.15 } }}
             >
               <Outlet />
             </motion.div>
@@ -527,7 +465,9 @@ function AppLayoutContent() {
                   <Lock className="h-7 w-7 text-muted-foreground" />
                 </div>
                 <CardTitle>Subscription Required</CardTitle>
-                <CardDescription className="mt-2">Choose a plan to unlock all features.</CardDescription>
+                <CardDescription className="mt-2">
+                  Choose a plan to unlock all features.
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <Button onClick={() => navigate("/app/go-live")} className="w-full" size="lg">
