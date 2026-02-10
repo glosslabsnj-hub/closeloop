@@ -1,67 +1,47 @@
 
-# Fix: Dispatch IVR Routing to Wrong Agent
 
-## Root Cause
+# Simplify Dispatch Service Pricing + Fix Food Settings Bug
 
-The `getAgentIdForCapabilities()` function in `agentResolver.ts` treats IVR selection "1" as "service/scheduling" universally. But the dispatch-specific IVR has different semantics:
+## Two Issues
 
-- **Hybrid IVR**: 1 = Schedule appointment, 2 = Immediate/dispatch
-- **Dispatch IVR**: 1 = Towing/roadside (dispatch), 2 = Impound lot
+### 1. Food "Order Settings" showing in Dispatch mode (Bug)
+The "Order Settings" item appears under the Services tab even for dispatch-only tenants. This is a visibility bug in how section relevance is merged across tabs. When checking if `food-settings` is relevant, the system asks each tab's add-on hook. The services tab correctly says "no" (not a food business), but the coverage tab has no rule for `food-settings` at all, so it defaults to "yes" (no rule = always relevant). Since the merge uses OR logic, the section incorrectly shows up.
 
-When Hawks Towing's caller presses 1, they get routed to the Service agent instead of the Dispatch agent. The Service agent doesn't know how to do dispatch intake, doesn't collect pickup addresses, and creates broken jobs.
+**Fix:** Change the merged `isRelevant` function to only return `true` if a section explicitly has a rule AND passes it, rather than defaulting to `true` when no rule exists in a different tab's context.
 
-## The Fix
+### 2. Dispatch Service Pricing is Confusing (UX Improvement)
+The current service editor has good building blocks (flat rate, distance-tiered, variable/quote) but the flow needs clearer guidance so a towing business owner can set things up without guessing.
 
-### 1. Pass IVR context type to the agent resolver
+**Improvements:**
+- Add a plain-English summary at the top of each pricing model explaining what it means in towing terms
+- Add real-world towing examples inline (e.g., "Lockout: Flat $85" or "Local Tow: $125 base + $5/mile after 10 miles")
+- Show a live "What the AI will quote" preview that updates as they fill in the pricing, using actual scenario examples (e.g., "A 15-mile tow would be quoted at $150")
+- Add a "Common Setups" quick-action section at the top of pricing that lets owners pick from typical towing pricing patterns:
+  - Flat rate (same price regardless)
+  - Base + per mile (e.g., $125 + $5/mi after included miles)
+  - Distance tiers (different rates for local vs. long-distance)
+  - Quote required (owner calls back with price)
+- Improve the distance tier UI with clearer labels and an automatic "catch-all" tier suggestion
 
-**File**: `supabase/functions/twilio-inbound/index.ts`
+## Technical Details
 
-Instead of passing raw `ivrSelection` to `getAgentIdForCapabilities`, pass the **resolved mode** directly so the dispatch IVR "1" maps to dispatch, not service.
+### Files Modified
 
-Change the dispatch IVR routing block (lines 338-350) so that when `dispatchIvrMode === "ivr_routing"` and `digits === "1"`, the `ivrSelection` is NOT set (letting it fall through to capability-based dispatch resolution), or explicitly set the resolved agent mode.
+**Bug Fix:**
+- `src/pages/app/BusinessBrainPage.tsx` (lines ~178-184): Change `isRelevant` merge logic. Instead of OR-ing all tabs (where missing rules default to true), only return true if the section's owning tab confirms it.
 
-Specifically:
-- Dispatch IVR digit "1" (towing) should resolve to dispatch agent directly
-- Dispatch IVR digit "2" (impound) should resolve to impound agent (already works)
-- Hybrid IVR digits remain unchanged
+**UX Improvements:**
+- `src/components/brain/dispatch/DispatchServiceEditor.tsx`: 
+  - Add scenario-based pricing examples that update live as the owner configures pricing
+  - Add helper text explaining each pricing model in plain English with towing examples
+  - Improve the distance tier section with better labels, auto-suggest for open-ended tiers, and inline example calculations
+  - Show a "Sample Quote" card that computes what the AI would say for a 5-mile, 15-mile, and 30-mile job based on current settings
 
-```text
-// Current (BROKEN):
-if (dispatchIvrMode === "ivr_routing" && digits) {
-    ivrSelection = digits; // "1" → service agent (WRONG)
-}
+- `src/types/dispatchPricing.ts`: Update `generatePricingSummary` to produce richer example scenarios with actual dollar amounts for multiple distances
 
-// Fixed:
-if (dispatchIvrMode === "ivr_routing" && digits === "1") {
-    // Dispatch IVR "1" = towing/roadside → dispatch agent (not service)
-    ivrSelection = undefined; // Let capability-based resolution pick dispatch
-} else if (dispatchIvrMode === "ivr_routing" && digits === "2") {
-    ivrSelection = "2"; // Impound agent
-}
-```
+### No Database Changes
+All changes are frontend-only. The existing `pricing_config_json` schema in the services table already supports all the pricing models needed.
 
-### 2. Update `getAgentIdForCapabilities` to accept a mode hint
+### No Edge Function Changes
+The backend pricing engine (`check_service_area`, `elevenlabs-create-dispatch-job`) already reads and applies these pricing configs correctly. This is purely about making the setup UI clearer for the business owner.
 
-**File**: `supabase/functions/_shared/agentResolver.ts`
-
-Add a comment clarifying that `ivrSelection === "1"` is ONLY for hybrid IVR (scheduling path). This is already correct for hybrid -- the fix is in twilio-inbound not sending "1" for dispatch IVR calls.
-
-No code change needed here, just documentation.
-
-### 3. Redeploy edge functions
-
-Redeploy `twilio-inbound` so the fix takes effect immediately.
-
-## Files Changed
-
-| File | Change |
-|------|--------|
-| `supabase/functions/twilio-inbound/index.ts` | Fix dispatch IVR digit "1" routing to use dispatch agent instead of service |
-
-## Impact
-
-- Hawks Towing calls will immediately route to the correct Dispatch agent
-- The dispatch agent will properly collect pickup addresses, ask about drop-off for towing, and create dispatch jobs
-- Impound IVR routing (digit "2") is unaffected
-- Hybrid IVR routing for non-dispatch tenants is unaffected
-- No database changes needed
