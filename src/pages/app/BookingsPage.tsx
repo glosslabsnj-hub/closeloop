@@ -3,23 +3,17 @@ import { AnimatedList, AnimatedListItem } from "@/components/ui/animated";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Calendar as CalendarIcon, Plus, Loader2, List, Search } from "lucide-react";
+import { FilterBar } from "@/components/patterns/FilterBar";
+import { ContentLoadingState } from "@/components/patterns/ContentLoadingState";
+import { Calendar as CalendarIcon, Plus } from "lucide-react";
 import { ScheduleCalendar } from "@/components/calendar/ScheduleCalendar";
 import { CreateBookingDialog } from "@/components/calendar/CreateBookingDialog";
 import { useBookings } from "@/hooks/useBookings";
 import { BookingCard } from "@/components/bookings/BookingCard";
 import { EmptyState } from "@/components/ui/empty-state";
+import type { ViewMode } from "@/components/patterns/FilterBar";
 import type { ScheduleEvent } from "@/hooks/useScheduleData";
 
 export default function BookingsPage() {
@@ -64,9 +58,9 @@ export default function BookingsPage() {
 
   if (moduleLoading || !isAllowed || isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
+      <PageContainer maxWidth="xl">
+        <ContentLoadingState variant="list" count={6} />
+      </PageContainer>
     );
   }
 
@@ -85,44 +79,31 @@ export default function BookingsPage() {
           }
         />
 
-        {/* View toggle + filters */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "calendar")}>
-            <TabsList>
-              <TabsTrigger value="list">
-                <List className="w-4 h-4 mr-2" /> List
-              </TabsTrigger>
-              <TabsTrigger value="calendar">
-                <CalendarIcon className="w-4 h-4 mr-2" /> Calendar
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          <div className="flex items-center gap-2">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-36">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="pending_deposit">Pending</SelectItem>
-                <SelectItem value="confirmed">Confirmed</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="canceled">Cancelled</SelectItem>
-                <SelectItem value="no_show">No Show</SelectItem>
-              </SelectContent>
-            </Select>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search..."
-                className="w-44 pl-9 h-9"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
+        {/* Filters */}
+        <FilterBar
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder="Search bookings..."
+          filters={[
+            {
+              key: "status",
+              label: "Status",
+              options: [
+                { value: "all", label: "All Statuses" },
+                { value: "pending_deposit", label: "Pending" },
+                { value: "confirmed", label: "Confirmed" },
+                { value: "completed", label: "Completed" },
+                { value: "canceled", label: "Cancelled" },
+                { value: "no_show", label: "No Show" },
+              ],
+              value: statusFilter,
+              onChange: setStatusFilter,
+            },
+          ]}
+          viewModes={["list", "calendar"]}
+          activeViewMode={viewMode}
+          onViewModeChange={(mode) => setViewMode(mode as "list" | "calendar")}
+        />
 
         {/* Content */}
         {viewMode === "calendar" ? (

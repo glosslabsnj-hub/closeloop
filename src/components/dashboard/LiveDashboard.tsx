@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { AgentControlPanel } from "./AgentControlPanel";
-import { NeedsAttentionBanner } from "./NeedsAttentionBanner";
+import { AgentStatusStrip } from "./AgentStatusStrip";
+import { AlertBanner } from "./AlertBanner";
+import { TodayBriefing } from "./TodayBriefing";
+import { MetricsStrip } from "./MetricsStrip";
 import { LiveActivityFeed } from "./LiveActivityFeed";
-import { UnifiedAlertBanner } from "./UnifiedAlertBanner";
 import { Copilot, CopilotTrigger } from "./Copilot";
-import { SetupProgressChecklist } from "./SetupProgressChecklist";
-import { ModeContentArea } from "./ModeContentArea";
 import { SoundManager } from "@/components/notifications/SoundManager";
 
 function getGreeting(): string {
@@ -16,16 +15,26 @@ function getGreeting(): string {
   return "Good evening";
 }
 
+/**
+ * LiveDashboard — The "Morning Briefing" layout.
+ *
+ * 5-layer hierarchy (each full width, stacked vertically):
+ *   Layer 0: AgentStatusStrip — compact AI on/off toggle
+ *   Layer 1: AlertBanner — single highest-priority system alert
+ *   Layer 2: TodayBriefing — actionable items needing attention
+ *   Layer 3: MetricsStrip — 3 key business metrics
+ *   Layer 4: LiveActivityFeed — real-time event stream
+ *   + Copilot FAB in bottom-right corner
+ */
 export function LiveDashboard() {
   const { tenant } = useAuth();
   const [copilotOpen, setCopilotOpen] = useState(false);
 
-  const businessName = tenant?.name?.split(' ')[0] || "there";
+  const businessName = tenant?.name?.split(" ")[0] || "there";
   const greeting = getGreeting();
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Audio notification manager */}
       <SoundManager />
 
       {/* Page Header */}
@@ -34,31 +43,24 @@ export function LiveDashboard() {
           {greeting}, {businessName}
         </h1>
         <p className="mt-1 text-muted-foreground">
-          Here's what's happening with your AI receptionist today.
+          Here's what's happening today.
         </p>
       </header>
 
-      {/* Alerts - Only show if there are issues */}
-      <UnifiedAlertBanner />
+      {/* Layer 0: Agent Status Strip */}
+      <AgentStatusStrip />
 
-      {/* Attention Items */}
-      <NeedsAttentionBanner />
+      {/* Layer 1: Critical Alerts (renders nothing if no alerts) */}
+      <AlertBanner />
 
-      {/* Agent Control - Most prominent element */}
-      <AgentControlPanel />
+      {/* Layer 2: Today's Briefing */}
+      <TodayBriefing />
 
-      {/* Mode-specific dashboard content */}
-      <ModeContentArea />
+      {/* Layer 3: Metrics Strip */}
+      <MetricsStrip />
 
-      {/* Activity & Setup */}
-      <div className="grid gap-6 lg:grid-cols-5">
-        <div className="lg:col-span-3 min-h-0">
-          <LiveActivityFeed />
-        </div>
-        <div className="lg:col-span-2 min-h-0">
-          <SetupProgressChecklist />
-        </div>
-      </div>
+      {/* Layer 4: Activity Feed (full width) */}
+      <LiveActivityFeed />
 
       {/* Copilot FAB */}
       <div className="fixed bottom-6 right-6 z-30 md:bottom-8 md:right-8">

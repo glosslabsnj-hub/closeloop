@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTerminology } from "@/hooks/useTerminology";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,8 +31,27 @@ export default function SettingsPage() {
   const isDispatchEnabled = useModuleEnabled("dispatch_queue");
   const isMedicalMode = useModuleEnabled("medical_intake");
 
-  // Default to first available section
-  const [activeSection, setActiveSection] = useState("team");
+  // Support deep-linking via ?section= URL param
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sectionParam = searchParams.get("section");
+
+  const validSections = ["team", "plan", "revenue", "data-privacy", "alerts", "integrations", "automation", "developer", "danger", "recovery"];
+  const [activeSection, setActiveSection] = useState(
+    sectionParam && validSections.includes(sectionParam) ? sectionParam : "team"
+  );
+
+  // Sync URL param → state
+  useEffect(() => {
+    if (sectionParam && validSections.includes(sectionParam) && sectionParam !== activeSection) {
+      setActiveSection(sectionParam);
+    }
+  }, [sectionParam]);
+
+  // Sync state → URL param
+  const handleSectionChange = (section: string) => {
+    setActiveSection(section);
+    setSearchParams({ section }, { replace: true });
+  };
 
   // Navigation config based on enabled modules and business mode
   const isDispatchMode = isDispatchEnabled && !isBookingEnabled && !isFoodMode;
@@ -187,7 +207,7 @@ export default function SettingsPage() {
       {/* Desktop Sidebar */}
       <SettingsSidebar
         activeSection={activeSection}
-        onSectionChange={setActiveSection}
+        onSectionChange={handleSectionChange}
         config={navConfig}
       />
 
@@ -199,7 +219,7 @@ export default function SettingsPage() {
           <div className="md:hidden mb-4">
             <MobileSettingsNav
               activeSection={activeSection}
-              onSectionChange={setActiveSection}
+              onSectionChange={handleSectionChange}
               config={navConfig}
             />
           </div>

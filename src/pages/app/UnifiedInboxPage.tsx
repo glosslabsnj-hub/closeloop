@@ -4,26 +4,18 @@
  import { useAuth } from "@/contexts/AuthContext";
  import { supabase } from "@/integrations/supabase/client";
  import { useLeads } from "@/hooks/useLeads";
- import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
- import { Input } from "@/components/ui/input";
- import { Badge } from "@/components/ui/badge";
  import { PageContainer } from "@/components/layout/PageContainer";
  import { PageHeader } from "@/components/layout/PageHeader";
+ import { FilterBar } from "@/components/patterns/FilterBar";
+ import { ContentLoadingState } from "@/components/patterns/ContentLoadingState";
  import { EmptyState } from "@/components/ui/empty-state";
- import {
-   Select,
-   SelectContent,
-   SelectItem,
-   SelectTrigger,
-   SelectValue,
- } from "@/components/ui/select";
- import { Phone, Users, Search, Inbox, Loader2 } from "lucide-react";
+ import { Phone, Users, Inbox } from "lucide-react";
  import { InboxCallCard } from "@/components/calls/InboxCallCard";
  import { CallDetailPanel } from "@/components/calls/CallDetailPanel";
  import { LeadCard } from "@/components/leads/LeadCard";
- 
+
  type TabValue = "calls" | "leads";
- 
+
  interface CallSession {
    id: string;
    started_at: string;
@@ -42,7 +34,7 @@
      phone_e164: string;
    } | null;
  }
- 
+
  // Helper to extract customer name from call data
  function getCustomerName(call: CallSession): string {
    if (call.customer?.full_name && call.customer.full_name !== "Unknown") {
@@ -60,40 +52,40 @@
    }
    return "Unknown Caller";
  }
- 
+
  export default function UnifiedInboxPage() {
    const { tenant } = useAuth();
    const queryClient = useQueryClient();
    const [searchParams, setSearchParams] = useSearchParams();
    const tabParam = searchParams.get("tab");
- 
+
    // Tab state
    const isValidTab = (t: string | null): t is TabValue =>
      t === "calls" || t === "leads";
    const [activeTab, setActiveTab] = useState<TabValue>(
      isValidTab(tabParam) ? tabParam : "calls"
    );
- 
+
    // Search and filter
    const [searchQuery, setSearchQuery] = useState("");
    const [outcomeFilter, setOutcomeFilter] = useState("all");
- 
+
    // Selected call for detail panel
    const [selectedCall, setSelectedCall] = useState<CallSession | null>(null);
- 
+
    // Sync URL with tab state
    useEffect(() => {
      if (tabParam !== activeTab) {
        setSearchParams({ tab: activeTab }, { replace: true });
      }
    }, [activeTab, tabParam, setSearchParams]);
- 
+
    useEffect(() => {
      if (isValidTab(tabParam) && tabParam !== activeTab) {
        setActiveTab(tabParam);
      }
    }, [tabParam]);
- 
+
    // Realtime subscription for calls
    useEffect(() => {
      if (!tenant?.id) return;
@@ -109,7 +101,7 @@
        .subscribe();
      return () => { supabase.removeChannel(channel); };
    }, [tenant?.id, queryClient]);
- 
+
    // Fetch calls
    const { data: calls, isLoading: callsLoading } = useQuery({
      queryKey: ["inbox_calls", tenant?.id],
@@ -135,10 +127,10 @@
      },
      enabled: !!tenant?.id,
    });
- 
+
    // Leads
    const { leads, isLoading: leadsLoading, stats: leadStats } = useLeads();
- 
+
    // Filter calls
    const filteredCalls = useMemo(() => {
      if (!calls) return [];
@@ -152,7 +144,7 @@
        return matchesSearch && matchesOutcome;
      });
    }, [calls, searchQuery, outcomeFilter]);
- 
+
    // Filter leads
    const filteredLeads = useMemo(() => {
      if (!leads) return [];
@@ -165,11 +157,11 @@
        return matchesSearch;
      });
    }, [leads, searchQuery]);
- 
+
    // Count unread/new items
    const newCallsCount = calls?.filter((c) => !c.outcome || c.outcome === "followup").length || 0;
    const newLeadsCount = leadStats?.new || 0;
- 
+
    const handleTabChange = (value: string) => {
      if (isValidTab(value)) {
        setActiveTab(value);
@@ -177,7 +169,7 @@
        setOutcomeFilter("all");
      }
    };
- 
+
    return (
      <PageContainer maxWidth="xl">
        <PageHeader
@@ -185,62 +177,43 @@
          title="Inbox"
          description="All your calls and leads in one place."
        />
- 
-       <Tabs value={activeTab} onValueChange={handleTabChange}>
-         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-           <TabsList>
-             <TabsTrigger value="calls" className="gap-2">
-               <Phone className="h-4 w-4" />
-               Calls
-               {newCallsCount > 0 && (
-                 <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                   {newCallsCount}
-                 </Badge>
-               )}
-             </TabsTrigger>
-             <TabsTrigger value="leads" className="gap-2">
-               <Users className="h-4 w-4" />
-               Leads
-               {newLeadsCount > 0 && (
-                 <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                   {newLeadsCount}
-                 </Badge>
-               )}
-             </TabsTrigger>
-           </TabsList>
- 
-           <div className="flex items-center gap-2">
-             <div className="relative flex-1 sm:w-64">
-               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-               <Input
-                 placeholder="Search..."
-                 className="pl-10"
-                 value={searchQuery}
-                 onChange={(e) => setSearchQuery(e.target.value)}
-               />
-             </div>
-             {activeTab === "calls" && (
-               <Select value={outcomeFilter} onValueChange={setOutcomeFilter}>
-                 <SelectTrigger className="w-32">
-                   <SelectValue placeholder="Outcome" />
-                 </SelectTrigger>
-                 <SelectContent>
-                   <SelectItem value="all">All</SelectItem>
-                   <SelectItem value="booked">Booked</SelectItem>
-                   <SelectItem value="followup">Follow-up</SelectItem>
-                   <SelectItem value="lost">Lost</SelectItem>
-                   <SelectItem value="escalated">Escalated</SelectItem>
-                 </SelectContent>
-               </Select>
-             )}
-           </div>
-         </div>
- 
-         <TabsContent value="calls" className="mt-6">
-           {callsLoading ? (
-             <div className="flex items-center justify-center py-12">
-               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-             </div>
+
+       <div className="space-y-6 mt-6">
+         <FilterBar
+           tabs={[
+             { value: "calls", label: "Calls", icon: Phone, count: newCallsCount || undefined },
+             { value: "leads", label: "Leads", icon: Users, count: newLeadsCount || undefined },
+           ]}
+           activeTab={activeTab}
+           onTabChange={handleTabChange}
+           searchValue={searchQuery}
+           onSearchChange={setSearchQuery}
+           searchPlaceholder={activeTab === "calls" ? "Search calls..." : "Search leads..."}
+           filters={
+             activeTab === "calls"
+               ? [
+                   {
+                     key: "outcome",
+                     label: "Outcome",
+                     options: [
+                       { value: "all", label: "All" },
+                       { value: "booked", label: "Booked" },
+                       { value: "followup", label: "Follow-up" },
+                       { value: "lost", label: "Lost" },
+                       { value: "escalated", label: "Escalated" },
+                     ],
+                     value: outcomeFilter,
+                     onChange: setOutcomeFilter,
+                   },
+                 ]
+               : []
+           }
+         />
+
+         {/* Content */}
+         {activeTab === "calls" ? (
+           callsLoading ? (
+             <ContentLoadingState variant="list" count={6} />
            ) : filteredCalls.length === 0 ? (
               <EmptyState
                 icon={Phone}
@@ -258,14 +231,10 @@
                  />
                ))}
              </div>
-           )}
-         </TabsContent>
- 
-         <TabsContent value="leads" className="mt-6">
-           {leadsLoading ? (
-             <div className="flex items-center justify-center py-12">
-               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-             </div>
+           )
+         ) : (
+           leadsLoading ? (
+             <ContentLoadingState variant="list" count={6} />
            ) : filteredLeads.length === 0 ? (
              <EmptyState
                icon={Users}
@@ -278,10 +247,10 @@
                  <LeadCard key={lead.id} lead={lead} />
                ))}
              </div>
-           )}
-         </TabsContent>
-       </Tabs>
- 
+           )
+         )}
+       </div>
+
        {/* Call Detail Slide-over */}
        <CallDetailPanel
          call={selectedCall}

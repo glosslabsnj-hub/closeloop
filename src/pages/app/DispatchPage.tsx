@@ -7,26 +7,19 @@ import { useModuleRequired } from "@/hooks/useModuleRequired";
 import { Button } from "@/components/ui/button";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Truck, Plus, Loader2, Map, Bell } from "lucide-react";
+import { FilterBar } from "@/components/patterns/FilterBar";
+import { ContentLoadingState } from "@/components/patterns/ContentLoadingState";
+import { Pagination } from "@/components/patterns/Pagination";
+import { ConfirmDialog } from "@/components/patterns/ConfirmDialog";
+import { Truck, Plus, Map, Bell } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DispatchJobCard } from "@/components/dispatch/DispatchJobCard";
 import { DispatchCommandTable } from "@/components/dispatch/DispatchCommandTable";
 import { DispatchCommandStats } from "@/components/dispatch/DispatchCommandStats";
-import { DispatchFilters } from "@/components/dispatch/DispatchFilters";
 import { DispatchJobDetailsSheet } from "@/components/dispatch/DispatchJobDetailsSheet";
 import { AssignJobDialog } from "@/components/dispatch/AssignJobDialog";
 import { CreateDispatchJobDialog } from "@/components/dispatch/CreateDispatchJobDialog";
 import { EmptyState } from "@/components/ui/empty-state";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Link } from "react-router-dom";
 import { toast as sonnerToast } from "sonner";
@@ -330,19 +323,11 @@ export default function DispatchPage() {
     setDetailsOpen(true);
   };
 
-  if (moduleLoading || !isAllowed) {
+  if (moduleLoading || !isAllowed || isLoading) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="p-6 flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <PageContainer maxWidth="full">
+        <ContentLoadingState variant="table" count={8} columns={6} />
+      </PageContainer>
     );
   }
 
@@ -374,16 +359,39 @@ export default function DispatchPage() {
           <DispatchCommandStats jobs={jobs || []} />
 
           {/* Filters */}
-          <DispatchFilters
-            statusFilter={statusFilter}
-            onStatusFilterChange={setStatusFilter}
-            priorityFilter={priorityFilter}
-            onPriorityFilterChange={setPriorityFilter}
-            searchQuery={searchQuery}
+          <FilterBar
+            tabs={[
+              { value: "active", label: "Active" },
+              { value: "pending", label: "Pending" },
+              { value: "assigned", label: "Assigned" },
+              { value: "en_route", label: "En Route" },
+              { value: "on_site", label: "On Site" },
+              { value: "all", label: "All" },
+              { value: "callbacks", label: "Callbacks", icon: Bell, count: pendingCallbacks.length || undefined },
+            ]}
+            activeTab={statusFilter}
+            onTabChange={setStatusFilter}
+            searchValue={searchQuery}
             onSearchChange={setSearchQuery}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            callbackCount={pendingCallbacks.length}
+            searchPlaceholder="Search jobs..."
+            filters={[
+              {
+                key: "priority",
+                label: "Priority",
+                options: [
+                  { value: "all", label: "All Priorities" },
+                  { value: "low", label: "Low" },
+                  { value: "normal", label: "Normal" },
+                  { value: "high", label: "High" },
+                  { value: "urgent", label: "Urgent" },
+                ],
+                value: priorityFilter,
+                onChange: setPriorityFilter,
+              },
+            ]}
+            viewModes={["table", "grid"]}
+            activeViewMode={viewMode}
+            onViewModeChange={(mode) => setViewMode(mode as "table" | "grid")}
           />
 
           {/* Callbacks List */}
@@ -491,30 +499,13 @@ export default function DispatchPage() {
           )}
 
           {/* Pagination */}
-          {totalPages > 1 && statusFilter !== "callbacks" && (
-            <div className="flex items-center justify-between pt-4">
-              <p className="text-sm text-muted-foreground">
-                Showing {page * pageSize + 1}–{Math.min((page + 1) * pageSize, totalCount)} of {totalCount} jobs
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page === 0}
-                  onClick={() => setPage((p) => Math.max(0, p - 1))}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page >= totalPages - 1}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
+          {statusFilter !== "callbacks" && (
+            <Pagination
+              page={page + 1}
+              pageSize={pageSize}
+              totalItems={totalCount}
+              onPageChange={(p) => setPage(p - 1)}
+            />
           )}
         </div>
 
@@ -544,37 +535,24 @@ export default function DispatchPage() {
         />
 
         {/* Confirm destructive status changes */}
-        <AlertDialog
+        <ConfirmDialog
           open={!!confirmAction}
           onOpenChange={(open) => { if (!open) setConfirmAction(null); }}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                {confirmAction?.status === "cancelled" ? "Cancel this job?" : "Mark as completed?"}
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                {confirmAction?.status === "cancelled"
-                  ? `This will cancel job ${confirmAction.job.job_number || confirmAction.job.id.slice(0, 8)} for ${confirmAction.job.customer_name || "Unknown Customer"}. This action cannot be undone.`
-                  : `This will mark job ${confirmAction?.job.job_number || confirmAction?.job.id.slice(0, 8)} as completed.`}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Go Back</AlertDialogCancel>
-              <AlertDialogAction
-                className={confirmAction?.status === "cancelled" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
-                onClick={() => {
-                  if (confirmAction) {
-                    executeStatusUpdate(confirmAction.job, confirmAction.status);
-                    setConfirmAction(null);
-                  }
-                }}
-              >
-                {confirmAction?.status === "cancelled" ? "Cancel Job" : "Complete Job"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          title={confirmAction?.status === "cancelled" ? "Cancel this job?" : "Mark as completed?"}
+          description={
+            confirmAction?.status === "cancelled"
+              ? `This will cancel job ${confirmAction.job.job_number || confirmAction.job.id.slice(0, 8)} for ${confirmAction.job.customer_name || "Unknown Customer"}. This action cannot be undone.`
+              : `This will mark job ${confirmAction?.job.job_number || confirmAction?.job.id.slice(0, 8)} as completed.`
+          }
+          confirmLabel={confirmAction?.status === "cancelled" ? "Cancel Job" : "Complete Job"}
+          variant={confirmAction?.status === "cancelled" ? "destructive" : "default"}
+          onConfirm={() => {
+            if (confirmAction) {
+              executeStatusUpdate(confirmAction.job, confirmAction.status);
+              setConfirmAction(null);
+            }
+          }}
+        />
       </PageContainer>
     </TooltipProvider>
   );

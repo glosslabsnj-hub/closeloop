@@ -2,10 +2,7 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { AdminModeProvider } from "@/contexts/AdminModeContext";
-import { useTenantConfig } from "@/hooks/useTenantConfig";
-import { useCapabilities } from "@/hooks/useCapabilities";
-import { useTerminology } from "@/hooks/useTerminology";
-import { useKnowledgeConflicts } from "@/hooks/useKnowledgeConflicts";
+import { useNavigationItems, type NavItem } from "@/hooks/useNavigationItems";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,56 +20,32 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
-  LayoutDashboard,
-  MessageSquare,
-  Calendar,
   Settings,
   LogOut,
   Phone,
-  Bot,
-  Route,
   FlaskConical,
   Lock,
   CreditCard,
-  Truck,
-  UtensilsCrossed,
-  Clock,
-  Cake,
-  Stethoscope,
   HelpCircle,
   Search,
   Menu,
   X,
   Command,
-  FileText,
-  BarChart3,
-  Warehouse,
-  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { AdminModeSwitcher } from "@/components/admin/AdminModeSwitcher";
 import { AdminTenantSwitcher } from "@/components/admin/AdminTenantSwitcher";
 import { AdminModeSelector } from "@/components/admin/AdminModeSelector";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { DispatchJobListener } from "@/components/notifications/DispatchJobListener";
 
-interface NavItem {
-  href: string;
-  label: string;
-  icon: React.ElementType;
-  badge?: number;
-}
-
 // Routes that are always accessible (even without subscription)
 const alwaysAccessibleRoutes = ["/app/settings", "/app/go-live"];
 
 function AppLayoutContent() {
   const { user, tenant, effectiveTenant, signOut, loading, hasActiveSubscription, isSuperAdmin } = useAuth();
-  const { enabledModules } = useTenantConfig();
-  const caps = useCapabilities();
-  const terms = useTerminology();
-  const { unresolvedCount: conflictsCount } = useKnowledgeConflicts();
+  const { primaryItems: navItems, bottomPinnedItems: bottomNavItems, mobileBottomItems: mobileNavItems } = useNavigationItems();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -81,74 +54,6 @@ function AppLayoutContent() {
 
   const effectiveHasSubscription = isSuperAdmin || hasActiveSubscription;
   const displayTenant = isSuperAdmin ? (effectiveTenant ?? tenant) : tenant;
-
-  // Flatten navigation - no groups, just a clean list
-  const navItems = useMemo<NavItem[]>(() => {
-    const items: NavItem[] = [
-      { href: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/app/inbox", label: "Inbox", icon: MessageSquare },
-    ];
-
-    // Add enabled modules
-    if (enabledModules.includes("booking")) {
-      items.push({ href: "/app/bookings", label: terms.bookingsPageTitle || "Bookings", icon: Calendar });
-    }
-    if (caps.hasDispatchQueue) {
-      items.push({ href: "/app/dispatch", label: "Dispatch", icon: Truck });
-    }
-    if (caps.hasImpoundLot) {
-      items.push({ href: "/app/impound-lot", label: "Impound Lot", icon: Warehouse });
-    }
-    if (caps.hasFleetManagement) {
-      items.push({ href: "/app/fleet", label: "Fleet", icon: Users });
-    }
-    if (enabledModules.includes("food_orders")) {
-      items.push({ href: "/app/orders", label: "Orders", icon: UtensilsCrossed });
-    }
-    if (enabledModules.includes("reservations")) {
-      items.push({ href: "/app/reservations", label: "Reservations", icon: Clock });
-    }
-    if (enabledModules.includes("catering")) {
-      items.push({ href: "/app/catering", label: "Catering", icon: Cake });
-    }
-    if (enabledModules.includes("medical_intake")) {
-      items.push({ href: "/app/medical-intake", label: "Patients", icon: Stethoscope });
-    }
-
-    // Business features
-    items.push({ href: "/app/estimates", label: "Estimates", icon: FileText });
-
-    // Configure items
-    items.push({ href: "/app/business-brain", label: "Business Brain", icon: Bot, badge: conflictsCount || undefined });
-    items.push({ href: "/app/integrations", label: "Integrations", icon: Route });
-    items.push({ href: "/app/simulator", label: "Test Calls", icon: FlaskConical });
-    items.push({ href: "/app/reports/roi", label: "Reports", icon: BarChart3 });
-
-    return items;
-  }, [enabledModules, caps, terms, conflictsCount]);
-
-  const bottomNavItems: NavItem[] = [
-    { href: "/app/help", label: "Help", icon: HelpCircle },
-    { href: "/app/settings", label: "Settings", icon: Settings },
-  ];
-
-  // Mobile nav - simplified
-  const mobileNavItems = useMemo(() => {
-    const items: NavItem[] = [
-      { href: "/app/dashboard", label: "Home", icon: LayoutDashboard },
-      { href: "/app/inbox", label: "Inbox", icon: MessageSquare },
-    ];
-    if (caps.isFoodBusiness && caps.hasFoodOrders) {
-      items.push({ href: "/app/orders", label: "Orders", icon: UtensilsCrossed });
-    } else if (caps.isDispatchBusiness && caps.hasDispatchQueue) {
-      items.push({ href: "/app/dispatch", label: "Jobs", icon: Truck });
-    } else if (caps.hasBooking) {
-      items.push({ href: "/app/bookings", label: terms.bookingsPageTitle || "Bookings", icon: Calendar });
-    }
-    items.push({ href: "/app/business-brain", label: "Setup", icon: Bot });
-    items.push({ href: "/app/settings", label: "Settings", icon: Settings });
-    return items.slice(0, 5);
-  }, [enabledModules, caps, terms]);
 
   useEffect(() => {
     if (!loading && !user) navigate("/login");
@@ -194,9 +99,9 @@ function AppLayoutContent() {
   const isRouteAccessible = effectiveHasSubscription || alwaysAccessibleRoutes.some(route => location.pathname.startsWith(route));
   const sidebarExpanded = sidebarHovered;
 
-  const NavLink = ({ item }: { item: NavItem }) => {
+  const SidebarNavLink = ({ item }: { item: NavItem }) => {
     const Icon = item.icon;
-    const isActive = location.pathname === item.href;
+    const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + "/");
     const isLocked = !effectiveHasSubscription && !alwaysAccessibleRoutes.some(route => item.href.startsWith(route));
 
     return (
@@ -261,7 +166,7 @@ function AppLayoutContent() {
           </header>
         )}
 
-        {/* Desktop Sidebar - Same for all users */}
+        {/* Desktop Sidebar */}
         <aside
             onMouseEnter={() => setSidebarHovered(true)}
             onMouseLeave={() => setSidebarHovered(false)}
@@ -312,17 +217,17 @@ function AppLayoutContent() {
           {/* Main Navigation */}
           <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
             {navItems.map((item) => (
-              <NavLink key={item.href} item={item} />
+              <SidebarNavLink key={item.href} item={item} />
             ))}
           </nav>
 
           {/* Divider */}
           <div className="mx-3 h-px bg-white/[0.06]" />
 
-          {/* Bottom Navigation */}
+          {/* Bottom Navigation (Settings) */}
           <nav className="p-2 space-y-0.5">
             {bottomNavItems.map((item) => (
-              <NavLink key={item.href} item={item} />
+              <SidebarNavLink key={item.href} item={item} />
             ))}
           </nav>
 
@@ -409,6 +314,15 @@ function AppLayoutContent() {
                   <p className="text-sm font-medium truncate">{user.email}</p>
                 </div>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate("/app/settings")} className="cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/app/help")} className="cursor-pointer">
+                  <HelpCircle className="mr-2 h-4 w-4" />
+                  Help
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign out
@@ -418,7 +332,7 @@ function AppLayoutContent() {
           </div>
         </header>
 
-        {/* Mobile Slide Menu */}
+        {/* Mobile Slide Menu — shows all nav items for discovery */}
         {mobileMenuOpen && (
           <div className="md:hidden fixed inset-0 z-50">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
@@ -435,9 +349,9 @@ function AppLayoutContent() {
                 </Button>
               </div>
               <nav className="p-3 space-y-1">
-                {navItems.map((item) => {
+                {[...navItems, ...bottomNavItems].map((item) => {
                   const Icon = item.icon;
-                  const isActive = location.pathname === item.href;
+                  const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + "/");
                   return (
                     <Link
                       key={item.href}
@@ -464,10 +378,10 @@ function AppLayoutContent() {
 
         {/* Mobile Bottom Nav */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 h-16 bg-background/95 backdrop-blur-lg border-t border-white/[0.06] safe-area-pb">
-          <div className="grid grid-cols-5 h-full">
+          <div className={cn("grid h-full", `grid-cols-${mobileNavItems.length}`)}>
             {mobileNavItems.map((item) => {
               const Icon = item.icon;
-              const isActive = location.pathname === item.href;
+              const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + "/");
               return (
                 <Link
                   key={item.href}
@@ -478,7 +392,7 @@ function AppLayoutContent() {
                   )}
                 >
                   <Icon className="h-5 w-5" />
-                  <span className="text-[10px] font-medium">{item.label}</span>
+                  <span className="text-[11px] font-medium">{item.label}</span>
                 </Link>
               );
             })}
