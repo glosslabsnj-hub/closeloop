@@ -1,15 +1,13 @@
 /**
  * Quote Readiness Card
  *
- * Shows the owner how ready their business is for AI quoting.
- * Displays a score, issues to fix, and links to configure missing pieces.
+ * Compact collapsible bar showing quote readiness score.
+ * Click to expand and see specific issues with "Fix" links.
+ * When ready (100%), stays collapsed as a simple green confirmation.
  */
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import {
   CheckCircle2,
   AlertCircle,
@@ -17,7 +15,10 @@ import {
   ArrowRight,
   Loader2,
   Calculator,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useServices } from "@/hooks/useServices";
 import { useServiceArea } from "@/hooks/useServiceArea";
 import { usePricingRules } from "@/hooks/usePricingRules";
@@ -35,14 +36,13 @@ export function QuoteReadinessCard() {
   const { serviceArea, isLoading: areaLoading } = useServiceArea();
   const { rules: simpleRules, isLoading: rulesLoading } = usePricingRules();
   const [readiness, setReadiness] = useState<QuoteReadinessResult | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
 
   const isLoading = servicesLoading || areaLoading || rulesLoading;
 
-  // Build context and check readiness when data loads
   useEffect(() => {
     if (isLoading || !tenant) return;
 
-    // Get advanced rules from tenant (if available)
     const advancedRules = Array.isArray(
       (tenant as Record<string, unknown>).pricing_rules_jsonb
     )
@@ -68,131 +68,104 @@ export function QuoteReadinessCard() {
 
   if (isLoading) {
     return (
-      <Card>
-        <CardContent className="py-8">
-          <div className="flex items-center justify-center gap-2 text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Checking quote readiness...</span>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex items-center gap-2 text-sm text-muted-foreground px-1 py-2">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        <span>Checking quote readiness...</span>
+      </div>
     );
   }
 
-  if (!readiness) {
-    return null;
+  if (!readiness) return null;
+
+  const hasIssues = readiness.issues.length > 0;
+
+  // Fully ready — show a simple one-line confirmation
+  if (readiness.ready && !hasIssues) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 px-1 py-1">
+        <CheckCircle2 className="h-4 w-4 shrink-0" />
+        <span>Quote engine ready — your AI can provide pricing</span>
+      </div>
+    );
   }
 
-  const scoreColor =
-    readiness.score >= 80
-      ? "text-emerald-500"
-      : readiness.score >= 50
-        ? "text-amber-500"
-        : "text-destructive";
+  const scoreColor = readiness.score >= 80
+    ? "text-emerald-600 dark:text-emerald-400"
+    : readiness.score >= 50
+      ? "text-amber-600 dark:text-amber-400"
+      : "text-red-600 dark:text-red-400";
 
-  const progressColor =
-    readiness.score >= 80
-      ? "bg-emerald-500"
-      : readiness.score >= 50
-        ? "bg-amber-500"
-        : "bg-destructive";
+  const barBg = readiness.score >= 80
+    ? "bg-emerald-500"
+    : readiness.score >= 50
+      ? "bg-amber-500"
+      : "bg-red-500";
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <Calculator className="h-5 w-5 text-primary" />
-            <CardTitle className="text-lg">Quote Readiness</CardTitle>
+    <div className="rounded-xl border border-border/50 bg-card overflow-hidden">
+      {/* Compact clickable header */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors"
+      >
+        <Calculator className="h-4 w-4 text-muted-foreground shrink-0" />
+        <span className="text-sm font-medium flex-1 text-left">Quote Readiness</span>
+
+        {/* Score + mini progress bar */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+            <div className={cn("h-full rounded-full transition-all", barBg)} style={{ width: `${readiness.score}%` }} />
           </div>
-          <Badge
-            variant={readiness.ready ? "default" : "secondary"}
-            className={readiness.ready ? "bg-emerald-600" : ""}
-          >
-            {readiness.ready ? "Ready" : "Setup Needed"}
-          </Badge>
-        </div>
-        <CardDescription>
-          How prepared your business is for AI-powered quoting
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Score */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Readiness Score</span>
-            <span className={`font-bold ${scoreColor}`}>{readiness.score}%</span>
-          </div>
-          <Progress
-            value={readiness.score}
-            className="h-2"
-            // Note: Progress color is handled via CSS variable override
-            style={
-              {
-                "--progress-foreground": progressColor.replace("bg-", "var(--"),
-              } as React.CSSProperties
-            }
-          />
+          <span className={cn("text-sm font-semibold tabular-nums w-8 text-right", scoreColor)}>
+            {readiness.score}%
+          </span>
         </div>
 
-        {/* Status Summary */}
-        {readiness.ready ? (
-          <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-500/10 rounded-md px-3 py-2">
+        {hasIssues && (
+          <span className="text-xs text-muted-foreground shrink-0">
+            {readiness.issues.length} issue{readiness.issues.length !== 1 ? "s" : ""}
+          </span>
+        )}
+
+        <span className="text-muted-foreground shrink-0">
+          {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        </span>
+      </button>
+
+      {/* Expanded content — issue list with fix links */}
+      {isOpen && hasIssues && (
+        <div className="px-4 pb-3 space-y-1.5 border-t border-border/30">
+          <p className="text-xs text-muted-foreground pt-2 pb-1">Fix these to enable AI quoting:</p>
+          {readiness.issues.map((issue, idx) => (
+            <IssueRow key={idx} issue={issue} />
+          ))}
+        </div>
+      )}
+
+      {isOpen && !hasIssues && (
+        <div className="px-4 pb-3 border-t border-border/30">
+          <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 pt-2">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
-            <span>Your AI can provide quotes to customers</span>
+            <span>All set — your quote engine is fully configured</span>
           </div>
-        ) : (
-          <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 rounded-md px-3 py-2">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            <span>Fix the issues below before AI can quote</span>
-          </div>
-        )}
-
-        {/* Issues List */}
-        {readiness.issues.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">
-              {readiness.issues.length} issue{readiness.issues.length !== 1 ? "s" : ""} to address
-            </p>
-            <div className="space-y-2">
-              {readiness.issues.map((issue, idx) => (
-                <IssueRow key={idx} issue={issue} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* All Good */}
-        {readiness.issues.length === 0 && (
-          <div className="text-center py-4">
-            <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-emerald-500" />
-            <p className="text-sm font-medium">All set!</p>
-            <p className="text-xs text-muted-foreground">
-              Your quote engine is fully configured
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      )}
+    </div>
   );
 }
 
 function IssueRow({ issue }: { issue: QuoteReadinessIssue }) {
   const Icon = issue.severity === "error" ? AlertCircle : AlertTriangle;
-  const colorClass =
-    issue.severity === "error"
-      ? "text-destructive bg-destructive/10"
-      : "text-amber-600 bg-amber-500/10";
+  const iconColor = issue.severity === "error"
+    ? "text-red-500"
+    : "text-amber-500";
 
   return (
-    <div
-      className={`flex items-center justify-between gap-2 rounded-md px-3 py-2 ${colorClass}`}
-    >
-      <div className="flex items-center gap-2 min-w-0">
-        <Icon className="h-4 w-4 shrink-0" />
-        <span className="text-sm truncate">{issue.message}</span>
-      </div>
-      <Button variant="ghost" size="sm" className="shrink-0 h-7 px-2" asChild>
+    <div className="flex items-center gap-2 rounded-lg px-3 py-2 bg-muted/30">
+      <Icon className={cn("h-3.5 w-3.5 shrink-0", iconColor)} />
+      <span className="text-sm flex-1 min-w-0 truncate">{issue.message}</span>
+      <Button variant="ghost" size="sm" className="shrink-0 h-7 px-2 text-xs" asChild>
         <a href={issue.deepLink}>
           Fix <ArrowRight className="h-3 w-3 ml-1" />
         </a>

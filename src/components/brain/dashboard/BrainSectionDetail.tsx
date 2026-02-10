@@ -10,7 +10,7 @@
  * - Prev / Next category navigation
  */
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { BRAIN_CATEGORIES, type CategoryConfig } from "@/components/brain/layout/businessBrainNavConfig";
@@ -78,13 +78,14 @@ export function BrainSectionDetail({
     <div className="space-y-5">
       {/* Breadcrumb + editorial header */}
       <div className="space-y-3">
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-1.5 text-sm">
+        {/* Back button + breadcrumb */}
+        <nav className="flex items-center gap-2 text-sm">
           <button
             type="button"
             onClick={onBack}
-            className="text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
           >
+            <ArrowLeft className="h-4 w-4" />
             Business Brain
           </button>
           <span className="text-muted-foreground/50">/</span>
@@ -146,13 +147,12 @@ export function BrainSectionDetail({
       {addOnContent}
 
       {/* Prev / Next nav */}
-      <div className="flex items-center justify-between mt-8">
+      <div className="flex items-center justify-between mt-8 pt-6 border-t border-border/30">
         {prev ? (
           <Button
-            variant="ghost"
-            size="sm"
+            variant="outline"
             onClick={() => onNavigate(prev.section)}
-            className="gap-1.5"
+            className="gap-2 px-4 py-2"
           >
             <ChevronLeft className="h-4 w-4" />
             {prev.title}
@@ -163,10 +163,9 @@ export function BrainSectionDetail({
 
         {next ? (
           <Button
-            variant="ghost"
-            size="sm"
+            variant="outline"
             onClick={() => onNavigate(next.section)}
-            className="gap-1.5"
+            className="gap-2 px-4 py-2"
           >
             {next.title}
             <ChevronRight className="h-4 w-4" />

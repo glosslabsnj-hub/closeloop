@@ -1,11 +1,11 @@
 /**
  * BrainContentPanel - Right-side content area for the sidebar+content split
  *
- * Shows: mobile back button, item header with status badge,
- * "AI uses this to..." callout, guidance callout, and editor children.
+ * Clean, minimal wrapper: header with status badge, then straight to the editor.
+ * No bulky callout boxes — just the form.
  */
 
-import { ChevronLeft, Zap, Lightbulb } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { BrainSectionItem } from "@/config/brainSectionRegistry";
@@ -43,8 +43,6 @@ const STATUS_BADGE: Record<SectionStatus, { label: string; className: string }> 
 export function BrainContentPanel({
   activeItem,
   status,
-  usedByAI,
-  guidance,
   onMobileBack,
   children,
 }: BrainContentPanelProps) {
@@ -55,7 +53,7 @@ export function BrainContentPanel({
 
   return (
     <div className="flex-1 min-w-0">
-      <div className="max-w-3xl px-2 md:px-6 py-4 space-y-5">
+      <div className="max-w-3xl px-2 md:px-6 py-4 space-y-4">
         {/* Mobile back button */}
         <Button
           variant="ghost"
@@ -78,49 +76,12 @@ export function BrainContentPanel({
           )}
         </div>
 
-        {/* Status text */}
+        {/* Brief status line */}
         {status && (
-          <p className="text-sm text-muted-foreground -mt-3">{status.statusText}</p>
+          <p className="text-sm text-muted-foreground -mt-2">{status.statusText}</p>
         )}
 
-        {/* "AI Uses This To..." callout */}
-        {usedByAI && usedByAI.length > 0 && (
-          <div className="rounded-xl bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-800/50 p-3">
-            <div className="flex items-center gap-1.5 mb-2">
-              <Zap className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
-              <span className="text-xs font-medium text-violet-700 dark:text-violet-300">
-                Your AI uses this to...
-              </span>
-            </div>
-            <ul className="space-y-1">
-              {usedByAI.map((item, i) => (
-                <li key={i} className="text-xs text-violet-900 dark:text-violet-200 flex items-start gap-1.5">
-                  <span className="text-violet-400 dark:text-violet-500 mt-0.5 shrink-0">&#8226;</span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Guidance callout */}
-        {status?.status === "incomplete" && guidance && (guidance.whatText || guidance.tipText) && (
-          <div className="rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-3 space-y-1.5">
-            {guidance.whatText && (
-              <p className="text-sm text-blue-900 dark:text-blue-100">
-                {guidance.whatText}
-              </p>
-            )}
-            {guidance.tipText && (
-              <p className="text-xs text-blue-700 dark:text-blue-300 flex items-start gap-1.5">
-                <Lightbulb className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                {guidance.tipText}
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Editor content */}
+        {/* Editor content — no callout boxes, straight to the form */}
         <div>{children}</div>
       </div>
     </div>
