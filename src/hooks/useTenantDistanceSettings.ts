@@ -21,6 +21,10 @@ export interface TenantDistanceSettings {
   eta_rounding_minutes: number;
   /** Default distance basis for pricing: tow_distance | dispatch_distance | total_trip | flat */
   default_distance_basis: string;
+  /** Dropoff coverage mode: none | same_area | extended */
+  dropoff_coverage_mode: string;
+  /** Max miles for extended dropoff coverage */
+  dropoff_max_miles: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -38,6 +42,8 @@ const DEFAULT_SETTINGS: Omit<TenantDistanceSettings, "tenant_id" | "created_at" 
   eta_max_minutes: null,
   eta_rounding_minutes: 5,
   default_distance_basis: "tow_distance",
+  dropoff_coverage_mode: "none",
+  dropoff_max_miles: null,
 };
 
 export function useTenantDistanceSettings() {

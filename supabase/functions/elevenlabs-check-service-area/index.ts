@@ -59,6 +59,8 @@ interface ServiceAreaResponse {
   distance_miles: number | null;           // Dispatch distance (base → pickup)
   tow_distance_miles: number | null;       // Tow distance (pickup → dropoff)
   dropoff_geocoded: string | null;         // Resolved dropoff address
+  dropoff_in_area: boolean | null;         // Whether dropoff is within coverage
+  dropoff_coverage_note: string | null;    // Message about dropoff coverage
   eta_minutes: number | null;
   eta_range: string;
   message: string;
@@ -486,6 +488,34 @@ serve(async (req: Request) => {
       }
     }
     
+    // ── Dropoff Coverage Check ──
+    let dropoffInArea: boolean | null = null;
+    let dropoffCoverageNote: string | null = null;
+    
+    const dropoffCoverageMode = (distanceSettings?.dropoff_coverage_mode as string) || "none";
+    
+    if (dropoffAddress && towDistanceMiles !== null && dropoffCoverageMode !== "none") {
+      // Calculate distance from base to dropoff for same_area check
+      const baseToDropoffMiles = (dispatchDistanceMiles || 0) + (towDistanceMiles || 0);
+      
+      if (dropoffCoverageMode === "same_area") {
+        dropoffInArea = baseToDropoffMiles <= radiusMiles;
+        if (!dropoffInArea) {
+          dropoffCoverageNote = `The dropoff location is about ${baseToDropoffMiles.toFixed(0)} miles from our base — outside our ${radiusMiles}-mile service area. There may be an extra mileage charge.`;
+        }
+      } else if (dropoffCoverageMode === "extended") {
+        const maxDropoffMiles = (distanceSettings?.dropoff_max_miles as number) || radiusMiles * 2;
+        dropoffInArea = baseToDropoffMiles <= maxDropoffMiles;
+        if (!dropoffInArea) {
+          dropoffCoverageNote = `The dropoff is about ${baseToDropoffMiles.toFixed(0)} miles away — beyond our ${maxDropoffMiles}-mile maximum. We may not be able to service that destination.`;
+        } else if (baseToDropoffMiles > radiusMiles) {
+          dropoffCoverageNote = `The dropoff is ${baseToDropoffMiles.toFixed(0)} miles away — outside our normal area but within our extended range. Extra mileage charges apply.`;
+        }
+      }
+      
+      console.log(`[check-service-area] Dropoff coverage: mode=${dropoffCoverageMode}, baseToDropoff=${baseToDropoffMiles.toFixed(1)}mi, inArea=${dropoffInArea}`);
+    }
+
     // Build message
     // Important: if we are clearly out of area, say so even if geocoding is uncertain.
     let message = "";
@@ -500,6 +530,11 @@ serve(async (req: Request) => {
       } else {
         message = `Within service area - ${dispatchDistanceMiles?.toFixed(1) || "?"} miles from base`;
       }
+    }
+    
+    // Append dropoff coverage warning to message
+    if (dropoffCoverageNote && dropoffInArea === false) {
+      message += `. WARNING: ${dropoffCoverageNote}`;
     }
 
     // Previously we defaulted to in_area=true whenever geocoding was uncertain.
@@ -519,6 +554,8 @@ serve(async (req: Request) => {
       distance_miles: dispatchDistanceMiles,
       tow_distance_miles: towDistanceMiles,
       dropoff_geocoded: dropoffGeocoded,
+      dropoff_in_area: dropoffInArea,
+      dropoff_coverage_note: dropoffCoverageNote,
       eta_minutes: dispatchAny.eta_minutes_estimate ?? null,
       eta_range:
         dispatchAny.eta_range_minutes ||
@@ -544,7 +581,7 @@ serve(async (req: Request) => {
     };
 
     // Log for debugging (no PII - truncate addresses)
-    console.log(`[check-service-area] tenant=${tenantId.substring(0, 8)}... dispatch=${dispatchDistanceMiles?.toFixed(1)}mi tow=${towDistanceMiles?.toFixed(1) || 'N/A'}mi tier=${serviceTier} basis=${distanceBasisUsed}`);
+    console.log(`[check-service-area] tenant=${tenantId.substring(0, 8)}... dispatch=${dispatchDistanceMiles?.toFixed(1)}mi tow=${towDistanceMiles?.toFixed(1) || 'N/A'}mi tier=${serviceTier} basis=${distanceBasisUsed} dropoff_ok=${dropoffInArea ?? 'n/a'}`);
 
     return new Response(JSON.stringify(response), {
       status: 200,

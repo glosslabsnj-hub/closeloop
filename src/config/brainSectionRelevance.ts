@@ -48,6 +48,7 @@ export const SECTION_RELEVANCE: SectionRelevance[] = [
       flags.hasMinimumCharge === true ||
       flags.offersAfterHours === true ||
       caps.isServiceBusiness ||
+      caps.isDispatchBusiness ||
       caps.derivedPrimaryMode === "general",
     addOn: {
       id: "price-modifiers",

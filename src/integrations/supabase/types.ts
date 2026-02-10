@@ -8194,6 +8194,8 @@ export type Database = {
           created_at: string
           default_distance_basis: string | null
           distance_provider_enabled: boolean
+          dropoff_coverage_mode: string
+          dropoff_max_miles: number | null
           eta_base_minutes: number
           eta_max_minutes: number | null
           eta_min_minutes: number | null
@@ -8229,6 +8231,8 @@ export type Database = {
           created_at?: string
           default_distance_basis?: string | null
           distance_provider_enabled?: boolean
+          dropoff_coverage_mode?: string
+          dropoff_max_miles?: number | null
           eta_base_minutes?: number
           eta_max_minutes?: number | null
           eta_min_minutes?: number | null
@@ -8264,6 +8268,8 @@ export type Database = {
           created_at?: string
           default_distance_basis?: string | null
           distance_provider_enabled?: boolean
+          dropoff_coverage_mode?: string
+          dropoff_max_miles?: number | null
           eta_base_minutes?: number
           eta_max_minutes?: number | null
           eta_min_minutes?: number | null
