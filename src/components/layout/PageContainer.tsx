@@ -26,8 +26,8 @@ export function PageContainer({
         padTop && "pt-8",
         maxWidth === "sm" && "max-w-2xl mx-auto",
         maxWidth === "md" && "max-w-4xl mx-auto",
-        maxWidth === "lg" && "max-w-5xl mx-auto",
-        maxWidth === "xl" && "max-w-6xl mx-auto",
+        maxWidth === "lg" && "max-w-7xl",
+        maxWidth === "xl" && "max-w-[1440px]",
         maxWidth === "full" && "w-full",
         className
       )}

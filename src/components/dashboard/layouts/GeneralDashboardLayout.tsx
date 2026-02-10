@@ -8,26 +8,20 @@ import { LeadRecoveryWidget } from "../LeadRecoveryWidget";
 export function GeneralDashboardLayout() {
   return (
     <div className="space-y-6">
-      <LeadFunnelSummary />
+      <MetricsGrid />
 
-      <div className="grid gap-6 lg:grid-cols-4">
-        <div className="lg:col-span-1">
-          <QuickActionButton
-            label="View Leads"
-            description="See your lead pipeline"
-            href="/app/leads"
-            icon={Users}
-          />
-        </div>
-        <div className="lg:col-span-3">
-          <MetricsGrid />
-        </div>
+      <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
+        <LeadFunnelSummary />
+        <QuickActionButton
+          label="View Leads"
+          description="See your lead pipeline"
+          href="/app/leads"
+          icon={Users}
+        />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <ROIPerformanceWidget />
-        <LeadRecoveryWidget />
-      </div>
+      <ROIPerformanceWidget />
+      <LeadRecoveryWidget />
     </div>
   );
 }

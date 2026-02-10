@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -196,88 +196,85 @@ export function LiveActivityFeed() {
 
   if (isLoading) {
     return (
-      <Card className="h-full">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-medium">Recent Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex items-center gap-3 py-2">
-                <Skeleton className="h-10 w-10 rounded-lg" />
-                <div className="flex-1">
-                  <Skeleton className="h-4 w-32 mb-2" />
-                  <Skeleton className="h-3 w-48" />
-                </div>
+      <div>
+        <h3 className="text-micro text-muted-foreground mb-4">RECENT ACTIVITY</h3>
+        <div className="space-y-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex items-center gap-3 py-2 pl-6">
+              <div className="flex-1">
+                <Skeleton className="h-4 w-32 mb-2" />
+                <Skeleton className="h-3 w-48" />
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            </div>
+          ))}
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-medium">Recent Activity</CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-1 text-sm h-8 text-muted-foreground hover:text-foreground"
-            onClick={() => navigate("/app/inbox")}
-          >
-            View All
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </CardHeader>
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-micro text-muted-foreground">RECENT ACTIVITY</h3>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1 text-sm h-8 text-muted-foreground hover:text-foreground"
+          onClick={() => navigate("/app/inbox")}
+        >
+          View All
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Button>
+      </div>
 
-      <CardContent className="pt-0">
-        {hasActivity ? (
-          <div className="space-y-2">
-            {activities.slice(0, 6).map((item, index) => {
-              const Icon = iconMap[item.type] || Phone;
+      {hasActivity ? (
+        <div className="relative">
+          {/* Timeline connector line */}
+          <div className="absolute left-[5px] top-3 bottom-3 w-px bg-border/40" />
+
+          <div className="space-y-0">
+            {activities.slice(0, 6).map((item) => {
               const colorClass = colorMap[item.type] || "bg-muted text-muted-foreground";
+              const dotColor = colorClass.split(" ")[0]?.replace("bg-", "bg-") || "bg-muted-foreground";
               return (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between py-2 px-3 -mx-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                  className="relative pl-6 py-2 cursor-pointer hover:bg-muted/30 rounded-lg transition-colors"
                   onClick={() => navigate(getNavPath(item.type))}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-lg shrink-0 ${colorClass}`}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{item.title}</p>
-                      <p className="text-[13px] text-muted-foreground truncate max-w-[200px]">{item.subtitle}</p>
-                    </div>
+                  {/* Timeline dot */}
+                  <div className={cn(
+                    "absolute left-0 top-4 h-2.5 w-2.5 rounded-full border-2 border-background",
+                    dotColor
+                  )} />
+
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{item.title}</p>
+                    <p className="text-[13px] text-muted-foreground truncate">{item.subtitle}</p>
+                    <p className="text-xs text-muted-foreground/60 mt-0.5">{item.time}</p>
                   </div>
-                  <p className="text-[13px] text-muted-foreground shrink-0 ml-3">{item.time}</p>
                 </div>
               );
             })}
           </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="rounded-full bg-muted p-4 mb-4">
-              <Inbox className="w-8 h-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-medium mb-1">No activity yet</h3>
-            <p className="text-sm text-muted-foreground max-w-sm mb-4">
-              When your AI handles calls, activity will appear here.
-            </p>
-            <Button asChild>
-              <Link to="/app/simulator" className="gap-2">
-                <FlaskConical className="h-4 w-4" />
-                Test Your AI
-              </Link>
-            </Button>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="rounded-full bg-muted p-4 mb-4">
+            <Inbox className="w-8 h-8 text-muted-foreground" />
           </div>
-        )}
-      </CardContent>
-    </Card>
+          <h3 className="text-lg font-medium mb-1">No activity yet</h3>
+          <p className="text-sm text-muted-foreground max-w-sm mb-4">
+            When your AI handles calls, activity will appear here.
+          </p>
+          <Button asChild>
+            <Link to="/app/simulator" className="gap-2">
+              <FlaskConical className="h-4 w-4" />
+              Test Your AI
+            </Link>
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }

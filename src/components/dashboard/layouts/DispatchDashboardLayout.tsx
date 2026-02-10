@@ -13,9 +13,11 @@ export function DispatchDashboardLayout() {
 
   return (
     <div className="space-y-6">
+      <MetricsGrid />
+
       <ActiveJobQueue />
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
         <BusynessSliderWidget />
         <QuickActionButton
           label="Quick Dispatch"
@@ -32,10 +34,7 @@ export function DispatchDashboardLayout() {
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <ROIPerformanceWidget />
-        <MetricsGrid />
-      </div>
+      <ROIPerformanceWidget />
     </div>
   );
 }

@@ -8,9 +8,11 @@ import { BusynessSliderWidget } from "../BusynessSliderWidget";
 export function FoodDashboardLayout() {
   return (
     <div className="space-y-6">
+      <MetricsGrid />
+
       <ActiveOrderBoard />
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
         <BusynessSliderWidget />
         <QuickActionButton
           label="New Order"
@@ -20,10 +22,7 @@ export function FoodDashboardLayout() {
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <ROIPerformanceWidget />
-        <MetricsGrid />
-      </div>
+      <ROIPerformanceWidget />
     </div>
   );
 }

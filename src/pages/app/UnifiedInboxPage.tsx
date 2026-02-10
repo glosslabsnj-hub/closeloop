@@ -248,7 +248,7 @@
                 description="When customers text or call, their conversations will appear here."
               />
            ) : (
-             <div className="space-y-3">
+             <div className="divide-y divide-border/20 rounded-2xl bg-card">
                {filteredCalls.map((call) => (
                  <InboxCallCard
                    key={call.id}

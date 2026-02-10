@@ -98,21 +98,11 @@ function MetricCell({
 }) {
   return (
     <div className="space-y-1">
-      <div className="flex items-center gap-2">
-        <div
-          className={cn(
-            "h-8 w-8 rounded-lg flex items-center justify-center bg-muted/50",
-            accent
-          )}
-        >
-          <Icon className="h-4 w-4" />
-        </div>
-        <p className="text-xs text-muted-foreground flex items-center gap-1">
-          {label}
-          {tooltip && <InfoTooltip text={tooltip} />}
-        </p>
-      </div>
-      <p className="text-2xl md:text-3xl font-bold tracking-tight">{value}</p>
+      <p className="text-micro text-muted-foreground flex items-center gap-1">
+        {label}
+        {tooltip && <InfoTooltip text={tooltip} />}
+      </p>
+      <p className="text-xl font-bold tracking-tight">{value}</p>
       <div className="flex items-center gap-2">
         {trend !== undefined && trend !== 0 && <TrendIndicator percent={trend} />}
         {subtext && (
@@ -278,94 +268,92 @@ export function ROIPerformanceWidget() {
   return (
     <TooltipProvider>
       <Card className="overflow-hidden">
-        <CardContent className="p-4 md:p-6">
-          {/* Header: story headline + badge */}
-          <div className="flex items-start justify-between gap-3 mb-2">
-            <div className="space-y-1 min-w-0 flex-1">
-              <h3 className="text-sm font-semibold text-foreground truncate">
-                {storyHeadline}
-              </h3>
-              {winMessage && (
-                <p className="text-xs text-muted-foreground line-clamp-2">
-                  {winMessage}
-                </p>
-              )}
+        <CardContent className="p-0">
+          {/* Hero ROI area */}
+          <div className="bg-gradient-to-r from-primary/8 to-transparent p-5 md:p-6">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="space-y-1 min-w-0 flex-1">
+                <h3 className="text-sm font-semibold text-foreground truncate">
+                  {storyHeadline}
+                </h3>
+                {winMessage && (
+                  <p className="text-xs text-muted-foreground line-clamp-2">
+                    {winMessage}
+                  </p>
+                )}
+              </div>
+              <Badge variant="muted" size="sm" className="flex-shrink-0">
+                This Month
+              </Badge>
             </div>
-            <Badge variant="muted" size="sm" className="flex-shrink-0">
-              This Month
-            </Badge>
-          </div>
 
-          {/* Metrics Grid - Improved responsive breakpoints */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-5 mt-4">
-            {/* AI Revenue */}
-            <MetricCell
-              label="AI Revenue"
-              value={formatRevenue(data.aiRevenueCents)}
-              trend={data.trends.revenue}
-              icon={DollarSign}
-              accent="text-emerald-500"
-              tooltip="Revenue from bookings created by your AI agent"
-            />
-
-            {/* Entities Created */}
-            <MetricCell
-              label={`${data.entityName} ${data.actionVerbPast}`}
-              value={data.entitiesCreated}
-              trend={data.trends.entities}
-              subtext={entityChange}
-              icon={Target}
-              accent="text-blue-500"
-            />
-
-            {/* Calls — industry-native label */}
-            <MetricCell
-              label={data.callsLabel}
-              value={data.totalCalls}
-              trend={data.trends.calls}
-              icon={Phone}
-              accent="text-violet-500"
-            />
-
-            {/* Conversion Rate */}
-            <MetricCell
-              label="Conversion"
-              value={`${Math.round(data.conversionRate)}%`}
-              trend={data.trends.conversion}
-              icon={TrendingUp}
-              accent="text-amber-500"
-              tooltip="Percentage of calls that resulted in a booking"
-            />
-
-            {/* ROI Callout - Full width on mobile/tablet, single column on xl */}
-            <div className="sm:col-span-2 lg:col-span-4 xl:col-span-1">
-              <div className="rounded-xl bg-primary/5 border border-primary/10 p-4 h-full flex flex-col justify-between">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1">
-                    ROI
-                  </p>
-                  <p className="text-3xl font-bold tracking-tight text-primary">
-                    {roiDisplay}
-                  </p>
-                  {roiBadge && (
-                    <Badge variant={roiBadge.variant} size="sm" className="mt-1">
-                      {roiBadge.label}
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-[11px] text-muted-foreground leading-snug mt-2">
+            <div className="flex items-end gap-4">
+              <div>
+                <p className="text-micro text-muted-foreground mb-1">ROI</p>
+                <p className="text-display text-primary">{roiDisplay}</p>
+              </div>
+              <div className="pb-2">
+                {roiBadge && (
+                  <Badge variant={roiBadge.variant} size="sm">
+                    {roiBadge.label}
+                  </Badge>
+                )}
+                <p className="text-[11px] text-muted-foreground leading-snug mt-1 max-w-[200px]">
                   {roiExplanation}
                 </p>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="mt-2 h-7 text-xs gap-1 px-0 justify-start text-primary hover:text-primary/80 w-fit"
+                  className="mt-1 h-7 text-xs gap-1 px-0 justify-start text-primary hover:text-primary/80 w-fit"
                   onClick={() => navigate("/app/reports/roi")}
                 >
                   View Full Report
                   <ArrowRight className="h-3 w-3" />
                 </Button>
               </div>
+            </div>
+          </div>
+
+          {/* Compact metric strip */}
+          <div className="flex divide-x divide-border/30 px-5 md:px-6 py-4">
+            <div className="flex-1 pr-5">
+              <MetricCell
+                label="AI Revenue"
+                value={formatRevenue(data.aiRevenueCents)}
+                trend={data.trends.revenue}
+                icon={DollarSign}
+                accent="text-emerald-500"
+                tooltip="Revenue from bookings created by your AI agent"
+              />
+            </div>
+            <div className="flex-1 px-5">
+              <MetricCell
+                label={`${data.entityName} ${data.actionVerbPast}`}
+                value={data.entitiesCreated}
+                trend={data.trends.entities}
+                subtext={entityChange}
+                icon={Target}
+                accent="text-blue-500"
+              />
+            </div>
+            <div className="flex-1 px-5">
+              <MetricCell
+                label={data.callsLabel}
+                value={data.totalCalls}
+                trend={data.trends.calls}
+                icon={Phone}
+                accent="text-violet-500"
+              />
+            </div>
+            <div className="flex-1 pl-5">
+              <MetricCell
+                label="Conversion"
+                value={`${Math.round(data.conversionRate)}%`}
+                trend={data.trends.conversion}
+                icon={TrendingUp}
+                accent="text-amber-500"
+                tooltip="Percentage of calls that resulted in a booking"
+              />
             </div>
           </div>
         </CardContent>

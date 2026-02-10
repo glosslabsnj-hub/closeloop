@@ -28,34 +28,28 @@ export function LiveDashboard() {
       {/* Audio notification manager */}
       <SoundManager />
 
-      {/* Page Header */}
-      <header>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          {greeting}, {businessName}
-        </h1>
-        <p className="mt-1 text-muted-foreground">
-          Here's what's happening with your AI receptionist today.
+      {/* Greeting + Alerts inline */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <p className="text-lg font-medium text-muted-foreground">
+          {greeting}, <span className="text-foreground">{businessName}</span>
         </p>
-      </header>
-
-      {/* Alerts - Only show if there are issues */}
-      <UnifiedAlertBanner />
+        <UnifiedAlertBanner />
+      </div>
 
       {/* Attention Items */}
       <NeedsAttentionBanner />
 
-      {/* Agent Control - Most prominent element */}
-      <AgentControlPanel />
-
-      {/* Mode-specific dashboard content */}
-      <ModeContentArea />
-
-      {/* Activity & Setup */}
-      <div className="grid gap-6 lg:grid-cols-5">
-        <div className="lg:col-span-3 min-h-0">
-          <LiveActivityFeed />
+      {/* Bento Grid: Primary + Sidebar */}
+      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+        {/* Primary Column */}
+        <div className="space-y-6 min-w-0">
+          <AgentControlPanel />
+          <ModeContentArea />
         </div>
-        <div className="lg:col-span-2 min-h-0">
+
+        {/* Sidebar Column */}
+        <div className="space-y-6 min-w-0">
+          <LiveActivityFeed />
           <SetupProgressChecklist />
         </div>
       </div>

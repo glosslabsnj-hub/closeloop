@@ -2,8 +2,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate, Link } from "react-router-dom";
@@ -163,136 +161,105 @@ export function AgentControlPanel() {
   // No subscription yet - super admins bypass this check
   if (!planCode && !isSuperAdmin) {
     return (
-      <Card className="border-dashed border-2">
-        <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+      <div className="rounded-2xl p-5 bg-muted/30">
+        <div className="flex items-center gap-5">
+          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center shrink-0">
             <Phone className="h-6 w-6 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-medium mb-1">AI Agent</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Complete setup to activate your AI receptionist.
-          </p>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg font-medium mb-1">AI Agent</h3>
+            <p className="text-sm text-muted-foreground">
+              Complete setup to activate your AI receptionist.
+            </p>
+          </div>
           <Button asChild>
             <Link to="/app/go-live">Get Started</Link>
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   return (
     <>
-      <Card className={cn(
-        "border-2 transition-all duration-200",
-        isActive 
-          ? "border-primary/20 bg-primary/[0.03]" 
-          : "border-border"
+      <div className={cn(
+        "rounded-2xl p-5 transition-all",
+        isActive
+          ? "bg-gradient-to-r from-primary/8 via-primary/5 to-transparent"
+          : "bg-muted/30"
       )}>
-        <CardContent className="p-6">
-          {/* Main Control */}
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4 min-w-0">
-              {/* Status Dot */}
+        {/* Main Control — Horizontal layout */}
+        <div className="flex items-center gap-5">
+          {/* Large toggle pill */}
+          <button
+            onClick={() => handleToggle(!isActive)}
+            disabled={toggling || (!hasPhoneConnected && !isActive)}
+            className={cn(
+              "relative shrink-0 h-10 w-[72px] rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              isActive ? "bg-primary" : "bg-muted-foreground/20",
+              (toggling || (!hasPhoneConnected && !isActive)) && "opacity-50 cursor-not-allowed"
+            )}
+          >
+            <span className={cn(
+              "absolute top-1 left-1 h-8 w-8 rounded-full bg-white shadow-md transition-transform duration-200",
+              isActive && "translate-x-[32px]"
+            )} />
+          </button>
+
+          {/* Status Text */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
               <div className={cn(
-                "w-3 h-3 rounded-full shrink-0 transition-colors",
+                "w-2.5 h-2.5 rounded-full shrink-0",
                 isActive ? "bg-success" : "bg-muted-foreground/30"
               )} />
-              
-              {/* Status Text */}
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="font-medium">
-                    {isActive ? "AI Receptionist Active" : "AI Receptionist Paused"}
-                  </p>
-                  {isSuperAdmin && (
-                    <Badge variant="outline" className="gap-1 text-xs">
-                      <Shield className="h-3 w-3" />
-                      Admin
-                    </Badge>
-                  )}
-                  {/* Always-visible mini readiness scale */}
-                  <div className="flex items-center gap-1.5">
-                    <div className="relative w-16 h-2 bg-muted rounded-full overflow-hidden">
-                      {/* 85% threshold marker */}
-                      <div 
-                        className="absolute top-0 bottom-0 w-px bg-foreground/30 z-10" 
-                        style={{ left: '85%' }} 
-                      />
-                      {/* Progress fill - red up to current, green if past 85% */}
-                      <div 
-                        className={cn(
-                          "h-full rounded-full transition-all duration-300",
-                          readinessPercent >= 85 ? "bg-success" : "bg-destructive"
-                        )}
-                        style={{ width: `${Math.min(readinessPercent, 100)}%` }}
-                      />
-                    </div>
-                    <span className={cn(
-                      "text-[10px] font-medium tabular-nums",
-                      readinessPercent >= 85 ? "text-success" : "text-destructive"
-                    )}>
-                      {readinessPercent}%
-                    </span>
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {hasPhoneConnected 
-                    ? formatPhone(closeloopNumber) 
-                    : "No phone number connected"}
-                </p>
-              </div>
-            </div>
-
-            {/* Toggle Switch */}
-            <Switch
-              checked={isActive}
-              onCheckedChange={handleToggle}
-              disabled={toggling || (!hasPhoneConnected && !isActive)}
-            />
-          </div>
-
-          {/* Readiness indicator when not active and below threshold */}
-          {!isActive && (
-            <div className="mt-4 pt-4 border-t border-border/50 space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <AlertCircle className="h-4 w-4" />
-                  <span>AI Readiness</span>
+              <p className="font-medium">
+                {isActive ? "AI Receptionist Active" : "AI Receptionist Paused"}
+              </p>
+              {isSuperAdmin && (
+                <Badge variant="outline" className="gap-1 text-xs">
+                  <Shield className="h-3 w-3" />
+                  Admin
+                </Badge>
+              )}
+              {/* Inline readiness bar */}
+              <div className="flex items-center gap-1.5">
+                <div className="relative w-16 h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="absolute top-0 bottom-0 w-px bg-foreground/30 z-10"
+                    style={{ left: '85%' }}
+                  />
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-all duration-300",
+                      readinessPercent >= 85 ? "bg-success" : "bg-destructive"
+                    )}
+                    style={{ width: `${Math.min(readinessPercent, 100)}%` }}
+                  />
                 </div>
                 <span className={cn(
-                  "font-medium",
+                  "text-[10px] font-medium tabular-nums",
                   readinessPercent >= 85 ? "text-success" : "text-destructive"
                 )}>
                   {readinessPercent}%
                 </span>
               </div>
-              <Progress 
-                value={readinessPercent} 
-                className={cn(
-                  "h-1.5",
-                  readinessPercent >= 85 ? "[&>div]:bg-success" : "[&>div]:bg-destructive"
-                )} 
-              />
-              {isSuperAdmin && !canGoLive && (
-                <p className="text-xs text-muted-foreground">
-                  <Shield className="h-3 w-3 inline mr-1" />
-                  Super admin: You can override readiness requirements
-                </p>
-              )}
             </div>
-          )}
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {hasPhoneConnected
+                ? formatPhone(closeloopNumber)
+                : "No phone number connected"}
+            </p>
+          </div>
 
-          {/* Phone Number & Actions */}
-          {hasPhoneConnected && (
-            <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-between gap-4 flex-wrap">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-sm text-muted-foreground">
-                  {formatPhone(closeloopNumber)}
-                </span>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-7 w-7"
+          {/* Action buttons */}
+          <div className="flex items-center gap-1 shrink-0">
+            {hasPhoneConnected ? (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
                   onClick={copyPhoneNumber}
                 >
                   {copied ? (
@@ -301,9 +268,6 @@ export function AgentControlPanel() {
                     <Copy className="h-3.5 w-3.5" />
                   )}
                 </Button>
-              </div>
-              
-              <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -311,7 +275,7 @@ export function AgentControlPanel() {
                   onClick={() => navigate("/app/simulator")}
                 >
                   <FlaskConical className="h-4 w-4" />
-                  Test AI
+                  <span className="hidden sm:inline">Test AI</span>
                 </Button>
                 <Button
                   variant="ghost"
@@ -320,7 +284,7 @@ export function AgentControlPanel() {
                   onClick={() => navigate("/app/business-brain")}
                 >
                   <Brain className="h-4 w-4" />
-                  Knowledge
+                  <span className="hidden sm:inline">Knowledge</span>
                 </Button>
                 <Button
                   variant="ghost"
@@ -329,48 +293,67 @@ export function AgentControlPanel() {
                   onClick={() => navigate("/app/settings")}
                 >
                   <Settings2 className="h-4 w-4" />
-                  Settings
+                  <span className="hidden sm:inline">Settings</span>
                 </Button>
-              </div>
-            </div>
-          )}
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="gap-2"
+                  asChild
+                >
+                  <Link to="/app/go-live">
+                    <Phone className="h-4 w-4" />
+                    Connect Phone
+                  </Link>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-2 text-muted-foreground hover:text-foreground"
+                  onClick={() => navigate("/app/simulator")}
+                >
+                  <FlaskConical className="h-4 w-4" />
+                  <span className="hidden sm:inline">Test AI</span>
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
 
-          {/* Actions when no phone number */}
-          {!hasPhoneConnected && (
-            <div className="mt-4 pt-4 border-t border-border/50 flex items-center gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                className="gap-2"
-                asChild
-              >
-                <Link to="/app/go-live">
-                  <Phone className="h-4 w-4" />
-                  Connect Phone
-                </Link>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 gap-2 text-muted-foreground hover:text-foreground"
-                onClick={() => navigate("/app/simulator")}
-              >
-                <FlaskConical className="h-4 w-4" />
-                Test AI
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 gap-2 text-muted-foreground hover:text-foreground"
-                onClick={() => navigate("/app/business-brain")}
-              >
-                <Brain className="h-4 w-4" />
-                Knowledge
-              </Button>
+        {/* Readiness detail when not active */}
+        {!isActive && !canGoLive && (
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <AlertCircle className="h-4 w-4" />
+                <span>AI Readiness</span>
+              </div>
+              <span className={cn(
+                "font-medium",
+                readinessPercent >= 85 ? "text-success" : "text-destructive"
+              )}>
+                {readinessPercent}%
+              </span>
             </div>
-          )}
-        </CardContent>
-      </Card>
+            <Progress
+              value={readinessPercent}
+              className={cn(
+                "h-1.5",
+                readinessPercent >= 85 ? "[&>div]:bg-success" : "[&>div]:bg-destructive"
+              )}
+            />
+            {isSuperAdmin && (
+              <p className="text-xs text-muted-foreground">
+                <Shield className="h-3 w-3 inline mr-1" />
+                Super admin: You can override readiness requirements
+              </p>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* OFF Behavior Modal */}
       <AgentOffBehaviorModal

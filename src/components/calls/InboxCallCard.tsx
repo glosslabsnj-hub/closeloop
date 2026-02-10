@@ -1,4 +1,3 @@
- import { Card, CardContent } from "@/components/ui/card";
  import { Badge } from "@/components/ui/badge";
  import { Phone, Loader2 } from "lucide-react";
  import { formatDistanceToNow } from "date-fns";
@@ -78,60 +77,58 @@
  export function InboxCallCard({ call, onClick, customerName }: InboxCallCardProps) {
    const outcomeStyles = getOutcomeStyles(call.outcome);
    const duration = formatDuration(call.started_at, call.ended_at);
- 
+
    return (
-     <Card
-       className="cursor-pointer hover:border-primary/50 transition-colors"
+     <div
+       className="px-5 py-4 cursor-pointer hover:bg-muted/30 border-l-2 border-l-transparent hover:border-l-primary transition-all"
        onClick={onClick}
      >
-       <CardContent className="p-4">
-         <div className="flex items-start gap-4">
-           {/* Outcome indicator */}
-           <div className={cn(
-             "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
-             outcomeStyles.iconBg
-           )}>
-             <Phone className="w-5 h-5" />
-           </div>
- 
-           {/* Call info */}
-           <div className="flex-1 min-w-0">
-             <div className="flex items-center gap-2 flex-wrap">
-               <p className="font-medium">{customerName}</p>
-               {call.outcome && (
-                 <Badge variant="outline" className={cn("text-xs", outcomeStyles.border)}>
-                   {outcomeStyles.label}
-                 </Badge>
-               )}
-             </div>
-             <p className="text-sm text-muted-foreground font-mono">
-               {formatPhone(call.caller_phone)}
-             </p>
-             {call.summary ? (
-               <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                 {call.summary}
-               </p>
-             ) : !call.ended_at ? (
-               <p className="text-sm text-muted-foreground mt-1 italic flex items-center gap-1">
-                 <Loader2 className="w-3 h-3 animate-spin" />
-                 Call in progress...
-               </p>
-             ) : null}
-           </div>
- 
-           {/* Timestamp & duration */}
-           <div className="text-right shrink-0">
-             <p className="text-sm text-muted-foreground">
-               {formatDistanceToNow(new Date(call.started_at), { addSuffix: true })}
-             </p>
-             {duration && (
-               <p className="text-sm text-muted-foreground">
-                 {duration}
-               </p>
+       <div className="flex items-start gap-4">
+         {/* Outcome indicator */}
+         <div className={cn(
+           "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
+           outcomeStyles.iconBg
+         )}>
+           <Phone className="w-5 h-5" />
+         </div>
+
+         {/* Call info */}
+         <div className="flex-1 min-w-0">
+           <div className="flex items-center gap-2 flex-wrap">
+             <p className="font-medium">{customerName}</p>
+             {call.outcome && (
+               <Badge variant="outline" className={cn("text-xs", outcomeStyles.border)}>
+                 {outcomeStyles.label}
+               </Badge>
              )}
            </div>
+           <p className="text-sm text-muted-foreground font-mono">
+             {formatPhone(call.caller_phone)}
+           </p>
+           {call.summary ? (
+             <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+               {call.summary}
+             </p>
+           ) : !call.ended_at ? (
+             <p className="text-sm text-muted-foreground mt-1 italic flex items-center gap-1">
+               <Loader2 className="w-3 h-3 animate-spin" />
+               Call in progress...
+             </p>
+           ) : null}
          </div>
-       </CardContent>
-     </Card>
+
+         {/* Timestamp & duration */}
+         <div className="text-right shrink-0">
+           <p className="text-sm text-muted-foreground">
+             {formatDistanceToNow(new Date(call.started_at), { addSuffix: true })}
+           </p>
+           {duration && (
+             <p className="text-sm text-muted-foreground">
+               {duration}
+             </p>
+           )}
+         </div>
+       </div>
+     </div>
    );
  }

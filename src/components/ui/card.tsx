@@ -7,12 +7,12 @@ const cardVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-card border border-border/20 shadow-sm",
-        elevated: "bg-card border border-border/30 shadow-md",
+        default: "bg-card shadow-sm",
+        elevated: "bg-card shadow-lg",
         interactive:
-          "bg-card border border-border/20 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:border-primary/20 transition-all duration-200 cursor-pointer",
-        selected: "bg-primary/5 border-primary/30 ring-1 ring-primary/10 shadow-sm",
-        subtle: "bg-muted/50 border-transparent",
+          "bg-card shadow-sm border-l-2 border-l-transparent hover:border-l-primary hover:shadow-md transition-all duration-200 cursor-pointer",
+        selected: "bg-primary/5 border-l-[3px] border-l-primary",
+        subtle: "bg-muted/30 shadow-inner border-0",
       },
       status: {
         none: "",
@@ -54,7 +54,7 @@ const CardTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HT
   ({ className, ...props }, ref) => (
     <h3
       ref={ref}
-      className={cn("text-[15px] font-semibold leading-none tracking-tight", className)}
+      className={cn("text-xs font-semibold uppercase tracking-wider text-muted-foreground", className)}
       {...props}
     />
   )

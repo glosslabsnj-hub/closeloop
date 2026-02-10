@@ -15,12 +15,11 @@ export function MedicalDashboardLayout() {
         </Badge>
       </div>
 
+      <MetricsGrid />
+
       <TodayCalendarStrip />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <PatientIntakeQueue />
-        <MetricsGrid />
-      </div>
+      <PatientIntakeQueue />
 
       <ROIPerformanceWidget />
     </div>

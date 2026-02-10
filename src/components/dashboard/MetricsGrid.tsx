@@ -5,8 +5,7 @@ import { useCapabilities } from "@/hooks/useCapabilities";
 import { useTerminology } from "@/hooks/useTerminology";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
-import { 
+import {
   Phone, 
   Calendar, 
   Users,
@@ -168,32 +167,25 @@ export function MetricsGrid() {
   const metrics = getMetrics();
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className="flex items-center divide-x divide-border/30">
       {metrics.slice(0, 3).map((metric) => {
         const Icon = metric.icon;
         return (
-          <Card
+          <div
             key={metric.label}
-            variant="interactive"
+            className="flex-1 px-6 first:pl-0 py-3 group cursor-pointer"
             onClick={() => navigate(metric.href)}
-            className="cursor-pointer"
           >
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    {metric.label}
-                  </p>
-                  <p className="mt-2 text-3xl font-semibold tracking-tight tabular-nums">
-                    {metric.value}
-                  </p>
-                </div>
-                <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                  <Icon className="h-5 w-5 text-muted-foreground" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            <div className="flex items-center gap-1.5 mb-1">
+              <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+              <p className="text-xs font-medium text-muted-foreground">
+                {metric.label}
+              </p>
+            </div>
+            <p className="text-2xl font-semibold tracking-tight tabular-nums group-hover:text-primary transition-colors">
+              {metric.value}
+            </p>
+          </div>
         );
       })}
     </div>

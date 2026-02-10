@@ -153,7 +153,7 @@ export default function BookingsPage() {
             }
           />
         ) : (
-          <AnimatedList className="divide-y divide-border/30 rounded-lg border border-border/30">
+          <AnimatedList className="divide-y divide-border/20 rounded-2xl bg-card shadow-sm">
             {filteredBookings.map((booking) => (
               <AnimatedListItem key={booking.id}>
                 <BookingCard

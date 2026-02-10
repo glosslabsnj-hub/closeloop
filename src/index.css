@@ -3,84 +3,83 @@
 @tailwind utilities;
 
 /* =====================================================
-   CloseLoop Design System - 2026
-   Theme: "Warm Indigo" - Modern, Premium, Confident
-   Inspired by Linear, Raycast, Arc
+   Voxly Design System — 2026
+   Theme: "Ocean Professional" — Teal + Amber
    ===================================================== */
 
 @layer base {
   /* =====================================================
      DARK MODE (Default)
-     Warm Indigo palette with coral accent
+     Teal primary with amber accent
      ===================================================== */
   :root,
   .dark {
-    /* Core Background - Deep, warm foundation */
-    --background: 240 15% 6%;
-    --foreground: 240 10% 98%;
+    /* Core Background - Deep, cool foundation */
+    --background: 210 20% 7%;
+    --foreground: 210 15% 98%;
 
-    /* Cards - Subtle warmth */
-    --card: 240 12% 10%;
-    --card-foreground: 240 8% 95%;
+    /* Cards - Cool depth */
+    --card: 210 15% 10%;
+    --card-foreground: 210 10% 95%;
 
-    --popover: 240 12% 12%;
-    --popover-foreground: 240 10% 98%;
+    --popover: 210 15% 12%;
+    --popover-foreground: 210 15% 98%;
 
-    /* Primary - Warm indigo */
-    --primary: 252 70% 60%;
+    /* Primary - Teal */
+    --primary: 172 75% 40%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Muted indigo panel */
-    --secondary: 240 10% 13%;
-    --secondary-foreground: 240 8% 70%;
+    /* Secondary - Muted cool panel */
+    --secondary: 210 12% 13%;
+    --secondary-foreground: 210 8% 70%;
 
-    /* Muted - Soft warm gray */
-    --muted: 240 8% 15%;
-    --muted-foreground: 240 6% 55%;
+    /* Muted - Soft cool gray */
+    --muted: 210 10% 15%;
+    --muted-foreground: 210 8% 55%;
 
-    /* Accent - Coral/Rose for emphasis */
-    --accent: 350 40% 14%;
-    --accent-foreground: 350 60% 85%;
-    --accent-signature: 350 75% 60%;
+    /* Accent - Amber for emphasis */
+    --accent: 28 40% 14%;
+    --accent-foreground: 28 60% 85%;
+    --accent-signature: 28 90% 55%;
 
     /* Status Colors */
-    --destructive: 0 65% 55%;
+    --destructive: 0 70% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 155 65% 48%;
+    --success: 155 70% 42%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 90% 55%;
+    --warning: 38 92% 52%;
     --warning-foreground: 38 95% 10%;
 
     /* Borders & Inputs */
-    --border: 240 10% 17%;
-    --input: 240 12% 12%;
-    --ring: 252 70% 60%;
+    --border: 210 10% 17%;
+    --input: 210 12% 12%;
+    --ring: 172 75% 40%;
 
-    /* Radius - Slightly rounder for modern feel */
-    --radius: 0.875rem;
+    /* Radius - Professional, slightly tighter */
+    --radius: 0.625rem;
 
-    /* Sidebar - Warm charcoal */
-    --sidebar-background: 240 15% 5%;
-    --sidebar-foreground: 240 6% 60%;
-    --sidebar-primary: 252 70% 60%;
+    /* Sidebar - Cool charcoal */
+    --sidebar-background: 210 20% 6%;
+    --sidebar-foreground: 210 8% 60%;
+    --sidebar-primary: 172 75% 40%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 10% 11%;
-    --sidebar-accent-foreground: 240 8% 80%;
-    --sidebar-border: 240 10% 13%;
-    --sidebar-ring: 252 70% 60%;
+    --sidebar-accent: 210 12% 11%;
+    --sidebar-accent-foreground: 210 8% 80%;
+    --sidebar-border: 210 10% 13%;
+    --sidebar-ring: 172 75% 40%;
 
     /* Glass Morphism Variables - Dark Mode */
-    --glass-bg: 240 12% 10%;
+    --glass-bg: 210 15% 10%;
     --glass-opacity: 0.75;
     --glass-border: 0 0% 100%;
     --glass-border-opacity: 0.08;
     --glass-blur: 20px;
 
     /* Neumorphic Shadow Variables - Dark Mode */
-    --shadow-light: 240 12% 18%;
-    --shadow-dark: 240 20% 4%;
+    --shadow-light: 210 12% 18%;
+    --shadow-dark: 210 20% 4%;
     --shadow-opacity-light: 0.05;
     --shadow-opacity-dark: 0.25;
 
@@ -91,36 +90,36 @@
 
   /* =====================================================
      LIGHT MODE
-     Warm whites with indigo primary, coral accent
+     Clean whites with teal primary, amber accent
      ===================================================== */
   .light {
-    /* Core Background - Warm off-white */
-    --background: 240 20% 97%;
-    --foreground: 240 20% 12%;
+    /* Core Background - Cool off-white */
+    --background: 210 25% 97%;
+    --foreground: 210 25% 10%;
 
     /* Cards - Clean white */
     --card: 0 0% 100%;
-    --card-foreground: 240 20% 12%;
+    --card-foreground: 210 25% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 20% 12%;
+    --popover-foreground: 210 25% 10%;
 
-    /* Primary - Rich warm indigo */
-    --primary: 252 70% 55%;
+    /* Primary - Rich teal */
+    --primary: 172 75% 35%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Soft lavender gray */
-    --secondary: 240 12% 92%;
-    --secondary-foreground: 240 15% 40%;
+    /* Secondary - Soft cool gray */
+    --secondary: 210 12% 92%;
+    --secondary-foreground: 210 15% 40%;
 
-    /* Muted - Warm light gray */
-    --muted: 240 12% 94%;
-    --muted-foreground: 240 10% 45%;
+    /* Muted - Cool light gray */
+    --muted: 210 12% 94%;
+    --muted-foreground: 210 10% 45%;
 
-    /* Accent - Coral/Rose (adjusted for light) */
-    --accent: 350 80% 96%;
-    --accent-foreground: 350 60% 30%;
-    --accent-signature: 350 75% 55%;
+    /* Accent - Amber (adjusted for light) */
+    --accent: 28 80% 96%;
+    --accent-foreground: 28 60% 30%;
+    --accent-signature: 28 90% 50%;
 
     /* Status Colors (adjusted for light mode readability) */
     --destructive: 0 70% 50%;
@@ -133,22 +132,22 @@
     --warning-foreground: 38 95% 15%;
 
     /* Borders & Inputs */
-    --border: 240 12% 88%;
-    --input: 240 12% 96%;
-    --ring: 252 70% 55%;
+    --border: 210 15% 88%;
+    --input: 210 12% 96%;
+    --ring: 172 75% 35%;
 
     /* Radius - Same as dark */
-    --radius: 0.875rem;
+    --radius: 0.625rem;
 
-    /* Sidebar - Light lavender */
-    --sidebar-background: 240 18% 98%;
-    --sidebar-foreground: 240 10% 45%;
-    --sidebar-primary: 252 70% 55%;
+    /* Sidebar - Light cool */
+    --sidebar-background: 210 18% 98%;
+    --sidebar-foreground: 210 10% 45%;
+    --sidebar-primary: 172 75% 35%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 12% 94%;
-    --sidebar-accent-foreground: 240 15% 25%;
-    --sidebar-border: 240 12% 90%;
-    --sidebar-ring: 252 70% 55%;
+    --sidebar-accent: 210 12% 94%;
+    --sidebar-accent-foreground: 210 15% 25%;
+    --sidebar-border: 210 12% 90%;
+    --sidebar-ring: 172 75% 35%;
 
     /* Glass Morphism Variables - Light Mode */
     --glass-bg: 0 0% 100%;
@@ -159,7 +158,7 @@
 
     /* Neumorphic Shadow Variables - Light Mode */
     --shadow-light: 0 0% 100%;
-    --shadow-dark: 240 15% 80%;
+    --shadow-dark: 210 15% 80%;
     --shadow-opacity-light: 0.8;
     --shadow-opacity-dark: 0.15;
 
@@ -176,11 +175,11 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    letter-spacing: -0.011em;
+    letter-spacing: -0.015em;
   }
 
   /* Typography - Clean, Premium Hierarchy */
@@ -267,9 +266,8 @@
      Clean elevation, subtle depth
      ========================================== */
   .card-premium {
-    @apply relative rounded-xl;
+    @apply relative rounded-2xl;
     background: hsl(var(--card));
-    border: 1px solid hsl(var(--border) / 0.6);
     box-shadow:
       0 1px 2px hsl(0 0% 0% / 0.1),
       0 4px 12px hsl(0 0% 0% / 0.08);
@@ -323,7 +321,7 @@
   }
 
   .page-header {
-    @apply mb-8 md:mb-10;
+    @apply mb-8 md:mb-10 relative;
   }
 
   .page-title {
@@ -703,13 +701,13 @@
 
   /* Glass overlay for modals */
   .glass-overlay {
-    background: hsl(240 15% 4% / 0.6);
+    background: hsl(210 20% 4% / 0.6);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
   }
 
   .light .glass-overlay {
-    background: hsl(240 15% 10% / 0.4);
+    background: hsl(210 20% 10% / 0.4);
   }
 
   /* ==========================================
