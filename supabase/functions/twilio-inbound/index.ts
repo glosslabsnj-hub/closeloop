@@ -340,8 +340,11 @@ Deno.serve(async (req) => {
     if (businessMode === "dispatch") {
       if (dispatchIvrMode === "impound_only") {
         ivrSelection = "2"; // Force impound agent
-      } else if (dispatchIvrMode === "ivr_routing" && digits) {
-        ivrSelection = digits; // Use caller's selection
+      } else if (dispatchIvrMode === "ivr_routing" && digits === "2") {
+        ivrSelection = "2"; // Impound agent
+      } else if (dispatchIvrMode === "ivr_routing" && digits === "1") {
+        // Dispatch IVR "1" = towing/roadside → let capability-based resolution pick dispatch agent
+        ivrSelection = undefined;
       }
       // towing_only or no selection defaults to dispatch agent
     } else if (isHybrid && digits) {
