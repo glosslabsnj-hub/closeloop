@@ -27,7 +27,10 @@ import DashboardPage from "@/pages/app/DashboardPage";
 import UnifiedInboxPage from "@/pages/app/UnifiedInboxPage";
 import BookingsPage from "@/pages/app/BookingsPage";
 // ServicesPage removed - now redirects to Business Brain
+import IntegrationsPage from "@/pages/app/IntegrationsPage";
+import AIAssistantPage from "@/pages/app/AIAssistantPage";
 import SettingsPage from "@/pages/app/SettingsPage";
+import SimulatorPage from "@/pages/app/SimulatorPage";
 import GoLivePage from "@/pages/app/GoLivePage";
 import BusinessBrainPage from "@/pages/app/BusinessBrainPage";
 import BusinessBrainGapsPage from "@/pages/app/BusinessBrainGapsPage";
@@ -122,12 +125,12 @@ const App = () => (
               <Route path="/app/leads" element={<Navigate to="/app/inbox?tab=leads" replace />} />
               <Route path="/app/bookings" element={<BookingsPage />} />
               <Route path="/app/services" element={<Navigate to="/app/business-brain?section=services" replace />} />
-              <Route path="/app/integrations" element={<Navigate to="/app/settings?section=integrations" replace />} />
+              <Route path="/app/integrations" element={<IntegrationsPage />} />
               <Route path="/app/integrations/schedule" element={<ScheduleConnectionPage />} />
-              <Route path="/app/ai-assistant" element={<Navigate to="/app/business-brain?section=ai-voice" replace />} />
-              {/* Legacy routes - redirect to settings integrations */}
-              <Route path="/app/automations" element={<Navigate to="/app/settings?section=integrations" replace />} />
-              <Route path="/app/simulator" element={<Navigate to="/app/business-brain" replace />} />
+              <Route path="/app/ai-assistant" element={<AIAssistantPage />} />
+              {/* Legacy routes - redirect to integrations */}
+              <Route path="/app/automations" element={<IntegrationsPage />} />
+              <Route path="/app/simulator" element={<SimulatorPage />} />
               <Route path="/app/business-brain" element={<BusinessBrainPage />} />
               <Route path="/app/business-brain/gaps" element={<BusinessBrainGapsPage />} />
               <Route path="/app/readiness" element={<ReadinessFixCenterPage />} />
@@ -155,7 +158,7 @@ const App = () => (
               {/* Legacy: Menu Center now lives in Business Brain */}
               <Route path="/app/menu-center" element={<Navigate to="/app/business-brain" replace />} />
               {/* Legacy workflow routes - deprecated but accessible via direct URL */}
-              <Route path="/app/workflows" element={<Navigate to="/app/settings?section=integrations" replace />} />
+              <Route path="/app/workflows" element={<IntegrationsPage />} />
               <Route path="/app/workflows/new" element={<WorkflowEditPage />} />
               <Route path="/app/workflows/:id" element={<WorkflowEditPage />} />
               <Route path="/app/workflows/:id/runs" element={<WorkflowRunsPage />} />

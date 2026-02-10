@@ -6,9 +6,9 @@ import { useTerminology } from "@/hooks/useTerminology";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Phone,
-  Calendar,
+import { 
+  Phone, 
+  Calendar, 
   Users,
   UtensilsCrossed,
   Truck,
@@ -18,17 +18,16 @@ import { startOfDay, startOfWeek, endOfDay } from "date-fns";
 
 interface Metric {
   label: string;
-  value: number;
+  value: number | string;
   icon: React.ElementType;
   href: string;
 }
 
 /**
- * MetricsStrip — 3 horizontal stat cards replacing the full MetricsGrid.
- * Mode-aware: each business mode sees different primary metrics.
- * Clickable cards link to the relevant page.
+ * MetricsGrid - Clean, scannable business metrics
+ * Designed to be glanced at, not studied
  */
-export function MetricsStrip() {
+export function MetricsGrid() {
   const navigate = useNavigate();
   const { tenant } = useAuth();
   const { businessMode } = useTenantConfig();
@@ -39,7 +38,7 @@ export function MetricsStrip() {
   const todayEnd = endOfDay(new Date()).toISOString();
   const weekStart = startOfWeek(new Date()).toISOString();
 
-  // Calls today
+  // Fetch calls today
   const { data: callsToday = 0 } = useQuery({
     queryKey: ["metrics-calls", tenant?.id, todayStart],
     queryFn: async () => {
@@ -55,7 +54,7 @@ export function MetricsStrip() {
     enabled: !!tenant?.id,
   });
 
-  // Bookings this week
+  // Fetch bookings this week
   const { data: bookingsWeek = 0 } = useQuery({
     queryKey: ["metrics-bookings", tenant?.id, weekStart],
     queryFn: async () => {
@@ -70,7 +69,7 @@ export function MetricsStrip() {
     enabled: !!tenant?.id,
   });
 
-  // Customers
+  // Fetch customers
   const { data: totalCustomers = 0 } = useQuery({
     queryKey: ["metrics-customers", tenant?.id],
     queryFn: async () => {
@@ -84,7 +83,7 @@ export function MetricsStrip() {
     enabled: !!tenant?.id,
   });
 
-  // Orders today (food mode)
+  // Mode-specific queries
   const { data: ordersToday = 0 } = useQuery({
     queryKey: ["metrics-orders", tenant?.id, todayStart],
     queryFn: async () => {
@@ -99,7 +98,6 @@ export function MetricsStrip() {
     enabled: !!tenant?.id && caps.hasFoodOrders,
   });
 
-  // Jobs pending (dispatch mode)
   const { data: jobsPending = 0 } = useQuery({
     queryKey: ["metrics-dispatch", tenant?.id],
     queryFn: async () => {
@@ -114,7 +112,6 @@ export function MetricsStrip() {
     enabled: !!tenant?.id && caps.hasDispatchQueue,
   });
 
-  // Intakes today (medical mode)
   const { data: intakesToday = 0 } = useQuery({
     queryKey: ["metrics-intakes", tenant?.id, todayStart],
     queryFn: async () => {
@@ -129,39 +126,41 @@ export function MetricsStrip() {
     enabled: !!tenant?.id && caps.hasMedicalIntake,
   });
 
-  // Build mode-aware metrics (always 3)
+  // Build metrics based on mode
   const getMetrics = (): Metric[] => {
-    const callsMetric: Metric = {
-      label: "Calls Today",
-      value: callsToday,
-      icon: Phone,
-      href: "/app/inbox",
-    };
+    const baseMetrics: Metric[] = [
+      { 
+        label: "Calls Today", 
+        value: callsToday, 
+        icon: Phone, 
+        href: "/app/inbox?tab=calls",
+      },
+    ];
 
     switch (businessMode) {
       case "food":
         return [
           { label: "Orders Today", value: ordersToday, icon: UtensilsCrossed, href: "/app/orders" },
-          callsMetric,
-          { label: "Customers", value: totalCustomers, icon: Users, href: "/app/inbox" },
+          ...baseMetrics,
+          { label: "Customers", value: totalCustomers, icon: Users, href: "/app/customers" },
         ];
       case "dispatch":
         return [
           { label: "Jobs Pending", value: jobsPending, icon: Truck, href: "/app/dispatch" },
-          callsMetric,
-          { label: "Customers", value: totalCustomers, icon: Users, href: "/app/inbox" },
+          ...baseMetrics,
+          { label: "Customers", value: totalCustomers, icon: Users, href: "/app/customers" },
         ];
       case "medical":
         return [
           { label: "Intakes Today", value: intakesToday, icon: Stethoscope, href: "/app/medical-intake" },
           { label: terms.bookingsMetricLabel, value: bookingsWeek, icon: Calendar, href: "/app/bookings" },
-          callsMetric,
+          ...baseMetrics,
         ];
       default:
         return [
-          callsMetric,
+          ...baseMetrics,
           { label: terms.bookingsMetricLabel, value: bookingsWeek, icon: Calendar, href: "/app/bookings" },
-          { label: "Customers", value: totalCustomers, icon: Users, href: "/app/inbox" },
+          { label: "Customers", value: totalCustomers, icon: Users, href: "/app/customers" },
         ];
     }
   };
@@ -169,8 +168,8 @@ export function MetricsStrip() {
   const metrics = getMetrics();
 
   return (
-    <div className="grid gap-3 grid-cols-3">
-      {metrics.map((metric) => {
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {metrics.slice(0, 3).map((metric) => {
         const Icon = metric.icon;
         return (
           <Card
@@ -179,18 +178,18 @@ export function MetricsStrip() {
             onClick={() => navigate(metric.href)}
             className="cursor-pointer"
           >
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center shrink-0 hidden sm:flex">
-                  <Icon className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-2xl font-semibold tracking-tight tabular-nums leading-none">
-                    {metric.value}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground mt-1 truncate">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
                     {metric.label}
                   </p>
+                  <p className="mt-2 text-3xl font-semibold tracking-tight tabular-nums">
+                    {metric.value}
+                  </p>
+                </div>
+                <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                  <Icon className="h-5 w-5 text-muted-foreground" />
                 </div>
               </div>
             </CardContent>

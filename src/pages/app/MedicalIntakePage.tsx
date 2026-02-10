@@ -1,24 +1,23 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PageContainer } from "@/components/layout/PageContainer";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { FilterBar } from "@/components/patterns/FilterBar";
-import { ContentLoadingState } from "@/components/patterns/ContentLoadingState";
-import { EmptyState } from "@/components/ui/empty-state";
-import {
-  Stethoscope,
-  Clock,
+import { 
+  Stethoscope, 
+  Phone, 
+  Clock, 
   Calendar,
   AlertTriangle,
   CheckCircle2,
   Shield,
+  FileText,
+  Loader2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -37,8 +36,9 @@ const statusColors: Record<string, string> = {
 };
 
 export default function MedicalIntakePage() {
+  // P0-3: Route protection - redirect if medical_intake module not enabled
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["medical_intake"]);
-
+  
   const { tenant } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -77,231 +77,239 @@ export default function MedicalIntakePage() {
     },
   });
 
-  const filteredIntakes = useMemo(() => {
-    return (intakes || []).filter(intake =>
-      statusFilter === "all" || intake.status === statusFilter
-    );
-  }, [intakes, statusFilter]);
+  const filteredIntakes = intakes?.filter(intake => 
+    statusFilter === "all" || intake.status === statusFilter
+  ) || [];
 
-  const urgentIntakes = intakes?.filter(i =>
+  const urgentIntakes = intakes?.filter(i => 
     i.urgency_level === "urgent" && i.status === "pending"
   ) || [];
 
-  if (moduleLoading || !isAllowed || isLoading) {
+  // Show loading while checking module access
+  if (moduleLoading || !isAllowed) {
     return (
-      <PageContainer maxWidth="xl">
-        <ContentLoadingState variant="table" count={6} columns={8} />
-      </PageContainer>
+      <div className="p-6 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="p-6 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
     );
   }
 
   return (
-    <PageContainer maxWidth="xl">
-      <div className="space-y-6">
-        <PageHeader
-          icon={Stethoscope}
-          title="Medical Intake"
-          description="Review patient intake requests from AI calls"
-          action={
-            <Badge variant="outline" className="gap-1">
-              <Shield className="h-3 w-3" />
-              HIPAA Mode
-            </Badge>
-          }
-        />
-
-        {/* Urgent Alert */}
-        {urgentIntakes.length > 0 && (
-          <Card className="border-destructive bg-destructive/5">
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="h-5 w-5 text-destructive" />
-                <div>
-                  <p className="font-medium text-destructive">
-                    {urgentIntakes.length} Urgent Intake{urgentIntakes.length > 1 ? "s" : ""} Pending
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    These patients requested urgent appointments
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Pending Review</span>
-              </div>
-              <p className="text-2xl font-bold mt-1">
-                {intakes?.filter(i => i.status === "pending").length || 0}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Scheduled</span>
-              </div>
-              <p className="text-2xl font-bold mt-1">
-                {intakes?.filter(i => i.status === "scheduled").length || 0}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-2">
-                <Stethoscope className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">New Patients</span>
-              </div>
-              <p className="text-2xl font-bold mt-1">
-                {intakes?.filter(i => i.intake_type === "new_patient").length || 0}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">With Consent</span>
-              </div>
-              <p className="text-2xl font-bold mt-1">
-                {intakes?.filter(i => i.verbal_consent_given).length || 0}
-              </p>
-            </CardContent>
-          </Card>
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Medical Intake</h1>
+          <p className="text-muted-foreground">Review patient intake requests from AI calls</p>
         </div>
+        <Badge variant="outline" className="gap-1">
+          <Shield className="h-3 w-3" />
+          HIPAA Mode
+        </Badge>
+      </div>
 
-        {/* Filters */}
-        <FilterBar
-          filters={[
-            {
-              key: "status",
-              label: "Status",
-              options: [
-                { value: "all", label: "All Intakes" },
-                { value: "pending", label: "Pending Review" },
-                { value: "scheduled", label: "Scheduled" },
-                { value: "completed", label: "Completed" },
-                { value: "cancelled", label: "Cancelled" },
-              ],
-              value: statusFilter,
-              onChange: setStatusFilter,
-            },
-          ]}
-        />
-
-        {/* Intakes Table */}
-        {filteredIntakes.length === 0 ? (
-          <EmptyState
-            icon={Stethoscope}
-            title="No patient intakes yet"
-            description={
-              statusFilter !== "all"
-                ? "Try adjusting your filters to see more results."
-                : "When patients call and provide intake information, it will appear here."
-            }
-          />
-        ) : (
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Urgency</TableHead>
-                    <TableHead>Reason</TableHead>
-                    <TableHead>Preferred Date</TableHead>
-                    <TableHead>Consent</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredIntakes.map((intake) => (
-                    <TableRow key={intake.id}>
-                      <TableCell>
-                        {format(new Date(intake.created_at), "MMM d, h:mm a")}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="capitalize">
-                          {(intake.intake_type || "unknown").replace(/_/g, " ")}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={urgencyColors[intake.urgency_level || "routine"] || ""}>
-                          {intake.urgency_level || "routine"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate">
-                        {intake.reason_for_visit || "-"}
-                      </TableCell>
-                      <TableCell>
-                        {intake.preferred_date
-                          ? format(new Date(intake.preferred_date), "MMM d, yyyy")
-                          : "-"
-                        }
-                      </TableCell>
-                      <TableCell>
-                        {intake.verbal_consent_given ? (
-                          <CheckCircle2 className="h-4 w-4 text-success" />
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={statusColors[intake.status] || ""}>
-                          {intake.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Select
-                          value={intake.status}
-                          onValueChange={(status) =>
-                            updateStatusMutation.mutate({ id: intake.id, status })
-                          }
-                        >
-                          <SelectTrigger className="w-[120px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="scheduled">Scheduled</SelectItem>
-                            <SelectItem value="completed">Completed</SelectItem>
-                            <SelectItem value="cancelled">Cancelled</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Privacy Notice */}
-        <Card className="border-muted bg-muted/20">
+      {/* Urgent Alert */}
+      {urgentIntakes.length > 0 && (
+        <Card className="border-destructive bg-destructive/5">
           <CardContent className="pt-4">
-            <div className="flex items-start gap-3">
-              <Shield className="h-5 w-5 text-muted-foreground mt-0.5" />
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
               <div>
-                <p className="font-medium">HIPAA Compliance Notice</p>
+                <p className="font-medium text-destructive">
+                  {urgentIntakes.length} Urgent Intake{urgentIntakes.length > 1 ? "s" : ""} Pending
+                </p>
                 <p className="text-sm text-muted-foreground">
-                  Full call transcripts and recordings are not stored by default. Only structured intake
-                  data and AI summaries are retained. Adjust retention settings in Medical Settings.
+                  These patients requested urgent appointments
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Pending Review</span>
+            </div>
+            <p className="text-2xl font-bold mt-1">
+              {intakes?.filter(i => i.status === "pending").length || 0}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Scheduled</span>
+            </div>
+            <p className="text-2xl font-bold mt-1">
+              {intakes?.filter(i => i.status === "scheduled").length || 0}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2">
+              <Stethoscope className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">New Patients</span>
+            </div>
+            <p className="text-2xl font-bold mt-1">
+              {intakes?.filter(i => i.intake_type === "new_patient").length || 0}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">With Consent</span>
+            </div>
+            <p className="text-2xl font-bold mt-1">
+              {intakes?.filter(i => i.verbal_consent_given).length || 0}
+            </p>
+          </CardContent>
+        </Card>
       </div>
-    </PageContainer>
+
+      {/* Filter */}
+      <div className="flex items-center gap-4">
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Intakes</SelectItem>
+            <SelectItem value="pending">Pending Review</SelectItem>
+            <SelectItem value="scheduled">Scheduled</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
+        <span className="text-sm text-muted-foreground">
+          {filteredIntakes.length} intake{filteredIntakes.length !== 1 ? "s" : ""}
+        </span>
+      </div>
+
+      {/* Intakes Table */}
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Urgency</TableHead>
+                <TableHead>Reason</TableHead>
+                <TableHead>Preferred Date</TableHead>
+                <TableHead>Consent</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredIntakes.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="h-24">
+                    <div className="flex flex-col items-center justify-center text-center">
+                      <Stethoscope className="h-8 w-8 text-muted-foreground/40 mb-2" />
+                      <p className="text-sm font-medium">No patient intakes yet</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {statusFilter !== "all"
+                          ? "Try adjusting your filters."
+                          : "When patients call and provide intake information, it will appear here."}
+                      </p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredIntakes.map((intake) => (
+                  <TableRow key={intake.id}>
+                    <TableCell>
+                      {format(new Date(intake.created_at), "MMM d, h:mm a")}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="capitalize">
+                        {(intake.intake_type || "unknown").replace(/_/g, " ")}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={urgencyColors[intake.urgency_level || "routine"] || ""}>
+                        {intake.urgency_level || "routine"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="max-w-[200px] truncate">
+                      {intake.reason_for_visit || "-"}
+                    </TableCell>
+                    <TableCell>
+                      {intake.preferred_date 
+                        ? format(new Date(intake.preferred_date), "MMM d, yyyy")
+                        : "-"
+                      }
+                    </TableCell>
+                    <TableCell>
+                      {intake.verbal_consent_given ? (
+                        <CheckCircle2 className="h-4 w-4 text-success" />
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={statusColors[intake.status] || ""}>
+                        {intake.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={intake.status}
+                        onValueChange={(status) => 
+                          updateStatusMutation.mutate({ id: intake.id, status })
+                        }
+                      >
+                        <SelectTrigger className="w-[120px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="scheduled">Scheduled</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Privacy Notice */}
+      <Card className="border-muted bg-muted/20">
+        <CardContent className="pt-4">
+          <div className="flex items-start gap-3">
+            <Shield className="h-5 w-5 text-muted-foreground mt-0.5" />
+            <div>
+              <p className="font-medium">HIPAA Compliance Notice</p>
+              <p className="text-sm text-muted-foreground">
+                Full call transcripts and recordings are not stored by default. Only structured intake 
+                data and AI summaries are retained. Adjust retention settings in Medical Settings.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

@@ -4,19 +4,26 @@
 import type { Database } from "@/integrations/supabase/types";
  import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
  import { useModuleRequired } from "@/hooks/useModuleRequired";
+ import { Card, CardContent } from "@/components/ui/card";
+ import { Button } from "@/components/ui/button";
+ import { Badge } from "@/components/ui/badge";
+ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
  import { PageContainer } from "@/components/layout/PageContainer";
  import { PageHeader } from "@/components/layout/PageHeader";
- import { FilterBar } from "@/components/patterns/FilterBar";
- import { ContentLoadingState } from "@/components/patterns/ContentLoadingState";
- import { Pagination } from "@/components/patterns/Pagination";
- import { Button } from "@/components/ui/button";
- import { UtensilsCrossed, Plus } from "lucide-react";
+ import {
+   UtensilsCrossed,
+   Plus,
+   Loader2,
+   ChevronLeft,
+   ChevronRight,
+ } from "lucide-react";
  import { useToast } from "@/hooks/use-toast";
- import { OrderDetailSheet } from "@/components/orders/OrderDetailSheet";
+ import { OrderDetailsDrawer } from "@/components/orders/OrderDetailsDrawer";
  import { OrderCard } from "@/components/orders/OrderCard";
  import { EmptyState } from "@/components/ui/empty-state";
  import { useNavigate } from "react-router-dom";
-
+ 
  interface FoodOrder {
    id: string;
    tenant_id: string;
@@ -38,24 +45,23 @@ import type { Database } from "@/integrations/supabase/types";
    total_cents: number | null;
    created_at: string;
  }
-
+ 
  type StatusFilter = "all" | "pending" | "preparing" | "ready" | "completed";
-
+ 
  export default function OrdersPage() {
    const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["food_orders"]);
-
+   
    const { tenant } = useAuth();
    const { toast } = useToast();
    const queryClient = useQueryClient();
    const navigate = useNavigate();
    const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
    const [orderTypeFilter, setOrderTypeFilter] = useState<string>("all");
-   const [searchQuery, setSearchQuery] = useState("");
    const [selectedOrder, setSelectedOrder] = useState<FoodOrder | null>(null);
    const [drawerOpen, setDrawerOpen] = useState(false);
   const [page, setPage] = useState(0);
   const pageSize = 24;
-
+ 
    const { data: orders, isLoading } = useQuery({
      queryKey: ["food-orders", tenant?.id],
      queryFn: async () => {
@@ -65,14 +71,14 @@ import type { Database } from "@/integrations/supabase/types";
          .select("*")
          .eq("tenant_id", tenant.id)
          .order("created_at", { ascending: false });
-
+ 
        if (error) throw error;
        return (data || []) as FoodOrder[];
      },
      enabled: !!tenant?.id,
      refetchInterval: 10000,
    });
-
+ 
    const updateStatusMutation = useMutation({
      mutationFn: async ({ orderId, status }: { orderId: string; status: string }) => {
        const { error } = await supabase
@@ -89,54 +95,65 @@ import type { Database } from "@/integrations/supabase/types";
        toast({ variant: "destructive", title: "Error", description: error.message });
      },
    });
-
+ 
    const handleViewOrder = (order: FoodOrder) => {
      setSelectedOrder(order);
      setDrawerOpen(true);
    };
-
+ 
    // Filter orders
    const filteredOrders = useMemo(() => {
      if (!orders) return [];
-
+     
      return orders.filter((order) => {
        // Status filter
        if (statusFilter === "pending" && !["pending", "confirmed"].includes(order.status)) return false;
        if (statusFilter === "preparing" && order.status !== "preparing") return false;
        if (statusFilter === "ready" && !["ready", "out_for_delivery"].includes(order.status)) return false;
        if (statusFilter === "completed" && !["completed", "cancelled"].includes(order.status)) return false;
-
+       
        // Order type filter
        if (orderTypeFilter !== "all" && order.order_type !== orderTypeFilter) return false;
-
-       // Search filter
-       if (searchQuery) {
-         const q = searchQuery.toLowerCase();
-         const name = order.customer_name?.toLowerCase() || "";
-         const num = order.order_number?.toLowerCase() || "";
-         if (!name.includes(q) && !num.includes(q)) return false;
-       }
-
+       
        return true;
      });
-   }, [orders, statusFilter, orderTypeFilter, searchQuery]);
+   }, [orders, statusFilter, orderTypeFilter]);
+
+  // Reset page when filters change
+  const handleStatusFilter = (v: string) => {
+    setStatusFilter(v as StatusFilter);
+    setPage(0);
+  };
+  const handleTypeFilter = (v: string) => {
+    setOrderTypeFilter(v);
+    setPage(0);
+  };
 
   // Pagination
+  const totalPages = Math.ceil(filteredOrders.length / pageSize);
   const paginatedOrders = filteredOrders.slice(page * pageSize, (page + 1) * pageSize);
 
    // Stats
    const pendingCount = orders?.filter(o => ["pending", "confirmed"].includes(o.status)).length || 0;
    const preparingCount = orders?.filter(o => o.status === "preparing").length || 0;
    const readyCount = orders?.filter(o => ["ready", "out_for_delivery"].includes(o.status)).length || 0;
-
-   if (moduleLoading || !isAllowed || isLoading) {
+ 
+   if (moduleLoading || !isAllowed) {
      return (
-       <PageContainer maxWidth="xl">
-         <ContentLoadingState variant="grid" count={6} />
-       </PageContainer>
+       <div className="p-6 flex items-center justify-center">
+         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+       </div>
      );
    }
-
+ 
+   if (isLoading) {
+     return (
+       <div className="p-6 flex items-center justify-center">
+         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+       </div>
+     );
+   }
+ 
    return (
      <PageContainer maxWidth="xl">
        <div className="space-y-6">
@@ -151,49 +168,65 @@ import type { Database } from "@/integrations/supabase/types";
              </Button>
            }
          />
-
+ 
          {/* Filters */}
-         <FilterBar
-           tabs={[
-             { value: "all", label: "All" },
-             { value: "pending", label: "Pending", count: pendingCount || undefined },
-             { value: "preparing", label: "Preparing", count: preparingCount || undefined },
-             { value: "ready", label: "Ready", count: readyCount || undefined },
-             { value: "completed", label: "Completed" },
-           ]}
-           activeTab={statusFilter}
-           onTabChange={(v) => { setStatusFilter(v as StatusFilter); setPage(0); }}
-           searchValue={searchQuery}
-           onSearchChange={(v) => { setSearchQuery(v); setPage(0); }}
-           searchPlaceholder="Search orders..."
-           filters={[
-             {
-               key: "orderType",
-               label: "Type",
-               options: [
-                 { value: "all", label: "All Types" },
-                 { value: "pickup", label: "Pickup" },
-                 { value: "delivery", label: "Delivery" },
-                 { value: "dine_in", label: "Dine In" },
-               ],
-               value: orderTypeFilter,
-               onChange: (v) => { setOrderTypeFilter(v); setPage(0); },
-             },
-           ]}
-         />
-
+         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+           <Tabs value={statusFilter} onValueChange={handleStatusFilter}>
+             <TabsList>
+               <TabsTrigger value="all">All</TabsTrigger>
+               <TabsTrigger value="pending" className="gap-1.5">
+                 Pending
+                 {pendingCount > 0 && (
+                   <Badge variant="secondary" className="h-5 px-1.5 text-xs">
+                     {pendingCount}
+                   </Badge>
+                 )}
+               </TabsTrigger>
+               <TabsTrigger value="preparing" className="gap-1.5">
+                 Preparing
+                 {preparingCount > 0 && (
+                   <Badge variant="secondary" className="h-5 px-1.5 text-xs">
+                     {preparingCount}
+                   </Badge>
+                 )}
+               </TabsTrigger>
+               <TabsTrigger value="ready" className="gap-1.5">
+                 Ready
+                 {readyCount > 0 && (
+                   <Badge variant="secondary" className="h-5 px-1.5 text-xs">
+                     {readyCount}
+                   </Badge>
+                 )}
+               </TabsTrigger>
+               <TabsTrigger value="completed">Completed</TabsTrigger>
+             </TabsList>
+           </Tabs>
+ 
+           <Select value={orderTypeFilter} onValueChange={handleTypeFilter}>
+             <SelectTrigger className="w-32">
+               <SelectValue placeholder="Type" />
+             </SelectTrigger>
+             <SelectContent>
+               <SelectItem value="all">All Types</SelectItem>
+               <SelectItem value="pickup">Pickup</SelectItem>
+               <SelectItem value="delivery">Delivery</SelectItem>
+               <SelectItem value="dine_in">Dine In</SelectItem>
+             </SelectContent>
+           </Select>
+         </div>
+ 
          {/* Orders grid */}
          {filteredOrders.length === 0 ? (
            <EmptyState
              icon={UtensilsCrossed}
              title="No orders yet"
              description={
-               statusFilter !== "all" || orderTypeFilter !== "all" || searchQuery
+               statusFilter !== "all" || orderTypeFilter !== "all"
                  ? "Try adjusting your filters to see more results."
                  : "When customers place orders through your AI, they'll appear here."
              }
              action={
-               statusFilter === "all" && orderTypeFilter === "all" && !searchQuery
+               statusFilter === "all" && orderTypeFilter === "all"
                  ? { label: "Create Order", onClick: () => {} }
                  : undefined
              }
@@ -211,18 +244,30 @@ import type { Database } from "@/integrations/supabase/types";
                  />
                ))}
              </div>
-             <Pagination
-               page={page + 1}
-               pageSize={pageSize}
-               totalItems={filteredOrders.length}
-               onPageChange={(p) => setPage(p - 1)}
-             />
+             {totalPages > 1 && (
+               <div className="flex items-center justify-between pt-4">
+                 <p className="text-sm text-muted-foreground">
+                   Showing {page * pageSize + 1}–{Math.min((page + 1) * pageSize, filteredOrders.length)} of {filteredOrders.length}
+                 </p>
+                 <div className="flex items-center gap-2">
+                   <Button variant="outline" size="sm" onClick={() => setPage(p => p - 1)} disabled={page === 0}>
+                     <ChevronLeft className="h-4 w-4" />
+                   </Button>
+                   <span className="text-sm text-muted-foreground">
+                     {page + 1} / {totalPages}
+                   </span>
+                   <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1}>
+                     <ChevronRight className="h-4 w-4" />
+                   </Button>
+                 </div>
+               </div>
+             )}
            </>
          )}
        </div>
-
-       {/* Order Detail Sheet */}
-       <OrderDetailSheet
+ 
+       {/* Order Details Drawer */}
+       <OrderDetailsDrawer
          order={selectedOrder}
          open={drawerOpen}
          onOpenChange={setDrawerOpen}

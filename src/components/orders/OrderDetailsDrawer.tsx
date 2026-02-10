@@ -76,7 +76,7 @@ interface Order {
   created_at: string;
 }
 
-interface OrderDetailSheetProps {
+interface OrderDetailsDrawerProps {
   order: Order | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -93,7 +93,7 @@ const statusConfig: Record<string, { label: string; color: string }> = {
    needs_followup: { label: "Needs Follow-up", color: "bg-warning/10 text-warning border-warning/30" },
 };
 
-export function OrderDetailSheet({ order, open, onOpenChange }: OrderDetailSheetProps) {
+export function OrderDetailsDrawer({ order, open, onOpenChange }: OrderDetailsDrawerProps) {
   const { tenant } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
