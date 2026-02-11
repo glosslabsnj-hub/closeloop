@@ -175,8 +175,8 @@ export function useBusinessPartner(): BusinessPartnerData {
     const hasHours =
       !!hours && typeof hours === "object" && Object.keys(hours).length > 0;
     const hasGreeting = !!(
-      assistantSettings?.greeting_script &&
-      assistantSettings.greeting_script.trim().length > 0
+      (assistantSettings as any)?.greeting_script &&
+      ((assistantSettings as any).greeting_script as string).trim().length > 0
     );
 
     // Approximate checks from tenant config / capabilities
@@ -192,9 +192,9 @@ export function useBusinessPartner(): BusinessPartnerData {
       Object.keys(tenant.service_area_json as object).length > 0
     );
     const hasEtaSettings = !!(
-      tenant?.eta_policy_jsonb &&
-      typeof tenant.eta_policy_jsonb === "object" &&
-      Object.keys(tenant.eta_policy_jsonb as object).length > 0
+      (tenant as any)?.eta_policy_jsonb &&
+      typeof (tenant as any).eta_policy_jsonb === "object" &&
+      Object.keys((tenant as any).eta_policy_jsonb as object).length > 0
     );
     const hasDistancePricing = !!(
       tenant?.pricing_rules_jsonb &&

@@ -182,7 +182,7 @@ export type PlanCode = Enums<"plan_code">;
 export type SubscriptionStatus = Enums<"subscription_status">;
 export type VoiceMode = Enums<"voice_mode">;
 export type MissedCallBehavior = Enums<"missed_call_behavior">;
-export type AIBehaviorMode = Enums<"ai_behavior_mode">;
+export type AIBehaviorMode = "full_service" | "callback_only";
 
 // Business mode types
 export type BusinessMode = "service" | "dispatch" | "food" | "medical" | "general" | "sales";
