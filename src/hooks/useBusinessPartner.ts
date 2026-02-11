@@ -1,28 +1,21 @@
 /**
  * Business Partner Hook
  *
- * Central hook that composes 8+ existing hooks into:
+ * Central hook that composes existing hooks into:
  * - Health score (0-100) with breakdown
  * - Business stage detection
- * - Audit findings
- * - Growth recommendations
  * - Performance pass-through data
+ *
+ * Audit findings and growth recommendations are now handled by the
+ * AI-powered partner-analysis edge function (see usePartnerAnalysis).
  */
 
 import { useMemo } from "react";
-import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig, type BusinessMode } from "@/hooks/useTenantConfig";
-import { useCapabilities } from "@/hooks/useCapabilities";
 import { useBrainCompletion, type CompletionStats } from "@/hooks/useBrainCompletion";
 import {
   useConversionMetrics,
-  useBusinessPatterns,
-  useIntelligenceInsights,
-  useLatestDigest,
   type ConversionMetrics,
-  type BusinessPattern,
-  type IntelligenceInsight,
-  type IntelligenceDigest,
 } from "@/hooks/useIntelligence";
 import { useROIDashboard, type ROIDashboardData } from "@/hooks/useROIDashboard";
 import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
@@ -33,16 +26,6 @@ import {
   type BusinessStage,
   type StageDefinition,
 } from "@/config/partnerStageDefinitions";
-import {
-  runAudit,
-  type AuditContext,
-  type AuditFinding,
-} from "@/config/partnerAuditRules";
-import {
-  getRecommendations,
-  type RecommendationContext,
-  type GrowthRecommendation,
-} from "@/config/partnerRecommendations";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -61,20 +44,8 @@ export interface BusinessPartnerData {
   // Stage
   stage: BusinessStage;
   stageDefinition: StageDefinition;
-  // Audit
-  auditFindings: AuditFinding[];
-  criticalCount: number;
-  warningCount: number;
-  successCount: number;
-  // Growth
-  recommendations: GrowthRecommendation[];
   // Performance (pass-through)
-  conversionMetrics: ConversionMetrics | null;
   roiData: ROIDashboardData | null;
-  patterns: BusinessPattern[];
-  insights: IntelligenceInsight[];
-  digest: IntelligenceDigest | null;
-  brainCompletion: CompletionStats | null;
   // Meta
   isLoading: boolean;
   businessMode: BusinessMode;
@@ -141,78 +112,23 @@ function computeHealthBreakdown(
 // ─── Hook ───────────────────────────────────────────────────────────────────
 
 export function useBusinessPartner(): BusinessPartnerData {
-  const { tenant, assistantSettings } = useAuth();
-  const { businessMode, enabledModules, hipaaMode } = useTenantConfig();
-  const capabilities = useCapabilities();
+  const { businessMode } = useTenantConfig();
 
   // Compose existing hooks
   const brainCompletion = useBrainCompletion();
   const conversionQuery = useConversionMetrics(30);
-  const patternsQuery = useBusinessPatterns();
-  const insightsQuery = useIntelligenceInsights();
-  const digestQuery = useLatestDigest();
   const roiDashboard = useROIDashboard();
   const readiness = useAIReadinessV2();
   const gaps = useKnowledgeGaps();
 
   const conversionMetrics = conversionQuery.metrics ?? null;
-  const patterns = patternsQuery.data ?? [];
-  const insights = insightsQuery.data ?? [];
-  const digest = digestQuery.data ?? null;
   const roiData = roiDashboard.data ?? null;
 
   const isLoading =
     conversionQuery.isLoading ||
-    patternsQuery.isLoading ||
-    insightsQuery.isLoading ||
     roiDashboard.isLoading ||
     readiness.loading ||
     gaps.loading;
-
-  // Derive tenant-level flags from available data
-  const tenantFlags = useMemo(() => {
-    const hours = tenant?.hours_json;
-    const hasHours =
-      !!hours && typeof hours === "object" && Object.keys(hours).length > 0;
-    const hasGreeting = !!(
-      assistantSettings?.greeting_script &&
-      assistantSettings.greeting_script.trim().length > 0
-    );
-
-    // Approximate checks from tenant config / capabilities
-    const hasCancellationPolicy = !!(
-      tenant?.context_fields_json &&
-      typeof tenant.context_fields_json === "object" &&
-      (tenant.context_fields_json as Record<string, unknown>)
-        .cancellation_policy
-    );
-    const hasServiceArea = !!(
-      tenant?.service_area_json &&
-      typeof tenant.service_area_json === "object" &&
-      Object.keys(tenant.service_area_json as object).length > 0
-    );
-    const hasEtaSettings = !!(
-      tenant?.eta_policy_jsonb &&
-      typeof tenant.eta_policy_jsonb === "object" &&
-      Object.keys(tenant.eta_policy_jsonb as object).length > 0
-    );
-    const hasDistancePricing = !!(
-      tenant?.pricing_rules_jsonb &&
-      typeof tenant.pricing_rules_jsonb === "object" &&
-      Object.keys(tenant.pricing_rules_jsonb as object).length > 0
-    );
-    const hasDepositPolicy = !!(assistantSettings?.deposit_required);
-
-    return {
-      hasHours,
-      hasGreeting,
-      hasCancellationPolicy,
-      hasServiceArea,
-      hasEtaSettings,
-      hasDistancePricing,
-      hasDepositPolicy,
-    };
-  }, [tenant, assistantSettings]);
 
   // Health score
   const healthBreakdown = useMemo(
@@ -258,123 +174,12 @@ export function useBusinessPartner(): BusinessPartnerData {
 
   const stageDefinition = useMemo(() => getStageDefinition(stage), [stage]);
 
-  // Audit
-  const auditFindings = useMemo(() => {
-    const ctx: AuditContext = {
-      businessMode,
-      enabledModules,
-      brainEssentialPct: brainCompletion?.essentialPercentage ?? 0,
-      brainRequiredPct: brainCompletion?.requiredPercentage ?? 0,
-      hasHours: tenantFlags.hasHours,
-      hasGreeting: tenantFlags.hasGreeting,
-      hasCancellationPolicy: tenantFlags.hasCancellationPolicy,
-      faqCount: 0, // Will be approximate — brain completion tracks this
-      serviceCount: 0,
-      menuItemCount: 0,
-      knowledgeGapCount: gaps.totalUnresolvedCount,
-      totalCalls30d: conversionMetrics?.totalCalls ?? 0,
-      conversionRate: conversionMetrics?.conversionRate ?? 0,
-      hangupRate: conversionMetrics?.hangupRate ?? 0,
-      escalationRate: conversionMetrics?.escalationRate ?? 0,
-      roiMultiplier: roiData?.roiMultiplier ?? 0,
-      revenueTrendPct: roiData?.trends?.revenue ?? 0,
-      hasCalendarSync: capabilities.hasCalendarSync,
-      hasWebhook: false, // Approximated — we don't have a direct check
-      hasServiceArea: tenantFlags.hasServiceArea,
-      hasEtaSettings: tenantFlags.hasEtaSettings,
-      hasDistancePricing: tenantFlags.hasDistancePricing,
-      hasDeliveryZones: false, // Approximate
-      hasPrepTime: false, // Approximate
-      hipaaMode,
-      memoryEnabled: false, // Conservative default
-      hasDepositPolicy: tenantFlags.hasDepositPolicy,
-      canGoLive: readiness.canGoLive,
-      p0FlagCount: readiness.p0Flags.length,
-      readinessScore: readiness.score,
-      hasUrgentSms: false, // Approximate
-      hasProducts: capabilities.hasSalesInventory,
-      hasFinancingInfo: false, // Approximate
-      hasIntakeQuestions: capabilities.hasNewPatientForms,
-      objectionCount: 0, // Approximate
-    };
-    return runAudit(ctx);
-  }, [
-    businessMode,
-    enabledModules,
-    brainCompletion,
-    tenantFlags,
-    gaps.totalUnresolvedCount,
-    conversionMetrics,
-    roiData,
-    capabilities,
-    hipaaMode,
-    readiness,
-  ]);
-
-  const criticalCount = useMemo(
-    () => auditFindings.filter((f) => f.severity === "critical").length,
-    [auditFindings]
-  );
-  const warningCount = useMemo(
-    () => auditFindings.filter((f) => f.severity === "warning").length,
-    [auditFindings]
-  );
-  const successCount = useMemo(
-    () => auditFindings.filter((f) => f.severity === "success").length,
-    [auditFindings]
-  );
-
-  // Growth recommendations
-  const recommendations = useMemo(() => {
-    const ctx: RecommendationContext = {
-      businessMode,
-      stage,
-      brainEssentialPct: brainCompletion?.essentialPercentage ?? 0,
-      faqCount: 0,
-      objectionCount: 0,
-      knowledgeGapCount: gaps.totalUnresolvedCount,
-      totalCalls30d: conversionMetrics?.totalCalls ?? 0,
-      conversionRate: conversionMetrics?.conversionRate ?? 0,
-      hangupRate: conversionMetrics?.hangupRate ?? 0,
-      escalationRate: conversionMetrics?.escalationRate ?? 0,
-      hasCalendarSync: capabilities.hasCalendarSync,
-      hasWebhook: false,
-      hasRecoveryCampaigns: false,
-      menuItemCount: 0,
-      serviceCount: 0,
-      hasDeliveryZones: false,
-      hasEtaSettings: tenantFlags.hasEtaSettings,
-      hasServiceArea: tenantFlags.hasServiceArea,
-      enabledModules,
-    };
-    return getRecommendations(ctx);
-  }, [
-    businessMode,
-    stage,
-    brainCompletion,
-    gaps.totalUnresolvedCount,
-    conversionMetrics,
-    capabilities,
-    tenantFlags,
-    enabledModules,
-  ]);
-
   return {
     healthScore,
     healthBreakdown,
     stage,
     stageDefinition,
-    auditFindings,
-    criticalCount,
-    warningCount,
-    successCount,
-    recommendations,
-    conversionMetrics,
     roiData,
-    patterns,
-    insights,
-    digest,
-    brainCompletion,
     isLoading,
     businessMode,
   };

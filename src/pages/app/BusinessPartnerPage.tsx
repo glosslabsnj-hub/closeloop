@@ -3,12 +3,11 @@ import { Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBusinessPartner } from "@/hooks/useBusinessPartner";
-import { PartnerOverviewTab } from "@/components/partner/PartnerOverviewTab";
-import { PartnerAuditTab } from "@/components/partner/PartnerAuditTab";
-import { PartnerGrowthTab } from "@/components/partner/PartnerGrowthTab";
+import { usePartnerAnalysis } from "@/hooks/usePartnerAnalysis";
+import { PartnerAnalysisTab } from "@/components/partner/PartnerAnalysisTab";
+import { PartnerActionPlanTab } from "@/components/partner/PartnerActionPlanTab";
 import { PartnerPerformanceTab } from "@/components/partner/PartnerPerformanceTab";
 
 const STAGE_DESCRIPTIONS: Record<string, string> = {
@@ -21,8 +20,9 @@ const STAGE_DESCRIPTIONS: Record<string, string> = {
 
 export default function BusinessPartnerPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get("tab") || "overview";
+  const activeTab = searchParams.get("tab") || "analysis";
   const data = useBusinessPartner();
+  const partnerAnalysis = usePartnerAnalysis();
 
   const handleTabChange = (value: string) => {
     setSearchParams({ tab: value }, { replace: true });
@@ -64,36 +64,34 @@ export default function BusinessPartnerPage() {
       <PageContainer maxWidth="xl">
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="audit" className="flex items-center gap-1.5">
-              Audit
-              {data.criticalCount > 0 && (
-                <Badge variant="destructive" className="text-[10px] px-1.5 py-0 min-w-[18px] h-[18px] flex items-center justify-center">
-                  {data.criticalCount}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="growth">Growth</TabsTrigger>
+            <TabsTrigger value="analysis">Analysis</TabsTrigger>
+            <TabsTrigger value="action-plan">Action Plan</TabsTrigger>
             <TabsTrigger value="performance">Performance</TabsTrigger>
           </TabsList>
 
           <div className="mt-6">
-            <TabsContent value="overview" className="mt-0">
-              <PartnerOverviewTab data={data} />
-            </TabsContent>
-
-            <TabsContent value="audit" className="mt-0">
-              <PartnerAuditTab
-                findings={data.auditFindings}
-                criticalCount={data.criticalCount}
-                warningCount={data.warningCount}
-                successCount={data.successCount}
+            <TabsContent value="analysis" className="mt-0">
+              <PartnerAnalysisTab
+                analysis={partnerAnalysis.analysis}
+                isLoading={partnerAnalysis.isLoading}
+                isRefreshing={partnerAnalysis.isRefreshing}
+                generatedAt={partnerAnalysis.generatedAt}
+                isCached={partnerAnalysis.isCached}
+                onRefresh={partnerAnalysis.refresh}
+                canRefresh={partnerAnalysis.canRefresh}
+                refreshCountToday={partnerAnalysis.refreshCountToday}
+                maxRefreshes={partnerAnalysis.maxRefreshes}
+                healthScore={data.healthScore}
+                healthBreakdown={data.healthBreakdown}
+                stage={data.stage}
+                stageDefinition={data.stageDefinition}
               />
             </TabsContent>
 
-            <TabsContent value="growth" className="mt-0">
-              <PartnerGrowthTab
-                recommendations={data.recommendations}
+            <TabsContent value="action-plan" className="mt-0">
+              <PartnerActionPlanTab
+                analysis={partnerAnalysis.analysis}
+                isLoading={partnerAnalysis.isLoading}
                 stageDefinition={data.stageDefinition}
               />
             </TabsContent>
