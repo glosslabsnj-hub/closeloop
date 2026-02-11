@@ -88,41 +88,44 @@ Deno.serve(async (req: Request) => {
       essentialGaps,
     );
 
-    // Call Anthropic API
-    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!ANTHROPIC_API_KEY) {
-      return errorResponse("ANTHROPIC_API_KEY not configured", 500);
+    // Call Lovable AI Gateway
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      return errorResponse("LOVABLE_API_KEY not configured", 500);
     }
 
-    // Map messages to Anthropic format
-    const anthropicMessages = messages.map((m) => ({
-      role: m.role,
-      content: m.content,
-    }));
+    const aiMessages = [
+      { role: "system", content: systemPrompt },
+      ...messages.map((m) => ({ role: m.role, content: m.content })),
+    ];
 
-    const anthropicResponse = await fetch("https://api.anthropic.com/v1/messages", {
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-5-20250929",
+        model: "google/gemini-2.5-flash",
+        messages: aiMessages,
         max_tokens: 2048,
-        system: systemPrompt,
-        messages: anthropicMessages,
       }),
     });
 
-    if (!anthropicResponse.ok) {
-      const errText = await anthropicResponse.text();
-      console.error("[brain-assistant] Anthropic API error:", anthropicResponse.status, errText);
-      return errorResponse(`AI service error: ${anthropicResponse.status}`, 502);
+    if (!aiResponse.ok) {
+      const errText = await aiResponse.text();
+      console.error("[brain-assistant] AI gateway error:", aiResponse.status, errText);
+      if (aiResponse.status === 429) {
+        return errorResponse("Rate limit exceeded. Please try again in a moment.", 429);
+      }
+      if (aiResponse.status === 402) {
+        return errorResponse("AI credits exhausted. Please add credits to your workspace.", 402);
+      }
+      return errorResponse(`AI service error: ${aiResponse.status}`, 502);
     }
 
-    const anthropicData = await anthropicResponse.json();
-    const assistantMessage = anthropicData.content?.[0]?.text ?? "";
+    const aiData = await aiResponse.json();
+    const assistantMessage = aiData.choices?.[0]?.message?.content ?? "";
 
     // Parse actions from the response
     const actions = parseActionsFromResponse(assistantMessage);
