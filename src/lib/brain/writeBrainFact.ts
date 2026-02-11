@@ -932,7 +932,7 @@ function validateWritePermission(tenantId: string) {
 async function logBrainChange(
   tenantId: string,
   table: string,
-  operation: "insert" | "update" | "delete",
+  operation: "insert" | "update" | "delete" | "upsert",
   recordId: string,
   changes: Record<string, any>
 ) {

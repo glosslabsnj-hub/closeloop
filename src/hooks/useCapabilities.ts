@@ -7,6 +7,7 @@ import type { BusinessMode } from "./useTenantConfig";
  * falling back to `enabled_modules` + `business_mode` defaults.
  */
 export interface Capabilities {
+  [key: string]: unknown;
   // ── Individual module flags ──
   hasAiVoice: boolean;
   hasInstantTextBack: boolean;
