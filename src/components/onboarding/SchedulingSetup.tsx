@@ -1,8 +1,8 @@
-import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { Info } from "lucide-react";
 import BusinessHoursEditor, { type BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
 import {
   DEFAULT_BUSINESS_HOURS,
@@ -18,7 +18,13 @@ export interface SchedulingPrefs {
   is24x7: boolean;
 }
 
-export function getDefaultSchedulingPrefs(mode: BusinessMode): SchedulingPrefs {
+export function getDefaultSchedulingPrefs(
+  mode: BusinessMode,
+  scenarioAnswers?: Record<string, boolean>
+): SchedulingPrefs {
+  const hasLongJobs = scenarioAnswers?.hasLongDurationJobs ?? false;
+  const isCallbackOnly = scenarioAnswers?.aiBooksDirect === false;
+
   switch (mode) {
     case "dispatch":
       return { defaultDurationMinutes: 60, bufferMinutes: 0, sameDayBooking: true, is24x7: false };
@@ -27,6 +33,12 @@ export function getDefaultSchedulingPrefs(mode: BusinessMode): SchedulingPrefs {
     case "medical":
       return { defaultDurationMinutes: 30, bufferMinutes: 15, sameDayBooking: false, is24x7: false };
     default:
+      if (isCallbackOnly) {
+        return { defaultDurationMinutes: 60, bufferMinutes: 15, sameDayBooking: true, is24x7: false };
+      }
+      if (hasLongJobs) {
+        return { defaultDurationMinutes: 120, bufferMinutes: 30, sameDayBooking: true, is24x7: false };
+      }
       return { defaultDurationMinutes: 60, bufferMinutes: 15, sameDayBooking: true, is24x7: false };
   }
 }
@@ -36,7 +48,7 @@ export function getDefaultHoursForMode(mode: BusinessMode): BusinessHours {
     case "food":
       return RESTAURANT_HOURS;
     case "dispatch":
-      return DEFAULT_BUSINESS_HOURS; // User can toggle 24/7
+      return DEFAULT_BUSINESS_HOURS;
     default:
       return DEFAULT_BUSINESS_HOURS;
   }
@@ -48,10 +60,38 @@ interface SchedulingSetupProps {
   onHoursChange: (hours: BusinessHours) => void;
   prefs: SchedulingPrefs;
   onPrefsChange: (prefs: SchedulingPrefs) => void;
+  scenarioAnswers?: Record<string, boolean>;
 }
 
-const durationOptions = [15, 30, 45, 60, 90, 120] as const;
-const bufferOptions = [0, 5, 10, 15, 30] as const;
+function formatDuration(mins: number): string {
+  if (mins === 0) return "Varies";
+  if (mins < 60) return `${mins} min`;
+  if (mins % 60 === 0) return `${mins / 60} hr${mins > 60 ? "s" : ""}`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${h}h ${m}m`;
+}
+
+function formatBuffer(mins: number): string {
+  if (mins === 0) return "None";
+  if (mins < 60) return `${mins} min`;
+  if (mins % 60 === 0) return `${mins / 60} hr${mins > 60 ? "s" : ""}`;
+  return `${mins} min`;
+}
+
+function getDurationOptions(hasLongJobs: boolean): number[] {
+  if (hasLongJobs) {
+    return [60, 90, 120, 180, 240, 480, 0]; // 0 = "Varies"
+  }
+  return [15, 30, 45, 60, 90, 120, 0]; // 0 = "Varies"
+}
+
+function getBufferOptions(hasLongJobs: boolean): number[] {
+  if (hasLongJobs) {
+    return [0, 15, 30, 45, 60, 120];
+  }
+  return [0, 5, 10, 15, 30, 45, 60];
+}
 
 export function SchedulingSetup({
   businessMode,
@@ -59,7 +99,11 @@ export function SchedulingSetup({
   onHoursChange,
   prefs,
   onPrefsChange,
+  scenarioAnswers,
 }: SchedulingSetupProps) {
+  const isCallbackOnly = scenarioAnswers?.aiBooksDirect === false;
+  const hasLongJobs = scenarioAnswers?.hasLongDurationJobs ?? false;
+
   const update = <K extends keyof SchedulingPrefs>(key: K, val: SchedulingPrefs[K]) => {
     onPrefsChange({ ...prefs, [key]: val });
   };
@@ -73,9 +117,12 @@ export function SchedulingSetup({
     }
   };
 
-  const showAppointmentPrefs = businessMode === "service" || businessMode === "medical" || businessMode === "general";
+  const showAppointmentPrefs = !isCallbackOnly && (businessMode === "service" || businessMode === "medical" || businessMode === "general");
   const showDispatchPrefs = businessMode === "dispatch";
   const showFoodPrefs = businessMode === "food";
+
+  const durationOptions = getDurationOptions(hasLongJobs);
+  const bufferOptions = getBufferOptions(hasLongJobs);
 
   return (
     <div className="space-y-6">
@@ -84,9 +131,31 @@ export function SchedulingSetup({
           Scheduling & Hours
         </h2>
         <p className="mt-2 text-muted-foreground">
-          Set your business hours and scheduling preferences. You can fine-tune these later in the Business Brain.
+          {isCallbackOnly
+            ? "Set your business hours so the AI knows when you're open. Since you chose callback-only, you don't need appointment slots."
+            : "Set your business hours and scheduling preferences. You can fine-tune these later in the Business Brain."
+          }
         </p>
       </div>
+
+      {/* Callback-only info banner */}
+      {isCallbackOnly && (
+        <Card className="border-blue-500/30 bg-blue-500/5">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <Info className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-sm">Callback-Only Mode</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Your AI will collect customer information and create callback requests. 
+                  You'll schedule appointments manually by calling them back. Just set your 
+                  business hours below so the AI knows when you're available.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 24/7 Toggle for dispatch */}
       {showDispatchPrefs && (
@@ -116,7 +185,7 @@ export function SchedulingSetup({
         </div>
       )}
 
-      {/* Appointment-based prefs */}
+      {/* Appointment-based prefs — hidden for callback-only */}
       {showAppointmentPrefs && (
         <div className="space-y-4">
           <p className="text-sm font-medium">Scheduling Preferences</p>
@@ -137,7 +206,7 @@ export function SchedulingSetup({
                         : "border-border hover:bg-muted/50"
                     )}
                   >
-                    {d} min
+                    {formatDuration(d)}
                   </button>
                 ))}
               </div>
@@ -158,7 +227,7 @@ export function SchedulingSetup({
                         : "border-border hover:bg-muted/50"
                     )}
                   >
-                    {b === 0 ? "None" : `${b} min`}
+                    {formatBuffer(b)}
                   </button>
                 ))}
               </div>

@@ -29,6 +29,8 @@ export interface HubStep {
   emphasis?: BusinessMode[];
   /** Modes where this step is hidden (not applicable) */
   hiddenModes?: BusinessMode[];
+  /** Hide this step when a specific capability is false (e.g. "aiBooksDirect") */
+  hiddenWhenCapabilityFalse?: string;
 }
 
 /** Mode-specific title overrides keyed by stepId then mode */
@@ -144,6 +146,7 @@ export const HUB_STEPS: HubStep[] = [
     ],
     emphasis: ["service", "medical", "sales"],
     hiddenModes: ["dispatch", "food"],
+    hiddenWhenCapabilityFalse: "aiBooksDirect",
   },
   {
     id: "policies",
@@ -197,8 +200,25 @@ export function getStepTitle(stepId: string, mode: BusinessMode): string {
 /**
  * Get steps ordered by relevance for a given mode, hiding inapplicable steps.
  */
-export function getOrderedSteps(mode: BusinessMode): HubStep[] {
-  return HUB_STEPS.filter(step => !step.hiddenModes?.includes(mode));
+/**
+ * Get steps ordered by relevance for a given mode, hiding inapplicable steps.
+ * Optionally accepts capabilities to hide steps based on capability flags.
+ */
+export function getOrderedSteps(
+  mode: BusinessMode,
+  capabilities?: Record<string, boolean>
+): HubStep[] {
+  return HUB_STEPS.filter((step) => {
+    if (step.hiddenModes?.includes(mode)) return false;
+    if (
+      step.hiddenWhenCapabilityFalse &&
+      capabilities &&
+      capabilities[step.hiddenWhenCapabilityFalse] === false
+    ) {
+      return false;
+    }
+    return true;
+  });
 }
 
 /**

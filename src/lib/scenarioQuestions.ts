@@ -19,6 +19,7 @@ export interface ScenarioQuestion {
   defaultValue: boolean;
   blocking?: boolean;          // Must be true to proceed (e.g. HIPAA)
   impliesModules?: string[];   // Auto-enable these modules when true
+  overridesBase?: boolean;     // When true and answer is false, removes impliedModules even from base set
   showWhen?: { capabilityKey: string; value: boolean };  // conditional visibility
   industryFilter?: { categories?: string[]; slugs?: string[] };  // industry-gated
   group?: QuestionGroup;       // visual grouping
@@ -30,6 +31,18 @@ export interface ScenarioQuestion {
 // ---------------------------------------------------------------------------
 
 const serviceQuestions: ScenarioQuestion[] = [
+  {
+    id: "ai-books-appointments",
+    capabilityKey: "aiBooksDirect",
+    label: "AI Books Appointments",
+    question: "Should the AI book appointments directly into your calendar?",
+    description: "If no, the AI will collect customer info and create a callback request for you to schedule manually",
+    defaultValue: true,
+    impliesModules: ["booking"],
+    overridesBase: true,
+    group: "core",
+    requiredForAI: true,
+  },
   {
     id: "mobile-service",
     capabilityKey: "offersMobileService",
@@ -154,6 +167,16 @@ const serviceQuestions: ScenarioQuestion[] = [
     defaultValue: false,
     impliesModules: ["after_hours_handling"],
     group: "core",
+  },
+  {
+    id: "long-duration-jobs",
+    capabilityKey: "hasLongDurationJobs",
+    label: "Long-Duration Jobs",
+    question: "Do jobs typically take multiple hours (3+ hours)?",
+    description: "Repairs, treatments, or services that take half a day or longer",
+    defaultValue: false,
+    group: "core",
+    industryFilter: { slugs: ["auto_repair", "body_shop", "auto_glass", "transmission_shop", "engine_repair", "hvac", "plumbing", "electrical", "general_contractor", "roofing", "painting"] },
   },
 ];
 
@@ -632,13 +655,24 @@ const crossModeQuestions: (ScenarioQuestion & { applicableModes: BusinessMode[] 
   {
     id: "walk-in-dropoffs",
     capabilityKey: "acceptsDropOffs",
-    label: "Walk-In Drop-offs",
+    label: "Walk-In Drop-offs / Tow-Ins",
     question: "Do you accept walk-in drop-offs or tow-ins?",
-    description: "Vehicles can be dropped off without a prior appointment",
+    description: "Vehicles can be towed in or dropped off without a prior appointment",
     defaultValue: false,
     impliesModules: ["dispatch_queue"],
     group: "advanced",
-    industryFilter: { categories: ["auto_services"] },
+    industryFilter: { slugs: ["body_shop", "auto_glass", "collision_center"] },
+    applicableModes: ["service"],
+  },
+  {
+    id: "vehicle-dropoffs",
+    capabilityKey: "acceptsVehicleDropOffs",
+    label: "Vehicle Drop-Offs",
+    question: "Do you accept vehicle drop-offs?",
+    description: "Customers can leave their vehicle and pick it up later when work is done",
+    defaultValue: false,
+    group: "core",
+    industryFilter: { slugs: ["auto_repair", "auto_detailing", "tire_shop", "oil_change", "transmission_shop", "engine_repair", "brake_shop", "muffler_shop"] },
     applicableModes: ["service"],
   },
   {
@@ -834,9 +868,11 @@ export function deriveModulesFromScenario(
     for (const mod of q.impliesModules) {
       if (answered) {
         moduleSet.add(mod);
-      } else if (answered === false && !baseModules.includes(mod)) {
-        // Only remove if it wasn't in the original base set
-        moduleSet.delete(mod);
+      } else if (answered === false) {
+        // Remove if overridesBase is set OR if it wasn't in the original base set
+        if (q.overridesBase || !baseModules.includes(mod)) {
+          moduleSet.delete(mod);
+        }
       }
     }
   }

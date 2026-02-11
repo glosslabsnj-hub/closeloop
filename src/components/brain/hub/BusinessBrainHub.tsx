@@ -4,7 +4,7 @@
  * Scannable layout: header with inline progress, then step list.
  */
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useCapabilities } from "@/hooks/useCapabilities";
@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 
 import { StepCard } from "./StepCard";
 import { getOrderedSteps, getStepTitle, isStepEmphasized } from "./hubStepsConfig";
+import { GuidedSetupOverlay } from "../GuidedSetupOverlay";
 
 interface BusinessBrainHubProps {
   onNavigateToSection: (sectionId: string) => void;
@@ -141,7 +142,14 @@ export function BusinessBrainHub({ onNavigateToSection }: BusinessBrainHubProps)
     }
   }, [tenantData, hoursData, servicesData, faqsData, assistantData, calendarData, isFoodMode, caps.isDispatchBusiness, caps.isFoodBusiness]);
 
-  const orderedSteps = getOrderedSteps(businessMode);
+  // Read capabilities from tenant for step filtering
+  const capabilities = useMemo(() => {
+    const raw = (tenant as any)?.capabilities_json;
+    if (raw && typeof raw === "object") return raw as Record<string, boolean>;
+    return {};
+  }, [tenant]);
+
+  const orderedSteps = getOrderedSteps(businessMode, capabilities);
   const completedCount = orderedSteps.filter(step => getStepCompletion(step.id)).length;
   const totalSteps = orderedSteps.length;
   const percentage = Math.round((completedCount / totalSteps) * 100);
@@ -149,7 +157,11 @@ export function BusinessBrainHub({ onNavigateToSection }: BusinessBrainHubProps)
 
   return (
     <div className="pb-12">
-      {/* Header: icon + title left, progress right */}
+      {/* Guided setup overlay */}
+      <GuidedSetupOverlay
+        onNavigateToSection={onNavigateToSection}
+        getStepCompletion={getStepCompletion}
+      />
       <div className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
           <Brain className="h-6 w-6 text-primary" />

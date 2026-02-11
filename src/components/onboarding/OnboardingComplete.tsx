@@ -1,19 +1,46 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Check, LayoutDashboard, BookOpen, Phone as PhoneIcon, Settings } from "lucide-react";
+import { Check, LayoutDashboard, BookOpen, Phone as PhoneIcon, Settings, MapPin, Sparkles, Calendar } from "lucide-react";
+import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 
 interface OnboardingCompleteProps {
   businessName: string;
   phoneNumber?: string;
+  businessMode?: BusinessMode;
+  scenarioAnswers?: Record<string, boolean>;
 }
 
-export function OnboardingComplete({ businessName, phoneNumber }: OnboardingCompleteProps) {
-  const nextSteps = [
-    { label: "Make a test call to hear your AI", icon: PhoneIcon },
-    { label: "Add more FAQs to the Business Brain", icon: BookOpen },
-    { label: "Connect your calendar for live booking", icon: Settings },
-  ];
+function getNextSteps(
+  mode: BusinessMode = "service",
+  answers: Record<string, boolean> = {}
+) {
+  const isCallbackOnly = answers.aiBooksDirect === false;
+  const steps: { label: string; icon: typeof PhoneIcon }[] = [];
+
+  // Always start with test call
+  steps.push({ label: "Make a test call to hear your AI", icon: PhoneIcon });
+
+  // Mode-specific steps
+  if (!isCallbackOnly && (mode === "service" || mode === "medical" || mode === "sales")) {
+    steps.push({ label: "Connect your calendar for live booking", icon: Calendar });
+  }
+
+  if (mode === "dispatch") {
+    steps.push({ label: "Set up your service area and coverage zones", icon: MapPin });
+  }
+
+  // Always recommend FAQs
+  steps.push({ label: "Add FAQs so your AI can answer common questions", icon: BookOpen });
+
+  // AI scripts
+  steps.push({ label: "Customize your AI's greeting and scripts", icon: Sparkles });
+
+  return steps;
+}
+
+export function OnboardingComplete({ businessName, phoneNumber, businessMode, scenarioAnswers }: OnboardingCompleteProps) {
+  const nextSteps = getNextSteps(businessMode, scenarioAnswers);
 
   return (
     <div className="text-center space-y-6">
@@ -69,14 +96,20 @@ export function OnboardingComplete({ businessName, phoneNumber }: OnboardingComp
         ))}
       </motion.div>
 
-      {/* Primary CTA */}
+      {/* Primary CTAs */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="pt-2"
+        className="pt-2 space-y-3"
       >
         <Button size="lg" className="w-full gap-2" asChild>
+          <Link to="/app/business-brain?guided=true">
+            <Sparkles className="w-4 h-4" />
+            Quick Setup Guide
+          </Link>
+        </Button>
+        <Button size="lg" variant="outline" className="w-full gap-2" asChild>
           <Link to="/app/dashboard">
             <LayoutDashboard className="w-4 h-4" />
             Go to Dashboard
