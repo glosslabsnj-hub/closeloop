@@ -28,7 +28,6 @@ const MODE_LABELS: Record<BusinessMode, string> = {
   food: "Food & Restaurant",
   medical: "Medical Practice",
   general: "General",
-  sales: "Sales",
 };
 
 interface SummaryHeaderProps {

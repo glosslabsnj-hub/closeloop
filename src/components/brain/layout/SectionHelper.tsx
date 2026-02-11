@@ -24,7 +24,6 @@ const MODE_ICONS: Record<BusinessMode, typeof Truck> = {
   food: UtensilsCrossed,
   medical: HeartPulse,
   general: Building2,
-  sales: Building2,
 };
 
 const MODE_COLORS: Record<BusinessMode, string> = {
@@ -33,7 +32,6 @@ const MODE_COLORS: Record<BusinessMode, string> = {
   food: "text-orange-500 bg-orange-500/10 border-orange-500/20",
   medical: "text-rose-500 bg-rose-500/10 border-rose-500/20",
   general: "text-slate-500 bg-slate-500/10 border-slate-500/20",
-  sales: "text-indigo-500 bg-indigo-500/10 border-indigo-500/20",
 };
 
 export function SectionHelper({ sectionId, businessMode, className }: SectionHelperProps) {

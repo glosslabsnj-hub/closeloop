@@ -40,11 +40,6 @@ const MODE_ACCENT: Record<BusinessMode, { bg: string; border: string; icon: stri
     border: "border-slate-200 dark:border-slate-800",
     icon: "text-slate-600"
   },
-  sales: { 
-    bg: "bg-indigo-50 dark:bg-indigo-950/30", 
-    border: "border-indigo-200 dark:border-indigo-900/50",
-    icon: "text-indigo-600"
-  },
 };
 
 interface AIPreviewBannerProps {

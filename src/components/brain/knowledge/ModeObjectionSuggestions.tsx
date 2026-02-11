@@ -63,16 +63,6 @@ const OBJECTIONS_BY_MODE: Record<BusinessMode, ObjectionSuggestion[]> = {
     { objection: "Let me call you back", response: "Sure! I'm available [hours]. Or I can call you back at a specific time - what works best?" },
     { objection: "Your competitor offered better", response: "I appreciate you sharing that. Let me see what we can offer you. What specifically did they propose?" },
   ],
-  sales: [
-    { objection: "That's too expensive", response: "I understand price is important. Let me show you what's included at this price point, and I can also explore financing options that might work better for your budget." },
-    { objection: "I'm just looking", response: "Absolutely, take your time! Is there anything specific I can point you to, or would you like me to share some details about what we have available?" },
-    { objection: "I need to think about it", response: "Of course! Would it help if I sent you the details by text or email so you have everything when you're ready to decide?" },
-    { objection: "I can find it cheaper online", response: "I understand. What we offer beyond price is in-person support, warranties, and the ability to see the product before buying. Would you like to compare the full value?" },
-    { objection: "I want to shop around first", response: "Smart approach! What's most important to you — price, quality, or service? I can highlight where we stand out so you have a good comparison point." },
-    { objection: "My spouse needs to see it", response: "Completely understand! Would you like to schedule a time to come back together? I can also send photos and details for them to review." },
-    { objection: "I don't need it right now", response: "No rush at all. Would you like me to keep you posted on any deals or new arrivals? I can reach out when something matches what you're looking for." },
-    { objection: "What's the best you can do on price?", response: "Let me see what options are available. We occasionally have promotions, and I can also check if there are any bundle deals that could save you money." },
-  ],
 };
 
 interface ModeObjectionSuggestionsProps {

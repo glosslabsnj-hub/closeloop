@@ -30,7 +30,6 @@ const modeLabels: Record<BusinessMode, string> = {
   food: "Food",
   medical: "Medical",
   general: "General",
-  sales: "Sales",
 };
 
 const modeColors: Record<BusinessMode, string> = {
@@ -39,7 +38,6 @@ const modeColors: Record<BusinessMode, string> = {
   food: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30",
   medical: "bg-red-500/10 text-red-600 border-red-500/30",
   general: "bg-violet-500/10 text-violet-600 border-violet-500/30",
-  sales: "bg-indigo-500/10 text-indigo-600 border-indigo-500/30",
 };
 
 export function TestTenantManager() {

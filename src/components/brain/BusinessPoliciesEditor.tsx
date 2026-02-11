@@ -21,7 +21,6 @@ const POLICY_TIPS: Record<BusinessMode, string> = {
   food: "Clear delivery minimums and fees prevent confusion. The AI will explain these when customers ask about delivery.",
   medical: "Keep policies HIPAA-compliant. The AI won't discuss specific medical information but will explain appointment and billing policies.",
   general: "Simple, clear policies help your AI answer questions confidently. Write them like you'd explain to a customer.",
-  sales: "Define your sales policies clearly — returns, warranties, financing terms. The AI will explain these when asked.",
 };
 
 const PAYMENT_METHODS = [

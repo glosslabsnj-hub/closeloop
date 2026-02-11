@@ -69,16 +69,6 @@ const FAQ_BY_MODE: Record<BusinessMode, SuggestedFAQ[]> = {
     { question: "What are your payment options?", answer: "We accept all major credit cards, cash, and checks. We also offer payment plans for larger services." },
     { question: "How quickly can you get back to me?", answer: "We typically respond within 24 hours during business days, often much sooner." },
   ],
-  sales: [
-    { question: "What products do you carry?", answer: "We carry a wide selection. Tell me what you're looking for and I can help narrow it down." },
-    { question: "Do you offer financing?", answer: "Yes, we offer multiple financing options with approved credit. I can explain the available plans." },
-    { question: "Can I schedule a viewing?", answer: "Absolutely! I can set up a time for you to come see our inventory. When works for you?" },
-    { question: "Do you accept trade-ins?", answer: "Yes, we accept trade-ins and offer fair market value. Bring yours in for an assessment." },
-    { question: "What's your return policy?", answer: "We offer a 30-day return policy on most items with original receipt." },
-    { question: "Do you price match?", answer: "Yes, we match competitor prices on identical items. Just show us the advertised price." },
-    { question: "Do you deliver?", answer: "Yes, we offer delivery for an additional fee. I can give you a quote based on your location." },
-    { question: "Are there current promotions?", answer: "We frequently run special promotions. Let me check what's currently available." },
-  ],
 };
 
 interface ModeFAQSuggestionsProps {

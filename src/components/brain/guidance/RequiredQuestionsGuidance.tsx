@@ -61,12 +61,6 @@ const RECOMMENDED_DEFAULTS: Record<BusinessMode, RecommendedDefault[]> = {
     { question: "Name + callback number" },
     { question: "Best time to reach you" },
   ],
-  sales: [
-    { question: "What product or service are you interested in" },
-    { question: "Your budget range" },
-    { question: "Name + callback number" },
-    { question: "Preferred time for a viewing or consultation" },
-  ],
 };
 
 const MODE_LABELS: Record<BusinessMode, string> = {
@@ -75,7 +69,6 @@ const MODE_LABELS: Record<BusinessMode, string> = {
   service: "Service Business",
   medical: "Medical Practice",
   general: "General Business",
-  sales: "Sales Business",
 };
 
 export function RequiredQuestionsGuidance({

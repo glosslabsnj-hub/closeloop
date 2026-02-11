@@ -186,40 +186,6 @@ const MODE_FAQS: Record<BusinessMode, SuggestedFAQ[]> = {
       answer: "Yes, we offer flexible payment options. We can discuss what works best for your situation."
     },
   ],
-  sales: [
-    {
-      question: "What products do you carry?",
-      answer: "We carry a wide selection of products. I can help you find exactly what you're looking for. What are you interested in?"
-    },
-    {
-      question: "Do you offer financing?",
-      answer: "Yes, we offer financing options with approved credit. I can walk you through the available plans."
-    },
-    {
-      question: "Can I schedule a viewing?",
-      answer: "Absolutely! I can schedule a time for you to come in and see our available inventory."
-    },
-    {
-      question: "Do you accept trade-ins?",
-      answer: "Yes, we accept trade-ins. Bring your item in and we'll provide a fair market value assessment."
-    },
-    {
-      question: "What's your return policy?",
-      answer: "We offer a 30-day return policy on most items with original receipt and packaging."
-    },
-    {
-      question: "Do you price match?",
-      answer: "Yes, we match competitor prices on identical items. Just show us the advertised price."
-    },
-    {
-      question: "Do you deliver?",
-      answer: "Yes, we offer delivery for an additional fee depending on your location. I can give you a quote."
-    },
-    {
-      question: "Are there any current promotions?",
-      answer: "We often have special promotions running. Let me check what's currently available for you."
-    },
-  ],
 };
 
 export function SuggestedFAQButtons({ onAdd, existingQuestions = [] }: SuggestedFAQButtonsProps) {

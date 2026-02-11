@@ -182,7 +182,7 @@ function AppLayoutContent() {
 
           {/* Page content */}
           <div className={cn(
-            "flex-1 overflow-y-auto",
+            "flex-1",
             "pt-14 md:pt-0", // Mobile header offset (mobile only — desktop slim bar is in flow)
             "pb-16 md:pb-0" // Mobile bottom nav
           )}>
