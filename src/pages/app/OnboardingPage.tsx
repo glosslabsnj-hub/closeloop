@@ -637,7 +637,7 @@ export default function OnboardingPage() {
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <OnboardingComplete businessName={businessName} phoneNumber={provisionedPhone} />
+                  <OnboardingComplete businessName={businessName} phoneNumber={provisionedPhone} businessMode={businessMode} scenarioAnswers={scenarioAnswers} />
                 </motion.div>
               ) : (
                 <motion.div
@@ -709,6 +709,7 @@ export default function OnboardingPage() {
                       onHoursChange={setBusinessHours}
                       prefs={schedulingPrefs}
                       onPrefsChange={setSchedulingPrefs}
+                      scenarioAnswers={scenarioAnswers}
                     />
                   )}
 
