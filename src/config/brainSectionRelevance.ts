@@ -63,9 +63,8 @@ export const SECTION_RELEVANCE: SectionRelevance[] = [
     tab: "services",
     isRelevant: (caps, flags) =>
       flags.offersPackages === true ||
-      caps.isServiceBusiness ||
-      caps.derivedPrimaryMode === "general" ||
-      caps.isMedicalBusiness,
+      ((caps.isServiceBusiness || caps.derivedPrimaryMode === "general" || caps.isMedicalBusiness) &&
+        caps.isSchedulingBusiness),
     addOn: {
       id: "service-packages",
       title: "Packages & Bundles",

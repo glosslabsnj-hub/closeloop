@@ -244,8 +244,9 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "WHERE YOU WORK",
     order: 2,
     tab: "operations",
-    isVisible: (mode, _caps, flags) =>
-      (mode !== "food" && !flags.isFoodMode) || flags.foodNeedsCoverage,
+    isVisible: (mode, caps, flags) =>
+      (caps.isDispatchBusiness || caps.offersMobileService) &&
+      ((mode !== "food" && !flags.isFoodMode) || flags.foodNeedsCoverage),
   },
   {
     id: "service-coverage",
@@ -255,7 +256,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "WHERE YOU WORK",
     order: 3,
     tab: "operations",
-    isVisible: (mode) => mode === "service",
+    isVisible: (mode, caps) => mode === "service" && caps.isSchedulingBusiness,
   },
   {
     id: "dispatch-zones",
@@ -317,6 +318,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "WHERE YOU WORK",
     order: 9,
     tab: "operations",
+    isVisible: (_mode, caps) => caps.isDispatchBusiness || caps.isSchedulingBusiness,
   },
 
   // YOUR RULES
