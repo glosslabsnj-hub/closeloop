@@ -349,6 +349,13 @@ export function ServiceAreaManager() {
         serviceAreaSummary={summary}
       />
 
+      {/* Pricing cross-reference note */}
+      <div className="rounded-lg border bg-muted/30 p-3">
+        <p className="text-xs text-muted-foreground">
+          <strong>Service area vs. pricing:</strong> This defines <em>where</em> you'll accept jobs. Pricing for each service is configured separately under <strong>Offerings → Services</strong>. The AI checks this area first — if a caller is outside it, they're told you don't cover that location before pricing comes up.
+        </p>
+      </div>
+
       {/* Summary Card */}
       <Card className="border-primary/20 bg-primary/5">
         <CardHeader className="pb-3">
