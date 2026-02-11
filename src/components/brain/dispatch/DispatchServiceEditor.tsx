@@ -1,7 +1,9 @@
-import { useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useServices } from "@/hooks/useServices";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTenantDistanceSettings } from "@/hooks/useTenantDistanceSettings";
+import { useServiceArea } from "@/hooks/useServiceArea";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -111,6 +113,8 @@ export function DispatchServiceEditor({
   const [step, setStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<DispatchServiceFormData>(defaultFormData);
+  const { settings: distanceSettings } = useTenantDistanceSettings();
+  const { serviceArea } = useServiceArea();
 
   // IMPORTANT: This editor is controlled by the parent (open prop).
   // Radix Dialog does not always fire onOpenChange when parent toggles `open`,
@@ -508,6 +512,36 @@ export function DispatchServiceEditor({
               {/* Distance Tiered Pricing */}
               {formData.pricing_config.pricing_model === "distance_tiered" && (
                 <div className="space-y-4">
+                  {/* Distance basis context banner */}
+                  {(() => {
+                    const effectiveBasis = formData.pricing_config.distance_basis && formData.pricing_config.distance_basis !== ("default" as any)
+                      ? formData.pricing_config.distance_basis
+                      : distanceSettings?.default_distance_basis || "tow_distance";
+                    const basisLabel = DISTANCE_BASIS_OPTIONS.find(o => o.value === effectiveBasis)?.label || effectiveBasis;
+                    const basisDesc = effectiveBasis === "tow_distance" ? "pickup → dropoff"
+                      : effectiveBasis === "dispatch_distance" ? "your shop → pickup"
+                      : effectiveBasis === "total_trip" ? "shop → pickup → dropoff"
+                      : "flat rate";
+                    const isOverride = formData.pricing_config.distance_basis && formData.pricing_config.distance_basis !== ("default" as any);
+                    const radiusMiles = serviceArea?.radius_miles;
+
+                    return (
+                      <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-1.5">
+                        <p className="text-xs font-medium">
+                          📏 These tiers use <strong>{basisLabel}</strong> miles ({basisDesc}).
+                          {isOverride
+                            ? " This service overrides your business-wide default."
+                            : " This is your business-wide default — you can change it in Coverage & ETA."}
+                        </p>
+                        {radiusMiles && (
+                          <p className="text-xs text-muted-foreground">
+                            Your service area is <strong>{radiusMiles} miles</strong> from base. Tiers beyond that distance would apply to out-of-area jobs (if you accept them).
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   {/* Distance Basis Selector */}
                   <div className="space-y-2">
                     <Label>Distance Measured From</Label>
@@ -619,6 +653,64 @@ export function DispatchServiceEditor({
                       No distance tiers configured. Click "Add Tier" to get started.
                     </div>
                   )}
+
+                  {/* Service area tier coverage suggestion */}
+                  {(() => {
+                    const tiers = formData.pricing_config.distance_tiers || [];
+                    const radiusMiles = serviceArea?.radius_miles;
+                    if (!radiusMiles || tiers.length === 0) return null;
+
+                    const highestTierMax = tiers.reduce((max, t) => {
+                      if (t.max_miles === null || t.max_miles === undefined) return Infinity;
+                      return Math.max(max, t.max_miles);
+                    }, 0);
+
+                    if (highestTierMax !== Infinity && highestTierMax < radiusMiles) {
+                      return (
+                        <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 space-y-2">
+                          <p className="text-xs text-yellow-700 dark:text-yellow-400">
+                            ⚠️ Your service area covers up to <strong>{radiusMiles} miles</strong>, but your highest tier only goes to <strong>{highestTierMax} miles</strong>. Jobs between {highestTierMax}–{radiusMiles} miles won't have a price — the AI will need to request a custom quote.
+                          </p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs h-7"
+                            onClick={() => {
+                              const lastTier = tiers[tiers.length - 1];
+                              const newTier: DistanceTier = {
+                                min_miles: highestTierMax,
+                                max_miles: radiusMiles,
+                                base_price: lastTier?.base_price || 100,
+                                per_mile_price: lastTier?.per_mile_price || 5,
+                              };
+                              setFormData({
+                                ...formData,
+                                pricing_config: {
+                                  ...formData.pricing_config,
+                                  distance_tiers: [...tiers, newTier],
+                                },
+                              });
+                            }}
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Add tier for {highestTierMax}–{radiusMiles} miles
+                          </Button>
+                        </div>
+                      );
+                    }
+
+                    if (highestTierMax === Infinity && radiusMiles) {
+                      return (
+                        <div className="rounded-lg border bg-muted/30 p-3">
+                          <p className="text-xs text-muted-foreground">
+                            ℹ️ Your last tier is open-ended, and your service area is <strong>{radiusMiles} miles</strong>. The AI checks service area first — if someone is beyond {radiusMiles} miles, they'll be told you don't serve that area before pricing comes up.
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    return null;
+                  })()}
 
                   {/* Inline example */}
                   <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 text-sm">

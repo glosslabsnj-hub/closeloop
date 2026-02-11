@@ -191,9 +191,12 @@ export function DistanceBasisSettings() {
         })}
       </RadioGroup>
 
-      <div className="rounded-lg border bg-muted/30 p-3 mt-4">
+      <div className="rounded-lg border bg-muted/30 p-3 mt-4 space-y-2">
         <p className="text-xs text-muted-foreground">
           <strong>Note:</strong> This is your default for all services. You can override this on individual services if some use a different pricing method (e.g., flat rate for local tows, per-mile for long distance).
+        </p>
+        <p className="text-xs text-muted-foreground">
+          <strong>How this connects to pricing:</strong> This setting determines which distance your per-mile rates in each service use. For example, if you choose "Tow Distance" and a service charges $5/mile, that $5 applies to each mile the vehicle is towed (pickup → dropoff), not the distance from your shop.
         </p>
       </div>
 
