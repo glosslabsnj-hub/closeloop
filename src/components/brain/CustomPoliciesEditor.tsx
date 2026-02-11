@@ -82,6 +82,13 @@ const POLICY_SUGGESTIONS: Record<BusinessMode, Array<{ title: string; placeholde
     { title: "Satisfaction Guarantee", placeholder: "We stand behind our work with a 100% satisfaction guarantee..." },
     { title: "Gift Cards", placeholder: "Gift cards are available in any amount and never expire..." },
   ],
+  sales: [
+    { title: "Return Policy", placeholder: "Items can be returned within 30 days with original receipt..." },
+    { title: "Warranty Policy", placeholder: "All products come with a manufacturer warranty..." },
+    { title: "Financing Terms", placeholder: "We offer financing options with approved credit..." },
+    { title: "Price Match", placeholder: "We match competitor prices on identical items..." },
+    { title: "Trade-In Policy", placeholder: "We accept trade-ins and offer fair market value..." },
+  ],
 };
 
 export function CustomPoliciesEditor() {

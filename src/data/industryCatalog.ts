@@ -32,7 +32,7 @@
 
 import type { ServiceTemplate, ContextField, FAQ, ObjectionResponse } from './industryTemplates';
 
-export type BusinessMode = 'service' | 'dispatch' | 'food' | 'medical' | 'general';
+export type BusinessMode = 'service' | 'dispatch' | 'food' | 'medical' | 'general' | 'sales';
 
 export interface IndustryCatalogEntry {
   slug: string;

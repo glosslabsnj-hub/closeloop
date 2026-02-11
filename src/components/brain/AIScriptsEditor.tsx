@@ -49,6 +49,11 @@ const MODE_CONTENT: Record<BusinessMode, ModeContent> = {
     greetingTip: "Keep it simple and welcoming. Let callers know what kind of help you can provide.",
     fallbackExample: "I'm sorry, I missed that. Could you repeat what you need?",
   },
+  sales: {
+    greetingExample: "Hi, thanks for calling [Business]! Are you looking for information on our products?",
+    greetingTip: "Sound enthusiastic and ready to help. Let callers know you can answer questions and schedule viewings.",
+    fallbackExample: "I'm sorry, I missed that. Are you interested in learning about our available products or services?",
+  },
 };
 
 export function AIScriptsEditor() {

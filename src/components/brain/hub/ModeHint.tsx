@@ -58,6 +58,12 @@ const modeConfigs: Record<BusinessMode, ModeConfig> = {
     emphasis: ["FAQs", "Policies"],
     tip: "Focus on FAQs so your AI can answer common questions accurately.",
   },
+  sales: {
+    icon: Building2,
+    title: "Sales Business",
+    emphasis: ["Product Catalog", "Pricing"],
+    tip: "Add your products and pricing so the AI can answer inquiries and schedule viewings.",
+  },
 };
 
 export function ModeHint({ mode, className }: ModeHintProps) {
