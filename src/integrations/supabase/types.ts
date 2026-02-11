@@ -519,7 +519,6 @@ export type Database = {
           impound_agent_id: string | null
           impound_fallback_script: string | null
           impound_greeting_script: string | null
-          ai_behavior_mode: Database["public"]["Enums"]["ai_behavior_mode"]
           instant_text_enabled: boolean
           missed_call_behavior: Database["public"]["Enums"]["missed_call_behavior"]
           notification_sounds_enabled: boolean
@@ -553,7 +552,6 @@ export type Database = {
           waitlist_enabled: boolean | null
         }
         Insert: {
-          ai_behavior_mode?: Database["public"]["Enums"]["ai_behavior_mode"]
           ai_booking_mode?: string | null
           ai_callback_delay_minutes?: number | null
           booking_url?: string | null
@@ -607,7 +605,6 @@ export type Database = {
           waitlist_enabled?: boolean | null
         }
         Update: {
-          ai_behavior_mode?: Database["public"]["Enums"]["ai_behavior_mode"]
           ai_booking_mode?: string | null
           ai_callback_delay_minutes?: number | null
           booking_url?: string | null
@@ -9871,7 +9868,6 @@ export type Database = {
       suggestion_status: "pending_review" | "approved" | "rejected" | "merged"
       suggestion_type: "service" | "faq" | "menu_item" | "policy" | "objection"
       user_role: "owner" | "staff" | "super_admin" | "driver"
-      ai_behavior_mode: "full_service" | "callback_only"
       voice_mode: "always_on" | "busy_mode" | "overflow" | "after_hours_only"
       webhook_auth_mode: "none" | "header" | "basic"
       workflow_node_type:
@@ -10214,7 +10210,6 @@ export const Constants = {
       subscription_status: ["active", "trialing", "past_due", "canceled"],
       suggestion_status: ["pending_review", "approved", "rejected", "merged"],
       suggestion_type: ["service", "faq", "menu_item", "policy", "objection"],
-      ai_behavior_mode: ["full_service", "callback_only"],
       user_role: ["owner", "staff", "super_admin", "driver"],
       voice_mode: ["always_on", "busy_mode", "overflow", "after_hours_only"],
       webhook_auth_mode: ["none", "header", "basic"],
