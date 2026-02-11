@@ -11,11 +11,11 @@ import { useCapabilities } from "@/hooks/useCapabilities";
 import { useFoodMode } from "@/hooks/useFoodMode";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Brain } from "lucide-react";
+import { Brain, PhoneIncoming } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { StepCard } from "./StepCard";
-import { getOrderedSteps, getStepTitle, isStepEmphasized } from "./hubStepsConfig";
+import { getOrderedSteps, getStepTitle, getStepPurpose, isStepEmphasized } from "./hubStepsConfig";
 import { GuidedSetupOverlay } from "../GuidedSetupOverlay";
 
 interface BusinessBrainHubProps {
@@ -115,6 +115,15 @@ export function BusinessBrainHub({ onNavigateToSection }: BusinessBrainHubProps)
     enabled: !!tenant?.id,
   });
 
+  // Read capabilities from tenant for step filtering
+  const capabilities = useMemo(() => {
+    const raw = (tenant as any)?.capabilities_json;
+    if (raw && typeof raw === "object") return raw as Record<string, boolean>;
+    return {};
+  }, [tenant]);
+
+  const isCallbackOnly = capabilities?.callbackOnly === true;
+
   const getStepCompletion = useCallback((stepId: string): boolean => {
     switch (stepId) {
       case "identity":
@@ -122,6 +131,10 @@ export function BusinessBrainHub({ onNavigateToSection }: BusinessBrainHubProps)
       case "hours":
         return (hoursData?.length || 0) > 0;
       case "offerings": {
+        if (isCallbackOnly) {
+          // For callback-only, just having services listed is enough (no price requirement)
+          return (servicesData?.length || 0) >= 1;
+        }
         const minServices = isFoodMode ? 3 : 1;
         const servicesWithPrices = servicesData?.filter(s => s.price_amount && s.price_amount > 0) || [];
         return servicesWithPrices.length >= minServices;
@@ -140,14 +153,7 @@ export function BusinessBrainHub({ onNavigateToSection }: BusinessBrainHubProps)
       default:
         return false;
     }
-  }, [tenantData, hoursData, servicesData, faqsData, assistantData, calendarData, isFoodMode, caps.isDispatchBusiness, caps.isFoodBusiness]);
-
-  // Read capabilities from tenant for step filtering
-  const capabilities = useMemo(() => {
-    const raw = (tenant as any)?.capabilities_json;
-    if (raw && typeof raw === "object") return raw as Record<string, boolean>;
-    return {};
-  }, [tenant]);
+  }, [tenantData, hoursData, servicesData, faqsData, assistantData, calendarData, isFoodMode, isCallbackOnly, caps.isDispatchBusiness, caps.isFoodBusiness]);
 
   const orderedSteps = getOrderedSteps(businessMode, capabilities);
   const completedCount = orderedSteps.filter(step => getStepCompletion(step.id)).length;
@@ -162,12 +168,32 @@ export function BusinessBrainHub({ onNavigateToSection }: BusinessBrainHubProps)
         onNavigateToSection={onNavigateToSection}
         getStepCompletion={getStepCompletion}
       />
+
+      {/* Callback-only banner */}
+      {isCallbackOnly && (
+        <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 p-4">
+          <div className="flex items-start gap-3">
+            <PhoneIncoming className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-medium">Capture & Callback Mode</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Your AI will answer calls, qualify callers by asking about their needs, collect their info, and let them know you'll call back. No scheduling or booking needed.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
           <Brain className="h-6 w-6 text-primary" />
           <div>
             <h1 className="text-lg font-semibold">Business Brain</h1>
-            <p className="text-sm text-muted-foreground">Teach your AI about your business</p>
+            <p className="text-sm text-muted-foreground">
+              {isCallbackOnly
+                ? "Teach your AI what you do so it can qualify callers"
+                : "Teach your AI about your business"}
+            </p>
           </div>
         </div>
 
@@ -192,6 +218,7 @@ export function BusinessBrainHub({ onNavigateToSection }: BusinessBrainHubProps)
           const isComplete = getStepCompletion(step.id);
           const emphasized = isStepEmphasized(step, businessMode);
           const title = getStepTitle(step.id, businessMode);
+          const purpose = getStepPurpose(step.id, isCallbackOnly);
 
           return (
             <StepCard
@@ -199,7 +226,7 @@ export function BusinessBrainHub({ onNavigateToSection }: BusinessBrainHubProps)
               stepNumber={index + 1}
               sectionId={step.sectionId}
               title={title}
-              purpose={step.purpose}
+              purpose={purpose}
               icon={step.icon}
               usedByAI={step.usedByAI}
               isComplete={isComplete}
