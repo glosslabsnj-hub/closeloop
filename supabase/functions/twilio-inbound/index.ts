@@ -36,6 +36,99 @@ function hangupTwiml(message: string): string {
 </Response>`;
 }
 
+// Forward call to owner's phone via <Dial>
+function forwardTwiml(forwardNumber: string, businessName: string, callerId: string): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial callerId="${escapeXml(callerId)}" timeout="25">
+    <Number>${escapeXml(forwardNumber)}</Number>
+  </Dial>
+  <Say voice="Polly.Joanna">Sorry, no one is available at ${escapeXml(businessName)} right now. Please try again later.</Say>
+  <Hangup/>
+</Response>`;
+}
+
+// Voicemail TwiML — say message + record
+function voicemailTwiml(businessName: string): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="Polly.Joanna">Thanks for calling ${escapeXml(businessName)}. We're not available right now. Please leave a message after the tone and we'll get back to you.</Say>
+  <Record maxLength="120" playBeep="true" />
+  <Say voice="Polly.Joanna">Thank you. Goodbye.</Say>
+  <Hangup/>
+</Response>`;
+}
+
+// Callback capture TwiML — acknowledge and hang up
+function callbackCaptureTwiml(businessName: string): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="Polly.Joanna">Thanks for calling ${escapeXml(businessName)}. We have your number and someone will call you back shortly.</Say>
+  <Hangup/>
+</Response>`;
+}
+
+// Check if current time is outside business hours
+function isAfterHours(hoursJson: Record<string, unknown> | null, timezone: string | null): boolean {
+  if (!hoursJson || !timezone) return false; // Assume open if no hours configured
+
+  try {
+    // Get current day-of-week in the business timezone
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      weekday: "long",
+      hour: "numeric",
+      minute: "numeric",
+      hour12: false,
+    });
+
+    const parts = formatter.formatToParts(now);
+    const weekday = parts.find(p => p.type === "weekday")?.value?.toLowerCase() || "";
+    const hour = parseInt(parts.find(p => p.type === "hour")?.value || "0", 10);
+    const minute = parseInt(parts.find(p => p.type === "minute")?.value || "0", 10);
+    const currentMinutes = hour * 60 + minute;
+
+    // Look up today's hours — hoursJson can be keyed by full name or abbreviation
+    const dayKeys = [weekday, weekday.slice(0, 3)]; // "monday", "mon"
+    let todayHours: any = null;
+    for (const key of dayKeys) {
+      if (hoursJson[key] !== undefined) {
+        todayHours = hoursJson[key];
+        break;
+      }
+    }
+
+    // No entry for today → closed today → after hours
+    if (todayHours === null || todayHours === undefined) return true;
+
+    // Explicitly closed
+    if (todayHours === false || todayHours?.closed === true || todayHours?.is_closed === true) return true;
+
+    // Parse open/close times (supports "09:00"/"17:00" or {open: "09:00", close: "17:00"})
+    let openTime: string | null = null;
+    let closeTime: string | null = null;
+
+    if (typeof todayHours === "object") {
+      openTime = todayHours.open || todayHours.start || null;
+      closeTime = todayHours.close || todayHours.end || null;
+    }
+
+    if (!openTime || !closeTime) return false; // Can't determine, assume open
+
+    const [openH, openM] = openTime.split(":").map(Number);
+    const [closeH, closeM] = closeTime.split(":").map(Number);
+    const openMinutes = openH * 60 + (openM || 0);
+    const closeMinutes = closeH * 60 + (closeM || 0);
+
+    // Current time is before open or after close → after hours
+    return currentMinutes < openMinutes || currentMinutes >= closeMinutes;
+  } catch (e) {
+    console.warn("[twilio-inbound] isAfterHours() error:", e);
+    return false; // On error, assume open (don't block calls)
+  }
+}
+
 // IVR menu TwiML - asks caller to press 1 or 2 (dispatch-specific: towing vs impound)
 function ivrGatherTwiml(businessName: string, webhookUrl: string): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -312,11 +405,91 @@ Deno.serve(async (req) => {
     });
     const settings = settingsRecords[0] || {};
 
-    // Check if voice AI is enabled
-    if (settings.voice_ai_enabled === false || settings.voice_mode === "off") {
+    // ===== VOICE MODE ROUTING =====
+    // Determines WHEN AI answers: always, after hours only, etc.
+    // And WHAT happens when AI doesn't answer: forward, voicemail, callback capture
+    const voiceMode = settings.voice_mode || "always_on";
+    const offBehavior = settings.off_behavior || "FORWARD_OWNER";
+    const ownerForwardNumber = settings.owner_forward_number || "";
+
+    // Helper: execute off-behavior (forward/voicemail/callback) and log
+    const handleOffBehavior = (reason: string): Response => {
+      console.log(`[twilio-inbound] Off-behavior triggered (${reason}): ${offBehavior} for tenant ${tenantId}`);
+
+      // Fire-and-forget: create a minimal session for lead tracking
+      void (async () => {
+        try {
+          await fetchWithTimeout(
+            `${SUPABASE_URL}/rest/v1/ai_call_sessions`,
+            {
+              method: "POST",
+              headers: {
+                apikey: SUPABASE_SERVICE_ROLE_KEY,
+                Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                "Content-Type": "application/json",
+                Prefer: "return=minimal",
+              },
+              body: JSON.stringify({
+                tenant_id: tenantId,
+                twilio_call_sid: callSidSafe,
+                caller_phone: callerPhoneE164,
+                call_direction: "inbound",
+                started_at: new Date().toISOString(),
+                ended_at: new Date().toISOString(),
+                outcome: "forwarded",
+                summary: `Call handled via ${offBehavior} (${reason})`,
+              }),
+            },
+            2000
+          );
+        } catch { /* swallow */ }
+      })();
+
+      void logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+        tenant_id: tenantId,
+        twilio_call_sid: callSidSafe,
+        to_number: toPhoneE164,
+        from_number: callerPhoneE164,
+        stage: `off_behavior_${offBehavior.toLowerCase()}`,
+        raw_payload: { reason, voice_mode: voiceMode, off_behavior: offBehavior },
+      });
+
+      switch (offBehavior) {
+        case "FORWARD_OWNER":
+          if (ownerForwardNumber) {
+            return twimlResponse(forwardTwiml(ownerForwardNumber, businessName, toPhoneE164));
+          }
+          // No forward number configured — fall back to voicemail
+          console.warn(`[twilio-inbound] FORWARD_OWNER but no number configured, falling back to voicemail`);
+          return twimlResponse(voicemailTwiml(businessName));
+        case "VOICEMAIL":
+          return twimlResponse(voicemailTwiml(businessName));
+        case "CALLBACK_ONLY":
+          return twimlResponse(callbackCaptureTwiml(businessName));
+        default:
+          return twimlResponse(hangupTwiml(`Thank you for calling ${escapeXml(businessName)}. We're currently unavailable. Please try again later.`));
+      }
+    };
+
+    // 1. If voice AI is fully disabled → off-behavior
+    if (settings.voice_ai_enabled === false || voiceMode === "off") {
       console.log(`[twilio-inbound] Voice AI disabled for tenant ${tenantId}`);
-      return twimlResponse(hangupTwiml(`Thank you for calling ${escapeXml(businessName)}. We're currently unavailable. Please leave a message or try again later.`));
+      return handleOffBehavior("voice_ai_disabled");
     }
+
+    // 2. If after_hours_only → check business hours
+    if (voiceMode === "after_hours_only") {
+      const afterHours = isAfterHours(tenant.hours_json as Record<string, unknown> | null, tenant.timezone);
+      if (!afterHours) {
+        // During business hours → don't use AI, apply off-behavior
+        console.log(`[twilio-inbound] after_hours_only mode: currently during business hours, using off-behavior`);
+        return handleOffBehavior("during_business_hours");
+      }
+      // After hours → fall through to AI
+      console.log(`[twilio-inbound] after_hours_only mode: after hours, proceeding to AI`);
+    }
+
+    // 3. always_on (default) or after_hours_only after hours → proceed to AI below
 
     // Step 5: Handle hybrid IVR routing (businesses with both booking + dispatch)
     if (isHybrid && !digits) {
@@ -411,6 +584,8 @@ Deno.serve(async (req) => {
         .filter(([_, v]) => v === true)
         .map(([k]) => k)
         .join(","),
+      // AI behavior mode: full_service or callback_only
+      ai_behavior_mode: settings.ai_behavior_mode || "full_service",
     };
 
     // Step 8: Register call with ElevenLabs (timeout to avoid Twilio hanging)

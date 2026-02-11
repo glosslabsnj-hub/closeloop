@@ -18,6 +18,8 @@ import BookingBehaviorSettings from "@/components/ai/BookingBehaviorSettings";
 import ServiceCallFlowSettings from "@/components/ai/ServiceCallFlowSettings";
 import CalendarSyncSettings from "@/components/ai/CalendarSyncSettings";
 import ElevenLabsSetupGuide from "@/components/ai/ElevenLabsSetupGuide";
+import VoiceModeSelector from "@/components/ai/VoiceModeSelector";
+import AIBehaviorModeSelector from "@/components/ai/AIBehaviorModeSelector";
 import {
   Bot,
   Play,
@@ -28,6 +30,7 @@ import {
   CalendarCheck,
   Settings2,
   Brain,
+  PhoneForwarded,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -186,6 +189,10 @@ export default function AIAssistantPage() {
             <Mic className="h-4 w-4" />
             Voice
           </TabsTrigger>
+          <TabsTrigger value="routing" className="gap-2">
+            <PhoneForwarded className="h-4 w-4" />
+            Call Routing
+          </TabsTrigger>
           <TabsTrigger value="booking" className="gap-2">
             <CalendarCheck className="h-4 w-4" />
             Booking
@@ -216,6 +223,14 @@ export default function AIAssistantPage() {
         <TabsContent value="voice" className="space-y-6">
           <div className="max-w-lg">
             <VoiceSelector selected={selectedVoice} onSelect={setSelectedVoice} />
+          </div>
+        </TabsContent>
+
+        {/* Call Routing Tab */}
+        <TabsContent value="routing" className="space-y-6">
+          <div className="max-w-2xl space-y-6">
+            <VoiceModeSelector />
+            <AIBehaviorModeSelector />
           </div>
         </TabsContent>
 

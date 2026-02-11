@@ -1135,6 +1135,15 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
 
   // ===== AI SETTINGS =====
   {
+    key: "ai_behavior_mode",
+    description: "AI call behavior mode: full_service (book/dispatch/order) or callback_only (capture info only)",
+    type: "string",
+    source: "ai_settings.ai_behavior_mode",
+    defaultValue: "full_service",
+    category: "ai_settings",
+    includeInCompactJson: true,
+  },
+  {
     key: "service_default_flow",
     description: "Service call flow: schedule_first, urgency_check, or dispatch_first",
     type: "string",

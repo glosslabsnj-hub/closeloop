@@ -42,6 +42,8 @@ export function AgentControlCard() {
   const phoneConnected = assistantSettings?.phone_connected || false;
   const calendarConnected = !!assistantSettings?.booking_url;
   const closeloopNumber = assistantSettings?.closeloop_number;
+  const voiceMode = assistantSettings?.voice_mode || "always_on";
+  const aiBehaviorMode = (assistantSettings as any)?.ai_behavior_mode || "full_service";
 
   // SMS agent state
   const smsEnabled = assistantSettings?.instant_text_enabled || false;
@@ -176,9 +178,18 @@ export function AgentControlCard() {
               <Badge variant={voiceEnabled ? "default" : "secondary"} className="text-xs">
                 {voiceEnabled ? "Live" : "Paused"}
               </Badge>
+              {voiceEnabled && aiBehaviorMode === "callback_only" && (
+                <Badge variant="outline" className="text-xs">
+                  Capture Only
+                </Badge>
+              )}
             </div>
             <p className="text-sm text-muted-foreground">
-              {voiceEnabled ? "Answering calls 24/7" : "Toggle to start answering"}
+              {!voiceEnabled
+                ? "Toggle to start answering"
+                : voiceMode === "after_hours_only"
+                  ? "Answering after hours"
+                  : "Answering calls 24/7"}
             </p>
           </div>
         </div>

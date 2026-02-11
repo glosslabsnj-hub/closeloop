@@ -109,6 +109,44 @@ export const TIME_NUMBER_SPEAKING_RULES = `
 - If caller asks for a reference number, say: "You'll get a text with your confirmation details"
 `;
 
+// ============= CALLBACK-ONLY BEHAVIOR OVERRIDE =============
+
+export const CALLBACK_ONLY_OVERRIDE = `
+## CALLBACK-ONLY MODE (ACTIVE — READ THIS FIRST)
+
+**Your behavior mode is set to CAPTURE & CALLBACK. This overrides normal booking/dispatch/order behavior.**
+
+### WHAT YOU DO:
+- Answer warmly as a real employee
+- Listen to what the caller needs
+- Answer FAQs, hours, location, and general knowledge questions from your context
+- Collect the caller's **name** and **confirm their phone number**
+- Capture **what they're calling about** (the reason/service needed)
+- Use ONLY the **create_callback** tool — this is your primary action
+- Say things like: "I'll have someone call you back about that" or "Let me get your info and we'll reach out shortly"
+
+### WHAT YOU MUST NOT DO:
+- Do NOT use create_booking — you cannot book appointments in this mode
+- Do NOT use create_dispatch_job — you cannot dispatch in this mode
+- Do NOT promise specific appointment times or dispatch ETAs
+- Do NOT say "Let me book that for you" or "I'll schedule that"
+- If a caller asks to book: "I can't schedule that directly right now, but let me take your info and have someone call you right back to get that set up."
+
+### FLOW:
+1. Greet naturally
+2. Listen to their need
+3. Answer any questions you can (hours, location, services, FAQs)
+4. "I'll have someone get back to you about that. Can I get your name?"
+5. Confirm phone: "And is this the best number to reach you?"
+6. Call create_callback with the reason, name, phone, and any relevant notes
+7. "All set! Someone will call you back shortly."
+
+### TONE:
+Stay helpful and warm. Don't make it sound like a limitation — frame it as personal follow-up:
+- GOOD: "Let me have our team reach out to you directly about that."
+- BAD: "I'm not able to book appointments."
+`;
+
 export const DEBUG_OVERRIDE = `
 ## DEBUG MODE
 
@@ -1454,13 +1492,21 @@ When handling fleet-related inquiries:
  * Includes only the instruction sections relevant to the tenant's capabilities.
  *
  * @param caps - Resolved capabilities from resolveCapabilities()
+ * @param industrySlug - Optional industry slug for industry-specific instructions
+ * @param aiBehaviorMode - Optional behavior mode override ("callback_only" restricts to capture-only)
  * @returns Composed prompt string with shared rules + capability-specific sections
  */
 export function buildPromptForCapabilities(
   caps: Capabilities,
-  industrySlug?: string
+  industrySlug?: string,
+  aiBehaviorMode?: "full_service" | "callback_only"
 ): string {
   const sections: string[] = [HUMAN_PHONE_RULES, TIME_NUMBER_SPEAKING_RULES];
+
+  // If callback_only mode, inject the override FIRST so it takes priority
+  if (aiBehaviorMode === "callback_only") {
+    sections.push(CALLBACK_ONLY_OVERRIDE);
+  }
 
   // Always include lead capture
   sections.push(LEAD_CAPTURE_INSTRUCTIONS);
@@ -1578,17 +1624,28 @@ export const AGENT_BASE_PROMPTS: Record<BusinessMode, AgentBasePromptConfig> = {
 /**
  * Get the complete base prompt for a given business mode.
  * Includes shared rules (human phone rules, time/number speaking, debug).
+ *
+ * @param mode - Business mode
+ * @param aiBehaviorMode - Optional behavior mode override ("callback_only" restricts to capture-only)
  */
-export function getBasePromptForMode(mode: BusinessMode): string {
+export function getBasePromptForMode(
+  mode: BusinessMode,
+  aiBehaviorMode?: "full_service" | "callback_only"
+): string {
   const config = AGENT_BASE_PROMPTS[mode] || AGENT_BASE_PROMPTS.general;
 
-  return [
+  const sections = [
     HUMAN_PHONE_RULES,
     TIME_NUMBER_SPEAKING_RULES,
-    config.basePrompt,
-    BUSYNESS_AWARE_RULES,
-    DEBUG_OVERRIDE,
-  ].join("\n\n");
+  ];
+
+  // If callback_only, inject override before mode-specific instructions
+  if (aiBehaviorMode === "callback_only") {
+    sections.push(CALLBACK_ONLY_OVERRIDE);
+  }
+
+  sections.push(config.basePrompt, BUSYNESS_AWARE_RULES, DEBUG_OVERRIDE);
+  return sections.join("\n\n");
 }
 
 /**

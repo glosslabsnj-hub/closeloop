@@ -285,6 +285,7 @@ export interface BusinessContext {
     fallback_script: string;
     unknown_question_behavior: string;  // "escalate" | "try_help" | "offer_callback"
     followup_cadence: string;           // "aggressive" | "moderate" | "conservative"
+    ai_behavior_mode: "full_service" | "callback_only";
     service_default_flow: "schedule_first" | "urgency_check" | "dispatch_first";
     ai_booking_mode: "pending" | "auto_confirm";
     same_day_enabled: boolean;
@@ -2302,6 +2303,7 @@ export async function buildBusinessContext(
       unknown_question_behavior: (assistantSettings?.settings_json as any)?.unknown_question_behavior
         || assistantSettings?.unknown_question_behavior || "try_help",
       followup_cadence: (assistantSettings?.settings_json as any)?.followup_cadence || "moderate",
+      ai_behavior_mode: (assistantSettings?.ai_behavior_mode as "full_service" | "callback_only") || "full_service",
       service_default_flow: (assistantSettings?.service_default_flow as "schedule_first" | "urgency_check" | "dispatch_first") || "schedule_first",
       ai_booking_mode: (assistantSettings?.ai_booking_mode as "pending" | "auto_confirm") || "pending",
       same_day_enabled: assistantSettings?.same_day_enabled !== false,
