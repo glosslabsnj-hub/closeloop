@@ -46,7 +46,7 @@ export function useSalesInventory() {
     queryFn: async () => {
       if (!tenant?.id) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("sales_inventory")
         .select("*")
         .eq("tenant_id", tenant.id)
@@ -62,7 +62,7 @@ export function useSalesInventory() {
     mutationFn: async (item: Omit<SalesInventoryInsert, "tenant_id">) => {
       if (!tenant?.id) throw new Error("No tenant");
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("sales_inventory")
         .insert({ ...item, tenant_id: tenant.id })
         .select()
@@ -82,7 +82,7 @@ export function useSalesInventory() {
 
   const updateItem = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<SalesInventoryItem> & { id: string }) => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("sales_inventory")
         .update(updates)
         .eq("id", id)
@@ -103,7 +103,7 @@ export function useSalesInventory() {
 
   const deleteItem = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("sales_inventory").delete().eq("id", id);
+      const { error } = await (supabase as any).from("sales_inventory").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

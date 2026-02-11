@@ -39,7 +39,7 @@ export function CallbackDeliverySettings() {
     queryKey: ["callback-delivery-settings", tenantId],
     queryFn: async () => {
       if (!tenantId) return null;
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("callback_delivery_settings")
         .select("*")
         .eq("tenant_id", tenantId)
@@ -66,7 +66,7 @@ export function CallbackDeliverySettings() {
     mutationFn: async () => {
       if (!tenantId) throw new Error("No tenant");
       const payload = { tenant_id: tenantId, ...settings };
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("callback_delivery_settings")
         .upsert(payload, { onConflict: "tenant_id" });
       if (error) throw error;

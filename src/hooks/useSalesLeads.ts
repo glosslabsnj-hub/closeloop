@@ -44,7 +44,7 @@ export function useSalesLeads() {
     queryFn: async () => {
       if (!tenant?.id) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("sales_leads")
         .select("*, customer:customers(full_name, phone_e164, email)")
         .eq("tenant_id", tenant.id)
@@ -85,7 +85,7 @@ export function useSalesLeads() {
     mutationFn: async (lead: Omit<SalesLeadInsert, "tenant_id">) => {
       if (!tenant?.id) throw new Error("No tenant");
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("sales_leads")
         .insert({ ...lead, tenant_id: tenant.id })
         .select()
@@ -105,7 +105,7 @@ export function useSalesLeads() {
 
   const updateLead = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<SalesLead> & { id: string }) => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("sales_leads")
         .update(updates)
         .eq("id", id)
@@ -126,7 +126,7 @@ export function useSalesLeads() {
 
   const deleteLead = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("sales_leads").delete().eq("id", id);
+      const { error } = await (supabase as any).from("sales_leads").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

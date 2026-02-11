@@ -5,6 +5,7 @@ import type { BusinessMode } from "@/hooks/useTenantConfig";
  * Provides business-mode-specific terms throughout the UI
  */
 export interface IndustryTerms {
+  [key: string]: unknown;
   // Core entities (singular/plural)
   booking: string;
   bookings: string;
