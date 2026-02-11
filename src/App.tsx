@@ -58,6 +58,7 @@ import SalesInventoryPage from "@/pages/app/SalesInventoryPage";
 import OrderTicketPage from "@/pages/app/OrderTicketPage";
 import HelpCenterPage from "@/pages/app/HelpCenterPage";
 import ScheduleConnectionPage from "@/pages/app/ScheduleConnectionPage";
+import BusinessPartnerPage from "@/pages/app/BusinessPartnerPage";
 import ReportsROIPage from "@/pages/app/ReportsROIPage";
 // Workflows pages kept for backward compatibility - accessible via automations
 import WorkflowEditPage from "@/pages/app/WorkflowEditPage";
@@ -160,6 +161,7 @@ const App = () => (
               <Route path="/app/orders/:orderId/ticket" element={<OrderTicketPage />} />
               <Route path="/app/reports/roi" element={<ReportsROIPage />} />
               <Route path="/app/leads/recovery" element={<LeadRecoveryPage />} />
+              <Route path="/app/partner" element={<BusinessPartnerPage />} />
               <Route path="/app/help" element={<HelpCenterPage />} />
               {/* Legacy: Menu Center now lives in Business Brain */}
               <Route path="/app/menu-center" element={<Navigate to="/app/business-brain" replace />} />

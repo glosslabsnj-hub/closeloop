@@ -21,6 +21,7 @@ import {
   AudioWaveform,
   DollarSign,
   Car,
+  Sparkles,
 } from "lucide-react";
 import {
   Sidebar,
@@ -186,6 +187,7 @@ export function AppSidebar({
             {/* Configure */}
             <SidebarSeparator className="my-2" />
             {renderItem({ href: "/app/business-brain", label: "Business Brain", icon: Bot, badge: conflictsCount || undefined })}
+            {renderItem({ href: "/app/partner", label: "Business Partner", icon: Sparkles })}
             {renderItem({ href: "/app/integrations", label: "Integrations", icon: Route })}
             {renderItem({ href: "/app/simulator", label: "Test Calls", icon: FlaskConical })}
             {renderItem({ href: "/app/reports/roi", label: "Reports", icon: BarChart3 })}
