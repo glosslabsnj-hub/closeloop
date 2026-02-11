@@ -63,6 +63,10 @@ import { IntelligenceDashboard } from "@/components/intelligence";
 import { QuoteReadinessCard } from "@/components/brain/QuoteReadinessCard";
 import ServiceCallFlowSettings from "@/components/ai/ServiceCallFlowSettings";
 
+// Brain Assistant
+import { BrainAssistantTrigger } from "@/components/brain/assistant/BrainAssistantTrigger";
+import { BrainAssistantPanel } from "@/components/brain/assistant/BrainAssistantPanel";
+
 // ─── Section IDs ────────────────────────────────────────────────────────────
 
 const NEW_VALID_SECTIONS = ["business", "services", "operations", "ai-voice", "training", "intelligence"] as const;
@@ -112,6 +116,7 @@ const pageVariants = {
 export default function BusinessBrainPage() {
   const { tenant } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [assistantOpen, setAssistantOpen] = useState(false);
   const reviewCount = useBrainReviewCount();
   const { businessMode, hipaaMode } = useTenantConfig();
   const caps = useCapabilities();
@@ -454,6 +459,8 @@ export default function BusinessBrainPage() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
+  const hasGaps = summaries.completionStats.percentage < 100;
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <main className="flex-1">
@@ -521,6 +528,16 @@ export default function BusinessBrainPage() {
           </AnimatePresence>
         </div>
       </main>
+
+      {/* Brain Assistant */}
+      <BrainAssistantTrigger
+        onClick={() => setAssistantOpen(true)}
+        hasGaps={hasGaps}
+      />
+      <BrainAssistantPanel
+        open={assistantOpen}
+        onOpenChange={setAssistantOpen}
+      />
     </div>
   );
 }
