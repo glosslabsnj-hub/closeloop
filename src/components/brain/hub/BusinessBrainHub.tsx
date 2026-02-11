@@ -17,7 +17,6 @@ import { cn } from "@/lib/utils";
 import { StepCard } from "./StepCard";
 import { getOrderedSteps, getStepTitle, isStepEmphasized } from "./hubStepsConfig";
 import { GuidedSetupOverlay } from "../GuidedSetupOverlay";
-import { BrainBuilderTrigger } from "../builder/BrainBuilderDrawer";
 
 interface BusinessBrainHubProps {
   onNavigateToSection: (sectionId: string) => void;
@@ -172,9 +171,8 @@ export function BusinessBrainHub({ onNavigateToSection }: BusinessBrainHubProps)
           </div>
         </div>
 
-        {/* Progress indicator + AI setup */}
+        {/* Progress indicator */}
         <div className="flex items-center gap-3">
-          <BrainBuilderTrigger />
           <span className="text-sm font-medium whitespace-nowrap">{percentage}% Complete</span>
           <div className="w-24 h-1.5 rounded-full bg-muted overflow-hidden">
             <div
