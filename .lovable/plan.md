@@ -1,70 +1,80 @@
 
-# Clarify How Service Area, Distance Basis, and Pricing Tiers Connect
 
-## The Problem
+# Implement Universal Onboarding & Post-Onboarding Intelligence — All 4 Phases
 
-Right now, a dispatch business owner encounters three separate settings in different parts of the Business Brain that all deal with "distance" but never explain how they relate:
+Implementing in Lovable, phase by phase, with testing between each phase.
 
-1. **Service Area** (Coverage section) -- "We serve within 30 miles"
-2. **Distance Basis** (Coverage section) -- "We price based on tow distance"
-3. **Distance Tiers** (inside each service) -- "0-10 miles = $125, 10-25 miles = $125 + $5/mi"
+---
 
-The owner has no way to know: do the "miles" in my pricing tiers refer to the same 30-mile radius I set up? Or something else? If I set a 30-mile service area and my tiers only go up to 25 miles, what happens at 28 miles? If distance basis is "tow distance" but my service area is based on distance from my shop, are those the same miles?
+## Phase 1: Fix Scenario Discovery Questions
 
-## The Solution
+**Goal:** Every industry sees only questions that make sense for their business. Add "callback only" path.
 
-Add contextual cross-references and inline explanations that connect these three concepts wherever they appear, without moving or restructuring any settings.
+### Changes to `src/lib/scenarioQuestions.ts`:
+- Narrow `walk-in-dropoffs` question to only show for `body_shop`, `auto_glass` slugs (tow-in language)
+- Add new `vehicle-dropoffs` question for general auto service slugs (no towing mention)
+- Add `ai-books-appointments` question to `serviceQuestions` at position 0: "Should the AI book appointments directly?" — maps to `aiBooksDirect` capability with `impliesModules: ["booking"]`
+- Add `overridesBase?: boolean` flag to `ScenarioQuestion` type — when true and answer is false, removes the implied module even if it's in the base module set
+- Update `deriveModulesFromScenario` to respect `overridesBase`
+- Add `hasLongDurationJobs` question filtered to auto repair, body shop, and similar long-job industries
 
-### Change 1: Service Editor -- Show which miles the tiers use
+---
 
-In the distance-tiered pricing section of `DispatchServiceEditor.tsx`, add a clear callout that tells the owner exactly what "miles" means for their tiers:
+## Phase 2: Fix Scheduling Step
 
-- Pull the tenant's default `distance_basis` from `useTenantDistanceSettings`
-- Show a banner above the tiers: **"These tiers use [Tow Distance] miles (pickup to dropoff). You can change this in Coverage & ETA."**
-- If the service overrides the default, show that instead
-- Link the service area radius inline: **"Your service area is 30 miles from base. Tiers beyond that distance apply to out-of-area jobs (if you accept them)."**
+**Goal:** Realistic durations/buffers, hide booking config for callback-only users.
 
-### Change 2: Service Editor -- Auto-suggest tier coverage
+### Changes to `src/components/onboarding/SchedulingSetup.tsx`:
+- Accept `scenarioAnswers` prop
+- When `aiBooksDirect === false`: hide duration/buffer/same-day, show only business hours with explanatory note
+- Expand duration options: add 180, 240, 480 min options when `hasLongDurationJobs` is true
+- Expand buffer options: add 45, 60, 120 min options
+- Add "Varies" option for variable-length jobs
+- Update `getDefaultSchedulingPrefs` to use scenario answers for smarter defaults
 
-When the owner's highest tier doesn't cover up to their service area radius, show a gentle suggestion:
+### Changes to `src/pages/app/OnboardingPage.tsx`:
+- Pass `scenarioAnswers` to `SchedulingSetup`
 
-- "Your service area covers up to 30 miles, but your highest tier only goes to 25 miles. Jobs between 25-30 miles won't have a price -- the AI will need to ask for a custom quote."
-- Offer a one-click "Add a tier for 25-30 miles" button
+---
 
-When the owner has tiers beyond their service area radius:
-- "Your last tier covers 25+ miles, but your service area is only 30 miles. The AI will check service area first -- if someone is 40 miles away, they'll be told you don't serve that area before pricing comes up."
+## Phase 3: Post-Onboarding Guided Walkthrough
 
-### Change 3: Distance Basis Settings -- Clarify the pricing connection
+**Goal:** After onboarding, user knows exactly what to do next.
 
-In `DistanceBasisSettings.tsx`, add a note that connects this setting to service pricing:
+### Changes to `src/components/onboarding/OnboardingComplete.tsx`:
+- Make next steps dynamic based on mode and capabilities (callback-only skips calendar, dispatch shows coverage, etc.)
+- Add "Quick Setup Guide" button
 
-- "This setting determines which distance your per-mile rates in each service use. For example, if you choose 'Tow Distance' and a service charges $5/mile, that $5 applies to each mile the vehicle is towed (pickup to dropoff), not the distance from your shop."
+### New file: `src/components/brain/GuidedSetupOverlay.tsx`:
+- Modal showing the 3-4 most important Brain sections for their mode with completion status
+- Checks localStorage flag to only show once
+- Each item links to the relevant Brain section
 
-### Change 4: Service Area Editor -- Reference pricing tiers
+### Changes to Business Brain Hub:
+- Show overlay on first visit or when `?guided=true`
 
-In the service area section, add a brief note:
-- "This defines WHERE you'll accept jobs. Pricing for each service is configured separately under Services. The AI checks this area first -- if a caller is outside it, they're told you don't cover that location."
+---
 
-## Technical Details
+## Phase 4: Brain Hub Capability-Aware Filtering
 
-### Files Modified
+**Goal:** Business Brain only shows sections relevant to what the user configured.
 
-| File | Change |
-|------|--------|
-| `src/components/brain/dispatch/DispatchServiceEditor.tsx` | Import `useTenantDistanceSettings` and `useServiceArea`. Show distance basis label above tiers. Show service area alignment note. Add auto-suggest for missing tier coverage. |
-| `src/components/brain/dispatch/DistanceBasisSettings.tsx` | Add a brief note explaining how this setting connects to per-service pricing tiers |
-| `src/components/brain/ServiceAreaEditor.tsx` (or equivalent) | Add a brief note explaining that service area is about WHERE, not how much |
+### Changes to `src/components/brain/hub/hubStepsConfig.ts`:
+- Add `hiddenWhenCapability?: string` field to `HubStep`
+- Calendar step gets `hiddenWhenCapability: "aiBooksDirect"`
+- Update `getOrderedSteps` to accept optional capabilities and filter accordingly
 
-### Data Sources (already available, no new queries)
+### Changes to Brain Hub component:
+- Pass capabilities to `getOrderedSteps`
 
-- `useTenantDistanceSettings()` -- provides `default_distance_basis`
-- `useServiceArea()` -- provides `radius_miles` and `mode`
-- Both hooks are already used elsewhere in the Brain and can be imported into the service editor
+---
 
-### No Database Changes
+## Implementation Order
 
-All changes are frontend copy/UX only. The underlying data model is correct -- the problem is entirely that the UI doesn't explain how the pieces connect.
+1. Phase 1 first (fixes the broken questions immediately)
+2. Phase 2 (scheduling makes sense)
+3. Phase 3 (post-onboarding guidance)
+4. Phase 4 (brain filtering)
 
-### No Edge Function Changes
+Each phase is independently testable. No database migrations needed — all frontend changes using existing `capabilities_json` storage.
 
-The backend already handles distance basis, service area checks, and tiered pricing correctly. This is purely about making the configuration UI self-explanatory.
