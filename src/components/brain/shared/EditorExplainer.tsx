@@ -32,6 +32,7 @@ const MODE_TIP_COLORS: Record<BusinessMode, string> = {
   food: "bg-orange-500/5 border-orange-500/20 text-orange-700 dark:text-orange-400",
   medical: "bg-rose-500/5 border-rose-500/20 text-rose-700 dark:text-rose-400",
   general: "bg-slate-500/5 border-slate-500/20 text-slate-700 dark:text-slate-400",
+  sales: "bg-indigo-500/5 border-indigo-500/20 text-indigo-700 dark:text-indigo-400",
 };
 
 export function EditorExplainer({

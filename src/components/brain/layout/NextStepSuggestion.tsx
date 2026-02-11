@@ -23,7 +23,6 @@ interface NextStepSuggestionProps {
 
 /** Map of completed section -> suggested next step by mode */
 const NEXT_STEP_MAP: Record<string, Record<BusinessMode | "default", { section: string; label: string; reason: string }>> = {
-  // New section IDs (5-tab layout)
   "business": {
     default: { section: "services", label: "Add your services", reason: "So your AI can tell callers what you offer" },
     service: { section: "services", label: "Add your services", reason: "So your AI can tell callers what you offer" },
@@ -31,6 +30,7 @@ const NEXT_STEP_MAP: Record<string, Record<BusinessMode | "default", { section: 
     food: { section: "services", label: "Add menu items", reason: "So your AI can take orders" },
     medical: { section: "services", label: "Add services", reason: "Define procedures and pricing" },
     general: { section: "services", label: "Add your services", reason: "So your AI can tell callers what you offer" },
+    sales: { section: "services", label: "Add your products", reason: "So your AI can answer product inquiries" },
   },
   "services": {
     default: { section: "operations", label: "Set your rules", reason: "Policies, service area, and required info" },
@@ -39,6 +39,7 @@ const NEXT_STEP_MAP: Record<string, Record<BusinessMode | "default", { section: 
     food: { section: "operations", label: "Set order policies", reason: "Delivery minimums and prep times" },
     medical: { section: "operations", label: "Set policies", reason: "Cancellation and payment rules" },
     general: { section: "operations", label: "Set your rules", reason: "Policies, service area, and required info" },
+    sales: { section: "operations", label: "Set your policies", reason: "Returns, warranties, and financing terms" },
   },
   "operations": {
     default: { section: "ai-voice", label: "Customize your greeting", reason: "First impressions matter" },
@@ -47,6 +48,7 @@ const NEXT_STEP_MAP: Record<string, Record<BusinessMode | "default", { section: 
     food: { section: "ai-voice", label: "Customize your greeting", reason: "Make your AI welcoming" },
     medical: { section: "ai-voice", label: "Customize scripts", reason: "HIPAA-appropriate language" },
     general: { section: "ai-voice", label: "Customize your greeting", reason: "First impressions matter" },
+    sales: { section: "ai-voice", label: "Customize your greeting", reason: "Make a great first impression" },
   },
   "ai-voice": {
     default: { section: "training", label: "Add FAQs", reason: "So your AI can answer common questions" },
@@ -55,9 +57,8 @@ const NEXT_STEP_MAP: Record<string, Record<BusinessMode | "default", { section: 
     food: { section: "training", label: "Add allergen info", reason: "Handle dietary questions" },
     medical: { section: "training", label: "Add FAQs", reason: "Common patient questions" },
     general: { section: "training", label: "Add FAQs", reason: "So your AI can answer common questions" },
+    sales: { section: "training", label: "Add FAQs", reason: "Handle product and pricing questions" },
   },
-
-  // Legacy section IDs (backward compatibility)
   "profile": {
     default: { section: "services", label: "Add your services", reason: "So your AI can tell callers what you offer" },
     service: { section: "services", label: "Add your services", reason: "So your AI can tell callers what you offer" },
@@ -65,6 +66,7 @@ const NEXT_STEP_MAP: Record<string, Record<BusinessMode | "default", { section: 
     food: { section: "services", label: "Add menu items", reason: "So your AI can take orders" },
     medical: { section: "services", label: "Add services", reason: "Define procedures and pricing" },
     general: { section: "services", label: "Add your services", reason: "So your AI can tell callers what you offer" },
+    sales: { section: "services", label: "Add your products", reason: "So your AI can answer product inquiries" },
   },
   "hours": {
     default: { section: "services", label: "Add services", reason: "Now define what you offer" },
@@ -73,6 +75,7 @@ const NEXT_STEP_MAP: Record<string, Record<BusinessMode | "default", { section: 
     food: { section: "services", label: "Build your menu", reason: "Add items customers can order" },
     medical: { section: "services", label: "Add services", reason: "Define procedures and pricing" },
     general: { section: "services", label: "Add services", reason: "Define what you offer" },
+    sales: { section: "services", label: "Add products", reason: "Define your product catalog" },
   },
   "service-area": {
     default: { section: "operations", label: "Set policies", reason: "Cancellation and payment terms" },
@@ -81,6 +84,7 @@ const NEXT_STEP_MAP: Record<string, Record<BusinessMode | "default", { section: 
     food: { section: "ai-voice", label: "Customize greeting", reason: "Make your AI welcoming" },
     medical: { section: "business", label: "Sync calendar", reason: "Enable real-time booking" },
     general: { section: "operations", label: "Set policies", reason: "Cancellation and payment terms" },
+    sales: { section: "operations", label: "Set policies", reason: "Return and warranty terms" },
   },
   "policies": {
     default: { section: "ai-voice", label: "Customize greeting", reason: "First impressions matter" },
@@ -89,6 +93,7 @@ const NEXT_STEP_MAP: Record<string, Record<BusinessMode | "default", { section: 
     food: { section: "training", label: "Add FAQs", reason: "Answer common questions" },
     medical: { section: "ai-voice", label: "Customize scripts", reason: "HIPAA-appropriate language" },
     general: { section: "ai-voice", label: "Customize greeting", reason: "First impressions matter" },
+    sales: { section: "ai-voice", label: "Customize greeting", reason: "Set your AI's sales tone" },
   },
   "ai-behavior": {
     default: { section: "training", label: "Add FAQs", reason: "So your AI can answer common questions" },
@@ -97,6 +102,7 @@ const NEXT_STEP_MAP: Record<string, Record<BusinessMode | "default", { section: 
     food: { section: "training", label: "Add allergen info", reason: "Handle dietary questions" },
     medical: { section: "training", label: "Add FAQs", reason: "Common patient questions" },
     general: { section: "training", label: "Add FAQs", reason: "So your AI can answer common questions" },
+    sales: { section: "training", label: "Add FAQs", reason: "Handle product questions" },
   },
 };
 

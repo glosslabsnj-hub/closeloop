@@ -66,6 +66,16 @@ const TEMPLATES_BY_MODE: Record<BusinessMode, KnowledgeTemplate[]> = {
     { label: "Referral Program", title: "Referral Rewards", category: "upsell", placeholder: "When you refer a friend, you both receive..." },
     { label: "Community Involvement", title: "Community Support", category: "policy", placeholder: "We're proud to support our local community through..." },
   ],
+  sales: [
+    { label: "Product Range", title: "Our Products", category: "policy", placeholder: "We carry a wide range of products including..." },
+    { label: "Financing Options", title: "Financing Available", category: "upsell", placeholder: "We offer flexible financing with rates starting at..." },
+    { label: "Warranty Info", title: "Warranty Coverage", category: "policy", placeholder: "All our products come with a manufacturer warranty that covers..." },
+    { label: "Why Buy From Us", title: "Our Advantage", category: "upsell", placeholder: "When you buy from us, you get personalized service, expert knowledge, and..." },
+    { label: "Trade-In Program", title: "Trade-In Values", category: "upsell", placeholder: "We offer competitive trade-in values. Bring yours in for a free assessment..." },
+    { label: "Delivery Service", title: "Delivery Options", category: "policy", placeholder: "We offer delivery within a [radius] area. Delivery fees start at..." },
+    { label: "After-Sale Support", title: "Post-Purchase Care", category: "policy", placeholder: "Our support doesn't end at the sale. We provide ongoing assistance with..." },
+    { label: "Current Deals", title: "Special Promotions", category: "upsell", placeholder: "Check out our current deals including..." },
+  ],
 };
 
 interface ModeKnowledgeSuggestionsProps {

@@ -61,6 +61,12 @@ const BUSINESS_MODES: Record<BusinessMode, ModeConfig> = {
     modules: ["ai_voice"],
     hipaa: false,
   },
+  sales: {
+    label: "Sales",
+    icon: Building2,
+    modules: ["ai_voice", "sales_leads"],
+    hipaa: false,
+  },
 };
 
 // Helper to normalize phone to E.164 for customer matching

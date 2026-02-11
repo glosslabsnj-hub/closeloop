@@ -1,0 +1,1 @@
+ALTER TYPE public.business_mode ADD VALUE IF NOT EXISTS 'sales';

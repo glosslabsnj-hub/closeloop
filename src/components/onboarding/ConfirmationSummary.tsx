@@ -15,6 +15,7 @@ const modeLabels: Record<BusinessMode, string> = {
   food: "Food & Hospitality",
   medical: "Medical / Healthcare",
   general: "General Business",
+  sales: "Sales Business",
 };
 
 const bookingModeLabels: Record<string, string> = {
