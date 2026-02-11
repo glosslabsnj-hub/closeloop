@@ -1,45 +1,59 @@
 
 
-# Add Per-Tenant Delete to Admin Tenants Page
+# Streamline Business Brain for Callback-Only Service Businesses
 
-## Problem
-The Admin Tenants page (`AdminTenantsPage.tsx`) uses hardcoded demo data and has no real functionality. You need to see all your actual tenants and delete test ones individually.
+## The Problem
+When you're running a callback-only auto repair shop (no direct booking, just lead capture), the Business Brain still shows sections that don't apply -- like Calendar & Availability, Service Scheduling, Arrival Estimates, Booking Delivery, and Service Packages. The filtering system exists but isn't strict enough for your setup.
 
-## Solution
+## What Changes
 
-### 1. New Edge Function: `delete-tenant`
-Create `supabase/functions/delete-tenant/index.ts` -- a dedicated super-admin-only function that deletes a tenant by ID.
+### Sections that will be HIDDEN for your auto repair shop
+These will only appear when the relevant capability is turned on:
 
-- Accepts `{ tenant_id: string }` in the request body
-- Verifies the caller is a `super_admin` (same auth check as `seed-test-tenants`)
-- Prevents deleting the admin's own tenant (safety check)
-- Cascading delete of all related data in correct FK order (same sequence already proven in `seed-test-tenants` lines 113-127):
-  - ai_call_sessions, bookings, dispatch_jobs, food_orders, medical_intakes, services, business_faqs, objection_responses, automations, assistant_settings, subscriptions, food_order_settings, customers, tenant_memberships, then tenants
-- Returns `{ tenant_id, status: "deleted" }`
+| Section | Why Hidden |
+|---------|-----------|
+| Calendar & Availability | `aiBooksDirect` is false -- no booking, no calendar needed |
+| Service Scheduling | Only relevant when booking is enabled |
+| Arrival Estimates | No on-site dispatch; you're a shop |
+| Where to Send New Bookings | No booking module enabled |
+| Service Packages | `offersPackages` is false |
+| How Busy Are You Right Now? | Only useful for dispatch or walk-in-heavy shops with booking |
 
-### 2. Rewrite `AdminTenantsPage.tsx` (currently hardcoded demo data)
-Replace with a real, functional page:
+### Sections that STAY (relevant for lead qualification)
+| Section | Why Relevant |
+|---------|-------------|
+| Your Service Area | Helps AI know if caller is local |
+| Cancellation, Deposits & Payments | Deposit policy matters for repairs |
+| What Your AI Should Never Promise | Critical for any business |
+| Info to Collect on Every Call | Core to lead qualification |
+| Other Rules for Your AI | Custom policies always useful |
+| Callback Request Alerts | This IS the primary action |
 
-- **Fetch all tenants** from the `tenants` table using a React Query hook (select id, name, business_mode, industry, created_at, onboarding_completed_at)
-- **Search filter** (already has the UI -- wire it up to filter by tenant name)
-- **Each tenant card** shows: name, business mode badge, industry, created date
-- **Delete button** on each card with an AlertDialog confirmation ("Type DELETE to confirm" pattern, same as DangerZoneSection)
-- **Calls `delete-tenant` edge function** on confirm, then refetches the tenant list
-- **Protects the admin's own tenant** -- disable/hide delete on the user's own tenant
-- Show a loading spinner during deletion
-
-### 3. No Database Changes
-The edge function uses the service role key to bypass RLS for the cascading delete. No migrations needed.
+### How It Works
+The filtering uses your tenant's `capabilities_json` (which already has `aiBooksDirect: false`, `offersPackages: false`, `hasMultipleStaff: false`, etc.) to hide irrelevant items. No new capabilities needed -- just tighter visibility rules on existing items.
 
 ## Technical Details
 
-**Files created:**
-| File | Purpose |
-|------|---------|
-| `supabase/functions/delete-tenant/index.ts` | Super-admin-only tenant deletion with FK cascade |
+### File: `src/config/brainSectionRegistry.ts`
+Add `isVisible` guards to items that currently show universally but shouldn't:
 
-**Files modified:**
-| File | Change |
-|------|--------|
-| `src/pages/admin/AdminTenantsPage.tsx` | Replace demo data with real DB query, add delete per tenant |
+- **`service-coverage`** (Service Scheduling): Already guarded by `mode === "service"` but needs additional `caps.isSchedulingBusiness` check
+- **`travel-times`** (Arrival Estimates): Add guard for dispatch or mobile-service businesses only
+- **`workload`** (How Busy): Add guard requiring dispatch or booking capability
+- **`service-packages`** in Services tab: Already uses `isRelevant("service-packages")` -- verify the relevance rule checks `offersPackages`
+- **`booking-delivery`**: Already guarded by `flags.showBookingDelivery` which checks `caps.isSchedulingBusiness` -- confirm this works
+
+### File: `src/config/brainSectionRelevance.ts`
+Verify/tighten relevance rules:
+- `service-packages` rule should check `capabilities_json.offersPackages`
+- `price-modifiers` rule should check if any modifier capability is true
+
+### File: `src/config/brainSectionRegistry.ts` (Operations items)
+- `calendar-sync` in Business tab: Already guarded by `caps.isSchedulingBusiness` -- good
+- `service-coverage`: Tighten to `mode === "service" && caps.isSchedulingBusiness`
+- `travel-times`: Add `mode !== "food"` AND (`caps.isDispatchBusiness` OR `caps.offersMobileService` check)
+- `workload`: Add visibility guard for dispatch/booking businesses only
+
+### No database changes needed
+All filtering uses existing `capabilities_json` data already on your tenant.
 
