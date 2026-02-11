@@ -1,69 +1,70 @@
 
+# Clarify How Service Area, Distance Basis, and Pricing Tiers Connect
 
-# Three Improvements for Dispatch Business Brain
+## The Problem
 
-## 1. Remove Food and Medical Sections from Dispatch Mode (Bug Fix)
+Right now, a dispatch business owner encounters three separate settings in different parts of the Business Brain that all deal with "distance" but never explain how they relate:
 
-The previous fix updated the `isRelevant` logic, but some food/medical items are still appearing. The root cause is that the `SECTION_RELEVANCE` rules correctly gate `food-settings` and `medical-pricing`, but the `brainSectionRegistry.ts` entries reference these rules via `flags.isRelevant("food-settings")`. If your tenant has any food-related capability flag set (even accidentally from onboarding), those sections will show.
+1. **Service Area** (Coverage section) -- "We serve within 30 miles"
+2. **Distance Basis** (Coverage section) -- "We price based on tow distance"
+3. **Distance Tiers** (inside each service) -- "0-10 miles = $125, 10-25 miles = $125 + $5/mi"
 
-**Fix:**
-- In `src/config/brainSectionRegistry.ts`, add an explicit mode check to the `isVisible` function for food and medical items, so they ONLY show when the primary mode matches (not just when a capability flag happens to be set)
-- Items affected: `food-settings-svc`, `menu-sizes`, `daily-specials` (food), and `medical-pricing` (medical)
-- Change from: `flags.isRelevant("food-settings")` 
-- Change to: Also check that the business mode is `food` or that the business explicitly has food capabilities enabled
+The owner has no way to know: do the "miles" in my pricing tiers refer to the same 30-mile radius I set up? Or something else? If I set a 30-mile service area and my tiers only go up to 25 miles, what happens at 28 miles? If distance basis is "tow distance" but my service area is based on distance from my shop, are those the same miles?
 
-## 2. After-Hours, Weekend, and Holiday Pricing
+## The Solution
 
-The Price Modifiers editor already exists (`src/components/brain/PriceModifiersEditor.tsx`) with after-hours, weekend, and holiday surcharges built in. However, it's not prominently surfaced for dispatch businesses.
+Add contextual cross-references and inline explanations that connect these three concepts wherever they appear, without moving or restructuring any settings.
 
-**Changes:**
-- Ensure the "Price Adjustments" section appears by default for dispatch businesses (currently gated behind a capability flag `chargesTripFee` in `brainSectionRelevance.ts`)
-- Update the relevance rule for `price-modifiers` to always show for dispatch mode, since after-hours and holiday surcharges are standard for towing
-- No new components needed — the existing editor already supports time-of-day, urgency, equipment, and vehicle size modifiers with towing-specific suggestions
+### Change 1: Service Editor -- Show which miles the tiers use
 
-## 3. Service Area Configuration for Dropoff Locations
+In the distance-tiered pricing section of `DispatchServiceEditor.tsx`, add a clear callout that tells the owner exactly what "miles" means for their tiers:
 
-This is the most significant change. Currently `check_service_area` only validates the pickup address. For towing, the dropoff could be far away or outside the service area entirely.
+- Pull the tenant's default `distance_basis` from `useTenantDistanceSettings`
+- Show a banner above the tiers: **"These tiers use [Tow Distance] miles (pickup to dropoff). You can change this in Coverage & ETA."**
+- If the service overrides the default, show that instead
+- Link the service area radius inline: **"Your service area is 30 miles from base. Tiers beyond that distance apply to out-of-area jobs (if you accept them)."**
 
-**Changes:**
+### Change 2: Service Editor -- Auto-suggest tier coverage
 
-### Frontend (Configuration UI)
-- Add a "Dropoff Coverage" setting to `DistanceBasisSettings.tsx` or a new small component in the Coverage/ETA section
-- Three options the business can configure:
-  1. **No dropoff check** — We'll tow anywhere the customer wants (default for most)
-  2. **Same service area** — Dropoff must also be within our coverage radius
-  3. **Extended radius** — Dropoff can be up to X miles beyond our normal area (with surcharge)
-- Store this in `tenant_distance_settings` as `dropoff_coverage_mode` and `dropoff_max_miles`
+When the owner's highest tier doesn't cover up to their service area radius, show a gentle suggestion:
 
-### Backend (check-service-area edge function)
-- Accept an optional `dropoff_address` parameter
-- When provided AND the tenant has dropoff coverage rules configured, run a second geocode + distance check
-- Return `dropoff_in_area: true/false` and `dropoff_distance_miles` in the response
-- The AI agent prompt already asks for dropoff on towing services — this just validates it
+- "Your service area covers up to 30 miles, but your highest tier only goes to 25 miles. Jobs between 25-30 miles won't have a price -- the AI will need to ask for a custom quote."
+- Offer a one-click "Add a tier for 25-30 miles" button
 
-### AI Context
-- Update `build-business-brain` to include the dropoff coverage rule so the AI knows whether to warn callers about out-of-area dropoffs
-- The AI can say things like "We can pick you up, but that dropoff is outside our normal area — there'd be an extra mileage charge"
+When the owner has tiers beyond their service area radius:
+- "Your last tier covers 25+ miles, but your service area is only 30 miles. The AI will check service area first -- if someone is 40 miles away, they'll be told you don't serve that area before pricing comes up."
+
+### Change 3: Distance Basis Settings -- Clarify the pricing connection
+
+In `DistanceBasisSettings.tsx`, add a note that connects this setting to service pricing:
+
+- "This setting determines which distance your per-mile rates in each service use. For example, if you choose 'Tow Distance' and a service charges $5/mile, that $5 applies to each mile the vehicle is towed (pickup to dropoff), not the distance from your shop."
+
+### Change 4: Service Area Editor -- Reference pricing tiers
+
+In the service area section, add a brief note:
+- "This defines WHERE you'll accept jobs. Pricing for each service is configured separately under Services. The AI checks this area first -- if a caller is outside it, they're told you don't cover that location."
 
 ## Technical Details
 
-### Files to Modify
+### Files Modified
 
 | File | Change |
 |------|--------|
-| `src/config/brainSectionRegistry.ts` | Add mode guard to food/medical `isVisible` functions |
-| `src/config/brainSectionRelevance.ts` | Make `price-modifiers` always relevant for dispatch |
-| `src/components/brain/dispatch/DistanceBasisSettings.tsx` | Add dropoff coverage mode selector |
-| `src/hooks/useTenantDistanceSettings.ts` | Support new `dropoff_coverage_mode` and `dropoff_max_miles` fields |
-| `supabase/functions/check-service-area/index.ts` | Accept and validate optional `dropoff_address` |
-| `supabase/functions/_shared/getBusinessBrainSnapshot.ts` | Include dropoff coverage config in AI context |
+| `src/components/brain/dispatch/DispatchServiceEditor.tsx` | Import `useTenantDistanceSettings` and `useServiceArea`. Show distance basis label above tiers. Show service area alignment note. Add auto-suggest for missing tier coverage. |
+| `src/components/brain/dispatch/DistanceBasisSettings.tsx` | Add a brief note explaining how this setting connects to per-service pricing tiers |
+| `src/components/brain/ServiceAreaEditor.tsx` (or equivalent) | Add a brief note explaining that service area is about WHERE, not how much |
 
-### Database Migration
-- Add columns to `tenant_distance_settings`:
-  - `dropoff_coverage_mode` (text, default `'none'`) — values: `none`, `same_area`, `extended`
-  - `dropoff_max_miles` (integer, nullable) — only used when mode is `extended`
+### Data Sources (already available, no new queries)
 
-### No Breaking Changes
-- Existing dispatch jobs and pricing logic are unaffected
-- The dropoff check is additive — if not configured, behavior stays the same
-- Food/medical sections simply stop appearing for dispatch tenants
+- `useTenantDistanceSettings()` -- provides `default_distance_basis`
+- `useServiceArea()` -- provides `radius_miles` and `mode`
+- Both hooks are already used elsewhere in the Brain and can be imported into the service editor
+
+### No Database Changes
+
+All changes are frontend copy/UX only. The underlying data model is correct -- the problem is entirely that the UI doesn't explain how the pieces connect.
+
+### No Edge Function Changes
+
+The backend already handles distance basis, service area checks, and tiered pricing correctly. This is purely about making the configuration UI self-explanatory.
