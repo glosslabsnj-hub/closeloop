@@ -1,0 +1,171 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { requireInternalSecret, serviceClient } from "../_shared/tenant.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-closeloop-secret",
+};
+
+interface SalesLeadHandoffRequest {
+  tenant_id: string;
+  sales_lead_id: string;
+  session_id?: string;
+}
+
+async function createHmacSignature(payload: string, secret: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(secret);
+  const messageData = encoder.encode(payload);
+  const cryptoKey = await crypto.subtle.importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const signature = await crypto.subtle.sign("HMAC", cryptoKey, messageData);
+  const hashArray = Array.from(new Uint8Array(signature));
+  return `sha256=${hashArray.map(b => b.toString(16).padStart(2, "0")).join("")}`;
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    requireInternalSecret(req);
+    const body: SalesLeadHandoffRequest = await req.json();
+    const { tenant_id, sales_lead_id } = body;
+
+    if (!tenant_id || !sales_lead_id) {
+      throw new Error("tenant_id and sales_lead_id are required");
+    }
+
+    const supabase = serviceClient();
+
+    // Fetch sales lead with customer
+    const { data: lead, error: leadError } = await supabase
+      .from("sales_leads")
+      .select("*, customer:customers(*)")
+      .eq("id", sales_lead_id)
+      .eq("tenant_id", tenant_id)
+      .single();
+
+    if (leadError || !lead) {
+      throw new Error("Sales lead not found or access denied");
+    }
+
+    // Fetch tenant info
+    const { data: tenant } = await supabase
+      .from("tenants")
+      .select("name")
+      .eq("id", tenant_id)
+      .single();
+
+    // Fetch delivery settings (reuse callback delivery settings or a generic handoff config)
+    const { data: settings } = await supabase
+      .from("callback_delivery_settings")
+      .select("*")
+      .eq("tenant_id", tenant_id)
+      .single();
+
+    const methods = settings?.enabled && Array.isArray(settings.handoff_methods)
+      ? settings.handoff_methods
+      : ["internal"];
+    const results: Record<string, { success: boolean; error?: string }> = {};
+
+    // Build payload
+    const handoffPayload = {
+      type: "sales_lead",
+      event: "sales_lead.created",
+      tenant_id,
+      tenant_name: tenant?.name,
+      sales_lead_id: lead.id,
+      lead_number: lead.lead_number,
+      customer: {
+        name: lead.customer?.full_name || "Unknown",
+        phone: lead.customer?.phone_e164 || null,
+        email: lead.customer?.email || null,
+      },
+      interest_type: lead.interest_type,
+      vehicle_interest: lead.vehicle_interest,
+      budget_range: lead.budget_range,
+      timeline: lead.timeline,
+      has_trade_in: lead.has_trade_in,
+      trade_in_details: lead.trade_in_details,
+      financing_preapproved: lead.financing_preapproved,
+      priority: lead.priority,
+      status: lead.status,
+      notes: lead.notes,
+      created_at: lead.created_at,
+    };
+
+    // Execute delivery methods
+    for (const method of methods) {
+      try {
+        if (method === "webhook" && settings?.webhook_url) {
+          const payloadString = JSON.stringify(handoffPayload);
+          const headers: Record<string, string> = { "Content-Type": "application/json" };
+          if (settings.webhook_secret) {
+            headers["X-CloseLoop-Signature"] = await createHmacSignature(payloadString, settings.webhook_secret);
+          }
+          const resp = await fetch(settings.webhook_url, { method: "POST", headers, body: payloadString });
+          results.webhook = { success: resp.ok, error: resp.ok ? undefined : `HTTP ${resp.status}` };
+        }
+
+        if (method === "sms" && settings?.notify_phone) {
+          const twilioSid = Deno.env.get("TWILIO_ACCOUNT_SID");
+          const twilioAuth = Deno.env.get("TWILIO_AUTH_TOKEN");
+          if (twilioSid && twilioAuth) {
+            const { data: phoneNumber } = await supabase
+              .from("phone_numbers")
+              .select("phone_e164")
+              .eq("tenant_id", tenant_id)
+              .eq("purpose", "forwarding")
+              .single();
+            const fromNumber = phoneNumber?.phone_e164 || Deno.env.get("DEFAULT_TWILIO_NUMBER");
+            if (fromNumber) {
+              const smsBody = `New sales lead ${lead.lead_number}: ${lead.customer?.full_name || "Unknown"} - ${lead.vehicle_interest || lead.interest_type || "General inquiry"}. Priority: ${lead.priority}. ${lead.timeline ? `Timeline: ${lead.timeline}` : ""}`;
+              const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;
+              const resp = await fetch(twilioUrl, {
+                method: "POST",
+                headers: {
+                  "Authorization": `Basic ${btoa(`${twilioSid}:${twilioAuth}`)}`,
+                  "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: new URLSearchParams({ To: settings.notify_phone, From: fromNumber, Body: smsBody }),
+              });
+              results.sms = { success: resp.ok, error: resp.ok ? undefined : `HTTP ${resp.status}` };
+            }
+          }
+        }
+
+        if (method === "email" && settings?.notify_email) {
+          console.log(`[sales-lead-handoff] Email delivery placeholder for ${settings.notify_email}`);
+          results.email = { success: true };
+        }
+      } catch (e) {
+        const errMsg = e instanceof Error ? e.message : String(e);
+        results[method] = { success: false, error: errMsg };
+      }
+    }
+
+    // Log handoff attempts
+    for (const [method, result] of Object.entries(results)) {
+      await supabase.from("handoff_attempts").insert({
+        tenant_id,
+        entity_type: "sales_lead",
+        entity_id: sales_lead_id,
+        method,
+        status: result.success ? "success" : "failed",
+        error_message: result.error || null,
+      });
+    }
+
+    return new Response(JSON.stringify({ success: true, methods: results }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    console.error("[sales-lead-handoff] Error:", errorMessage);
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});

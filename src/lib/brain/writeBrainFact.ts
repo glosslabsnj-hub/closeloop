@@ -382,10 +382,37 @@ export async function createRequiredQuestionRule(
  */
 export async function updateHIPAASettings(
   tenantId: string,
-  settings: Record<string, any>
+  settings: {
+    store_recordings?: boolean;
+    store_transcripts?: boolean;
+    require_verbal_consent?: boolean;
+    retention_days?: number;
+  }
 ) {
-  // TODO: Implement in Phase 3
-  throw new Error("updateHIPAASettings not yet implemented - Phase 3");
+  const { data, error } = await supabase
+    .from("medical_settings")
+    .upsert(
+      {
+        tenant_id: tenantId,
+        ...settings,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "tenant_id" }
+    )
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  await logBrainChange(
+    tenantId,
+    "medical_settings",
+    "upsert",
+    tenantId,
+    settings
+  );
+
+  return data;
 }
 
 /**

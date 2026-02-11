@@ -10,10 +10,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Clock, Info, TrendingUp } from "lucide-react";
 
+export interface BusynessLevelConfig {
+  etaMultiplier: number;   // 1.0 = normal, 1.5 = 50% longer
+  surchargePercent: number; // 0-100
+}
+
 export interface BusynessRulesConfig {
   base_prep_minutes: number;
   busy_buffer_minutes: number;
   manual_busyness_pct: number; // 0-100
+  // Level-based config consumed by computeEtaQuote() pricing engine
+  low?: BusynessLevelConfig;
+  medium?: BusynessLevelConfig;
+  high?: BusynessLevelConfig;
 }
 
 export function BusynessRulesEditor() {
@@ -25,7 +34,10 @@ export function BusynessRulesEditor() {
   const [config, setConfig] = useState<BusynessRulesConfig>({
     base_prep_minutes: 30,
     busy_buffer_minutes: 15,
-    manual_busyness_pct: 0
+    manual_busyness_pct: 0,
+    low: { etaMultiplier: 1.0, surchargePercent: 0 },
+    medium: { etaMultiplier: 1.3, surchargePercent: 0 },
+    high: { etaMultiplier: 1.6, surchargePercent: 0 },
   });
 
   useEffect(() => {
@@ -223,6 +235,64 @@ export function BusynessRulesEditor() {
               <span>Slammed</span>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Level-Based ETA Multipliers */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <TrendingUp className="h-4 w-4" />
+            ETA Multipliers by Busyness Level
+          </CardTitle>
+          <CardDescription>
+            How much to adjust ETAs and prices at each busyness level. The AI pricing engine uses these automatically.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {(["low", "medium", "high"] as const).map((level) => {
+            const levelConfig = config[level] || { etaMultiplier: 1.0, surchargePercent: 0 };
+            const labels = { low: "Low", medium: "Medium", high: "High" };
+            const colors = { low: "text-green-500", medium: "text-amber-500", high: "text-rose-500" };
+            return (
+              <div key={level} className="grid grid-cols-3 gap-4 items-center border rounded-lg p-3">
+                <div>
+                  <Badge variant="outline" className={colors[level]}>
+                    {labels[level]}
+                  </Badge>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">ETA Multiplier</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="3"
+                    step="0.1"
+                    value={levelConfig.etaMultiplier}
+                    onChange={(e) => updateConfig({
+                      [level]: { ...levelConfig, etaMultiplier: parseFloat(e.target.value) || 1.0 },
+                    })}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Surcharge %</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="5"
+                    value={levelConfig.surchargePercent}
+                    onChange={(e) => updateConfig({
+                      [level]: { ...levelConfig, surchargePercent: parseInt(e.target.value) || 0 },
+                    })}
+                  />
+                </div>
+              </div>
+            );
+          })}
+          <p className="text-xs text-muted-foreground">
+            Example: At "High" busyness with 1.6x multiplier, a 30-min ETA becomes ~48 min.
+          </p>
         </CardContent>
       </Card>
 

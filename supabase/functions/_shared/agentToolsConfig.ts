@@ -1238,6 +1238,36 @@ export const GENERAL_AGENT_CONFIG: AgentToolsConfig = {
   ],
 };
 
+/**
+ * SALES AGENT (5 Tools)
+ * Industries: Car dealerships, RV/boat dealers, real estate, solar, insurance, equipment sales
+ * Note: Reuses scheduling tools + callback; no dispatch or food tools
+ */
+export const SALES_AGENT_CONFIG: AgentToolsConfig = {
+  mode: "sales",
+  agentName: "Sales Agent",
+  industries: ["Car dealership", "RV dealer", "Real estate", "Solar", "Insurance", "Equipment sales", "Luxury retail"],
+  toolCount: 5,
+  tools: [
+    createCheckAvailabilityTool(
+      `Check if a specific test drive or appointment time is available. Use when customer says "Can I come in Tuesday at 2?" or "Is Saturday morning open?"`
+    ),
+    createSuggestAvailabilityTool(
+      `Get available times for test drives or showroom appointments. Use when customer asks "When can I come in?" or "What times do you have?"`
+    ),
+    createBookingTool(
+      `Book a test drive or sales appointment. Use after confirming a time. ALWAYS include vehicle interest, budget, and trade-in info in the notes field.`,
+      false // no party_size for sales
+    ),
+    createCheckServiceAreaTool(
+      `Check if we serve the customer's area. Use for delivery, solar installation, real estate coverage, or service area questions.`
+    ),
+    createCallbackTool(
+      `Create a callback for financing questions, trade-in valuations, manager requests, or when customer won't schedule but wants info. Use department field to route: 'sales', 'finance', 'service', 'manager'.`
+    ),
+  ],
+};
+
 // ============= REGISTRY =============
 
 /**
@@ -1249,6 +1279,7 @@ export const AGENT_TOOLS_REGISTRY: Record<BusinessMode, AgentToolsConfig> = {
   food: FOOD_AGENT_CONFIG,
   medical: MEDICAL_AGENT_CONFIG,
   general: GENERAL_AGENT_CONFIG,
+  sales: SALES_AGENT_CONFIG,
 };
 
 /**

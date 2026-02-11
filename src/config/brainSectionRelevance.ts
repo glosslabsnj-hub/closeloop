@@ -10,7 +10,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   DollarSign, Package, Truck, UtensilsCrossed, Tag, Lightbulb,
   MapPin, HeartPulse, Warehouse, Phone, FileCheck,
-  AlertCircle, Shield, Users,
+  AlertCircle, Shield, Users, Car,
 } from "lucide-react";
 import type { Capabilities } from "@/hooks/useCapabilities";
 
@@ -250,6 +250,47 @@ export const SECTION_RELEVANCE: SectionRelevance[] = [
       icon: Package,
       capabilityKey: "hasKnowledgeBase",
       modulesToEnable: ["knowledge_base"],
+    },
+  },
+
+  // ── Sales Sections ──
+  {
+    sectionId: "sales-inventory",
+    tab: "services",
+    isRelevant: (caps) => caps.isSalesBusiness && caps.hasSalesInventory,
+    addOn: {
+      id: "sales-inventory",
+      title: "Sales Inventory",
+      description: "Enable to manage vehicle/product inventory for AI reference",
+      icon: Car,
+      capabilityKey: "hasSalesInventory",
+      modulesToEnable: ["sales_inventory"],
+    },
+  },
+  {
+    sectionId: "sales-policies",
+    tab: "policies",
+    isRelevant: (caps) => caps.isSalesBusiness,
+    addOn: {
+      id: "sales-policies",
+      title: "Sales Policies",
+      description: "Enable for financing, trade-in, and test drive policies",
+      icon: DollarSign,
+      capabilityKey: "hasSalesLeads",
+      modulesToEnable: ["sales_leads"],
+    },
+  },
+  {
+    sectionId: "sales-knowledge",
+    tab: "knowledge",
+    isRelevant: (caps) => caps.isSalesBusiness,
+    addOn: {
+      id: "sales-knowledge",
+      title: "Sales Knowledge",
+      description: "Enable for product details and objection scripts",
+      icon: Car,
+      capabilityKey: "hasSalesLeads",
+      modulesToEnable: ["sales_leads"],
     },
   },
 ];

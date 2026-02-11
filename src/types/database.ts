@@ -184,7 +184,12 @@ export type VoiceMode = Enums<"voice_mode">;
 export type MissedCallBehavior = Enums<"missed_call_behavior">;
 
 // Business mode types
-export type BusinessMode = "service" | "dispatch" | "food" | "medical" | "general";
+export type BusinessMode = "service" | "dispatch" | "food" | "medical" | "general" | "sales";
+
+// Sales entity types
+export type TestDriveStatus = "pending" | "confirmed" | "completed" | "cancelled" | "no_show";
+export type SalesLeadStatus = "new" | "contacted" | "qualified" | "appointment_set" | "test_drive" | "negotiation" | "sold" | "lost";
+export type SalesLeadPriority = "low" | "normal" | "high" | "hot";
 
 // Enums
 export type IndustryType = Enums<"industry_type">;

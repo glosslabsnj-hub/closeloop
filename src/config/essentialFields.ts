@@ -440,6 +440,75 @@ const GENERAL_RECOMMENDED_FIELDS: FieldDefinition[] = [
 const GENERAL_OPTIONAL_FIELDS: FieldDefinition[] = [];
 
 // ============================================================================
+// SALES MODE FIELDS
+// ============================================================================
+
+const SALES_REQUIRED_FIELDS: FieldDefinition[] = [
+  {
+    id: "products_inventory",
+    label: "Products / Inventory Description",
+    priority: "required",
+    description: "What you sell — vehicles, real estate, solar, etc.",
+    aiImpact: "AI cannot describe your offerings or match customer interest",
+    section: "services",
+  },
+];
+
+const SALES_RECOMMENDED_FIELDS: FieldDefinition[] = [
+  {
+    id: "financing_info",
+    label: "Financing Information",
+    priority: "recommended",
+    description: "Available financing options and partners",
+    aiImpact: "AI cannot address financing questions",
+    section: "policies",
+  },
+  {
+    id: "trade_in_policy",
+    label: "Trade-In Policy",
+    priority: "recommended",
+    description: "How you handle trade-ins and valuations",
+    aiImpact: "AI cannot set trade-in expectations",
+    section: "policies",
+  },
+  {
+    id: "test_drive_settings",
+    label: "Test Drive / Demo Settings",
+    priority: "recommended",
+    description: "Duration, requirements, and availability",
+    aiImpact: "AI uses default 30-minute test drive settings",
+    section: "services",
+  },
+  {
+    id: "sales_team_names",
+    label: "Sales Team Names",
+    priority: "recommended",
+    description: "Names of sales reps for assignment and routing",
+    aiImpact: "AI cannot route to specific reps or mention names",
+    section: "profile",
+  },
+];
+
+const SALES_OPTIONAL_FIELDS: FieldDefinition[] = [
+  {
+    id: "crm_integration",
+    label: "CRM / DMS Integration",
+    priority: "optional",
+    description: "Connect to your dealer management system",
+    aiImpact: "Leads require manual entry in your CRM",
+    section: "integrations",
+  },
+  {
+    id: "current_promotions",
+    label: "Current Promotions",
+    priority: "optional",
+    description: "Active specials, incentives, or deals",
+    aiImpact: "AI cannot mention promotions to callers",
+    section: "services",
+  },
+];
+
+// ============================================================================
 // REGISTRY
 // ============================================================================
 
@@ -502,6 +571,18 @@ export const ESSENTIAL_FIELDS_REGISTRY: Record<BusinessMode, ModeFieldRegistry> 
       ...GENERAL_RECOMMENDED_FIELDS,
       ...SHARED_OPTIONAL_FIELDS,
       ...GENERAL_OPTIONAL_FIELDS,
+    ],
+  },
+  sales: {
+    mode: "sales",
+    displayName: "Sales & Dealership",
+    fields: [
+      ...SHARED_REQUIRED_FIELDS,
+      ...SALES_REQUIRED_FIELDS,
+      ...SHARED_RECOMMENDED_FIELDS,
+      ...SALES_RECOMMENDED_FIELDS,
+      ...SHARED_OPTIONAL_FIELDS,
+      ...SALES_OPTIONAL_FIELDS,
     ],
   },
 };

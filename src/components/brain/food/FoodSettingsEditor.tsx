@@ -97,6 +97,8 @@ export function FoodSettingsEditor() {
   const [activeTab, setActiveTab] = useState("ordering");
   const [isSaving, setIsSaving] = useState(false);
   const [localSettings, setLocalSettings] = useState<Partial<FoodOrderSettings>>({});
+  const [taxRatePercent, setTaxRatePercent] = useState<number>(0);
+  const [taxRateChanged, setTaxRateChanged] = useState(false);
 
   // Fetch settings
   const { data: settings, isLoading } = useQuery({
@@ -110,6 +112,25 @@ export function FoodSettingsEditor() {
         .single();
       if (error && error.code !== "PGRST116") throw error;
       return data as FoodOrderSettings | null;
+    },
+    enabled: !!tenant?.id,
+  });
+
+  // Load tax rate from tenant context_fields_json
+  useQuery({
+    queryKey: ["tenant-tax-rate", tenant?.id],
+    queryFn: async () => {
+      if (!tenant?.id) return null;
+      const { data } = await supabase
+        .from("tenants")
+        .select("context_fields_json")
+        .eq("id", tenant.id)
+        .single();
+      const ctx = (data as any)?.context_fields_json;
+      if (ctx?.tax_rate_percent != null) {
+        setTaxRatePercent(ctx.tax_rate_percent);
+      }
+      return ctx;
     },
     enabled: !!tenant?.id,
   });
@@ -140,9 +161,25 @@ export function FoodSettingsEditor() {
         .upsert(payload, { onConflict: "tenant_id" });
 
       if (error) throw error;
-      
+
+      // Save tax rate to tenant context_fields_json
+      if (taxRateChanged) {
+        const { data: currentTenant } = await supabase
+          .from("tenants")
+          .select("context_fields_json")
+          .eq("id", tenant.id)
+          .single();
+        const existingCtx = (currentTenant as any)?.context_fields_json || {};
+        await supabase
+          .from("tenants")
+          .update({ context_fields_json: { ...existingCtx, tax_rate_percent: taxRatePercent } })
+          .eq("id", tenant.id);
+        setTaxRateChanged(false);
+      }
+
       toast.success("Settings saved");
       queryClient.invalidateQueries({ queryKey: ["food-order-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["tenant-tax-rate"] });
       setLocalSettings({});
     } catch (error: any) {
       toast.error(error.message || "Failed to save");
@@ -151,7 +188,7 @@ export function FoodSettingsEditor() {
     }
   };
 
-  const hasChanges = Object.keys(localSettings).length > 0;
+  const hasChanges = Object.keys(localSettings).length > 0 || taxRateChanged;
 
   // AI Preview
   const aiPreview = useMemo(() => {
@@ -312,6 +349,31 @@ export function FoodSettingsEditor() {
                     className="w-32"
                   />
                   <p className="text-xs text-muted-foreground">Leave empty for no limit</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm flex items-center gap-2">
+                    <DollarSign className="h-4 w-4" />
+                    Sales Tax Rate
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min="0"
+                      max="20"
+                      step="0.125"
+                      value={taxRatePercent}
+                      onChange={(e) => {
+                        setTaxRatePercent(parseFloat(e.target.value) || 0);
+                        setTaxRateChanged(true);
+                      }}
+                      className="w-24"
+                    />
+                    <span className="text-sm text-muted-foreground">%</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Applied to all food orders. The AI will include tax when quoting order totals.
+                  </p>
                 </div>
               </div>
             </CardContent>

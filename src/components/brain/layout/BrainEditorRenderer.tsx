@@ -26,6 +26,8 @@ import { BookingDeliverySettings } from "@/components/settings/BookingDeliverySe
 import { FoodOrderSettings } from "@/components/settings/FoodOrderSettings";
 import { DispatchDeliverySettings } from "@/components/settings/DispatchDeliverySettings";
 import { MedicalHIPAASettings } from "@/components/settings/MedicalHIPAASettings";
+import { CallbackDeliverySettings } from "@/components/settings/CallbackDeliverySettings";
+import { MedicalIntakeDeliverySettings } from "@/components/settings/MedicalIntakeDeliverySettings";
 import { BusinessProfileEditor } from "@/components/brain/BusinessProfileEditor";
 import { BusinessPoliciesEditor } from "@/components/brain/BusinessPoliciesEditor";
 import { CustomPoliciesEditor } from "@/components/brain/CustomPoliciesEditor";
@@ -192,6 +194,10 @@ export function BrainEditorRenderer({
       return <ImpoundFeesEditor />;
     case "impound-release":
       return <ImpoundReleaseEditor />;
+    case "callback-delivery":
+      return <CallbackDeliverySettings />;
+    case "medical-intake-delivery":
+      return <MedicalIntakeDeliverySettings />;
     case "hipaa":
       return <MedicalHIPAASettings />;
 

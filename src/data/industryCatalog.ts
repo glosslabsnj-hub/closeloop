@@ -67,6 +67,7 @@ export type IndustryCategory =
   | 'events_entertainment'
   | 'fitness_recreation'
   | 'property_real_estate'
+  | 'sales_dealerships'
   | 'other';
 
 export const categoryLabels: Record<IndustryCategory, string> = {
@@ -81,6 +82,7 @@ export const categoryLabels: Record<IndustryCategory, string> = {
   events_entertainment: 'Events & Entertainment',
   fitness_recreation: 'Fitness & Recreation',
   property_real_estate: 'Property & Real Estate',
+  sales_dealerships: 'Sales & Dealerships',
   other: 'Other',
 };
 
@@ -121,6 +123,8 @@ const dispatchModules = ['ai_voice', 'instant_text_back', 'dispatch_queue'];
 const foodModules = ['ai_voice', 'instant_text_back', 'food_orders', 'menu_knowledge', 'reservations', 'catering'];
 const medicalModules = ['ai_voice', 'instant_text_back', 'booking', 'medical_intake'];
 const generalModules = ['ai_voice', 'instant_text_back'];
+const salesModules = ['ai_voice', 'instant_text_back', 'sales_leads', 'test_drives', 'booking'];
+const salesWithInventoryModules = ['ai_voice', 'instant_text_back', 'sales_leads', 'test_drives', 'booking', 'sales_inventory'];
 
 // ============= BASE TEMPLATES =============
 

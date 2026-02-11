@@ -33,6 +33,8 @@ export interface DynamicVarSpec {
   includeInCompactJson?: boolean;
   /** Category for documentation grouping */
   category: "core" | "caller" | "hours" | "offerings" | "pricing" | "policies" | "ai_settings" | "intelligence" | "food" | "debug" | "meta";
+  /** Whether this value is ready for TTS (no abbreviations, JSON, or URLs). Defaults to false. */
+  speechReady?: boolean;
 }
 
 // ============= HELPER FUNCTIONS =============
@@ -831,6 +833,53 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     defaultValue: "",
     category: "offerings",
     includeInCompactJson: true,
+  },
+
+  // ===== SALES =====
+  {
+    key: "inventory_summary",
+    description: "Compact overview of available inventory for sales businesses",
+    type: "string",
+    source: (ctx: Record<string, unknown>) => {
+      const sales = ctx.sales as Record<string, unknown> | undefined;
+      return sales?.inventory_summary || "";
+    },
+    defaultValue: "",
+    category: "offerings",
+    includeInCompactJson: true,
+  },
+  {
+    key: "financing_available",
+    description: "Whether financing options are available",
+    type: "string",
+    source: (ctx: Record<string, unknown>) => {
+      const sales = ctx.sales as Record<string, unknown> | undefined;
+      return sales?.financing_available ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "offerings",
+  },
+  {
+    key: "trade_in_accepted",
+    description: "Whether trade-ins are accepted",
+    type: "string",
+    source: (ctx: Record<string, unknown>) => {
+      const sales = ctx.sales as Record<string, unknown> | undefined;
+      return sales?.trade_in_accepted ? "true" : "false";
+    },
+    defaultValue: "false",
+    category: "offerings",
+  },
+  {
+    key: "sales_rep_names",
+    description: "Comma-separated list of sales rep names",
+    type: "string",
+    source: (ctx: Record<string, unknown>) => {
+      const sales = ctx.sales as Record<string, unknown> | undefined;
+      return (sales?.sales_rep_names as string) || "";
+    },
+    defaultValue: "",
+    category: "offerings",
   },
 
   // ===== PRICING =====

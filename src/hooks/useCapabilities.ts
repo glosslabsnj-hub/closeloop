@@ -42,11 +42,15 @@ export interface Capabilities {
   hasNewPatientForms: boolean;
   hasReferrals: boolean;
   hasMedicationsIntake: boolean;
+  hasSalesLeads: boolean;
+  hasTestDrives: boolean;
+  hasSalesInventory: boolean;
 
   // ── Computed helpers (convenience) ──
   isFoodBusiness: boolean;
   isDispatchBusiness: boolean;
   isMedicalBusiness: boolean;
+  isSalesBusiness: boolean;
   isSchedulingBusiness: boolean;
   isServiceBusiness: boolean;
 
@@ -89,6 +93,9 @@ const MODULE_TO_CAP: Record<string, keyof Capabilities> = {
   new_patient_forms: "hasNewPatientForms",
   referrals: "hasReferrals",
   medications_intake: "hasMedicationsIntake",
+  sales_leads: "hasSalesLeads",
+  test_drives: "hasTestDrives",
+  sales_inventory: "hasSalesInventory",
 };
 
 /** Default modules per business mode (mirrors useTenantConfig defaults) */
@@ -98,6 +105,7 @@ const MODE_DEFAULTS: Record<BusinessMode, string[]> = {
   food: ["ai_voice", "instant_text_back", "food_orders", "menu_knowledge", "reservations", "catering"],
   medical: ["ai_voice", "instant_text_back", "booking", "medical_intake"],
   general: ["ai_voice", "instant_text_back"],
+  sales: ["ai_voice", "instant_text_back", "sales_leads", "test_drives", "booking"],
 };
 
 /**
@@ -160,13 +168,17 @@ export function resolveCapabilitiesFromTenant(
   const hasNewPatientForms = cap("new_patient_forms");
   const hasReferrals = cap("referrals");
   const hasMedicationsIntake = cap("medications_intake");
+  const hasSalesLeads = cap("sales_leads");
+  const hasTestDrives = cap("test_drives");
+  const hasSalesInventory = cap("sales_inventory");
 
   // Computed helpers
   const isFoodBusiness = hasFoodOrders || hasMenuKnowledge || hasReservations || hasCatering;
   const isDispatchBusiness = hasDispatchQueue;
   const isMedicalBusiness = hasMedicalIntake;
+  const isSalesBusiness = hasSalesLeads || hasTestDrives;
   const isSchedulingBusiness = hasBooking || hasReservations;
-  const isServiceBusiness = hasBooking && !isFoodBusiness && !isDispatchBusiness && !isMedicalBusiness;
+  const isServiceBusiness = hasBooking && !isFoodBusiness && !isDispatchBusiness && !isMedicalBusiness && !isSalesBusiness;
 
   // Derived primary mode — for agent routing and terminology.
   // Uses explicit business_mode when no capabilities_json override exists,
@@ -174,6 +186,7 @@ export function resolveCapabilitiesFromTenant(
   let derivedPrimaryMode: BusinessMode = businessMode;
   if (hasExplicitCaps) {
     if (isMedicalBusiness) derivedPrimaryMode = "medical";
+    else if (isSalesBusiness) derivedPrimaryMode = "sales";
     else if (isDispatchBusiness) derivedPrimaryMode = "dispatch";
     else if (isFoodBusiness) derivedPrimaryMode = "food";
     else if (isServiceBusiness) derivedPrimaryMode = "service";
@@ -214,9 +227,13 @@ export function resolveCapabilitiesFromTenant(
     hasNewPatientForms,
     hasReferrals,
     hasMedicationsIntake,
+    hasSalesLeads,
+    hasTestDrives,
+    hasSalesInventory,
     isFoodBusiness,
     isDispatchBusiness,
     isMedicalBusiness,
+    isSalesBusiness,
     isSchedulingBusiness,
     isServiceBusiness,
     derivedPrimaryMode,

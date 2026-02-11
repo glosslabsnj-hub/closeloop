@@ -187,7 +187,7 @@ serve(async (req: Request) => {
 
     // Get tenant settings and towing services with pricing config
     const [tenantResult, distanceSettingsResult, towingServicesResult] = await Promise.all([
-      supabase.from("tenants").select("service_area_json").eq("id", tenantId).single(),
+      supabase.from("tenants").select("service_area_json, business_mode").eq("id", tenantId).single(),
       supabase.from("tenant_distance_settings").select("*, default_distance_basis").eq("tenant_id", tenantId).maybeSingle(),
       // Fetch towing services that may have distance-tiered pricing
       supabase.from("services")
@@ -199,8 +199,96 @@ serve(async (req: Request) => {
     ]);
 
     const serviceArea = tenantResult.data?.service_area_json as Record<string, unknown> | null;
+    const businessMode = tenantResult.data?.business_mode as string || "service";
     const distanceSettings = distanceSettingsResult.data;
     const towingServices = towingServicesResult.data || [];
+
+    // FOOD MODE: Use delivery zone check instead of dispatch distance logic
+    if (businessMode === "food") {
+      const deliveryRadiusMiles = (serviceArea?.radius_miles as number) || (serviceArea?.miles as number) || 10; // Default 10mi for food, not 100
+      const outOfAreaMessage = (serviceArea?.out_of_area_message as string) ||
+        "I'm sorry, that address is outside our delivery area. Would you like to place a pickup order instead?";
+
+      // Try zip-code match against delivery_zones
+      const zipMatch = address.match(/\b(\d{5})(-\d{4})?\b/);
+      const zip = zipMatch ? zipMatch[1] : null;
+
+      let inDeliveryZone = false;
+      let deliveryFee: number | null = null;
+      let zoneName: string | null = null;
+
+      if (zip) {
+        const { data: zones } = await supabase
+          .from("delivery_zones")
+          .select("id, name, delivery_fee_cents, zip_codes, estimated_delivery_minutes")
+          .eq("tenant_id", tenantId);
+
+        if (zones && zones.length > 0) {
+          const matchingZone = zones.find(
+            (z: Record<string, unknown>) => z.zip_codes && Array.isArray(z.zip_codes) && (z.zip_codes as string[]).includes(zip)
+          );
+          if (matchingZone) {
+            inDeliveryZone = true;
+            deliveryFee = matchingZone.delivery_fee_cents || 0;
+            zoneName = matchingZone.name;
+          }
+        }
+      }
+
+      // If no zip-code zones configured, fall back to radius check
+      if (!zip || (!inDeliveryZone && !zip)) {
+        // Simplified: assume in-area if we can't determine, let the order proceed
+        inDeliveryZone = true;
+      }
+
+      if (!inDeliveryZone) {
+        return new Response(
+          JSON.stringify({
+            in_area: false,
+            distance_miles: null,
+            tow_distance_miles: null,
+            dropoff_geocoded: null,
+            eta_minutes: null,
+            eta_range: "",
+            message: outOfAreaMessage,
+            service_tier: "out_of_area",
+            pricing_note: outOfAreaMessage,
+            local_radius_miles: deliveryRadiusMiles,
+            distance_basis_used: "food_zone_check",
+            price_breakdown: null,
+            out_of_area_message: outOfAreaMessage,
+          } as ServiceAreaResponse),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const deliveryFeeFormatted = deliveryFee !== null ? `$${(deliveryFee / 100).toFixed(2)}` : "varies";
+      return new Response(
+        JSON.stringify({
+          in_area: true,
+          distance_miles: null,
+          tow_distance_miles: null,
+          dropoff_geocoded: null,
+          eta_minutes: 30,
+          eta_range: "25-45 minutes",
+          message: zoneName
+            ? `Delivery available in ${zoneName} zone. Delivery fee: ${deliveryFeeFormatted}.`
+            : `Delivery available. Delivery fee: ${deliveryFeeFormatted}.`,
+          service_tier: "local",
+          pricing_note: `Delivery fee: ${deliveryFeeFormatted}`,
+          local_radius_miles: deliveryRadiusMiles,
+          distance_basis_used: "food_zone_check",
+          price_breakdown: deliveryFee !== null ? {
+            base_price: 0,
+            distance_charge: 0,
+            distance_miles_charged: 0,
+            modifier_charges: [{ name: "delivery_fee", amount: deliveryFee / 100 }],
+            total_estimate: deliveryFee / 100,
+          } : null,
+        } as ServiceAreaResponse),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // If no distance settings or provider disabled, use fallback
     if (!distanceSettings?.distance_provider_enabled) {
@@ -343,7 +431,10 @@ serve(async (req: Request) => {
     
     if (!inArea) {
       serviceTier = "out_of_area";
-      pricingNote = "Customer is outside service area. Use out_of_area_message.";
+      // Use tenant's custom out-of-area message, NOT a placeholder instruction
+      const customOutOfAreaMsg = (serviceArea?.out_of_area_message as string) ||
+        "I'm sorry, that location is outside our service area. Would you like me to take your information for a callback?";
+      pricingNote = customOutOfAreaMsg;
     } else if (pricingDistanceMiles !== null && pricingDistanceMiles <= localRadiusMiles) {
       serviceTier = "local";
       

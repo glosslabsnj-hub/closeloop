@@ -346,15 +346,17 @@ serve(async (req) => {
         }
 
         if (handoffMethod === "email" && settings.notify_email) {
-          console.log(`Sending booking email to ${settings.notify_email}`);
-          results.email = { success: true };
+          // Email delivery not yet implemented — log as "skipped" for honest monitoring
+          console.log(`[booking-handoff] Email to ${settings.notify_email}: skipped — email provider not configured`);
+          results.email = { success: false, error: "Email provider not configured" };
 
           await supabase.from("handoff_attempts").insert({
             tenant_id: tenantId,
             entity_type: "booking",
             entity_id: booking_id,
             method: "email",
-            status: "success",
+            status: "skipped",
+            error_message: "Email provider not configured — enable via Integrations > Email",
           });
         }
 

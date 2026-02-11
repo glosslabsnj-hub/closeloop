@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCapabilities, MODULE_TO_CAP, type Capabilities } from "./useCapabilities";
 
-export type BusinessMode = "service" | "dispatch" | "food" | "medical" | "general";
+export type BusinessMode = "service" | "dispatch" | "food" | "medical" | "general" | "sales";
 
 export interface TenantConfig {
   businessMode: BusinessMode;
@@ -17,6 +17,7 @@ const defaultModulesByMode: Record<BusinessMode, string[]> = {
   food: ["ai_voice", "instant_text_back", "food_orders", "menu_knowledge", "reservations", "catering"],
   medical: ["ai_voice", "instant_text_back", "booking", "medical_intake"],
   general: ["ai_voice", "instant_text_back"],
+  sales: ["ai_voice", "instant_text_back", "sales_leads", "test_drives", "booking"],
 };
 
 export function useTenantConfig(): TenantConfig {

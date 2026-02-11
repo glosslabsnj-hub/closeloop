@@ -1992,6 +1992,9 @@ export async function buildBusinessContext(
     after_hours_handling: caps.hasAfterHoursHandling,
     sms_campaigns: caps.hasSmsCampaigns,
     knowledge_base: caps.hasKnowledgeBase,
+    sales_leads: caps.hasSalesLeads,
+    test_drives: caps.hasTestDrives,
+    sales_inventory: caps.hasSalesInventory,
     mobile_service: caps.hasDispatchQueue || caps.isDispatchBusiness,
     emergency_dispatch: caps.hasDispatchQueue,
   };
@@ -2291,6 +2294,13 @@ export async function buildBusinessContext(
     business_brain_json_truncated: false,
     // Impound lot data (built from fetched impound data)
     impound: buildImpoundContext(impoundLotData.lot, impoundLotData.settings, tenant.timezone || "America/New_York"),
+    // Sales context (populated below for sales businesses)
+    sales: {
+      inventory_summary: "",
+      financing_available: false,
+      trade_in_accepted: false,
+      sales_rep_names: "",
+    },
     _meta: {
       channel,
       session_id: sessionId,
@@ -2332,9 +2342,58 @@ export async function buildBusinessContext(
     // Context still valid without snapshot - fields already have defaults
   }
   
+  // ===== SALES CONTEXT (for sales businesses) =====
+  if (caps.isSalesBusiness) {
+    try {
+      // Build inventory summary
+      const { data: inventoryStats } = await supabase
+        .from("sales_inventory")
+        .select("condition, make")
+        .eq("tenant_id", tenantId)
+        .eq("status", "available");
+
+      if (inventoryStats && inventoryStats.length > 0) {
+        const total = inventoryStats.length;
+        const newCount = inventoryStats.filter(i => i.condition === "new").length;
+        const usedCount = inventoryStats.filter(i => i.condition === "used").length;
+        const certifiedCount = inventoryStats.filter(i => i.condition === "certified").length;
+
+        // Top makes
+        const makeCounts: Record<string, number> = {};
+        for (const item of inventoryStats) {
+          if (item.make) makeCounts[item.make] = (makeCounts[item.make] || 0) + 1;
+        }
+        const topMakes = Object.entries(makeCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([make]) => make);
+
+        const parts: string[] = [`${total} in stock`];
+        const conditionParts: string[] = [];
+        if (newCount) conditionParts.push(`${newCount} new`);
+        if (usedCount) conditionParts.push(`${usedCount} used`);
+        if (certifiedCount) conditionParts.push(`${certifiedCount} certified`);
+        if (conditionParts.length) parts.push(conditionParts.join(", "));
+        if (topMakes.length) parts.push(`Top: ${topMakes.join(", ")}`);
+
+        context.sales.inventory_summary = parts.join(". ");
+      }
+
+      // Read sales-specific context fields
+      const ctxFields = (tenant as Record<string, unknown>).context_fields_json as Record<string, unknown> | undefined;
+      if (ctxFields) {
+        context.sales.financing_available = ctxFields.financing_available === true;
+        context.sales.trade_in_accepted = ctxFields.trade_in_accepted === true;
+        context.sales.sales_rep_names = (ctxFields.sales_rep_names as string) || "";
+      }
+    } catch (salesError) {
+      console.error(`[buildBusinessContext] Failed to build sales context:`, salesError);
+    }
+  }
+
   // ===== BUILD SYSTEM PROMPT =====
   const systemPrompt = buildSystemPrompt(context);
-  
+
   return { context, systemPrompt };
 }
 

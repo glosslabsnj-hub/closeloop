@@ -16,6 +16,9 @@ const routeModuleRequirements: Record<string, string[]> = {
   "/app/reservations": ["reservations"],
   "/app/catering": ["catering"],
   "/app/medical-intake": ["medical_intake"],
+  "/app/sales-pipeline": ["sales_leads"],
+  "/app/test-drives": ["test_drives"],
+  "/app/inventory": ["sales_inventory"],
 };
 
 /**
@@ -102,6 +105,9 @@ export function useAccessibleRoutes(): string[] {
     "/app/medical-intake",
     "/app/fleet",
     "/app/impound-lot",
+    "/app/sales-pipeline",
+    "/app/test-drives",
+    "/app/inventory",
     "/app/business-brain",
     "/app/integrations",
     "/app/ai-assistant",

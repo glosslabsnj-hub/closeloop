@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 import { encode as encodeHex } from "https://deno.land/std@0.168.0/encoding/hex.ts";
 import { computePriceQuote, computeEtaQuote, type QuoteResult } from "../_shared/computeQuote.ts";
+import { computeBookingPrice, computeFoodOrderTotals, computeDispatchPrice } from "../_shared/computeEntityPricing.ts";
 import { captureException } from "../_shared/sentry.ts";
 
 const corsHeaders = {
@@ -80,14 +81,28 @@ interface CanonicalMeta {
   raw_data_collection_keys: string[];
 }
 
+interface CanonicalSales {
+  interest_type: string;
+  vehicle_interest: string;
+  budget_range: string;
+  timeline: string;
+  has_trade_in: boolean;
+  trade_in_details: string;
+  financing_interest: boolean;
+  wants_test_drive: boolean;
+  preferred_date: string;
+  preferred_time: string;
+}
+
 interface CanonicalPayload {
-  intent: "order" | "reservation" | "booking" | "dispatch" | "callback" | "faq" | "other";
+  intent: "order" | "reservation" | "booking" | "dispatch" | "callback" | "faq" | "other" | "test_drive" | "sales_lead";
   customer: CanonicalCustomer;
   order: CanonicalOrder;
   reservation: CanonicalReservation;
   booking: CanonicalBooking;
   dispatch: CanonicalDispatch;
   callback: CanonicalCallback;
+  sales: CanonicalSales;
   quote?: {
     price?: QuoteResult;
     eta?: QuoteResult;
@@ -1121,6 +1136,18 @@ function buildCanonicalPayload(
       best_time: null,
       message: null,
     },
+    sales: {
+      interest_type: "",
+      vehicle_interest: "",
+      budget_range: "",
+      timeline: "",
+      has_trade_in: false,
+      trade_in_details: "",
+      financing_interest: false,
+      wants_test_drive: false,
+      preferred_date: "",
+      preferred_time: "",
+    },
     _meta: {
       extraction_source: rawExtracted._extraction_source === "server_side" ? "server_side" : "elevenlabs",
       normalized_at: new Date().toISOString(),
@@ -1211,6 +1238,9 @@ function buildCanonicalPayload(
     case "medical":
       fillMedicalSection(payload, dataCollection, rawExtracted);
       break;
+    case "sales":
+      fillSalesSection(payload, dataCollection, rawExtracted);
+      break;
     default:
       fillGeneralSection(payload, dataCollection, rawExtracted);
   }
@@ -1250,6 +1280,16 @@ function buildCanonicalPayload(
     "question": "faq",
     "inquiry": "faq",
     "info": "faq",
+    // Sales aliases
+    "test_drive": "test_drive",
+    "test drive": "test_drive",
+    "demo": "test_drive",
+    "showing": "test_drive",
+    "sales_lead": "sales_lead",
+    "sales": "sales_lead",
+    "interested": "sales_lead",
+    "purchase": "sales_lead",
+    "buy": "sales_lead",
     // Other
     "other": "other",
     "general": "other",
@@ -1397,9 +1437,42 @@ function fillGeneralSection(
   rawExtracted: Record<string, unknown>
 ) {
   const getVal = (key: string): string | null => extractDataCollectionValue(dataCollection[key]) || rawExtracted[key] as string || null;
-  
+
   payload.booking.service_requested = getVal("service_requested") || getVal("reason");
   payload.callback.message = getVal("message");
+}
+
+function fillSalesSection(
+  payload: CanonicalPayload,
+  dataCollection: Record<string, string>,
+  rawExtracted: Record<string, unknown>
+) {
+  const getVal = (key: string): string | null => extractDataCollectionValue(dataCollection[key]) || rawExtracted[key] as string || null;
+
+  payload.sales.interest_type = getVal("interest_type") || getVal("inquiry_type") || "";
+  payload.sales.vehicle_interest = getVal("vehicle_interest") || getVal("product_interest") || getVal("vehicle_of_interest") || "";
+  payload.sales.budget_range = getVal("budget_range") || getVal("budget") || "";
+  payload.sales.timeline = getVal("timeline") || getVal("purchase_timeline") || "";
+  const tradeIn = getVal("has_trade_in") || getVal("trade_in");
+  payload.sales.has_trade_in = tradeIn === "true" || tradeIn === "yes" || tradeIn === "1";
+  payload.sales.trade_in_details = getVal("trade_in_details") || getVal("trade_in_vehicle") || "";
+  const financing = getVal("financing_interest") || getVal("financing") || getVal("needs_financing");
+  payload.sales.financing_interest = financing === "true" || financing === "yes" || financing === "1";
+  const wantsTestDrive = getVal("wants_test_drive") || getVal("test_drive") || getVal("test_drive_requested");
+  payload.sales.wants_test_drive = wantsTestDrive === "true" || wantsTestDrive === "yes" || wantsTestDrive === "1";
+  payload.sales.preferred_date = getVal("preferred_date") || getVal("booking_date") || "";
+  payload.sales.preferred_time = getVal("preferred_time") || getVal("booking_time") || "";
+
+  // Also fill booking section for test drive scheduling
+  if (!payload.booking.preferred_date && payload.sales.preferred_date) {
+    payload.booking.preferred_date = payload.sales.preferred_date;
+  }
+  if (!payload.booking.preferred_time && payload.sales.preferred_time) {
+    payload.booking.preferred_time = payload.sales.preferred_time;
+  }
+  if (!payload.booking.service_requested) {
+    payload.booking.service_requested = payload.sales.wants_test_drive ? "Test Drive" : "Sales Consultation";
+  }
 }
 
 // ===== DETERMINE INTENT FROM PAYLOAD =====
@@ -1410,7 +1483,7 @@ function determineIntentFromPayload(
   payload: CanonicalPayload,
   dataCollection: Record<string, string>,
   rawExtracted: Record<string, unknown>
-): "order" | "reservation" | "booking" | "dispatch" | "callback" | "faq" | "other" {
+): CanonicalPayload["intent"] {
   const getVal = (key: string): string | null => extractDataCollectionValue(dataCollection[key]) || rawExtracted[key] as string || null;
 
   // Helper to check for "truthy" confirmation values
@@ -1430,6 +1503,13 @@ function determineIntentFromPayload(
   const dispatchConfirmed = getVal("dispatch_confirmed") || getVal("job_created") || getVal("service_requested");
   if (isConfirmed(dispatchConfirmed)) return "dispatch";
 
+  // Sales-specific confirmation flags
+  const testDriveRequested = getVal("test_drive_requested") || getVal("wants_test_drive");
+  if (isConfirmed(testDriveRequested) && businessMode === "sales") return "test_drive";
+
+  const salesLeadCreated = getVal("sales_lead_created") || getVal("interested");
+  if (isConfirmed(salesLeadCreated) && businessMode === "sales") return "sales_lead";
+
   const callbackRequested = getVal("callback_requested") || getVal("wants_callback");
   if (isConfirmed(callbackRequested)) return "callback";
 
@@ -1442,6 +1522,8 @@ function determineIntentFromPayload(
     callback: 0,
     faq: 0,
     other: 0,
+    test_drive: 0,
+    sales_lead: 0,
   };
 
   // Order signals
@@ -1472,6 +1554,16 @@ function determineIntentFromPayload(
   if (payload.callback.best_time) scores.callback += 1;
   if (payload.callback.message) scores.callback += 1;
 
+  // Sales signals
+  if (payload.sales.wants_test_drive) scores.test_drive += 3;
+  if (payload.sales.vehicle_interest) scores.sales_lead += 2;
+  if (payload.sales.budget_range) scores.sales_lead += 1;
+  if (payload.sales.has_trade_in) scores.sales_lead += 1;
+  if (payload.sales.financing_interest) scores.sales_lead += 1;
+  if (payload.sales.timeline) scores.sales_lead += 1;
+  // Test drive inherits from sales_lead if higher
+  if (scores.sales_lead > 0 && payload.sales.wants_test_drive) scores.test_drive += scores.sales_lead;
+
   // === STEP 3: Apply business mode weighting ===
   // Give bonus to intents that match the business mode
   switch (businessMode) {
@@ -1486,6 +1578,10 @@ function determineIntentFromPayload(
     case "medical":
       scores.booking += 2;
       break;
+    case "sales":
+      scores.test_drive += 2;
+      scores.sales_lead += 1;
+      break;
     case "general":
       scores.faq += 1;
       break;
@@ -1493,7 +1589,7 @@ function determineIntentFromPayload(
 
   // === STEP 4: Find highest scoring intent ===
   let maxScore = 0;
-  let bestIntent: "order" | "reservation" | "booking" | "dispatch" | "callback" | "faq" | "other" = "other";
+  let bestIntent: CanonicalPayload["intent"] = "other";
 
   for (const [intent, score] of Object.entries(scores)) {
     if (score > maxScore) {
@@ -1846,7 +1942,44 @@ async function persistDerivedEntity(
           success = true;
         }
         break;
-        
+
+      case "callback_requests":
+        const callback = await persistCallback(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, payload, customerName, customerId, callerPhoneE164);
+        if (callback) {
+          entityType = "callback";
+          entityId = callback.id;
+          success = true;
+        }
+        break;
+
+      case "medical_intakes":
+        const intake = await persistMedicalIntake(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, payload, customerName, customerId, callerPhoneE164);
+        if (intake) {
+          entityType = "medical_intake";
+          entityId = intake.id;
+          success = true;
+        }
+        break;
+
+      case "test_drives":
+        const testDrive = await persistTestDrive(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, payload, customerName, customerId, callerPhoneE164);
+        if (testDrive) {
+          entityType = "test_drive";
+          entityId = testDrive.id;
+          success = true;
+        }
+        break;
+
+      case "sales_leads":
+        const salesLead = await persistSalesLead(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, payload, customerName, customerId, callerPhoneE164);
+        if (salesLead) {
+          entityType = "sales_lead";
+          entityId = salesLead.id;
+          entityNumber = salesLead.lead_number || null;
+          success = true;
+        }
+        break;
+
       case "none":
       default:
         console.log(`[persistDerivedEntity] No derived entity: ${routingDecision.reason}`);
@@ -1883,7 +2016,7 @@ async function persistDerivedEntity(
 
 // ===== ROUTING DECISION LOGIC =====
 interface RoutingDecision {
-  target: "food_orders" | "reservations" | "bookings" | "dispatch_jobs" | "none";
+  target: "food_orders" | "reservations" | "bookings" | "dispatch_jobs" | "callback_requests" | "medical_intakes" | "test_drives" | "sales_leads" | "none";
   reason: string;
 }
 
@@ -1919,6 +2052,10 @@ function determineRoutingTarget(
       return { target: "none", reason: "intent=reservation but reservations module not enabled" };
       
     case "booking":
+      // Medical mode with medical_intake: route to medical_intakes (also creates a booking inside)
+      if (businessMode === "medical" && hasModule("medical_intake")) {
+        return { target: "medical_intakes", reason: "intent=booking, medical mode, medical_intake enabled" };
+      }
       if (hasModule("booking")) {
         return { target: "bookings", reason: "intent=booking, booking enabled" };
       }
@@ -1935,10 +2072,31 @@ function determineRoutingTarget(
       return { target: "none", reason: "intent=dispatch but dispatch_queue module not enabled" };
       
     case "callback":
+      // Persist callback requests so no callback is ever lost
+      if (payload.callback.requested) {
+        return { target: "callback_requests", reason: "intent=callback, callback requested" };
+      }
+      return { target: "none", reason: "intent=callback but not explicitly requested" };
+
+    case "test_drive":
+      if (hasModule("test_drives")) {
+        return { target: "test_drives", reason: "intent=test_drive, test_drives module enabled" };
+      }
+      // Fallback to bookings if test_drives not enabled but booking is
+      if (hasModule("booking")) {
+        return { target: "bookings", reason: "intent=test_drive, test_drives not enabled, falling back to booking" };
+      }
+      return { target: "none", reason: "intent=test_drive but no scheduling module enabled" };
+
+    case "sales_lead":
+      if (hasModule("sales_leads")) {
+        return { target: "sales_leads", reason: "intent=sales_lead, sales_leads module enabled" };
+      }
+      return { target: "none", reason: "intent=sales_lead but sales_leads module not enabled" };
+
     case "faq":
     case "other":
     default:
-      // No entity for these intents - they create leads/opportunities only
       return { target: "none", reason: `intent=${intent}, no entity creation for this intent` };
   }
 }
@@ -1960,8 +2118,17 @@ async function persistFoodOrder(
   const { items: pricedItems, totalCents: calculatedTotal, unmatchedCount } = 
     await matchAndPriceItems(supabase, tenantId, payload.order.items);
   
-  const finalTotalCents = calculatedTotal > 0 ? calculatedTotal : payload.order.total_cents;
-  
+  // Compute tax + delivery fees
+  const orderTotals = await computeFoodOrderTotals(
+    supabase,
+    tenantId,
+    calculatedTotal > 0 ? calculatedTotal : (payload.order.total_cents || 0),
+    payload.order.type,
+    payload.order.delivery_address
+  );
+
+  const finalTotalCents = orderTotals.total_cents > 0 ? orderTotals.total_cents : payload.order.total_cents;
+
   // Generate order number
   const { data: lastOrder } = await supabase
     .from("food_orders")
@@ -2011,8 +2178,11 @@ async function persistFoodOrder(
       customer_phone: callerPhoneE164 || null,
       items_json: pricedItems.length > 0 ? pricedItems : [{ name: "Order details in notes", qty: 1, matched: false }],
       total_cents: finalTotalCents,
-      subtotal_cents: calculatedTotal > 0 ? calculatedTotal : null,
+      subtotal_cents: orderTotals.subtotal_cents || (calculatedTotal > 0 ? calculatedTotal : null),
+      tax_cents: orderTotals.tax_cents || null,
+      delivery_fee_cents: orderTotals.delivery_fee_cents,
       totals_estimate: { subtotal: calculatedTotal > 0 ? calculatedTotal : null, calculated_from_menu: calculatedTotal > 0, unmatched_items: unmatchedCount },
+      totals_breakdown: orderTotals.breakdown,
       special_instructions: combinedInstructions,
       delivery_address: payload.order.delivery_address,
     })
@@ -2134,15 +2304,19 @@ async function persistReservation(
     console.error("[persistReservation] Failed to trigger workflow:", e);
   }
 
-  // Trigger order handoff for reservation (handles notifications)
+  // Trigger universal-delivery for reservation (NOT order-handoff — that looks up food_orders)
   try {
-    await fetch(`${supabaseUrl}/functions/v1/order-handoff`, {
+    await fetch(`${supabaseUrl}/functions/v1/universal-delivery`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${supabaseKey}`,
       },
-      body: JSON.stringify({ order_id: reservation.id, tenant_id: tenantId, type: "reservation" }),
+      body: JSON.stringify({
+        tenant_id: tenantId,
+        entity_type: "reservation",
+        entity_id: reservation.id,
+      }),
     });
   } catch (e) {
     console.warn("[persistReservation] Failed to trigger reservation handoff:", e);
@@ -2203,31 +2377,50 @@ async function persistBooking(
   if (payload.booking.service_requested) {
     const { data: service } = await supabase
       .from("services")
-      .select("id, duration_minutes")
+      .select("id, duration_minutes, price_amount, price_type")
       .eq("tenant_id", tenantId)
       .ilike("name", `%${payload.booking.service_requested}%`)
       .limit(1)
       .maybeSingle();
-    
+
     if (service) serviceId = service.id;
   }
-  
+
+  // Compute pricing from service + modifiers
+  const pricingResult = await computeBookingPrice(supabase, tenantId, serviceId, payload);
+
+  // Fetch deposit_required from assistant_settings
+  const { data: assistantSettings } = await supabase
+    .from("assistant_settings")
+    .select("deposit_required")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+  const tenantDepositRequired = assistantSettings?.deposit_required ?? false;
+
   const preferredDate = payload.booking.preferred_date || (() => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     return tomorrow.toISOString().split("T")[0];
   })();
-  
+
   const preferredTime = payload.booking.preferred_time || "10:00";
   const startAt = new Date(`${preferredDate}T${preferredTime}:00`);
-  const endAt = new Date(startAt.getTime() + 60 * 60 * 1000);
-  
+  const durationMs = pricingResult.duration_minutes * 60 * 1000;
+  const endAt = new Date(startAt.getTime() + durationMs);
+
   const notes = payload.booking.notes || (payload.booking.service_requested ? `Service requested: ${payload.booking.service_requested}` : null);
 
-  // Determine booking status: if confirmed on call, set to "confirmed" so calendar sync triggers
-  const bookingStatus = payload.booking.confirmed === true ? "confirmed" : "pending_deposit";
+  // Determine booking status: confirmed on call → "confirmed", deposit required → "pending_deposit", else "pending"
+  let bookingStatus: string;
+  if (payload.booking.confirmed === true) {
+    bookingStatus = "confirmed";
+  } else if (tenantDepositRequired) {
+    bookingStatus = "pending_deposit";
+  } else {
+    bookingStatus = "pending";
+  }
 
-  console.log(`[persistBooking] Creating: ${payload.booking.service_requested || "Service"} on ${preferredDate} at ${preferredTime}, status: ${bookingStatus}`);
+  console.log(`[persistBooking] Creating: ${payload.booking.service_requested || "Service"} on ${preferredDate} at ${preferredTime}, status: ${bookingStatus}, price: ${pricingResult.price_cents ?? "N/A"}c`);
 
   const { data: booking, error } = await supabase
     .from("bookings")
@@ -2239,8 +2432,11 @@ async function persistBooking(
       start_at: startAt.toISOString(),
       end_at: endAt.toISOString(),
       status: bookingStatus,
-      deposit_required: false,
+      deposit_required: tenantDepositRequired,
       deposit_paid: false,
+      price_cents: pricingResult.price_cents,
+      price_breakdown: pricingResult.price_breakdown,
+      duration_minutes: pricingResult.duration_minutes,
       notes,
     })
     .select("id")
@@ -2338,9 +2534,31 @@ async function persistDispatchJob(
   
   const priorityMap: Record<string, string> = { urgent: "urgent", high: "high", normal: "normal" };
   const priority = priorityMap[payload.dispatch.urgency] || "normal";
-  
-  console.log(`[persistDispatchJob] Creating: ${jobNumber} - ${payload.dispatch.job_type || "job"} at ${payload.dispatch.pickup_address}`);
-  
+
+  // Compute pricing + distance (non-blocking — job creation > pricing)
+  let dispatchPricing: { price_cents: number | null; price_breakdown: Record<string, unknown>; distance_miles: number | null; estimated_eta_minutes: number | null } = {
+    price_cents: null,
+    price_breakdown: { method: "none" },
+    distance_miles: null,
+    estimated_eta_minutes: null,
+  };
+  try {
+    dispatchPricing = await computeDispatchPrice(
+      supabase,
+      supabaseUrl,
+      supabaseKey,
+      tenantId,
+      payload.dispatch.pickup_address,
+      payload.dispatch.dropoff_address,
+      payload.dispatch.job_type,
+      payload.dispatch.urgency
+    );
+  } catch (e) {
+    console.warn("[persistDispatchJob] Pricing computation failed (non-blocking):", e);
+  }
+
+  console.log(`[persistDispatchJob] Creating: ${jobNumber} - ${payload.dispatch.job_type || "job"} at ${payload.dispatch.pickup_address}, price: ${dispatchPricing.price_cents ?? "N/A"}c`);
+
   const { data: job, error } = await supabase
     .from("dispatch_jobs")
     .insert({
@@ -2353,9 +2571,14 @@ async function persistDispatchJob(
       pickup_address: payload.dispatch.pickup_address,
       dropoff_address: payload.dispatch.dropoff_address,
       job_type: payload.dispatch.job_type || "tow",
+      vehicle_type: payload.dispatch.vehicle_type || null,
+      drivable: payload.dispatch.drivable,
       description: payload.dispatch.notes,
       priority,
       status: "pending",
+      price_cents: dispatchPricing.price_cents,
+      distance_miles: dispatchPricing.distance_miles,
+      estimated_eta_minutes: dispatchPricing.estimated_eta_minutes,
     })
     .select("id, job_number")
     .single();
@@ -2808,4 +3031,333 @@ function extractStructuredDataFromTranscript(transcript: NonNullable<ElevenLabsW
   }
   
   return extracted;
+}
+
+// ===== PERSIST CALLBACK REQUEST =====
+// Ensures no callback request is ever lost — previously discarded at routing.
+// deno-lint-ignore no-explicit-any
+async function persistCallback(
+  supabase: any,
+  supabaseUrl: string,
+  supabaseKey: string,
+  tenantId: string,
+  sessionId: string,
+  payload: CanonicalPayload,
+  customerName: string | null,
+  customerId: string | null,
+  callerPhoneE164: string
+): Promise<{ id: string } | null> {
+  console.log(`[persistCallback] Creating callback request for ${customerName || callerPhoneE164}`);
+
+  const { data: callback, error } = await supabase
+    .from("callback_requests")
+    .insert({
+      tenant_id: tenantId,
+      session_id: sessionId,
+      customer_id: customerId,
+      customer_name: customerName || "Phone Customer",
+      customer_phone: callerPhoneE164 || null,
+      best_time: payload.callback.best_time,
+      message: payload.callback.message,
+      status: "pending",
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error("[persistCallback] Failed:", error);
+    return null;
+  }
+
+  console.log(`[persistCallback] Created callback request: ${callback.id}`);
+
+  // Trigger workflow
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/trigger-workflow`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseKey}` },
+      body: JSON.stringify({
+        tenant_id: tenantId,
+        trigger: "callback.created",
+        entity_type: "callback",
+        entity_id: callback.id,
+        session_id: sessionId,
+        customer: customerId ? { id: customerId, name: customerName, phone: callerPhoneE164 } : undefined,
+        details: { best_time: payload.callback.best_time, message: payload.callback.message },
+      }),
+    });
+  } catch (e) {
+    console.error("[persistCallback] Failed to trigger workflow:", e);
+  }
+
+  // Trigger notification to owner via universal-delivery
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/universal-delivery`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({
+        tenant_id: tenantId,
+        entity_type: "callback",
+        entity_id: callback.id,
+      }),
+    });
+  } catch (e) {
+    console.warn("[persistCallback] Failed to trigger callback notification:", e);
+  }
+
+  return callback;
+}
+
+// ===== PERSIST MEDICAL INTAKE =====
+// Creates medical_intakes record AND a booking for medical mode.
+// deno-lint-ignore no-explicit-any
+async function persistMedicalIntake(
+  supabase: any,
+  supabaseUrl: string,
+  supabaseKey: string,
+  tenantId: string,
+  sessionId: string,
+  payload: CanonicalPayload,
+  customerName: string | null,
+  customerId: string | null,
+  callerPhoneE164: string
+): Promise<{ id: string } | null> {
+  console.log(`[persistMedicalIntake] Creating intake + booking for ${customerName || callerPhoneE164}`);
+
+  // Extract medical-specific fields from raw data collection or transcript
+  const rawKeys = payload._meta?.raw_data_collection_keys || [];
+  const intakeType = rawKeys.includes("new_patient") ? "new_patient" :
+                     rawKeys.includes("follow_up") ? "follow_up" :
+                     rawKeys.includes("prescription") ? "prescription_refill" : "appointment_request";
+  const urgencyLevel = rawKeys.includes("urgent") ? "urgent" :
+                       rawKeys.includes("soon") ? "soon" : "routine";
+
+  // Create medical intake record
+  const { data: intake, error } = await supabase
+    .from("medical_intakes")
+    .insert({
+      tenant_id: tenantId,
+      call_session_id: sessionId,
+      customer_id: customerId,
+      intake_type: intakeType,
+      urgency_level: urgencyLevel,
+      reason_for_visit: payload.booking.notes || payload.booking.service_requested || null,
+      preferred_date: payload.booking.preferred_date || null,
+      preferred_time_range: payload.booking.preferred_time || null,
+      verbal_consent_given: false, // Conservative default
+      status: "pending",
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error("[persistMedicalIntake] Failed:", error);
+    return null;
+  }
+
+  console.log(`[persistMedicalIntake] Created medical intake: ${intake.id}`);
+
+  // Also create a booking (medical appointments need scheduling)
+  try {
+    await persistBooking(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, payload, customerName, customerId, callerPhoneE164);
+  } catch (e) {
+    console.warn("[persistMedicalIntake] Booking side-effect failed (intake still created):", e);
+  }
+
+  // Trigger workflow
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/trigger-workflow`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseKey}` },
+      body: JSON.stringify({
+        tenant_id: tenantId,
+        trigger: "intake.created",
+        entity_type: "medical_intake",
+        entity_id: intake.id,
+        session_id: sessionId,
+        customer: customerId ? { id: customerId, name: customerName, phone: callerPhoneE164 } : undefined,
+        details: { intake_type: intakeType, urgency_level: urgencyLevel },
+      }),
+    });
+  } catch (e) {
+    console.error("[persistMedicalIntake] Failed to trigger workflow:", e);
+  }
+
+  // Trigger notification via universal-delivery (supports HIPAA redaction)
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/universal-delivery`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({
+        tenant_id: tenantId,
+        entity_type: "intake",
+        entity_id: intake.id,
+      }),
+    });
+  } catch (e) {
+    console.warn("[persistMedicalIntake] Failed to trigger intake notification:", e);
+  }
+
+  return intake;
+}
+
+// ===== PERSIST TEST DRIVE =====
+// deno-lint-ignore no-explicit-any
+async function persistTestDrive(
+  supabase: any,
+  supabaseUrl: string,
+  supabaseKey: string,
+  tenantId: string,
+  sessionId: string,
+  payload: CanonicalPayload,
+  customerName: string | null,
+  customerId: string | null,
+  _callerPhoneE164: string
+): Promise<{ id: string } | null> {
+  console.log(`[persistTestDrive] Creating test drive for ${customerName || _callerPhoneE164}`);
+
+  const sales = payload.sales;
+
+  // Parse scheduled_at from preferred_date + preferred_time
+  let scheduledAt: string | null = null;
+  const dateStr = sales.preferred_date || payload.booking.preferred_date;
+  const timeStr = sales.preferred_time || payload.booking.preferred_time;
+  if (dateStr && timeStr) {
+    scheduledAt = `${dateStr}T${timeStr}:00`;
+  } else if (dateStr) {
+    scheduledAt = `${dateStr}T09:00:00`;
+  }
+
+  const { data: testDrive, error } = await supabase
+    .from("test_drives")
+    .insert({
+      tenant_id: tenantId,
+      customer_id: customerId,
+      session_id: sessionId,
+      vehicle_interest: sales.vehicle_interest || null,
+      scheduled_at: scheduledAt,
+      scheduled_date: dateStr || null,
+      scheduled_time: timeStr || null,
+      sales_rep_requested: null,
+      trade_in_interest: sales.has_trade_in,
+      trade_in_vehicle_info: sales.trade_in_details || null,
+      financing_interest: sales.financing_interest,
+      budget_range: sales.budget_range || null,
+      status: "pending",
+      notes: payload.booking.notes || null,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error("[persistTestDrive] Failed:", error);
+    return null;
+  }
+
+  console.log(`[persistTestDrive] Created test drive: ${testDrive.id}`);
+
+  // Trigger test-drive-handoff
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/test-drive-handoff`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({
+        tenant_id: tenantId,
+        test_drive_id: testDrive.id,
+        session_id: sessionId,
+      }),
+    });
+  } catch (e) {
+    console.warn("[persistTestDrive] Failed to trigger handoff:", e);
+  }
+
+  return testDrive;
+}
+
+// ===== PERSIST SALES LEAD =====
+// deno-lint-ignore no-explicit-any
+async function persistSalesLead(
+  supabase: any,
+  supabaseUrl: string,
+  supabaseKey: string,
+  tenantId: string,
+  sessionId: string,
+  payload: CanonicalPayload,
+  customerName: string | null,
+  customerId: string | null,
+  _callerPhoneE164: string
+): Promise<{ id: string; lead_number?: string } | null> {
+  console.log(`[persistSalesLead] Creating sales lead for ${customerName || _callerPhoneE164}`);
+
+  const sales = payload.sales;
+
+  // Generate lead number: SL-NNN
+  const { count } = await supabase
+    .from("sales_leads")
+    .select("*", { count: "exact", head: true })
+    .eq("tenant_id", tenantId);
+  const leadNumber = `SL-${String((count || 0) + 1).padStart(3, "0")}`;
+
+  // Determine priority
+  let priority = "normal";
+  if (sales.timeline === "immediate") priority = "hot";
+  else if (sales.timeline === "this_week") priority = "high";
+
+  const { data: salesLead, error } = await supabase
+    .from("sales_leads")
+    .insert({
+      tenant_id: tenantId,
+      customer_id: customerId,
+      session_id: sessionId,
+      lead_number: leadNumber,
+      interest_type: sales.interest_type || "general",
+      vehicle_interest: sales.vehicle_interest || null,
+      budget_range: sales.budget_range || null,
+      timeline: sales.timeline || null,
+      financing_preapproved: false,
+      has_trade_in: sales.has_trade_in,
+      trade_in_details: sales.trade_in_details || null,
+      status: "new",
+      priority,
+      source: "ai_call",
+      notes: payload.booking.notes || null,
+    })
+    .select("id, lead_number")
+    .single();
+
+  if (error) {
+    console.error("[persistSalesLead] Failed:", error);
+    return null;
+  }
+
+  console.log(`[persistSalesLead] Created sales lead: ${salesLead.id} (${leadNumber})`);
+
+  // Trigger sales-lead-handoff
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/sales-lead-handoff`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({
+        tenant_id: tenantId,
+        sales_lead_id: salesLead.id,
+        session_id: sessionId,
+      }),
+    });
+  } catch (e) {
+    console.warn("[persistSalesLead] Failed to trigger handoff:", e);
+  }
+
+  return salesLead;
 }

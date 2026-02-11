@@ -63,26 +63,47 @@ serve(async (req) => {
     lookbackTime.setMinutes(lookbackTime.getMinutes() - LOOKBACK_MINUTES);
     const lookbackIso = lookbackTime.toISOString();
 
-    // Count failures by tenant in the lookback window
-    const { data: failureData, error: fetchError } = await supabase
-      .from("delivery_attempts")
-      .select(`
-        tenant_id,
-        entity_type,
-        error_message,
-        created_at,
-        tenants!inner(business_name, owner_email)
-      `)
-      .eq("status", "failed")
-      .gte("created_at", lookbackIso)
-      .order("created_at", { ascending: false });
+    // Count failures by tenant in the lookback window — check BOTH tables
+    const [deliveryResult, handoffResult] = await Promise.all([
+      supabase
+        .from("delivery_attempts")
+        .select(`
+          tenant_id,
+          entity_type,
+          error_message,
+          created_at,
+          tenants!inner(business_name, owner_email)
+        `)
+        .eq("status", "failed")
+        .gte("created_at", lookbackIso)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("handoff_attempts")
+        .select(`
+          tenant_id,
+          entity_type,
+          error_message,
+          created_at,
+          tenants!inner(business_name, owner_email)
+        `)
+        .eq("status", "failed")
+        .gte("created_at", lookbackIso)
+        .order("created_at", { ascending: false }),
+    ]);
 
-    if (fetchError) {
-      console.error("Failed to fetch failure data:", fetchError);
-      throw fetchError;
+    if (deliveryResult.error) {
+      console.error("Failed to fetch delivery_attempts failures:", deliveryResult.error);
+    }
+    if (handoffResult.error) {
+      console.error("Failed to fetch handoff_attempts failures:", handoffResult.error);
     }
 
-    if (!failureData || failureData.length === 0) {
+    // Merge results from both tables, tagging the source
+    const deliveryFailures = (deliveryResult.data || []).map((f: Record<string, unknown>) => ({ ...f, _source: "delivery_attempts" }));
+    const handoffFailures = (handoffResult.data || []).map((f: Record<string, unknown>) => ({ ...f, _source: "handoff_attempts" }));
+    const failureData = [...deliveryFailures, ...handoffFailures];
+
+    if (failureData.length === 0) {
       console.log("No failures found in lookback window");
       return new Response(
         JSON.stringify({

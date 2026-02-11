@@ -85,22 +85,53 @@ serve(async (req) => {
   try {
     console.log("Starting failed delivery retry job...");
 
-    // Fetch failed deliveries that are ready for retry
-    const { data: failedDeliveries, error: fetchError } = await supabase
-      .from("delivery_attempts")
-      .select("*")
-      .eq("status", "failed")
-      .lt("retry_count", MAX_RETRIES)
-      .or(`next_retry_at.is.null,next_retry_at.lte.${new Date().toISOString()}`)
-      .order("created_at", { ascending: true })
-      .limit(50);
+    // Fetch failed deliveries from BOTH tables that are ready for retry
+    const nowIso = new Date().toISOString();
+    const [deliveryResult, handoffResult] = await Promise.all([
+      supabase
+        .from("delivery_attempts")
+        .select("*")
+        .eq("status", "failed")
+        .lt("retry_count", MAX_RETRIES)
+        .or(`next_retry_at.is.null,next_retry_at.lte.${nowIso}`)
+        .order("created_at", { ascending: true })
+        .limit(50),
+      supabase
+        .from("handoff_attempts")
+        .select("*")
+        .eq("status", "failed")
+        .lt("retry_count", MAX_RETRIES)
+        .or(`next_retry_at.is.null,next_retry_at.lte.${nowIso}`)
+        .order("created_at", { ascending: true })
+        .limit(25),
+    ]);
 
-    if (fetchError) {
-      console.error("Failed to fetch deliveries:", fetchError);
-      throw fetchError;
+    if (deliveryResult.error) {
+      console.error("Failed to fetch delivery_attempts:", deliveryResult.error);
+    }
+    if (handoffResult.error) {
+      console.error("Failed to fetch handoff_attempts:", handoffResult.error);
     }
 
-    if (!failedDeliveries || failedDeliveries.length === 0) {
+    // Tag each with source table for correct update path
+    const deliveryItems = (deliveryResult.data || []).map((d: FailedDelivery) => ({ ...d, _table: "delivery_attempts" as const }));
+    const handoffItems = (handoffResult.data || []).map((h: Record<string, unknown>) => ({
+      id: h.id as string,
+      tenant_id: h.tenant_id as string,
+      entity_type: (h.entity_type as string) || "order",
+      entity_id: (h.entity_id as string) || (h.order_id as string) || "",
+      method: h.method as string,
+      error_message: h.error_message as string | null,
+      created_at: h.created_at as string,
+      retry_count: (h.retry_count as number) || 0,
+      last_retry_at: h.last_retry_at as string | null,
+      next_retry_at: h.next_retry_at as string | null,
+      _table: "handoff_attempts" as const,
+    }));
+
+    const failedDeliveries = [...deliveryItems, ...handoffItems];
+
+    if (failedDeliveries.length === 0) {
       console.log("No failed deliveries ready for retry");
       return new Response(
         JSON.stringify({ status: "success", retried: 0, message: "No deliveries to retry" }),
@@ -108,36 +139,58 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Found ${failedDeliveries.length} failed deliveries to retry`);
+    console.log(`Found ${failedDeliveries.length} failed deliveries to retry (${deliveryItems.length} from delivery_attempts, ${handoffItems.length} from handoff_attempts)`);
 
     const results: { id: string; success: boolean; error?: string }[] = [];
 
     for (const delivery of failedDeliveries) {
-      const { id, tenant_id, entity_type, entity_id, retry_count } = delivery;
-      console.log(`Retrying delivery ${id}: ${entity_type}/${entity_id} (attempt ${retry_count + 1})`);
+      const { id, tenant_id, entity_type, entity_id, retry_count, _table } = delivery;
+      console.log(`Retrying ${_table}/${id}: ${entity_type}/${entity_id} (attempt ${retry_count + 1})`);
+
+      // Determine retry endpoint: handoff_attempts uses entity-specific functions,
+      // delivery_attempts uses universal-delivery
+      let retryEndpoint: string;
+      let retryBody: Record<string, unknown>;
+
+      if (_table === "handoff_attempts") {
+        // Route to correct handoff function
+        const handoffMap: Record<string, string> = {
+          booking: "booking-handoff",
+          dispatch: "dispatch-handoff",
+          order: "order-handoff",
+        };
+        const handoffFn = handoffMap[entity_type] || "universal-delivery";
+        retryEndpoint = `${SUPABASE_URL}/functions/v1/${handoffFn}`;
+
+        if (entity_type === "booking") {
+          retryBody = { booking_id: entity_id, tenant_id };
+        } else if (entity_type === "dispatch") {
+          retryBody = { dispatch_id: entity_id, tenant_id };
+        } else if (entity_type === "order") {
+          retryBody = { order_id: entity_id, tenant_id };
+        } else {
+          retryBody = { tenant_id, entity_type, entity_id, retry_attempt: retry_count + 1 };
+        }
+      } else {
+        retryEndpoint = `${SUPABASE_URL}/functions/v1/universal-delivery`;
+        retryBody = { tenant_id, entity_type, entity_id, retry_attempt: retry_count + 1 };
+      }
 
       try {
-        // Call universal-delivery to retry the delivery
-        const response = await fetch(`${SUPABASE_URL}/functions/v1/universal-delivery`, {
+        const response = await fetch(retryEndpoint, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
           },
-          body: JSON.stringify({
-            tenant_id,
-            entity_type,
-            entity_id,
-            retry_attempt: retry_count + 1,
-          }),
+          body: JSON.stringify(retryBody),
         });
 
         const result = await response.json();
 
         if (response.ok && result.success) {
-          // Mark as successful
           await supabase
-            .from("delivery_attempts")
+            .from(_table)
             .update({
               status: "success",
               retry_count: retry_count + 1,
@@ -147,16 +200,15 @@ serve(async (req) => {
             .eq("id", id);
 
           results.push({ id, success: true });
-          console.log(`Retry successful for delivery ${id}`);
+          console.log(`Retry successful for ${_table}/${id}`);
         } else {
-          // Retry failed - update retry count and schedule next retry
           const newRetryCount = retry_count + 1;
           const nextRetryAt = newRetryCount < MAX_RETRIES
             ? calculateNextRetryTime(newRetryCount)
             : null;
 
           await supabase
-            .from("delivery_attempts")
+            .from(_table)
             .update({
               retry_count: newRetryCount,
               last_retry_at: new Date().toISOString(),
@@ -166,25 +218,23 @@ serve(async (req) => {
             .eq("id", id);
 
           results.push({ id, success: false, error: result.error });
-          console.log(`Retry failed for delivery ${id}: ${result.error}`);
+          console.log(`Retry failed for ${_table}/${id}: ${result.error}`);
 
-          // If max retries exhausted, trigger alert
           if (newRetryCount >= MAX_RETRIES) {
-            console.log(`Max retries exhausted for delivery ${id}, triggering alert`);
+            console.log(`Max retries exhausted for ${_table}/${id}, triggering alert`);
             await triggerDeliveryFailureAlert(supabase, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, delivery);
           }
         }
       } catch (error) {
-        console.error(`Error retrying delivery ${id}:`, error);
+        console.error(`Error retrying ${_table}/${id}:`, error);
 
-        // Update retry tracking even on exceptions
         const newRetryCount = retry_count + 1;
         const nextRetryAt = newRetryCount < MAX_RETRIES
           ? calculateNextRetryTime(newRetryCount)
           : null;
 
         await supabase
-          .from("delivery_attempts")
+          .from(_table)
           .update({
             retry_count: newRetryCount,
             last_retry_at: new Date().toISOString(),

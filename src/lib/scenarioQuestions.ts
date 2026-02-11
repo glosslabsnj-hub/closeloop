@@ -687,6 +687,77 @@ const crossModeQuestions: (ScenarioQuestion & { applicableModes: BusinessMode[] 
   },
 ];
 
+const salesQuestions: ScenarioQuestion[] = [
+  {
+    id: "test-drives",
+    capabilityKey: "offersTestDrives",
+    label: "Test Drives / Demos",
+    question: "Do you offer test drives or product demos?",
+    description: "Customers can schedule time to see/try your products",
+    defaultValue: true,
+    impliesModules: ["test_drives"],
+    group: "core",
+  },
+  {
+    id: "financing",
+    capabilityKey: "offersFinancing",
+    label: "Financing Options",
+    question: "Do you offer financing options?",
+    description: "In-house financing, bank partnerships, or loan referrals",
+    defaultValue: true,
+    group: "core",
+    requiredForAI: true,
+  },
+  {
+    id: "trade-ins",
+    capabilityKey: "acceptsTradeIns",
+    label: "Trade-Ins",
+    question: "Do you accept trade-ins?",
+    description: "Customers can trade in their current vehicle/product",
+    defaultValue: true,
+    group: "core",
+    requiredForAI: true,
+  },
+  {
+    id: "inventory-reference",
+    capabilityKey: "hasInventoryReference",
+    label: "Inventory Reference",
+    question: "Do you have inventory the AI should reference?",
+    description: "The AI can mention available vehicles/products during calls",
+    defaultValue: false,
+    impliesModules: ["sales_inventory"],
+    group: "core",
+  },
+  {
+    id: "crm-integration",
+    capabilityKey: "hasCRMIntegration",
+    label: "CRM / DMS",
+    question: "Do you use a CRM or DMS system?",
+    description: "DealerSocket, vAuto, CDK, Salesforce, etc.",
+    defaultValue: false,
+    group: "advanced",
+  },
+  {
+    id: "sales-team",
+    capabilityKey: "hasSalesTeam",
+    label: "Sales Team Routing",
+    question: "Should the AI route leads to specific sales reps?",
+    description: "Leads are assigned to named team members",
+    defaultValue: false,
+    group: "ai_behavior",
+  },
+  {
+    id: "showroom-appointments",
+    capabilityKey: "offersShowroomAppointments",
+    label: "Showroom Appointments",
+    question: "Do you schedule showroom or office appointments?",
+    description: "Beyond test drives — general visit scheduling",
+    defaultValue: true,
+    impliesModules: ["booking"],
+    group: "core",
+  },
+];
+
 // ---------------------------------------------------------------------------
 // Question map
 // ---------------------------------------------------------------------------
@@ -697,6 +768,7 @@ const questionsByMode: Record<BusinessMode, ScenarioQuestion[]> = {
   food: foodQuestions,
   medical: medicalQuestions,
   general: generalQuestions,
+  sales: salesQuestions,
 };
 
 // ---------------------------------------------------------------------------

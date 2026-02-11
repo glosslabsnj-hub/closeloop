@@ -4,43 +4,43 @@
 
 /* =====================================================
    Voxly Design System — 2026
-   Theme: "Ocean Professional" — Teal + Amber
+   Theme: "Midnight Sapphire" — Indigo + Gold
    ===================================================== */
 
 @layer base {
   /* =====================================================
      DARK MODE (Default)
-     Teal primary with amber accent
+     Indigo primary with gold accent on deep sapphire
      ===================================================== */
   :root,
   .dark {
-    /* Core Background - Deep, cool foundation */
-    --background: 210 20% 7%;
-    --foreground: 210 15% 98%;
+    /* Core Background - Deep navy-sapphire */
+    --background: 228 25% 7%;
+    --foreground: 225 15% 98%;
 
-    /* Cards - Cool depth */
-    --card: 210 15% 10%;
-    --card-foreground: 210 10% 95%;
+    /* Cards - Sapphire depth */
+    --card: 226 22% 10%;
+    --card-foreground: 225 10% 95%;
 
-    --popover: 210 15% 12%;
-    --popover-foreground: 210 15% 98%;
+    --popover: 226 22% 12%;
+    --popover-foreground: 225 15% 98%;
 
-    /* Primary - Teal */
-    --primary: 172 75% 40%;
+    /* Primary - Vivid indigo-blue */
+    --primary: 232 80% 62%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Muted cool panel */
-    --secondary: 210 12% 13%;
-    --secondary-foreground: 210 8% 70%;
+    /* Secondary - Muted sapphire panel */
+    --secondary: 226 14% 13%;
+    --secondary-foreground: 225 8% 70%;
 
-    /* Muted - Soft cool gray */
-    --muted: 210 10% 15%;
-    --muted-foreground: 210 8% 55%;
+    /* Muted - Soft sapphire gray */
+    --muted: 226 12% 15%;
+    --muted-foreground: 225 8% 55%;
 
-    /* Accent - Amber for emphasis */
-    --accent: 28 40% 14%;
-    --accent-foreground: 28 60% 85%;
-    --accent-signature: 28 90% 55%;
+    /* Accent - Rich warm gold */
+    --accent: 38 45% 14%;
+    --accent-foreground: 38 65% 85%;
+    --accent-signature: 38 85% 58%;
 
     /* Status Colors */
     --destructive: 0 70% 52%;
@@ -53,33 +53,33 @@
     --warning-foreground: 38 95% 10%;
 
     /* Borders & Inputs */
-    --border: 210 10% 17%;
-    --input: 210 12% 12%;
-    --ring: 172 75% 40%;
+    --border: 226 12% 17%;
+    --input: 226 14% 12%;
+    --ring: 232 80% 62%;
 
     /* Radius - Professional, slightly tighter */
     --radius: 0.625rem;
 
-    /* Sidebar - Cool charcoal */
-    --sidebar-background: 210 20% 6%;
-    --sidebar-foreground: 210 8% 60%;
-    --sidebar-primary: 172 75% 40%;
+    /* Sidebar - Deepest sapphire */
+    --sidebar-background: 228 28% 6%;
+    --sidebar-foreground: 225 8% 60%;
+    --sidebar-primary: 232 80% 62%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 12% 11%;
-    --sidebar-accent-foreground: 210 8% 80%;
-    --sidebar-border: 210 10% 13%;
-    --sidebar-ring: 172 75% 40%;
+    --sidebar-accent: 226 14% 11%;
+    --sidebar-accent-foreground: 225 8% 80%;
+    --sidebar-border: 226 12% 13%;
+    --sidebar-ring: 232 80% 62%;
 
     /* Glass Morphism Variables - Dark Mode */
-    --glass-bg: 210 15% 10%;
+    --glass-bg: 226 22% 10%;
     --glass-opacity: 0.75;
     --glass-border: 0 0% 100%;
     --glass-border-opacity: 0.08;
     --glass-blur: 20px;
 
     /* Neumorphic Shadow Variables - Dark Mode */
-    --shadow-light: 210 12% 18%;
-    --shadow-dark: 210 20% 4%;
+    --shadow-light: 226 14% 18%;
+    --shadow-dark: 228 25% 4%;
     --shadow-opacity-light: 0.05;
     --shadow-opacity-dark: 0.25;
 
@@ -90,36 +90,36 @@
 
   /* =====================================================
      LIGHT MODE
-     Clean whites with teal primary, amber accent
+     Sapphire-tinted whites with indigo primary, gold accent
      ===================================================== */
   .light {
-    /* Core Background - Cool off-white */
-    --background: 210 25% 97%;
-    --foreground: 210 25% 10%;
+    /* Core Background - Sapphire off-white */
+    --background: 225 25% 97%;
+    --foreground: 225 25% 10%;
 
     /* Cards - Clean white */
     --card: 0 0% 100%;
-    --card-foreground: 210 25% 10%;
+    --card-foreground: 225 25% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 210 25% 10%;
+    --popover-foreground: 225 25% 10%;
 
-    /* Primary - Rich teal */
-    --primary: 172 75% 35%;
+    /* Primary - Rich indigo */
+    --primary: 232 72% 50%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Soft cool gray */
-    --secondary: 210 12% 92%;
-    --secondary-foreground: 210 15% 40%;
+    /* Secondary - Soft sapphire gray */
+    --secondary: 225 12% 92%;
+    --secondary-foreground: 225 15% 40%;
 
-    /* Muted - Cool light gray */
-    --muted: 210 12% 94%;
-    --muted-foreground: 210 10% 45%;
+    /* Muted - Sapphire light gray */
+    --muted: 225 12% 94%;
+    --muted-foreground: 225 10% 45%;
 
-    /* Accent - Amber (adjusted for light) */
-    --accent: 28 80% 96%;
-    --accent-foreground: 28 60% 30%;
-    --accent-signature: 28 90% 50%;
+    /* Accent - Gold (adjusted for light) */
+    --accent: 38 80% 96%;
+    --accent-foreground: 38 60% 30%;
+    --accent-signature: 38 85% 50%;
 
     /* Status Colors (adjusted for light mode readability) */
     --destructive: 0 70% 50%;
@@ -132,22 +132,22 @@
     --warning-foreground: 38 95% 15%;
 
     /* Borders & Inputs */
-    --border: 210 15% 88%;
-    --input: 210 12% 96%;
-    --ring: 172 75% 35%;
+    --border: 225 15% 88%;
+    --input: 225 12% 96%;
+    --ring: 232 72% 50%;
 
     /* Radius - Same as dark */
     --radius: 0.625rem;
 
-    /* Sidebar - Light cool */
-    --sidebar-background: 210 18% 98%;
-    --sidebar-foreground: 210 10% 45%;
-    --sidebar-primary: 172 75% 35%;
+    /* Sidebar - Light sapphire */
+    --sidebar-background: 225 18% 98%;
+    --sidebar-foreground: 225 10% 45%;
+    --sidebar-primary: 232 72% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 12% 94%;
-    --sidebar-accent-foreground: 210 15% 25%;
-    --sidebar-border: 210 12% 90%;
-    --sidebar-ring: 172 75% 35%;
+    --sidebar-accent: 225 12% 94%;
+    --sidebar-accent-foreground: 225 15% 25%;
+    --sidebar-border: 225 12% 90%;
+    --sidebar-ring: 232 72% 50%;
 
     /* Glass Morphism Variables - Light Mode */
     --glass-bg: 0 0% 100%;
@@ -158,7 +158,7 @@
 
     /* Neumorphic Shadow Variables - Light Mode */
     --shadow-light: 0 0% 100%;
-    --shadow-dark: 210 15% 80%;
+    --shadow-dark: 225 15% 80%;
     --shadow-opacity-light: 0.8;
     --shadow-opacity-dark: 0.15;
 
@@ -255,10 +255,30 @@
      ========================================== */
   .app-bg {
     background: hsl(var(--background));
+    background-image:
+      radial-gradient(ellipse at 15% 0%, hsl(var(--primary) / 0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 85% 100%, hsl(var(--accent-signature) / 0.03) 0%, transparent 50%);
   }
 
   .app-shell-bg {
     @apply app-bg;
+  }
+
+  /* ==========================================
+     SIDEBAR DEPTH & ACTIVE GLOW
+     ========================================== */
+  [data-sidebar="sidebar"] {
+    background: linear-gradient(180deg, hsl(228 25% 7%) 0%, hsl(228 28% 5%) 100%);
+  }
+
+  .light [data-sidebar="sidebar"] {
+    background: linear-gradient(180deg, hsl(225 18% 98%) 0%, hsl(225 20% 96%) 100%);
+  }
+
+  [data-sidebar="menu-button"][data-active="true"] {
+    box-shadow:
+      inset 3px 0 0 hsl(var(--sidebar-primary)),
+      0 0 12px hsl(var(--sidebar-primary) / 0.06);
   }
 
   /* ==========================================
@@ -701,13 +721,13 @@
 
   /* Glass overlay for modals */
   .glass-overlay {
-    background: hsl(210 20% 4% / 0.6);
+    background: hsl(228 25% 4% / 0.6);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
   }
 
   .light .glass-overlay {
-    background: hsl(210 20% 10% / 0.4);
+    background: hsl(225 20% 10% / 0.4);
   }
 
   /* ==========================================

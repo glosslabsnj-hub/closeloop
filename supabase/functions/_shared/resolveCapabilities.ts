@@ -9,7 +9,7 @@
  *   const caps = resolveCapabilities(tenant.business_mode, tenant.enabled_modules, tenant.capabilities_json);
  */
 
-export type BusinessMode = "service" | "dispatch" | "food" | "medical" | "general";
+export type BusinessMode = "service" | "dispatch" | "food" | "medical" | "general" | "sales";
 
 export interface Capabilities {
   hasAiVoice: boolean;
@@ -33,10 +33,14 @@ export interface Capabilities {
   hasAfterHoursHandling: boolean;
   hasSmsCampaigns: boolean;
   hasKnowledgeBase: boolean;
+  hasSalesLeads: boolean;
+  hasTestDrives: boolean;
+  hasSalesInventory: boolean;
 
   isFoodBusiness: boolean;
   isDispatchBusiness: boolean;
   isMedicalBusiness: boolean;
+  isSalesBusiness: boolean;
   isSchedulingBusiness: boolean;
   isServiceBusiness: boolean;
 
@@ -49,6 +53,7 @@ const MODE_DEFAULTS: Record<BusinessMode, string[]> = {
   food: ["ai_voice", "instant_text_back", "food_orders", "menu_knowledge", "reservations", "catering"],
   medical: ["ai_voice", "instant_text_back", "booking", "medical_intake"],
   general: ["ai_voice", "instant_text_back"],
+  sales: ["ai_voice", "instant_text_back", "sales_leads", "test_drives", "booking"],
 };
 
 /**
@@ -64,7 +69,7 @@ export function resolveCapabilities(
   rawCapsJson: unknown,
 ): Capabilities {
   const businessMode: BusinessMode =
-    (["service", "dispatch", "food", "medical", "general"].includes(rawMode as string)
+    (["service", "dispatch", "food", "medical", "general", "sales"].includes(rawMode as string)
       ? rawMode as BusinessMode
       : "service");
 
@@ -130,16 +135,21 @@ export function resolveCapabilities(
   const hasAfterHoursHandling = cap("after_hours_handling");
   const hasSmsCampaigns = cap("sms_campaigns");
   const hasKnowledgeBase = cap("knowledge_base");
+  const hasSalesLeads = cap("sales_leads");
+  const hasTestDrives = cap("test_drives");
+  const hasSalesInventory = cap("sales_inventory");
 
   const isFoodBusiness = hasFoodOrders || hasMenuKnowledge || hasReservations || hasCatering;
   const isDispatchBusiness = hasDispatchQueue;
   const isMedicalBusiness = hasMedicalIntake;
+  const isSalesBusiness = hasSalesLeads || hasTestDrives;
   const isSchedulingBusiness = hasBooking || hasReservations;
-  const isServiceBusiness = hasBooking && !isFoodBusiness && !isDispatchBusiness && !isMedicalBusiness;
+  const isServiceBusiness = hasBooking && !isFoodBusiness && !isDispatchBusiness && !isMedicalBusiness && !isSalesBusiness;
 
   let derivedPrimaryMode: BusinessMode = businessMode;
   if (hasExplicitCaps) {
     if (isMedicalBusiness) derivedPrimaryMode = "medical";
+    else if (isSalesBusiness) derivedPrimaryMode = "sales";
     else if (isDispatchBusiness) derivedPrimaryMode = "dispatch";
     else if (isFoodBusiness) derivedPrimaryMode = "food";
     else if (isServiceBusiness) derivedPrimaryMode = "service";
@@ -168,9 +178,13 @@ export function resolveCapabilities(
     hasAfterHoursHandling,
     hasSmsCampaigns,
     hasKnowledgeBase,
+    hasSalesLeads,
+    hasTestDrives,
+    hasSalesInventory,
     isFoodBusiness,
     isDispatchBusiness,
     isMedicalBusiness,
+    isSalesBusiness,
     isSchedulingBusiness,
     isServiceBusiness,
     derivedPrimaryMode,

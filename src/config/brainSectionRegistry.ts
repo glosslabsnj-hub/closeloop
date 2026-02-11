@@ -408,6 +408,25 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     tab: "operations",
     isVisible: (_mode, _caps, flags) => flags.isRelevant("dispatch-operations"),
   },
+  {
+    id: "callback-delivery",
+    title: "Callback Request Alerts",
+    icon: Phone,
+    group: "delivery",
+    groupLabel: "DELIVERY",
+    order: 6,
+    tab: "operations",
+  },
+  {
+    id: "medical-intake-delivery",
+    title: "Intake Notification Settings",
+    icon: HeartPulse,
+    group: "delivery",
+    groupLabel: "DELIVERY",
+    order: 7,
+    tab: "operations",
+    isVisible: (_mode, _caps, flags) => flags.isRelevant("hipaa"),
+  },
 
   // COMPLIANCE
   {

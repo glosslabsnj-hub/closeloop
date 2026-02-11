@@ -11,7 +11,7 @@
  * - ELEVENLABS_AGENT_ID          (fallback)
  */
 
-export type BusinessMode = "service" | "dispatch" | "food" | "medical" | "general";
+export type BusinessMode = "service" | "dispatch" | "food" | "medical" | "general" | "sales";
 
 const MODE_TO_ENV_KEY: Record<BusinessMode, string> = {
   service: "ELEVENLABS_AGENT_ID_SERVICE",
@@ -19,6 +19,7 @@ const MODE_TO_ENV_KEY: Record<BusinessMode, string> = {
   food: "ELEVENLABS_AGENT_ID_FOOD",
   medical: "ELEVENLABS_AGENT_ID_MEDICAL",
   general: "ELEVENLABS_AGENT_ID_GENERAL",
+  sales: "ELEVENLABS_AGENT_ID_SALES",
 };
 
 export interface AgentResolution {
@@ -42,7 +43,7 @@ export function getAgentIdForMode(
   const normalizedMode = (businessMode || "general").toLowerCase() as BusinessMode;
   
   // Validate mode - if invalid, use general
-  const validModes: BusinessMode[] = ["service", "dispatch", "food", "medical", "general"];
+  const validModes: BusinessMode[] = ["service", "dispatch", "food", "medical", "general", "sales"];
   const mode = validModes.includes(normalizedMode) ? normalizedMode : "general";
   
   // Try mode-specific agent first

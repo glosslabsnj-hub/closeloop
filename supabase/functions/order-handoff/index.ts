@@ -58,7 +58,7 @@ serve(async (req) => {
         notify_email,
         notify_phone,
         tenant_id,
-      });
+      }, supabase);
       return jsonResponse(testResult);
     }
 
@@ -145,20 +145,14 @@ serve(async (req) => {
       }
 
       if (handoffMethod === "email" && settings.notify_email) {
-        try {
-          await sendEmail(order as Order, settings.notify_email, businessName);
-          results.email = { success: true };
-          await logHandoffAttempt(supabase, tenant_id, order_id, "email", "success");
-        } catch (e) {
-          const error = e instanceof Error ? e.message : "Unknown error";
-          results.email = { success: false, error };
-          await logHandoffAttempt(supabase, tenant_id, order_id, "email", "failed", error);
-        }
+        // Email delivery not yet implemented — log as "skipped" for honest monitoring
+        results.email = { success: false, error: "Email provider not configured" };
+        await logHandoffAttempt(supabase, tenant_id, order_id, "email", "skipped", "Email provider not configured — enable via Integrations > Email");
       }
 
       if (handoffMethod === "sms" && settings.notify_phone) {
         try {
-          await sendSMS(order as Order, settings.notify_phone, businessName, supabaseUrl);
+          await sendSMS(order as Order, settings.notify_phone, businessName, supabase, tenant_id);
           results.sms = { success: true };
           await logHandoffAttempt(supabase, tenant_id, order_id, "sms", "success");
         } catch (e) {
@@ -273,48 +267,75 @@ async function sendWebhook(order: Order, settings: DeliverySettings, businessNam
   }
 }
 
-async function sendEmail(order: Order, email: string, businessName: string) {
-  // For now, log the email - in production would integrate with email service
-  console.log(`Would send email to ${email}:`, {
-    subject: `New Order #${order.order_number}`,
-    business: businessName,
-    order_type: order.order_type,
-    customer: order.customer_name,
-    items: order.items_json,
-    special_instructions: order.special_instructions,
-  });
-  
-  // Placeholder - integrate with email service (SendGrid, Resend, etc.)
-  // For MVP, this just succeeds to demo the flow
+async function sendEmail(_order: Order, email: string, _businessName: string) {
+  // Email delivery is not yet implemented — needs Resend/SendGrid integration.
+  // Throw to signal "skipped" status in handoff_attempts instead of fake "success".
+  console.log(`[order-handoff] Email to ${email}: skipped — email provider not configured`);
+  throw new Error("Email provider not configured — enable via Integrations > Email");
 }
 
-async function sendSMS(order: Order, phone: string, businessName: string, supabaseUrl: string) {
+// deno-lint-ignore no-explicit-any
+async function sendSMS(order: Order, phone: string, businessName: string, supabase: any, tenantId: string) {
   const twilioAccountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
   const twilioAuthToken = Deno.env.get("TWILIO_AUTH_TOKEN");
 
   if (!twilioAccountSid || !twilioAuthToken) {
-    console.log("Twilio not configured, skipping SMS");
-    return;
+    throw new Error("Twilio not configured");
+  }
+
+  // Look up tenant's Twilio from-number
+  const { data: phoneNumber } = await supabase
+    .from("phone_numbers")
+    .select("phone_e164")
+    .eq("tenant_id", tenantId)
+    .eq("purpose", "forwarding")
+    .single();
+
+  const fromNumber = phoneNumber?.phone_e164;
+  if (!fromNumber) {
+    throw new Error("No Twilio from-number configured for tenant");
   }
 
   // Build concise message
-  const items = Array.isArray(order.items_json) 
-    ? order.items_json.map(i => `${i.qty}x ${i.name}`).join(", ")
+  const items = Array.isArray(order.items_json)
+    ? order.items_json.map((i: OrderItem) => `${i.qty}x ${i.name}`).join(", ")
     : "items";
-  
-  let message = `🍽️ NEW ORDER #${order.order_number}\n`;
+
+  let message = `NEW ORDER #${order.order_number}\n`;
   message += `Type: ${order.order_type.toUpperCase()}\n`;
   message += `Customer: ${order.customer_name || "Unknown"}\n`;
   message += `Items: ${items.substring(0, 100)}${items.length > 100 ? "..." : ""}\n`;
-  
-  if (order.special_instructions) {
-    const truncated = order.special_instructions.substring(0, 50);
-    message += `⚠️ SPECIAL: ${truncated}${order.special_instructions.length > 50 ? "..." : ""}\n`;
+
+  if (order.total_cents) {
+    message += `Total: $${(order.total_cents / 100).toFixed(2)}\n`;
   }
 
-  // Get a from number - would need to be configured
-  // For now just log
-  console.log(`Would send SMS to ${phone}:`, message);
+  if (order.special_instructions) {
+    const truncated = order.special_instructions.substring(0, 50);
+    message += `NOTE: ${truncated}${order.special_instructions.length > 50 ? "..." : ""}\n`;
+  }
+
+  // Actually send via Twilio API
+  const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`;
+  const smsResponse = await fetch(twilioUrl, {
+    method: "POST",
+    headers: {
+      "Authorization": `Basic ${btoa(`${twilioAccountSid}:${twilioAuthToken}`)}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      To: phone,
+      From: fromNumber,
+      Body: message,
+    }),
+  });
+
+  if (!smsResponse.ok) {
+    const errorText = await smsResponse.text();
+    throw new Error(`SMS failed: ${smsResponse.status} ${errorText}`);
+  }
+
+  console.log(`[order-handoff] SMS sent to ${phone} for order ${order.order_number}`);
 }
 
 // deno-lint-ignore no-explicit-any
@@ -343,7 +364,9 @@ async function runTestHandoff(
     notify_email?: string;
     notify_phone?: string;
     tenant_id?: string;
-  }
+  },
+  // deno-lint-ignore no-explicit-any
+  supabase: any
 ) {
   const testOrder: Order = {
     id: "test-order-id",
@@ -383,7 +406,7 @@ async function runTestHandoff(
     }
 
     if (method === "sms" && settings.notify_phone) {
-      await sendSMS(testOrder, settings.notify_phone, "Test Restaurant", "");
+      await sendSMS(testOrder, settings.notify_phone, "Test Restaurant", supabase, settings.tenant_id || "test-tenant");
       return { success: true, method: "sms" };
     }
 

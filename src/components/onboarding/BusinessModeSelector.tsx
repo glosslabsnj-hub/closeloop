@@ -1,16 +1,17 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Wrench, 
-  Truck, 
-  UtensilsCrossed, 
-  Stethoscope, 
+import {
+  Wrench,
+  Truck,
+  UtensilsCrossed,
+  Stethoscope,
   Building2,
+  DollarSign,
   Check
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type BusinessMode = "service" | "dispatch" | "food" | "medical" | "general";
+export type BusinessMode = "service" | "dispatch" | "food" | "medical" | "general" | "sales";
 
 interface BusinessModeOption {
   value: BusinessMode;
@@ -55,11 +56,19 @@ const businessModes: BusinessModeOption[] = [
     defaultModules: ["ai_voice", "instant_text_back", "booking", "medical_intake"],
   },
   {
+    value: "sales",
+    label: "Sales / Dealership",
+    description: "Lead qualification, test drives, and inventory",
+    icon: DollarSign,
+    examples: ["Car Dealership", "Real Estate", "RV/Boat", "Solar", "Insurance"],
+    defaultModules: ["ai_voice", "instant_text_back", "sales_leads", "test_drives", "booking"],
+  },
+  {
     value: "general",
     label: "General Business",
     description: "Basic AI phone and text support",
     icon: Building2,
-    examples: ["Consulting", "Real Estate", "Professional Services"],
+    examples: ["Consulting", "Professional Services"],
     defaultModules: ["ai_voice", "instant_text_back"],
   },
 ];

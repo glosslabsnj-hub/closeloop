@@ -58,6 +58,10 @@ interface SuggestAvailabilityResponse {
   duration_minutes: number;
   message: string;
   no_availability_reason?: string;
+  waitlist_available?: boolean;
+  callback_available?: boolean;
+  next_available_date?: string | null;
+  next_available_slots?: Array<{ start: string; end: string; display: string; local_date: string }>;
 }
 
 // Parse natural language date to YYYY-MM-DD
@@ -174,18 +178,30 @@ serve(async (req: Request) => {
       );
     }
 
-    // Get tenant settings
-    const { data: tenant } = await supabase
-      .from("tenants")
-      .select("timezone, hours_json, appointment_buffer_minutes")
-      .eq("id", tenantId)
-      .single();
+    // Get tenant settings + assistant_settings (same_day_enabled, waitlist_enabled)
+    const [tenantResult, assistantSettingsResult] = await Promise.all([
+      supabase.from("tenants").select("timezone, hours_json, appointment_buffer_minutes").eq("id", tenantId).single(),
+      supabase.from("assistant_settings").select("same_day_enabled, waitlist_enabled").eq("tenant_id", tenantId).maybeSingle(),
+    ]);
 
+    const tenant = tenantResult.data;
+    const assistantSettings = assistantSettingsResult.data;
     const timezone = tenant?.timezone || "America/New_York";
     const bufferMinutes = tenant?.appointment_buffer_minutes || 15;
+    const sameDayEnabled = assistantSettings?.same_day_enabled ?? true;
+    const waitlistEnabled = assistantSettings?.waitlist_enabled ?? false;
 
     // Parse the date
-    const targetDate = parseDate(rawDate || "today", timezone);
+    let targetDate = parseDate(rawDate || "today", timezone);
+
+    // same_day_enabled check: if disabled and target is today, skip to tomorrow
+    const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: timezone });
+    if (!sameDayEnabled && targetDate === todayStr) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      targetDate = tomorrow.toLocaleDateString("en-CA", { timeZone: timezone });
+      console.log(`[suggest-availability] same_day_enabled=false, advancing to ${targetDate}`);
+    }
     
     console.log(`[suggest-availability] Tenant: ${tenantId.substring(0, 8)}..., Date: ${targetDate}, Service: ${serviceName || serviceId}`);
 
@@ -285,14 +301,60 @@ serve(async (req: Request) => {
     // Build response message
     let message: string;
     let noAvailabilityReason: string | undefined;
-    
+    let waitlistAvailable: boolean | undefined;
+    let callbackAvailable: boolean | undefined;
+    let nextAvailableDate: string | null = null;
+    let nextAvailableSlots: Array<{ start: string; end: string; display: string; local_date: string }> | undefined;
+
     if (formattedSlots.length === 0) {
       if (filteredSlots.length === 0 && (slots?.length || 0) > 0) {
         noAvailabilityReason = `No ${preference} slots available. Other times may be available.`;
         message = noAvailabilityReason;
       } else {
-        noAvailabilityReason = `No availability on ${targetDate}. The day may be fully booked or closed.`;
-        message = noAvailabilityReason;
+        // No slots on requested date — scan up to 5 additional business days
+        let foundFutureSlots = false;
+        for (let dayOffset = 1; dayOffset <= 5; dayOffset++) {
+          const futureDate = new Date(targetDate + "T12:00:00");
+          futureDate.setDate(futureDate.getDate() + dayOffset);
+          const futureDateStr = futureDate.toISOString().split("T")[0];
+
+          const { data: futureSlots } = await supabase.rpc("fn_compute_available_slots", {
+            _tenant_id: tenantId,
+            _start_date: futureDateStr,
+            _end_date: futureDateStr,
+            _duration_minutes: finalDuration,
+            _buffer_minutes: bufferMinutes,
+            _business_hours: tenant?.hours_json,
+          });
+
+          if (futureSlots && futureSlots.length > 0) {
+            nextAvailableDate = futureDateStr;
+            nextAvailableSlots = futureSlots.slice(0, 3).map((s: Record<string, string>) => ({
+              start: s.slot_start,
+              end: s.slot_end,
+              display: s.slot_time_local,
+              local_date: s.slot_date,
+            }));
+            const nextTimes = nextAvailableSlots.map(s => s.display).join(", ");
+            message = `Nothing available on ${targetDate}, but I have openings on ${futureDateStr} at ${nextTimes}. Would any of those work?`;
+            noAvailabilityReason = "requested_date_full";
+            foundFutureSlots = true;
+            break;
+          }
+        }
+
+        if (!foundFutureSlots) {
+          // All scanned days are full — offer waitlist or callback
+          if (waitlistEnabled) {
+            waitlistAvailable = true;
+            noAvailabilityReason = "fully_booked_waitlist_available";
+            message = "We're fully booked for the next several days. Would you like me to add you to our waitlist? We'll call you as soon as something opens up.";
+          } else {
+            callbackAvailable = true;
+            noAvailabilityReason = "fully_booked_no_waitlist";
+            message = "We're fully booked right now. Would you like us to call you back when something opens up?";
+          }
+        }
       }
     } else if (formattedSlots.length === 1) {
       message = `I have ${formattedSlots[0].display} available.`;
@@ -310,6 +372,10 @@ serve(async (req: Request) => {
       duration_minutes: finalDuration,
       message,
       no_availability_reason: noAvailabilityReason,
+      waitlist_available: waitlistAvailable,
+      callback_available: callbackAvailable,
+      next_available_date: nextAvailableDate,
+      next_available_slots: nextAvailableSlots,
     };
 
     console.log(`[suggest-availability] Returning ${formattedSlots.length} slots`);

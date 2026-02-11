@@ -89,7 +89,7 @@ export function SettingsSidebar({ activeSection, onSectionChange, config }: Sett
   ];
 
   return (
-    <aside className="w-64 shrink-0 border-r border-white/[0.06] bg-[hsl(222,25%,8%)] p-4 space-y-6 hidden md:block">
+    <aside className="w-64 shrink-0 border-r border-white/[0.06] bg-sidebar p-4 space-y-6 hidden md:block">
       <div className="font-semibold text-lg px-3 text-foreground/90">Settings</div>
 
       <nav className="space-y-4">
