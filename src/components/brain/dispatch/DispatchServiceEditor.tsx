@@ -42,6 +42,18 @@ import {
   Loader2,
   Info,
   Sparkles,
+  Wrench,
+  Thermometer,
+  Bug,
+  Leaf,
+  Hammer,
+  Waves,
+  Settings,
+  Heart,
+  Monitor,
+  Droplets,
+  Package,
+  Star,
 } from "lucide-react";
 import { createService, updateService } from "@/lib/brain/writeBrainFact";
 import {
@@ -49,11 +61,16 @@ import {
   DISPATCH_CATEGORIES,
   VEHICLE_TYPES,
   DISTANCE_BASIS_OPTIONS,
+  UNIT_LABEL_OPTIONS,
+  PRESET_CATEGORY_TABS,
   type DispatchPricingConfig,
   type DistanceTier,
   type DistanceBasis,
   type DispatchServiceCategory,
   type DispatchServiceType,
+  type PresetCategoryTab,
+  type PackageTier,
+  type AIQuoteBehavior,
   generatePricingSummary,
   calculateScenarioQuotes,
   calculateDispatchPrice,
@@ -93,6 +110,20 @@ const PRESET_ICONS: Record<string, React.ReactNode> = {
   fuel: <Fuel className="h-5 w-5" />,
   circle: <CircleDot className="h-5 w-5" />,
   anchor: <Anchor className="h-5 w-5" />,
+  wrench: <Wrench className="h-5 w-5" />,
+  thermometer: <Thermometer className="h-5 w-5" />,
+  sparkles: <Sparkles className="h-5 w-5" />,
+  bug: <Bug className="h-5 w-5" />,
+  leaf: <Leaf className="h-5 w-5" />,
+  hammer: <Hammer className="h-5 w-5" />,
+  waves: <Waves className="h-5 w-5" />,
+  settings: <Settings className="h-5 w-5" />,
+  heart: <Heart className="h-5 w-5" />,
+  monitor: <Monitor className="h-5 w-5" />,
+  droplets: <Droplets className="h-5 w-5" />,
+  trash: <Trash2 className="h-5 w-5" />,
+  container: <Package className="h-5 w-5" />,
+  package: <Package className="h-5 w-5" />,
 };
 
 interface DispatchServiceEditorProps {
@@ -113,6 +144,7 @@ export function DispatchServiceEditor({
   const [step, setStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<DispatchServiceFormData>(defaultFormData);
+  const [presetTab, setPresetTab] = useState<PresetCategoryTab>("towing_roadside");
   const { settings: distanceSettings } = useTenantDistanceSettings();
   const { serviceArea } = useServiceArea();
 
@@ -269,10 +301,27 @@ export function DispatchServiceEditor({
 
         {/* Step 1: Choose Preset */}
         {step === 1 && (
-          <div className="space-y-6 py-4">
-            {/* Presets Grid */}
+          <div className="space-y-4 py-4">
+            {/* Category Tabs */}
+            <div className="flex flex-wrap gap-2">
+              {PRESET_CATEGORY_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setPresetTab(tab.id)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                    presetTab === tab.id
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Presets Grid (filtered by tab) */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {DISPATCH_SERVICE_PRESETS.map((preset) => (
+              {DISPATCH_SERVICE_PRESETS.filter((p) => p.presetTab === presetTab).map((preset) => (
                 <button
                   key={preset.type}
                   onClick={() => applyPreset(preset)}
@@ -389,7 +438,7 @@ export function DispatchServiceEditor({
               </div>
 
               <div className="space-y-2">
-                <Label>How do you price this service?</Label>
+                <Label>How do you charge for this?</Label>
                 <Select
                   value={formData.pricing_config.pricing_model}
                   onValueChange={(v) => setFormData({
@@ -402,9 +451,11 @@ export function DispatchServiceEditor({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="flat">Flat Rate</SelectItem>
-                    <SelectItem value="distance_tiered">Base + Mileage</SelectItem>
-                    <SelectItem value="variable">Quote Required</SelectItem>
+                    <SelectItem value="flat">Fixed Price</SelectItem>
+                    <SelectItem value="distance_tiered">Based on Distance</SelectItem>
+                    <SelectItem value="per_unit">By the Hour / Room / Unit</SelectItem>
+                    <SelectItem value="package">Service Packages</SelectItem>
+                    <SelectItem value="variable">Custom Quote</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -414,15 +465,106 @@ export function DispatchServiceEditor({
                 <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
                 <div className="text-muted-foreground">
                   {formData.pricing_config.pricing_model === "flat" && (
-                    <span><strong>Flat Rate</strong> — Same price every time, regardless of distance. Best for on-site services like lockouts ($75), jump starts ($65), or tire changes ($85). You can optionally add a per-mile surcharge for customers outside your normal service area.</span>
+                    <span><strong>Fixed Price</strong> — Same price every time. Best for standardized services like lockouts ($75), jump starts ($65), or tire changes ($85). You can optionally add a per-mile surcharge beyond your service area.</span>
                   )}
                   {formData.pricing_config.pricing_model === "distance_tiered" && (
-                    <span><strong>Base + Mileage</strong> — A base fee plus per-mile charges. Most towing companies use this. Example: $125 for the first 10 miles, then $5/mile after that. You can set up multiple tiers for local vs. long-distance rates.</span>
+                    <span><strong>Based on Distance</strong> — A base fee plus per-mile charges. Most towing companies use this. Example: $125 for the first 10 miles, then $5/mile after that.</span>
+                  )}
+                  {formData.pricing_config.pricing_model === "per_unit" && (
+                    <span><strong>By the Hour / Room / Unit</strong> — Charge per hour, per room, per load, or any custom unit. Example: $45/room with a 3-room minimum = $135 starting price. Works great for carpet cleaning, plumbing, IT support, etc.</span>
+                  )}
+                  {formData.pricing_config.pricing_model === "package" && (
+                    <span><strong>Service Packages</strong> — Offer 2-4 preset packages at different price points. Example: Basic $80, Standard $150, Premium $250. The AI presents options and lets the caller choose.</span>
                   )}
                   {formData.pricing_config.pricing_model === "variable" && (
-                    <span><strong>Quote Required</strong> — The AI tells the caller you'll provide a custom quote. Best for complex jobs like winch-outs or heavy-duty recovery where pricing depends on the situation. Set a price range so the caller knows the ballpark.</span>
+                    <span><strong>Custom Quote</strong> — The AI tells the caller you'll provide a custom quote. Best for complex jobs where pricing depends on the situation. Set a price range so the caller knows the ballpark.</span>
                   )}
                 </div>
+              </div>
+
+              {/* Trip Fee Toggle (shown for ALL models) */}
+              <div className="rounded-lg border p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium">Trip fee or service call fee</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Charge an upfront fee for coming to the customer (diagnostic fee, trip charge, travel fee)
+                    </p>
+                  </div>
+                  <Switch
+                    checked={!!formData.pricing_config.trip_fee?.enabled}
+                    onCheckedChange={(checked) => {
+                      setFormData({
+                        ...formData,
+                        pricing_config: {
+                          ...formData.pricing_config,
+                          trip_fee: checked
+                            ? { enabled: true, amount: 75, label: "Service Call Fee", waived_with_service: false }
+                            : undefined,
+                        },
+                      });
+                    }}
+                  />
+                </div>
+                {formData.pricing_config.trip_fee?.enabled && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Amount ($)</Label>
+                      <Input
+                        type="number"
+                        value={formData.pricing_config.trip_fee.amount}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          pricing_config: {
+                            ...formData.pricing_config,
+                            trip_fee: { ...formData.pricing_config.trip_fee!, amount: parseFloat(e.target.value) || 0 },
+                          },
+                        })}
+                        placeholder="75"
+                        step="0.01"
+                        min={0}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Label</Label>
+                      <Select
+                        value={formData.pricing_config.trip_fee.label}
+                        onValueChange={(v) => setFormData({
+                          ...formData,
+                          pricing_config: {
+                            ...formData.pricing_config,
+                            trip_fee: { ...formData.pricing_config.trip_fee!, label: v },
+                          },
+                        })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Service Call Fee">Service Call Fee</SelectItem>
+                          <SelectItem value="Trip Charge">Trip Charge</SelectItem>
+                          <SelectItem value="Diagnostic Fee">Diagnostic Fee</SelectItem>
+                          <SelectItem value="Travel Fee">Travel Fee</SelectItem>
+                          <SelectItem value="Delivery Fee">Delivery Fee</SelectItem>
+                          <SelectItem value="Inspection Fee">Inspection Fee</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="col-span-2 flex items-center gap-2">
+                      <Switch
+                        checked={!!formData.pricing_config.trip_fee.waived_with_service}
+                        onCheckedChange={(checked) => setFormData({
+                          ...formData,
+                          pricing_config: {
+                            ...formData.pricing_config,
+                            trip_fee: { ...formData.pricing_config.trip_fee!, waived_with_service: checked },
+                          },
+                        })}
+                      />
+                      <Label className="text-xs text-muted-foreground">Waived if customer books the service</Label>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Flat Rate Pricing */}
@@ -723,6 +865,220 @@ export function DispatchServiceEditor({
                 </div>
               )}
 
+              {/* Per-Unit Pricing */}
+              {formData.pricing_config.pricing_model === "per_unit" && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Unit Type</Label>
+                      <Select
+                        value={formData.pricing_config.unit_label || "hour"}
+                        onValueChange={(v) => setFormData({
+                          ...formData,
+                          pricing_config: { ...formData.pricing_config, unit_label: v },
+                        })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {UNIT_LABEL_OPTIONS.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Price per {formData.pricing_config.unit_label || "unit"} ($)</Label>
+                      <Input
+                        type="number"
+                        value={formData.pricing_config.per_unit_price || ""}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          pricing_config: { ...formData.pricing_config, per_unit_price: parseFloat(e.target.value) || 0 },
+                        })}
+                        placeholder="45"
+                        step="0.01"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Minimum {formData.pricing_config.unit_label || "unit"}s</Label>
+                      <Input
+                        type="number"
+                        value={formData.pricing_config.min_units ?? ""}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          pricing_config: { ...formData.pricing_config, min_units: parseFloat(e.target.value) || undefined },
+                        })}
+                        placeholder="1"
+                        step="0.5"
+                        min={0}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Minimum Price ($)</Label>
+                      <Input
+                        type="number"
+                        value={formData.pricing_config.min_price || ""}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          pricing_config: { ...formData.pricing_config, min_price: parseFloat(e.target.value) || undefined },
+                          price_amount: parseFloat(e.target.value) || null,
+                        })}
+                        placeholder="Optional floor price"
+                        step="0.01"
+                      />
+                    </div>
+                  </div>
+                  {formData.pricing_config.per_unit_price && formData.pricing_config.min_units && formData.pricing_config.min_units > 1 && (
+                    <div className="text-sm text-muted-foreground">
+                      Starting at <strong>${(formData.pricing_config.per_unit_price * formData.pricing_config.min_units).toFixed(0)}</strong> ({formData.pricing_config.min_units} {formData.pricing_config.unit_label || "unit"}s × ${formData.pricing_config.per_unit_price}/{formData.pricing_config.unit_label || "unit"})
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Package Pricing */}
+              {formData.pricing_config.pricing_model === "package" && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label>Service Packages (2-4)</Label>
+                    {(formData.pricing_config.packages?.length || 0) < 4 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const packages = formData.pricing_config.packages || [];
+                          setFormData({
+                            ...formData,
+                            pricing_config: {
+                              ...formData.pricing_config,
+                              packages: [...packages, { name: "", price: 0 }],
+                            },
+                          });
+                        }}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Add Package
+                      </Button>
+                    )}
+                  </div>
+
+                  {(formData.pricing_config.packages || []).map((pkg, index) => (
+                    <Card key={index} className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            {pkg.is_popular && (
+                              <Badge variant="default" className="text-xs">
+                                <Star className="h-3 w-3 mr-1" /> Popular
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={() => {
+                                const packages = [...(formData.pricing_config.packages || [])];
+                                packages[index] = { ...packages[index], is_popular: !packages[index].is_popular };
+                                // Only one can be popular
+                                if (packages[index].is_popular) {
+                                  packages.forEach((p, i) => { if (i !== index) p.is_popular = false; });
+                                }
+                                setFormData({
+                                  ...formData,
+                                  pricing_config: { ...formData.pricing_config, packages },
+                                });
+                              }}
+                            >
+                              <Star className="h-3 w-3 mr-1" />
+                              {pkg.is_popular ? "Unmark" : "Mark Popular"}
+                            </Button>
+                            {(formData.pricing_config.packages?.length || 0) > 2 && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-destructive"
+                                onClick={() => {
+                                  const packages = formData.pricing_config.packages?.filter((_, i) => i !== index) || [];
+                                  setFormData({
+                                    ...formData,
+                                    pricing_config: { ...formData.pricing_config, packages },
+                                  });
+                                }}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="space-y-1 col-span-2">
+                            <Label className="text-xs">Package Name</Label>
+                            <Input
+                              value={pkg.name}
+                              onChange={(e) => {
+                                const packages = [...(formData.pricing_config.packages || [])];
+                                packages[index] = { ...packages[index], name: e.target.value };
+                                setFormData({
+                                  ...formData,
+                                  pricing_config: { ...formData.pricing_config, packages },
+                                });
+                              }}
+                              placeholder="e.g., Basic, Standard, Premium"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Price ($)</Label>
+                            <Input
+                              type="number"
+                              value={pkg.price || ""}
+                              onChange={(e) => {
+                                const packages = [...(formData.pricing_config.packages || [])];
+                                packages[index] = { ...packages[index], price: parseFloat(e.target.value) || 0 };
+                                setFormData({
+                                  ...formData,
+                                  pricing_config: { ...formData.pricing_config, packages },
+                                });
+                              }}
+                              placeholder="0"
+                              step="0.01"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Description (optional)</Label>
+                          <Input
+                            value={pkg.description || ""}
+                            onChange={(e) => {
+                              const packages = [...(formData.pricing_config.packages || [])];
+                              packages[index] = { ...packages[index], description: e.target.value };
+                              setFormData({
+                                ...formData,
+                                pricing_config: { ...formData.pricing_config, packages },
+                              });
+                            }}
+                            placeholder="What's included in this package?"
+                          />
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+
+                  {(!formData.pricing_config.packages || formData.pricing_config.packages.length === 0) && (
+                    <div className="text-center py-4 text-muted-foreground text-sm">
+                      No packages configured. Click "Add Package" to create your first tier.
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Variable/Quote Pricing */}
               {formData.pricing_config.pricing_model === "variable" && (
                 <div className="space-y-4">
@@ -760,6 +1116,39 @@ export function DispatchServiceEditor({
                   </p>
                 </div>
               )}
+
+              {/* AI Quote Behavior (shown for ALL models) */}
+              <div className="space-y-2">
+                <Label>How should the AI handle pricing on calls?</Label>
+                <Select
+                  value={formData.pricing_config.ai_quote_behavior || (
+                    formData.pricing_config.pricing_model === "variable" ? "always_quote_required" :
+                    formData.pricing_config.pricing_model === "per_unit" ? "quote_rate_only" :
+                    "calculate_total"
+                  )}
+                  onValueChange={(v) => setFormData({
+                    ...formData,
+                    pricing_config: { ...formData.pricing_config, ai_quote_behavior: v as AIQuoteBehavior },
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="calculate_total">Calculate and quote the total</SelectItem>
+                    <SelectItem value="quote_rate_only">Just tell them the rate</SelectItem>
+                    <SelectItem value="always_quote_required">Always say you'll provide a custom quote</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {(formData.pricing_config.ai_quote_behavior || "calculate_total") === "calculate_total"
+                    ? "The AI will do the math and tell the caller the total price."
+                    : (formData.pricing_config.ai_quote_behavior || "calculate_total") === "quote_rate_only"
+                    ? "The AI will state your rate but won't compute a total. Good for hourly services where the final price depends on the job."
+                    : "The AI will always defer pricing to a human follow-up, regardless of your pricing setup."
+                  }
+                </p>
+              </div>
             </div>
 
             <Separator />
@@ -775,17 +1164,35 @@ export function DispatchServiceEditor({
               </div>
             </div>
 
-            {/* Sample Quotes at Various Distances */}
+            {/* Sample Quotes */}
             {formData.pricing_config.pricing_model !== "variable" && (
               <div className="rounded-lg border p-4 space-y-3">
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  <p className="text-sm font-medium">Sample Quotes by Distance</p>
+                  <p className="text-sm font-medium">
+                    {formData.pricing_config.pricing_model === "per_unit"
+                      ? `Sample Quotes by ${formData.pricing_config.unit_label || "Unit"}s`
+                      : formData.pricing_config.pricing_model === "package"
+                      ? "Package Prices"
+                      : "Sample Quotes by Distance"
+                    }
+                  </p>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {calculateScenarioQuotes(formData.pricing_config, formData.name || "Service").map((q) => (
-                    <div key={q.distance} className="rounded-md bg-muted/50 p-2.5 text-center">
-                      <p className="text-xs text-muted-foreground">{q.distance} miles</p>
+                <div className={`grid gap-2 ${
+                  formData.pricing_config.pricing_model === "package"
+                    ? `grid-cols-${Math.min(formData.pricing_config.packages?.length || 2, 4)}`
+                    : "grid-cols-2 sm:grid-cols-4"
+                }`}>
+                  {calculateScenarioQuotes(formData.pricing_config, formData.name || "Service").map((q, i) => (
+                    <div key={i} className="rounded-md bg-muted/50 p-2.5 text-center">
+                      <p className="text-xs text-muted-foreground">
+                        {formData.pricing_config.pricing_model === "per_unit"
+                          ? `${q.distance} ${formData.pricing_config.unit_label || "unit"}${q.distance !== 1 ? "s" : ""}`
+                          : formData.pricing_config.pricing_model === "package"
+                          ? formData.pricing_config.packages?.[i]?.name || `Tier ${i + 1}`
+                          : `${q.distance} miles`
+                        }
+                      </p>
                       <p className="text-lg font-semibold">${q.price}</p>
                     </div>
                   ))}

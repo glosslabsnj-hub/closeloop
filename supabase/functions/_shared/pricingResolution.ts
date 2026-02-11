@@ -9,13 +9,15 @@ import { validateRequiredInput } from "./inputValidators.ts";
 
 export interface PricingRule {
   id: string;
-  type: "flat" | "per-unit" | "tiered" | "distance-based" | "range-only" | "quote-only";
+  type: "flat" | "per-unit" | "tiered" | "distance-based" | "range-only" | "quote-only" | "package";
   service_id: string | null; // null = applies to all services
   service_name: string;
   required_inputs: string[]; // e.g., ["vehicle_type", "miles"]
   config: {
     flat_price?: number;
     per_unit_price?: number;
+    unit_label?: string;       // "hour", "room", "load", etc.
+    min_units?: number;
     base_price?: number;
     price_per_mile?: number;
     min_price?: number;
@@ -23,6 +25,9 @@ export interface PricingRule {
     tiers?: Array<{ min: number; max: number; price: number }>;
     range_min?: number;
     range_max?: number;
+    packages?: Array<{ name: string; price: number; description?: string }>;
+    trip_fee?: number;         // Flat dollar amount added before service charge
+    trip_fee_label?: string;   // "Service Call Fee", "Diagnostic Fee", etc.
   };
 }
 
@@ -208,14 +213,34 @@ function evaluatePricingRule(
         logData: { ruleType: "flat", ruleId: rule.id }
       };
 
-    case "per-unit":
-      const quantity = parseFloat(extractedData.quantity || "1");
+    case "per-unit": {
+      const rawQty = extractedData.quantity || extractedData.units || extractedData.hours || extractedData.rooms;
+      const quantity = parseFloat(String(rawQty) || "1");
+      const minUnits = rule.config.min_units || 0;
+      const effectiveQty = Math.max(quantity, minUnits);
+      const unitPrice = rule.config.per_unit_price!;
+      let perUnitTotal = unitPrice * effectiveQty;
+      // Enforce min_price
+      if (rule.config.min_price && perUnitTotal < rule.config.min_price) {
+        perUnitTotal = rule.config.min_price;
+      }
+      // Add trip fee if configured
+      const tripFee = rule.config.trip_fee || 0;
+      perUnitTotal += tripFee;
       return {
         success: true,
-        price: rule.config.per_unit_price! * quantity,
+        price: perUnitTotal,
         priceType: "exact",
-        logData: { ruleType: "per-unit", ruleId: rule.id, quantity }
+        logData: {
+          ruleType: "per-unit",
+          ruleId: rule.id,
+          quantity: effectiveQty,
+          unitPrice,
+          unitLabel: rule.config.unit_label || "unit",
+          tripFee,
+        }
       };
+    }
 
     case "distance-based":
       const miles = parseFloat(extractedData.miles || extractedData.estimated_miles || "0");
@@ -291,6 +316,42 @@ function evaluatePricingRule(
         priceType: "quote_only",
         logData: { ruleType: "quote-only", ruleId: rule.id }
       };
+
+    case "package": {
+      const packages = rule.config.packages || [];
+      if (packages.length === 0) {
+        return {
+          success: false,
+          priceType: "unknown",
+          reason: "No packages configured"
+        };
+      }
+      // If caller specified a package, match it; otherwise return range
+      const selectedPackageName = extractedData.package || extractedData.package_name;
+      if (selectedPackageName) {
+        const matched = packages.find(
+          p => p.name.toLowerCase() === String(selectedPackageName).toLowerCase()
+        );
+        if (matched) {
+          const tripFee = rule.config.trip_fee || 0;
+          return {
+            success: true,
+            price: matched.price + tripFee,
+            priceType: "exact",
+            logData: { ruleType: "package", ruleId: rule.id, packageName: matched.name, tripFee }
+          };
+        }
+      }
+      // No specific package selected — return range
+      const prices = packages.map(p => p.price);
+      const tripFee = rule.config.trip_fee || 0;
+      return {
+        success: true,
+        priceRange: { min: Math.min(...prices) + tripFee, max: Math.max(...prices) + tripFee },
+        priceType: "range",
+        logData: { ruleType: "package", ruleId: rule.id, packageCount: packages.length, tripFee }
+      };
+    }
 
     default:
       return {

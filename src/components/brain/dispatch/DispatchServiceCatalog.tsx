@@ -165,23 +165,46 @@ export function DispatchServiceCatalog() {
   const formatPrice = (service: any) => {
     // Safely cast the JSONB to our config type
     const rawConfig = service.pricing_config_json;
-    const config: DispatchPricingConfig | null = 
+    const config: DispatchPricingConfig | null =
       rawConfig && typeof rawConfig === "object" && "pricing_model" in rawConfig
         ? (rawConfig as unknown as DispatchPricingConfig)
         : null;
-    
+
     if (config?.pricing_model === "distance_tiered" && config.distance_tiers?.length) {
       const first = config.distance_tiers[0];
       const hasPerMile = config.distance_tiers.some(t => t.per_mile_price && t.per_mile_price > 0);
       return `$${first.base_price}${hasPerMile ? " + mi" : ""}`;
     }
-    
+
+    if (config?.pricing_model === "per_unit" && config.per_unit_price) {
+      return `$${config.per_unit_price}/${config.unit_label || "unit"}`;
+    }
+
+    if (config?.pricing_model === "package" && config.packages?.length) {
+      const prices = config.packages.map(p => p.price);
+      return `$${Math.min(...prices)}-$${Math.max(...prices)}`;
+    }
+
     if (service.price_type === "quote_only") return "Quote";
     if (!service.price_amount && !config?.min_price) return "Quote";
-    
+
     const price = service.price_amount || config?.min_price || 0;
     const prefix = service.price_type === "starting_at" ? "From " : "";
     return `${prefix}$${price}`;
+  };
+
+  const getPricingModelBadge = (service: any): string | null => {
+    const rawConfig = service.pricing_config_json;
+    if (!rawConfig || typeof rawConfig !== "object" || !("pricing_model" in rawConfig)) return null;
+    const model = (rawConfig as any).pricing_model;
+    switch (model) {
+      case "flat": return "Fixed";
+      case "distance_tiered": return "Distance";
+      case "per_unit": return `Per ${(rawConfig as any).unit_label || "Unit"}`;
+      case "package": return "Packages";
+      case "variable": return "Quote";
+      default: return null;
+    }
   };
 
   const formatDuration = (minutes: number) => {
@@ -333,6 +356,11 @@ export function DispatchServiceCatalog() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <span className="font-medium truncate">{service.name}</span>
+                              {getPricingModelBadge(service) && (
+                                <Badge variant="secondary" className="text-xs shrink-0">
+                                  {getPricingModelBadge(service)}
+                                </Badge>
+                              )}
                               {!service.is_active && (
                                 <Badge variant="outline" className="text-xs">Inactive</Badge>
                               )}
@@ -340,6 +368,9 @@ export function DispatchServiceCatalog() {
                             {service.description && (
                               <p className="text-sm text-muted-foreground truncate">
                                 {service.description}
+                                {(service.pricing_config_json as any)?.trip_fee?.enabled && (
+                                  <span className="ml-1 text-xs"> + ${(service.pricing_config_json as any).trip_fee.amount} {(service.pricing_config_json as any).trip_fee.label.toLowerCase()}</span>
+                                )}
                               </p>
                             )}
                           </div>

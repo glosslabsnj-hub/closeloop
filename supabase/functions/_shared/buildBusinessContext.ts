@@ -1154,43 +1154,68 @@ function buildSecondaryServicesSummary(services: NormalizedService[]): string {
 
 function buildServicesForPrompt(services: NormalizedService[]): string {
   if (services.length === 0) return "No services configured yet.";
-  
+
   return services.map(s => {
     let priceText = "";
-    
-    // Check for distance-tiered pricing first
-    if (s.pricing_config?.model === "distance_tiered" && s.pricing_config.distance_tiers?.length) {
+    const model = s.pricing_config?.model || s.pricing_config?.pricing_model;
+
+    // Trip fee prefix
+    const tripFee = s.pricing_config?.trip_fee;
+    const tripFeeText = tripFee?.enabled
+      ? `$${tripFee.amount} ${tripFee.label}${tripFee.waived_with_service ? " (waived if you book)" : ""} + `
+      : "";
+
+    // AI quote behavior
+    const quoteBehavior = s.pricing_config?.ai_quote_behavior;
+
+    if (quoteBehavior === "always_quote_required") {
+      priceText = `${tripFeeText}Custom quote required`;
+    } else if (model === "distance_tiered" && s.pricing_config?.distance_tiers?.length) {
       const tiers = s.pricing_config.distance_tiers;
       const tierDescriptions = tiers.map(tier => {
-        const rangeText = tier.max_miles != null 
-          ? `${tier.min_miles}-${tier.max_miles} miles` 
+        const rangeText = tier.max_miles != null
+          ? `${tier.min_miles}-${tier.max_miles} miles`
           : `Over ${tier.min_miles} miles`;
-        
+
         if (tier.per_mile_price) {
           return `${rangeText}: $${tier.base_price} base + $${tier.per_mile_price}/mile`;
         }
         return `${rangeText}: $${tier.base_price}`;
       });
-      priceText = `Distance-tiered:\n    - ${tierDescriptions.join("\n    - ")}`;
-    } else if (s.pricing_config?.model === "flat" && s.price_amount) {
-      // Flat rate with optional distance surcharge
-      priceText = `$${s.price_amount} flat rate`;
-      if (s.pricing_config.included_miles && s.pricing_config.overage_per_mile) {
+      priceText = `${tripFeeText}Distance-tiered:\n    - ${tierDescriptions.join("\n    - ")}`;
+    } else if (model === "per_unit" && s.pricing_config?.per_unit_price) {
+      const unitLabel = s.pricing_config.unit_label || "unit";
+      const perUnit = s.pricing_config.per_unit_price;
+      const minUnits = s.pricing_config.min_units;
+      priceText = `${tripFeeText}$${perUnit} per ${unitLabel}`;
+      if (minUnits && minUnits > 1) {
+        priceText += ` (${minUnits}-${unitLabel} minimum, starting at $${perUnit * minUnits})`;
+      }
+      if (quoteBehavior === "quote_rate_only") {
+        priceText += " [QUOTE RATE ONLY — do NOT compute total]";
+      }
+    } else if (model === "package" && s.pricing_config?.packages?.length) {
+      const pkgs = s.pricing_config.packages;
+      const pkgList = pkgs.map(p => `${p.name}: $${p.price}${p.description ? ` (${p.description})` : ""}`);
+      priceText = `${tripFeeText}Packages:\n    - ${pkgList.join("\n    - ")}`;
+    } else if (model === "flat" && s.price_amount) {
+      priceText = `${tripFeeText}$${s.price_amount} flat rate`;
+      if (s.pricing_config?.included_miles && s.pricing_config?.overage_per_mile) {
         priceText += ` (${s.pricing_config.included_miles} mi included, +$${s.pricing_config.overage_per_mile}/mi beyond)`;
       }
-    } else if (s.pricing_config?.model === "variable") {
-      priceText = s.price_amount ? `Starting at $${s.price_amount} (varies by job)` : "Price varies by job";
+    } else if (model === "variable") {
+      priceText = s.price_amount ? `${tripFeeText}Starting at $${s.price_amount} (varies by job)` : `${tripFeeText}Price varies by job`;
     } else if (s.price_type === "fixed" && s.price_amount) {
-      priceText = `$${s.price_amount} (exact price)`;
+      priceText = `${tripFeeText}$${s.price_amount} (exact price)`;
     } else if (s.price_type === "starting_at" && s.price_amount) {
-      priceText = `Starting at $${s.price_amount} (final price varies)`;
+      priceText = `${tripFeeText}Starting at $${s.price_amount} (final price varies)`;
     } else {
-      priceText = "Quote required";
+      priceText = `${tripFeeText}Quote required`;
     }
-    
+
     // Add dropoff requirement tag
     const dropoffTag = s.requires_dropoff ? "[REQUIRES DROPOFF]" : "[ON-SITE ONLY]";
-    
+
     let line = `• ${s.name}: ${priceText} ${dropoffTag}`;
     if (s.duration_minutes) line += `\n  Duration: ${s.duration_minutes} min`;
     if (s.synonyms.length > 0) line += ` [also: ${s.synonyms.slice(0, 3).join(", ")}]`;

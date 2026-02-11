@@ -390,10 +390,11 @@ serve(async (req: Request) => {
     // Local radius for pricing tiers
     const localRadiusMiles = 10;
     
-    // Find the appropriate towing service to use for pricing
-    const primaryTowService = towingServices.find(s => 
+    // Find the appropriate service to use for pricing
+    // For non-towing businesses, towingServices may include any active service matching the query
+    const primaryTowService = towingServices.find(s =>
       s.name.toLowerCase().includes("local") && s.name.toLowerCase().includes("tow")
-    ) || towingServices.find(s => 
+    ) || towingServices.find(s =>
       s.name.toLowerCase().includes("tow")
     ) || towingServices[0];
 
@@ -437,54 +438,106 @@ serve(async (req: Request) => {
       pricingNote = customOutOfAreaMsg;
     } else if (pricingDistanceMiles !== null && pricingDistanceMiles <= localRadiusMiles) {
       serviceTier = "local";
-      
-      // Calculate local tow pricing
-      const localService = towingServices.find(s => 
+
+      // Calculate local pricing from matching service
+      const localService = towingServices.find(s =>
         s.name.toLowerCase().includes("local") && s.name.toLowerCase().includes("tow")
-      );
-      
+      ) || primaryTowService;
+
       if (localService?.pricing_config_json) {
         const config = localService.pricing_config_json as Record<string, unknown>;
-        const minPrice = Number(config.min_price) || 85;
-        
-        // Apply vehicle modifier if provided
-        let modifierCharges: { name: string; amount: number }[] = [];
-        let modifierTotal = 0;
-        
-        if (vehicleType && config.variables && Array.isArray(config.variables)) {
-          for (const variable of config.variables as Array<Record<string, unknown>>) {
-            if (variable.key === "vehicle_type" && Array.isArray(variable.modifiers)) {
-              const modifier = (variable.modifiers as PriceModifier[]).find(
-                m => m.value.toLowerCase() === vehicleType.toLowerCase()
-              );
-              if (modifier) {
-                const adjustment = modifier.adjustment_type === "percent" 
-                  ? minPrice * (modifier.price_adjustment / 100)
-                  : modifier.price_adjustment;
-                modifierTotal += adjustment;
-                modifierCharges.push({ 
-                  name: `Vehicle: ${vehicleType}`, 
-                  amount: adjustment 
-                });
+        const pricingModel = (config.pricing_model || config.model || "flat") as string;
+
+        // Helper: apply vehicle modifiers from variables[]
+        const applyVehicleModifiers = (baseAmount: number): { charges: { name: string; amount: number }[]; total: number } => {
+          const charges: { name: string; amount: number }[] = [];
+          let total = 0;
+          if (vehicleType && config.variables && Array.isArray(config.variables)) {
+            for (const variable of config.variables as Array<Record<string, unknown>>) {
+              if (variable.key === "vehicle_type" && Array.isArray(variable.modifiers)) {
+                const modifier = (variable.modifiers as PriceModifier[]).find(
+                  m => m.value.toLowerCase() === vehicleType.toLowerCase()
+                );
+                if (modifier) {
+                  const adjustment = modifier.adjustment_type === "percent"
+                    ? baseAmount * (modifier.price_adjustment / 100)
+                    : modifier.price_adjustment;
+                  total += adjustment;
+                  charges.push({ name: `Vehicle: ${vehicleType}`, amount: adjustment });
+                }
               }
             }
           }
+          return { charges, total };
+        };
+
+        // Trip fee
+        const tripFee = config.trip_fee as { enabled?: boolean; amount?: number; label?: string } | undefined;
+        const tripFeeAmount = (tripFee?.enabled && tripFee?.amount) ? tripFee.amount : 0;
+        const tripFeeLabel = tripFee?.label || "Trip Fee";
+
+        let basePrice = Number(config.min_price) || 0;
+        let modifierCharges: { name: string; amount: number }[] = [];
+        let modifierTotal = 0;
+
+        if (pricingModel === "flat") {
+          basePrice = Number(config.min_price) || 85;
+          const mods = applyVehicleModifiers(basePrice);
+          modifierCharges = mods.charges;
+          modifierTotal = mods.total;
+        } else if (pricingModel === "per_unit") {
+          const unitLabel = (config.unit_label as string) || "unit";
+          const perUnitPrice = Number(config.per_unit_price) || 0;
+          const minUnits = Number(config.min_units) || 1;
+          basePrice = perUnitPrice * minUnits;
+          if (config.min_price && basePrice < Number(config.min_price)) {
+            basePrice = Number(config.min_price);
+          }
+          pricingNote = `${localService.name}: $${perUnitPrice} per ${unitLabel}`;
+          if (minUnits > 1) pricingNote += ` (${minUnits}-${unitLabel} minimum, starting at $${basePrice})`;
+        } else if (pricingModel === "package") {
+          const packages = config.packages as Array<{ name: string; price: number; description?: string; is_popular?: boolean }> | undefined;
+          if (packages?.length) {
+            const tierList = packages.map(p => `${p.name}: $${p.price}`).join(", ");
+            basePrice = packages[0].price;
+            pricingNote = `${localService.name} packages: ${tierList}`;
+          }
+        } else if (pricingModel === "distance_tiered") {
+          // Local distance-tiered: use first tier
+          basePrice = Number(config.min_price) || 85;
+          const mods = applyVehicleModifiers(basePrice);
+          modifierCharges = mods.charges;
+          modifierTotal = mods.total;
+        } else {
+          // variable / quote
+          basePrice = Number(config.min_price) || 0;
         }
-        
-        const total = minPrice + modifierTotal;
+
+        const total = basePrice + modifierTotal + tripFeeAmount;
         priceBreakdown = {
-          base_price: minPrice,
+          base_price: basePrice,
           distance_charge: 0,
           distance_miles_charged: pricingDistanceMiles,
-          modifier_charges: modifierCharges,
+          modifier_charges: [
+            ...(tripFeeAmount > 0 ? [{ name: tripFeeLabel, amount: tripFeeAmount }] : []),
+            ...modifierCharges,
+          ],
           total_estimate: total
         };
-        
-        pricingNote = modifierCharges.length > 0
-          ? `Local Tow (${pricingDistanceMiles.toFixed(0)} mi): $${minPrice} + ${modifierCharges.map(m => `$${m.amount} ${m.name}`).join(", ")} = $${total.toFixed(0)}`
-          : `Local Tow (${pricingDistanceMiles.toFixed(0)} mi): $${minPrice}`;
+
+        // Build pricing note if not already set by per_unit/package
+        if (!pricingNote || pricingNote === "Collect details for pricing.") {
+          if (modifierCharges.length > 0 || tripFeeAmount > 0) {
+            const parts = [`${localService.name} (${pricingDistanceMiles.toFixed(0)} mi): $${basePrice}`];
+            if (tripFeeAmount > 0) parts.push(`$${tripFeeAmount} ${tripFeeLabel.toLowerCase()}`);
+            if (modifierCharges.length > 0) parts.push(modifierCharges.map(m => `$${m.amount} ${m.name}`).join(", "));
+            pricingNote = parts.join(" + ") + ` = $${total.toFixed(0)}`;
+          } else {
+            pricingNote = `${localService.name} (${pricingDistanceMiles.toFixed(0)} mi): $${basePrice}`;
+          }
+        }
       } else {
-        pricingNote = `Within ${localRadiusMiles} miles. Quote Local Tow pricing ($85).`;
+        pricingNote = `Within ${localRadiusMiles} miles. Quote Local pricing.`;
       }
     } else {
       serviceTier = "long_distance";
@@ -497,9 +550,41 @@ serve(async (req: Request) => {
       
       if (longDistanceService?.pricing_config_json && pricingDistanceMiles !== null) {
         const config = longDistanceService.pricing_config_json as Record<string, unknown>;
-        const pricingModel = (config.model || config.pricing_model) as string;
-        
-        if (pricingModel === "distance_tiered" && Array.isArray(config.distance_tiers)) {
+        const pricingModel = (config.pricing_model || config.model) as string;
+
+        // Handle non-distance models (per_unit, package) — they don't depend on distance
+        if (pricingModel === "per_unit") {
+          const unitLabel = (config.unit_label as string) || "unit";
+          const perUnitPrice = Number(config.per_unit_price) || 0;
+          const minUnits = Number(config.min_units) || 1;
+          const baseTotal = perUnitPrice * minUnits;
+          const tripFee = (config.trip_fee as { enabled?: boolean; amount?: number })?.enabled
+            ? Number((config.trip_fee as { amount?: number }).amount) || 0
+            : 0;
+          priceBreakdown = {
+            base_price: baseTotal,
+            distance_charge: 0,
+            distance_miles_charged: pricingDistanceMiles,
+            modifier_charges: tripFee > 0 ? [{ name: "Trip Fee", amount: tripFee }] : [],
+            total_estimate: baseTotal + tripFee,
+          };
+          pricingNote = `${longDistanceService.name}: $${perUnitPrice} per ${unitLabel}`;
+          if (minUnits > 1) pricingNote += ` (${minUnits}-${unitLabel} minimum)`;
+          if (tripFee > 0) pricingNote += ` + $${tripFee} service call fee`;
+        } else if (pricingModel === "package") {
+          const packages = config.packages as Array<{ name: string; price: number }> | undefined;
+          if (packages?.length) {
+            const tierList = packages.map(p => `${p.name}: $${p.price}`).join(", ");
+            pricingNote = `${longDistanceService.name} packages: ${tierList}`;
+            priceBreakdown = {
+              base_price: packages[0].price,
+              distance_charge: 0,
+              distance_miles_charged: pricingDistanceMiles,
+              modifier_charges: [],
+              total_estimate: packages[0].price,
+            };
+          }
+        } else if (pricingModel === "distance_tiered" && Array.isArray(config.distance_tiers)) {
           const tiers = config.distance_tiers as DistanceTier[];
           
           // Find applicable tier

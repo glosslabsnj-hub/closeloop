@@ -266,9 +266,53 @@ export async function computeFoodOrderTotals(
 // ============= DISPATCH PRICING =============
 
 /**
- * Compute dispatch job price using pricing_rules_jsonb distance tiers.
+ * Distance tier interface matching frontend DispatchPricingConfig
+ */
+interface DistanceTier {
+  min_miles: number;
+  max_miles: number | null;
+  base_price: number;
+  per_mile_price?: number;
+}
+
+interface PackageTier {
+  name: string;
+  price: number;
+  description?: string;
+  is_popular?: boolean;
+}
+
+interface TripFee {
+  enabled: boolean;
+  amount: number;
+  label: string;
+  waived_with_service?: boolean;
+}
+
+interface PricingConfigJson {
+  pricing_model: string;
+  distance_basis?: string;
+  distance_tiers?: DistanceTier[];
+  // deno-lint-ignore no-explicit-any
+  variables?: Array<{ key: string; label: string; modifiers: any[] }>;
+  min_price?: number;
+  max_price?: number;
+  included_miles?: number;
+  overage_per_mile?: number;
+  trip_fee?: TripFee;
+  unit_label?: string;
+  per_unit_price?: number;
+  min_units?: number;
+  max_units?: number;
+  packages?: PackageTier[];
+  ai_quote_behavior?: string;
+}
+
+/**
+ * Compute dispatch job price using the service's pricing_config_json (single source of truth).
+ * Falls back to pricingResolution (pricing_rules_jsonb) for tenants not yet migrated.
  * Optionally calls compute-distance-eta for real distance if addresses provided.
- * Non-blocking: returns null price if distance API fails.
+ * Now applies price_modifiers from DB (previously bookings-only).
  */
 export async function computeDispatchPrice(
   // deno-lint-ignore no-explicit-any
@@ -279,7 +323,8 @@ export async function computeDispatchPrice(
   pickupAddress: string | null,
   dropoffAddress: string | null,
   jobType: string | null,
-  urgency: string
+  urgency: string,
+  serviceId?: string | null
 ): Promise<DispatchPriceResult> {
   const defaultResult: DispatchPriceResult = {
     price_cents: null,
@@ -288,21 +333,58 @@ export async function computeDispatchPrice(
     estimated_eta_minutes: null,
   };
 
-  // Fetch tenant pricing rules and services
-  const [tenantResult, servicesResult] = await Promise.all([
-    supabase
-      .from("tenants")
-      .select("pricing_rules_jsonb")
-      .eq("id", tenantId)
-      .single(),
+  // Fetch services, distance settings, and price_modifiers in parallel
+  const [servicesResult, distSettingsResult, modifiersResult] = await Promise.all([
     supabase
       .from("services")
-      .select("id, name, price_amount, price_type")
+      .select("id, name, price_amount, price_type, pricing_config_json, service_category")
+      .eq("tenant_id", tenantId)
+      .eq("is_active", true),
+    supabase
+      .from("tenant_distance_settings")
+      .select("default_distance_basis")
+      .eq("tenant_id", tenantId)
+      .maybeSingle(),
+    supabase
+      .from("price_modifiers")
+      .select("*")
       .eq("tenant_id", tenantId)
       .eq("is_active", true),
   ]);
 
-  const pricingRulesRaw = tenantResult.data?.pricing_rules_jsonb || [];
+  const allServices = servicesResult.data || [];
+
+  // Find the matching service — by ID, by name match, or by category
+  // deno-lint-ignore no-explicit-any
+  let matchedService: any = null;
+  if (serviceId) {
+    // deno-lint-ignore no-explicit-any
+    matchedService = allServices.find((s: any) => s.id === serviceId);
+  }
+  if (!matchedService && jobType) {
+    // Try name match
+    const normalizedJobType = jobType.toLowerCase();
+    matchedService = allServices.find(
+      // deno-lint-ignore no-explicit-any
+      (s: any) => s.name.toLowerCase().includes(normalizedJobType)
+    ) || allServices.find(
+      // deno-lint-ignore no-explicit-any
+      (s: any) => normalizedJobType.includes(s.name.toLowerCase())
+    );
+  }
+  if (!matchedService) {
+    // Fallback: first towing service
+    matchedService = allServices.find(
+      // deno-lint-ignore no-explicit-any
+      (s: any) => s.service_category === "towing" || s.name.toLowerCase().includes("tow")
+    ) || allServices[0];
+  }
+
+  const pricingConfig: PricingConfigJson | null =
+    matchedService?.pricing_config_json &&
+    typeof matchedService.pricing_config_json === "object"
+      ? matchedService.pricing_config_json as PricingConfigJson
+      : null;
 
   // Try to get distance if both addresses are provided
   let distanceMiles: number | null = null;
@@ -333,8 +415,199 @@ export async function computeDispatchPrice(
     }
   }
 
-  // Use pricingResolution to resolve price
-  const services = (servicesResult.data || []).map(
+  // ── PRIMARY PATH: Calculate from pricing_config_json (single source of truth) ──
+  if (pricingConfig) {
+    // Determine correct distance for pricing based on distance_basis
+    const tenantDefaultBasis = distSettingsResult.data?.default_distance_basis || "tow_distance";
+    const serviceBasis = pricingConfig.distance_basis || tenantDefaultBasis;
+    // For webhook path, we only have pickup→dropoff distance — use it directly
+    const pricingDistanceMiles = distanceMiles;
+
+    let basePriceDollars: number | null = null;
+    const breakdownParts: Record<string, unknown> = {
+      method: "pricing_config_json",
+      service_id: matchedService?.id,
+      service_name: matchedService?.name,
+      pricing_model: pricingConfig.pricing_model,
+      distance_basis: serviceBasis,
+      distance_miles: pricingDistanceMiles,
+    };
+
+    switch (pricingConfig.pricing_model) {
+      case "flat": {
+        basePriceDollars = pricingConfig.min_price || 0;
+        if (pricingConfig.included_miles && pricingConfig.overage_per_mile && pricingDistanceMiles) {
+          if (pricingDistanceMiles > pricingConfig.included_miles) {
+            const overage = (pricingDistanceMiles - pricingConfig.included_miles) * pricingConfig.overage_per_mile;
+            basePriceDollars += overage;
+            breakdownParts.overage_miles = pricingDistanceMiles - pricingConfig.included_miles;
+            breakdownParts.overage_charge = overage;
+          }
+        }
+        break;
+      }
+      case "distance_tiered": {
+        if (pricingConfig.distance_tiers && pricingDistanceMiles !== null) {
+          for (const tier of pricingConfig.distance_tiers) {
+            const tierMin = tier.min_miles;
+            const tierMax = tier.max_miles ?? Infinity;
+            if (pricingDistanceMiles >= tierMin && pricingDistanceMiles <= tierMax) {
+              basePriceDollars = tier.base_price;
+              if (tier.per_mile_price && pricingDistanceMiles > tierMin) {
+                basePriceDollars += (pricingDistanceMiles - tierMin) * tier.per_mile_price;
+              }
+              breakdownParts.tier_used = { min: tierMin, max: tierMax, base: tier.base_price, per_mile: tier.per_mile_price };
+              break;
+            }
+          }
+        }
+        if (basePriceDollars === null) {
+          basePriceDollars = pricingConfig.min_price || null;
+        }
+        break;
+      }
+      case "per_unit": {
+        if (pricingConfig.per_unit_price) {
+          const units = pricingConfig.min_units || 1;
+          basePriceDollars = pricingConfig.per_unit_price * units;
+          if (pricingConfig.min_price && basePriceDollars < pricingConfig.min_price) {
+            basePriceDollars = pricingConfig.min_price;
+          }
+          breakdownParts.unit_label = pricingConfig.unit_label;
+          breakdownParts.per_unit_price = pricingConfig.per_unit_price;
+          breakdownParts.units = units;
+        }
+        break;
+      }
+      case "package": {
+        if (pricingConfig.packages?.length) {
+          // Default to the "popular" package or first one for entity creation
+          const defaultPkg = pricingConfig.packages.find(p => p.is_popular) || pricingConfig.packages[0];
+          basePriceDollars = defaultPkg.price;
+          breakdownParts.package_name = defaultPkg.name;
+        }
+        break;
+      }
+      case "variable": {
+        // Variable = quote required, use min_price as estimate
+        if (pricingConfig.min_price) {
+          basePriceDollars = pricingConfig.min_price;
+          breakdownParts.price_type = "estimate";
+        }
+        break;
+      }
+    }
+
+    // Apply trip fee
+    let tripFeeDollars = 0;
+    if (pricingConfig.trip_fee?.enabled) {
+      tripFeeDollars = pricingConfig.trip_fee.amount;
+      breakdownParts.trip_fee = tripFeeDollars;
+      breakdownParts.trip_fee_label = pricingConfig.trip_fee.label;
+    }
+
+    // Apply vehicle modifiers from pricing_config_json
+    let modifierTotal = 0;
+    if (jobType && pricingConfig.variables && basePriceDollars !== null) {
+      for (const variable of pricingConfig.variables) {
+        if (variable.key === "vehicle_type" && Array.isArray(variable.modifiers)) {
+          const modifier = variable.modifiers.find(
+            // deno-lint-ignore no-explicit-any
+            (m: any) => m.value?.toLowerCase() === jobType.toLowerCase()
+          );
+          if (modifier) {
+            const adj = modifier.adjustment_type === "percent"
+              ? basePriceDollars * (modifier.price_adjustment / 100)
+              : modifier.price_adjustment;
+            modifierTotal += adj;
+            breakdownParts.vehicle_modifier = { type: jobType, adjustment: adj };
+          }
+        }
+      }
+    }
+
+    // Apply price_modifiers from DB (after-hours, weekend surcharges — previously bookings-only)
+    const appliedDbModifiers: Array<{ name: string; type: string; adjustment: number }> = [];
+    const modifiers = modifiersResult.data || [];
+    if (modifiers.length > 0 && basePriceDollars !== null) {
+      const now = new Date();
+      const dayOfWeek = now.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
+      const subtotalCents = Math.round((basePriceDollars + modifierTotal) * 100);
+
+      for (const mod of modifiers) {
+        // Check applies_to_services
+        if (mod.applies_to_services?.length && matchedService?.id) {
+          if (!mod.applies_to_services.includes(matchedService.id)) continue;
+        }
+        // Check active_days
+        if (mod.active_days?.length) {
+          if (!mod.active_days.includes(dayOfWeek)) continue;
+        }
+
+        let adjustment = 0;
+        switch (mod.adjustment_type) {
+          case "fixed":
+            adjustment = Math.round(mod.adjustment_value * 100);
+            break;
+          case "percentage":
+            adjustment = Math.round(subtotalCents * (mod.adjustment_value / 100));
+            break;
+          case "multiplier":
+            adjustment = Math.round(subtotalCents * mod.adjustment_value) - subtotalCents;
+            break;
+        }
+        if (adjustment !== 0) {
+          appliedDbModifiers.push({
+            name: mod.modifier_type || mod.name || "modifier",
+            type: mod.adjustment_type,
+            adjustment,
+          });
+        }
+      }
+    }
+
+    const dbModifierCents = appliedDbModifiers.reduce((sum, m) => sum + m.adjustment, 0);
+
+    if (basePriceDollars !== null) {
+      const totalDollars = basePriceDollars + modifierTotal + tripFeeDollars;
+      const totalCents = Math.round(totalDollars * 100) + dbModifierCents;
+      const minCents = pricingConfig.min_price ? Math.round(pricingConfig.min_price * 100) : 0;
+      const finalCents = Math.max(totalCents, minCents);
+
+      breakdownParts.base_price_dollars = basePriceDollars;
+      breakdownParts.modifier_total = modifierTotal;
+      breakdownParts.db_modifiers = appliedDbModifiers;
+      breakdownParts.final_price_cents = finalCents;
+
+      return {
+        price_cents: finalCents,
+        price_breakdown: breakdownParts,
+        distance_miles: distanceMiles,
+        estimated_eta_minutes: etaMinutes,
+      };
+    }
+
+    // pricing_config_json present but couldn't calculate — return with context
+    breakdownParts.reason = "could_not_calculate";
+    return {
+      price_cents: null,
+      price_breakdown: breakdownParts,
+      distance_miles: distanceMiles,
+      estimated_eta_minutes: etaMinutes,
+    };
+  }
+
+  // ── FALLBACK: Use pricingResolution (pricing_rules_jsonb) for unmigrated tenants ──
+  const { data: tenant } = await supabase
+    .from("tenants")
+    .select("pricing_rules_jsonb")
+    .eq("id", tenantId)
+    .single();
+
+  const pricingRulesRaw = tenant?.pricing_rules_jsonb || [];
+  const pricingRules = Array.isArray(pricingRulesRaw) ? pricingRulesRaw : [];
+
+  const services = allServices.map(
     // deno-lint-ignore no-explicit-any
     (s: any) => ({
       id: s.id,
@@ -343,8 +616,6 @@ export async function computeDispatchPrice(
       pricing_type: s.price_type,
     })
   );
-
-  const pricingRules = Array.isArray(pricingRulesRaw) ? pricingRulesRaw : [];
 
   const extractedData: Record<string, unknown> = {
     miles: distanceMiles,
@@ -365,10 +636,8 @@ export async function computeDispatchPrice(
 
   if (pricingResult.success) {
     if (pricingResult.priceType === "exact" && pricingResult.price != null) {
-      // pricingResolution returns prices in dollars, convert to cents
       priceCents = Math.round(pricingResult.price * 100);
     } else if (pricingResult.priceType === "range" && pricingResult.priceRange) {
-      // Use midpoint of range
       priceCents = Math.round(((pricingResult.priceRange.min + pricingResult.priceRange.max) / 2) * 100);
     }
   }
@@ -376,7 +645,7 @@ export async function computeDispatchPrice(
   return {
     price_cents: priceCents,
     price_breakdown: {
-      method: pricingResult.success ? "pricing_rules" : "none",
+      method: pricingResult.success ? "pricing_rules_fallback" : "none",
       price_type: pricingResult.priceType,
       reason: pricingResult.reason,
       distance_miles: distanceMiles,

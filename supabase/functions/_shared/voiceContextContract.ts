@@ -826,6 +826,27 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     includeInCompactJson: true,
   },
   {
+    key: "trip_fee_summary",
+    description: "Summary of trip/service call fees across services",
+    type: "string",
+    source: (ctx: Record<string, unknown>) => {
+      const offerings = ctx.offerings as Record<string, unknown> | undefined;
+      const services = (offerings?.services || []) as Array<Record<string, unknown>>;
+      const feeParts: string[] = [];
+      for (const s of services) {
+        const config = s.pricing_config as Record<string, unknown> | undefined;
+        const tripFee = config?.trip_fee as { enabled?: boolean; amount?: number; label?: string } | undefined;
+        if (tripFee?.enabled && tripFee?.amount) {
+          feeParts.push(`${s.name}: $${tripFee.amount} ${tripFee.label || "trip fee"}`);
+        }
+      }
+      return feeParts.length > 0 ? feeParts.join("; ") : "";
+    },
+    defaultValue: "",
+    category: "offerings",
+    includeInCompactJson: true,
+  },
+  {
     key: "active_promotions",
     description: "Currently active promotions and seasonal offers",
     type: "string",
