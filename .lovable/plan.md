@@ -1,80 +1,26 @@
 
 
-# Implement Universal Onboarding & Post-Onboarding Intelligence — All 4 Phases
+# Skip Twilio Provisioning for Super Admin Test Tenants
 
-Implementing in Lovable, phase by phase, with testing between each phase.
+## Problem
+Every time you create a test tenant as a super admin, it provisions a new Twilio number (costing money and cluttering your account). You just want test tenants to use the universal admin test line (+1-855-329-7357) that already routes based on your active tenant selection.
 
----
+## Solution
+Add an `isSuperAdmin` check at every Twilio provisioning call site. If the current user is a super admin, skip provisioning entirely -- those tenants use the shared test line instead.
 
-## Phase 1: Fix Scenario Discovery Questions
+## Changes (3 files)
 
-**Goal:** Every industry sees only questions that make sense for their business. Add "callback only" path.
+### 1. `src/pages/app/OnboardingPage.tsx` (line ~81, ~484-515)
+- Destructure `isSuperAdmin` from `useAuth()` alongside `user, tenant, loading`
+- Wrap the Twilio provisioning block (step 8) with `if (shouldProvision && !isSuperAdmin)` -- super admins skip provisioning, log "skipped: admin-test-tenant"
 
-### Changes to `src/lib/scenarioQuestions.ts`:
-- Narrow `walk-in-dropoffs` question to only show for `body_shop`, `auto_glass` slugs (tow-in language)
-- Add new `vehicle-dropoffs` question for general auto service slugs (no towing mention)
-- Add `ai-books-appointments` question to `serviceQuestions` at position 0: "Should the AI book appointments directly?" — maps to `aiBooksDirect` capability with `impliesModules: ["booking"]`
-- Add `overridesBase?: boolean` flag to `ScenarioQuestion` type — when true and answer is false, removes the implied module even if it's in the base module set
-- Update `deriveModulesFromScenario` to respect `overridesBase`
-- Add `hasLongDurationJobs` question filtered to auto repair, body shop, and similar long-job industries
+### 2. `src/hooks/useSubscription.ts` (line ~182-200)
+- Accept an optional `isSuperAdmin` parameter (or add it as a new argument)
+- Wrap the `provision-twilio-number` invoke with `if (!isSuperAdmin)` check
+- Log: "Skipping Twilio provisioning for admin test tenant"
 
----
+### 3. Other provisioning call sites (safety)
+- `PhoneConnectionStep.tsx`, `ConnectPhoneDialog.tsx`, `PhoneNumberCard.tsx`, `MultiLocationManager.tsx` -- these are manual "Connect Phone" buttons in the dashboard, so they should still work for admins who explicitly click them. No changes needed there since those are intentional user actions, not automatic provisioning.
 
-## Phase 2: Fix Scheduling Step
-
-**Goal:** Realistic durations/buffers, hide booking config for callback-only users.
-
-### Changes to `src/components/onboarding/SchedulingSetup.tsx`:
-- Accept `scenarioAnswers` prop
-- When `aiBooksDirect === false`: hide duration/buffer/same-day, show only business hours with explanatory note
-- Expand duration options: add 180, 240, 480 min options when `hasLongDurationJobs` is true
-- Expand buffer options: add 45, 60, 120 min options
-- Add "Varies" option for variable-length jobs
-- Update `getDefaultSchedulingPrefs` to use scenario answers for smarter defaults
-
-### Changes to `src/pages/app/OnboardingPage.tsx`:
-- Pass `scenarioAnswers` to `SchedulingSetup`
-
----
-
-## Phase 3: Post-Onboarding Guided Walkthrough
-
-**Goal:** After onboarding, user knows exactly what to do next.
-
-### Changes to `src/components/onboarding/OnboardingComplete.tsx`:
-- Make next steps dynamic based on mode and capabilities (callback-only skips calendar, dispatch shows coverage, etc.)
-- Add "Quick Setup Guide" button
-
-### New file: `src/components/brain/GuidedSetupOverlay.tsx`:
-- Modal showing the 3-4 most important Brain sections for their mode with completion status
-- Checks localStorage flag to only show once
-- Each item links to the relevant Brain section
-
-### Changes to Business Brain Hub:
-- Show overlay on first visit or when `?guided=true`
-
----
-
-## Phase 4: Brain Hub Capability-Aware Filtering
-
-**Goal:** Business Brain only shows sections relevant to what the user configured.
-
-### Changes to `src/components/brain/hub/hubStepsConfig.ts`:
-- Add `hiddenWhenCapability?: string` field to `HubStep`
-- Calendar step gets `hiddenWhenCapability: "aiBooksDirect"`
-- Update `getOrderedSteps` to accept optional capabilities and filter accordingly
-
-### Changes to Brain Hub component:
-- Pass capabilities to `getOrderedSteps`
-
----
-
-## Implementation Order
-
-1. Phase 1 first (fixes the broken questions immediately)
-2. Phase 2 (scheduling makes sense)
-3. Phase 3 (post-onboarding guidance)
-4. Phase 4 (brain filtering)
-
-Each phase is independently testable. No database migrations needed — all frontend changes using existing `capabilities_json` storage.
-
+## No database changes needed
+The admin test line routing already works via `twilio-inbound` looking up `admin_settings.admin_active_tenant_id`. This change just prevents automatic number provisioning during onboarding/subscription creation for admin users.
