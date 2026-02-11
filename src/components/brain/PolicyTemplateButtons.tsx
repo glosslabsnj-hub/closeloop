@@ -106,6 +106,23 @@ const MODE_TEMPLATES: Record<BusinessMode, {
       { label: "No Refunds", text: "All sales are final. We're happy to reschedule if your plans change." },
     ],
   },
+  sales: {
+    cancellation: [
+      { label: "Before Delivery", text: "Orders can be cancelled before delivery at no charge. Once delivered, our return policy applies." },
+      { label: "Restocking Fee", text: "Cancelled orders may be subject to a restocking fee depending on the item and timeframe." },
+      { label: "No Cancel Fee", text: "No cancellation fee. Just let us know as soon as possible." },
+    ],
+    deposit: [
+      { label: "Hold Deposit", text: "A deposit is required to hold items. This deposit is applied toward your final purchase." },
+      { label: "Full Prepay", text: "Full payment is required at the time of purchase." },
+      { label: "No Deposit", text: "No deposit required. Payment is due at time of delivery or pickup." },
+    ],
+    refund: [
+      { label: "30-Day Return", text: "Full refunds within 30 days with original receipt. Items must be in original condition." },
+      { label: "Exchange Only", text: "We offer exchanges within 14 days. No cash refunds." },
+      { label: "No Refunds", text: "All sales are final. We're happy to assist with exchanges or store credit." },
+    ],
+  },
 };
 
 export function PolicyTemplateButtons({ type, onSelect }: PolicyTemplateButtonsProps) {

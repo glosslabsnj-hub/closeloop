@@ -9745,7 +9745,13 @@ export type Database = {
         | "completed"
         | "canceled"
         | "no_show"
-      business_mode: "service" | "dispatch" | "food" | "medical" | "general"
+      business_mode:
+        | "service"
+        | "dispatch"
+        | "food"
+        | "medical"
+        | "general"
+        | "sales"
       channel_type: "sms" | "email" | "internal"
       conflict_status:
         | "unresolved"
@@ -10069,7 +10075,14 @@ export const Constants = {
         "canceled",
         "no_show",
       ],
-      business_mode: ["service", "dispatch", "food", "medical", "general"],
+      business_mode: [
+        "service",
+        "dispatch",
+        "food",
+        "medical",
+        "general",
+        "sales",
+      ],
       channel_type: ["sms", "email", "internal"],
       conflict_status: [
         "unresolved",
