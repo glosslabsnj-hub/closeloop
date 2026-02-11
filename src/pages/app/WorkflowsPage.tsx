@@ -298,6 +298,65 @@ const WORKFLOW_TEMPLATES: Record<BusinessMode, WorkflowTemplate[]> = {
       ],
     },
   ],
+  sales: [
+    {
+      id: "sales-appointment-confirmed",
+      name: "Appointment Confirmed",
+      description: "Confirm showroom visits, test drives, and sales appointments",
+      trigger: "booking.confirmed",
+      icon: Calendar,
+      steps: ["SMS prospect with appointment details", "Push lead to CRM"],
+      nodes: [
+        {
+          node_type: "notify_sms",
+          name: "Send SMS Confirmation",
+          config: {
+            to: "{{customer_phone}}",
+            message: "Hi {{customer_name}}! Your appointment at {{business_name}} on {{start_date}} at {{start_time}} is confirmed. We look forward to seeing you!",
+          },
+        },
+        {
+          node_type: "webhook_push",
+          name: "Push to CRM",
+          config: {
+            url: "",
+            method: "POST",
+            body_template: {
+              event: "booking.confirmed",
+              customer_name: "{{customer_name}}",
+              service: "{{service_name}}",
+              date: "{{start_date}}",
+            },
+          },
+        },
+      ],
+    },
+    {
+      id: "sales-call-ended",
+      name: "Call Wrap-Up",
+      description: "Push call summary and lead info to CRM",
+      trigger: "call.ended",
+      icon: PhoneCall,
+      steps: ["Push lead and call summary to CRM"],
+      nodes: [
+        {
+          node_type: "webhook_push",
+          name: "Push to CRM",
+          config: {
+            url: "",
+            method: "POST",
+            body_template: {
+              event: "call.ended",
+              customer_name: "{{customer_name}}",
+              summary: "{{summary}}",
+              outcome: "{{outcome}}",
+              service_requested: "{{service_requested}}",
+            },
+          },
+        },
+      ],
+    },
+  ],
 };
 
 // Universal templates available to all modes
@@ -364,6 +423,7 @@ export default function WorkflowsPage() {
       dispatch: ["dispatch.created", "dispatch.confirmed", "dispatch.completed", "call.ended", "sms.received", "missed_call"],
       medical: ["intake.created", "intake.scheduled", "booking.created", "booking.confirmed", "call.ended", "sms.received"],
       general: ["call.ended", "sms.received", "missed_call"],
+      sales: ["booking.created", "booking.confirmed", "booking.completed", "call.ended", "sms.received", "missed_call"],
     };
     return modeTriggerMap[businessMode] || modeTriggerMap.general;
   }, [businessMode]);

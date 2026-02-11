@@ -36,7 +36,7 @@ export const ROUTING_TEMPLATES: RoutingRuleTemplate[] = [
     icon: "calendar",
     requiresIntegration: true,
     integrationProvider: "google_calendar",
-    modes: ["service", "medical", "general"],
+    modes: ["service", "medical", "general", "sales"],
   },
   {
     trigger_event: "booking.created",
@@ -45,7 +45,7 @@ export const ROUTING_TEMPLATES: RoutingRuleTemplate[] = [
     icon: "table",
     requiresIntegration: true,
     integrationProvider: "google_sheets",
-    modes: ["service", "medical", "general"],
+    modes: ["service", "medical", "general", "sales"],
   },
   {
     trigger_event: "booking.created",
@@ -53,7 +53,7 @@ export const ROUTING_TEMPLATES: RoutingRuleTemplate[] = [
     label: "When AI books an appointment → Send confirmation SMS",
     icon: "message-square",
     requiresIntegration: false,
-    modes: ["service", "medical", "food", "general"],
+    modes: ["service", "medical", "food", "general", "sales"],
   },
 
   // Order routing
@@ -119,7 +119,7 @@ export const ROUTING_TEMPLATES: RoutingRuleTemplate[] = [
     icon: "table",
     requiresIntegration: true,
     integrationProvider: "google_sheets",
-    modes: ["service", "dispatch", "food", "medical", "general"],
+    modes: ["service", "dispatch", "food", "medical", "general", "sales"],
   },
   {
     trigger_event: "lead.captured",
@@ -127,7 +127,7 @@ export const ROUTING_TEMPLATES: RoutingRuleTemplate[] = [
     label: "When AI captures a lead → Send email notification",
     icon: "mail",
     requiresIntegration: false,
-    modes: ["service", "dispatch", "food", "medical", "general"],
+    modes: ["service", "dispatch", "food", "medical", "general", "sales"],
   },
 
   // Missed call routing
@@ -137,7 +137,7 @@ export const ROUTING_TEMPLATES: RoutingRuleTemplate[] = [
     label: "When call is missed → Auto-text the caller",
     icon: "message-square",
     requiresIntegration: false,
-    modes: ["service", "dispatch", "food", "medical", "general"],
+    modes: ["service", "dispatch", "food", "medical", "general", "sales"],
   },
 ];
 

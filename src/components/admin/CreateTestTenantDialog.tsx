@@ -37,6 +37,7 @@ const BUSINESS_MODES: { value: BusinessMode; label: string; description: string 
   { value: "food", label: "Food & Restaurant", description: "Restaurants, cafes, catering" },
   { value: "medical", label: "Medical Intake", description: "Clinics, healthcare (HIPAA)" },
   { value: "general", label: "General", description: "Callback and messaging" },
+  { value: "sales", label: "Sales", description: "Dealerships, real estate, high-ticket" },
 ];
 
 const TIMEZONES = [
@@ -144,6 +145,8 @@ export function CreateTestTenantDialog({
         return ["ai_voice", "instant_text_back", "food_orders", "menu_knowledge", "reservations"];
       case "medical":
         return ["ai_voice", "instant_text_back", "medical_intake"];
+      case "sales":
+        return ["ai_voice", "instant_text_back", "sales_leads", "booking"];
       case "general":
       default:
         return ["ai_voice", "instant_text_back"];

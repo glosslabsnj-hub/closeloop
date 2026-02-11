@@ -5,7 +5,7 @@ export interface IndustryDemo {
   id: string;
   name: string;
   icon: string;
-  businessMode: 'service' | 'dispatch' | 'food' | 'medical' | 'general';
+  businessMode: 'service' | 'dispatch' | 'food' | 'medical' | 'general' | 'sales';
   description: string;
   callSummary: string;
   whatAIDoes: string[];
@@ -153,6 +153,29 @@ export const industryDemos: IndustryDemo[] = [
     ],
     audioUrl: null,
     duration: '1:55',
+  },
+  {
+    id: 'car-dealership',
+    name: 'Car Dealership',
+    icon: '🚗',
+    businessMode: 'sales',
+    description: 'Test drives, financing, and inventory',
+    callSummary: 'Prospect calls about a vehicle they saw online. AI qualifies interest, captures trade-in info, and schedules a test drive.',
+    whatAIDoes: [
+      'Asks what vehicle they\'re interested in',
+      'Captures budget and financing preferences',
+      'Asks about trade-in vehicle',
+      'Checks appointment availability',
+      'Books test drive and confirms details',
+    ],
+    whatGetsCreated: [
+      'Prospect record with interests',
+      'Showroom appointment booked',
+      'SMS confirmation sent',
+      'Lead info pushed to CRM',
+    ],
+    audioUrl: null,
+    duration: '2:15',
   },
 ];
 

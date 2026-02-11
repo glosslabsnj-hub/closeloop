@@ -735,7 +735,7 @@ export async function resolveConflictCustomMerge(
  */
 export async function setBusinessMode(
   tenantId: string,
-  businessMode: "service" | "dispatch" | "food" | "medical" | "general"
+  businessMode: "service" | "dispatch" | "food" | "medical" | "general" | "sales"
 ) {
   const { data, error } = await supabase
     .from("tenants")
@@ -804,7 +804,7 @@ export async function setIndustryKey(
  */
 export async function setBusinessModeAndIndustry(
   tenantId: string,
-  businessMode: "service" | "dispatch" | "food" | "medical" | "general",
+  businessMode: "service" | "dispatch" | "food" | "medical" | "general" | "sales",
   industryKey: string
 ) {
   const { data, error } = await supabase

@@ -52,6 +52,13 @@ export const SERVICE_EXAMPLES: Record<BusinessMode, ServiceExamples> = {
     durationHint: "How long this typically takes",
     priceExamples: "Example: Basic - $99, Premium - $199",
   },
+  sales: {
+    serviceName: "product",
+    serviceNamePlaceholder: "New Sedan, Used SUV, Solar Panel Package, 3-Bed Home, etc.",
+    descriptionPlaceholder: "Key features, specs, and selling points...",
+    durationHint: "Average appointment or demo length",
+    priceExamples: "Example: Starting at $25,000, From $199/mo with financing",
+  },
 };
 
 /**
@@ -109,6 +116,15 @@ export const OBJECTION_EXAMPLES: Record<BusinessMode, ObjectionExamples> = {
       { objection: "I'll call you back", response: "No problem! Is there a specific time I should expect your call, or would you like me to follow up with you?" },
     ],
   },
+  sales: {
+    objectionPlaceholder: "e.g., I'm just looking / I can get it cheaper elsewhere",
+    responsePlaceholder: "I completely understand. Let me share what sets us apart and how we can work within your budget...",
+    commonObjections: [
+      { objection: "I'm just looking", response: "No pressure at all! Let me know what you're interested in and I can share some options. Would you like to come in for a closer look?" },
+      { objection: "I can get it cheaper elsewhere", response: "I appreciate you doing your research. We're competitive on price, and we also include warranty coverage and financing options that add real value. Would you like me to put together a detailed comparison?" },
+      { objection: "I need to talk to my spouse", response: "Absolutely, that's a big decision! Would it help to schedule a time when you can both come in together? I can have everything ready for you." },
+    ],
+  },
 };
 
 /**
@@ -145,6 +161,11 @@ export const PROFILE_EXAMPLES: Record<BusinessMode, ProfileExamples> = {
     businessNamePlaceholder: "Your Business Name",
     taglinePlaceholder: "What makes you unique",
     taglineHint: "Example: \"Trusted by 1000+ customers\" or \"Fast, friendly service\"",
+  },
+  sales: {
+    businessNamePlaceholder: "Prestige Auto Group, Summit Realty, SolarEdge Installers",
+    taglinePlaceholder: "Largest selection, best prices, trusted since 2005",
+    taglineHint: "Example: \"Over 200 vehicles in stock\" or \"Your trusted local dealer\"",
   },
 };
 

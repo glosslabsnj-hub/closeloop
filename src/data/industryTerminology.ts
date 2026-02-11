@@ -84,12 +84,25 @@ const generalDefaults: IndustryTerminology = {
   exampleFAQs: ["What are your hours?", "Do you offer consultations?", "What is your pricing?"],
 };
 
+const salesDefaults: IndustryTerminology = {
+  servicesLabel: "Products & Pricing",
+  serviceItemLabel: "product",
+  customerLabel: "prospect",
+  appointmentLabel: "appointment",
+  pricingLabel: "pricing",
+  locationLabel: "showroom",
+  teamMemberLabel: "sales rep",
+  exampleServices: ["New Vehicles", "Pre-Owned Vehicles", "Financing", "Trade-In"],
+  exampleFAQs: ["Do you offer financing?", "What's your return policy?", "Do you accept trade-ins?"],
+};
+
 const MODE_DEFAULTS: Record<BusinessMode, IndustryTerminology> = {
   service: serviceDefaults,
   dispatch: dispatchDefaults,
   food: foodDefaults,
   medical: medicalDefaults,
   general: generalDefaults,
+  sales: salesDefaults,
 };
 
 // ---------------------------------------------------------------------------

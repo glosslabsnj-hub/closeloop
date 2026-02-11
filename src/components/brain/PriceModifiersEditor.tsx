@@ -95,7 +95,7 @@ const MODIFIER_TYPES = {
     label: "Urgency",
     icon: Zap,
     description: "Surcharges for same-day or emergency service",
-    modes: ["service", "dispatch", "medical"],
+    modes: ["service", "dispatch", "medical", "sales"],
     industries: [],
     suggestions: [
       { name: "Same Day Service", adjustment: 50 },
@@ -107,7 +107,7 @@ const MODIFIER_TYPES = {
     label: "Time of Day",
     icon: Clock,
     description: "Rate adjustments for after-hours or weekend work",
-    modes: ["service", "dispatch"],
+    modes: ["service", "dispatch", "sales"],
     industries: [],
     suggestions: [
       { name: "After Hours (6pm-8am)", adjustment: 50 },
@@ -143,7 +143,7 @@ const MODIFIER_TYPES = {
     label: "Custom Modifier",
     icon: Settings2,
     description: "Define your own price adjustment",
-    modes: ["service", "dispatch", "food", "medical", "general"],
+    modes: ["service", "dispatch", "food", "medical", "general", "sales"],
     industries: [],
     suggestions: [],
   },

@@ -48,7 +48,7 @@ const FIELD_TYPES = [
   { value: 'datetime', label: 'Date & Time' },
 ];
 
-const ALL_MODES: BusinessMode[] = ['service', 'dispatch', 'food', 'medical', 'general'];
+const ALL_MODES: BusinessMode[] = ['service', 'dispatch', 'food', 'medical', 'general', 'sales'];
 
 const SUGGESTED_FIELDS: Partial<IntakeRequirement>[] = [
   // Universal fields

@@ -119,7 +119,7 @@ export const VARIABLE_INFO: Record<string, VariableInfo> = {
     description: "The unique booking reference number",
     example: "BK-5678",
     category: "booking",
-    modes: ["service", "medical"],
+    modes: ["service", "medical", "sales"],
   },
   service_name: {
     key: "service_name",
@@ -127,7 +127,7 @@ export const VARIABLE_INFO: Record<string, VariableInfo> = {
     description: "The name of the booked service",
     example: "Haircut & Style",
     category: "booking",
-    modes: ["service", "medical"],
+    modes: ["service", "medical", "sales"],
   },
   service_duration: {
     key: "service_duration",
@@ -135,7 +135,7 @@ export const VARIABLE_INFO: Record<string, VariableInfo> = {
     description: "How long the service takes",
     example: "45 minutes",
     category: "booking",
-    modes: ["service", "medical"],
+    modes: ["service", "medical", "sales"],
   },
   start_time: {
     key: "start_time",
@@ -143,7 +143,7 @@ export const VARIABLE_INFO: Record<string, VariableInfo> = {
     description: "The appointment start time",
     example: "2:00 PM",
     category: "booking",
-    modes: ["service", "medical"],
+    modes: ["service", "medical", "sales"],
   },
   end_time: {
     key: "end_time",
@@ -151,7 +151,7 @@ export const VARIABLE_INFO: Record<string, VariableInfo> = {
     description: "The appointment end time",
     example: "2:45 PM",
     category: "booking",
-    modes: ["service", "medical"],
+    modes: ["service", "medical", "sales"],
   },
   start_date: {
     key: "start_date",
@@ -159,7 +159,7 @@ export const VARIABLE_INFO: Record<string, VariableInfo> = {
     description: "The date of the appointment",
     example: "Tuesday, March 15",
     category: "booking",
-    modes: ["service", "medical"],
+    modes: ["service", "medical", "sales"],
   },
   deposit_required: {
     key: "deposit_required",
@@ -167,7 +167,7 @@ export const VARIABLE_INFO: Record<string, VariableInfo> = {
     description: "Whether a deposit is needed",
     example: "Yes",
     category: "booking",
-    modes: ["service"],
+    modes: ["service", "sales"],
   },
   deposit_paid: {
     key: "deposit_paid",
@@ -175,7 +175,7 @@ export const VARIABLE_INFO: Record<string, VariableInfo> = {
     description: "Whether the deposit has been paid",
     example: "Yes",
     category: "booking",
-    modes: ["service"],
+    modes: ["service", "sales"],
   },
 
   // Dispatch Variables (dispatch mode)
@@ -661,6 +661,75 @@ export const INDUSTRY_GUIDES: Record<BusinessMode, IndustryGuide> = {
         variables: ["caller_phone", "customer_name", "summary", "outcome"],
         tips: [
           "Use Zapier's 'Webhooks by Zapier' trigger to connect to any CRM",
+        ],
+      },
+    ],
+  },
+  sales: {
+    title: "Sales Business",
+    subtitle: "Appointments & Lead Management",
+    description: "Automate appointment confirmations, lead notifications, and CRM integration to close more deals.",
+    quickStartSteps: [
+      "Toggle ON 'Appointment Confirmation' to confirm showroom visits and demos",
+      "Toggle ON 'Missed Call Follow-up' to capture every sales lead",
+      "Connect your CRM to automatically sync call summaries and lead info",
+      "Customize your messages with product details and appointment info",
+    ],
+    automations: [
+      {
+        id: "appointment-confirmed",
+        title: "Appointment Confirmation",
+        description: "Send automatic confirmation when a showroom appointment is booked",
+        trigger: "booking.confirmed",
+        primaryAction: "notify_sms",
+        steps: [
+          "Toggle ON 'Text when appointment is confirmed'",
+          "Click 'Edit message' to customize",
+          "Include the date, time, and what to expect",
+          "Add your showroom address or directions",
+        ],
+        defaultMessage: "Hi {{customer_name}}! Your appointment at {{business_name}} on {{start_date}} at {{start_time}} is confirmed. We look forward to seeing you!",
+        variables: ["customer_name", "customer_phone", "service_name", "start_date", "start_time"],
+        tips: [
+          "Include your showroom address or a link to directions",
+          "Mention what they should bring (trade-in title, ID, etc.)",
+        ],
+      },
+      {
+        id: "call-summary-crm",
+        title: "Push Lead Info to CRM",
+        description: "Automatically sync call details, interests, and lead info with your CRM",
+        trigger: "call.ended",
+        primaryAction: "webhook_push",
+        steps: [
+          "Toggle ON 'Push call summaries to CRM'",
+          "Click 'Set up webhook' to configure",
+          "Enter your CRM's webhook URL (or use Zapier)",
+          "Test the connection to make sure data is flowing",
+        ],
+        defaultMessage: "",
+        variables: ["customer_name", "caller_phone", "summary", "outcome", "service_requested"],
+        tips: [
+          "Use Zapier to connect to Salesforce, HubSpot, or any CRM",
+          "The summary includes what the prospect was interested in and any follow-up needed",
+        ],
+      },
+      {
+        id: "missed-call-followup",
+        title: "Missed Call Follow-up",
+        description: "Automatically text back when you miss a sales call",
+        trigger: "missed_call",
+        primaryAction: "notify_sms",
+        steps: [
+          "Toggle ON 'Text on missed call'",
+          "Customize the follow-up message",
+          "Include a way for them to schedule an appointment",
+        ],
+        defaultMessage: "Thanks for calling {{business_name}}! Sorry we missed you. Would you like to schedule an appointment? Reply or call us back anytime.",
+        variables: ["caller_phone", "business_name", "business_phone"],
+        tips: [
+          "Speed matters in sales - the faster you respond, the higher the conversion rate",
+          "Include a scheduling link if you have one",
         ],
       },
     ],

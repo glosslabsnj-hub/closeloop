@@ -76,6 +76,8 @@ export function DeliveryIntegrationsSettings() {
         return "Orders can be pushed to POS/ops systems and printed.";
       case "medical":
         return "Intake can be pushed with minimal data; HIPAA mode respects retention settings.";
+      case "sales":
+        return "Leads and appointments can be pushed to your CRM or DMS system.";
       default:
         return "Outcomes can be pushed to your existing systems.";
     }

@@ -188,6 +188,45 @@ const DEFAULT_WORKFLOWS: Record<BusinessMode, DefaultWorkflow[]> = {
       ],
     },
   ],
+  sales: [
+    {
+      name: "Appointment Confirmed",
+      description: "Notify prospect when a showroom appointment is confirmed",
+      trigger: "booking.confirmed",
+      nodes: [
+        {
+          node_type: "notify_sms",
+          name: "Send SMS Confirmation",
+          config: {
+            to: "{{customer_phone}}",
+            message: "Hi {{customer_name}}! Your appointment at {{business_name}} on {{start_date}} is confirmed. We look forward to seeing you!",
+          },
+        },
+      ],
+    },
+    {
+      name: "Call Summary to CRM",
+      description: "Push call summaries and lead info to your CRM",
+      trigger: "call.ended",
+      nodes: [
+        {
+          node_type: "webhook_push",
+          name: "Push to CRM",
+          config: {
+            url: "",
+            method: "POST",
+            body_template: {
+              event: "call.ended",
+              customer_name: "{{customer_name}}",
+              summary: "{{summary}}",
+              outcome: "{{outcome}}",
+              service_requested: "{{service_requested}}",
+            },
+          },
+        },
+      ],
+    },
+  ],
 };
 
 // Universal workflow for all modes
@@ -300,7 +339,7 @@ export const AUTOMATION_TOGGLES: AutomationToggle[] = [
     primaryNodeType: "notify_sms",
     category: "notifications",
     defaultMessage: "Hi {{customer_name}}! Your appointment for {{service_name}} on {{start_date}} is confirmed. See you soon!",
-    applicableModes: ["service", "medical"],
+    applicableModes: ["service", "medical", "sales"],
   },
   {
     id: "order-confirmed-sms",
@@ -340,7 +379,7 @@ export const AUTOMATION_TOGGLES: AutomationToggle[] = [
     primaryNodeType: "notify_sms",
     category: "notifications",
     defaultMessage: "Sorry we missed your call! We'll get back to you shortly, or you can leave a message here.",
-    applicableModes: ["service", "food", "dispatch", "medical", "general"],
+    applicableModes: ["service", "food", "dispatch", "medical", "general", "sales"],
   },
   // Kitchen/Team Alerts
   {
@@ -360,7 +399,7 @@ export const AUTOMATION_TOGGLES: AutomationToggle[] = [
     trigger: "call.ended",
     primaryNodeType: "webhook_push",
     category: "integrations",
-    applicableModes: ["service", "food", "dispatch", "medical", "general"],
+    applicableModes: ["service", "food", "dispatch", "medical", "general", "sales"],
   },
 ];
 

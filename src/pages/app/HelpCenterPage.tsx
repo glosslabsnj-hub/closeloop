@@ -138,6 +138,8 @@ export default function HelpCenterPage() {
         return "Learn how to take orders, manage your menu, handle reservations, and automate order confirmations.";
       case "medical":
         return "Learn how to handle patient intake, schedule appointments, and maintain HIPAA compliance.";
+      case "sales":
+        return "Learn how to manage prospects, schedule showroom appointments, and let your AI qualify every lead.";
       default:
         return "Learn how to manage leads, handle inquiries, and let your AI capture every opportunity.";
     }

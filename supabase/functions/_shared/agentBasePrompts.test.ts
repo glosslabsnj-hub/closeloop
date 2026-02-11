@@ -14,6 +14,7 @@ import {
   FOOD_AGENT_BASE_PROMPT,
   MEDICAL_AGENT_BASE_PROMPT,
   GENERAL_AGENT_BASE_PROMPT,
+  SALES_AGENT_BASE_PROMPT,
 } from "./agentBasePrompts.ts";
 
 Deno.test("getBasePromptForMode returns complete prompt for service mode", () => {
@@ -70,6 +71,13 @@ Deno.test("getBasePromptForMode returns complete prompt for general mode", () =>
   assert(prompt.includes("3 TOOLS"), "Missing tool count notice");
 });
 
+Deno.test("getBasePromptForMode returns complete prompt for sales mode", () => {
+  const prompt = getBasePromptForMode("sales");
+
+  assert(prompt.includes("SALES AGENT"), "Missing SALES AGENT header");
+  assert(prompt.includes("check_service_area") || prompt.includes("SALES"), "Missing sales-specific content");
+});
+
 Deno.test("getBasePromptForMode defaults to general for unknown mode", () => {
   const prompt = getBasePromptForMode("unknown" as any);
 
@@ -123,10 +131,11 @@ Deno.test("AGENT_BASE_PROMPTS has correct tool counts", () => {
   assertEquals(AGENT_BASE_PROMPTS.food.toolCount, 6, "Food should have 6 tools");
   assertEquals(AGENT_BASE_PROMPTS.medical.toolCount, 5, "Medical should have 5 tools");
   assertEquals(AGENT_BASE_PROMPTS.general.toolCount, 3, "General should have 3 tools");
+  assertEquals(AGENT_BASE_PROMPTS.sales.toolCount, 5, "Sales should have 5 tools");
 });
 
 Deno.test("All modes are defined in AGENT_BASE_PROMPTS", () => {
-  const modes = ["service", "dispatch", "food", "medical", "general"];
+  const modes = ["service", "dispatch", "food", "medical", "general", "sales"];
   for (const mode of modes) {
     assert(AGENT_BASE_PROMPTS[mode as keyof typeof AGENT_BASE_PROMPTS], `Missing mode: ${mode}`);
   }
@@ -141,6 +150,7 @@ Deno.test("No placeholder text in prompts", () => {
     FOOD_AGENT_BASE_PROMPT,
     MEDICAL_AGENT_BASE_PROMPT,
     GENERAL_AGENT_BASE_PROMPT,
+    SALES_AGENT_BASE_PROMPT,
   ];
 
   for (const prompt of allPrompts) {

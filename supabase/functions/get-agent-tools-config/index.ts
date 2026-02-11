@@ -26,7 +26,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const VALID_MODES: BusinessMode[] = ["service", "dispatch", "food", "medical", "general"];
+const VALID_MODES: BusinessMode[] = ["service", "dispatch", "food", "medical", "general", "sales"];
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {

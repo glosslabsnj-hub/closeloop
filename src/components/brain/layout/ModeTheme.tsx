@@ -56,6 +56,15 @@ export function getModeTheme(mode: BusinessMode): ModeThemeColors {
         background: "bg-blue-50/50 dark:bg-blue-950/20",
         ring: "ring-blue-500/30",
       };
+    case "sales":
+      return {
+        accent: "text-indigo-600 dark:text-indigo-400",
+        accentForeground: "text-indigo-700 dark:text-indigo-300",
+        accentMuted: "text-indigo-600/70 dark:text-indigo-400/70",
+        border: "border-indigo-200 dark:border-indigo-900/50",
+        background: "bg-indigo-50/50 dark:bg-indigo-950/20",
+        ring: "ring-indigo-500/30",
+      };
     case "general":
     default:
       return {
@@ -82,6 +91,8 @@ export function getModeGradient(mode: BusinessMode): string {
       return "bg-gradient-to-br from-rose-50/50 via-background to-rose-50/30 dark:from-rose-950/20 dark:via-background dark:to-rose-950/10";
     case "service":
       return "bg-gradient-to-br from-blue-50/50 via-background to-blue-50/30 dark:from-blue-950/20 dark:via-background dark:to-blue-950/10";
+    case "sales":
+      return "bg-gradient-to-br from-indigo-50/50 via-background to-indigo-50/30 dark:from-indigo-950/20 dark:via-background dark:to-indigo-950/10";
     case "general":
     default:
       return "bg-gradient-to-br from-slate-50/50 via-background to-slate-50/30 dark:from-slate-950/20 dark:via-background dark:to-slate-950/10";
@@ -101,6 +112,8 @@ export function getModeDisplayName(mode: BusinessMode): string {
       return "Medical Practice";
     case "service":
       return "Service Business";
+    case "sales":
+      return "Sales Business";
     case "general":
     default:
       return "Business";

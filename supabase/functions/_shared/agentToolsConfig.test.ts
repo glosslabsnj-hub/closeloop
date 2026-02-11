@@ -23,7 +23,7 @@ console.log("=".repeat(60));
 console.log("");
 
 // Test 1: Verify all modes are registered
-const expectedModes: BusinessMode[] = ["service", "dispatch", "food", "medical", "general"];
+const expectedModes: BusinessMode[] = ["service", "dispatch", "food", "medical", "general", "sales"];
 const registeredModes = Object.keys(AGENT_TOOLS_REGISTRY);
 
 console.log("1. Mode Registration Check:");
@@ -41,6 +41,7 @@ const expectedToolCounts: Record<BusinessMode, number> = {
   food: 6,
   medical: 5,
   general: 3,
+  sales: 5,
 };
 
 for (const [mode, expectedCount] of Object.entries(expectedToolCounts)) {
@@ -59,6 +60,7 @@ const expectedToolsPerMode: Record<BusinessMode, string[]> = {
   food: ["check_availability", "suggest_availability", "create_booking", "check_service_area", "create_dispatch_job", "create_callback"],
   medical: ["check_availability", "suggest_availability", "create_booking", "check_service_area", "create_callback"],
   general: ["suggest_availability", "check_service_area", "create_callback"],
+  sales: ["check_availability", "suggest_availability", "create_booking", "check_service_area", "create_callback"],
 };
 
 for (const [mode, expectedTools] of Object.entries(expectedToolsPerMode)) {

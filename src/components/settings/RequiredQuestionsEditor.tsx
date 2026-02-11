@@ -270,6 +270,8 @@ export function RequiredQuestionsEditor() {
         return ["booking", "callback"];
       case "medical":
         return ["booking", "callback"];
+      case "sales":
+        return ["booking", "callback"];
       case "general":
         return ["booking", "callback"];
       default:

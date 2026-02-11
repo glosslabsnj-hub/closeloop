@@ -151,6 +151,28 @@ const TERMINOLOGY: Record<BusinessMode, IndustryTerms> = {
     bookingConfirmed: "Booking confirmed",
     bookingsMetricLabel: "Bookings",
   },
+  sales: {
+    booking: "appointment",
+    bookings: "appointments",
+    service: "product",
+    services: "products",
+    customer: "prospect",
+    customers: "prospects",
+    bookingCreated: "Appointment scheduled",
+    viewBookings: "View Appointments",
+    addService: "Add Product",
+    newBooking: "New Appointment",
+    bookingsPageTitle: "Appointments",
+    bookingsPageSubtitle: "View and manage showroom appointments",
+    servicesPageTitle: "Products",
+    servicesPageSubtitle: "View your product catalog",
+    addServicesStep: "Add your products",
+    addServicesDescription: "Products, pricing, and inventory",
+    pendingBooking: "pending appointment",
+    pendingBookings: "pending appointments",
+    bookingConfirmed: "Appointment confirmed",
+    bookingsMetricLabel: "Appointments",
+  },
 };
 
 export function getTerminology(mode: BusinessMode): IndustryTerms {

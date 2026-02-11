@@ -41,7 +41,7 @@ export interface EtaPolicy {
 
 export interface EtaInput {
   /** Current business mode */
-  business_mode: "service" | "dispatch" | "food" | "medical" | "general";
+  business_mode: "service" | "dispatch" | "food" | "medical" | "general" | "sales";
 
   /** Specific job type, if known (e.g., "battery_jump", "tow", "pizza_delivery") */
   job_type?: string;

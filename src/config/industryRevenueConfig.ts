@@ -145,6 +145,27 @@ export const INDUSTRY_REVENUE_CONFIG: Record<BusinessMode, IndustryRevenueConfig
     celebratoryTone: true,
     primaryMetrics: ["ai_revenue", "entities_created", "calls_handled", "conversion_rate"],
   },
+  sales: {
+    revenueTable: "bookings",
+    valueSource: "services.price_amount",
+    valueMultiplier: 100,
+    completedStatus: "completed",
+    cancelledStatuses: ["canceled", "no_show"],
+    entityName: "Deals",
+    entityNameSingular: "Deal",
+    actionVerb: "close",
+    actionVerbPast: "closed",
+    emptyStateMessage: "Once your AI starts scheduling appointments and qualifying leads, you'll see your pipeline here.",
+    emptyStateCta: "Make a test call to get started",
+    successMessage: "Your AI closed {count} deals worth {value} this month.",
+    storyTemplate: "Your AI {verb} {count} {entity} worth {value} this month",
+    callsLabel: "Sales inquiries",
+    heroIcon: "Building",
+    emptyStateSteps: ["A prospect calls", "AI qualifies and schedules", "Revenue appears here"],
+    emptyStateEncouragement: "The average Voxly sales business sees their first AI-scheduled appointment within 48 hours",
+    celebratoryTone: true,
+    primaryMetrics: ["ai_revenue", "entities_created", "calls_handled", "conversion_rate"],
+  },
 };
 
 export function getIndustryRevenueConfig(mode: BusinessMode): IndustryRevenueConfig {

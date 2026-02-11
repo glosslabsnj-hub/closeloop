@@ -99,6 +99,7 @@ export function TodayQueueCard() {
       case "dispatch": return "Dispatch Queue";
       case "food": return "Kitchen Queue";
       case "medical": return "Intake Queue";
+      case "sales": return "Appointments";
       default: return "Today's Queue";
     }
   };

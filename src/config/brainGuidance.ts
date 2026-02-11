@@ -54,6 +54,7 @@ export const SECTION_GUIDANCE: Record<string, SectionGuidance> = {
       food: "Add your full menu. Include descriptions, sizes, and prices.",
       dispatch: "Add your tow types (local, long-distance, flatbed) with base pricing.",
       medical: "Add your appointment types (new patient, follow-up, specific procedures) with durations.",
+      sales: "Add your key products or categories with pricing. Include features, specs, and financing options.",
       default: "Start with your most popular offerings and add more over time.",
     },
   },
@@ -66,6 +67,7 @@ export const SECTION_GUIDANCE: Record<string, SectionGuidance> = {
       food: "Example: 'Thanks for calling [Name]! Would you like to place an order or make a reservation?'",
       dispatch: "Example: 'Thanks for calling [Name]. Do you need a tow, or are you calling about a vehicle in our lot?'",
       medical: "Example: 'Thank you for calling [Name]. Are you calling to schedule an appointment, or do you have a question for our staff?'",
+      sales: "Example: 'Thanks for calling [Name]! Are you looking for something specific, or would you like to schedule a visit?'",
     },
   },
   "policies": {
@@ -75,6 +77,7 @@ export const SECTION_GUIDANCE: Record<string, SectionGuidance> = {
       default: "Start with your cancellation policy — it's the most commonly asked about.",
       dispatch: "Customers often ask about payment at the scene. Make sure your AI knows what you accept.",
       medical: "Include your no-show policy and any cancellation fees.",
+      sales: "Include your deposit policy, return/exchange terms, and financing options.",
     },
   },
   "never-promise": {
@@ -84,6 +87,7 @@ export const SECTION_GUIDANCE: Record<string, SectionGuidance> = {
       default: "Common limits: exact completion times, price matches, same-day guarantees.",
       dispatch: "Important: Never promise exact ETAs or guarantee availability during peak hours.",
       medical: "Important: Never promise specific treatment outcomes or diagnose conditions.",
+      sales: "Important: Never promise specific financing rates, trade-in values, or prices without manager approval.",
     },
   },
   "required-questions": {
@@ -95,6 +99,7 @@ export const SECTION_GUIDANCE: Record<string, SectionGuidance> = {
       dispatch: "Also collect: exact location, vehicle make/model, and situation description.",
       food: "Also collect: order details, delivery address (if delivery), and desired pickup/delivery time.",
       medical: "Also collect: date of birth, insurance info, and reason for visit.",
+      sales: "Also collect: what they're looking for, budget range, timeline, and trade-in info if applicable.",
     },
   },
   "faqs": {
@@ -106,6 +111,7 @@ export const SECTION_GUIDANCE: Record<string, SectionGuidance> = {
       food: "Popular ones: hours, allergens, delivery area, reservations, and large party info.",
       dispatch: "Popular ones: ETA, pricing, payment methods, what to do at the scene, and coverage area.",
       medical: "Popular ones: insurance accepted, new patient process, wait times, and telehealth.",
+      sales: "Popular ones: financing options, trade-in process, warranty, test drive availability, and delivery.",
     },
   },
   "objections": {
@@ -122,6 +128,7 @@ export const SECTION_GUIDANCE: Record<string, SectionGuidance> = {
       service: "Set your travel radius from your shop or home base.",
       dispatch: "Define your coverage zones with pricing that increases by distance.",
       food: "Set your delivery radius and any minimum order for delivery.",
+      sales: "Define your showroom location and any delivery or installation service areas.",
       default: "Define the area you serve so your AI can qualify callers by location.",
     },
   },

@@ -98,6 +98,19 @@ export const MODE_CONTRACTS: Record<BusinessMode, ModeFieldContract> = {
       priceLabel: "Price",
     },
   },
+
+  sales: {
+    showDuration: true,               // ✓ Appointment/demo duration
+    showDepositRequired: true,        // ✓ Deposits common on high-ticket items
+    showPreparationInstructions: true, // ✓ Prep notes for showings/demos
+    showUpsellSuggestions: true,      // ✓ Add-ons, warranties, financing
+    allowedPriceTypes: ["fixed", "starting_at", "quote_only"],
+    labels: {
+      offeringName: "Product Name",
+      offeringDescription: "Product Description",
+      priceLabel: "Price",
+    },
+  },
 };
 
 /**

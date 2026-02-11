@@ -610,6 +610,38 @@ export const INDUSTRY_TEST_DATA: Record<BusinessMode, IndustryTestData> = {
       { customer_name: "Taylor Reed", service_requested: "Premium Package", summary: "Booked premium package after consultation. Payment processed, appointment confirmed.", outcome: "booked" },
     ],
   },
+
+  sales: {
+    tenantName: "Prestige Auto Group",
+    services: [
+      { name: "Test Drive Appointment", description: "Schedule a test drive for any vehicle in our inventory", duration_minutes: 60, price_amount: null, price_type: "quote_only" },
+      { name: "Trade-In Appraisal", description: "Get your vehicle appraised for trade-in value", duration_minutes: 30, price_amount: null, price_type: "quote_only" },
+      { name: "Finance Consultation", description: "Meet with our finance team to discuss payment options", duration_minutes: 45, price_amount: null, price_type: "quote_only" },
+      { name: "Vehicle Delivery", description: "Schedule delivery of your new vehicle", duration_minutes: 30, price_amount: 0, price_type: "fixed" },
+    ],
+    faqs: [
+      { question: "Do you offer financing?", answer: "Yes! We work with over 20 lenders to find the best rate for your credit situation. We offer terms from 24 to 84 months." },
+      { question: "Do you accept trade-ins?", answer: "Absolutely! Bring your vehicle in for a free appraisal. We accept trade-ins on all purchases and can apply the value toward your down payment." },
+      { question: "What's your return policy?", answer: "We offer a 7-day/500-mile return policy on all pre-owned vehicles. New vehicles are covered by the manufacturer's warranty." },
+      { question: "Can I see the vehicle history report?", answer: "Yes, we provide a free Carfax report on all pre-owned vehicles. Just ask your sales rep or call us with the stock number." },
+    ],
+    policies: [
+      { title: "Test Drive Policy", content: "Valid driver's license required. Test drives are limited to 30 minutes and a pre-approved route. Insurance verification may be required for high-value vehicles.", type: "policy" },
+      { title: "Deposit Policy", content: "A $500 refundable deposit holds any vehicle for up to 48 hours. Deposits are applied toward the purchase price or refunded if you decide not to proceed.", type: "policy" },
+    ],
+    objections: [
+      { objection: "I'm just looking", response: "No pressure at all! Would you like to come in and see it in person? Sometimes photos don't do them justice. I can have it pulled up front and ready for you." },
+      { objection: "I can find it cheaper online", response: "I appreciate you doing your homework! Our prices include a full inspection, detail, and warranty. Would you like me to put together a detailed comparison?" },
+      { objection: "I need to talk to my spouse", response: "Absolutely, that's a big decision! Would it help to schedule a time when you can both come in? I can have everything ready so you can make the most of your visit." },
+    ],
+    hours: STANDARD_HOURS,
+    calls: [
+      { customer_name: "Ryan Mitchell", service_requested: "Test Drive - 2024 Honda Accord", summary: "Prospect interested in 2024 Accord Sport. Has a 2019 Civic to trade in. Scheduled test drive for Saturday at 10am.", outcome: "booked", context_extra: { vehicle_interest: "2024 Honda Accord Sport", trade_in: "2019 Honda Civic" } },
+      { customer_name: "Sarah Chen", service_requested: "Pricing Inquiry - SUV", summary: "Looking for a mid-size SUV under $40k. Interested in CR-V and RAV4. Wants to compare. Will call back after research.", outcome: "followup", context_extra: { budget: "under $40k" } },
+      { customer_name: "James Rodriguez", service_requested: "Finance Question", summary: "Wants to know about financing for a pre-owned truck. Credit score around 680. Transferred to finance department.", outcome: "followup" },
+      { customer_name: "Michelle Park", service_requested: "Vehicle Availability", summary: "Asked about a specific VIN she saw online. Vehicle is available. Booked appointment for tomorrow at 2pm.", outcome: "booked" },
+    ],
+  },
 };
 
 // Helper function to compute relative dates

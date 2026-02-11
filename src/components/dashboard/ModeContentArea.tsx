@@ -10,6 +10,7 @@ export function ModeContentArea() {
 
   switch (caps.derivedPrimaryMode) {
     case "service":
+    case "sales":
       return <ServiceDashboardLayout />;
     case "dispatch":
       return <DispatchDashboardLayout />;

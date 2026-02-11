@@ -59,6 +59,15 @@ export function SuggestedTestsBanner({ onDismiss }: SuggestedTestsBannerProps) {
           "What should I bring to my first visit?",
         ];
 
+      case "sales":
+        return [
+          "I'm interested in scheduling a test drive",
+          "What do you have available in my budget?",
+          "Do you offer financing options?",
+          "I'd like to book an appointment with a sales rep",
+          "What's your return or exchange policy?",
+        ];
+
       case "general":
       default:
         return [

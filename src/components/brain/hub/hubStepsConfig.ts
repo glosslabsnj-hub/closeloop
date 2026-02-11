@@ -39,6 +39,7 @@ const MODE_TITLES: Record<string, Partial<Record<BusinessMode, string>>> = {
     food: "Menu & Pricing",
     medical: "Services & Pricing",
     general: "Services & Pricing",
+    sales: "Products & Pricing",
   },
   coverage: {
     service: "Service Area",
@@ -46,10 +47,12 @@ const MODE_TITLES: Record<string, Partial<Record<BusinessMode, string>>> = {
     food: "Delivery Zones",
     medical: "Service Area & ETA",
     general: "Service Area & ETA",
+    sales: "Showroom & Coverage",
   },
   calendar: {
     service: "Calendar & Availability",
     medical: "Calendar & Availability",
+    sales: "Calendar & Availability",
   },
   policies: {
     service: "Booking Policies",
@@ -57,6 +60,7 @@ const MODE_TITLES: Record<string, Partial<Record<BusinessMode, string>>> = {
     food: "Order Policies",
     medical: "Patient Intake & HIPAA",
     general: "Policies & Intake",
+    sales: "Sales Policies",
   },
   "ai-setup": {
     service: "AI Scripts",
@@ -64,6 +68,7 @@ const MODE_TITLES: Record<string, Partial<Record<BusinessMode, string>>> = {
     food: "AI Scripts",
     medical: "AI Scripts",
     general: "AI Scripts",
+    sales: "AI Scripts",
   },
   knowledge: {
     service: "FAQs & Training",
@@ -71,6 +76,7 @@ const MODE_TITLES: Record<string, Partial<Record<BusinessMode, string>>> = {
     food: "FAQs & Training",
     medical: "Patient FAQs",
     general: "FAQs & Training",
+    sales: "FAQs & Training",
   },
 };
 
@@ -110,7 +116,7 @@ export const HUB_STEPS: HubStep[] = [
       "Quotes prices accurately when asked",
       "Matches caller needs to the right service",
     ],
-    emphasis: ["service", "food", "dispatch"],
+    emphasis: ["service", "food", "dispatch", "sales"],
   },
   {
     id: "coverage",
@@ -136,7 +142,7 @@ export const HUB_STEPS: HubStep[] = [
       "Avoids double-booking automatically",
       "Respects blocked times and buffers",
     ],
-    emphasis: ["service", "medical"],
+    emphasis: ["service", "medical", "sales"],
     hiddenModes: ["dispatch", "food"],
   },
   {

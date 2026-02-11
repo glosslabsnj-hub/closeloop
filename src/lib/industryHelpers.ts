@@ -16,6 +16,7 @@ export const MODE_LABELS: Record<BusinessMode, { label: string; icon: string; co
   food: { label: "Restaurant / Food", icon: "UtensilsCrossed", color: "text-orange-500" },
   medical: { label: "Medical Practice", icon: "HeartPulse", color: "text-rose-500" },
   general: { label: "General Business", icon: "Building2", color: "text-slate-500" },
+  sales: { label: "Sales Business", icon: "DollarSign", color: "text-indigo-500" },
 };
 
 /**
@@ -45,6 +46,7 @@ export const SECTION_HELPERS: Record<string, SectionHelperContent> = {
       food: "\"Thanks for calling Bella's Pizza, home of the best deep dish in Chicago!\"",
       medical: "\"Thank you for calling Greenview Family Practice, where your health comes first.\"",
       general: "\"Thanks for calling [Your Business], how can I help you today?\"",
+      sales: "\"Thanks for calling Prestige Auto Group! Whether you're looking for a new ride or want to trade in your current vehicle, we'd love to help.\"",
     },
     tipsByMode: {
       service: "A strong tagline like 'Licensed & insured since 2010' builds instant trust with callers.",
@@ -52,6 +54,7 @@ export const SECTION_HELPERS: Record<string, SectionHelperContent> = {
       food: "Mention your specialty! 'Home of the famous...' makes you memorable.",
       medical: "Include credentials like 'Board-certified' to establish professionalism immediately.",
       general: "Your tagline is the first impression — make it count!",
+      sales: "Lead with what makes you different — 'Largest selection in the county' or 'Family-owned since 1985' builds trust with buyers.",
     },
   },
   hours: {
@@ -68,6 +71,7 @@ export const SECTION_HELPERS: Record<string, SectionHelperContent> = {
       food: "\"We're open until 10 PM tonight. Would you like to place an order?\"",
       medical: "\"Our office hours are 9 AM to 5 PM weekdays. I can check our next available.\"",
       general: "\"We're open until 5 PM today. What can I help you with?\"",
+      sales: "\"We're open Monday through Saturday, 9 AM to 7 PM, and Sundays noon to 5. Would you like to schedule a visit?\"",
     },
     tipsByMode: {
       service: "Set your hours accurately — the AI won't offer appointments outside these times.",
@@ -75,6 +79,7 @@ export const SECTION_HELPERS: Record<string, SectionHelperContent> = {
       food: "Consider different hours for pickup vs. delivery if your kitchen closes earlier.",
       medical: "Include lunch breaks if your office is closed during certain hours.",
       general: "Holiday hours should be updated in advance so the AI knows when you're closed.",
+      sales: "Set your showroom hours accurately. Your AI will suggest appointment times within these hours.",
     },
   },
   services: {
@@ -91,6 +96,7 @@ export const SECTION_HELPERS: Record<string, SectionHelperContent> = {
       food: "\"Our large pepperoni is $18.99. Want me to add that to your order?\"",
       medical: "\"A new patient consultation is $150, and we accept most major insurance.\"",
       general: "\"We have several options available. Let me walk you through them.\"",
+      sales: "\"We have a great selection of certified pre-owned vehicles starting around $18,000. What type of vehicle are you looking for?\"",
     },
     tipsByMode: {
       service: "Include duration estimates so the AI can schedule appointments correctly.",
@@ -98,6 +104,7 @@ export const SECTION_HELPERS: Record<string, SectionHelperContent> = {
       food: "Add modifiers like 'add cheese +$2' so the AI can customize orders.",
       medical: "List both self-pay rates and insurance options so the AI can answer cost questions.",
       general: "The more detail you add, the better the AI can match callers to what they need.",
+      sales: "Add your main product categories with price ranges so the AI can match callers to the right inventory.",
     },
   },
   "service-area": {
@@ -114,6 +121,7 @@ export const SECTION_HELPERS: Record<string, SectionHelperContent> = {
       food: "\"We deliver within 5 miles of the restaurant. What's your address?\"",
       medical: "\"We see patients from anywhere, but our office is located in...\"",
       general: "\"Let me confirm we can help in your area. What city are you in?\"",
+      sales: "\"We serve customers across the entire metro area. We can also arrange delivery within 100 miles of our location.\"",
     },
     tipsByMode: {
       service: "Set a smaller 'same-day' radius so urgent jobs are close enough to squeeze in.",
@@ -121,6 +129,7 @@ export const SECTION_HELPERS: Record<string, SectionHelperContent> = {
       food: "Delivery radius affects whether the AI offers delivery or suggests pickup instead.",
       medical: "If you do telehealth, you can serve patients outside your physical location.",
       general: "Clear out-of-area messaging prevents frustration for callers you can't help.",
+      sales: "If you offer delivery or home showings, set your travel radius here so the AI knows what to offer.",
     },
   },
   availability: {
@@ -137,6 +146,7 @@ export const SECTION_HELPERS: Record<string, SectionHelperContent> = {
       food: "\"We can have that ready for you in about 20 minutes.\"",
       medical: "\"Dr. Smith has an opening this Thursday at 2:30. Would that work?\"",
       general: "\"Let me check what's available... I can offer you Thursday or Friday.\"",
+      sales: "\"I can schedule a private showing for you. We have openings tomorrow afternoon or Saturday morning.\"",
     },
     tipsByMode: {
       service: "Connect your Google or Outlook calendar for real-time availability.",
@@ -144,6 +154,7 @@ export const SECTION_HELPERS: Record<string, SectionHelperContent> = {
       food: "Prep time settings are more important than calendar for food businesses.",
       medical: "Block lunch hours and admin time so the AI doesn't book into them.",
       general: "The AI will only offer times that are actually available on your calendar.",
+      sales: "Connect your calendar so the AI can book showroom appointments and showings without double-booking your team.",
     },
   },
   policies: {
@@ -160,6 +171,7 @@ export const SECTION_HELPERS: Record<string, SectionHelperContent> = {
       food: "\"We accept all major credit cards. Will this be for pickup or delivery?\"",
       medical: "\"We'll verify your insurance before your visit. Copays are due at time of service.\"",
       general: "\"Let me explain our cancellation policy before we book...\"",
+      sales: "\"We offer a 5-day return policy on all vehicles, and our financing department can get you pre-approved in minutes.\"",
     },
     tipsByMode: {
       service: "Write policies as if speaking — the AI reads them naturally to callers.",
@@ -167,6 +179,7 @@ export const SECTION_HELPERS: Record<string, SectionHelperContent> = {
       food: "Clear delivery minimums and fees prevent confusion on the call.",
       medical: "HIPAA settings control what the AI can and cannot discuss about patient info.",
       general: "The 'Never Promise' section prevents the AI from over-committing.",
+      sales: "Include your return policy, warranty info, financing terms, and trade-in process so the AI can answer confidently.",
     },
   },
   knowledge: {
@@ -183,6 +196,7 @@ export const SECTION_HELPERS: Record<string, SectionHelperContent> = {
       food: "\"Our gluten-free options include the cauliflower crust and all our salads.\"",
       medical: "\"We accept most major insurance plans. I can verify yours when you come in.\"",
       general: "\"That's a great question — let me explain how that works...\"",
+      sales: "\"Yes, we offer financing with rates as low as 2.9% APR for qualified buyers. Would you like to get pre-approved?\"",
     },
     tipsByMode: {
       service: "Add FAQs about licensing, insurance, and warranties — callers ask these often.",
@@ -190,6 +204,7 @@ export const SECTION_HELPERS: Record<string, SectionHelperContent> = {
       food: "Allergen info, dietary options, and ingredient questions are common.",
       medical: "Pre-visit instructions and insurance questions reduce confusion.",
       general: "The more FAQs you add, the fewer 'I don't know' responses from your AI.",
+      sales: "Add FAQs about financing, warranties, trade-ins, and delivery — these are the questions sales prospects ask most.",
     },
   },
   "ai-behavior": {
@@ -206,6 +221,7 @@ export const SECTION_HELPERS: Record<string, SectionHelperContent> = {
       food: "\"Thanks for calling Mario's! Ready to take your order whenever you are.\"",
       medical: "\"Thank you for calling Oakwood Medical. How may I direct your call?\"",
       general: "\"Hi, thanks for calling! How can I help you today?\"",
+      sales: "\"Hi, thanks for calling Prestige Auto! I can help you find the right vehicle, check availability, or schedule a visit. What are you looking for?\"",
     },
     tipsByMode: {
       service: "A friendly, professional tone works best. The AI should sound helpful, not robotic.",
@@ -213,6 +229,7 @@ export const SECTION_HELPERS: Record<string, SectionHelperContent> = {
       food: "Upbeat and casual works well for restaurants. Sound hungry!",
       medical: "Professional and calm. Patients may be worried — reassure them.",
       general: "Your greeting script is read word-for-word, so make it sound natural.",
+      sales: "Sales greetings should be warm and action-oriented. Guide callers toward scheduling an appointment or test drive.",
     },
   },
   fleet: {
