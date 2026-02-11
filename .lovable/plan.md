@@ -1,26 +1,45 @@
 
 
-# Skip Twilio Provisioning for Super Admin Test Tenants
+# Add Per-Tenant Delete to Admin Tenants Page
 
 ## Problem
-Every time you create a test tenant as a super admin, it provisions a new Twilio number (costing money and cluttering your account). You just want test tenants to use the universal admin test line (+1-855-329-7357) that already routes based on your active tenant selection.
+The Admin Tenants page (`AdminTenantsPage.tsx`) uses hardcoded demo data and has no real functionality. You need to see all your actual tenants and delete test ones individually.
 
 ## Solution
-Add an `isSuperAdmin` check at every Twilio provisioning call site. If the current user is a super admin, skip provisioning entirely -- those tenants use the shared test line instead.
 
-## Changes (3 files)
+### 1. New Edge Function: `delete-tenant`
+Create `supabase/functions/delete-tenant/index.ts` -- a dedicated super-admin-only function that deletes a tenant by ID.
 
-### 1. `src/pages/app/OnboardingPage.tsx` (line ~81, ~484-515)
-- Destructure `isSuperAdmin` from `useAuth()` alongside `user, tenant, loading`
-- Wrap the Twilio provisioning block (step 8) with `if (shouldProvision && !isSuperAdmin)` -- super admins skip provisioning, log "skipped: admin-test-tenant"
+- Accepts `{ tenant_id: string }` in the request body
+- Verifies the caller is a `super_admin` (same auth check as `seed-test-tenants`)
+- Prevents deleting the admin's own tenant (safety check)
+- Cascading delete of all related data in correct FK order (same sequence already proven in `seed-test-tenants` lines 113-127):
+  - ai_call_sessions, bookings, dispatch_jobs, food_orders, medical_intakes, services, business_faqs, objection_responses, automations, assistant_settings, subscriptions, food_order_settings, customers, tenant_memberships, then tenants
+- Returns `{ tenant_id, status: "deleted" }`
 
-### 2. `src/hooks/useSubscription.ts` (line ~182-200)
-- Accept an optional `isSuperAdmin` parameter (or add it as a new argument)
-- Wrap the `provision-twilio-number` invoke with `if (!isSuperAdmin)` check
-- Log: "Skipping Twilio provisioning for admin test tenant"
+### 2. Rewrite `AdminTenantsPage.tsx` (currently hardcoded demo data)
+Replace with a real, functional page:
 
-### 3. Other provisioning call sites (safety)
-- `PhoneConnectionStep.tsx`, `ConnectPhoneDialog.tsx`, `PhoneNumberCard.tsx`, `MultiLocationManager.tsx` -- these are manual "Connect Phone" buttons in the dashboard, so they should still work for admins who explicitly click them. No changes needed there since those are intentional user actions, not automatic provisioning.
+- **Fetch all tenants** from the `tenants` table using a React Query hook (select id, name, business_mode, industry, created_at, onboarding_completed_at)
+- **Search filter** (already has the UI -- wire it up to filter by tenant name)
+- **Each tenant card** shows: name, business mode badge, industry, created date
+- **Delete button** on each card with an AlertDialog confirmation ("Type DELETE to confirm" pattern, same as DangerZoneSection)
+- **Calls `delete-tenant` edge function** on confirm, then refetches the tenant list
+- **Protects the admin's own tenant** -- disable/hide delete on the user's own tenant
+- Show a loading spinner during deletion
 
-## No database changes needed
-The admin test line routing already works via `twilio-inbound` looking up `admin_settings.admin_active_tenant_id`. This change just prevents automatic number provisioning during onboarding/subscription creation for admin users.
+### 3. No Database Changes
+The edge function uses the service role key to bypass RLS for the cascading delete. No migrations needed.
+
+## Technical Details
+
+**Files created:**
+| File | Purpose |
+|------|---------|
+| `supabase/functions/delete-tenant/index.ts` | Super-admin-only tenant deletion with FK cascade |
+
+**Files modified:**
+| File | Change |
+|------|--------|
+| `src/pages/admin/AdminTenantsPage.tsx` | Replace demo data with real DB query, add delete per tenant |
+
