@@ -23,7 +23,7 @@ interface UseSubscriptionResult {
   refetch: () => Promise<void>;
 }
 
-export function useSubscription(tenantId: string | null): UseSubscriptionResult {
+export function useSubscription(tenantId: string | null, isSuperAdmin: boolean = false): UseSubscriptionResult {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [assistantSettings, setAssistantSettings] = useState<AssistantSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -179,8 +179,8 @@ export function useSubscription(tenantId: string | null): UseSubscriptionResult 
         });
     }
 
-    // Provision Twilio number for voice plans
-    if (hasVoiceFeature(sku)) {
+    // Provision Twilio number for voice plans (skip for super admin test tenants)
+    if (hasVoiceFeature(sku) && !isSuperAdmin) {
       try {
         console.log("Provisioning Twilio number for voice plan...");
         const { data, error: provisionError } = await supabase.functions.invoke("provision-twilio-number", {

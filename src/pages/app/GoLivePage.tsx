@@ -37,8 +37,8 @@ const getIcon = (iconName: TierInfo["icon"]) => {
 };
 
 export default function GoLivePage() {
-  const { tenant, refreshTenant } = useAuth();
-  const { createSubscription, loading: subLoading } = useSubscription(tenant?.id || null);
+  const { tenant, refreshTenant, isSuperAdmin } = useAuth();
+  const { createSubscription, loading: subLoading } = useSubscription(tenant?.id || null, isSuperAdmin);
   const { score, canGoLive, p0Flags, isReady } = useAIReadinessV2();
   const [step, setStep] = useState<"tier" | "usage">("tier");
   const [selectedTier, setSelectedTier] = useState<PlanTier | null>(null);

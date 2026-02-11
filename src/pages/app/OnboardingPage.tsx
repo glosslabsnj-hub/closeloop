@@ -78,7 +78,7 @@ export default function OnboardingPage() {
     getDefaultCommunicationPrefs("service")
   );
 
-  const { user, tenant, loading: authLoading, refreshTenant } = useAuth();
+  const { user, tenant, loading: authLoading, refreshTenant, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -484,7 +484,7 @@ export default function OnboardingPage() {
       // 8. Twilio provisioning
       const shouldProvision = planCode.startsWith("voice") || planCode.startsWith("both");
 
-      if (shouldProvision) {
+      if (shouldProvision && !isSuperAdmin) {
         try {
           console.log("TwilioProvision: start", { tenantId, planCode });
           const { data: provisionData, error: provisionError } = await supabase.functions.invoke(
@@ -511,7 +511,7 @@ export default function OnboardingPage() {
           console.error("TwilioProvision: exception", { message: provErr instanceof Error ? provErr.message : String(provErr) });
         }
       } else {
-        console.log("TwilioProvision: skipped", { reason: "no-voice-feature", planCode });
+        console.log("TwilioProvision: skipped", { reason: isSuperAdmin ? "admin-test-tenant" : "no-voice-feature", planCode });
       }
 
       // 9. Auto-create default workflows
