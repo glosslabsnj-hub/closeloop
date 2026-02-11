@@ -115,7 +115,7 @@ export function AppSidebar({
     workspaceItems.push({ href: "/app/test-drives", label: "Test Drives", icon: Car });
   }
   if (caps.hasSalesInventory) {
-    workspaceItems.push({ href: "/app/inventory", label: "Inventory", icon: Warehouse });
+    workspaceItems.push({ href: "/app/sales-inventory", label: "Inventory", icon: Warehouse });
   }
   workspaceItems.push({ href: "/app/estimates", label: "Estimates", icon: FileText });
 

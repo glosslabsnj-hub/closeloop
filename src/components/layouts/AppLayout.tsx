@@ -32,6 +32,7 @@ import {
   Stethoscope,
   FlaskConical,
   AudioWaveform,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useMemo } from "react";
@@ -78,6 +79,8 @@ function AppLayoutContent() {
       items.push({ href: "/app/orders", label: "Orders", icon: UtensilsCrossed });
     } else if (caps.isDispatchBusiness && caps.hasDispatchQueue) {
       items.push({ href: "/app/dispatch", label: "Jobs", icon: Truck });
+    } else if (caps.isSalesBusiness && caps.hasSalesLeads) {
+      items.push({ href: "/app/sales-pipeline", label: "Pipeline", icon: DollarSign });
     } else if (caps.hasBooking) {
       items.push({ href: "/app/bookings", label: terms.bookingsPageTitle || "Bookings", icon: Calendar });
     }

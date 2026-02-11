@@ -697,6 +697,7 @@ const salesQuestions: ScenarioQuestion[] = [
     defaultValue: true,
     impliesModules: ["test_drives"],
     group: "core",
+    industryFilter: { slugs: ["car-dealership-new", "car-dealership-used", "car-dealership-full", "rv-dealer", "boat-dealer", "motorcycle-dealer", "equipment-sales"] },
   },
   {
     id: "financing",
@@ -717,6 +718,7 @@ const salesQuestions: ScenarioQuestion[] = [
     defaultValue: true,
     group: "core",
     requiredForAI: true,
+    industryFilter: { slugs: ["car-dealership-new", "car-dealership-used", "car-dealership-full", "rv-dealer", "boat-dealer", "motorcycle-dealer", "equipment-sales"] },
   },
   {
     id: "inventory-reference",
@@ -733,9 +735,10 @@ const salesQuestions: ScenarioQuestion[] = [
     capabilityKey: "hasCRMIntegration",
     label: "CRM / DMS",
     question: "Do you use a CRM or DMS system?",
-    description: "DealerSocket, vAuto, CDK, Salesforce, etc.",
+    description: "DealerSocket, vAuto, CDK, Salesforce, HubSpot, etc.",
     defaultValue: false,
     group: "advanced",
+    industryFilter: { slugs: ["car-dealership-new", "car-dealership-used", "car-dealership-full", "rv-dealer", "boat-dealer", "motorcycle-dealer"] },
   },
   {
     id: "sales-team",

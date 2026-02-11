@@ -10,7 +10,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   DollarSign, Package, Truck, UtensilsCrossed, Tag, Lightbulb,
   MapPin, HeartPulse, Warehouse, Phone, FileCheck,
-  AlertCircle, Shield, Users, Car,
+  AlertCircle, Shield, Users,
 } from "lucide-react";
 import type { Capabilities } from "@/hooks/useCapabilities";
 
@@ -261,8 +261,8 @@ export const SECTION_RELEVANCE: SectionRelevance[] = [
     addOn: {
       id: "sales-inventory",
       title: "Sales Inventory",
-      description: "Enable to manage vehicle/product inventory for AI reference",
-      icon: Car,
+      description: "Enable to manage product inventory for AI reference",
+      icon: Warehouse,
       capabilityKey: "hasSalesInventory",
       modulesToEnable: ["sales_inventory"],
     },
@@ -274,7 +274,7 @@ export const SECTION_RELEVANCE: SectionRelevance[] = [
     addOn: {
       id: "sales-policies",
       title: "Sales Policies",
-      description: "Enable for financing, trade-in, and test drive policies",
+      description: "Enable for sales-specific policies and procedures",
       icon: DollarSign,
       capabilityKey: "hasSalesLeads",
       modulesToEnable: ["sales_leads"],
@@ -287,8 +287,8 @@ export const SECTION_RELEVANCE: SectionRelevance[] = [
     addOn: {
       id: "sales-knowledge",
       title: "Sales Knowledge",
-      description: "Enable for product details and objection scripts",
-      icon: Car,
+      description: "Enable for product knowledge and sales scripts",
+      icon: DollarSign,
       capabilityKey: "hasSalesLeads",
       modulesToEnable: ["sales_leads"],
     },

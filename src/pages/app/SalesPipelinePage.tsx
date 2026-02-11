@@ -1,0 +1,156 @@
+import { useState, useMemo } from "react";
+import { useModuleRequired } from "@/hooks/useModuleRequired";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { DollarSign, Search, Loader2, User, Phone, Clock } from "lucide-react";
+import { useSalesLeads } from "@/hooks/useSalesLeads";
+import { EmptyState } from "@/components/ui/empty-state";
+import { cn } from "@/lib/utils";
+
+const PIPELINE_COLUMNS = [
+  { key: "new", label: "New", color: "bg-blue-500" },
+  { key: "contacted", label: "Contacted", color: "bg-yellow-500" },
+  { key: "qualified", label: "Qualified", color: "bg-purple-500" },
+  { key: "appointment_set", label: "Appointment", color: "bg-indigo-500" },
+  { key: "test_drive", label: "Test Drive", color: "bg-cyan-500" },
+  { key: "negotiation", label: "Negotiation", color: "bg-orange-500" },
+  { key: "sold", label: "Sold", color: "bg-green-500" },
+  { key: "lost", label: "Lost", color: "bg-gray-500" },
+] as const;
+
+const priorityColors: Record<string, string> = {
+  hot: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  high: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+  normal: "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400",
+  low: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+};
+
+export default function SalesPipelinePage() {
+  const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["sales_leads"]);
+  const { leads, isLoading, stats, updateLead } = useSalesLeads();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredLeads = useMemo(() => {
+    if (!searchQuery) return leads;
+    const q = searchQuery.toLowerCase();
+    return leads.filter(
+      (l) =>
+        l.customer?.full_name?.toLowerCase().includes(q) ||
+        l.vehicle_interest?.toLowerCase().includes(q) ||
+        l.lead_number?.toLowerCase().includes(q)
+    );
+  }, [leads, searchQuery]);
+
+  const leadsByStatus = useMemo(() => {
+    const grouped: Record<string, typeof leads> = {};
+    for (const col of PIPELINE_COLUMNS) {
+      grouped[col.key] = filteredLeads.filter((l) => l.status === col.key);
+    }
+    return grouped;
+  }, [filteredLeads]);
+
+  if (moduleLoading || !isAllowed || isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <PageContainer maxWidth="full">
+      <div className="space-y-6">
+        <PageHeader
+          icon={DollarSign}
+          title="Sales Pipeline"
+          description={`${stats.total} leads total — ${stats.hot} hot, ${stats.new} new`}
+        />
+
+        {/* Search */}
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search leads..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+
+        {leads.length === 0 ? (
+          <EmptyState
+            icon={DollarSign}
+            title="No sales leads yet"
+            description="Sales leads will appear here as your AI agent qualifies callers."
+          />
+        ) : (
+          /* Kanban board */
+          <div className="overflow-x-auto pb-4">
+            <div className="flex gap-4 min-w-max">
+              {PIPELINE_COLUMNS.map((col) => (
+                <div key={col.key} className="w-72 flex-shrink-0">
+                  <div className="flex items-center gap-2 mb-3 px-1">
+                    <div className={cn("w-2 h-2 rounded-full", col.color)} />
+                    <span className="text-sm font-medium">{col.label}</span>
+                    <Badge variant="secondary" className="ml-auto text-xs">
+                      {leadsByStatus[col.key]?.length || 0}
+                    </Badge>
+                  </div>
+
+                  <div className="space-y-2 min-h-[200px]">
+                    {leadsByStatus[col.key]?.map((lead) => (
+                      <Card key={lead.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                        <CardContent className="p-3 space-y-2">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <User className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="text-sm font-medium truncate">
+                                {lead.customer?.full_name || "Unknown"}
+                              </span>
+                            </div>
+                            <Badge className={cn("text-[10px] px-1.5", priorityColors[lead.priority])}>
+                              {lead.priority}
+                            </Badge>
+                          </div>
+
+                          {lead.vehicle_interest && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              {lead.vehicle_interest}
+                            </p>
+                          )}
+
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            {lead.customer?.phone_e164 && (
+                              <span className="flex items-center gap-1">
+                                <Phone className="h-3 w-3" />
+                                {lead.customer.phone_e164}
+                              </span>
+                            )}
+                            {lead.timeline && (
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {lead.timeline.replace("_", " ")}
+                              </span>
+                            )}
+                          </div>
+
+                          {lead.lead_number && (
+                            <p className="text-[10px] text-muted-foreground">{lead.lead_number}</p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </PageContainer>
+  );
+}

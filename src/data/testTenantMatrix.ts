@@ -640,6 +640,71 @@ const generalTenants: TestTenantConfig[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// SALES MODE (2 tenants)
+// ---------------------------------------------------------------------------
+
+const salesTenants: TestTenantConfig[] = [
+  {
+    slug: "test-car-dealership",
+    name: "Prestige Auto Group",
+    address: "1500 Auto Mall Dr, Plano, TX 75093",
+    timezone: "America/Chicago",
+    business_mode: "sales",
+    industry: "car-dealership-full",
+    enabled_modules: ["ai_voice", "instant_text_back", "sales_leads", "test_drives", "booking", "sales_inventory"],
+    capabilities_json: {
+      ai_voice: true,
+      instant_text_back: true,
+      sales_leads: true,
+      test_drives: true,
+      booking: true,
+      sales_inventory: true,
+      offersFinancing: true,
+      acceptsTradeIns: true,
+      hasSalesTeam: true,
+      hasCRMIntegration: false,
+    },
+    hipaa_mode: false,
+    scenario: "Full-service car dealership, new + used, financing, trade-ins, inventory",
+    scenarioTags: ["dealership", "test-drives", "financing", "trade-in", "inventory"],
+    communicationPrefs: {
+      aiBookingMode: "auto_book",
+      missedCallBehavior: "both",
+      unknownQuestionBehavior: "try_help",
+    },
+    seedData: { callCount: 10, faqCount: 6, serviceCount: 5, bookingCount: 4 },
+  },
+  {
+    slug: "test-real-estate",
+    name: "Summit Realty Partners",
+    address: "800 Realtor Ave, Scottsdale, AZ 85251",
+    timezone: "America/Phoenix",
+    business_mode: "sales",
+    industry: "real-estate-agency",
+    enabled_modules: ["ai_voice", "instant_text_back", "sales_leads", "booking"],
+    capabilities_json: {
+      ai_voice: true,
+      instant_text_back: true,
+      sales_leads: true,
+      booking: true,
+      offersFinancing: false,
+      acceptsTradeIns: false,
+      hasSalesTeam: true,
+      hasCRMIntegration: false,
+    },
+    hipaa_mode: false,
+    scenario: "Real estate agency, showings as bookings, lead qualification",
+    scenarioTags: ["real-estate", "showings", "leads"],
+    communicationPrefs: {
+      aiBookingMode: "auto_book",
+      missedCallBehavior: "both",
+      unknownQuestionBehavior: "offer_callback",
+    },
+    seedData: { callCount: 8, faqCount: 5, serviceCount: 4, bookingCount: 3 },
+  },
+];
+
+// ---------------------------------------------------------------------------
 // Full matrix
 // ---------------------------------------------------------------------------
 
@@ -649,6 +714,7 @@ export const TEST_TENANT_MATRIX: TestTenantConfig[] = [
   ...foodTenants,
   ...medicalTenants,
   ...generalTenants,
+  ...salesTenants,
 ];
 
 /** Group tenants by mode for display */
@@ -659,6 +725,7 @@ export function getTestTenantsByMode(): Record<BusinessMode, TestTenantConfig[]>
     food: foodTenants,
     medical: medicalTenants,
     general: generalTenants,
+    sales: salesTenants,
   };
 }
 

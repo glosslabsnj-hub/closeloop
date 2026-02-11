@@ -124,6 +124,7 @@ const foodModules = ['ai_voice', 'instant_text_back', 'food_orders', 'menu_knowl
 const medicalModules = ['ai_voice', 'instant_text_back', 'booking', 'medical_intake'];
 const generalModules = ['ai_voice', 'instant_text_back'];
 const salesModules = ['ai_voice', 'instant_text_back', 'sales_leads', 'test_drives', 'booking'];
+const salesLeadsOnlyModules = ['ai_voice', 'instant_text_back', 'sales_leads', 'booking'];
 const salesWithInventoryModules = ['ai_voice', 'instant_text_back', 'sales_leads', 'test_drives', 'booking', 'sales_inventory'];
 
 // ============= BASE TEMPLATES =============
@@ -247,6 +248,35 @@ const dispatchBase: Partial<IndustryCatalogEntry> = {
   ],
   objections: commonObjections,
   defaultPolicies,
+};
+
+const salesBase: Partial<IndustryCatalogEntry> = {
+  businessMode: 'sales',
+  category: 'sales_dealerships',
+  enabledModules: salesModules,
+  contextFields: [
+    { key: 'interest_type', label: 'Interest Type', type: 'select', options: ['Purchase', 'Trade-In', 'Financing', 'General'], required: true },
+    { key: 'timeline', label: 'Purchase Timeline', type: 'select', options: ['Immediate', 'This Week', 'This Month', 'Just Looking'], required: false },
+    { key: 'budget_range', label: 'Budget Range', type: 'text', required: false },
+  ],
+  faqs: [
+    ...commonFAQs,
+    { question: "Do you offer financing?", answer: "Yes, we work with several lenders to find competitive rates. Our finance team can walk you through your options." },
+    { question: "Do you accept trade-ins?", answer: "Yes, we accept trade-ins. Bring your vehicle in and we'll give you a fair market appraisal." },
+    { question: "Can I schedule a test drive?", answer: "Of course! We can set up a test drive at a time that works for you." },
+    { question: "What's your return policy?", answer: "Please ask about our specific return and exchange policies when you visit." },
+  ],
+  objections: [
+    ...commonObjections,
+    { objection: "I can find it cheaper elsewhere", response: "We're confident in our pricing. Let's see what we can put together for you in person — we match value, not just price." },
+    { objection: "I need to talk to my spouse first", response: "Of course! Would you like to bring them in this weekend? We can set up a test drive for both of you." },
+    { objection: "I'm not ready to buy today", response: "No pressure at all. Let me get your info so we can let you know about any specials that match what you're looking for." },
+  ],
+  defaultPolicies: {
+    cancellation: "Test drive and appointment cancellations are free up to 2 hours before.",
+    deposit: "A deposit may be required to hold a specific vehicle or lock in pricing.",
+    refund: "Please review our purchase agreement for full details on returns and exchanges.",
+  },
 };
 
 // ============= INDUSTRY CATALOG =============
@@ -1867,6 +1897,204 @@ export const industryCatalog: IndustryCatalogEntry[] = [
       { name: 'Pre-Listing Inspection', duration: 180, price: 350, priceType: 'starting_at' },
       { name: 'Radon Testing', duration: 30, price: 150, priceType: 'fixed' },
       { name: 'Mold Inspection', duration: 90, price: 250, priceType: 'starting_at' },
+    ],
+  },
+
+  // ============= SALES & DEALERSHIPS =============
+  {
+    ...salesBase as IndustryCatalogEntry,
+    slug: 'car-dealership-new',
+    name: 'New Car Dealership',
+    icon: '🚗',
+    tags: ['car', 'dealership', 'new cars', 'auto dealer', 'vehicle sales', 'test drive'],
+    enabledModules: salesWithInventoryModules,
+    services: [
+      { name: 'Test Drive', duration: 30, price: 0, priceType: 'fixed' },
+      { name: 'Financing Consultation', duration: 45, price: 0, priceType: 'fixed' },
+      { name: 'Trade-In Appraisal', duration: 30, price: 0, priceType: 'fixed' },
+      { name: 'Vehicle Delivery Setup', duration: 60, price: 0, priceType: 'fixed' },
+    ],
+  },
+  {
+    ...salesBase as IndustryCatalogEntry,
+    slug: 'car-dealership-used',
+    name: 'Used Car Dealership',
+    icon: '🚙',
+    tags: ['used cars', 'pre-owned', 'second hand', 'car lot', 'auto sales'],
+    enabledModules: salesWithInventoryModules,
+    services: [
+      { name: 'Test Drive', duration: 30, price: 0, priceType: 'fixed' },
+      { name: 'Vehicle Inspection', duration: 30, price: 0, priceType: 'fixed' },
+      { name: 'Financing Consultation', duration: 45, price: 0, priceType: 'fixed' },
+      { name: 'Trade-In Appraisal', duration: 30, price: 0, priceType: 'fixed' },
+    ],
+  },
+  {
+    ...salesBase as IndustryCatalogEntry,
+    slug: 'car-dealership-full',
+    name: 'Full-Service Car Dealership',
+    icon: '🏪',
+    tags: ['car dealership', 'full service', 'new used', 'auto dealer', 'sales service'],
+    enabledModules: salesWithInventoryModules,
+    services: [
+      { name: 'Test Drive', duration: 30, price: 0, priceType: 'fixed' },
+      { name: 'Financing Consultation', duration: 45, price: 0, priceType: 'fixed' },
+      { name: 'Trade-In Appraisal', duration: 30, price: 0, priceType: 'fixed' },
+      { name: 'Service Appointment', duration: 60, price: 0, priceType: 'quote_only' },
+    ],
+  },
+  {
+    ...salesBase as IndustryCatalogEntry,
+    slug: 'rv-dealer',
+    name: 'RV Dealership',
+    icon: '🚐',
+    tags: ['rv', 'recreational vehicle', 'camper', 'motorhome', 'travel trailer'],
+    enabledModules: salesWithInventoryModules,
+    services: [
+      { name: 'RV Tour / Walkthrough', duration: 60, price: 0, priceType: 'fixed' },
+      { name: 'Financing Consultation', duration: 45, price: 0, priceType: 'fixed' },
+      { name: 'Trade-In Appraisal', duration: 45, price: 0, priceType: 'fixed' },
+    ],
+  },
+  {
+    ...salesBase as IndustryCatalogEntry,
+    slug: 'boat-dealer',
+    name: 'Boat & Marine Dealer',
+    icon: '⛵',
+    tags: ['boat', 'marine', 'yacht', 'watercraft', 'pontoon', 'fishing boat'],
+    enabledModules: salesWithInventoryModules,
+    services: [
+      { name: 'Boat Tour / Sea Trial', duration: 60, price: 0, priceType: 'fixed' },
+      { name: 'Financing Consultation', duration: 45, price: 0, priceType: 'fixed' },
+      { name: 'Trade-In Appraisal', duration: 45, price: 0, priceType: 'fixed' },
+    ],
+  },
+  {
+    ...salesBase as IndustryCatalogEntry,
+    slug: 'motorcycle-dealer',
+    name: 'Motorcycle & Powersports',
+    icon: '🏍️',
+    tags: ['motorcycle', 'powersports', 'atv', 'side by side', 'scooter'],
+    enabledModules: salesWithInventoryModules,
+    services: [
+      { name: 'Test Ride', duration: 30, price: 0, priceType: 'fixed' },
+      { name: 'Financing Consultation', duration: 45, price: 0, priceType: 'fixed' },
+      { name: 'Trade-In Appraisal', duration: 30, price: 0, priceType: 'fixed' },
+    ],
+  },
+  {
+    ...salesBase as IndustryCatalogEntry,
+    slug: 'real-estate-agency',
+    name: 'Real Estate Agency',
+    icon: '🏠',
+    tags: ['real estate', 'realtor', 'property', 'homes', 'houses', 'buyer agent'],
+    enabledModules: salesLeadsOnlyModules,
+    services: [
+      { name: 'Property Showing', duration: 60, price: 0, priceType: 'fixed' },
+      { name: 'Buyer Consultation', duration: 45, price: 0, priceType: 'fixed' },
+      { name: 'Listing Consultation', duration: 60, price: 0, priceType: 'fixed' },
+    ],
+  },
+  {
+    ...salesBase as IndustryCatalogEntry,
+    slug: 'solar-installer',
+    name: 'Solar & Home Improvement',
+    icon: '☀️',
+    tags: ['solar', 'solar panels', 'home improvement', 'energy', 'green energy'],
+    enabledModules: salesLeadsOnlyModules,
+    services: [
+      { name: 'Site Visit / Assessment', duration: 60, price: 0, priceType: 'fixed' },
+      { name: 'Design Consultation', duration: 45, price: 0, priceType: 'fixed' },
+      { name: 'Financing Review', duration: 30, price: 0, priceType: 'fixed' },
+    ],
+  },
+  {
+    ...salesBase as IndustryCatalogEntry,
+    slug: 'insurance-agency',
+    name: 'Insurance Agency',
+    icon: '🛡️',
+    tags: ['insurance', 'auto insurance', 'home insurance', 'life insurance', 'agent'],
+    enabledModules: salesLeadsOnlyModules,
+    services: [
+      { name: 'Policy Review', duration: 30, price: 0, priceType: 'fixed' },
+      { name: 'Quote Consultation', duration: 30, price: 0, priceType: 'fixed' },
+      { name: 'Claims Assistance', duration: 45, price: 0, priceType: 'fixed' },
+    ],
+  },
+  {
+    ...salesBase as IndustryCatalogEntry,
+    slug: 'equipment-sales',
+    name: 'Equipment Sales',
+    icon: '🏗️',
+    tags: ['equipment', 'heavy equipment', 'machinery', 'construction', 'industrial'],
+    enabledModules: salesWithInventoryModules,
+    services: [
+      { name: 'Equipment Demo', duration: 60, price: 0, priceType: 'fixed' },
+      { name: 'Sales Consultation', duration: 45, price: 0, priceType: 'fixed' },
+      { name: 'Trade-In Appraisal', duration: 45, price: 0, priceType: 'fixed' },
+    ],
+  },
+  {
+    ...salesBase as IndustryCatalogEntry,
+    slug: 'luxury-retail',
+    name: 'Luxury Retail',
+    icon: '💎',
+    tags: ['luxury', 'high end', 'boutique', 'designer', 'premium'],
+    enabledModules: salesWithInventoryModules,
+    services: [
+      { name: 'Private Appointment', duration: 60, price: 0, priceType: 'fixed' },
+      { name: 'Personal Shopping', duration: 90, price: 0, priceType: 'fixed' },
+    ],
+  },
+  {
+    ...salesBase as IndustryCatalogEntry,
+    slug: 'furniture-store',
+    name: 'Furniture Store',
+    icon: '🛋️',
+    tags: ['furniture', 'home furnishing', 'couch', 'sofa', 'mattress'],
+    enabledModules: salesWithInventoryModules,
+    services: [
+      { name: 'Design Consultation', duration: 60, price: 0, priceType: 'fixed' },
+      { name: 'Delivery Scheduling', duration: 15, price: 0, priceType: 'fixed' },
+      { name: 'Financing Review', duration: 30, price: 0, priceType: 'fixed' },
+    ],
+  },
+  {
+    ...salesBase as IndustryCatalogEntry,
+    slug: 'appliance-store',
+    name: 'Appliance Store',
+    icon: '🧊',
+    tags: ['appliance', 'washer', 'dryer', 'refrigerator', 'oven'],
+    enabledModules: salesWithInventoryModules,
+    services: [
+      { name: 'Product Demo', duration: 30, price: 0, priceType: 'fixed' },
+      { name: 'Delivery & Install', duration: 120, price: 0, priceType: 'quote_only' },
+      { name: 'Financing Review', duration: 30, price: 0, priceType: 'fixed' },
+    ],
+  },
+  {
+    ...salesBase as IndustryCatalogEntry,
+    slug: 'jewelry-store',
+    name: 'Jewelry Store',
+    icon: '💍',
+    tags: ['jewelry', 'jeweler', 'rings', 'engagement', 'watches', 'diamonds'],
+    enabledModules: salesLeadsOnlyModules,
+    services: [
+      { name: 'Private Viewing', duration: 45, price: 0, priceType: 'fixed' },
+      { name: 'Custom Design Consultation', duration: 60, price: 0, priceType: 'fixed' },
+    ],
+  },
+  {
+    ...salesBase as IndustryCatalogEntry,
+    slug: 'home-builder',
+    name: 'Home Builder',
+    icon: '🏡',
+    tags: ['home builder', 'construction', 'new home', 'custom home', 'model home'],
+    enabledModules: salesLeadsOnlyModules,
+    services: [
+      { name: 'Model Home Tour', duration: 60, price: 0, priceType: 'fixed' },
+      { name: 'Design Consultation', duration: 90, price: 0, priceType: 'fixed' },
+      { name: 'Financing Consultation', duration: 45, price: 0, priceType: 'fixed' },
     ],
   },
 

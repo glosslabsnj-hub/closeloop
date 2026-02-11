@@ -105,7 +105,7 @@ const MODE_DEFAULTS: Record<BusinessMode, string[]> = {
   food: ["ai_voice", "instant_text_back", "food_orders", "menu_knowledge", "reservations", "catering"],
   medical: ["ai_voice", "instant_text_back", "booking", "medical_intake"],
   general: ["ai_voice", "instant_text_back"],
-  sales: ["ai_voice", "instant_text_back", "sales_leads", "test_drives", "booking"],
+  sales: ["ai_voice", "instant_text_back", "sales_leads", "booking"],
 };
 
 /**

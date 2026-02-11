@@ -140,7 +140,7 @@ serve(async (req) => {
             const fromNumber = phoneNumber?.phone_e164 || Deno.env.get("DEFAULT_TWILIO_NUMBER");
             if (fromNumber) {
               const customerName = testDrive.customer?.full_name || "A customer";
-              const smsBody = `Test drive scheduled: ${customerName} - ${vehicleDesc}, ${scheduledStr} at ${tenant?.name || "your dealership"}.${testDrive.trade_in_interest ? " Has trade-in." : ""}`;
+              const smsBody = `Test drive scheduled: ${customerName} - ${vehicleDesc}, ${scheduledStr} at ${tenant?.name || "your business"}.${testDrive.trade_in_interest ? " Has trade-in." : ""}`;
               const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;
               const resp = await fetch(twilioUrl, {
                 method: "POST",
