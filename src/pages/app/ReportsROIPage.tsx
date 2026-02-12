@@ -193,9 +193,11 @@ function RevenueBySourceChart({ ai, manual, recovery = 0 }: { ai: number; manual
 function ConversionFunnelChart({
   funnel,
   entityName,
+  funnelLabels,
 }: {
   funnel: { totalCalls: number; callsWithOutcome: number; entitiesCreated: number; entitiesCompleted: number };
   entityName: string;
+  funnelLabels?: [string, string, string, string];
 }) {
   if (funnel.totalCalls === 0) {
     return (
@@ -205,11 +207,12 @@ function ConversionFunnelChart({
     );
   }
 
+  const labels = funnelLabels || ["Calls", "Answered", `${entityName} Created`, "Completed"];
   const data = [
-    { name: "Calls", value: funnel.totalCalls },
-    { name: "Answered", value: funnel.callsWithOutcome },
-    { name: `${entityName} Created`, value: funnel.entitiesCreated },
-    { name: "Completed", value: funnel.entitiesCompleted },
+    { name: labels[0], value: funnel.totalCalls },
+    { name: labels[1], value: funnel.callsWithOutcome },
+    { name: labels[2], value: funnel.entitiesCreated },
+    { name: labels[3], value: funnel.entitiesCompleted },
   ];
 
   return (
@@ -468,6 +471,7 @@ export default function ReportsROIPage() {
                       <ConversionFunnelChart
                         funnel={data.conversionFunnel}
                         entityName={data.entityName}
+                        funnelLabels={data.funnelLabels}
                       />
                     </CardContent>
                   </Card>

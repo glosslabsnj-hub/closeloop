@@ -35,6 +35,9 @@ export interface IndustryRevenueConfig {
   emptyStateEncouragement: string;
   celebratoryTone: boolean;
 
+  // Funnel chart labels
+  funnelLabels: [string, string, string, string];
+
   // Metrics
   primaryMetrics: ("ai_revenue" | "entities_created" | "calls_handled" | "conversion_rate")[];
 }
@@ -59,6 +62,7 @@ export const INDUSTRY_REVENUE_CONFIG: Record<BusinessMode, IndustryRevenueConfig
     emptyStateSteps: ["A customer calls", "AI books the appointment", "Revenue appears here"],
     emptyStateEncouragement: "The average Voxly service business sees their first AI-booked appointment within 48 hours",
     celebratoryTone: true,
+    funnelLabels: ["Calls", "Quoted", "Booked", "Completed"],
     primaryMetrics: ["ai_revenue", "entities_created", "calls_handled", "conversion_rate"],
   },
   dispatch: {
@@ -80,6 +84,7 @@ export const INDUSTRY_REVENUE_CONFIG: Record<BusinessMode, IndustryRevenueConfig
     emptyStateSteps: ["A driver calls for help", "AI dispatches the job", "Revenue appears here"],
     emptyStateEncouragement: "The average Voxly dispatch business sees their first AI-dispatched job within 48 hours",
     celebratoryTone: true,
+    funnelLabels: ["Calls", "Dispatched", "Completed", "Paid"],
     primaryMetrics: ["ai_revenue", "entities_created", "calls_handled", "conversion_rate"],
   },
   food: {
@@ -101,6 +106,7 @@ export const INDUSTRY_REVENUE_CONFIG: Record<BusinessMode, IndustryRevenueConfig
     emptyStateSteps: ["A customer calls to order", "AI takes the order", "Revenue appears here"],
     emptyStateEncouragement: "The average Voxly restaurant sees their first AI-placed order within 48 hours",
     celebratoryTone: true,
+    funnelLabels: ["Calls", "Ordered", "Fulfilled", "Revenue"],
     primaryMetrics: ["ai_revenue", "entities_created", "calls_handled", "conversion_rate"],
   },
   medical: {
@@ -122,6 +128,7 @@ export const INDUSTRY_REVENUE_CONFIG: Record<BusinessMode, IndustryRevenueConfig
     emptyStateSteps: ["A patient calls", "AI schedules the appointment", "Revenue appears here"],
     emptyStateEncouragement: "The average Voxly medical practice sees their first AI-scheduled appointment within 48 hours",
     celebratoryTone: false,
+    funnelLabels: ["Calls", "Inquired", "Scheduled", "Attended"],
     primaryMetrics: ["ai_revenue", "entities_created", "calls_handled", "conversion_rate"],
   },
   general: {
@@ -143,6 +150,7 @@ export const INDUSTRY_REVENUE_CONFIG: Record<BusinessMode, IndustryRevenueConfig
     emptyStateSteps: ["A customer calls", "AI handles the request", "Revenue appears here"],
     emptyStateEncouragement: "The average Voxly business sees their first AI-booked entity within 48 hours",
     celebratoryTone: true,
+    funnelLabels: ["Calls", "Answered", "Created", "Completed"],
     primaryMetrics: ["ai_revenue", "entities_created", "calls_handled", "conversion_rate"],
   },
   sales: {
@@ -164,6 +172,7 @@ export const INDUSTRY_REVENUE_CONFIG: Record<BusinessMode, IndustryRevenueConfig
     emptyStateSteps: ["A prospect calls", "AI qualifies and schedules", "Revenue appears here"],
     emptyStateEncouragement: "The average Voxly sales business sees their first AI-scheduled appointment within 48 hours",
     celebratoryTone: true,
+    funnelLabels: ["Calls", "Qualified", "Scheduled", "Closed"],
     primaryMetrics: ["ai_revenue", "entities_created", "calls_handled", "conversion_rate"],
   },
 };

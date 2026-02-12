@@ -18,6 +18,7 @@ import {
   BarChart3,
   Warehouse,
   Users,
+  UserCircle,
   AudioWaveform,
   DollarSign,
   Car,
@@ -181,6 +182,7 @@ export function AppSidebar({
             {/* Core nav */}
             {renderItem({ href: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard })}
             {renderItem({ href: "/app/inbox", label: "Inbox", icon: MessageSquare })}
+            {renderItem({ href: "/app/customers", label: (terms.customers ? terms.customers.charAt(0).toUpperCase() + (terms.customers as string).slice(1) : "Customers"), icon: UserCircle })}
 
             {/* Workspace (module-gated) */}
             {workspaceItems.length > 0 && (
