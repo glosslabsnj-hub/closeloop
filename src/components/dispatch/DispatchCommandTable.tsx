@@ -112,28 +112,27 @@ export function DispatchCommandTable({
     return labels[currentStatus] || null;
   };
 
-  const truncateAddress = (address: string | null, maxLength = 35) => {
+  const truncateAddress = (address: string | null, maxLength = 28) => {
     if (!address) return "—";
     if (address.length <= maxLength) return address;
-    return address.slice(0, maxLength) + "...";
+    return address.slice(0, maxLength) + "…";
   };
 
   return (
-    <div className="rounded-lg border bg-card overflow-hidden">
-      <Table>
+    <div className="rounded-lg border bg-card overflow-x-auto">
+      <Table className="w-full">
         <TableHeader>
           <TableRow className="hover:bg-transparent bg-muted/30">
-            <TableHead className="w-[90px]">Job #</TableHead>
-            <TableHead className="w-[140px]">Customer</TableHead>
-            <TableHead>Pickup</TableHead>
-            <TableHead className="hidden xl:table-cell">Drop-off</TableHead>
-            <TableHead className="w-[100px]">Service</TableHead>
-            <TableHead className="w-[100px] hidden lg:table-cell">Vehicle</TableHead>
-            <TableHead className="w-[80px] hidden lg:table-cell text-right">Price</TableHead>
-            <TableHead className="w-[80px]">Priority</TableHead>
-            <TableHead className="w-[90px]">Status</TableHead>
-            <TableHead className="w-[100px] hidden md:table-cell">Time</TableHead>
-            <TableHead className="w-[100px]">Action</TableHead>
+            <TableHead className="w-[80px] whitespace-nowrap">Job #</TableHead>
+            <TableHead className="w-[110px] whitespace-nowrap">Customer</TableHead>
+            <TableHead className="whitespace-nowrap">Pickup</TableHead>
+            <TableHead className="hidden 2xl:table-cell whitespace-nowrap">Drop-off</TableHead>
+            <TableHead className="w-[60px] whitespace-nowrap">Type</TableHead>
+            <TableHead className="w-[60px] hidden xl:table-cell text-right whitespace-nowrap">Price</TableHead>
+            <TableHead className="w-[70px] whitespace-nowrap">Priority</TableHead>
+            <TableHead className="w-[85px] whitespace-nowrap">Status</TableHead>
+            <TableHead className="w-[65px] hidden xl:table-cell whitespace-nowrap">Time</TableHead>
+            <TableHead className="w-[40px] whitespace-nowrap"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -160,7 +159,7 @@ export function DispatchCommandTable({
                 {/* Customer */}
                 <TableCell>
                   <div className="flex flex-col gap-0.5">
-                    <span className="font-medium text-sm truncate max-w-[120px]">
+                    <span className="font-medium text-sm truncate block">
                       {job.customer_name || job.customers?.full_name || "Unknown"}
                     </span>
                     {job.customer_phone && (
@@ -186,7 +185,7 @@ export function DispatchCommandTable({
                     <TooltipTrigger asChild>
                       <div className="flex items-center gap-1.5">
                         <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                        <span className="text-sm truncate max-w-[200px]">
+                        <span className="text-sm truncate block">
                           {truncateAddress(job.pickup_address)}
                         </span>
                       </div>
@@ -200,14 +199,14 @@ export function DispatchCommandTable({
                 </TableCell>
 
                 {/* Dropoff Address */}
-                <TableCell className="hidden xl:table-cell">
+                <TableCell className="hidden 2xl:table-cell">
                   {job.dropoff_address ? (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div className="flex items-center gap-1.5">
                           <Navigation className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                          <span className="text-sm truncate max-w-[180px]">
-                            {truncateAddress(job.dropoff_address, 30)}
+                          <span className="text-sm truncate block">
+                            {truncateAddress(job.dropoff_address, 24)}
                           </span>
                         </div>
                       </TooltipTrigger>
@@ -225,20 +224,8 @@ export function DispatchCommandTable({
                   <span className="text-sm">{job.job_type || "Service"}</span>
                 </TableCell>
 
-                {/* Vehicle */}
-                <TableCell className="hidden lg:table-cell">
-                  {job.assigned_vehicle ? (
-                    <div className="flex items-center gap-1.5">
-                      <Truck className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className="text-sm">{job.assigned_vehicle}</span>
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground text-sm">—</span>
-                  )}
-                </TableCell>
-
                 {/* Price */}
-                <TableCell className="hidden lg:table-cell text-right">
+                <TableCell className="hidden xl:table-cell text-right">
                   {job.price_cents !== null && job.price_cents !== undefined ? (
                     <span className="text-sm font-medium tabular-nums">
                       ${(job.price_cents / 100).toFixed(0)}
@@ -302,7 +289,7 @@ export function DispatchCommandTable({
                 </TableCell>
 
                 {/* Time */}
-                <TableCell className="hidden md:table-cell">
+                <TableCell className="hidden xl:table-cell">
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" />
                     {formatDistanceToNow(new Date(job.created_at), { addSuffix: false })}
@@ -311,24 +298,7 @@ export function DispatchCommandTable({
 
                 {/* Actions */}
                 <TableCell>
-                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                    {nextStatus && nextLabel && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs"
-                        onClick={() => {
-                          if (job.status === "pending") {
-                            onAssign(job);
-                          } else {
-                            onUpdateStatus(job, nextStatus);
-                          }
-                        }}
-                      >
-                        <ChevronRight className="h-3 w-3 mr-1" />
-                        {nextLabel}
-                      </Button>
-                    )}
+                  <div onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -339,6 +309,20 @@ export function DispatchCommandTable({
                         <DropdownMenuItem onClick={() => onViewDetails(job)}>
                           View Details
                         </DropdownMenuItem>
+                        {nextStatus && nextLabel && (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              if (job.status === "pending") {
+                                onAssign(job);
+                              } else {
+                                onUpdateStatus(job, nextStatus);
+                              }
+                            }}
+                          >
+                            <ChevronRight className="h-4 w-4 mr-2" />
+                            {nextLabel}
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem onClick={() => onCall(job)}>
                           <Phone className="h-4 w-4 mr-2" />
                           Call Customer
