@@ -499,6 +499,7 @@ export type Database = {
       }
       assistant_settings: {
         Row: {
+          ai_behavior_mode: string | null
           ai_booking_mode: string | null
           ai_callback_delay_minutes: number | null
           booking_url: string | null
@@ -552,6 +553,7 @@ export type Database = {
           waitlist_enabled: boolean | null
         }
         Insert: {
+          ai_behavior_mode?: string | null
           ai_booking_mode?: string | null
           ai_callback_delay_minutes?: number | null
           booking_url?: string | null
@@ -605,6 +607,7 @@ export type Database = {
           waitlist_enabled?: boolean | null
         }
         Update: {
+          ai_behavior_mode?: string | null
           ai_booking_mode?: string | null
           ai_callback_delay_minutes?: number | null
           booking_url?: string | null
