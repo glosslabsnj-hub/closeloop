@@ -2,12 +2,16 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Check, Brain } from "lucide-react";
 import { getIndustryBySlug } from "@/data/industryCatalog";
-import { resolveIndustryTemplate } from "@/lib/templateResolver";
 import { getQuestionsForMode } from "@/lib/scenarioQuestions";
+import { getIndustryTerminology } from "@/data/industryTerminology";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 import type { CommunicationPrefs } from "./CommunicationPreferences";
 import type { BusinessDetails } from "./BusinessDetailsForm";
 import type { SchedulingPrefs } from "./SchedulingSetup";
+import type { EditableService } from "./ServicePreviewStep";
+import type { EditableFAQ } from "./FAQPreviewStep";
+import type { EditablePolicies } from "./PolicyPreviewStep";
+import type { ServiceAreaConfig } from "./ServiceAreaStep";
 
 const modeLabels: Record<BusinessMode, string> = {
   service: "Service Business",
@@ -75,6 +79,10 @@ interface ConfirmationSummaryProps {
   communicationPrefs: CommunicationPrefs;
   businessDetails?: BusinessDetails;
   schedulingPrefs?: SchedulingPrefs;
+  templateServices?: EditableService[];
+  templateFAQs?: EditableFAQ[];
+  templatePolicies?: EditablePolicies;
+  serviceArea?: ServiceAreaConfig;
 }
 
 export function ConfirmationSummary({
@@ -85,9 +93,13 @@ export function ConfirmationSummary({
   communicationPrefs,
   businessDetails,
   schedulingPrefs,
+  templateServices,
+  templateFAQs,
+  templatePolicies,
+  serviceArea,
 }: ConfirmationSummaryProps) {
   const industryEntry = getIndustryBySlug(industrySlug);
-  const template = resolveIndustryTemplate(industrySlug);
+  const terms = getIndustryTerminology(businessMode);
   const industryCtx = industryEntry
     ? { slug: industrySlug, category: industryEntry.category }
     : undefined;
@@ -252,15 +264,38 @@ export function ConfirmationSummary({
         </CardContent>
       </Card>
 
-      {/* Template preview */}
+      {/* Content summary */}
       <Card>
         <CardContent className="p-4 space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">Template</p>
-          <p className="text-sm">
-            We'll pre-load <strong>{template.services.length} services</strong>,{" "}
-            <strong>{template.faqs.length} FAQs</strong> from the{" "}
-            <strong>{template.label}</strong> template.
-          </p>
+          <p className="text-sm font-medium text-muted-foreground">What's Ready</p>
+          <div className="grid grid-cols-1 gap-1 text-sm">
+            {templateServices && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">{terms.catalogCardTitle}</span>
+                <span className="font-medium">{templateServices.filter(s => s.enabled).length} configured</span>
+              </div>
+            )}
+            {templateFAQs && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">FAQs</span>
+                <span className="font-medium">{templateFAQs.filter(f => f.enabled).length} ready</span>
+              </div>
+            )}
+            {templatePolicies && (templatePolicies.cancellation || templatePolicies.deposit || templatePolicies.refund) && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Policies</span>
+                <span className="font-medium">
+                  {[templatePolicies.cancellation, templatePolicies.deposit, templatePolicies.refund].filter(Boolean).length} set
+                </span>
+              </div>
+            )}
+            {serviceArea && ["dispatch", "service", "food"].includes(businessMode) && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Coverage</span>
+                <span className="font-medium">{serviceArea.radiusMiles}-mile radius</span>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -271,8 +306,8 @@ export function ConfirmationSummary({
           <div>
             <p className="text-sm font-medium">What's next?</p>
             <p className="text-[13px] text-muted-foreground mt-1">
-              After setup, head to the <strong>Business Brain</strong> to
-              customize your services, add your phone number, and fine-tune your AI.
+              Everything here can be fine-tuned later in your <strong>Business Brain</strong>.
+              Head there to add your phone number and make adjustments anytime.
             </p>
           </div>
         </div>

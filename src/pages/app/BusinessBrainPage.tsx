@@ -21,7 +21,7 @@ import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useCapabilities } from "@/hooks/useCapabilities";
 import { useFoodMode } from "@/hooks/useFoodMode";
 import { useFoodOrderSettings } from "@/hooks/useFoodOrderSettings";
-import { getIndustryTerminology } from "@/data/industryTerminology";
+import { getIndustryTerminology, resolveCardTitle } from "@/data/industryTerminology";
 import { SECTION_RELEVANCE } from "@/config/brainSectionRelevance";
 import { useCategoryCompletion } from "@/hooks/useCategoryCompletion";
 import { useBrainSummaries } from "@/hooks/useBrainSummaries";
@@ -63,9 +63,6 @@ import { IntelligenceDashboard } from "@/components/intelligence";
 import { QuoteReadinessCard } from "@/components/brain/QuoteReadinessCard";
 import ServiceCallFlowSettings from "@/components/ai/ServiceCallFlowSettings";
 
-// Brain Assistant
-import { BrainAssistantTrigger } from "@/components/brain/assistant/BrainAssistantTrigger";
-import { BrainAssistantPanel } from "@/components/brain/assistant/BrainAssistantPanel";
 
 // ─── Section IDs ────────────────────────────────────────────────────────────
 
@@ -116,7 +113,6 @@ const pageVariants = {
 export default function BusinessBrainPage() {
   const { tenant } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [assistantOpen, setAssistantOpen] = useState(false);
   const reviewCount = useBrainReviewCount();
   const { businessMode, hipaaMode } = useTenantConfig();
   const caps = useCapabilities();
@@ -459,8 +455,6 @@ export default function BusinessBrainPage() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
-  const hasGaps = summaries.completionStats.percentage < 100;
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <main className="flex-1">
@@ -529,15 +523,6 @@ export default function BusinessBrainPage() {
         </div>
       </main>
 
-      {/* Brain Assistant */}
-      <BrainAssistantTrigger
-        onClick={() => setAssistantOpen(true)}
-        hasGaps={hasGaps}
-      />
-      <BrainAssistantPanel
-        open={assistantOpen}
-        onOpenChange={setAssistantOpen}
-      />
     </div>
   );
 }
@@ -586,9 +571,12 @@ function BrainSectionDetailHost({
 }: SectionDetailHostProps) {
   const completion = useCategoryCompletion(activeSection);
 
+  const categoryTitle = resolveCardTitle(currentCategory.titleKey, currentCategory.title, businessMode);
+
   return (
     <BrainSectionDetail
       category={currentCategory}
+      resolvedTitle={categoryTitle}
       completion={completion}
       onBack={onBack}
       onNavigate={onNavigate}

@@ -42,6 +42,8 @@ export interface BrainSectionItem {
   order: number;
   tab: NewSectionId;
   isEssential?: boolean;
+  /** Setup priority for progressive disclosure in sidebar */
+  setupPriority?: "essential" | "recommended" | "advanced";
   isVisible?: (mode: BusinessMode, caps: Capabilities, flags: VisibilityFlags) => boolean;
 }
 

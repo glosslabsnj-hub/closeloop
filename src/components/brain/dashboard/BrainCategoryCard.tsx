@@ -14,6 +14,8 @@ import type { CategoryCompletionStats } from "@/hooks/useCategoryCompletion";
 
 interface BrainCategoryCardProps {
   category: CategoryConfig;
+  /** Dynamic title resolved from industry terminology (falls back to category.title) */
+  resolvedTitle?: string;
   completion: CategoryCompletionStats;
   summaryText: string;
   onNavigate: (section: string) => void;
@@ -21,6 +23,7 @@ interface BrainCategoryCardProps {
 
 export function BrainCategoryCard({
   category,
+  resolvedTitle,
   completion,
   summaryText,
   onNavigate,
@@ -28,6 +31,7 @@ export function BrainCategoryCard({
   const Icon = category.icon;
   const isComplete = completion.percentage === 100;
   const hasWarning = completion.hasRequiredIncomplete;
+  const essentialCount = category.cards.filter(c => c.setupPriority === "essential").length;
 
   return (
     <button
@@ -48,7 +52,7 @@ export function BrainCategoryCard({
             ? "text-green-600 dark:text-green-400"
             : "text-primary",
         )} />
-        <h3 className="text-sm font-semibold leading-tight flex-1">{category.title}</h3>
+        <h3 className="text-sm font-semibold leading-tight flex-1">{resolvedTitle || category.title}</h3>
         <BrainProgressRing
           completedSections={completion.completedFields}
           totalSections={completion.totalFields}
@@ -59,7 +63,12 @@ export function BrainCategoryCard({
       {/* Description */}
       <p className="text-xs text-muted-foreground">{category.description}</p>
 
-      {/* Summary line */}
+      {/* Priority hint + summary */}
+      {!isComplete && essentialCount > 0 && (
+        <p className="text-xs font-medium text-primary">
+          {essentialCount} essential item{essentialCount !== 1 ? "s" : ""} to set up
+        </p>
+      )}
       <p className="text-xs text-muted-foreground line-clamp-2">{summaryText}</p>
     </button>
   );

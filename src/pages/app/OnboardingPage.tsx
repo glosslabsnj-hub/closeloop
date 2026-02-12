@@ -10,7 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Building2, CheckCircle2, Loader2,
   ChevronRight, ChevronLeft, Sparkles, Sliders,
-  HelpCircle, ExternalLink, Briefcase, Clock
+  HelpCircle, ExternalLink, Briefcase, Clock,
+  UtensilsCrossed, MapPin, Shield, MessageSquareText
 } from "lucide-react";
 import { createDefaultWorkflowsForMode } from "@/lib/createDefaultWorkflows";
 import { getIndustryBySlug } from "@/data/industryCatalog";
@@ -29,18 +30,31 @@ import { updateCapabilityFlags } from "@/hooks/useBusinessCapabilities";
 import { getQuestionsForMode, getDefaultAnswers, deriveModulesFromScenario } from "@/lib/scenarioQuestions";
 import { DEFAULT_BUSINESS_HOURS } from "@/lib/hoursUtils";
 import { applyScenarioSeeds } from "@/lib/scenarioSeeding";
+import { ServicePreviewStep, type EditableService } from "@/components/onboarding/ServicePreviewStep";
+import { ServiceAreaStep, getDefaultServiceArea, type ServiceAreaConfig } from "@/components/onboarding/ServiceAreaStep";
+import { PolicyPreviewStep, type EditablePolicies } from "@/components/onboarding/PolicyPreviewStep";
+import { FAQPreviewStep, type EditableFAQ } from "@/components/onboarding/FAQPreviewStep";
 import type { BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
 import type { PlanCode } from "@/types/database";
 
-const steps: OnboardingStep[] = [
+/** All possible onboarding steps. Some are conditionally visible based on mode. */
+const ALL_STEPS: (OnboardingStep & { visibleFor?: BusinessMode[] })[] = [
   { id: "identity", icon: Building2, title: "Business Name", description: "What your AI will call itself" },
   { id: "industry", icon: Sparkles, title: "Industry", description: "Customize your setup" },
   { id: "details", icon: Briefcase, title: "Details", description: "Size, pricing & volume" },
   { id: "scenarios", icon: HelpCircle, title: "Discovery", description: "How your business operates" },
+  { id: "services-preview", icon: UtensilsCrossed, title: "Your Offerings", description: "Review your services" },
   { id: "scheduling", icon: Clock, title: "Scheduling", description: "Hours & availability" },
+  { id: "coverage", icon: MapPin, title: "Coverage", description: "Where you serve", visibleFor: ["dispatch", "service", "food"] },
+  { id: "policies-preview", icon: Shield, title: "Policies", description: "Cancellation & payments" },
+  { id: "faqs-preview", icon: MessageSquareText, title: "FAQs", description: "Common questions" },
   { id: "communication", icon: Sliders, title: "AI Behavior", description: "Tone, booking & follow-ups" },
   { id: "confirm", icon: CheckCircle2, title: "Review", description: "Confirm and launch" },
 ];
+
+function getVisibleSteps(mode: BusinessMode): OnboardingStep[] {
+  return ALL_STEPS.filter(s => !s.visibleFor || s.visibleFor.includes(mode));
+}
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
@@ -78,10 +92,17 @@ export default function OnboardingPage() {
     getDefaultCommunicationPrefs("service")
   );
 
+  // New preview steps state (populated from template when industry changes)
+  const [templateServices, setTemplateServices] = useState<EditableService[]>([]);
+  const [templateFAQs, setTemplateFAQs] = useState<EditableFAQ[]>([]);
+  const [templatePolicies, setTemplatePolicies] = useState<EditablePolicies>({ cancellation: "", deposit: "", refund: "" });
+  const [serviceArea, setServiceArea] = useState<ServiceAreaConfig>(getDefaultServiceArea("service"));
+
   const { user, tenant, loading: authLoading, refreshTenant, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const steps = getVisibleSteps(businessMode);
   const totalSteps = steps.length;
   const progress = (step / totalSteps) * 100;
 
@@ -131,6 +152,33 @@ export default function OnboardingPage() {
     setEnabledModules(modules);
     baseModulesRef.current = modules;
 
+    // Populate template preview state
+    const config = resolveIndustryTemplate(industrySlug);
+    setTemplateServices(
+      config.services.map(s => ({
+        name: s.name,
+        duration: s.duration,
+        price: s.price,
+        priceType: s.priceType || "fixed",
+        description: s.description,
+        enabled: true,
+      }))
+    );
+    setTemplateFAQs(
+      config.faqs.map(f => ({
+        question: f.question,
+        answer: f.answer,
+        enabled: true,
+      }))
+    );
+    setTemplatePolicies({
+      cancellation: config.defaultPolicies?.cancellation || "",
+      deposit: config.defaultPolicies?.deposit || "",
+      refund: config.defaultPolicies?.refund || "",
+    });
+    const newMode = industryEntry?.businessMode || businessMode;
+    setServiceArea(getDefaultServiceArea(newMode as BusinessMode));
+
     console.log(`[Onboarding] Loading template for industry: ${industrySlug}`);
 
     // Mark this industry as initialized
@@ -156,24 +204,33 @@ export default function OnboardingPage() {
     setCommunicationPrefs(getDefaultCommunicationPrefs(mode));
     setSchedulingPrefs(getDefaultSchedulingPrefs(mode));
     setBusinessHours(getDefaultHoursForMode(mode));
+    setServiceArea(getDefaultServiceArea(mode));
+    // Clamp step if it's beyond the new visible steps count
+    const newSteps = getVisibleSteps(mode);
+    if (step > newSteps.length) setStep(newSteps.length);
   };
+
+  // Current step ID based on numeric position
+  const currentStepId = steps[step - 1]?.id || "";
 
   // Step validation
   const canProceed = (stepNum: number) => {
-    switch (stepNum) {
-      case 1: return businessName.trim().length > 0 && businessMode.length > 0;
-      case 2: return industrySlug.length > 0;
-      case 3: return true; // Business details all have defaults
-      case 4: {
-        // Medical mode requires HIPAA acknowledgment
-        if (businessMode === "medical") {
-          return scenarioAnswers.requiresHIPAA === true;
-        }
+    const stepId = steps[stepNum - 1]?.id;
+    switch (stepId) {
+      case "identity": return businessName.trim().length > 0 && businessMode.length > 0;
+      case "industry": return industrySlug.length > 0;
+      case "details": return true;
+      case "scenarios": {
+        if (businessMode === "medical") return scenarioAnswers.requiresHIPAA === true;
         return true;
       }
-      case 5: return true; // Scheduling has defaults
-      case 6: return true; // Communication has defaults
-      case 7: return true; // Confirmation
+      case "services-preview": return templateServices.some(s => s.enabled && s.name.trim().length > 0);
+      case "scheduling": return true;
+      case "coverage": return true;
+      case "policies-preview": return true;
+      case "faqs-preview": return true;
+      case "communication": return true;
+      case "confirm": return true;
       default: return false;
     }
   };
@@ -282,12 +339,12 @@ export default function OnboardingPage() {
 
       console.log("Tenant created via edge function:", tenantId.substring(0, 8) + "...");
 
-      // 2. Apply industry template data (services, FAQs, objections, policies)
+      // 2. Apply user-validated template data (services, FAQs, objections, policies, coverage)
       const config = resolveIndustryTemplate(industrySlug);
 
-      // Insert services from template
-      const servicesToInsert = config.services
-        .filter(s => s.name.trim().length > 0)
+      // Insert services from user-edited preview (only enabled ones)
+      const servicesToInsert = templateServices
+        .filter(s => s.enabled && s.name.trim().length > 0)
         .map(s => ({
           tenant_id: tenantId,
           name: s.name,
@@ -307,9 +364,9 @@ export default function OnboardingPage() {
         }
       }
 
-      // Insert FAQs from template
-      const faqsToInsert = config.faqs
-        .filter(f => f.question.trim().length > 0 && f.answer.trim().length > 0)
+      // Insert FAQs from user-edited preview (only enabled ones)
+      const faqsToInsert = templateFAQs
+        .filter(f => f.enabled && f.question.trim().length > 0 && f.answer.trim().length > 0)
         .map((faq, index) => ({
           tenant_id: tenantId,
           question: faq.question,
@@ -326,7 +383,7 @@ export default function OnboardingPage() {
         }
       }
 
-      // Insert objections from template
+      // Insert objections from template (not user-edited, kept as-is)
       const objectionsToInsert = config.objections
         .filter(o => o.objection.trim().length > 0 && o.response.trim().length > 0)
         .map((obj, index) => ({
@@ -345,18 +402,34 @@ export default function OnboardingPage() {
         }
       }
 
-      // Apply template policies
-      if (config.defaultPolicies) {
-        const { error: policyError } = await supabase
+      // Apply user-edited policies
+      const { error: policyError } = await supabase
+        .from("tenants")
+        .update({
+          cancellation_policy: templatePolicies.cancellation || null,
+          deposit_policy: templatePolicies.deposit || null,
+          refund_policy: templatePolicies.refund || null,
+        })
+        .eq("id", tenantId);
+      if (policyError) {
+        console.error("Policies update error:", policyError);
+      }
+
+      // Apply service area settings (if coverage step was shown)
+      const showsCoverage = ["dispatch", "service", "food"].includes(businessMode);
+      if (showsCoverage) {
+        const { error: areaError } = await supabase
           .from("tenants")
           .update({
-            cancellation_policy: config.defaultPolicies.cancellation || null,
-            deposit_policy: config.defaultPolicies.deposit || null,
-            refund_policy: config.defaultPolicies.refund || null,
+            service_area_json: {
+              radius_miles: serviceArea.radiusMiles,
+              zip_codes: serviceArea.zipCodes ? serviceArea.zipCodes.split(",").map(z => z.trim()).filter(Boolean) : [],
+              out_of_area_message: serviceArea.outOfAreaMessage,
+            },
           })
           .eq("id", tenantId);
-        if (policyError) {
-          console.error("Policies update error:", policyError);
+        if (areaError) {
+          console.error("Service area update error:", areaError);
         }
       }
 
@@ -572,7 +645,7 @@ export default function OnboardingPage() {
     }
   };
 
-  const currentStepInfo = steps[step - 1];
+  const currentStepInfo = steps[step - 1] || steps[0];
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -648,8 +721,8 @@ export default function OnboardingPage() {
                   transition={{ duration: 0.2 }}
                   className="space-y-6"
                 >
-                  {/* Step 1: Identity */}
-                  {step === 1 && (
+                  {/* Identity */}
+                  {currentStepId === "identity" && (
                     <div className="space-y-6">
                       <div>
                         <h2 className="text-2xl font-semibold tracking-tight">
@@ -673,16 +746,16 @@ export default function OnboardingPage() {
                     </div>
                   )}
 
-                  {/* Step 2: Industry */}
-                  {step === 2 && (
+                  {/* Industry */}
+                  {currentStepId === "industry" && (
                     <IndustrySelectorGrid
                       value={industrySlug}
                       onChange={(slug) => setIndustrySlug(slug)}
                     />
                   )}
 
-                  {/* Step 3: Business Details */}
-                  {step === 3 && (
+                  {/* Business Details */}
+                  {currentStepId === "details" && (
                     <BusinessDetailsForm
                       businessMode={businessMode}
                       value={businessDetails}
@@ -690,8 +763,8 @@ export default function OnboardingPage() {
                     />
                   )}
 
-                  {/* Step 4: Scenario Discovery */}
-                  {step === 4 && (
+                  {/* Scenario Discovery */}
+                  {currentStepId === "scenarios" && (
                     <ScenarioDiscovery
                       businessMode={businessMode}
                       answers={scenarioAnswers}
@@ -701,8 +774,18 @@ export default function OnboardingPage() {
                     />
                   )}
 
-                  {/* Step 5: Scheduling & Hours */}
-                  {step === 5 && (
+                  {/* Services Preview (NEW) */}
+                  {currentStepId === "services-preview" && (
+                    <ServicePreviewStep
+                      businessMode={businessMode}
+                      industrySlug={industrySlug}
+                      services={templateServices}
+                      onChange={setTemplateServices}
+                    />
+                  )}
+
+                  {/* Scheduling & Hours */}
+                  {currentStepId === "scheduling" && (
                     <SchedulingSetup
                       businessMode={businessMode}
                       hours={businessHours}
@@ -713,8 +796,36 @@ export default function OnboardingPage() {
                     />
                   )}
 
-                  {/* Step 6: Communication Preferences */}
-                  {step === 6 && (
+                  {/* Coverage / Service Area (NEW) */}
+                  {currentStepId === "coverage" && (
+                    <ServiceAreaStep
+                      businessMode={businessMode}
+                      value={serviceArea}
+                      onChange={setServiceArea}
+                    />
+                  )}
+
+                  {/* Policies Preview (NEW) */}
+                  {currentStepId === "policies-preview" && (
+                    <PolicyPreviewStep
+                      businessMode={businessMode}
+                      policies={templatePolicies}
+                      onChange={setTemplatePolicies}
+                    />
+                  )}
+
+                  {/* FAQ Preview (NEW) */}
+                  {currentStepId === "faqs-preview" && (
+                    <FAQPreviewStep
+                      businessMode={businessMode}
+                      industrySlug={industrySlug}
+                      faqs={templateFAQs}
+                      onChange={setTemplateFAQs}
+                    />
+                  )}
+
+                  {/* Communication Preferences */}
+                  {currentStepId === "communication" && (
                     <CommunicationPreferences
                       businessMode={businessMode}
                       value={communicationPrefs}
@@ -722,8 +833,8 @@ export default function OnboardingPage() {
                     />
                   )}
 
-                  {/* Step 7: Confirmation */}
-                  {step === 7 && (
+                  {/* Confirmation */}
+                  {currentStepId === "confirm" && (
                     <ConfirmationSummary
                       businessName={businessName}
                       businessMode={businessMode}
@@ -732,6 +843,10 @@ export default function OnboardingPage() {
                       communicationPrefs={communicationPrefs}
                       businessDetails={businessDetails}
                       schedulingPrefs={schedulingPrefs}
+                      templateServices={templateServices}
+                      templateFAQs={templateFAQs}
+                      templatePolicies={templatePolicies}
+                      serviceArea={serviceArea}
                     />
                   )}
                 </motion.div>

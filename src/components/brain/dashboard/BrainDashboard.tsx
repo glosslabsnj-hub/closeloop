@@ -9,12 +9,13 @@
 
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { BRAIN_CATEGORIES } from "@/components/brain/layout/businessBrainNavConfig";
+import { BRAIN_CATEGORIES, type CategoryConfig } from "@/components/brain/layout/businessBrainNavConfig";
 import { BrainCategoryCard } from "./BrainCategoryCard";
 import { NextStepSuggestion } from "@/components/brain/layout/NextStepSuggestion";
 import { useAllCategoriesCompletion } from "@/hooks/useCategoryCompletion";
 import { useBrainSummaries } from "@/hooks/useBrainSummaries";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { resolveCardTitle } from "@/data/industryTerminology";
 
 interface BrainDashboardProps {
   onNavigate: (section: string) => void;
@@ -131,6 +132,7 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
             <BrainCategoryCard
               key={cat.id}
               category={cat}
+              resolvedTitle={resolveCardTitle(cat.titleKey, cat.title, businessMode)}
               completion={completions[cat.section] ?? { totalFields: 0, completedFields: 0, percentage: 100, hasRequiredIncomplete: false }}
               summaryText={getCategorySummary(cat.section, summaries)}
               onNavigate={onNavigate}

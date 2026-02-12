@@ -23,6 +23,8 @@ import type { ItemStatusInfo } from "@/hooks/useBrainItemStatuses";
 
 interface BrainSectionDetailProps {
   category: CategoryConfig;
+  /** Dynamic title resolved from industry terminology */
+  resolvedTitle?: string;
   completion: CategoryCompletionStats;
   onBack: () => void;
   onNavigate: (section: string) => void;
@@ -51,6 +53,7 @@ function getAdjacentCategories(section: string) {
 
 export function BrainSectionDetail({
   category,
+  resolvedTitle,
   completion,
   onBack,
   onNavigate,
@@ -66,6 +69,7 @@ export function BrainSectionDetail({
   editorContent,
 }: BrainSectionDetailProps) {
   const Icon = category.icon;
+  const displayTitle = resolvedTitle || category.title;
   const { prev, next } = getAdjacentCategories(category.section);
   const activeStatus = activeItemId ? statuses[activeItemId] : undefined;
 
@@ -91,7 +95,7 @@ export function BrainSectionDetail({
           <span className="text-muted-foreground/50">/</span>
           <span className="flex items-center gap-1.5 text-foreground font-medium">
             <Icon className="h-4 w-4" />
-            {category.title}
+            {displayTitle}
           </span>
         </nav>
 
@@ -99,7 +103,7 @@ export function BrainSectionDetail({
         <div>
           <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">{category.description}</p>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight flex-1">{category.title}</h1>
+            <h1 className="text-2xl font-bold tracking-tight flex-1">{displayTitle}</h1>
             <span className="text-sm font-medium tabular-nums shrink-0">
               {completion.percentage}%
             </span>

@@ -18,6 +18,14 @@ export interface IndustryTerminology {
   teamMemberLabel: string;
   exampleServices: string[];
   exampleFAQs: string[];
+  // Brain-specific terms (used for dynamic card/category titles)
+  catalogCardTitle: string;
+  faqsCardTitle: string;
+  policiesCardTitle: string;
+  coverageCardTitle: string;
+  addItemButton: string;
+  itemNamePlaceholder: string;
+  servicesCategoryTitle: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -34,6 +42,13 @@ const serviceDefaults: IndustryTerminology = {
   teamMemberLabel: "technician",
   exampleServices: ["Basic Service", "Premium Service", "Rush Service"],
   exampleFAQs: ["What are your hours?", "Do you offer free estimates?", "What forms of payment do you accept?"],
+  catalogCardTitle: "Your Services",
+  faqsCardTitle: "Customer FAQs",
+  policiesCardTitle: "Booking Policies",
+  coverageCardTitle: "Service Area",
+  addItemButton: "Add Service",
+  itemNamePlaceholder: "e.g. Oil Change",
+  servicesCategoryTitle: "Services & Pricing",
 };
 
 const dispatchDefaults: IndustryTerminology = {
@@ -46,6 +61,13 @@ const dispatchDefaults: IndustryTerminology = {
   teamMemberLabel: "driver",
   exampleServices: ["Local Tow", "Long-Distance Tow", "Flatbed Transport"],
   exampleFAQs: ["What is your response time?", "Do you accept roadside club calls?", "What are your after-hours rates?"],
+  catalogCardTitle: "Your Tow Services",
+  faqsCardTitle: "Caller FAQs",
+  policiesCardTitle: "Dispatch Policies",
+  coverageCardTitle: "Coverage Zone",
+  addItemButton: "Add Service Type",
+  itemNamePlaceholder: "e.g. Local Tow (0-10 mi)",
+  servicesCategoryTitle: "Tow Rates & Services",
 };
 
 const foodDefaults: IndustryTerminology = {
@@ -58,6 +80,13 @@ const foodDefaults: IndustryTerminology = {
   teamMemberLabel: "server",
   exampleServices: ["Dine-In", "Takeout", "Delivery", "Catering"],
   exampleFAQs: ["Do you have gluten-free options?", "Can I make a reservation?", "What are your delivery hours?"],
+  catalogCardTitle: "Your Menu",
+  faqsCardTitle: "Guest FAQs",
+  policiesCardTitle: "Restaurant Policies",
+  coverageCardTitle: "Delivery Area",
+  addItemButton: "Add Menu Item",
+  itemNamePlaceholder: "e.g. Margherita Pizza",
+  servicesCategoryTitle: "Menu & Pricing",
 };
 
 const medicalDefaults: IndustryTerminology = {
@@ -70,6 +99,13 @@ const medicalDefaults: IndustryTerminology = {
   teamMemberLabel: "provider",
   exampleServices: ["New Patient Visit", "Follow-Up", "Annual Exam"],
   exampleFAQs: ["Do you accept my insurance?", "How do I request my records?", "What should I bring to my first visit?"],
+  catalogCardTitle: "Your Procedures",
+  faqsCardTitle: "Patient FAQs",
+  policiesCardTitle: "Practice Policies",
+  coverageCardTitle: "Office Location",
+  addItemButton: "Add Procedure",
+  itemNamePlaceholder: "e.g. Teeth Cleaning",
+  servicesCategoryTitle: "Procedures & Fees",
 };
 
 const generalDefaults: IndustryTerminology = {
@@ -82,6 +118,13 @@ const generalDefaults: IndustryTerminology = {
   teamMemberLabel: "team member",
   exampleServices: ["Consultation", "Standard Service", "Premium Package"],
   exampleFAQs: ["What are your hours?", "Do you offer consultations?", "What is your pricing?"],
+  catalogCardTitle: "Your Services",
+  faqsCardTitle: "Client FAQs",
+  policiesCardTitle: "Business Policies",
+  coverageCardTitle: "Service Area",
+  addItemButton: "Add Service",
+  itemNamePlaceholder: "e.g. Consultation",
+  servicesCategoryTitle: "Services & Pricing",
 };
 
 const salesDefaults: IndustryTerminology = {
@@ -94,6 +137,13 @@ const salesDefaults: IndustryTerminology = {
   teamMemberLabel: "sales rep",
   exampleServices: ["New Vehicles", "Pre-Owned Vehicles", "Financing", "Trade-In"],
   exampleFAQs: ["Do you offer financing?", "What's your return policy?", "Do you accept trade-ins?"],
+  catalogCardTitle: "Your Products",
+  faqsCardTitle: "Prospect FAQs",
+  policiesCardTitle: "Sales Policies",
+  coverageCardTitle: "Showroom Location",
+  addItemButton: "Add Product",
+  itemNamePlaceholder: "e.g. 2024 Sedan",
+  servicesCategoryTitle: "Products & Pricing",
 };
 
 const MODE_DEFAULTS: Record<BusinessMode, IndustryTerminology> = {
@@ -172,33 +222,61 @@ const CATEGORY_OVERRIDES: Partial<Record<IndustryCategory, Partial<IndustryTermi
 const SLUG_OVERRIDES: Record<string, Partial<IndustryTerminology>> = {
   "auto-detailing": {
     servicesLabel: "Detailing Packages",
+    catalogCardTitle: "Your Detailing Packages",
+    addItemButton: "Add Package",
+    itemNamePlaceholder: "e.g. Full Detail Package",
+    servicesCategoryTitle: "Detailing Packages",
     exampleServices: ["Exterior Wash", "Interior Detail", "Full Detail Package", "Ceramic Coating"],
     exampleFAQs: ["How long does a full detail take?", "Do you come to me?", "What's included in the ceramic coating?"],
   },
   "hair-salon": {
     servicesLabel: "Salon Services",
+    catalogCardTitle: "Your Salon Services",
+    addItemButton: "Add Salon Service",
+    itemNamePlaceholder: "e.g. Women's Haircut",
+    servicesCategoryTitle: "Salon Services",
     exampleServices: ["Women's Haircut", "Men's Haircut", "Color & Highlights", "Keratin Treatment"],
   },
   "barbershop": {
     servicesLabel: "Barber Services",
+    catalogCardTitle: "Your Barber Services",
+    addItemButton: "Add Service",
+    itemNamePlaceholder: "e.g. Classic Cut",
+    servicesCategoryTitle: "Barber Services",
     teamMemberLabel: "barber",
     exampleServices: ["Classic Cut", "Beard Trim", "Hot Towel Shave", "Kids' Cut"],
   },
   "towing": {
     servicesLabel: "Tow Rates",
+    catalogCardTitle: "Your Tow Rates",
+    addItemButton: "Add Tow Service",
+    itemNamePlaceholder: "e.g. Local Tow (0-10 mi)",
+    servicesCategoryTitle: "Tow Rates",
     exampleServices: ["Local Tow (0-10 mi)", "Medium Tow (10-25 mi)", "Long-Distance Tow", "Flatbed Transport"],
   },
   "pizza": {
     servicesLabel: "Menu",
+    catalogCardTitle: "Your Menu",
+    addItemButton: "Add Menu Item",
+    itemNamePlaceholder: "e.g. Build Your Own Pizza",
+    servicesCategoryTitle: "Menu",
     exampleServices: ["Build Your Own Pizza", "Specialty Pizza", "Wings", "Salads"],
   },
   "dental": {
     servicesLabel: "Dental Procedures",
+    catalogCardTitle: "Your Dental Procedures",
+    addItemButton: "Add Procedure",
+    itemNamePlaceholder: "e.g. Cleaning & Exam",
+    servicesCategoryTitle: "Dental Procedures",
     exampleServices: ["Cleaning & Exam", "Filling", "Crown", "Teeth Whitening"],
     exampleFAQs: ["Do you accept my dental insurance?", "Do you offer payment plans?", "Is there a wait for new patients?"],
   },
   "chiropractic": {
     servicesLabel: "Chiropractic Services",
+    catalogCardTitle: "Your Chiropractic Services",
+    addItemButton: "Add Service",
+    itemNamePlaceholder: "e.g. Adjustment",
+    servicesCategoryTitle: "Chiropractic Services",
     exampleServices: ["Initial Exam", "Adjustment", "X-Ray", "Rehab Therapy"],
   },
   "plumbing": {
@@ -268,4 +346,29 @@ export function getDynamicStepTitle(
     default:
       return "";
   }
+}
+
+/**
+ * Terminology key names that map to IndustryTerminology fields.
+ * Used by Brain nav config cards to resolve dynamic titles at render time.
+ */
+export type TerminologyKey = keyof Pick<
+  IndustryTerminology,
+  "catalogCardTitle" | "faqsCardTitle" | "policiesCardTitle" | "coverageCardTitle" | "servicesCategoryTitle"
+>;
+
+/**
+ * Resolve a Brain card or category title using industry terminology.
+ * If the card has a titleKey, it resolves from terminology; otherwise falls back to the static title.
+ */
+export function resolveCardTitle(
+  titleKey: TerminologyKey | undefined,
+  staticTitle: string,
+  mode: BusinessMode,
+  category?: IndustryCategory,
+  slug?: string,
+): string {
+  if (!titleKey) return staticTitle;
+  const terms = getIndustryTerminology(mode, category, slug);
+  return terms[titleKey] || staticTitle;
 }

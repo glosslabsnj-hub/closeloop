@@ -22,6 +22,7 @@ import {
 import type { BusinessMode } from "@/hooks/useTenantConfig";
 import type { BusinessCapabilities } from "@/hooks/useBusinessCapabilities";
 import type { Capabilities } from "@/hooks/useCapabilities";
+import type { TerminologyKey } from "@/data/industryTerminology";
 
 export interface CardConfig {
   id: string;
@@ -43,6 +44,10 @@ export interface CardConfig {
   isEssential?: boolean;
   /** Essential only for specific modes */
   essentialForModes?: BusinessMode[];
+  /** Maps to an IndustryTerminology field for dynamic title resolution */
+  titleKey?: TerminologyKey;
+  /** Setup priority for progressive disclosure */
+  setupPriority?: "essential" | "recommended" | "advanced";
 }
 
 export interface CategoryConfig {
@@ -57,6 +62,8 @@ export interface CategoryConfig {
   cards: CardConfig[];
   /** Modes where this category should be emphasized */
   emphasis?: BusinessMode[];
+  /** Maps to an IndustryTerminology field for dynamic category title resolution */
+  titleKey?: TerminologyKey;
 }
 
 /**
@@ -84,6 +91,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         speechReadyFields: ["tagline", "location_summary"],
         defaultCollapsed: false,
         isEssential: true,
+        setupPriority: "essential",
       },
       {
         id: "business-hours",
@@ -96,6 +104,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         ],
         defaultCollapsed: false,
         isEssential: true,
+        setupPriority: "essential",
       },
       {
         id: "calendar-sync",
@@ -107,6 +116,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
           "Respects blocked times and buffers",
         ],
         defaultCollapsed: false,
+        setupPriority: "recommended",
       },
       {
         id: "industry-templates",
@@ -116,6 +126,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
           "Applies industry best practices automatically",
           "Pre-fills common services and policies",
         ],
+        setupPriority: "advanced",
       },
     ],
   },
@@ -127,6 +138,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
     section: "services",
     order: 2,
     emphasis: ["service", "food", "dispatch"],
+    titleKey: "servicesCategoryTitle",
     cards: [
       {
         id: "pricing-readiness",
@@ -137,6 +149,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
           "Shows what's missing for accurate pricing",
         ],
         defaultCollapsed: false,
+        setupPriority: "recommended",
       },
       {
         id: "pricing-rules",
@@ -149,10 +162,12 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         isVisible: (mode) => mode !== "dispatch",
         isVisibleWithCapabilities: (caps) => caps.mode !== "dispatch",
         isCapabilityVisible: (caps) => !caps.isDispatchBusiness,
+        setupPriority: "recommended",
       },
       {
         id: "catalog",
         title: "Your Services",
+        titleKey: "catalogCardTitle",
         purpose: "All your services/menu items and their pricing",
         usedByAI: [
           "Reads item details when customers ask what you offer",
@@ -161,6 +176,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         ],
         defaultCollapsed: false,
         isEssential: true,
+        setupPriority: "essential",
       },
       {
         id: "price-modifiers",
@@ -173,6 +189,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         ],
         isVisible: (mode) => ["service", "dispatch"].includes(mode),
         isVisibleWithCapabilities: (caps) => ["service", "dispatch"].includes(caps.mode),
+        setupPriority: "advanced",
       },
       {
         id: "service-packages",
@@ -185,6 +202,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         ],
         isVisible: (mode) => ["service", "medical"].includes(mode),
         isVisibleWithCapabilities: (caps) => ["service", "medical"].includes(caps.mode),
+        setupPriority: "advanced",
       },
       {
         id: "dispatch-pricing",
@@ -197,6 +215,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         ],
         isVisible: (mode) => mode === "dispatch",
         isVisibleWithCapabilities: (caps) => caps.mode === "dispatch",
+        setupPriority: "essential",
       },
       {
         id: "food-settings",
@@ -209,6 +228,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         ],
         isVisible: (mode, modules) => mode === "food" || modules.includes("food_orders"),
         isVisibleWithCapabilities: (caps) => caps.mode === "food" || caps.food.offersDelivery || caps.food.offersCatering,
+        setupPriority: "essential",
       },
       {
         id: "menu-sizes",
@@ -220,6 +240,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         ],
         isVisible: (mode, modules) => mode === "food" || modules.includes("menu_knowledge"),
         isVisibleWithCapabilities: (caps) => caps.mode === "food",
+        setupPriority: "advanced",
       },
       {
         id: "daily-specials",
@@ -231,6 +252,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         ],
         isVisible: (mode, modules) => mode === "food" || modules.includes("menu_knowledge"),
         isVisibleWithCapabilities: (caps) => caps.mode === "food",
+        setupPriority: "advanced",
       },
       {
         id: "medical-pricing",
@@ -243,6 +265,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         ],
         isVisible: (mode) => mode === "medical",
         isVisibleWithCapabilities: (caps) => caps.mode === "medical",
+        setupPriority: "essential",
       },
       {
         id: "additional-services",
@@ -254,6 +277,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
           "Helps cross-sell when appropriate",
         ],
         defaultCollapsed: true,
+        setupPriority: "advanced",
       },
     ],
   },
@@ -277,10 +301,12 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
           "Politely declines jobs outside coverage",
         ],
         defaultCollapsed: false,
+        setupPriority: "recommended",
       },
       {
         id: "service-area-settings",
         title: "Your Service Area",
+        titleKey: "coverageCardTitle",
         purpose: "Define exactly where your business provides service",
         usedByAI: [
           "Uses radius, ZIP codes, or counties to determine coverage",
@@ -289,6 +315,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         speechReadyFields: ["out_of_area_message"],
         isEssential: true,
         essentialForModes: ["dispatch", "service", "food"],
+        setupPriority: "essential",
       },
       {
         id: "eta-settings",
@@ -298,6 +325,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
           "Calculates arrival estimates based on distance",
           "Quotes realistic timeframes to callers",
         ],
+        setupPriority: "recommended",
       },
       {
         id: "busyness",
@@ -307,11 +335,13 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
           "Adds wait time to ETAs when you're busy",
           "Manages caller expectations realistically",
         ],
+        setupPriority: "advanced",
       },
       // Policy cards
       {
         id: "business-policies",
         title: "Cancellation, Deposits & Payments",
+        titleKey: "policiesCardTitle",
         purpose: "Cancellations, deposits, and payment terms",
         usedByAI: [
           "Explains policies before they become objections",
@@ -319,6 +349,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         ],
         speechReadyFields: ["cancellation_policy", "deposit_policy"],
         defaultCollapsed: false,
+        setupPriority: "recommended",
       },
       {
         id: "never-promise",
@@ -328,6 +359,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
           "Prevents over-promising on pricing or timelines",
           "Redirects to 'let me have someone call you' when appropriate",
         ],
+        setupPriority: "advanced",
       },
       {
         id: "required-questions",
@@ -338,6 +370,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
           "Collects mode-specific info (address for dispatch, party size for reservations)",
         ],
         defaultCollapsed: false,
+        setupPriority: "recommended",
       },
       {
         id: "booking-delivery",
@@ -349,6 +382,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         isVisible: (mode) => ["service", "medical", "general"].includes(mode),
         isVisibleWithCapabilities: (caps) => ["service", "medical", "general"].includes(caps.mode),
         isCapabilityVisible: (caps) => caps.isSchedulingBusiness,
+        setupPriority: "recommended",
       },
       {
         id: "food-delivery",
@@ -361,6 +395,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         isVisible: (mode, modules) => mode === "food" || modules.includes("food_orders"),
         isVisibleWithCapabilities: (caps) => caps.mode === "food",
         isCapabilityVisible: (caps) => caps.hasFoodOrders,
+        setupPriority: "recommended",
       },
       {
         id: "dispatch-delivery",
@@ -372,6 +407,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         isVisible: (mode) => mode === "dispatch",
         isVisibleWithCapabilities: (caps) => caps.mode === "dispatch",
         isCapabilityVisible: (caps) => caps.isDispatchBusiness,
+        setupPriority: "recommended",
       },
       {
         id: "hipaa-settings",
@@ -385,6 +421,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         isVisible: (mode) => mode === "medical",
         isVisibleWithCapabilities: (caps) => caps.mode === "medical" && caps.medical.requiresHIPAA,
         isCapabilityVisible: (caps) => caps.isMedicalBusiness,
+        setupPriority: "essential",
       },
     ],
   },
@@ -407,6 +444,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         speechReadyFields: ["greeting_script", "fallback_script"],
         defaultCollapsed: false,
         isEssential: true,
+        setupPriority: "essential",
       },
       {
         id: "business-rules",
@@ -416,6 +454,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
           "Follows your rules about when to offer vs. require callbacks",
           "Adjusts tone and approach per your preferences",
         ],
+        setupPriority: "recommended",
       },
       {
         id: "intelligence",
@@ -424,6 +463,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         usedByAI: [
           "Controls memory, learning, and adaptation features",
         ],
+        setupPriority: "advanced",
       },
     ],
   },
@@ -444,16 +484,19 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
           "Ensures AI only says what you've vetted",
         ],
         priority: "error",
+        setupPriority: "recommended",
       },
       {
         id: "faqs",
         title: "Common Questions & Answers",
+        titleKey: "faqsCardTitle",
         purpose: "Common questions and your approved answers",
         usedByAI: [
           "Answers FAQs instantly without guessing",
           "Reduces 'I don't know' responses",
         ],
         defaultCollapsed: false,
+        setupPriority: "essential",
       },
       {
         id: "objections",
@@ -463,6 +506,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
           "Addresses 'too expensive' or 'not sure' concerns",
           "Keeps conversations moving toward booking",
         ],
+        setupPriority: "recommended",
       },
       {
         id: "custom-knowledge",
@@ -471,6 +515,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         usedByAI: [
           "Provides extra context for unusual questions",
         ],
+        setupPriority: "advanced",
       },
       {
         id: "documents",
@@ -479,6 +524,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         usedByAI: [
           "References uploaded files for detailed info",
         ],
+        setupPriority: "advanced",
       },
     ],
   },
@@ -500,6 +546,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
           "Estimates revenue from AI-handled calls",
         ],
         defaultCollapsed: false,
+        setupPriority: "advanced",
       },
       {
         id: "insights",
@@ -511,6 +558,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
           "Identifies peak times and capacity issues",
         ],
         defaultCollapsed: false,
+        setupPriority: "advanced",
       },
       {
         id: "patterns",
@@ -521,6 +569,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
           "Monitors service request trends",
           "Detects escalation patterns",
         ],
+        setupPriority: "advanced",
       },
       {
         id: "weekly-digest",
@@ -530,6 +579,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
           "Summarizes call volume and conversion trends",
           "Highlights top patterns discovered",
         ],
+        setupPriority: "advanced",
       },
       {
         id: "intelligence-settings",
@@ -538,6 +588,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         usedByAI: [
           "Controls memory, learning, and adaptation features",
         ],
+        setupPriority: "advanced",
       },
     ],
   },

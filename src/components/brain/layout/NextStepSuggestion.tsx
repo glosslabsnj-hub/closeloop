@@ -22,15 +22,15 @@ interface NextStepSuggestionProps {
 }
 
 /** Map of completed section -> suggested next step by mode */
-const NEXT_STEP_MAP: Record<string, Record<BusinessMode | "default", { section: string; label: string; reason: string }>> = {
+const NEXT_STEP_MAP: Record<string, Record<BusinessMode | "default", { section: string; label: string; reason: string; timeEstimate?: string }>> = {
   "business": {
-    default: { section: "services", label: "Add your services", reason: "So your AI can tell callers what you offer" },
-    service: { section: "services", label: "Add your services", reason: "So your AI can tell callers what you offer" },
-    dispatch: { section: "services", label: "Add tow services", reason: "So your AI can quote prices" },
-    food: { section: "services", label: "Add menu items", reason: "So your AI can take orders" },
-    medical: { section: "services", label: "Add services", reason: "Define procedures and pricing" },
-    general: { section: "services", label: "Add your services", reason: "So your AI can tell callers what you offer" },
-    sales: { section: "services", label: "Add your products", reason: "So your AI can answer product inquiries" },
+    default: { section: "services", label: "Add your services", reason: "So your AI can tell callers what you offer", timeEstimate: "~2 min" },
+    service: { section: "services", label: "Add your services", reason: "So your AI can tell callers what you offer", timeEstimate: "~2 min" },
+    dispatch: { section: "services", label: "Add tow services", reason: "So your AI can quote prices", timeEstimate: "~2 min" },
+    food: { section: "services", label: "Add menu items", reason: "So your AI can take orders", timeEstimate: "~3 min" },
+    medical: { section: "services", label: "Add procedures", reason: "Define procedures and pricing", timeEstimate: "~2 min" },
+    general: { section: "services", label: "Add your services", reason: "So your AI can tell callers what you offer", timeEstimate: "~2 min" },
+    sales: { section: "services", label: "Add your products", reason: "So your AI can answer product inquiries", timeEstimate: "~2 min" },
   },
   "services": {
     default: { section: "operations", label: "Set your rules", reason: "Policies, service area, and required info" },
@@ -131,6 +131,9 @@ export function NextStepSuggestion({
         <div className="text-sm">
           <span className="font-medium text-foreground">Next: {suggestion.label}</span>
           <span className="text-muted-foreground ml-1">— {suggestion.reason}</span>
+          {suggestion.timeEstimate && (
+            <span className="text-muted-foreground/70 ml-1">({suggestion.timeEstimate})</span>
+          )}
         </div>
       </div>
       <Button
