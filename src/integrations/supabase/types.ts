@@ -9004,6 +9004,72 @@ export type Database = {
         }
         Relationships: []
       }
+      test_drives: {
+        Row: {
+          booking_id: string | null
+          created_at: string | null
+          customer_id: string | null
+          duration_minutes: number | null
+          id: string
+          notes: string | null
+          salesperson: string | null
+          scheduled_at: string
+          session_id: string | null
+          status: string | null
+          tenant_id: string
+          updated_at: string | null
+          vehicle_description: string | null
+          vehicle_id: string | null
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          duration_minutes?: number | null
+          id?: string
+          notes?: string | null
+          salesperson?: string | null
+          scheduled_at: string
+          session_id?: string | null
+          status?: string | null
+          tenant_id: string
+          updated_at?: string | null
+          vehicle_description?: string | null
+          vehicle_id?: string | null
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          duration_minutes?: number | null
+          id?: string
+          notes?: string | null
+          salesperson?: string | null
+          scheduled_at?: string
+          session_id?: string | null
+          status?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+          vehicle_description?: string | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_drives_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_drives_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       time_entries: {
         Row: {
           approved_at: string | null
