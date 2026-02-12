@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { Info } from "lucide-react";
+import { Info, HelpCircle } from "lucide-react";
 import BusinessHoursEditor, { type BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
 import {
   DEFAULT_BUSINESS_HOURS,
@@ -18,29 +19,79 @@ export interface SchedulingPrefs {
   is24x7: boolean;
 }
 
+/** Industry-specific scheduling defaults keyed by industry slug */
+const industrySchedulingDefaults: Record<string, Partial<SchedulingPrefs>> = {
+  // Detailing / auto care — long jobs, need buffer for cleanup
+  "auto-detailing": { defaultDurationMinutes: 120, bufferMinutes: 30, sameDayBooking: true },
+  "car-wash": { defaultDurationMinutes: 30, bufferMinutes: 10, sameDayBooking: true },
+  // Auto repair — multi-hour jobs, drop-off model
+  auto_repair: { defaultDurationMinutes: 120, bufferMinutes: 30, sameDayBooking: true },
+  // Salons & beauty — 30-60 min appointments, tight buffer
+  "hair-salon": { defaultDurationMinutes: 45, bufferMinutes: 10, sameDayBooking: true },
+  "nail-salon": { defaultDurationMinutes: 45, bufferMinutes: 10, sameDayBooking: true },
+  "barber-shop": { defaultDurationMinutes: 30, bufferMinutes: 5, sameDayBooking: true },
+  "med-spa": { defaultDurationMinutes: 60, bufferMinutes: 15, sameDayBooking: false },
+  // Healthcare — strict scheduling
+  dental: { defaultDurationMinutes: 30, bufferMinutes: 15, sameDayBooking: false },
+  chiropractic: { defaultDurationMinutes: 30, bufferMinutes: 10, sameDayBooking: true },
+  veterinary: { defaultDurationMinutes: 30, bufferMinutes: 15, sameDayBooking: true },
+  // Home services — longer blocks, travel time
+  plumbing: { defaultDurationMinutes: 90, bufferMinutes: 30, sameDayBooking: true },
+  hvac: { defaultDurationMinutes: 90, bufferMinutes: 30, sameDayBooking: true },
+  electrical: { defaultDurationMinutes: 90, bufferMinutes: 30, sameDayBooking: true },
+  "pest-control": { defaultDurationMinutes: 60, bufferMinutes: 20, sameDayBooking: true },
+  "house-cleaning": { defaultDurationMinutes: 120, bufferMinutes: 30, sameDayBooking: false },
+  landscaping: { defaultDurationMinutes: 120, bufferMinutes: 30, sameDayBooking: false },
+  // Tattoo / body art — long sessions
+  "tattoo-studio": { defaultDurationMinutes: 120, bufferMinutes: 30, sameDayBooking: false },
+  // Photography — 1-2 hour sessions
+  photography: { defaultDurationMinutes: 90, bufferMinutes: 30, sameDayBooking: false },
+  // Massage / wellness
+  "massage-therapy": { defaultDurationMinutes: 60, bufferMinutes: 15, sameDayBooking: true },
+  // Fitness / personal training
+  "personal-training": { defaultDurationMinutes: 60, bufferMinutes: 10, sameDayBooking: true },
+  // Tutoring
+  tutoring: { defaultDurationMinutes: 60, bufferMinutes: 10, sameDayBooking: true },
+  // Towing / dispatch — no scheduling
+  towing: { defaultDurationMinutes: 60, bufferMinutes: 0, sameDayBooking: true, is24x7: false },
+};
+
 export function getDefaultSchedulingPrefs(
   mode: BusinessMode,
-  scenarioAnswers?: Record<string, boolean>
+  scenarioAnswers?: Record<string, boolean>,
+  industrySlug?: string
 ): SchedulingPrefs {
   const hasLongJobs = scenarioAnswers?.hasLongDurationJobs ?? false;
   const isCallbackOnly = scenarioAnswers?.aiBooksDirect === false;
 
+  // Start with mode defaults
+  let base: SchedulingPrefs;
   switch (mode) {
     case "dispatch":
-      return { defaultDurationMinutes: 60, bufferMinutes: 0, sameDayBooking: true, is24x7: false };
+      base = { defaultDurationMinutes: 60, bufferMinutes: 0, sameDayBooking: true, is24x7: false };
+      break;
     case "food":
-      return { defaultDurationMinutes: 30, bufferMinutes: 0, sameDayBooking: true, is24x7: false };
+      base = { defaultDurationMinutes: 30, bufferMinutes: 0, sameDayBooking: true, is24x7: false };
+      break;
     case "medical":
-      return { defaultDurationMinutes: 30, bufferMinutes: 15, sameDayBooking: false, is24x7: false };
+      base = { defaultDurationMinutes: 30, bufferMinutes: 15, sameDayBooking: false, is24x7: false };
+      break;
     default:
       if (isCallbackOnly) {
-        return { defaultDurationMinutes: 60, bufferMinutes: 15, sameDayBooking: true, is24x7: false };
+        base = { defaultDurationMinutes: 60, bufferMinutes: 15, sameDayBooking: true, is24x7: false };
+      } else if (hasLongJobs) {
+        base = { defaultDurationMinutes: 120, bufferMinutes: 30, sameDayBooking: true, is24x7: false };
+      } else {
+        base = { defaultDurationMinutes: 60, bufferMinutes: 15, sameDayBooking: true, is24x7: false };
       }
-      if (hasLongJobs) {
-        return { defaultDurationMinutes: 120, bufferMinutes: 30, sameDayBooking: true, is24x7: false };
-      }
-      return { defaultDurationMinutes: 60, bufferMinutes: 15, sameDayBooking: true, is24x7: false };
   }
+
+  // Override with industry-specific defaults if available
+  if (industrySlug && industrySchedulingDefaults[industrySlug]) {
+    return { ...base, ...industrySchedulingDefaults[industrySlug] };
+  }
+
+  return base;
 }
 
 export function getDefaultHoursForMode(mode: BusinessMode): BusinessHours {
@@ -91,6 +142,27 @@ function getBufferOptions(hasLongJobs: boolean): number[] {
     return [0, 15, 30, 45, 60, 120];
   }
   return [0, 5, 10, 15, 30, 45, 60];
+}
+
+function WhyTooltip({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="relative inline-flex">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="text-muted-foreground hover:text-foreground transition-colors"
+        aria-label="Why this matters"
+      >
+        <HelpCircle className="h-3.5 w-3.5" />
+      </button>
+      {open && (
+        <span className="absolute left-0 top-6 z-50 w-64 rounded-md border bg-popover p-3 text-xs text-popover-foreground shadow-md animate-fade-in">
+          {text}
+        </span>
+      )}
+    </span>
+  );
 }
 
 export function SchedulingSetup({
@@ -192,7 +264,10 @@ export function SchedulingSetup({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs">Default Appointment Duration</Label>
+              <div className="flex items-center gap-1.5">
+                <Label className="text-xs">Default Appointment Duration</Label>
+                <WhyTooltip text="This sets how long the AI blocks on your calendar per booking. Pick your most common appointment length — you can always override per service later." />
+              </div>
               <div className="flex flex-wrap gap-2">
                 {durationOptions.map((d) => (
                   <button
@@ -213,7 +288,10 @@ export function SchedulingSetup({
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs">Buffer Between Appointments</Label>
+              <div className="flex items-center gap-1.5">
+                <Label className="text-xs">Buffer Between Appointments</Label>
+                <WhyTooltip text="Buffer time prevents back-to-back bookings. Use it for cleanup, travel, or prep. For example, a 30-minute buffer after a 3-hour detail gives you time to inspect the car and prep for the next one." />
+              </div>
               <div className="flex flex-wrap gap-2">
                 {bufferOptions.map((b) => (
                   <button
@@ -238,7 +316,10 @@ export function SchedulingSetup({
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-sm">Same-day booking</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-medium text-sm">Same-day booking</p>
+                    <WhyTooltip text="When enabled, callers can book an appointment for later today if you have open slots. Turn this off if you need lead time to prepare (e.g., ordering supplies, scheduling staff)." />
+                  </div>
                   <p className="text-xs text-muted-foreground">Allow customers to book appointments for today</p>
                 </div>
                 <Switch
