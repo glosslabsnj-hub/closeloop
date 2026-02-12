@@ -91,6 +91,7 @@ const SERVICE_LAYOUT: ModeLayout = {
         { key: "calendar", label: "CALENDAR", itemIds: ["calendar-sync", "service-coverage"] },
         { key: "where-you-serve", label: "WHERE YOU SERVE", itemIds: ["coverage", "travel-times", "workload"] },
         { key: "delivery", label: "DELIVERY", itemIds: ["booking-delivery", "callback-delivery"] },
+        { key: "integrations", label: "INTEGRATIONS", itemIds: ["tekmetric"] },
       ],
       completionSections: ["coverage", "calendar"],
     },
