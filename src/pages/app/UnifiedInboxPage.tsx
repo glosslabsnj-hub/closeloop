@@ -23,6 +23,7 @@ import { Phone, Users, Search, Loader2 } from "lucide-react";
 import { useTerminology } from "@/hooks/useTerminology";
 import { InboxCallCard } from "@/components/calls/InboxCallCard";
 import { CallDetailPanel } from "@/components/calls/CallDetailPanel";
+import { LeadsKanbanView } from "@/components/calls/LeadsKanbanView";
 
 type TabValue = "calls" | "leads";
 
@@ -41,6 +42,7 @@ interface CallSession {
   context_json: Record<string, unknown> | null;
   extracted_payload: Record<string, unknown> | null;
   customer_id: string | null;
+  followup_status?: string | null;
   customer?: {
     id: string;
     full_name: string;
@@ -129,7 +131,7 @@ export default function UnifiedInboxPage() {
         .select(`
           id, started_at, ended_at, caller_phone, call_direction,
           outcome, summary, transcript, context_json, extracted_payload,
-          customer_id, customer:customers!ai_call_sessions_customer_id_fkey (id, full_name, phone_e164)
+          customer_id, followup_status, customer:customers!ai_call_sessions_customer_id_fkey (id, full_name, phone_e164)
         `)
         .eq("tenant_id", tenant.id)
         .order("started_at", { ascending: false })
@@ -275,7 +277,7 @@ export default function UnifiedInboxPage() {
           </div>
         </div>
 
-        {/* LEADS TAB: lead-worthy calls, priority-sorted */}
+        {/* LEADS TAB: Kanban pipeline board */}
         <TabsContent value="leads" className="mt-6">
           {callsLoading ? (
             <div className="flex items-center justify-center py-12">
@@ -285,21 +287,16 @@ export default function UnifiedInboxPage() {
             <EmptyState
               icon={Users}
               title="No leads yet"
-              description="When callers express interest or request follow-ups, they'll appear here prioritized."
+              description="When callers express interest or request follow-ups, they'll appear here in your pipeline."
             />
           ) : (
-            <div className="divide-y divide-border/20 rounded-2xl bg-card">
-              {filteredLeads.map((call) => (
-                <InboxCallCard
-                  key={call.id}
-                  call={call}
-                  customerName={getCustomerName(call)}
-                  onClick={() => setSelectedCall(call)}
-                  priorityConfig={config.priority}
-                  inboxConfig={config.inbox}
-                />
-              ))}
-            </div>
+            <LeadsKanbanView
+              leads={filteredLeads}
+              getCustomerName={getCustomerName}
+              onSelectCall={setSelectedCall}
+              priorityConfig={config.priority}
+              tenantId={tenant?.id || ""}
+            />
           )}
         </TabsContent>
 
