@@ -72,7 +72,8 @@ export function AvailabilityHub() {
   // Get hours for a specific day
   const getHoursForDay = (date: Date) => {
     const dayName = DAY_MAP[date.getDay()];
-    return businessHours?.[dayName] || null;
+    const raw = businessHours?.[dayName] || null;
+    return normalizeDayHours(raw);
   };
 
   const handleOpenBlockDialog = (date?: Date) => {
