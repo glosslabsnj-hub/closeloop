@@ -1,86 +1,82 @@
 
+# Fix: Availability Display, Lead Time, and Calendar Integration
 
-# Fix: Missing Database Columns + Call Disconnect
+## Problems Found
 
-## Root Cause Analysis
-
-### Why data isn't saving (bookings, leads, pipeline)
-The edge function logs show two critical database errors on EVERY call:
-
+### 1. "Today: Closed" is wrong in the Business Brain
+The `LiveSchedulePreview` component queries `availability_slots` which IS correctly populated (Mon-Fri 9-5, Sat 12-5). However, the `check-availability` edge function reads business hours using `dayHours.open` / `dayHours.close` format, while Dream Drive Auto's `hours_json` uses the newer `windows` array format:
 ```
-ERROR [persistBooking] Could not find the 'duration_minutes' column of 'bookings'
-ERROR [ensureLead] Could not find the 'customer_id' column of 'leads'
+// What the code expects:
+{ "monday": { "open": "09:00", "close": "17:00" } }
+
+// What Dream Drive actually has:
+{ "monday": { "closed": false, "windows": [{ "open": "09:00", "close": "17:00" }] } }
 ```
+This means `dayHours.open` returns `undefined`, causing the edge function to think the business is closed.
 
-The `elevenlabs-webhook` code tries to insert `duration_minutes` into `bookings` and `customer_id` into `leads`, but those columns don't exist in the database. This means:
-- Bookings silently fail to create
-- Leads silently fail to create
-- Test drives never get created (they depend on bookings)
-- Sales pipeline shows nothing (depends on leads)
+### 2. "Appointments require at least 1 hour notice"
+The tenant's `min_lead_hours` is set to `1`. The owner wants the AI to always book appointments without any minimum notice restriction. We need to set `min_lead_hours` to `0`.
 
-### Why calls may disconnect immediately
-Most likely cause: the Custom Tools just added in ElevenLabs have a configuration issue (wrong URL format, missing parameter, or incorrect value type). The call connects to ElevenLabs, but when the agent tries to use a tool and it fails, it disconnects.
+### 3. Calendar section should show connected + offer future integrations
+Currently working but could be clearer about the Voxly Calendar being active while keeping the door open for Google/Outlook.
 
 ---
 
 ## Fix Plan
 
-### Step 1: Add missing database columns
-
-Add `duration_minutes` to `bookings` and `customer_id` to `leads`:
-
+### Step 1: Update `min_lead_hours` to 0
+Database update for Dream Drive Auto tenant to remove the advance booking restriction:
 ```sql
--- Add duration_minutes to bookings (code writes this on every booking)
-ALTER TABLE public.bookings 
-  ADD COLUMN IF NOT EXISTS duration_minutes INT;
-
--- Add price_cents to bookings (also referenced in code)
-ALTER TABLE public.bookings 
-  ADD COLUMN IF NOT EXISTS price_cents INT;
-
--- Add price_breakdown to bookings
-ALTER TABLE public.bookings 
-  ADD COLUMN IF NOT EXISTS price_breakdown JSONB;
-
--- Add customer_id to leads (code writes this on every lead)
-ALTER TABLE public.leads 
-  ADD COLUMN IF NOT EXISTS customer_id UUID REFERENCES public.customers(id);
+UPDATE tenants SET min_lead_hours = 0 WHERE id = '59debf18-1276-4c10-ae1b-6194a531540c';
 ```
 
-This is the critical fix -- once these columns exist, bookings AND leads will start saving successfully, which flows into test drives and the sales pipeline.
+### Step 2: Fix `hours_json` format handling in edge functions
+Update `check-availability` and `availability-suggest` to handle BOTH `hours_json` formats:
+- Legacy flat format: `{ open: "09:00", close: "17:00" }`
+- Windows array format: `{ closed: false, windows: [{ open: "09:00", close: "17:00" }] }`
 
-### Step 2: Verify the Custom Tools configuration in ElevenLabs
+Add a helper function that normalizes either format into `{ open, close }` before use.
 
-The immediate disconnect is likely from a misconfigured tool. After the DB fix, I'll provide a checklist to verify each tool is set up correctly:
+### Step 3: Fix `LiveSchedulePreview` to handle both formats
+The preview component also needs the same normalization so it correctly displays "Open 9:00 AM - 5:00 PM" instead of "Closed".
 
-- **URL format**: Must be the full URL with no trailing slash
-- **Method**: POST for all tools
-- **Content-Type**: application/json
-- **Parameters**: tenant_id and conversation_id must be "Dynamic Variable" type, all others "LLM Prompt"
-
-### Step 3: Deploy and test
-
-After the DB migration, do a test call. The logs should now show successful booking and lead creation instead of PGRST204 errors.
+### Step 4: Update Calendar section in Business Brain
+In the Calendar tab, show:
+- Current status: "Using Voxly Calendar" (with green checkmark)
+- Option to switch to Google Calendar or Outlook (marked "Coming Soon")
+- The schedule preview should correctly reflect seeded availability slots
 
 ---
 
 ## Technical Details
 
-### Columns being added
+### hours_json normalizer (shared utility)
+```typescript
+function normalizeHours(dayConfig: any): { open: string; close: string } | null {
+  if (!dayConfig || dayConfig.closed) return null;
+  // Windows format
+  if (dayConfig.windows?.length) {
+    return { open: dayConfig.windows[0].open, close: dayConfig.windows[0].close };
+  }
+  // Legacy flat format
+  if (dayConfig.open && dayConfig.close) {
+    return { open: dayConfig.open, close: dayConfig.close };
+  }
+  return null;
+}
+```
 
-| Table | Column | Type | Why |
-|-------|--------|------|-----|
-| `bookings` | `duration_minutes` | INT | Stores appointment length |
-| `bookings` | `price_cents` | INT | Stores computed price |
-| `bookings` | `price_breakdown` | JSONB | Stores pricing details |
-| `leads` | `customer_id` | UUID (FK) | Links lead to customer record |
+### Files to modify
+| File | Change |
+|------|--------|
+| `supabase/functions/check-availability/index.ts` | Add format normalizer for `hours_json` |
+| `supabase/functions/availability-suggest/index.ts` | Same normalizer |
+| `src/components/settings/LiveSchedulePreview.tsx` | Handle `windows` format in display |
+| `src/components/availability/AvailabilityHub.tsx` | Handle `windows` format in display |
+| Database | Set `min_lead_hours = 0` for Dream Drive Auto |
 
-### What happens after fix
-1. Call comes in -> twilio-inbound -> ElevenLabs conversation (already works)
-2. Call ends -> elevenlabs-webhook processes conversation (already works)
-3. Webhook creates customer record (already works)
-4. Webhook creates lead with customer_id (WILL NOW WORK)
-5. Webhook creates booking with duration_minutes (WILL NOW WORK)
-6. Webhook creates test_drive linked to booking (WILL NOW WORK)
-7. Dashboard shows data in test drives, pipeline, and appointments (WILL NOW WORK)
-
+### What this fixes
+- AI will book appointments at any time without minimum notice
+- Business Brain will correctly show "Open 9 AM - 5 PM" for weekdays
+- Calendar section properly reflects the Voxly Calendar connection
+- Edge functions correctly handle both legacy and windows hours formats
