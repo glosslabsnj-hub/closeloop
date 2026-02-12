@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCapabilities } from "@/hooks/useCapabilities";
 import { AgentControlPanel } from "./AgentControlPanel";
 import { NeedsAttentionBanner } from "./NeedsAttentionBanner";
 import { LiveActivityFeed } from "./LiveActivityFeed";
@@ -13,6 +14,7 @@ import { SoundManager } from "@/components/notifications/SoundManager";
 
 export function LiveDashboard() {
   const { tenant } = useAuth();
+  const caps = useCapabilities();
   const [copilotOpen, setCopilotOpen] = useState(false);
 
   return (
@@ -21,7 +23,7 @@ export function LiveDashboard() {
 
       {/* ═══ TIER 1: Agent Status Hero + Busyness ═══ */}
       <AgentControlPanel />
-      <BusynessSliderWidget />
+      {caps.derivedPrimaryMode === "dispatch" && <BusynessSliderWidget />}
 
       {/* ═══ TIER 2: Alerts (only when present) ═══ */}
       <UnifiedAlertBanner />

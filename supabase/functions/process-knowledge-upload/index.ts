@@ -805,7 +805,9 @@ function getSystemPrompt(sourceType: string): string {
     case "menu_pdf":
       return `${base} You are extracting menu items from a restaurant/food business document. Extract item names, descriptions, prices (convert to cents - $12.99 becomes 1299), and categories.`;
     case "services_doc":
-      return `${base} You are extracting service offerings from a business document. Extract service names, descriptions, prices, pricing type (fixed, starting_at, or quote_only), and duration in minutes if available.`;
+      return `${base} You are extracting service offerings from a business document. Extract service names, descriptions, prices, pricing type (fixed, starting_at, or quote_only), and duration in minutes if available.
+
+IMPORTANT: Pay close attention to price qualifiers. If a price is described with words like "starting at", "from", "starts at", "and up", "+", "varies", "prices may vary", or similar language indicating the price is not fixed, set price_type to "starting_at". Only use "fixed" when the price is clearly exact and final. If no price is listed or it says "call for quote" / "varies by project", use "quote_only".`;
     case "faq_doc":
       return `${base} You are extracting frequently asked questions from a business document. Extract the question and answer pairs.`;
     case "hours":
@@ -813,7 +815,7 @@ function getSystemPrompt(sourceType: string): string {
     case "policies":
       return `${base} You are extracting business policies. Look for cancellation policies, refund policies, deposit requirements, and other terms.`;
     case "pricing":
-      return `${base} You are extracting pricing information. This could be services (with duration) or menu items (with categories). Extract all pricing data found.`;
+      return `${base} You are extracting pricing information. This could be services (with duration) or menu items (with categories). Extract all pricing data found. Pay close attention to price qualifiers like "starting at", "from", "and up", "+", or "varies" — these indicate price_type should be "starting_at", not "fixed".`;
     default:
       return `${base} You are extracting general business information. Look for FAQs, policies (cancellation, refund, deposit), operating hours, and any other structured knowledge.`;
   }

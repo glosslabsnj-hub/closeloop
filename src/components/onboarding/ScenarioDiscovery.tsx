@@ -1,9 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Bot } from "lucide-react";
+import { Shield, Bot, ChevronDown } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import {
@@ -81,6 +81,20 @@ export function ScenarioDiscovery({
 
   let globalIndex = 0;
 
+  const [hasScrolled, setHasScrolled] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Track scroll to hide the "more below" indicator
+  useEffect(() => {
+    const viewport = scrollRef.current?.querySelector("[data-radix-scroll-area-viewport]");
+    if (!viewport) return;
+    const handleScroll = () => {
+      if ((viewport as HTMLElement).scrollTop > 40) setHasScrolled(true);
+    };
+    viewport.addEventListener("scroll", handleScroll);
+    return () => viewport.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
     <div className="space-y-6">
       <div>
@@ -92,32 +106,47 @@ export function ScenarioDiscovery({
         </p>
       </div>
 
-      <ScrollArea className="h-[460px]">
-        <div className="space-y-5 pr-4">
-          {grouped.map(({ group, questions: groupQuestions }) => (
-            <div key={group} className="space-y-3">
-              {grouped.length > 1 && (
-                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground px-1">
-                  {groupLabels[group]}
-                </p>
-              )}
-              {groupQuestions.map((q) => {
-                const index = globalIndex++;
-                return (
-                  <QuestionCard
-                    key={q.id}
-                    question={q}
-                    checked={answers[q.capabilityKey] ?? q.defaultValue}
-                    onToggle={() => toggle(q.capabilityKey, q.blocking)}
-                    index={index}
-                    isPreSet={isPreAnswered(q, industryContext)}
-                  />
-                );
-              })}
+      <div className="relative">
+        <ScrollArea className="h-[460px]" ref={scrollRef}>
+          <div className="space-y-5 pr-4">
+            {grouped.map(({ group, questions: groupQuestions }) => (
+              <div key={group} className="space-y-3">
+                {grouped.length > 1 && (
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground px-1">
+                    {groupLabels[group]}
+                  </p>
+                )}
+                {groupQuestions.map((q) => {
+                  const index = globalIndex++;
+                  return (
+                    <QuestionCard
+                      key={q.id}
+                      question={q}
+                      checked={answers[q.capabilityKey] ?? q.defaultValue}
+                      onToggle={() => toggle(q.capabilityKey, q.blocking)}
+                      index={index}
+                      isPreSet={isPreAnswered(q, industryContext)}
+                    />
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+
+        {/* Scroll indicator */}
+        {!hasScrolled && visibleQuestions.length > 4 && (
+          <div className="absolute bottom-0 left-0 right-0 pointer-events-none">
+            <div className="h-16 bg-gradient-to-t from-background to-transparent" />
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 pointer-events-auto">
+              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/80 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm">
+                <ChevronDown className="h-3 w-3 animate-bounce" />
+                Scroll for more
+              </span>
             </div>
-          ))}
-        </div>
-      </ScrollArea>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

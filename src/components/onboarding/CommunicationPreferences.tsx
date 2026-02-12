@@ -90,7 +90,7 @@ export function CommunicationPreferences({
             {
               value: "pending_approval",
               label: "Require Approval",
-              description: "AI collects the request; you confirm each one manually",
+              description: "AI finds an open time but tells the caller 'someone will reach out to confirm.' You approve or adjust before it's final.",
             },
             {
               value: "callback_only",

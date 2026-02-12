@@ -30,6 +30,9 @@ import {
   FileText,
   Calendar as CalendarIcon,
   AlertTriangle,
+  DollarSign,
+  MapPin,
+  Shield,
 } from "lucide-react";
 
 /**
@@ -119,6 +122,15 @@ export function SetupProgressChecklist() {
       showStaffSection: bizCaps.showStaffSection,
       showCurbsideSection: bizCaps.showCurbsideSection,
       showNewPatientFormsSection: bizCaps.showNewPatientFormsSection,
+      // Capability-driven flags
+      chargesTripFee: bizCaps.service.chargesTripFee,
+      hasTripFeeModifier: false, // TODO: check price_modifiers table
+      hasMinimumCharge: bizCaps.service.hasMinimumCharge,
+      hasMinimumChargeModifier: false,
+      requiresDeposits: bizCaps.service.requiresDeposits,
+      hasDepositConfigured: !!assistantSettings?.deposit_amount,
+      offersMobileService: bizCaps.service.offersMobileService,
+      hasServiceArea: !!(tenant as any)?.service_area_json && Object.keys(((tenant as any)?.service_area_json as Record<string, unknown>) || {}).length > 0,
     },
     {
       Package,
@@ -134,6 +146,9 @@ export function SetupProgressChecklist() {
       Rocket,
       CalendarIcon,
       AlertTriangle,
+      DollarSign,
+      MapPin,
+      Shield,
     },
   );
 

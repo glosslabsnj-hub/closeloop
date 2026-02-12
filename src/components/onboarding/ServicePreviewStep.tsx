@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Plus, X } from "lucide-react";
 import { getIndustryTerminology } from "@/data/industryTerminology";
+import { cn } from "@/lib/utils";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 
 export interface EditableService {
@@ -131,12 +132,33 @@ export function ServicePreviewStep({
                   <p className={`text-sm font-medium ${!service.enabled ? "text-muted-foreground line-through" : ""}`}>
                     {service.name || `New ${terms.serviceItemLabel}`}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {service.duration} min
-                    {service.price > 0 && ` · $${service.price}`}
-                    {service.priceType === "starting_at" && "+"}
-                    {service.priceType === "quote_only" && " · Quote only"}
-                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-xs text-muted-foreground">
+                      {service.duration} min
+                      {service.price > 0 && ` · ${service.priceType === "starting_at" ? "from " : ""}$${service.price}`}
+                      {service.priceType === "quote_only" && " · Quote only"}
+                    </p>
+                    <button
+                      type="button"
+                      className={cn(
+                        "text-[10px] px-1.5 py-0.5 rounded border transition-colors",
+                        service.priceType === "starting_at"
+                          ? "border-primary/40 text-primary bg-primary/5"
+                          : service.priceType === "quote_only"
+                          ? "border-amber-500/40 text-amber-600 bg-amber-500/5"
+                          : "border-muted-foreground/20 text-muted-foreground hover:border-muted-foreground/40"
+                      )}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const types: Array<"fixed" | "starting_at" | "quote_only"> = ["fixed", "starting_at", "quote_only"];
+                        const currentIdx = types.indexOf(service.priceType);
+                        const nextType = types[(currentIdx + 1) % types.length];
+                        updateService(idx, "priceType", nextType);
+                      }}
+                    >
+                      {service.priceType === "starting_at" ? "Starting at" : service.priceType === "quote_only" ? "Quote" : "Fixed"}
+                    </button>
+                  </div>
                 </button>
               )}
             </div>
