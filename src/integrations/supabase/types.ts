@@ -176,9 +176,11 @@ export type Database = {
           elevenlabs_conversation_id: string | null
           ended_at: string | null
           extracted_payload: Json | null
+          followup_status: string | null
           id: string
           is_recovery_call: boolean | null
           lead_id: string | null
+          lead_score: string | null
           opportunity_id: string | null
           outcome: Database["public"]["Enums"]["ai_call_outcome"] | null
           recovery_campaign_id: string | null
@@ -200,9 +202,11 @@ export type Database = {
           elevenlabs_conversation_id?: string | null
           ended_at?: string | null
           extracted_payload?: Json | null
+          followup_status?: string | null
           id?: string
           is_recovery_call?: boolean | null
           lead_id?: string | null
+          lead_score?: string | null
           opportunity_id?: string | null
           outcome?: Database["public"]["Enums"]["ai_call_outcome"] | null
           recovery_campaign_id?: string | null
@@ -224,9 +228,11 @@ export type Database = {
           elevenlabs_conversation_id?: string | null
           ended_at?: string | null
           extracted_payload?: Json | null
+          followup_status?: string | null
           id?: string
           is_recovery_call?: boolean | null
           lead_id?: string | null
+          lead_score?: string | null
           opportunity_id?: string | null
           outcome?: Database["public"]["Enums"]["ai_call_outcome"] | null
           recovery_campaign_id?: string | null

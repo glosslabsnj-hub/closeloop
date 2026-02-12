@@ -806,6 +806,9 @@ async function processCallData(
     ...dataCollection,
   };
 
+  // ===== COMPUTE LEAD SCORE =====
+  const leadScore = computeLeadScore(validatedPayload, transcriptText || "", outcome);
+
   // ===== UPDATE CALL SESSION =====
   const { error: updateError } = await supabase
     .from("ai_call_sessions")
@@ -818,6 +821,8 @@ async function processCallData(
       elevenlabs_conversation_id: payload.conversation_id,
       customer_id: customerId,
       extracted_payload: validatedPayload as unknown as Record<string, unknown>,
+      lead_score: leadScore,
+      followup_status: outcome === "booked" || outcome === "order" ? "completed" : "new",
     })
     .eq("id", sessionId);
 
@@ -1040,6 +1045,38 @@ async function processCallData(
 
   // ===== PERSIST DERIVED ENTITY =====
   await persistDerivedEntity(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, tenantBusinessMode, enabledModules, validatedPayload, validatedPayload.customer.name, customerId, callerPhoneE164, payload);
+}
+
+// ===== COMPUTE LEAD SCORE =====
+function computeLeadScore(
+  payload: CanonicalPayload,
+  transcriptText: string,
+  outcome: string
+): "hot" | "warm" | "cool" {
+  // Hot: urgency keywords, high-value services, or booked
+  if (outcome === "booked" || outcome === "order" || outcome === "dispatch") return "hot";
+
+  const lowerTranscript = transcriptText.toLowerCase();
+  const urgencyKeywords = ["asap", "emergency", "urgent", "broken down", "stranded", "right away", "immediately", "today"];
+  const highValueKeywords = ["engine", "transmission", "rebuild", "replace", "overhaul", "turbo", "full service"];
+
+  const hasUrgency = urgencyKeywords.some(k => lowerTranscript.includes(k));
+  const hasHighValue = highValueKeywords.some(k => lowerTranscript.includes(k));
+  const dispatchUrgent = payload.dispatch.urgency === "urgent" || payload.dispatch.urgency === "high";
+
+  if (hasUrgency || hasHighValue || dispatchUrgent) return "hot";
+
+  // Cool: no name, no service, or abandoned/lost
+  if (outcome === "lost" || outcome === "abandoned") return "cool";
+
+  const hasName = !!payload.customer.name && payload.customer.name !== "Unknown";
+  const hasPhone = !!payload.customer.phone_e164;
+  const hasService = !!payload.booking.service_requested || !!payload.dispatch.job_type;
+
+  if (!hasName && !hasService) return "cool";
+  if (hasName && hasPhone && hasService) return "warm";
+
+  return "warm";
 }
 
 // ===== EXTRACT RAW DATA FROM SOURCES =====
