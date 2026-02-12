@@ -11,10 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Phone, Mail, Calendar, Clock, FileText, User, Link2 } from "lucide-react";
+import { Phone, Mail, Calendar, Clock, FileText, User, Link2, Car, ClipboardCheck } from "lucide-react";
 import { type Customer, useCustomers } from "@/hooks/useCustomers";
 import { useCustomerActivity } from "@/hooks/useCustomerActivity";
 import { SharePortalLinkDialog } from "@/components/customers/SharePortalLinkDialog";
+import { VehiclesTab } from "@/components/customers/VehiclesTab";
+import { CustomerJobsTab } from "@/components/customers/CustomerJobsTab";
 import { toast } from "sonner";
 
 interface CustomerDetailSheetProps {
@@ -148,23 +150,42 @@ export function CustomerDetailSheet({
           </Button>
         </div>
 
-        {/* Tabs */}
-        <Tabs defaultValue="history" className="mt-6">
-          <TabsList className="w-full">
-            <TabsTrigger value="history" className="flex-1">
-              <Phone className="h-3.5 w-3.5 mr-1.5" />
-              Calls
+        {/* Tabs — 5 tabs: Vehicles, Jobs, Calls, Bookings, Notes */}
+        <Tabs defaultValue="vehicles" className="mt-6">
+          <TabsList className="w-full flex-wrap h-auto gap-1">
+            <TabsTrigger value="vehicles" className="flex-1 min-w-0">
+              <Car className="h-3.5 w-3.5 mr-1" />
+              <span className="hidden sm:inline">Vehicles</span>
             </TabsTrigger>
-            <TabsTrigger value="bookings" className="flex-1">
-              <Calendar className="h-3.5 w-3.5 mr-1.5" />
-              Bookings
+            <TabsTrigger value="jobs" className="flex-1 min-w-0">
+              <ClipboardCheck className="h-3.5 w-3.5 mr-1" />
+              <span className="hidden sm:inline">Jobs</span>
             </TabsTrigger>
-            <TabsTrigger value="notes" className="flex-1">
-              <FileText className="h-3.5 w-3.5 mr-1.5" />
-              Notes
+            <TabsTrigger value="history" className="flex-1 min-w-0">
+              <Phone className="h-3.5 w-3.5 mr-1" />
+              <span className="hidden sm:inline">Calls</span>
+            </TabsTrigger>
+            <TabsTrigger value="bookings" className="flex-1 min-w-0">
+              <Calendar className="h-3.5 w-3.5 mr-1" />
+              <span className="hidden sm:inline">Bookings</span>
+            </TabsTrigger>
+            <TabsTrigger value="notes" className="flex-1 min-w-0">
+              <FileText className="h-3.5 w-3.5 mr-1" />
+              <span className="hidden sm:inline">Notes</span>
             </TabsTrigger>
           </TabsList>
 
+          {/* Vehicles Tab */}
+          <TabsContent value="vehicles" className="mt-4">
+            <VehiclesTab customerId={customer.id} />
+          </TabsContent>
+
+          {/* Jobs Tab */}
+          <TabsContent value="jobs" className="mt-4">
+            <CustomerJobsTab customerId={customer.id} />
+          </TabsContent>
+
+          {/* Calls Tab */}
           <TabsContent value="history" className="mt-4">
             {isLoading ? (
               <div className="space-y-3">
@@ -209,6 +230,7 @@ export function CustomerDetailSheet({
             )}
           </TabsContent>
 
+          {/* Bookings Tab */}
           <TabsContent value="bookings" className="mt-4">
             {isLoading ? (
               <div className="space-y-3">
@@ -247,6 +269,7 @@ export function CustomerDetailSheet({
             )}
           </TabsContent>
 
+          {/* Notes Tab */}
           <TabsContent value="notes" className="mt-4">
             <Textarea
               value={notes}

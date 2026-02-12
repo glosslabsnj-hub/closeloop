@@ -23,6 +23,7 @@ import {
   DollarSign,
   Car,
   Sparkles,
+  ClipboardCheck,
 } from "lucide-react";
 import {
   Sidebar,
@@ -66,6 +67,7 @@ interface AppSidebarProps {
     hasSalesInventory: boolean;
     hasEstimates: boolean;
     hasPhoneQuotes: boolean;
+    hasJobTracking: boolean;
     isFoodBusiness: boolean;
     isDispatchBusiness: boolean;
     [key: string]: unknown;
@@ -125,6 +127,9 @@ export function AppSidebar({
   }
   if (caps.hasEstimates || caps.hasPhoneQuotes) {
     workspaceItems.push({ href: "/app/estimates", label: "Estimates", icon: FileText });
+  }
+  if (caps.hasJobTracking) {
+    workspaceItems.push({ href: "/app/jobs", label: "Active Jobs", icon: ClipboardCheck });
   }
 
   const renderItem = (item: NavItem) => {

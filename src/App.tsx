@@ -66,6 +66,7 @@ import WorkflowEditPage from "@/pages/app/WorkflowEditPage";
 import WorkflowRunsPage from "@/pages/app/WorkflowRunsPage";
 import WorkflowRunDetailPage from "@/pages/app/WorkflowRunDetailPage";
 import LeadRecoveryPage from "@/pages/app/LeadRecoveryPage";
+import JobsPage from "@/pages/app/JobsPage";
 
 // Driver Portal Pages
 import DriverLoginPage from "@/pages/driver/DriverLoginPage";
@@ -160,6 +161,7 @@ const App = () => (
               <Route path="/app/sales-pipeline" element={<SalesPipelinePage />} />
               <Route path="/app/test-drives" element={<TestDrivesPage />} />
               <Route path="/app/sales-inventory" element={<SalesInventoryPage />} />
+              <Route path="/app/jobs" element={<JobsPage />} />
               <Route path="/app/orders/:orderId/ticket" element={<OrderTicketPage />} />
               <Route path="/app/reports/roi" element={<ReportsROIPage />} />
               <Route path="/app/leads/recovery" element={<LeadRecoveryPage />} />
