@@ -101,12 +101,11 @@ export default function JobsPage() {
               : `Create a new ${labels.singularJob.toLowerCase()} or import from CSV to get started.`
           }
           action={
-            !filter.search && filter.status === "all" ? (
-              <Button size="sm" onClick={() => setCreateOpen(true)}>
-                <Plus className="h-3.5 w-3.5 mr-2" />
-                New {labels.singularJob}
-              </Button>
-            ) : undefined
+            !filter.search && filter.status === "all" ? {
+              label: `New ${labels.singularJob}`,
+              onClick: () => setCreateOpen(true),
+              icon: Plus,
+            } : undefined
           }
         />
       ) : (

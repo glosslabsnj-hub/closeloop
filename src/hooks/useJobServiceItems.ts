@@ -15,7 +15,7 @@ export function useJobServiceItems(jobId: string | null) {
     queryFn: async () => {
       if (!jobId) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("job_service_items")
         .select("*")
         .eq("job_id", jobId)
@@ -64,7 +64,7 @@ export function useJobServiceItems(jobId: string | null) {
         updates.completed_at = null;
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("job_service_items")
         .update(updates)
         .eq("id", itemId)
@@ -92,7 +92,7 @@ export function useJobServiceItems(jobId: string | null) {
         -1
       );
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("job_service_items")
         .insert({
           job_id: jobId,
@@ -119,7 +119,7 @@ export function useJobServiceItems(jobId: string | null) {
 
   const removeItem = useMutation({
     mutationFn: async (itemId: string) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("job_service_items")
         .delete()
         .eq("id", itemId);
@@ -137,7 +137,7 @@ export function useJobServiceItems(jobId: string | null) {
   const reorderItems = useMutation({
     mutationFn: async (orderedIds: string[]) => {
       const updates = orderedIds.map((id, index) =>
-        supabase
+        (supabase as any)
           .from("job_service_items")
           .update({ sort_order: index })
           .eq("id", id)

@@ -187,45 +187,47 @@ Deno.serve(async (req: Request) => {
       hasCalendarConnected,
     });
 
-    // ─── Call Claude ────────────────────────────────────────────────
-    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!ANTHROPIC_API_KEY) {
-      return errorResponse("ANTHROPIC_API_KEY not configured", 500);
+    // ─── Call AI via Lovable AI Gateway ────────────────────────────
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      return errorResponse("LOVABLE_API_KEY not configured", 500);
     }
 
     const systemPrompt = buildSystemPrompt();
 
-    const anthropicResponse = await fetch("https://api.anthropic.com/v1/messages", {
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-5-20250929",
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: contextDoc },
+        ],
         max_tokens: 4096,
         temperature: 0.3,
-        system: systemPrompt,
-        messages: [
-          {
-            role: "user",
-            content: contextDoc,
-          },
-        ],
       }),
     });
 
-    if (!anthropicResponse.ok) {
-      const errText = await anthropicResponse.text();
-      console.error("[partner-analysis] Anthropic API error:", anthropicResponse.status, errText);
-      return errorResponse(`AI service error: ${anthropicResponse.status}`, 502);
+    if (!aiResponse.ok) {
+      const errText = await aiResponse.text();
+      console.error("[partner-analysis] AI Gateway error:", aiResponse.status, errText);
+      if (aiResponse.status === 429) {
+        return errorResponse("Rate limit exceeded. Please try again later.", 429);
+      }
+      if (aiResponse.status === 402) {
+        return errorResponse("AI credits exhausted. Please add more credits.", 402);
+      }
+      return errorResponse(`AI service error: ${aiResponse.status}`, 502);
     }
 
-    const anthropicData = await anthropicResponse.json();
-    const rawText = anthropicData.content?.[0]?.text ?? "";
-    const promptTokens = anthropicData.usage?.input_tokens ?? null;
-    const completionTokens = anthropicData.usage?.output_tokens ?? null;
+    const aiData = await aiResponse.json();
+    const rawText = aiData.choices?.[0]?.message?.content ?? "";
+    const promptTokens = aiData.usage?.prompt_tokens ?? null;
+    const completionTokens = aiData.usage?.completion_tokens ?? null;
 
     // Parse JSON from response (strip markdown fences if present)
     let analysis;
@@ -252,7 +254,7 @@ Deno.serve(async (req: Request) => {
         {
           tenant_id: tenantId,
           analysis_json: analysis,
-          model_used: "claude-sonnet-4-5-20250929",
+          model_used: "google/gemini-3-flash-preview",
           prompt_tokens: promptTokens,
           completion_tokens: completionTokens,
           generated_at: now.toISOString(),
