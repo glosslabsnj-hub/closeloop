@@ -28,7 +28,7 @@ import { Users, Plus, Search, Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { CustomerDetailSheet } from "@/components/customers/CustomerDetailSheet";
 import { CreateCustomerDialog } from "@/components/customers/CreateCustomerDialog";
-import { CustomerMergeQueue } from "@/components/customers/CustomerMergeQueue";
+import CustomerMergeQueue from "@/components/customers/CustomerMergeQueue";
 import { CreateBookingDialog } from "@/components/calendar/CreateBookingDialog";
 
 const sourceLabels: Record<string, string> = {
