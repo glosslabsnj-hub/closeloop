@@ -1,101 +1,117 @@
 
+# Callback Lead Hub + Business Brain Clarity Fixes
 
-# Fix Callback-Only Mode for Smiles Auto Works
+## The Problems
 
-## What's Happening Now
+### 1. Calls come in but there's no clear place to manage them
+Right now, calls land in a generic "Calls" page that's designed around booking outcomes ("Booked" / "No Book" / "Thinking"). For a callback-only business like Smiles Auto Works, every call is a lead that needs follow-up -- but there's no way to:
+- See which leads are high-value vs low-value
+- Get notified (email/SMS) when a new callback request comes in
+- Track whether someone actually called the customer back
+- Sort by urgency or service type
 
-The AI is still trying to book appointments because of two code bugs and some inaccurate data. The good news: all the right callback-only instructions already exist in the system -- they're just not being delivered to the AI agent.
+The `create-callback` function even has a `// TODO: Trigger SMS/email notification via universal-delivery` comment -- notifications were planned but never built.
+
+### 2. The Business Brain doesn't adapt to your business type
+You've experienced this firsthand: sections that don't apply to your business are shown, sections you need are hidden, and there's no clear "here's what to configure for YOUR type of business." The Required Questions editor (where you'd configure what info the AI collects) is buried under Operations > Rules where nobody would think to look.
+
+---
 
 ## What This Plan Does
 
-**You do NOT need to edit your ElevenLabs prompt.** The system already has excellent callback-only instructions built in -- they just aren't reaching the agent due to two code bugs. This fix connects the wiring so it works automatically.
+### Part 1: Build a Callback Lead Hub
 
-### 1. Fix the two code bugs (the real problem)
+Replace the generic "Calls" page with a **Lead Hub** that makes sense for callback-only businesses:
 
-**Bug A -- Prompt builder ignores callback-only mode**
-The code that builds the AI's instructions calls two functions but forgets to tell them "this is a callback-only business." So the callback-only rules never get included in the prompt.
+**Lead Value Scoring** (automatic, based on extracted call data):
+- **Hot** (red badge): Mentions urgency keywords ("ASAP", "broken down", "emergency"), or high-value services (engine, transmission)
+- **Warm** (orange badge): Standard service request with complete info collected (name + phone + service details)
+- **Cool** (blue badge): Quick questions, price shoppers, incomplete info
 
-**Bug B -- Prompt never sent to ElevenLabs**
-Even if the prompt were built correctly, the system only sends custom prompts to ElevenLabs for dispatch/towing businesses. Smiles Auto Works is a "service" business, so the prompt gets thrown away and ElevenLabs uses its default dashboard prompt (which has booking logic).
+**New columns for callback businesses:**
+| Column | Purpose |
+|--------|---------|
+| Lead Score | Hot / Warm / Cool badge |
+| Service Needed | Extracted from call (e.g., "Turbo replacement") |
+| Follow-up Status | New / Called Back / No Answer / Completed |
+| Time Since Call | "23 min ago" -- creates urgency |
 
-### 2. Fix inaccurate FAQs
+**Owner notification on every callback:**
+- Wire up the existing `universal-delivery` function to handle `entity_type: "callback"`
+- Send email + SMS to the business owner with: caller name, phone, what they need, and a one-tap "Call Back" link
+- The `SoundManager` already plays a sound on new calls -- we'll add a toast notification with a "View Lead" button
 
-| Current FAQ | Problem | Fix |
-|-------------|---------|-----|
-| "Do you offer mobile service?" -- "Yes" | They don't offer mobile service | Delete this FAQ |
-| "Do you charge for estimates?" -- "book online" | There's no online booking | Update to "Give us a call and we'll take a look" |
+### Part 2: Fix Business Brain Navigation for Callback-Only Businesses
 
-### 3. Add a "General Auto Repair" catch-all service
+**Move "Info to Collect" (Required Questions) to Training tab** so it's findable when you're setting up what the AI should ask.
 
-Right now there are 6 specific services listed. Since the shop handles a huge range of auto repair work, we'll add a "General Auto Repair" entry with `quote_only` pricing. This tells the AI: "we do pretty much everything automotive -- just collect the details and we'll call back with a quote."
+**Hide irrelevant sections** when in callback-only mode:
+- Calendar & Availability (you're not booking)
+- Service Scheduling (you're not scheduling)
+- Booking Delivery settings (no bookings to deliver)
 
-### 4. Add operating hours
-
-No hours are configured, so the AI can't tell callers when the shop is open. We'll add typical auto shop hours (Mon-Fri 8am-6pm, Sat 8am-2pm) that can be adjusted later in the Business Brain.
-
-### 5. Redeploy
-
-Push the updated backend functions so the fix takes effect on real calls.
-
-## Expected Result
-
-After this fix, when someone calls:
-1. "Hi, thanks for calling Smiles Auto Works, how can I help you?"
-2. Caller: "I need a turbo replacement"
-3. "We can definitely help with that. Can I get your name?"
-4. Collects name, confirms phone number
-5. "Great, I'll have someone from our team reach out to you to get that taken care of."
-6. Creates a callback record -- no availability check, no booking attempt
-
-The AI will still be smart -- it knows the shop's services, hours, and can answer questions. It just won't try to schedule anything.
+**Add a "Callback Mode" setup checklist** in the Brain Hub that shows exactly what callback-only businesses need to configure:
+1. Business info (name, hours, address)
+2. Services you offer (so AI can talk about them)
+3. What info to collect on calls
+4. Owner notification preferences
+5. FAQs (common caller questions)
 
 ---
 
 ## Technical Details
 
-### File Changes
-
-**`supabase/functions/_shared/buildBusinessContext.ts` (lines 3095-3110)**
-Pass `ai_behavior_mode` to both prompt builder functions:
-
-```typescript
-const aiBehaviorMode = ctx.ai_settings.ai_behavior_mode as "full_service" | "callback_only" | undefined;
-const capabilityPrompt = buildPromptForCapabilities(caps, ctx.tenant.industry_slug, aiBehaviorMode);
-// ...
-const basePrompt = getBasePromptForMode(businessMode, aiBehaviorMode);
-```
-
-**`supabase/functions/elevenlabs-init/index.ts` (lines 620-629)**
-Send prompt override for callback-only businesses, not just dispatch:
-
-```typescript
-const isCallbackOnly = context?.ai_settings?.ai_behavior_mode === "callback_only";
-const conversationConfigOverride =
-  (context?.tenant.business_mode === "dispatch" || isCallbackOnly) && systemPrompt
-    ? { agent: { prompt: { prompt: systemPrompt } } }
-    : undefined;
-```
-
 ### Database Changes
 
-**Delete inaccurate FAQ:**
-- Remove "Do you offer mobile service?" (id: `0bcd30d2-...`)
+**Add `lead_score` and `followup_status` to `ai_call_sessions`:**
+```sql
+ALTER TABLE ai_call_sessions 
+  ADD COLUMN lead_score text DEFAULT 'warm' 
+    CHECK (lead_score IN ('hot', 'warm', 'cool')),
+  ADD COLUMN followup_status text DEFAULT 'new'
+    CHECK (followup_status IN ('new', 'called_back', 'no_answer', 'completed', 'lost'));
+```
 
-**Update misleading FAQ:**
-- "Do you charge for estimates?" answer changed to: "No, we provide free estimates! Give us a call and we'll take a look at no cost."
+**Add `"callback"` to `universal-delivery` entity types:**
+Update the `DeliveryRequest` interface and add a callback notification template.
 
-**Add General Auto Repair service:**
-- Name: "General Auto Repair"
-- Price type: `quote_only`
-- Description: "Full-service auto repair -- engine, transmission, electrical, suspension, and more. Tell us what's going on and we'll get back to you with a plan."
+### Edge Function Changes
 
-**Add operating hours:**
-- Mon-Fri: 8:00 AM - 6:00 PM
-- Sat: 8:00 AM - 2:00 PM
-- Sun: Closed
+**`supabase/functions/universal-delivery/index.ts`:**
+- Add `"callback"` to the `entity_type` union
+- Add callback notification template that fetches the opportunity/call session and sends email + SMS to the tenant owner
+- Template includes: caller name, phone number, service requested, callback time preference
 
-### Redeploy
-- `elevenlabs-init`
-- `build-business-brain`
-- `get-business-context`
+**`supabase/functions/elevenlabs-webhook/index.ts`:**
+- In `persistCallback()` -- already calls `universal-delivery`, just needs the delivery function to actually handle it (done above)
+- Add lead scoring logic: scan `extracted_payload` for urgency keywords and service value to set `lead_score`
 
+**`supabase/functions/elevenlabs-create-callback/index.ts`:**
+- Replace the `// TODO` with an actual `universal-delivery` call (matching the pattern already used in the webhook's `persistCallback`)
+
+### Frontend Changes
+
+**`src/pages/app/CallsPage.tsx`:**
+- Add lead score badge column (Hot/Warm/Cool with color coding)
+- Add follow-up status column with dropdown to update (New -> Called Back -> Completed)
+- Add "Time since call" column for urgency awareness
+- Sort by lead_score (hot first) then by recency
+- Add filter tabs: All / Hot / Needs Follow-up / Completed
+
+**`src/components/notifications/SoundManager.tsx`:**
+- Enhance the call notification toast to show caller name and service requested (from `extracted_payload`)
+- Add "View Lead" button on the toast that navigates to the Calls page
+
+**`src/components/brain/layout/tabSubSectionConfig.ts`:**
+- Add `"required-questions"` to the Training tab's FAQ sub-section
+
+**`src/config/brainSectionRegistry.ts`:**
+- Update required-questions section to appear in Training tab
+- Add visibility guard to hide calendar/booking sections when `ai_behavior_mode === "callback_only"`
+
+**`src/pages/app/BusinessBrainPage.tsx`:**
+- Add callback-mode setup checklist banner showing what's configured vs what's missing
+- Hide irrelevant tab sections for callback-only businesses
+
+### Deployment
+- Redeploy: `universal-delivery`, `elevenlabs-webhook`, `elevenlabs-create-callback`
