@@ -7,6 +7,7 @@ import { FoodDashboardLayout } from "./layouts/FoodDashboardLayout";
 import { MedicalDashboardLayout } from "./layouts/MedicalDashboardLayout";
 import { GeneralDashboardLayout } from "./layouts/GeneralDashboardLayout";
 import { CallbackDashboardLayout } from "./layouts/CallbackDashboardLayout";
+import { SalesDashboardLayout } from "./layouts/SalesDashboardLayout";
 
 export function ModeContentArea() {
   const caps = useCapabilities();
@@ -28,8 +29,9 @@ export function ModeContentArea() {
 
   switch (caps.derivedPrimaryMode) {
     case "service":
-    case "sales":
       return <ServiceDashboardLayout quickBookLabel={quickBookLabel} />;
+    case "sales":
+      return <SalesDashboardLayout />;
     case "dispatch":
       return <DispatchDashboardLayout />;
     case "food":

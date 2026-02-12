@@ -499,6 +499,39 @@ serve(async (req: Request) => {
         .eq("id", sessionId);
     }
 
+    // For sales-mode tenants, also create a test_drives record
+    try {
+      const { data: tenantFull } = await supabase
+        .from("tenants")
+        .select("business_mode")
+        .eq("id", tenantId)
+        .single();
+
+      if (tenantFull?.business_mode === "sales") {
+        const isTestDrive = (resolvedServiceName || "").toLowerCase().includes("test drive") ||
+          (notes || "").toLowerCase().includes("test drive") ||
+          (serviceName || "").toLowerCase().includes("test drive");
+
+        if (isTestDrive || tenantFull.business_mode === "sales") {
+          await supabase.from("test_drives").insert({
+            tenant_id: tenantId,
+            customer_id: customerId,
+            scheduled_at: startAt.toISOString(),
+            duration_minutes: finalDuration,
+            status: initialStatus === "confirmed" ? "confirmed" : "scheduled",
+            salesperson: null,
+            notes: notes || null,
+            booking_id: booking.id,
+            session_id: sessionId,
+            vehicle_description: resolvedServiceName || null,
+          });
+          console.log(`[create-booking] Created test_drive for sales tenant`);
+        }
+      }
+    } catch (e) {
+      console.error("[create-booking] Test drive creation failed:", e);
+    }
+
     // Trigger booking handoff
     try {
       await fetch(`${supabaseUrl}/functions/v1/booking-handoff`, {
