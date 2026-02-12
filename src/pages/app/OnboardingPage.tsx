@@ -48,21 +48,62 @@ const ALL_STEPS: OnboardingStep[] = [
   { id: "confirm", icon: CheckCircle2, title: "Review", description: "Confirm and launch" },
 ];
 
+const ONBOARDING_STORAGE_KEY = "closeloop_onboarding_progress";
+
+interface OnboardingState {
+  step: number;
+  businessName: string;
+  businessMode: BusinessMode;
+  industrySlug: string;
+  scenarioAnswers: Record<string, boolean>;
+  schedulingPrefs: SchedulingPrefs;
+  communicationPrefs: CommunicationPrefs;
+  templateServices: EditableService[];
+  templateFAQs: EditableFAQ[];
+  templatePolicies: EditablePolicies;
+  serviceArea: ServiceAreaConfig;
+  businessDetails: BusinessDetails;
+  businessHours: BusinessHours;
+}
+
+function saveOnboardingProgress(state: OnboardingState) {
+  try {
+    localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(state));
+  } catch { /* ignore quota errors */ }
+}
+
+function loadOnboardingProgress(): OnboardingState | null {
+  try {
+    const raw = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as OnboardingState;
+  } catch {
+    return null;
+  }
+}
+
+function clearOnboardingProgress() {
+  localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+}
+
 export default function OnboardingPage() {
-  const [step, setStep] = useState(1);
+  // Restore saved progress
+  const saved = useRef(loadOnboardingProgress());
+
+  const [step, setStep] = useState(saved.current?.step ?? 1);
   const [loading, setLoading] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [provisionedPhone, setProvisionedPhone] = useState<string | undefined>();
 
   // Track if industry template has been initialized
-  const initializedIndustryRef = useRef<string | null>(null);
+  const initializedIndustryRef = useRef<string | null>(saved.current?.industrySlug || null);
 
   // Step 1: Identity
-  const [businessName, setBusinessName] = useState("");
-  const [businessMode, setBusinessMode] = useState<BusinessMode>("service");
+  const [businessName, setBusinessName] = useState(saved.current?.businessName ?? "");
+  const [businessMode, setBusinessMode] = useState<BusinessMode>(saved.current?.businessMode ?? "service");
 
   // Step 2: Industry
-  const [industrySlug, setIndustrySlug] = useState("");
+  const [industrySlug, setIndustrySlug] = useState(saved.current?.industrySlug ?? "");
 
   // Modules (derived from industry + scenario answers)
   const [enabledModules, setEnabledModules] = useState<string[]>([]);
@@ -70,28 +111,42 @@ export default function OnboardingPage() {
   const baseModulesRef = useRef<string[]>([]);
 
   // Step 3: Business Details
-  const [businessDetails, setBusinessDetails] = useState<BusinessDetails>(getDefaultBusinessDetails());
+  const [businessDetails, setBusinessDetails] = useState<BusinessDetails>(saved.current?.businessDetails ?? getDefaultBusinessDetails());
 
   // Step 4: Scenario Discovery
-  const [scenarioAnswers, setScenarioAnswers] = useState<Record<string, boolean>>({});
+  const [scenarioAnswers, setScenarioAnswers] = useState<Record<string, boolean>>(saved.current?.scenarioAnswers ?? {});
 
   // Step 5: Scheduling & Hours
-  const [businessHours, setBusinessHours] = useState<BusinessHours>(DEFAULT_BUSINESS_HOURS);
-  const [schedulingPrefs, setSchedulingPrefs] = useState<SchedulingPrefs>(getDefaultSchedulingPrefs("service"));
+  const [businessHours, setBusinessHours] = useState<BusinessHours>(saved.current?.businessHours ?? DEFAULT_BUSINESS_HOURS);
+  const [schedulingPrefs, setSchedulingPrefs] = useState<SchedulingPrefs>(saved.current?.schedulingPrefs ?? getDefaultSchedulingPrefs("service"));
 
   // Step 6: Communication Preferences
   const [communicationPrefs, setCommunicationPrefs] = useState<CommunicationPrefs>(
-    getDefaultCommunicationPrefs("service")
+    saved.current?.communicationPrefs ?? getDefaultCommunicationPrefs("service")
   );
 
   // New preview steps state (populated from template when industry changes)
-  const [templateServices, setTemplateServices] = useState<EditableService[]>([]);
-  const [templateFAQs, setTemplateFAQs] = useState<EditableFAQ[]>([]);
-  const [templatePolicies, setTemplatePolicies] = useState<EditablePolicies>({ cancellation: "", deposit: "", refund: "" });
-  const [serviceArea, setServiceArea] = useState<ServiceAreaConfig>(getDefaultServiceArea("service"));
+  const [templateServices, setTemplateServices] = useState<EditableService[]>(saved.current?.templateServices ?? []);
+  const [templateFAQs, setTemplateFAQs] = useState<EditableFAQ[]>(saved.current?.templateFAQs ?? []);
+  const [templatePolicies, setTemplatePolicies] = useState<EditablePolicies>(saved.current?.templatePolicies ?? { cancellation: "", deposit: "", refund: "" });
+  const [serviceArea, setServiceArea] = useState<ServiceAreaConfig>(saved.current?.serviceArea ?? getDefaultServiceArea("service"));
 
   // "Can't find your industry?" fallback toggle
   const [showModeFallback, setShowModeFallback] = useState(false);
+
+  // Auto-save progress on state changes
+  useEffect(() => {
+    if (isComplete) return;
+    const timer = setTimeout(() => {
+      saveOnboardingProgress({
+        step, businessName, businessMode, industrySlug,
+        scenarioAnswers, schedulingPrefs, communicationPrefs,
+        templateServices, templateFAQs, templatePolicies,
+        serviceArea, businessDetails, businessHours,
+      });
+    }, 500); // debounce
+    return () => clearTimeout(timer);
+  }, [step, businessName, businessMode, industrySlug, scenarioAnswers, schedulingPrefs, communicationPrefs, templateServices, templateFAQs, templatePolicies, serviceArea, businessDetails, businessHours, isComplete]);
 
   const { user, tenant, loading: authLoading, refreshTenant, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
@@ -135,7 +190,7 @@ export default function OnboardingPage() {
       // Reset communication prefs to match new mode
       setCommunicationPrefs(getDefaultCommunicationPrefs(newMode));
       // Reset scheduling prefs to match new mode
-      setSchedulingPrefs(getDefaultSchedulingPrefs(newMode));
+      setSchedulingPrefs(getDefaultSchedulingPrefs(newMode, undefined, industrySlug));
       setBusinessHours(getDefaultHoursForMode(newMode));
       // Reset scenario answers to match new mode (with industry context for filtering)
       const ctx = { slug: industrySlug, category: industryEntry.category };
@@ -200,7 +255,7 @@ export default function OnboardingPage() {
     const ctx = industryEntry ? { slug: industrySlug, category: industryEntry.category } : undefined;
     setScenarioAnswers(getDefaultAnswers(mode, ctx));
     setCommunicationPrefs(getDefaultCommunicationPrefs(mode));
-    setSchedulingPrefs(getDefaultSchedulingPrefs(mode));
+    setSchedulingPrefs(getDefaultSchedulingPrefs(mode, undefined, industrySlug));
     setBusinessHours(getDefaultHoursForMode(mode));
     setServiceArea(getDefaultServiceArea(mode));
   };
@@ -607,6 +662,7 @@ export default function OnboardingPage() {
       await refreshTenant();
       await new Promise(resolve => setTimeout(resolve, 100));
 
+      clearOnboardingProgress();
       setIsComplete(true);
     } catch (error: unknown) {
       console.error("Onboarding error:", error);
