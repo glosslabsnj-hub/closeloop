@@ -103,7 +103,7 @@ export function AppSidebar({
     workspaceItems.push({ href: "/app/impound-lot", label: "Impound Lot", icon: Warehouse });
   }
   if (caps.hasFleetManagement) {
-    workspaceItems.push({ href: "/app/fleet", label: "Fleet", icon: Users });
+    workspaceItems.push({ href: "/app/fleet", label: caps.isDispatchBusiness ? "Fleet" : "Team", icon: Users });
   }
   if (caps.hasFoodOrders) {
     workspaceItems.push({ href: "/app/orders", label: "Orders", icon: UtensilsCrossed });
