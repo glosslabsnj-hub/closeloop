@@ -1,59 +1,83 @@
 
 
-# Streamline Business Brain for Callback-Only Service Businesses
+# Fix: AI Agent Not Using Callback-Only Mode
 
 ## The Problem
-When you're running a callback-only auto repair shop (no direct booking, just lead capture), the Business Brain still shows sections that don't apply -- like Calendar & Availability, Service Scheduling, Arrival Estimates, Booking Delivery, and Service Packages. The filtering system exists but isn't strict enough for your setup.
 
-## What Changes
+When calling Smiles Auto Works, the AI tries to check availability and book appointments instead of just collecting information and creating a callback. This happens because the "callback-only" signal never reaches the AI agent.
 
-### Sections that will be HIDDEN for your auto repair shop
-These will only appear when the relevant capability is turned on:
+## Root Cause
 
-| Section | Why Hidden |
-|---------|-----------|
-| Calendar & Availability | `aiBooksDirect` is false -- no booking, no calendar needed |
-| Service Scheduling | Only relevant when booking is enabled |
-| Arrival Estimates | No on-site dispatch; you're a shop |
-| Where to Send New Bookings | No booking module enabled |
-| Service Packages | `offersPackages` is false |
-| How Busy Are You Right Now? | Only useful for dispatch or walk-in-heavy shops with booking |
+The system has all the right pieces but they're not connected:
 
-### Sections that STAY (relevant for lead qualification)
-| Section | Why Relevant |
-|---------|-------------|
-| Your Service Area | Helps AI know if caller is local |
-| Cancellation, Deposits & Payments | Deposit policy matters for repairs |
-| What Your AI Should Never Promise | Critical for any business |
-| Info to Collect on Every Call | Core to lead qualification |
-| Other Rules for Your AI | Custom policies always useful |
-| Callback Request Alerts | This IS the primary action |
+- Smiles Auto Works has `callbackOnly: true` in its settings (set during onboarding)
+- The AI prompt override for callback-only mode exists and is well-written
+- The code that builds the AI's instructions looks for a field called `ai_behavior_mode` in the database
+- **That field does not exist in the database** -- so it always defaults to "full service" mode
+- The `callbackOnly` flag from settings is never checked by the voice system
 
-### How It Works
-The filtering uses your tenant's `capabilities_json` (which already has `aiBooksDirect: false`, `offersPackages: false`, `hasMultipleStaff: false`, etc.) to hide irrelevant items. No new capabilities needed -- just tighter visibility rules on existing items.
+In short: the AI never knows it should be in callback-only mode.
+
+## The Fix (2 parts)
+
+### Part 1: Add the missing database column
+
+Add `ai_behavior_mode` column to the `assistant_settings` table with a default of `"full_service"`. Then set it to `"callback_only"` for the Smiles Auto Works tenant.
+
+### Part 2: Auto-derive callback-only from capabilities
+
+Update `buildBusinessContext` (the backend function that assembles the AI's instructions) so that even if `ai_behavior_mode` isn't explicitly set, it checks for the `callbackOnly` capability flag and automatically activates callback-only mode. This means:
+
+- Any business onboarded as "callback only" will automatically get the right AI behavior
+- No manual database updates needed for future businesses
+- The explicit `ai_behavior_mode` column still works as an override
+
+### What Changes
+
+| What | Change |
+|------|--------|
+| Database | Add `ai_behavior_mode` column to `assistant_settings` |
+| Database | Set Smiles Auto Works to `callback_only` |
+| buildBusinessContext | Check `capabilities_json.callbackOnly` as fallback when `ai_behavior_mode` is not set |
+| Redeploy | Re-deploy affected backend functions |
+
+### Expected Result
+
+After this fix, when someone calls Smiles Auto Works, the AI will:
+1. Greet warmly as a real employee
+2. Listen to what the caller needs (e.g., turbo replacement)
+3. Answer general questions (hours, location, services)
+4. Collect their name and confirm phone number
+5. Say "I'll have someone call you back about that"
+6. Create a callback record -- no booking, no availability checks
 
 ## Technical Details
 
-### File: `src/config/brainSectionRegistry.ts`
-Add `isVisible` guards to items that currently show universally but shouldn't:
+**Migration SQL:**
+```sql
+ALTER TABLE assistant_settings
+  ADD COLUMN IF NOT EXISTS ai_behavior_mode text DEFAULT 'full_service';
 
-- **`service-coverage`** (Service Scheduling): Already guarded by `mode === "service"` but needs additional `caps.isSchedulingBusiness` check
-- **`travel-times`** (Arrival Estimates): Add guard for dispatch or mobile-service businesses only
-- **`workload`** (How Busy): Add guard requiring dispatch or booking capability
-- **`service-packages`** in Services tab: Already uses `isRelevant("service-packages")` -- verify the relevance rule checks `offersPackages`
-- **`booking-delivery`**: Already guarded by `flags.showBookingDelivery` which checks `caps.isSchedulingBusiness` -- confirm this works
+UPDATE assistant_settings
+  SET ai_behavior_mode = 'callback_only'
+  WHERE tenant_id IN (
+    SELECT id FROM tenants
+    WHERE capabilities_json->>'callbackOnly' = 'true'
+  );
+```
 
-### File: `src/config/brainSectionRelevance.ts`
-Verify/tighten relevance rules:
-- `service-packages` rule should check `capabilities_json.offersPackages`
-- `price-modifiers` rule should check if any modifier capability is true
+**buildBusinessContext change (line ~2306):**
+```typescript
+// Before:
+ai_behavior_mode: (assistantSettings?.ai_behavior_mode as ...) || "full_service",
 
-### File: `src/config/brainSectionRegistry.ts` (Operations items)
-- `calendar-sync` in Business tab: Already guarded by `caps.isSchedulingBusiness` -- good
-- `service-coverage`: Tighten to `mode === "service" && caps.isSchedulingBusiness`
-- `travel-times`: Add `mode !== "food"` AND (`caps.isDispatchBusiness` OR `caps.offersMobileService` check)
-- `workload`: Add visibility guard for dispatch/booking businesses only
+// After: also check capabilities_json for callbackOnly
+ai_behavior_mode: (assistantSettings?.ai_behavior_mode as ...) 
+  || (tenant?.capabilities_json?.callbackOnly === true ? "callback_only" : "full_service"),
+```
 
-### No database changes needed
-All filtering uses existing `capabilities_json` data already on your tenant.
+**Files modified:**
+- `supabase/functions/_shared/buildBusinessContext.ts` -- add capabilities fallback for ai_behavior_mode
+- Database migration -- add column + backfill existing callback-only tenants
+- Redeploy `build-business-brain`, `register-call`, and related functions
 
