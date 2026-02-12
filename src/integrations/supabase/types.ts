@@ -22,6 +22,7 @@ export type Database = {
           customer_name: string | null
           customer_phone: string | null
           estimated_completion: string | null
+          external_id: string | null
           id: string
           intake_method: string
           is_active: boolean
@@ -46,6 +47,7 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           estimated_completion?: string | null
+          external_id?: string | null
           id?: string
           intake_method?: string
           is_active?: boolean
@@ -70,6 +72,7 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           estimated_completion?: string | null
+          external_id?: string | null
           id?: string
           intake_method?: string
           is_active?: boolean
@@ -8536,6 +8539,53 @@ export type Database = {
             foreignKeyName: "tenant_distance_settings_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_integrations: {
+        Row: {
+          config_json: Json
+          created_at: string
+          credentials_json: Json
+          id: string
+          is_active: boolean
+          last_synced_at: string | null
+          provider: string
+          sync_cursor: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          config_json?: Json
+          created_at?: string
+          credentials_json?: Json
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          provider: string
+          sync_cursor?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          config_json?: Json
+          created_at?: string
+          credentials_json?: Json
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          provider?: string
+          sync_cursor?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_integrations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
