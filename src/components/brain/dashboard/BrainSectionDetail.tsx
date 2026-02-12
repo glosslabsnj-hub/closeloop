@@ -23,6 +23,8 @@ import type { ItemStatusInfo } from "@/hooks/useBrainItemStatuses";
 
 interface BrainSectionDetailProps {
   category: CategoryConfig;
+  /** Mode-specific ordered categories for prev/next navigation */
+  orderedCategories?: CategoryConfig[];
   /** Dynamic title resolved from industry terminology */
   resolvedTitle?: string;
   completion: CategoryCompletionStats;
@@ -42,8 +44,9 @@ interface BrainSectionDetailProps {
   editorContent: React.ReactNode;
 }
 
-function getAdjacentCategories(section: string) {
-  const sorted = [...BRAIN_CATEGORIES].sort((a, b) => a.order - b.order);
+function getAdjacentCategories(section: string, categories?: CategoryConfig[]) {
+  const source = categories ?? BRAIN_CATEGORIES;
+  const sorted = [...source].sort((a, b) => a.order - b.order);
   const idx = sorted.findIndex((c) => c.section === section);
   return {
     prev: idx > 0 ? sorted[idx - 1] : null,
@@ -53,6 +56,7 @@ function getAdjacentCategories(section: string) {
 
 export function BrainSectionDetail({
   category,
+  orderedCategories,
   resolvedTitle,
   completion,
   onBack,
@@ -70,7 +74,7 @@ export function BrainSectionDetail({
 }: BrainSectionDetailProps) {
   const Icon = category.icon;
   const displayTitle = resolvedTitle || category.title;
-  const { prev, next } = getAdjacentCategories(category.section);
+  const { prev, next } = getAdjacentCategories(category.section, orderedCategories);
   const activeStatus = activeItemId ? statuses[activeItemId] : undefined;
 
   const handleMobileBack = () => {

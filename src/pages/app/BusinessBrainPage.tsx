@@ -31,13 +31,12 @@ import { useBrainItemStatuses } from "@/hooks/useBrainItemStatuses";
 
 // Registry + renderer
 import {
-  getVisibleItems,
   groupSectionItems,
-  findItemById,
-  findItemForHash,
-  type NewSectionId,
+  findItemByIdGlobal,
+  type BrainSectionItem,
   type VisibilityFlags,
 } from "@/config/brainSectionRegistry";
+import { getItemsForModeTab, getModeCategories } from "@/config/brainModeLayout";
 import { SECTION_GUIDANCE } from "@/config/brainGuidance";
 import { BrainEditorRenderer } from "@/components/brain/layout/BrainEditorRenderer";
 
@@ -50,6 +49,7 @@ import {
   BrainSetupBanner,
   CompletionCelebration,
   NextStepSuggestion,
+  type CategoryConfig,
 } from "@/components/brain/layout";
 
 // Dashboard components
@@ -66,18 +66,24 @@ import ServiceCallFlowSettings from "@/components/ai/ServiceCallFlowSettings";
 
 // ─── Section IDs ────────────────────────────────────────────────────────────
 
-const NEW_VALID_SECTIONS = ["business", "services", "operations", "ai-voice", "training", "intelligence"] as const;
+/** Mode-shaped tab sections (replaces the old 6-tab fixed structure) */
+type ModeSectionId = "about" | "services" | "operations" | "rules" | "training" | "intelligence";
+const NEW_VALID_SECTIONS = ["about", "services", "operations", "rules", "training", "intelligence"] as const;
 
 /** All old section params still work — resolve to the new tab */
-const LEGACY_SECTION_ALIASES: Record<string, NewSectionId> = {
-  profile: "business",
-  hours: "business",
-  availability: "business",
-  "calendar-sync": "business",
-  calendar: "business",
+const LEGACY_SECTION_ALIASES: Record<string, ModeSectionId> = {
+  // Old tab names → new tab names
+  business: "about",
+  "ai-voice": "training",
+  // Old granular sections → new merged tabs
+  profile: "about",
+  hours: "about",
+  availability: "about",
+  "calendar-sync": "about",
+  calendar: "about",
   "service-area": "operations",
-  policies: "operations",
-  "ai-behavior": "ai-voice",
+  policies: "rules",
+  "ai-behavior": "training",
   knowledge: "training",
 };
 
@@ -88,15 +94,17 @@ const LEGACY_ITEM_TARGETS: Record<string, string> = {
   "calendar-sync": "calendar-sync",
   "service-area": "coverage",
   policies: "policies",
+  "ai-behavior": "scripts",
+  "ai-voice": "scripts",
 };
 
 /** Legacy tab param mapping (from old ?tab= format) */
-const LEGACY_TAB_TO_SECTION: Record<string, { section: NewSectionId; item?: string }> = {
+const LEGACY_TAB_TO_SECTION: Record<string, { section: ModeSectionId; item?: string }> = {
   review: { section: "training", item: "review" },
   updates: { section: "training", item: "review" },
   assets: { section: "training", item: "documents" },
   uploads: { section: "training", item: "documents" },
-  overview: { section: "business" },
+  overview: { section: "about" },
   memory: { section: "intelligence" },
 };
 
@@ -153,12 +161,12 @@ export default function BusinessBrainPage() {
     // Legacy ?tab= params
     if (legacyTab && LEGACY_TAB_TO_SECTION[legacyTab]) {
       const mapped = LEGACY_TAB_TO_SECTION[legacyTab];
-      return { activeSection: mapped.section as NewSectionId, defaultItemId: mapped.item ?? null };
+      return { activeSection: mapped.section as ModeSectionId, defaultItemId: mapped.item ?? null };
     }
     // ?section= param
-    if (normalizedSectionParam && NEW_VALID_SECTIONS.includes(normalizedSectionParam as NewSectionId)) {
+    if (normalizedSectionParam && NEW_VALID_SECTIONS.includes(normalizedSectionParam as ModeSectionId)) {
       const legacyItemTarget = sectionParamRaw ? LEGACY_ITEM_TARGETS[sectionParamRaw] : null;
-      return { activeSection: normalizedSectionParam as NewSectionId, defaultItemId: legacyItemTarget ?? null };
+      return { activeSection: normalizedSectionParam as ModeSectionId, defaultItemId: legacyItemTarget ?? null };
     }
     // Legacy section needing alias rewrite
     if (sectionParamRaw && LEGACY_SECTION_ALIASES[sectionParamRaw]) {
@@ -166,7 +174,7 @@ export default function BusinessBrainPage() {
       const legacyItemTarget = LEGACY_ITEM_TARGETS[sectionParamRaw] ?? null;
       return { activeSection: resolved, defaultItemId: legacyItemTarget };
     }
-    return { activeSection: null as NewSectionId | null, defaultItemId: null as string | null };
+    return { activeSection: null as ModeSectionId | null, defaultItemId: null as string | null };
   }, [legacyTab, normalizedSectionParam, sectionParamRaw]);
 
   // Build visibility flags for the registry
@@ -187,10 +195,10 @@ export default function BusinessBrainPage() {
     reviewCount,
   }), [isFoodMode, foodAcceptsDelivery, foodAcceptsCatering, foodNeedsCoverage, caps, servicesAddOns, coverageAddOns, policiesAddOns, knowledgeAddOns, reviewCount]);
 
-  // Get visible items for active tab
+  // Get visible items for active tab (mode-shaped layout)
   const visibleItems = useMemo(() => {
     if (!activeSection) return [];
-    return getVisibleItems(activeSection, businessMode, caps, visibilityFlags);
+    return getItemsForModeTab(businessMode, activeSection, caps, visibilityFlags);
   }, [activeSection, businessMode, caps, visibilityFlags]);
 
   // Group items for sidebar
@@ -209,9 +217,9 @@ export default function BusinessBrainPage() {
     // 2. Hash deep-link
     const hash = window.location.hash.replace(/^#/, "");
     if (hash) {
-      const resolved = findItemForHash(activeSection, hash);
-      if (resolved) {
-        const match = visibleItems.find(i => i.id === resolved);
+      const globalMatch = findItemByIdGlobal(hash);
+      if (globalMatch) {
+        const match = visibleItems.find(i => i.id === globalMatch.id);
         if (match) return match.id;
       }
     }
@@ -227,10 +235,10 @@ export default function BusinessBrainPage() {
     return visibleItems[0]?.id ?? null;
   }, [activeSection, itemParamRaw, defaultItemId, visibleItems]);
 
-  // Find the active item object
+  // Find the active item object (global lookup, not tab-scoped)
   const activeItem = useMemo(() => {
     if (!activeSection || !activeItemId) return null;
-    return findItemById(activeSection, activeItemId) ?? null;
+    return findItemByIdGlobal(activeItemId) ?? null;
   }, [activeSection, activeItemId]);
 
   // ─── Navigation handlers ─────────────────────────────────────────────────
@@ -279,9 +287,9 @@ export default function BusinessBrainPage() {
     // Handle hash → item param
     const hash = window.location.hash.replace(/^#/, "");
     if (hash && activeSection && activeSection !== "intelligence") {
-      const resolved = findItemForHash(activeSection, hash);
-      if (resolved) {
-        setSearchParams({ section: activeSection, item: resolved }, { replace: true });
+      const globalMatch = findItemByIdGlobal(hash);
+      if (globalMatch) {
+        setSearchParams({ section: activeSection, item: globalMatch.id }, { replace: true });
       }
     }
   }, [activeSection, legacyTab, sectionParamRaw, setSearchParams]);
@@ -322,8 +330,11 @@ export default function BusinessBrainPage() {
 
   const isDispatchMode = caps.isDispatchBusiness;
 
+  // Mode-shaped categories for dashboard + detail views
+  const modeCategories = useMemo(() => getModeCategories(businessMode), [businessMode]);
+
   const currentCategory = activeSection
-    ? BRAIN_CATEGORIES.find(c => c.section === activeSection) ?? null
+    ? modeCategories.find(c => c.section === activeSection) ?? null
     : null;
 
   // ─── Build banner content per tab ──────────────────────────────────────────
@@ -332,7 +343,7 @@ export default function BusinessBrainPage() {
     if (!activeSection) return undefined;
 
     switch (activeSection) {
-      case "business":
+      case "about":
         return (
           <>
             {summaries.completionStats.percentage >= 100 && (
@@ -349,10 +360,10 @@ export default function BusinessBrainPage() {
             {summaries.completionStats.percentage < 100 && summaries.completionStats.percentage < 50 && (
               <BrainSetupBanner
                 steps={[
-                  { id: "business-info", label: "Business Info", section: "business", isComplete: !!tenant?.name },
-                  { id: "hours", label: "Set Hours", section: "business", isComplete: summaries.hours !== "No hours set yet" },
+                  { id: "business-info", label: "Business Info", section: "about", isComplete: !!tenant?.name },
+                  { id: "hours", label: "Set Hours", section: "about", isComplete: summaries.hours !== "No hours set yet" },
                   { id: "services", label: `Add ${terms.servicesLabel}`, section: "services", isComplete: summaries.catalog !== "No services added yet" },
-                  { id: "scripts", label: "Greeting Script", section: "ai-voice", isComplete: summaries.scripts !== "Using the default — customize to match your style" },
+                  { id: "scripts", label: "Greeting Script", section: "training", isComplete: summaries.scripts !== "Using the default — customize to match your style" },
                 ]}
                 onContinue={handleSectionChange}
                 dismissible
@@ -368,7 +379,7 @@ export default function BusinessBrainPage() {
             )}
             {tenant?.name && summaries.hours !== "No hours set yet" && (summaries.catalog === "No services added yet") && (
               <NextStepSuggestion
-                completedSection="business"
+                completedSection="about"
                 mode={businessMode}
                 onNavigate={handleSectionChange}
               />
@@ -408,7 +419,8 @@ export default function BusinessBrainPage() {
         }
         return undefined;
 
-      case "ai-voice":
+      case "training":
+        // ServiceCallFlowSettings banner for service/general modes
         if (caps.isServiceBusiness || caps.derivedPrimaryMode === "general") {
           return <ServiceCallFlowSettings />;
         }
@@ -432,8 +444,14 @@ export default function BusinessBrainPage() {
         return undefined;
 
       case "operations":
-        if (operationsAddOnItems.length > 0) {
-          return <AddOnGroup items={operationsAddOnItems} onEnable={operationsEnableAddOn} />;
+        if (coverageAddOns.addOnItems.length > 0) {
+          return <AddOnGroup items={coverageAddOns.addOnItems} onEnable={coverageAddOns.enableAddOn} />;
+        }
+        return undefined;
+
+      case "rules":
+        if (policiesAddOns.addOnItems.length > 0) {
+          return <AddOnGroup items={policiesAddOns.addOnItems} onEnable={policiesAddOns.enableAddOn} />;
         }
         return undefined;
 
@@ -477,7 +495,7 @@ export default function BusinessBrainPage() {
             )}
 
             {/* ═══ INTELLIGENCE (bypasses sidebar layout) ═══ */}
-            {activeSection === "intelligence" && currentCategory && (
+            {activeSection === "intelligence" && (
               <motion.div
                 key="section-intelligence"
                 variants={pageVariants}
@@ -501,6 +519,7 @@ export default function BusinessBrainPage() {
                 <BrainSectionDetailHost
                   activeSection={activeSection}
                   currentCategory={currentCategory}
+                  modeCategories={modeCategories}
                   onBack={() => handleSectionChange("")}
                   onNavigate={handleSectionChange}
                   activeItemId={activeItemId}
@@ -531,15 +550,16 @@ export default function BusinessBrainPage() {
 // Thin wrapper that adds completion stats and renders the editor.
 
 interface SectionDetailHostProps {
-  activeSection: NewSectionId;
-  currentCategory: (typeof BRAIN_CATEGORIES)[number];
+  activeSection: ModeSectionId;
+  currentCategory: CategoryConfig;
+  modeCategories: CategoryConfig[];
   onBack: () => void;
   onNavigate: (section: string) => void;
   activeItemId: string | null;
   onItemChange: (itemId: string) => void;
   groups: ReturnType<typeof groupSectionItems>;
   statuses: ReturnType<typeof useBrainItemStatuses>;
-  activeItem: ReturnType<typeof findItemById> | null;
+  activeItem: BrainSectionItem | null;
   usedByAI?: string[];
   guidance?: { whyText?: string; whatText?: string; tipText?: string };
   bannerContent?: React.ReactNode;
@@ -553,6 +573,7 @@ interface SectionDetailHostProps {
 function BrainSectionDetailHost({
   activeSection,
   currentCategory,
+  modeCategories,
   onBack,
   onNavigate,
   activeItemId,
@@ -576,6 +597,7 @@ function BrainSectionDetailHost({
   return (
     <BrainSectionDetail
       category={currentCategory}
+      orderedCategories={modeCategories}
       resolvedTitle={categoryTitle}
       completion={completion}
       onBack={onBack}

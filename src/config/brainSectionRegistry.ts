@@ -65,6 +65,7 @@ const BUSINESS_ITEMS: BrainSectionItem[] = [
     order: 1,
     tab: "business",
     isEssential: true,
+
   },
   {
     id: "business-hours",
@@ -75,6 +76,7 @@ const BUSINESS_ITEMS: BrainSectionItem[] = [
     order: 2,
     tab: "business",
     isEssential: true,
+
   },
   {
     id: "calendar-sync",
@@ -84,6 +86,7 @@ const BUSINESS_ITEMS: BrainSectionItem[] = [
     groupLabel: "ESSENTIALS",
     order: 3,
     tab: "business",
+
     isVisible: (_mode, caps) => caps.isSchedulingBusiness,
   },
   {
@@ -94,6 +97,7 @@ const BUSINESS_ITEMS: BrainSectionItem[] = [
     groupLabel: "OPTIONAL",
     order: 1,
     tab: "business",
+
   },
 ];
 
@@ -109,6 +113,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     order: 1,
     tab: "services",
     isEssential: true,
+
     isVisible: (_mode, _caps, flags) => flags.isFoodMode,
   },
   {
@@ -119,6 +124,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     groupLabel: "YOUR CATALOG",
     order: 2,
     tab: "services",
+
     isVisible: (_mode, caps) => !caps.isDispatchBusiness && !caps.hasFoodOrders,
   },
   {
@@ -130,6 +136,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     order: 3,
     tab: "services",
     isEssential: true,
+
   },
   {
     id: "price-modifiers",
@@ -139,6 +146,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     groupLabel: "PRICING OPTIONS",
     order: 1,
     tab: "services",
+
     isVisible: (_mode, _caps, flags) => flags.isRelevant("price-modifiers"),
   },
   {
@@ -149,6 +157,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     groupLabel: "PRICING OPTIONS",
     order: 2,
     tab: "services",
+
     isVisible: (_mode, _caps, flags) => flags.isRelevant("service-packages"),
   },
   {
@@ -159,6 +168,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     groupLabel: "PRICING OPTIONS",
     order: 3,
     tab: "services",
+
     isVisible: (_mode, _caps, flags) => flags.isRelevant("dispatch-pricing"),
   },
   {
@@ -169,6 +179,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     groupLabel: "PRICING OPTIONS",
     order: 4,
     tab: "services",
+
     isVisible: (_mode, _caps, flags) => flags.isRelevant("dispatch-pricing"),
   },
   {
@@ -179,6 +190,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     groupLabel: "PRICING OPTIONS",
     order: 5,
     tab: "services",
+
     isVisible: (mode, caps, flags) => (mode === "food" || caps.isFoodBusiness || caps.hasFoodOrders) && flags.isRelevant("food-settings"),
   },
   {
@@ -189,6 +201,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     groupLabel: "PRICING OPTIONS",
     order: 6,
     tab: "services",
+
     isVisible: (mode, caps, flags) => (mode === "food" || caps.isFoodBusiness || caps.hasFoodOrders) && flags.isRelevant("food-settings"),
   },
   {
@@ -199,6 +212,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     groupLabel: "PRICING OPTIONS",
     order: 7,
     tab: "services",
+
     isVisible: (mode, caps, flags) => (mode === "food" || caps.isFoodBusiness || caps.hasFoodOrders) && flags.isRelevant("food-settings"),
   },
   {
@@ -209,6 +223,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     groupLabel: "PRICING OPTIONS",
     order: 8,
     tab: "services",
+
     isVisible: (mode, caps) => mode === "medical" || caps.isMedicalBusiness,
   },
   {
@@ -219,6 +234,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     groupLabel: "OTHER OFFERINGS",
     order: 1,
     tab: "services",
+
   },
 ];
 
@@ -235,6 +251,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     order: 1,
     tab: "operations",
     isEssential: true,
+
     isVisible: (mode, _caps, flags) =>
       (mode !== "food" && !flags.isFoodMode) || flags.foodNeedsCoverage,
   },
@@ -246,6 +263,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "WHERE YOU WORK",
     order: 2,
     tab: "operations",
+
     isVisible: (mode, caps, flags) =>
       (caps.isDispatchBusiness || caps.offersMobileService) &&
       ((mode !== "food" && !flags.isFoodMode) || flags.foodNeedsCoverage),
@@ -258,6 +276,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "WHERE YOU WORK",
     order: 3,
     tab: "operations",
+
     isVisible: (mode, caps) => mode === "service" && caps.isSchedulingBusiness,
   },
   {
@@ -268,6 +287,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "WHERE YOU WORK",
     order: 4,
     tab: "operations",
+
     isVisible: (_mode, _caps, flags) => flags.isRelevant("dispatch-zones"),
   },
   {
@@ -278,6 +298,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "WHERE YOU WORK",
     order: 5,
     tab: "operations",
+
     isVisible: (_mode, _caps, flags) =>
       flags.isRelevant("delivery-zones") && flags.foodAcceptsDelivery,
   },
@@ -289,6 +310,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "WHERE YOU WORK",
     order: 6,
     tab: "operations",
+
     isVisible: (_mode, _caps, flags) =>
       flags.isRelevant("delivery-zones") && flags.foodAcceptsCatering,
   },
@@ -300,6 +322,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "WHERE YOU WORK",
     order: 7,
     tab: "operations",
+
     isVisible: (_mode, _caps, flags) => flags.isRelevant("medical-coverage"),
   },
   {
@@ -310,6 +333,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "WHERE YOU WORK",
     order: 8,
     tab: "operations",
+
     isVisible: (mode) => mode === "general",
   },
   {
@@ -320,6 +344,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "WHERE YOU WORK",
     order: 9,
     tab: "operations",
+
     isVisible: (_mode, caps) => caps.isDispatchBusiness || caps.isSchedulingBusiness,
   },
 
@@ -332,6 +357,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "YOUR RULES",
     order: 1,
     tab: "operations",
+
   },
   {
     id: "never-promise",
@@ -341,6 +367,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "YOUR RULES",
     order: 2,
     tab: "operations",
+
   },
   {
     id: "required-questions",
@@ -350,6 +377,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "YOUR RULES",
     order: 3,
     tab: "operations",
+
   },
   {
     id: "custom-policies",
@@ -359,6 +387,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "YOUR RULES",
     order: 4,
     tab: "operations",
+
   },
 
   // DELIVERY
@@ -370,6 +399,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "DELIVERY",
     order: 1,
     tab: "operations",
+
     isVisible: (_mode, _caps, flags) => flags.showBookingDelivery,
   },
   {
@@ -380,6 +410,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "DELIVERY",
     order: 2,
     tab: "operations",
+
     isVisible: (_mode, _caps, flags) => flags.showFoodDelivery,
   },
   {
@@ -390,6 +421,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "DELIVERY",
     order: 3,
     tab: "operations",
+
     isVisible: (_mode, _caps, flags) => flags.isRelevant("dispatch-operations"),
   },
   {
@@ -400,6 +432,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "DELIVERY",
     order: 4,
     tab: "operations",
+
     isVisible: (_mode, _caps, flags) => flags.isRelevant("dispatch-operations"),
   },
   {
@@ -410,6 +443,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "DELIVERY",
     order: 5,
     tab: "operations",
+
     isVisible: (_mode, _caps, flags) => flags.isRelevant("dispatch-operations"),
   },
   {
@@ -420,6 +454,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "DELIVERY",
     order: 6,
     tab: "operations",
+
   },
   {
     id: "medical-intake-delivery",
@@ -429,6 +464,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "DELIVERY",
     order: 7,
     tab: "operations",
+
     isVisible: (_mode, _caps, flags) => flags.isRelevant("hipaa"),
   },
 
@@ -441,6 +477,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "COMPLIANCE",
     order: 1,
     tab: "operations",
+
     isVisible: (_mode, _caps, flags) => flags.isRelevant("impound-lot"),
   },
   {
@@ -451,6 +488,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "COMPLIANCE",
     order: 2,
     tab: "operations",
+
     isVisible: (_mode, _caps, flags) => flags.isRelevant("impound-lot"),
   },
   {
@@ -461,6 +499,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "COMPLIANCE",
     order: 3,
     tab: "operations",
+
     isVisible: (_mode, _caps, flags) => flags.isRelevant("impound-lot"),
   },
   {
@@ -471,6 +510,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     groupLabel: "COMPLIANCE",
     order: 4,
     tab: "operations",
+
     isVisible: (_mode, _caps, flags) => flags.isRelevant("hipaa"),
   },
 ];
@@ -487,6 +527,7 @@ const AI_VOICE_ITEMS: BrainSectionItem[] = [
     order: 1,
     tab: "ai-voice",
     isEssential: true,
+
   },
   {
     id: "guidelines",
@@ -496,6 +537,7 @@ const AI_VOICE_ITEMS: BrainSectionItem[] = [
     groupLabel: "ADVANCED",
     order: 1,
     tab: "ai-voice",
+
   },
 ];
 
@@ -511,6 +553,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
     groupLabel: "ESSENTIALS",
     order: 1,
     tab: "training",
+
     isVisible: (_mode, _caps, flags) => flags.reviewCount > 0,
   },
   {
@@ -521,6 +564,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
     groupLabel: "ESSENTIALS",
     order: 2,
     tab: "training",
+
   },
   {
     id: "objections",
@@ -530,6 +574,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
     groupLabel: "ESSENTIALS",
     order: 3,
     tab: "training",
+
   },
 
   // INDUSTRY KNOWLEDGE
@@ -541,6 +586,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
     groupLabel: "INDUSTRY KNOWLEDGE",
     order: 1,
     tab: "training",
+
     isVisible: (_mode, _caps, flags) => flags.isRelevant("food-knowledge"),
   },
   {
@@ -551,6 +597,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
     groupLabel: "INDUSTRY KNOWLEDGE",
     order: 2,
     tab: "training",
+
     isVisible: (_mode, _caps, flags) => flags.isRelevant("food-knowledge"),
   },
   {
@@ -561,6 +608,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
     groupLabel: "INDUSTRY KNOWLEDGE",
     order: 3,
     tab: "training",
+
     isVisible: (_mode, _caps, flags) => flags.isRelevant("dispatch-knowledge"),
   },
   {
@@ -571,6 +619,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
     groupLabel: "INDUSTRY KNOWLEDGE",
     order: 4,
     tab: "training",
+
     isVisible: (_mode, _caps, flags) => flags.isRelevant("dispatch-knowledge"),
   },
   {
@@ -581,6 +630,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
     groupLabel: "INDUSTRY KNOWLEDGE",
     order: 5,
     tab: "training",
+
     isVisible: (_mode, _caps, flags) => flags.isRelevant("medical-knowledge"),
   },
   {
@@ -591,6 +641,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
     groupLabel: "INDUSTRY KNOWLEDGE",
     order: 6,
     tab: "training",
+
     isVisible: (_mode, _caps, flags) => flags.isRelevant("medical-knowledge"),
   },
   {
@@ -601,6 +652,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
     groupLabel: "INDUSTRY KNOWLEDGE",
     order: 7,
     tab: "training",
+
     isVisible: (_mode, _caps, flags) => flags.isRelevant("product-knowledge"),
   },
 
@@ -613,6 +665,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
     groupLabel: "MORE OPTIONS",
     order: 1,
     tab: "training",
+
   },
   {
     id: "competitors",
@@ -622,6 +675,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
     groupLabel: "MORE OPTIONS",
     order: 2,
     tab: "training",
+
   },
   {
     id: "seasonal",
@@ -631,6 +685,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
     groupLabel: "MORE OPTIONS",
     order: 3,
     tab: "training",
+
   },
   {
     id: "custom",
@@ -640,6 +695,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
     groupLabel: "MORE OPTIONS",
     order: 4,
     tab: "training",
+
   },
   {
     id: "documents",
@@ -649,6 +705,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
     groupLabel: "MORE OPTIONS",
     order: 5,
     tab: "training",
+
   },
 ];
 
@@ -724,4 +781,25 @@ export function findItemForHash(tab: NewSectionId, hash: string): string | null 
   const items = TAB_ITEMS[tab] || [];
   const match = items.find((item) => item.id === hash);
   return match ? match.id : null;
+}
+
+// ─── Global Item Lookup (for mode-shaped layout) ────────────────────────────
+
+/** Flat array of every item across all tabs. */
+export const ALL_ITEMS: BrainSectionItem[] = [
+  ...BUSINESS_ITEMS,
+  ...SERVICES_ITEMS,
+  ...OPERATIONS_ITEMS,
+  ...AI_VOICE_ITEMS,
+  ...TRAINING_ITEMS,
+];
+
+/** Map of item ID → item for O(1) lookups from brainModeLayout. */
+export const ALL_ITEMS_BY_ID: Map<string, BrainSectionItem> = new Map(
+  ALL_ITEMS.map((item) => [item.id, item]),
+);
+
+/** Find any item by ID, regardless of which tab it was originally defined in. */
+export function findItemByIdGlobal(itemId: string): BrainSectionItem | undefined {
+  return ALL_ITEMS_BY_ID.get(itemId);
 }

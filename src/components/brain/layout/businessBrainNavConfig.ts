@@ -656,14 +656,16 @@ export function getVisibleCardsV2(
  * Includes both new and legacy section params for backward compatibility
  */
 export const SECTION_TO_CATEGORY: Record<string, string> = {
-  // New sections
-  business: "your-business",
+  // Mode-shaped sections
+  about: "your-business",
   services: "services-pricing",
   operations: "how-you-operate",
-  "ai-voice": "ai-personality",
+  rules: "how-you-operate",
   training: "knowledge",
   intelligence: "intelligence",
   // Legacy sections (for backward compatibility)
+  business: "your-business",
+  "ai-voice": "ai-personality",
   profile: "your-business",
   hours: "your-business",
   availability: "your-business",

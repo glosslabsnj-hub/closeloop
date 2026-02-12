@@ -1,15 +1,18 @@
 /**
- * BrainDashboard - Dashboard hub showing 5 category cards
+ * BrainDashboard - Dashboard hub showing mode-specific category cards
  *
  * This is the Level 1 view of the Business Brain. It shows:
  * - Editorial micro-label header with overall completion
  * - Suggested next step banner
  * - 2-col responsive category cards with per-card progress rings
+ * - Intelligence card appended separately (not part of the 5-tab structure)
  */
 
+import { useMemo } from "react";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { BRAIN_CATEGORIES, type CategoryConfig } from "@/components/brain/layout/businessBrainNavConfig";
+import { getModeCategories } from "@/config/brainModeLayout";
 import { BrainCategoryCard } from "./BrainCategoryCard";
 import { NextStepSuggestion } from "@/components/brain/layout/NextStepSuggestion";
 import { useAllCategoriesCompletion } from "@/hooks/useCategoryCompletion";
@@ -29,16 +32,19 @@ function getCategorySummary(
   summaries: ReturnType<typeof useBrainSummaries>,
 ): string {
   switch (section) {
+    case "about":
     case "business":
       return [summaries.businessInfo, summaries.hours].filter(Boolean).join(" \u00B7 ");
     case "services":
       return [summaries.catalog, summaries.pricingRules].filter(Boolean).join(" \u00B7 ");
     case "operations":
-      return [summaries.coverage, summaries.policies].filter(Boolean).join(" \u00B7 ");
+      return [summaries.coverage].filter(Boolean).join(" \u00B7 ");
+    case "rules":
+      return [summaries.policies].filter(Boolean).join(" \u00B7 ");
     case "ai-voice":
       return [summaries.scripts, summaries.guidelines].filter(Boolean).join(" \u00B7 ");
     case "training":
-      return [summaries.faqs, summaries.objections].filter(Boolean).join(" \u00B7 ");
+      return [summaries.scripts, summaries.faqs, summaries.objections].filter(Boolean).join(" \u00B7 ");
     default:
       return "";
   }
@@ -48,9 +54,10 @@ function getCategorySummary(
  * Find the first incomplete category (by order) to suggest as next step.
  */
 function findSuggestedSection(
+  categories: CategoryConfig[],
   completions: Record<string, { percentage: number }>,
 ): string | null {
-  const ordered = [...BRAIN_CATEGORIES].sort((a, b) => a.order - b.order);
+  const ordered = [...categories].sort((a, b) => a.order - b.order);
   for (const cat of ordered) {
     const stats = completions[cat.section];
     if (stats && stats.percentage < 100) return cat.section;
@@ -63,22 +70,32 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
   const summaries = useBrainSummaries();
   const { businessMode } = useTenantConfig();
 
-  // Overall progress across all categories
-  const overall = Object.values(completions).reduce(
-    (acc, c) => ({
-      total: acc.total + c.totalFields,
-      completed: acc.completed + c.completedFields,
-    }),
+  // Mode-specific categories (5 tabs)
+  const modeCategories = useMemo(() => getModeCategories(businessMode), [businessMode]);
+
+  // Intelligence category from BRAIN_CATEGORIES (appended separately)
+  const intelligenceCategory = BRAIN_CATEGORIES.find((c) => c.section === "intelligence");
+
+  // Overall progress across mode categories only (not intelligence)
+  const overall = modeCategories.reduce(
+    (acc, cat) => {
+      const c = completions[cat.section];
+      if (!c) return acc;
+      return {
+        total: acc.total + c.totalFields,
+        completed: acc.completed + c.completedFields,
+      };
+    },
     { total: 0, completed: 0 },
   );
   const overallPercent = overall.total > 0 ? Math.round((overall.completed / overall.total) * 100) : 100;
 
-  const suggestedSection = findSuggestedSection(completions);
+  const suggestedSection = findSuggestedSection(modeCategories, completions);
 
   // Get the section *before* the suggested one so NextStepSuggestion picks the right message
   const completedForSuggestion = (() => {
     if (!suggestedSection) return null;
-    const ordered = [...BRAIN_CATEGORIES].sort((a, b) => a.order - b.order);
+    const ordered = [...modeCategories].sort((a, b) => a.order - b.order);
     const idx = ordered.findIndex((c) => c.section === suggestedSection);
     if (idx <= 0) return null;
     return ordered[idx - 1].section;
@@ -113,7 +130,7 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
       {/* If the very first category is incomplete and there's no "completed before" */}
       {suggestedSection && !completedForSuggestion && (
         <NextStepSuggestion
-          completedSection="business"
+          completedSection="about"
           mode={businessMode}
           onNavigate={onNavigate}
         />
@@ -126,7 +143,7 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
           "grid-cols-1 sm:grid-cols-2",
         )}
       >
-        {[...BRAIN_CATEGORIES]
+        {[...modeCategories]
           .sort((a, b) => a.order - b.order)
           .map((cat) => (
             <BrainCategoryCard
@@ -138,6 +155,17 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
               onNavigate={onNavigate}
             />
           ))}
+
+        {/* Intelligence card (separate from mode tabs) */}
+        {intelligenceCategory && (
+          <BrainCategoryCard
+            category={intelligenceCategory}
+            resolvedTitle={resolveCardTitle(intelligenceCategory.titleKey, intelligenceCategory.title, businessMode)}
+            completion={completions[intelligenceCategory.section] ?? { totalFields: 0, completedFields: 0, percentage: 100, hasRequiredIncomplete: false }}
+            summaryText={getCategorySummary(intelligenceCategory.section, summaries)}
+            onNavigate={onNavigate}
+          />
+        )}
       </div>
     </div>
   );

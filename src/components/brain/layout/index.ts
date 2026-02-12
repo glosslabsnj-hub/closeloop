@@ -56,3 +56,15 @@ export {
   type CategoryConfig,
   type CardConfig,
 } from "./businessBrainNavConfig";
+
+// Mode-shaped layout (Brain Redesign)
+export {
+  MODE_LAYOUTS,
+  getModeCategories,
+  getModeTabDef,
+  getItemsForModeTab,
+  getCompletionSectionsForModeTab,
+  type ModeLayout,
+  type ModeTabDef,
+  type ModeTabGroup,
+} from "@/config/brainModeLayout";

@@ -29,11 +29,15 @@ export interface CategoryCompletionStats {
 // `field.section` values it encompasses.
 
 const CATEGORY_SECTION_MAP: Record<string, string[]> = {
+  // Legacy (kept for backward compat)
   business:   ["profile", "hours", "calendar"],
   services:   ["services"],
   operations: ["coverage", "policies"],
   "ai-voice": ["ai-behavior"],
-  training:   ["knowledge"],
+  // Mode-aware sections
+  about:      ["profile", "hours"],
+  rules:      ["policies"],
+  training:   ["knowledge", "ai-behavior"],
 };
 
 // ── Field completion checker (mirrors useBrainCompletion) ──────────────────
@@ -196,9 +200,13 @@ export function useCategoryCompletion(categorySection: string): CategoryCompleti
 }
 
 /**
- * Completion stats for ALL 5 dashboard categories at once.
+ * Completion stats for dashboard categories.
+ * Defaults to all entries in CATEGORY_SECTION_MAP, or pass specific section keys
+ * to compute only for those (used by mode-shaped dashboard).
  */
-export function useAllCategoriesCompletion(): Record<string, CategoryCompletionStats> {
+export function useAllCategoriesCompletion(
+  sectionKeys?: string[],
+): Record<string, CategoryCompletionStats> {
   const { tenant } = useAuth();
   const capabilities = useBusinessCapabilities();
 
@@ -208,7 +216,13 @@ export function useAllCategoriesCompletion(): Record<string, CategoryCompletionS
 
     const result: Record<string, CategoryCompletionStats> = {};
 
-    for (const [catSection, essentialSections] of Object.entries(CATEGORY_SECTION_MAP)) {
+    const entries = sectionKeys
+      ? sectionKeys
+          .filter((k) => CATEGORY_SECTION_MAP[k])
+          .map((k) => [k, CATEGORY_SECTION_MAP[k]] as const)
+      : Object.entries(CATEGORY_SECTION_MAP);
+
+    for (const [catSection, essentialSections] of entries) {
       const sectionFields = allFields.filter(
         (f) => essentialSections.includes(f.section) && shouldShowField(f, capFlags),
       );
@@ -231,5 +245,5 @@ export function useAllCategoriesCompletion(): Record<string, CategoryCompletionS
     }
 
     return result;
-  }, [tenant, capabilities]);
+  }, [tenant, capabilities, sectionKeys]);
 }
