@@ -880,6 +880,18 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     includeInCompactJson: true,
   },
   {
+    key: "inventory_detail",
+    description: "Per-vehicle listing grouped by make with year, model, trim, body style, mileage, price, and top features",
+    type: "string",
+    source: (ctx: Record<string, unknown>) => {
+      const sales = ctx.sales as Record<string, unknown> | undefined;
+      return sales?.inventory_detail || "";
+    },
+    defaultValue: "",
+    category: "offerings",
+    speechReady: true,
+  },
+  {
     key: "financing_available",
     description: "Whether financing options are available",
     type: "string",
