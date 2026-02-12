@@ -274,6 +274,8 @@ export interface BusinessContext {
     customer_order_count: number | null;
     /** Customer name from caller ID lookup (for returning callers) */
     customer_name_from_lookup: string;
+    /** Speech-ready summary of customer's active jobs (vehicles in shop, etc.) */
+    active_job_summary: string;
   };
   safety: {
     hipaa_mode: boolean;
@@ -2302,6 +2304,7 @@ export async function buildBusinessContext(
       // Customer context (populated during call if customer is recognized)
       customer_order_count: null, // Set by caller resolution during inbound call
       customer_name_from_lookup: "", // Set by caller resolution during inbound call
+      active_job_summary: "", // Set by active job lookup during inbound call
     },
     safety: {
       hipaa_mode: hipaaMode,
@@ -2431,6 +2434,65 @@ export async function buildBusinessContext(
       }
     } catch (salesError) {
       console.error(`[buildBusinessContext] Failed to build sales context:`, salesError);
+    }
+  }
+
+  // ===== ACTIVE JOB LOOKUP (for WIP status over the phone) =====
+  if (callerPhone && caps.hasJobTracking) {
+    try {
+      const { data: activeJobs } = await supabase
+        .from("active_jobs")
+        .select("id, job_number, title, status, priority, metadata_json, estimated_completion, job_service_items(id, title, status, sort_order)")
+        .eq("tenant_id", tenantId)
+        .eq("customer_phone", callerPhone)
+        .eq("is_active", true)
+        .in("status", ["intake", "in_progress", "on_hold"])
+        .order("created_at", { ascending: false })
+        .limit(3);
+
+      if (activeJobs && activeJobs.length > 0) {
+        const summaries: string[] = [];
+        for (const job of activeJobs) {
+          const items = (job.job_service_items || []).sort(
+            (a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order
+          );
+          const completed = items.filter((i: { status: string }) => i.status === "completed");
+          const remaining = items.filter((i: { status: string }) => i.status !== "completed" && i.status !== "skipped");
+
+          let summary = `${job.title}`;
+          if (items.length > 0) {
+            summary += `. ${completed.length} of ${items.length} services complete`;
+            if (completed.length > 0) {
+              summary += `: ${completed.map((i: { title: string }) => i.title).join(", ")} done`;
+            }
+            if (remaining.length > 0) {
+              summary += `. ${remaining.map((i: { title: string }) => i.title).join(", ")} remaining`;
+            }
+          }
+          if (job.status === "on_hold") {
+            summary += ". Currently on hold";
+          }
+          if (job.estimated_completion) {
+            const est = new Date(job.estimated_completion);
+            const now = new Date();
+            const diffHours = Math.round((est.getTime() - now.getTime()) / (1000 * 60 * 60));
+            if (diffHours > 0 && diffHours <= 48) {
+              summary += diffHours <= 4
+                ? `. Estimated ready in about ${diffHours} hours`
+                : diffHours <= 24
+                  ? `. Estimated ready later today`
+                  : `. Estimated ready tomorrow`;
+            }
+          }
+          summaries.push(summary);
+        }
+        context.intelligence.active_job_summary = activeJobs.length === 1
+          ? `This customer has an active job: ${summaries[0]}`
+          : `This customer has ${activeJobs.length} active jobs. ${summaries.map((s, i) => `Job ${i + 1}: ${s}`).join(". ")}`;
+      }
+    } catch (jobError) {
+      console.error(`[buildBusinessContext] Failed to fetch active jobs:`, jobError);
+      // Non-fatal: active_job_summary stays empty string
     }
   }
 
