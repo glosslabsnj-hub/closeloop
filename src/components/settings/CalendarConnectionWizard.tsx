@@ -232,7 +232,7 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
       }
 
       const response = await supabase.functions.invoke("calendar-oauth-start", {
-        body: { provider },
+        body: { provider, tenant_id: tenant?.id },
       });
 
       if (response.error) {

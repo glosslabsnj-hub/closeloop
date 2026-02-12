@@ -33,9 +33,10 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { tenantId } = await requireAuthedTenant(req);
+    const body = await req.json();
+    const { provider, tenant_id: bodyTenantId } = body;
 
-    const { provider } = await req.json();
+    const { tenantId } = await requireAuthedTenant(req, bodyTenantId || null);
 
     if (!provider || !["google", "microsoft"].includes(provider)) {
       return errorResponse("Invalid provider", 400);

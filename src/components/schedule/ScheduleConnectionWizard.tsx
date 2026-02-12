@@ -200,7 +200,7 @@ export function ScheduleConnectionWizard({ embedded = false, onComplete, onSkip 
       }
 
       const response = await supabase.functions.invoke("calendar-oauth-start", {
-        body: { provider },
+        body: { provider, tenant_id: tenant?.id },
       });
 
       if (response.error) throw new Error(response.error.message);

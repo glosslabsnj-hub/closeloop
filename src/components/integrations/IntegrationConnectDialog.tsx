@@ -70,7 +70,7 @@ export function IntegrationConnectDialog({
       setStep("waiting");
       try {
         const { data, error } = await supabase.functions.invoke("calendar-oauth-start", {
-          body: { provider: "google" },
+          body: { provider: "google", tenant_id: tenant?.id },
         });
         
         if (error) throw error;
@@ -106,7 +106,7 @@ export function IntegrationConnectDialog({
       setStep("waiting");
       try {
         const { data, error } = await supabase.functions.invoke("calendar-oauth-start", {
-          body: { provider: "google" },
+          body: { provider: "google", tenant_id: tenant?.id },
         });
         
         if (error) throw error;
