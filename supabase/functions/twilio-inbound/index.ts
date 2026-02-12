@@ -632,29 +632,16 @@ Deno.serve(async (req) => {
     // DO NOT add conversation_config_override here — it breaks the register-call API and causes instant hangups.
     console.log(`[twilio-inbound] Registering with agent ${agentId.slice(0, 12)}... (callback_only=${settings.ai_behavior_mode === "callback_only"})`);
 
-    // Build conversation_initiation_client_data with dynamic_variables
-    // and optionally override first_message with custom greeting script
-    const clientData: Record<string, unknown> = {
-      dynamic_variables: dynamicVariables,
-    };
-
-    // Override first_message if a custom greeting script exists
-    // NOTE: Only first_message is overridden here — prompt overrides break register-call
-    const greetingScript = dynamicVariables.greeting_script;
-    if (greetingScript) {
-      clientData.conversation_config_override = {
-        agent: {
-          first_message: String(greetingScript),
-        },
-      };
-      console.log(`[twilio-inbound] Overriding first_message with greeting script (${String(greetingScript).length} chars)`);
-    }
-
+    // conversation_config_override BREAKS register-call API (causes instant hangups).
+    // Greeting script is delivered via dynamic_variables.greeting_script instead.
+    // The ElevenLabs dashboard agent's first_message must use {{greeting_script}} handlebars.
     const registerPayload: Record<string, unknown> = {
       agent_id: agentId,
       from_number: callerPhoneE164 || fromNumber,
       to_number: toPhoneE164,
-      conversation_initiation_client_data: clientData,
+      conversation_initiation_client_data: {
+        dynamic_variables: dynamicVariables,
+      },
     };
 
     const registerResponse = await fetchWithTimeout(
