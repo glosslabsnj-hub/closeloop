@@ -5,13 +5,15 @@
  * edit, add, remove, or toggle services before they're saved to DB.
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Plus, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Plus, X, AlertCircle, DollarSign } from "lucide-react";
 import { getIndustryTerminology } from "@/data/industryTerminology";
 import { cn } from "@/lib/utils";
+import { getPricingModel } from "@/config/pricingModels";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 
 export interface EditableService {
@@ -37,6 +39,7 @@ export function ServicePreviewStep({
   onChange,
 }: ServicePreviewStepProps) {
   const terms = getIndustryTerminology(businessMode);
+  const pricingModel = useMemo(() => getPricingModel(businessMode, industrySlug), [businessMode, industrySlug]);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
 
   const toggleService = (idx: number) => {
@@ -71,6 +74,7 @@ export function ServicePreviewStep({
   };
 
   const enabledCount = services.filter((s) => s.enabled).length;
+  const enabledNoPriceCount = services.filter((s) => s.enabled && s.price === 0 && s.priceType !== "quote_only").length;
 
   return (
     <div className="space-y-6">
@@ -83,6 +87,32 @@ export function ServicePreviewStep({
           Toggle off any you don't offer, or add your own.
         </p>
       </div>
+
+      {/* Pricing model context */}
+      {pricingModel.typicalRange && (
+        <div className="flex items-start gap-2 p-3 rounded-lg border bg-muted/30 text-sm">
+          <DollarSign className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium text-foreground">{pricingModel.label}</p>
+            <p className="text-muted-foreground">
+              {pricingModel.description}.{" "}
+              <span className="text-foreground font-medium">Typical range: {pricingModel.typicalRange}</span>
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Pricing helper tip */}
+      {enabledNoPriceCount > 0 && (
+        <div className="flex items-start gap-2 p-3 rounded-lg border border-amber-500/30 bg-amber-500/5 text-sm">
+          <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+          <p className="text-muted-foreground">
+            <strong className="text-foreground">{enabledNoPriceCount} {enabledNoPriceCount === 1 ? "service has" : "services have"} no price.</strong>{" "}
+            Tap a service to add a price, or mark it as "Quote only" if pricing varies.
+            Your AI uses prices to give callers accurate quotes.
+          </p>
+        </div>
+      )}
 
       <div className="space-y-3">
         {services.map((service, idx) => (

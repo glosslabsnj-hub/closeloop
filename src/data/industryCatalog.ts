@@ -97,11 +97,11 @@ const commonObjections: ObjectionResponse[] = [
 ];
 
 const commonFAQs: FAQ[] = [
-  { question: "What are your hours?", answer: "" },
-  { question: "Do you require a deposit?", answer: "" },
-  { question: "What forms of payment do you accept?", answer: "" },
+  { question: "What are your hours?", answer: "Our hours are listed on our website. Please call and we'll let you know our current availability." },
+  { question: "Do you require a deposit?", answer: "We may require a deposit depending on the service. Our team will let you know the details when booking." },
+  { question: "What forms of payment do you accept?", answer: "We accept all major credit cards, debit cards, and cash. Please ask about other payment options." },
   { question: "Are you licensed and insured?", answer: "Yes, we are fully licensed and insured for your protection." },
-  { question: "What's your cancellation policy?", answer: "" },
+  { question: "What's your cancellation policy?", answer: "We ask for at least 24 hours notice if you need to cancel or reschedule. Late cancellations may incur a fee." },
 ];
 
 const defaultPolicies = {

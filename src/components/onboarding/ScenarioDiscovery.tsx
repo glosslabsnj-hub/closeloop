@@ -40,11 +40,16 @@ export function ScenarioDiscovery({
 
   const questions = getQuestionsForMode(businessMode, industryContext);
 
-  // Filter by showWhen condition
+  // Filter to onboarding-visible questions only, plus showWhen condition
   const visibleQuestions = useMemo(() => {
     return questions.filter((q) => {
-      if (!q.showWhen) return true;
-      return answers[q.showWhen.capabilityKey] === q.showWhen.value;
+      // Only show questions marked for onboarding (or blocking questions like HIPAA)
+      if (!q.onboardingVisible && !q.blocking) return false;
+      // Apply conditional visibility
+      if (q.showWhen) {
+        return answers[q.showWhen.capabilityKey] === q.showWhen.value;
+      }
+      return true;
     });
   }, [questions, answers]);
 
@@ -107,7 +112,7 @@ export function ScenarioDiscovery({
       </div>
 
       <div className="relative">
-        <ScrollArea className="h-[460px]" ref={scrollRef}>
+        <ScrollArea className="h-[380px]" ref={scrollRef}>
           <div className="space-y-5 pr-4">
             {grouped.map(({ group, questions: groupQuestions }) => (
               <div key={group} className="space-y-3">

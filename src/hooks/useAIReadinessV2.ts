@@ -2,6 +2,7 @@ import { useMemo, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { computeStepProgress } from "@/config/guidedSetupSteps";
 
 export interface ReadinessRecommendation {
   label: string;
@@ -16,6 +17,15 @@ export interface AIReadinessResult {
   last_computed_at: string | null;
   business_mode: string;
   error?: string;
+}
+
+export interface StepProgress {
+  /** Total guided setup steps for this mode */
+  totalSteps: number;
+  /** Number of steps already completed */
+  completedSteps: number;
+  /** The next step to work on (null if all done) */
+  nextStepTitle: string | null;
 }
 
 export interface UseAIReadinessV2 {
@@ -41,6 +51,8 @@ export interface UseAIReadinessV2 {
   refetch: () => void;
   /** Last computed timestamp */
   lastComputedAt: string | null;
+  /** Step-based progress for guided setup */
+  stepProgress: StepProgress;
 }
 
 /**
@@ -107,7 +119,19 @@ export function useAIReadinessV2(): UseAIReadinessV2 {
   const score = result?.score ?? 0;
   const p0Flags = result?.p0_flags ?? [];
   const p1Flags = result?.p1_flags ?? [];
-  
+  const bMode = (result?.business_mode ?? "service") as import("@/hooks/useTenantConfig").BusinessMode;
+
+  // Compute step-based progress for guided setup
+  const allFlags = useMemo(() => [...p0Flags, ...p1Flags], [p0Flags, p1Flags]);
+  const stepProgress = useMemo((): StepProgress => {
+    const prog = computeStepProgress(bMode, allFlags);
+    return {
+      totalSteps: prog.totalSteps,
+      completedSteps: prog.completedSteps,
+      nextStepTitle: prog.nextStep?.title ?? null,
+    };
+  }, [bMode, allFlags]);
+
   return {
     score,
     p0Flags,
@@ -120,6 +144,7 @@ export function useAIReadinessV2(): UseAIReadinessV2 {
     error: result?.error ?? null,
     refetch,
     lastComputedAt: result?.last_computed_at ?? null,
+    stepProgress,
   };
 }
 

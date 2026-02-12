@@ -30,7 +30,7 @@ const checklistIconMap: Record<SetupChecklistItem["icon"], typeof Package> = {
 
 export function ConfigureAIStep({ onComplete, isComplete }: ConfigureAIStepProps) {
   const navigate = useNavigate();
-  const { score, p0Flags, p1Flags, loading } = useAIReadinessV2();
+  const { score, p0Flags, p1Flags, loading, stepProgress } = useAIReadinessV2();
   const { slug, category, mode } = useIndustryContext();
 
   const config = useMemo(
@@ -84,6 +84,12 @@ export function ConfigureAIStep({ onComplete, isComplete }: ConfigureAIStepProps
     );
   }
 
+  // Step-based progress display
+  const stepsRemaining = stepProgress.totalSteps - stepProgress.completedSteps;
+  const stepPercent = stepProgress.totalSteps > 0
+    ? Math.round((stepProgress.completedSteps / stepProgress.totalSteps) * 100)
+    : 0;
+
   return (
     <Card>
       <CardHeader>
@@ -92,22 +98,26 @@ export function ConfigureAIStep({ onComplete, isComplete }: ConfigureAIStepProps
           Configure Your AI Knowledge
         </CardTitle>
         <CardDescription>
-          Fill out your business information so your AI knows how to help customers
+          Complete {stepsRemaining} {stepsRemaining === 1 ? "item" : "items"} so your AI can start answering calls
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Readiness Score */}
+        {/* Step Progress (more intuitive than percentage) */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">AI Readiness</span>
-            <span className={`text-sm font-medium ${readinessPercent >= 85 ? 'text-primary' : 'text-muted-foreground'}`}>
+            <span className="text-sm font-medium">
+              {stepProgress.completedSteps} of {stepProgress.totalSteps} items complete
+            </span>
+            <span className={`text-sm font-medium ${stepPercent >= 100 ? 'text-primary' : 'text-muted-foreground'}`}>
               {loading ? "..." : `${readinessPercent}%`}
             </span>
           </div>
-          <Progress value={readinessPercent} className="h-2" />
-          <p className="text-xs text-muted-foreground">
-            Reach 85% to unlock Go Live. Your AI needs this info to answer calls correctly.
-          </p>
+          <Progress value={stepPercent} className="h-2" />
+          {stepProgress.nextStepTitle && (
+            <p className="text-xs text-muted-foreground">
+              Next up: <span className="font-medium text-foreground">{stepProgress.nextStepTitle}</span>
+            </p>
+          )}
         </div>
 
         {/* Industry-specific checklist */}
@@ -135,7 +145,7 @@ export function ConfigureAIStep({ onComplete, isComplete }: ConfigureAIStepProps
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => navigate(item.fixPath)}
+                    onClick={() => navigate("/app/business-brain?mode=setup")}
                     className="gap-1 text-xs"
                   >
                     Fix
@@ -147,18 +157,21 @@ export function ConfigureAIStep({ onComplete, isComplete }: ConfigureAIStepProps
           })}
         </div>
 
-        {/* Main CTA */}
+        {/* Main CTA — links to guided setup */}
         <Button
-          onClick={() => navigate("/app/business-brain")}
+          onClick={() => navigate("/app/business-brain?mode=setup")}
           className="w-full gap-2"
           size="lg"
         >
           <Brain className="h-5 w-5" />
-          Open Business Brain
+          {stepProgress.completedSteps > 0
+            ? `Continue Setup (${stepsRemaining} left)`
+            : "Start Guided Setup"
+          }
         </Button>
 
         <p className="text-center text-xs text-muted-foreground">
-          This is where your AI learns about your business
+          Step-by-step guide to teach your AI about your business
         </p>
       </CardContent>
     </Card>

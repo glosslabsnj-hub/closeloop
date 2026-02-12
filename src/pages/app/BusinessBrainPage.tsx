@@ -29,6 +29,7 @@ import { useBrainSummaries } from "@/hooks/useBrainSummaries";
 import { useAddOnSections, type AddOnItem } from "@/hooks/useAddOnSections";
 import { useBrainReviewCount } from "@/components/brain/BrainReviewQueue";
 import { useBrainItemStatuses } from "@/hooks/useBrainItemStatuses";
+import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
 
 // Registry + renderer
 import {
@@ -59,6 +60,9 @@ import { BrainSectionDetail } from "@/components/brain/dashboard/BrainSectionDet
 
 // Intelligence components
 import { IntelligenceDashboard } from "@/components/intelligence";
+
+// Guided setup
+import { GuidedSetupFlow } from "@/components/brain/guided/GuidedSetupFlow";
 
 // Tab-specific banner components
 import { QuoteReadinessCard } from "@/components/brain/QuoteReadinessCard";
@@ -125,6 +129,23 @@ export default function BusinessBrainPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const reviewCount = useBrainReviewCount();
   const { businessMode, hipaaMode } = useTenantConfig();
+
+  // Guided setup mode: ?mode=setup
+  const modeParam = searchParams.get("mode");
+  const isGuidedMode = modeParam === "setup";
+  const { p0Flags: readinessP0Flags } = useAIReadinessV2();
+
+  // Auto-enter guided mode if user has P0 flags and hasn't explicitly left guided mode
+  const hasGuidedDismissal = searchParams.get("mode") === "full";
+  const shouldShowGuided = isGuidedMode || (readinessP0Flags.length > 0 && !hasGuidedDismissal && !searchParams.get("section"));
+
+  const handleSwitchToFullBrain = useCallback(() => {
+    setSearchParams({ mode: "full" }, { replace: true });
+  }, [setSearchParams]);
+
+  const handleEnterGuidedMode = useCallback(() => {
+    setSearchParams({ mode: "setup" }, { replace: true });
+  }, [setSearchParams]);
   const caps = useCapabilities();
   const { isFoodMode } = useFoodMode();
   const { acceptsDelivery: foodAcceptsDelivery, acceptsCatering: foodAcceptsCatering, needsCoverageSettings: foodNeedsCoverage } = useFoodOrderSettings();
@@ -488,6 +509,13 @@ export default function BusinessBrainPage() {
           {/* HIPAA Warning */}
           {hipaaMode && <HIPAAWarning className="mb-4" />}
 
+          {/* ═══ GUIDED SETUP MODE ═══ */}
+          {shouldShowGuided && (
+            <GuidedSetupFlow onSwitchToFullBrain={handleSwitchToFullBrain} />
+          )}
+
+          {/* ═══ NORMAL BRAIN MODE ═══ */}
+          {!shouldShowGuided && (
           <AnimatePresence mode="wait">
             {/* ═══ DASHBOARD HUB (no ?section= param) ═══ */}
             {!activeSection && (
@@ -547,6 +575,7 @@ export default function BusinessBrainPage() {
               </motion.div>
             )}
           </AnimatePresence>
+          )}
         </div>
       </main>
 

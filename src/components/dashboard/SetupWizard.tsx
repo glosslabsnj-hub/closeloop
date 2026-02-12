@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Progress } from "@/components/ui/progress";
-import { Phone, Brain, Power, Check, ChevronRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Phone, Brain, Power, Check, ChevronDown, ChevronRight, CheckCircle2 } from "lucide-react";
 import { PhoneConnectionStep } from "./PhoneConnectionStep";
 import { ConfigureAIStep } from "./ConfigureAIStep";
 import { GoLiveStep } from "./GoLiveStep";
@@ -14,68 +15,95 @@ interface SetupWizardProps {
 type SetupStep = {
   id: string;
   title: string;
+  subtitle: string;
   icon: React.ComponentType<{ className?: string }>;
   isComplete: boolean;
 };
 
 export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
   const { tenant, assistantSettings } = useAuth();
-  const { score, p0Flags, canGoLive: aiReady } = useAIReadinessV2();
+  const { score, p0Flags, canGoLive: aiReady, stepProgress } = useAIReadinessV2();
 
   // Determine completion status from assistant_settings
   const phoneComplete = assistantSettings?.setup_step_phone || assistantSettings?.phone_connected || false;
   const aiKnowledgeComplete = score >= 85 && p0Flags.length === 0;
   const goLiveComplete = assistantSettings?.go_live_enabled || false;
 
-  const steps: SetupStep[] = useMemo(() => [
-    { id: "phone", title: "Connect Phone", icon: Phone, isComplete: phoneComplete },
-    { id: "ai-knowledge", title: "Configure AI", icon: Brain, isComplete: aiKnowledgeComplete },
-    { id: "golive", title: "Go Live", icon: Power, isComplete: goLiveComplete },
-  ], [phoneComplete, aiKnowledgeComplete, goLiveComplete]);
+  // Business info is auto-complete from onboarding
+  const businessInfoComplete = !!(tenant?.name && tenant?.timezone);
 
-  // Calculate first incomplete step
+  const steps: SetupStep[] = useMemo(() => [
+    {
+      id: "business-info",
+      title: "Business Info",
+      subtitle: businessInfoComplete ? `${tenant?.name}` : "Complete your profile",
+      icon: CheckCircle2,
+      isComplete: businessInfoComplete,
+    },
+    {
+      id: "phone",
+      title: "Connect Phone",
+      subtitle: phoneComplete ? "Phone connected" : "Get an AI phone number",
+      icon: Phone,
+      isComplete: phoneComplete,
+    },
+    {
+      id: "ai-knowledge",
+      title: "Configure AI",
+      subtitle: aiKnowledgeComplete
+        ? "AI knowledge ready"
+        : `${stepProgress.completedSteps} of ${stepProgress.totalSteps} items complete`,
+      icon: Brain,
+      isComplete: aiKnowledgeComplete,
+    },
+    {
+      id: "golive",
+      title: "Go Live",
+      subtitle: goLiveComplete ? "Your AI is live!" : "Activate your AI",
+      icon: Power,
+      isComplete: goLiveComplete,
+    },
+  ], [businessInfoComplete, phoneComplete, aiKnowledgeComplete, goLiveComplete, tenant, stepProgress]);
+
+  // Find first incomplete step (skip business-info since it's auto-done)
   const firstIncompleteIndex = useMemo(() => {
     const idx = steps.findIndex(s => !s.isComplete);
     return idx === -1 ? steps.length - 1 : idx;
   }, [steps]);
 
-  // Use unified state - initialize to first incomplete step
-  const [activeStep, setActiveStep] = useState<number>(firstIncompleteIndex);
-  const [userSelectedStep, setUserSelectedStep] = useState<boolean>(false);
+  // Track which step is expanded
+  const [expandedStep, setExpandedStep] = useState<number>(firstIncompleteIndex);
+  const [userSelected, setUserSelected] = useState(false);
 
-  // Auto-advance only when completion status changes, unless user manually selected
+  // Auto-advance when a step completes
   useEffect(() => {
-    if (!userSelectedStep) {
-      setActiveStep(firstIncompleteIndex);
+    if (!userSelected) {
+      setExpandedStep(firstIncompleteIndex);
     }
-  }, [firstIncompleteIndex, userSelectedStep]);
+  }, [firstIncompleteIndex, userSelected]);
 
   const completedCount = steps.filter(s => s.isComplete).length;
   const progress = (completedCount / steps.length) * 100;
 
   const handleStepComplete = (stepIndex: number) => {
-    setUserSelectedStep(false); // Reset manual selection on completion
+    setUserSelected(false);
     if (stepIndex < steps.length - 1) {
-      setActiveStep(stepIndex + 1);
+      setExpandedStep(stepIndex + 1);
     } else {
       onSetupComplete();
     }
   };
 
-  const handleStepClick = (index: number) => {
-    const step = steps[index];
-    const isClickable = index <= activeStep || step.isComplete;
-    if (isClickable) {
-      setUserSelectedStep(true);
-      setActiveStep(index);
-    }
+  const toggleStep = (index: number) => {
+    setUserSelected(true);
+    setExpandedStep(expandedStep === index ? -1 : index);
   };
 
   // For Go Live, need phone connected + AI knowledge ready
   const canActivateGoLive = phoneComplete && aiKnowledgeComplete;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8 p-4 md:p-6">
+    <div className="max-w-2xl mx-auto space-y-6 p-4 md:p-6">
       {/* Header */}
       <div className="text-center space-y-2">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-2">
@@ -84,81 +112,103 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
         </div>
         <h1 className="text-2xl md:text-3xl font-bold">Go Live Checklist</h1>
         <p className="text-muted-foreground">
-          Connect your phone, configure your AI, and start answering calls
+          {completedCount === steps.length
+            ? "You're all set!"
+            : `${completedCount} of ${steps.length} steps complete`
+          }
         </p>
       </div>
 
       {/* Progress Bar */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Setup Progress</span>
-          <span className="font-medium">{completedCount} of {steps.length} complete</span>
-        </div>
-        <Progress value={progress} className="h-2" />
-      </div>
+      <Progress value={progress} className="h-2" />
 
-      {/* Step Navigation */}
-      <div className="flex items-center justify-between gap-2 overflow-x-auto pb-2">
+      {/* Accordion Steps */}
+      <div className="space-y-3">
         {steps.map((step, index) => {
           const Icon = step.icon;
-          const isCurrent = index === activeStep;
-          const isClickable = index <= activeStep || step.isComplete;
-          
+          const isExpanded = expandedStep === index;
+          const isClickable = true; // All steps are clickable for viewing
+
           return (
-            <button
+            <div
               key={step.id}
-              onClick={() => handleStepClick(index)}
-              disabled={!isClickable}
-              className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-all min-w-[100px] flex-1 ${
-                step.isComplete 
-                  ? "bg-primary/10 text-primary" 
-                  : isCurrent 
-                    ? "bg-secondary text-foreground" 
-                    : "text-muted-foreground"
-              } ${isClickable ? "cursor-pointer hover:bg-secondary" : "cursor-not-allowed opacity-50"}`}
+              className={`rounded-lg border transition-all ${
+                step.isComplete
+                  ? "border-emerald-500/20 bg-emerald-500/5"
+                  : isExpanded
+                    ? "border-primary/30 bg-card shadow-sm"
+                    : "border-border bg-card"
+              }`}
             >
-              <div className={`flex items-center justify-center h-10 w-10 rounded-full ${
-                step.isComplete 
-                  ? "bg-primary text-primary-foreground" 
-                  : isCurrent 
-                    ? "bg-foreground text-background" 
-                    : "bg-muted"
-              }`}>
-                {step.isComplete ? (
-                  <Check className="h-5 w-5" />
-                ) : (
-                  <Icon className="h-5 w-5" />
+              {/* Step header - always visible */}
+              <button
+                onClick={() => toggleStep(index)}
+                className="w-full flex items-center gap-3 p-4 text-left"
+              >
+                <div className={`flex h-8 w-8 items-center justify-center rounded-full shrink-0 ${
+                  step.isComplete
+                    ? "bg-emerald-100 dark:bg-emerald-900/30"
+                    : isExpanded
+                      ? "bg-primary/10"
+                      : "bg-muted"
+                }`}>
+                  {step.isComplete ? (
+                    <Check className="h-4 w-4 text-emerald-600" />
+                  ) : (
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium">{step.title}</p>
+                    {step.isComplete && (
+                      <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-600">
+                        Done
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate">{step.subtitle}</p>
+                </div>
+                {!step.isComplete && (
+                  isExpanded
+                    ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                    : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                 )}
-              </div>
-              <span className="text-xs font-medium whitespace-nowrap">{step.title}</span>
-            </button>
+              </button>
+
+              {/* Step content - expanded only */}
+              {isExpanded && !step.isComplete && (
+                <div className="px-4 pb-4">
+                  {step.id === "business-info" && (
+                    <p className="text-sm text-muted-foreground">
+                      Business info was set up during onboarding. You can edit it in{" "}
+                      <a href="/app/business-brain?section=about" className="text-primary underline">Business Brain</a>.
+                    </p>
+                  )}
+                  {step.id === "phone" && (
+                    <PhoneConnectionStep
+                      onComplete={() => handleStepComplete(index)}
+                      isComplete={phoneComplete}
+                    />
+                  )}
+                  {step.id === "ai-knowledge" && (
+                    <ConfigureAIStep
+                      onComplete={() => handleStepComplete(index)}
+                      isComplete={aiKnowledgeComplete}
+                    />
+                  )}
+                  {step.id === "golive" && (
+                    <GoLiveStep
+                      onComplete={() => handleStepComplete(index)}
+                      isComplete={goLiveComplete}
+                      canActivate={canActivateGoLive}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
           );
         })}
-      </div>
-
-      {/* Current Step Content */}
-      <div className="min-h-[400px]">
-        {activeStep === 0 && (
-          <PhoneConnectionStep 
-            onComplete={() => handleStepComplete(0)}
-            isComplete={phoneComplete}
-          />
-        )}
-        
-        {activeStep === 1 && (
-          <ConfigureAIStep 
-            onComplete={() => handleStepComplete(1)}
-            isComplete={aiKnowledgeComplete}
-          />
-        )}
-        
-        {activeStep === 2 && (
-          <GoLiveStep 
-            onComplete={() => handleStepComplete(2)}
-            isComplete={goLiveComplete}
-            canActivate={canActivateGoLive}
-          />
-        )}
       </div>
 
       {/* Business Name */}

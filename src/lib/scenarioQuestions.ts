@@ -25,6 +25,12 @@ export interface ScenarioQuestion {
   group?: QuestionGroup;       // visual grouping
   requiredForAI?: boolean;     // shows "AI uses this" badge
   preAnsweredFor?: { slugs?: string[]; categories?: string[] };  // pre-checked for these industries
+  /**
+   * Whether this question appears during onboarding (true) or is deferred
+   * to the Brain advanced settings (false/undefined = hidden during onboarding).
+   * Questions hidden during onboarding still get their defaultValue applied silently.
+   */
+  onboardingVisible?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -43,6 +49,7 @@ const serviceQuestions: ScenarioQuestion[] = [
     overridesBase: true,
     group: "core",
     requiredForAI: true,
+    onboardingVisible: true,
   },
   {
     id: "mobile-service",
@@ -53,6 +60,7 @@ const serviceQuestions: ScenarioQuestion[] = [
     defaultValue: false,
     group: "core",
     preAnsweredFor: { categories: ["home_services"] },
+    onboardingVisible: true,
   },
   {
     id: "same-day-emergency",
@@ -63,6 +71,7 @@ const serviceQuestions: ScenarioQuestion[] = [
     defaultValue: false,
     group: "core",
     preAnsweredFor: { slugs: ["plumbing", "hvac", "electrical", "towing", "locksmith"] },
+    onboardingVisible: true,
   },
   {
     id: "deposits",
@@ -72,6 +81,7 @@ const serviceQuestions: ScenarioQuestion[] = [
     description: "Customers pay a deposit upfront before their appointment",
     defaultValue: false,
     group: "core",
+    onboardingVisible: true,
   },
   {
     id: "walk-ins",
@@ -82,6 +92,7 @@ const serviceQuestions: ScenarioQuestion[] = [
     defaultValue: true,
     group: "core",
     preAnsweredFor: { categories: ["beauty_wellness"] },
+    onboardingVisible: true,
   },
   // New questions
   {
@@ -195,6 +206,7 @@ const serviceQuestions: ScenarioQuestion[] = [
       slugs: ["auto-repair", "computer-repair", "appliance-repair", "jewelry-repair", "watch-repair", "dry-cleaning", "tailor"],
       categories: ["automotive_services", "repair_services"],
     },
+    onboardingVisible: true,
   },
 ];
 
@@ -208,6 +220,7 @@ const dispatchQuestions: ScenarioQuestion[] = [
     defaultValue: false,
     impliesModules: ["impound_lot"],
     group: "core",
+    onboardingVisible: true,
   },
   {
     id: "motor-club",
@@ -236,6 +249,7 @@ const dispatchQuestions: ScenarioQuestion[] = [
     description: "Pricing varies based on how far the job is",
     defaultValue: true,
     group: "core",
+    onboardingVisible: true,
   },
   // New questions
   {
@@ -279,6 +293,7 @@ const dispatchQuestions: ScenarioQuestion[] = [
     impliesModules: ["phone_quotes"],
     group: "ai_behavior",
     requiredForAI: true,
+    onboardingVisible: true,
   },
   // --- Expanded questions ---
   {
@@ -291,6 +306,7 @@ const dispatchQuestions: ScenarioQuestion[] = [
     impliesModules: ["after_hours_handling"],
     group: "core",
     preAnsweredFor: { slugs: ["towing"] },
+    onboardingVisible: true,
   },
   {
     id: "heavy-duty",
@@ -350,6 +366,7 @@ const foodQuestions: ScenarioQuestion[] = [
     defaultValue: false,
     group: "core",
     preAnsweredFor: { slugs: ["pizza", "chinese_restaurant", "indian_restaurant"] },
+    onboardingVisible: true,
   },
   {
     id: "catering",
@@ -360,6 +377,7 @@ const foodQuestions: ScenarioQuestion[] = [
     defaultValue: false,
     impliesModules: ["catering"],
     group: "core",
+    onboardingVisible: true,
   },
   {
     id: "reservations",
@@ -370,6 +388,7 @@ const foodQuestions: ScenarioQuestion[] = [
     defaultValue: false,
     impliesModules: ["reservations"],
     group: "core",
+    onboardingVisible: true,
   },
   // New questions
   {
@@ -470,6 +489,7 @@ const medicalQuestions: ScenarioQuestion[] = [
     defaultValue: true,
     blocking: true,
     group: "core",
+    onboardingVisible: true,
   },
   {
     id: "telehealth",
@@ -479,6 +499,7 @@ const medicalQuestions: ScenarioQuestion[] = [
     description: "Patients can have appointments via video or phone",
     defaultValue: false,
     group: "core",
+    onboardingVisible: true,
   },
   {
     id: "insurance",
@@ -488,6 +509,7 @@ const medicalQuestions: ScenarioQuestion[] = [
     description: "AI will ask callers for insurance information",
     defaultValue: true,
     group: "core",
+    onboardingVisible: true,
   },
   {
     id: "symptom-triage",
@@ -597,6 +619,7 @@ const generalQuestions: ScenarioQuestion[] = [
     defaultValue: true,
     impliesModules: ["booking"],
     group: "core",
+    onboardingVisible: true,
   },
   {
     id: "callbacks",
@@ -606,6 +629,7 @@ const generalQuestions: ScenarioQuestion[] = [
     description: "When AI can't resolve a question, offer a callback",
     defaultValue: true,
     group: "core",
+    onboardingVisible: true,
   },
   // New question
   {

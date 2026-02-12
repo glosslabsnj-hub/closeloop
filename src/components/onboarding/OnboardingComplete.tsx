@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Check, LayoutDashboard, BookOpen, Phone as PhoneIcon, Settings, MapPin, Sparkles, Calendar } from "lucide-react";
@@ -62,7 +63,16 @@ function getNextSteps(
 }
 
 export function OnboardingComplete({ businessName, phoneNumber, businessMode, scenarioAnswers, industrySlug }: OnboardingCompleteProps) {
+  const navigate = useNavigate();
   const nextSteps = getNextSteps(businessMode, scenarioAnswers, industrySlug);
+
+  // Auto-redirect to dashboard after 5 seconds so user doesn't get stuck
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      navigate("/app/dashboard");
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [navigate]);
 
   return (
     <div className="text-center space-y-6">
@@ -126,15 +136,9 @@ export function OnboardingComplete({ businessName, phoneNumber, businessMode, sc
         className="pt-2 space-y-3"
       >
         <Button size="lg" className="w-full gap-2" asChild>
-          <Link to="/app/business-brain?guided=true">
-            <Sparkles className="w-4 h-4" />
-            Quick Setup Guide
-          </Link>
-        </Button>
-        <Button size="lg" variant="outline" className="w-full gap-2" asChild>
           <Link to="/app/dashboard">
             <LayoutDashboard className="w-4 h-4" />
-            Go to Dashboard
+            Continue to Dashboard
           </Link>
         </Button>
       </motion.div>
@@ -143,9 +147,9 @@ export function OnboardingComplete({ businessName, phoneNumber, businessMode, sc
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.6 }}
-        className="text-sm text-muted-foreground"
+        className="text-xs text-muted-foreground"
       >
-        You can always edit your AI's knowledge from the Business Brain.
+        Taking you to your dashboard in a few seconds...
       </motion.p>
     </div>
   );
