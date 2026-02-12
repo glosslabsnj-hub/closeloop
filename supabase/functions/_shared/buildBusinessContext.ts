@@ -2110,6 +2110,9 @@ export async function buildBusinessContext(
   const normalizedMenu = normalizeMenuItems(menuItems);
   const enabledModules: string[] = Array.isArray(tenant.enabled_modules) ? tenant.enabled_modules as string[] : [];
   
+  // Pre-compute business mode early (needed for dispatch intake fields and service area)
+  const businessMode = tenant.business_mode || "general";
+
   // ===== FETCH DISPATCH INTAKE FIELDS (industry-specific) =====
   let dispatchIntakeFields: Array<{ field_key: string; field_label: string; ai_prompt_hint: string; is_required: boolean }> = [];
   if (businessMode === "dispatch" && tenant.industry) {
@@ -2133,7 +2136,6 @@ export async function buildBusinessContext(
 
   // Pre-compute service area for summaries
   const serviceAreaData = tenant.service_area_json as BusinessContext["tenant"]["service_area"];
-  const businessMode = tenant.business_mode || "general";
 
   const context: BusinessContext = {
     tenant: {
@@ -3101,12 +3103,13 @@ IMPORTANT GUIDELINES:
     null, // enabled_modules is already resolved into capabilities_json
     ctx._meta.capabilities
   );
-  const capabilityPrompt = buildPromptForCapabilities(caps, ctx.tenant.industry_slug);
+  const aiBehaviorMode = ctx.ai_settings.ai_behavior_mode as "full_service" | "callback_only" | undefined;
+  const capabilityPrompt = buildPromptForCapabilities(caps, ctx.tenant.industry_slug, aiBehaviorMode);
   prompt += `\n\n${capabilityPrompt}`;
   
   // Also append the mode-specific base prompt for backward compatibility
   // This ensures agents have both capability-aware + mode-specific instructions
-  const basePrompt = getBasePromptForMode(businessMode);
+  const basePrompt = getBasePromptForMode(businessMode, aiBehaviorMode);
   prompt += `\n\n${basePrompt}`;
 
   return prompt;

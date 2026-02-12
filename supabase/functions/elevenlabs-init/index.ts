@@ -617,8 +617,9 @@ serve(async (req) => {
     has_hours: dynamicVariables.context_has_hours,
   });
 
+  const isCallbackOnly = context?.ai_settings?.ai_behavior_mode === "callback_only";
   const conversationConfigOverride =
-    context?.tenant.business_mode === "dispatch" && systemPrompt
+    (context?.tenant.business_mode === "dispatch" || isCallbackOnly) && systemPrompt
       ? {
           agent: {
             prompt: {
