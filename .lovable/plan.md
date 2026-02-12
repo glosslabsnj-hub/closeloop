@@ -1,101 +1,189 @@
 
 
-# Fix Callback-Only Mode for Smiles Auto Works
+# Smart Service Intelligence: Complexity + Price Factors Across All Business Modes
 
-## What's Happening Now
+## What This Solves
 
-The AI is still trying to book appointments because of two code bugs and some inaccurate data. The good news: all the right callback-only instructions already exist in the system -- they're just not being delivered to the AI agent.
+Right now, every service in the catalog is treated the same by the AI -- whether it's a simple oil change or a complex engine rebuild. The AI has no way to know:
+- **What makes a price vary** (vehicle type? oil grade? location? party size?)
+- **Whether to ask detailed questions** (a quick service vs. a diagnostic deep-dive)
 
-## What This Plan Does
+This isn't just about Smiles Auto Works. A hair salon needs the AI to know that a "Balayage" is complex (hair length, color history) while a "Men's Cut" is straightforward. A towing company needs the AI to know a "Lockout" is simple but "Heavy Duty Tow" needs vehicle weight, location access, and clearance info.
 
-**You do NOT need to edit your ElevenLabs prompt.** The system already has excellent callback-only instructions built in -- they just aren't reaching the agent due to two code bugs. This fix connects the wiring so it works automatically.
+## What Changes
 
-### 1. Fix the two code bugs (the real problem)
+### 1. Database: Add `complexity` and `price_factors` to `services`
 
-**Bug A -- Prompt builder ignores callback-only mode**
-The code that builds the AI's instructions calls two functions but forgets to tell them "this is a callback-only business." So the callback-only rules never get included in the prompt.
+Two new columns:
+- `complexity` ("simple" or "complex") -- tells the AI whether to do a quick confirmation or a deep intake
+- `price_factors` (text) -- tells the AI exactly what makes the price vary, in plain English
 
-**Bug B -- Prompt never sent to ElevenLabs**
-Even if the prompt were built correctly, the system only sends custom prompts to ElevenLabs for dispatch/towing businesses. Smiles Auto Works is a "service" business, so the prompt gets thrown away and ElevenLabs uses its default dashboard prompt (which has booking logic).
+### 2. Service Catalog Editor: Two New Fields (All Business Modes)
 
-### 2. Fix inaccurate FAQs
+**Complexity toggle** -- appears on every service:
+- Label: "How should the AI handle this?"
+- Options: "Quick confirmation" (simple) vs "Ask detailed questions first" (complex)
+- Helper text adapts per mode:
+  - Auto shop: "Quick: oil change, tire rotation. Detailed: engine diagnostics, electrical issues"
+  - Salon: "Quick: men's cut, blowout. Detailed: balayage, color correction"
+  - Towing: "Quick: lockout, jump start. Detailed: heavy-duty tow, accident recovery"
+  - Medical: "Quick: follow-up visit. Detailed: initial consultation, procedure"
+  - Food: Hidden (food items are always straightforward)
 
-| Current FAQ | Problem | Fix |
-|-------------|---------|-----|
-| "Do you offer mobile service?" -- "Yes" | They don't offer mobile service | Delete this FAQ |
-| "Do you charge for estimates?" -- "book online" | There's no online booking | Update to "Give us a call and we'll take a look" |
+**Price factors field** -- appears when price type is "starting at" or "quote required":
+- Label: "What makes the price vary?"
+- Placeholder adapts per mode:
+  - Auto: "e.g., Vehicle type, oil grade (conventional vs synthetic)"
+  - Salon: "e.g., Hair length, color complexity, products used"
+  - Towing: "e.g., Vehicle weight, distance, time of day"
+  - Medical: "e.g., Treatment area, number of units, complexity"
+  - General: "e.g., Project scope, materials, timeline"
 
-### 3. Add a "General Auto Repair" catch-all service
+### 3. Context Builder: Wire Into AI Prompt
 
-Right now there are 6 specific services listed. Since the shop handles a huge range of auto repair work, we'll add a "General Auto Repair" entry with `quote_only` pricing. This tells the AI: "we do pretty much everything automotive -- just collect the details and we'll call back with a quote."
+Update `buildServicesForPrompt()` in `buildBusinessContext.ts` to include complexity tags and price factors:
 
-### 4. Add operating hours
+```
+Before:
+  Oil Change: Starting at $45 (final price varies) [ON-SITE ONLY]
 
-No hours are configured, so the AI can't tell callers when the shop is open. We'll add typical auto shop hours (Mon-Fri 8am-6pm, Sat 8am-2pm) that can be adjusted later in the Business Brain.
+After:
+  Oil Change: Starting at $45 (final price varies) [ON-SITE ONLY] [QUICK SERVICE]
+    Price depends on: vehicle type and oil grade (conventional vs synthetic)
+    Duration: 30 min
 
-### 5. Redeploy
+  General Auto Repair: Quote required [ON-SITE ONLY] [NEEDS DETAILS - ask about symptoms before quoting]
+    Info needed: what's happening, how long, warning lights, drivability
+    Duration: varies
+```
 
-Push the updated backend functions so the fix takes effect on real calls.
+The ElevenLabs agent prompt already instructs the AI to adapt based on context tags. Adding `[QUICK SERVICE]` vs `[NEEDS DETAILS]` gives it clear behavioral cues without any prompt changes needed.
 
-## Expected Result
+### 4. Smart Defaults by Industry
 
-After this fix, when someone calls:
-1. "Hi, thanks for calling Smiles Auto Works, how can I help you?"
-2. Caller: "I need a turbo replacement"
-3. "We can definitely help with that. Can I get your name?"
-4. Collects name, confirms phone number
-5. "Great, I'll have someone from our team reach out to you to get that taken care of."
-6. Creates a callback record -- no availability check, no booking attempt
+When services already exist but lack these fields, provide sensible defaults based on service name patterns:
+- Services with "repair", "diagnostic", "custom", "restoration" -> complex
+- Services with "change", "wash", "cut", "checkup", "follow-up" -> simple
+- "starting_at" or "quote_only" services without price_factors get auto-suggested text
 
-The AI will still be smart -- it knows the shop's services, hours, and can answer questions. It just won't try to schedule anything.
+This runs as a one-time data migration for existing tenants.
 
 ---
 
 ## Technical Details
 
-### File Changes
+### Database Migration
 
-**`supabase/functions/_shared/buildBusinessContext.ts` (lines 3095-3110)**
-Pass `ai_behavior_mode` to both prompt builder functions:
+```sql
+ALTER TABLE services
+  ADD COLUMN complexity text NOT NULL DEFAULT 'simple',
+  ADD COLUMN price_factors text DEFAULT NULL;
 
-```typescript
-const aiBehaviorMode = ctx.ai_settings.ai_behavior_mode as "full_service" | "callback_only" | undefined;
-const capabilityPrompt = buildPromptForCapabilities(caps, ctx.tenant.industry_slug, aiBehaviorMode);
-// ...
-const basePrompt = getBasePromptForMode(businessMode, aiBehaviorMode);
+-- Validation trigger (not CHECK constraint per guidelines)
+CREATE OR REPLACE FUNCTION validate_service_complexity()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.complexity NOT IN ('simple', 'complex') THEN
+    RAISE EXCEPTION 'complexity must be simple or complex';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_validate_service_complexity
+  BEFORE INSERT OR UPDATE ON services
+  FOR EACH ROW EXECUTE FUNCTION validate_service_complexity();
+
+-- Smart defaults for existing services
+UPDATE services SET complexity = 'complex'
+WHERE lower(name) ~* '(repair|diagnostic|custom|restoration|rebuild|overhaul|electrical|transmission|engine|collision|surgery|procedure|consultation|assessment|heavy.?duty|accident|recovery|color.?correction|balayage|perm)'
+  AND complexity = 'simple';
 ```
 
-**`supabase/functions/elevenlabs-init/index.ts` (lines 620-629)**
-Send prompt override for callback-only businesses, not just dispatch:
+### File: `src/components/brain/ServiceCatalogEditor.tsx`
 
+Update `ServiceFormData`:
 ```typescript
-const isCallbackOnly = context?.ai_settings?.ai_behavior_mode === "callback_only";
-const conversationConfigOverride =
-  (context?.tenant.business_mode === "dispatch" || isCallbackOnly) && systemPrompt
-    ? { agent: { prompt: { prompt: systemPrompt } } }
-    : undefined;
+interface ServiceFormData {
+  // ... existing fields ...
+  complexity: 'simple' | 'complex';
+  price_factors: string;
+}
 ```
 
-### Database Changes
+Add to `ServiceForm` component (after the price type selector):
 
-**Delete inaccurate FAQ:**
-- Remove "Do you offer mobile service?" (id: `0bcd30d2-...`)
+1. **Complexity toggle** (hidden for food mode):
+   - Two-option toggle: "Quick confirmation" / "Ask detailed questions"
+   - Industry-aware helper text from a new `COMPLEXITY_HINTS` map
 
-**Update misleading FAQ:**
-- "Do you charge for estimates?" answer changed to: "No, we provide free estimates! Give us a call and we'll take a look at no cost."
+2. **Price factors field** (shown when price_type is "starting_at" or "quote_only"):
+   - Textarea with mode-specific placeholder from `PRICE_FACTOR_HINTS` map
+   - Label: "What makes the price vary? (AI will explain this to callers)"
 
-**Add General Auto Repair service:**
-- Name: "General Auto Repair"
-- Price type: `quote_only`
-- Description: "Full-service auto repair -- engine, transmission, electrical, suspension, and more. Tell us what's going on and we'll get back to you with a plan."
+Update `handleSave` and `handleCreateNew` to include the new fields.
 
-**Add operating hours:**
-- Mon-Fri: 8:00 AM - 6:00 PM
-- Sat: 8:00 AM - 2:00 PM
-- Sun: Closed
+Update `toggleService` to initialize `complexity` and `price_factors` from existing service data.
 
-### Redeploy
-- `elevenlabs-init`
-- `build-business-brain`
-- `get-business-context`
+### File: `src/lib/industryExamples.ts`
+
+Add two new maps:
+
+```typescript
+export const COMPLEXITY_HINTS: Record<BusinessMode, { simple: string; complex: string }> = {
+  service: { simple: "Oil change, tire rotation, basic wash", complex: "Engine diagnostic, electrical, transmission" },
+  dispatch: { simple: "Lockout, jump start, tire change", complex: "Heavy-duty tow, accident recovery, winch-out" },
+  food: { simple: "Standard menu items", complex: "Custom catering, special dietary prep" },
+  medical: { simple: "Follow-up, routine checkup", complex: "Initial consultation, procedure, surgery" },
+  general: { simple: "Standard service, quick task", complex: "Custom project, assessment needed" },
+  sales: { simple: "Standard product inquiry", complex: "Custom configuration, financing discussion" },
+};
+
+export const PRICE_FACTOR_HINTS: Record<BusinessMode, string> = {
+  service: "e.g., Vehicle type, material grade, job scope",
+  dispatch: "e.g., Vehicle weight, distance, time of day, road conditions",
+  food: "e.g., Portion size, add-ons, dietary substitutions",
+  medical: "e.g., Treatment area, number of units, insurance",
+  general: "e.g., Project scope, materials, timeline",
+  sales: "e.g., Configuration, financing terms, add-on packages",
+};
+```
+
+### File: `supabase/functions/_shared/buildBusinessContext.ts`
+
+**Update `NormalizedService` interface** (line 39):
+```typescript
+export interface NormalizedService {
+  // ... existing fields ...
+  complexity: 'simple' | 'complex';
+  price_factors: string;
+}
+```
+
+**Update `normalizeServices()` (line ~1006):**
+- Read `s.complexity` and `s.price_factors` from the DB row
+- Default complexity to 'simple', price_factors to ''
+
+**Update `buildServicesForPrompt()` (line 1156):**
+- After the price text and dropoff tag, add complexity tag:
+  ```typescript
+  const complexityTag = s.complexity === 'complex'
+    ? '[NEEDS DETAILS - ask about symptoms/specifics before quoting]'
+    : '[QUICK SERVICE]';
+  line += ` ${complexityTag}`;
+  ```
+- If `price_factors` is set, add: `\n  Price depends on: ${s.price_factors}`
+- If complexity is 'complex' and description exists, add: `\n  Info: ${s.description}`
+
+**Update the services query** to include the new columns (search for `SELECT` on services table in the context builder).
+
+### File: `src/lib/brain/writeBrainFact.ts`
+
+Update `createService` and `updateService` to accept and pass `complexity` and `price_factors`.
+
+### Deployment
+
+- Database migration (adds columns + smart defaults)
+- Redeploy edge functions that import `buildBusinessContext.ts`: `twilio-inbound`, `get-business-context`, `elevenlabs-init` (or whichever imports the shared module)
+- Frontend changes to service editor
 
