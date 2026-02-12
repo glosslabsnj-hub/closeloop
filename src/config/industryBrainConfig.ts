@@ -614,7 +614,7 @@ type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };
 
-function deepMerge<T extends Record<string, unknown>>(base: T, override: DeepPartial<T>): T {
+function deepMerge<T extends object>(base: T, override: DeepPartial<T>): T {
   const result = { ...base };
   for (const key of Object.keys(override) as Array<keyof T>) {
     const overrideVal = override[key];
