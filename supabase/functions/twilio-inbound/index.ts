@@ -6,6 +6,7 @@ const DEPLOYED_AT = new Date().toISOString();
 // Agent resolution uses getAgentIdForCapabilities() from agentResolver.ts (capabilities-based, replaces legacy mode-based routing)
 import { isHybridCapabilitySet, getAgentIdForCapabilities, derivePrimaryModeFromCapabilities } from "../_shared/agentResolver.ts";
 import { resolveCapabilities } from "../_shared/resolveCapabilities.ts";
+import { CALLBACK_ONLY_OVERRIDE } from "../_shared/agentBasePrompts.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -589,10 +590,9 @@ Deno.serve(async (req) => {
     };
 
     // Step 8: Register call with ElevenLabs (timeout to avoid Twilio hanging)
-    // NOTE: conversation_config_override removed - it was breaking the agent connection.
-    // Identity collection will be enforced via the ElevenLabs dashboard prompt 
-    // and backend placeholder sanitization.
-    console.log(`[twilio-inbound] Registering with agent ${agentId.slice(0, 12)}...`);
+    // For callback-only businesses, override the agent prompt so it captures info instead of booking
+    const isCallbackOnly = settings.ai_behavior_mode === "callback_only";
+    console.log(`[twilio-inbound] Registering with agent ${agentId.slice(0, 12)}... (callback_only=${isCallbackOnly})`);
 
     const registerPayload: Record<string, unknown> = {
       agent_id: agentId,
@@ -600,6 +600,15 @@ Deno.serve(async (req) => {
       to_number: toPhoneE164,
       conversation_initiation_client_data: {
         dynamic_variables: dynamicVariables,
+        ...(isCallbackOnly ? {
+          conversation_config_override: {
+            agent: {
+              prompt: {
+                prompt: CALLBACK_ONLY_OVERRIDE,
+              },
+            },
+          },
+        } : {}),
       },
     };
 
