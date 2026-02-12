@@ -1223,11 +1223,14 @@ export type Database = {
           created_at: string
           deposit_paid: boolean
           deposit_required: boolean
+          duration_minutes: number | null
           end_at: string
           external_event_id: string | null
           id: string
           lead_id: string
           notes: string | null
+          price_breakdown: Json | null
+          price_cents: number | null
           service_id: string | null
           session_id: string | null
           start_at: string
@@ -1239,11 +1242,14 @@ export type Database = {
           created_at?: string
           deposit_paid?: boolean
           deposit_required?: boolean
+          duration_minutes?: number | null
           end_at: string
           external_event_id?: string | null
           id?: string
           lead_id: string
           notes?: string | null
+          price_breakdown?: Json | null
+          price_cents?: number | null
           service_id?: string | null
           session_id?: string | null
           start_at: string
@@ -1255,11 +1261,14 @@ export type Database = {
           created_at?: string
           deposit_paid?: boolean
           deposit_required?: boolean
+          duration_minutes?: number | null
           end_at?: string
           external_event_id?: string | null
           id?: string
           lead_id?: string
           notes?: string | null
+          price_breakdown?: Json | null
+          price_cents?: number | null
           service_id?: string | null
           session_id?: string | null
           start_at?: string
@@ -5644,6 +5653,7 @@ export type Database = {
       leads: {
         Row: {
           created_at: string
+          customer_id: string | null
           email: string | null
           full_name: string
           id: string
@@ -5661,6 +5671,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          customer_id?: string | null
           email?: string | null
           full_name: string
           id?: string
@@ -5678,6 +5689,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          customer_id?: string | null
           email?: string | null
           full_name?: string
           id?: string
@@ -5694,6 +5706,13 @@ export type Database = {
           vehicle_or_context?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "leads_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "leads_recovery_campaign_id_fkey"
             columns: ["recovery_campaign_id"]
