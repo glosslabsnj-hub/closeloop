@@ -313,6 +313,16 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     includeInCompactJson: true,
   },
   {
+    key: "industry_type",
+    description: "Specific industry/business type (e.g. car-dealership-used, solar-installer, locksmith)",
+    type: "string",
+    source: "tenant.industry_slug",
+    defaultValue: "",
+    category: "core",
+    includeInCompactJson: true,
+    speechReady: true,
+  },
+  {
     key: "enabled_modules",
     description: "Comma-separated list of enabled modules",
     type: "string",
