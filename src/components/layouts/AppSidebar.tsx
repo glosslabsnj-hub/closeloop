@@ -24,6 +24,7 @@ import {
   Car,
   Sparkles,
   ClipboardCheck,
+  Phone,
 } from "lucide-react";
 import {
   Sidebar,
@@ -186,7 +187,7 @@ export function AppSidebar({
           <SidebarMenu>
             {/* Core nav */}
             {renderItem({ href: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard })}
-            {renderItem({ href: "/app/inbox", label: "Leads", icon: Users })}
+            {renderItem({ href: "/app/inbox", label: (terms.inboxPageTitle as string) || "Leads", icon: caps.isDispatchBusiness ? Phone : Users })}
             {renderItem({ href: "/app/customers", label: (terms.customers ? String(terms.customers).charAt(0).toUpperCase() + String(terms.customers).slice(1) : "Customers"), icon: UserCircle })}
 
             {/* Workspace (module-gated) */}
