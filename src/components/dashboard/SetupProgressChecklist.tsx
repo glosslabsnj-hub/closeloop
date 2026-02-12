@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +15,8 @@ import { useCalendarConnections } from "@/hooks/useCalendarConnections";
 import { useServices } from "@/hooks/useServices";
 import { buildSetupSteps } from "@/lib/setupStepBuilder";
 import { cn } from "@/lib/utils";
+import { QuickAddFAQDialog } from "./QuickAddFAQDialog";
+import { QuickAddPolicyDialog } from "./QuickAddPolicyDialog";
 import {
   CheckCircle2,
   Circle,
@@ -33,12 +37,15 @@ import {
   DollarSign,
   MapPin,
   Shield,
+  Plus,
 } from "lucide-react";
 
 /**
  * SetupProgressChecklist - Business-aware setup progress with dynamic steps
  */
 export function SetupProgressChecklist() {
+  const [faqDialogOpen, setFaqDialogOpen] = useState(false);
+  const [policyDialogOpen, setPolicyDialogOpen] = useState(false);
   const { tenant, assistantSettings } = useAuth();
   const { terms } = useIndustryContext();
   const caps = useCapabilities();
@@ -176,43 +183,59 @@ export function SetupProgressChecklist() {
       <CardContent className="pt-0">
         <div className="space-y-1">
           {visibleSteps.map((step) => (
-            <Link
-              key={step.id}
-              to={step.href}
-              className={cn(
-                "flex items-center gap-3 p-3 -mx-3 rounded-lg transition-colors group",
-                step.completed
-                  ? "opacity-60"
-                  : "hover:bg-muted/50"
-              )}
-            >
-              {step.completed ? (
-                <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
-              ) : (
-                <Circle className="h-5 w-5 text-muted-foreground shrink-0" />
-              )}
-              <div className="flex-1 min-w-0">
-                <p
-                  className={cn(
-                    "text-sm font-medium",
-                    step.completed && "line-through text-muted-foreground"
-                  )}
-                >
-                  {step.label}
-                </p>
-                {!step.completed && (
-                  <p className="text-[13px] text-muted-foreground truncate">
-                    {step.description}
-                  </p>
+            <div key={step.id} className="flex items-center gap-3 p-3 -mx-3 rounded-lg transition-colors group">
+              <Link
+                to={step.href}
+                className={cn(
+                  "flex items-center gap-3 flex-1 min-w-0",
+                  step.completed ? "opacity-60" : "hover:bg-muted/50 -m-1 p-1 rounded-lg"
                 )}
-              </div>
-              {!step.completed && (
-                <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+              >
+                {step.completed ? (
+                  <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
+                ) : (
+                  <Circle className="h-5 w-5 text-muted-foreground shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p
+                    className={cn(
+                      "text-sm font-medium",
+                      step.completed && "line-through text-muted-foreground"
+                    )}
+                  >
+                    {step.label}
+                  </p>
+                  {!step.completed && (
+                    <p className="text-[13px] text-muted-foreground truncate">
+                      {step.description}
+                    </p>
+                  )}
+                </div>
+                {!step.completed && (
+                  <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                )}
+              </Link>
+
+              {/* Inline quick-add for FAQ and policy steps */}
+              {!step.completed && step.id === "faqs" && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="shrink-0 h-7 text-xs gap-1"
+                  onClick={(e) => { e.stopPropagation(); setFaqDialogOpen(true); }}
+                >
+                  <Plus className="h-3 w-3" />
+                  Add
+                </Button>
               )}
-            </Link>
+            </div>
           ))}
         </div>
       </CardContent>
+
+      {/* Quick-add dialogs */}
+      <QuickAddFAQDialog open={faqDialogOpen} onOpenChange={setFaqDialogOpen} />
+      <QuickAddPolicyDialog open={policyDialogOpen} onOpenChange={setPolicyDialogOpen} />
     </Card>
   );
 }
