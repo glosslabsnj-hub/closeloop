@@ -75,7 +75,7 @@ const SERVICE_LAYOUT: ModeLayout = {
       order: 2,
       titleKey: "servicesCategoryTitle",
       groups: [
-        { key: "your-catalog", label: "YOUR CATALOG", itemIds: ["pricing-rules", "catalog"] },
+        { key: "your-catalog", label: "YOUR CATALOG", itemIds: ["catalog"] },
         { key: "pricing-options", label: "PRICING OPTIONS", itemIds: ["price-modifiers", "service-packages"] },
         { key: "other-offerings", label: "OTHER", itemIds: ["additional-services"] },
       ],
@@ -361,7 +361,7 @@ const GENERAL_LAYOUT: ModeLayout = {
       order: 2,
       titleKey: "servicesCategoryTitle",
       groups: [
-        { key: "your-catalog", label: "YOUR CATALOG", itemIds: ["pricing-rules", "catalog"] },
+        { key: "your-catalog", label: "YOUR CATALOG", itemIds: ["catalog"] },
         { key: "pricing-options", label: "PRICING OPTIONS", itemIds: ["service-packages"] },
         { key: "other-offerings", label: "OTHER", itemIds: ["additional-services"] },
       ],
@@ -432,7 +432,7 @@ const SALES_LAYOUT: ModeLayout = {
       order: 2,
       titleKey: "servicesCategoryTitle",
       groups: [
-        { key: "your-catalog", label: "YOUR CATALOG", itemIds: ["pricing-rules", "catalog"] },
+        { key: "your-catalog", label: "YOUR CATALOG", itemIds: ["catalog"] },
         { key: "pricing-options", label: "PRICING OPTIONS", itemIds: ["service-packages"] },
         { key: "other-offerings", label: "OTHER", itemIds: ["additional-services"] },
       ],

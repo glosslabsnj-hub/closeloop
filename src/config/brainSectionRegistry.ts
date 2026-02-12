@@ -125,7 +125,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     order: 2,
     tab: "services",
 
-    isVisible: (_mode, caps) => !caps.isDispatchBusiness && !caps.hasFoodOrders,
+    isVisible: (_mode, caps) => caps.isDispatchBusiness,
   },
   {
     id: "catalog",

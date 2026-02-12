@@ -9,6 +9,8 @@ export interface TenantConfig {
   enabledModules: string[];
   hipaaMode: boolean;
   capabilities: Capabilities;
+  /** Industry slug from tenant record (e.g. "hair-salon"), or null if not set */
+  industrySlug: string | null;
 }
 
 const defaultModulesByMode: Record<BusinessMode, string[]> = {
@@ -31,6 +33,7 @@ export function useTenantConfig(): TenantConfig {
         enabledModules: defaultModulesByMode.service,
         hipaaMode: false,
         capabilities,
+        industrySlug: null,
       };
     }
 
@@ -83,11 +86,14 @@ export function useTenantConfig(): TenantConfig {
 
     const hipaaMode = businessMode === "medical" || tenant.hipaa_mode === true;
 
+    const industrySlug = (tenant.industry as string) || null;
+
     return {
       businessMode,
       enabledModules,
       hipaaMode,
       capabilities,
+      industrySlug,
     };
   }, [tenant, capabilities]);
 }

@@ -36,8 +36,9 @@ import { createService, updateService, deleteService } from "@/lib/brain/writeBr
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
-import { getServiceExamples } from "@/lib/industryExamples";
-import { useTerminology } from "@/hooks/useTerminology";
+import { getServiceExamples, getSlugServiceExamples } from "@/lib/industryExamples";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
+import { QuotingBehaviorGuidance } from "@/components/brain/guidance/QuotingBehaviorGuidance";
 
 type PriceType = "fixed" | "starting_at" | "quote_only";
 
@@ -65,10 +66,12 @@ export function ServiceCatalogEditor() {
   const { tenant } = useAuth();
   const { services, isLoading } = useServices();
   const { businessMode } = useTenantConfig();
-  const terms = useTerminology();
+  const { terms, config, slug } = useIndustryContext();
   const queryClient = useQueryClient();
-  
-  const serviceExamples = getServiceExamples(businessMode);
+
+  const serviceExamples = slug
+    ? getSlugServiceExamples(businessMode, slug)
+    : getServiceExamples(businessMode);
 
   const [expandedServiceId, setExpandedServiceId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -390,11 +393,16 @@ export function ServiceCatalogEditor() {
       </div>
 
       {/* Prominent Upload Banner - Always visible */}
-      <InlineUploadButton 
-        contentType="services" 
+      <InlineUploadButton
+        contentType="services"
         variant="prominent"
         onUploadComplete={() => queryClient.invalidateQueries({ queryKey: ["services"] })}
       />
+
+      {/* Quoting Behavior Guidance (non-dispatch modes) */}
+      {config.pricing.showQuotingBehaviorGuidance && (
+        <QuotingBehaviorGuidance pricingModel={config.pricing.pricingModel} />
+      )}
 
       {/* AI Preview */}
       {services && services.length > 0 && (

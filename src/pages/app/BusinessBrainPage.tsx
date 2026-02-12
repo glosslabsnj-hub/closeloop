@@ -21,7 +21,8 @@ import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useCapabilities } from "@/hooks/useCapabilities";
 import { useFoodMode } from "@/hooks/useFoodMode";
 import { useFoodOrderSettings } from "@/hooks/useFoodOrderSettings";
-import { getIndustryTerminology, resolveCardTitle } from "@/data/industryTerminology";
+import { resolveCardTitle } from "@/data/industryTerminology";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { SECTION_RELEVANCE } from "@/config/brainSectionRelevance";
 import { useCategoryCompletion } from "@/hooks/useCategoryCompletion";
 import { useBrainSummaries } from "@/hooks/useBrainSummaries";
@@ -127,7 +128,8 @@ export default function BusinessBrainPage() {
   const { isFoodMode } = useFoodMode();
   const { acceptsDelivery: foodAcceptsDelivery, acceptsCatering: foodAcceptsCatering, needsCoverageSettings: foodNeedsCoverage } = useFoodOrderSettings();
   const summaries = useBrainSummaries();
-  const terms = getIndustryTerminology(businessMode);
+  const industryContext = useIndustryContext();
+  const terms = industryContext.terminology;
   const statuses = useBrainItemStatuses();
 
   // Add-on sections per tab
@@ -591,8 +593,15 @@ function BrainSectionDetailHost({
   isDispatchMode,
 }: SectionDetailHostProps) {
   const completion = useCategoryCompletion(activeSection);
+  const ic = useIndustryContext();
 
-  const categoryTitle = resolveCardTitle(currentCategory.titleKey, currentCategory.title, businessMode);
+  const categoryTitle = resolveCardTitle(
+    currentCategory.titleKey,
+    currentCategory.title,
+    businessMode,
+    ic.category ?? undefined,
+    ic.slug ?? undefined,
+  );
 
   return (
     <BrainSectionDetail

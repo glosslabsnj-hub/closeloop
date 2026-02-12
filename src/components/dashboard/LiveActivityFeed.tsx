@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTerminology } from "@/hooks/useTerminology";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { formatDistanceToNow } from "date-fns";
 import {
   Phone,
@@ -34,7 +34,7 @@ export function LiveActivityFeed() {
   const navigate = useNavigate();
   const { tenant } = useAuth();
   const queryClient = useQueryClient();
-  const terms = useTerminology();
+  const { terms } = useIndustryContext();
 
   // Realtime subscription
   useEffect(() => {

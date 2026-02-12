@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useServices } from "@/hooks/useServices";
-import { useTerminology } from "@/hooks/useTerminology";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,7 @@ import { Brain, DollarSign, Clock, Briefcase, Loader2 } from "lucide-react";
  */
 export default function ServicesPage() {
   const { services, isLoading } = useServices();
-  const terms = useTerminology();
+  const { terms } = useIndustryContext();
 
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);

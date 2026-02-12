@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useCapabilities } from "@/hooks/useCapabilities";
-import { useTerminology } from "@/hooks/useTerminology";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { 
   Calendar, 
   FlaskConical, 
@@ -27,7 +27,7 @@ export function QuickActionsCard() {
   const navigate = useNavigate();
   const { businessMode, enabledModules } = useTenantConfig();
   const caps = useCapabilities();
-  const terms = useTerminology();
+  const { terms } = useIndustryContext();
 
   const getActions = (): QuickAction[] => {
     const actions: QuickAction[] = [];

@@ -169,11 +169,76 @@ export const PROFILE_EXAMPLES: Record<BusinessMode, ProfileExamples> = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// Slug-specific overrides (highest priority)
+// ---------------------------------------------------------------------------
+
+const SLUG_SERVICE_OVERRIDES: Record<string, Partial<ServiceExamples>> = {
+  "hair-salon": {
+    serviceName: "service",
+    serviceNamePlaceholder: "Women's Cut, Balayage, Keratin Treatment, Blowout",
+    descriptionPlaceholder: "What's included — products used, estimated time, aftercare...",
+    priceExamples: "Example: Women's Cut - $65, Balayage - Starting at $180",
+  },
+  "barbershop": {
+    serviceNamePlaceholder: "Classic Cut, Beard Trim, Hot Towel Shave, Kids' Cut",
+    priceExamples: "Example: Classic Cut - $30, Beard Trim - $15",
+  },
+  "auto-repair": {
+    serviceName: "service",
+    serviceNamePlaceholder: "Oil Change, Brake Job, Diagnostic, Tire Rotation",
+    descriptionPlaceholder: "What's included, parts/labor notes, warranty info...",
+    priceExamples: "Example: Oil Change - $49.99, Brake Job - Starting at $199",
+  },
+  "auto-detailing": {
+    serviceName: "package",
+    serviceNamePlaceholder: "Exterior Wash, Interior Detail, Full Detail, Ceramic Coating",
+    priceExamples: "Example: Full Detail - $150, Ceramic Coating - Starting at $500",
+  },
+  "plumbing": {
+    serviceNamePlaceholder: "Drain Cleaning, Water Heater Repair, Pipe Repair, Leak Detection",
+    descriptionPlaceholder: "What's included, any diagnostic fees, warranty...",
+    durationHint: "Average time on site",
+    priceExamples: "Example: Drain Cleaning - $175, Water Heater - Starting at $350",
+  },
+  "hvac": {
+    serviceNamePlaceholder: "AC Tune-Up, Furnace Repair, Duct Cleaning, System Install",
+    priceExamples: "Example: AC Tune-Up - $89, Furnace Repair - Starting at $199",
+  },
+  "dental": {
+    serviceName: "procedure",
+    serviceNamePlaceholder: "Cleaning & Exam, Filling, Crown, Teeth Whitening",
+    descriptionPlaceholder: "What's involved, prep requirements, insurance coverage notes...",
+    durationHint: "Typical appointment length",
+    priceExamples: "Example: Cleaning - $150, Crown - Starting at $800",
+  },
+  "towing": {
+    serviceNamePlaceholder: "Local Tow (0-10 mi), Flatbed, Lockout, Jump Start",
+    priceExamples: "Example: Local Tow - $85, Flatbed - $150 base + $3.50/mi",
+  },
+  "pizza": {
+    serviceName: "menu item",
+    serviceNamePlaceholder: "Build Your Own Pizza, Specialty Pizza, Wings, Salads",
+    priceExamples: "Example: Large Pizza - $18.99, Wings (12pc) - $14.99",
+  },
+};
+
 /**
  * Get examples for the current business mode with fallback
  */
 export function getServiceExamples(mode: BusinessMode): ServiceExamples {
   return SERVICE_EXAMPLES[mode] || SERVICE_EXAMPLES.general;
+}
+
+/**
+ * Get slug-aware service examples.
+ * Merges slug overrides on top of mode defaults.
+ */
+export function getSlugServiceExamples(mode: BusinessMode, slug: string): ServiceExamples {
+  const base = getServiceExamples(mode);
+  const overrides = SLUG_SERVICE_OVERRIDES[slug];
+  if (!overrides) return base;
+  return { ...base, ...overrides };
 }
 
 export function getObjectionExamples(mode: BusinessMode): ObjectionExamples {

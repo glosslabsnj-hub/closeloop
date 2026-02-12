@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTerminology } from "@/hooks/useTerminology";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -25,7 +25,7 @@ export default function SettingsPage() {
   const { user, signOut, tenant } = useAuth();
   const { isFoodMode } = useFoodMode();
   const { hipaaMode } = useTenantConfig();
-  const terms = useTerminology();
+  const { terms } = useIndustryContext();
   const isBookingEnabled = useModuleEnabled("booking");
   const isDispatchEnabled = useModuleEnabled("dispatch_queue");
   const isMedicalMode = useModuleEnabled("medical_intake");

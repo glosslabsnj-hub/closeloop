@@ -13,6 +13,7 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -184,6 +185,7 @@ const defaultFormData: ModifierFormData = {
 export function PriceModifiersEditor() {
   const { tenant } = useAuth();
   const { businessMode } = useTenantConfig();
+  const { config: industryConfig } = useIndustryContext();
   const queryClient = useQueryClient();
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -547,7 +549,7 @@ export function PriceModifiersEditor() {
         <div className="flex items-start gap-3">
           <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
           <div className="space-y-2">
-            <p className="text-sm font-medium">What are Price Modifiers?</p>
+            <p className="text-sm font-medium">What are {industryConfig.pricing.priceModifiersLabel}?</p>
             <p className="text-sm text-muted-foreground">
               Modifiers let you adjust prices based on factors like vehicle size, urgency, or time of day. 
               When the AI quotes a price, it automatically applies relevant modifiers and explains them naturally.

@@ -4,7 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useTerminology } from "@/hooks/useTerminology";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { useCapabilities } from "@/hooks/useCapabilities";
 import { useBusinessCapabilities } from "@/hooks/useBusinessCapabilities";
 import { cn } from "@/lib/utils";
@@ -42,7 +42,7 @@ interface SetupStep {
  */
 export function SetupProgressChecklist() {
   const { tenant, assistantSettings } = useAuth();
-  const terms = useTerminology();
+  const { terms } = useIndustryContext();
   const caps = useCapabilities();
   const bizCaps = useBusinessCapabilities();
 

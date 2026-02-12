@@ -2,9 +2,13 @@
  import { Button } from "@/components/ui/button";
  import { Badge } from "@/components/ui/badge";
  import { Phone, Calendar, Clock, ArrowUpRight, ArrowDownLeft, ChevronRight } from "lucide-react";
- import { format, formatDistanceToNow } from "date-fns";
+ import { format } from "date-fns";
  import { cn } from "@/lib/utils";
- 
+ import { useIndustryContext } from "@/hooks/useIndustryContext";
+ import { computeCallPriority } from "@/lib/priorityScoring";
+ import { ExtractedPayloadDisplay } from "./ExtractedPayloadDisplay";
+ import { PriorityBadge } from "./PriorityBadge";
+
  interface CallSession {
    id: string;
    started_at: string;
@@ -23,13 +27,13 @@
      phone_e164: string;
    } | null;
  }
- 
+
  interface CallDetailPanelProps {
    call: CallSession | null;
    onClose: () => void;
    customerName?: string;
  }
- 
+
  function formatDuration(startedAt: string, endedAt: string | null): string {
    if (!endedAt) return "In progress";
    const start = new Date(startedAt).getTime();
@@ -40,7 +44,7 @@
    if (mins === 0) return `${secs}s`;
    return `${mins}m ${secs}s`;
  }
- 
+
  function formatPhone(phone: string | null): string {
    if (!phone) return "Unknown";
    if (phone.includes("(") || (phone.startsWith("+") && phone.length > 12)) return phone;
@@ -53,7 +57,7 @@
    }
    return phone;
  }
- 
+
  function getOutcomeStyles(outcome: string | null): { bg: string; text: string; label: string } {
    switch (outcome) {
      case "booked":
@@ -76,13 +80,32 @@
        return { bg: "bg-muted", text: "text-muted-foreground", label: outcome || "Unknown" };
    }
  }
- 
+
  export function CallDetailPanel({ call, onClose, customerName }: CallDetailPanelProps) {
+   const { terms, config } = useIndustryContext();
+
    if (!call) return null;
- 
+
    const outcomeStyles = getOutcomeStyles(call.outcome);
    const displayName = customerName || call.customer?.full_name || "Unknown Caller";
- 
+
+   const callbackRequested = !!(
+     call.extracted_payload &&
+     typeof call.extracted_payload === "object" &&
+     (call.extracted_payload as Record<string, unknown>).callback &&
+     typeof (call.extracted_payload as Record<string, unknown>).callback === "object" &&
+     ((call.extracted_payload as Record<string, unknown>).callback as Record<string, unknown>)?.requested
+   );
+
+   const priority = computeCallPriority(
+     {
+       outcome: call.outcome,
+       started_at: call.started_at,
+       callbackRequested,
+     },
+     config.priority,
+   );
+
    return (
      <Sheet open={!!call} onOpenChange={(open) => !open && onClose()}>
        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
@@ -97,7 +120,7 @@
              {formatPhone(call.caller_phone)}
            </SheetDescription>
          </SheetHeader>
- 
+
          <div className="mt-6 space-y-6">
            {/* Summary */}
            {call.summary && (
@@ -106,7 +129,7 @@
                <p className="text-sm">{call.summary}</p>
              </div>
            )}
- 
+
            {/* Metadata grid */}
            <div className="grid grid-cols-2 gap-4">
              <div className="space-y-1">
@@ -118,9 +141,12 @@
              </div>
              <div className="space-y-1">
                <p className="text-sm text-muted-foreground">Outcome</p>
-               <Badge className={cn(outcomeStyles.bg, outcomeStyles.text, "border-0")}>
-                 {outcomeStyles.label}
-               </Badge>
+               <div className="flex items-center gap-2">
+                 <Badge className={cn(outcomeStyles.bg, outcomeStyles.text, "border-0")}>
+                   {outcomeStyles.label}
+                 </Badge>
+                 <PriorityBadge level={priority.level} label={priority.label} />
+               </div>
              </div>
              <div className="space-y-1">
                <p className="text-sm text-muted-foreground">Date</p>
@@ -140,7 +166,18 @@
                </p>
              </div>
            </div>
- 
+
+           {/* Extracted data — structured display */}
+           {call.extracted_payload && Object.keys(call.extracted_payload).length > 0 && (
+             <div>
+               <h3 className="text-sm font-medium text-muted-foreground mb-2">Extracted Data</h3>
+               <ExtractedPayloadDisplay
+                 payload={call.extracted_payload}
+                 inboxConfig={config.inbox}
+               />
+             </div>
+           )}
+
            {/* Transcript */}
            {call.transcript && (
              <div>
@@ -150,19 +187,7 @@
                </div>
              </div>
            )}
- 
-           {/* Extracted data */}
-           {call.extracted_payload && Object.keys(call.extracted_payload).length > 0 && (
-             <div>
-               <h3 className="text-sm font-medium text-muted-foreground mb-2">Extracted Data</h3>
-               <div className="bg-muted/50 rounded-lg p-4 text-xs overflow-x-auto font-mono">
-                 <pre className="whitespace-pre-wrap">
-                   {JSON.stringify(call.extracted_payload, null, 2)}
-                 </pre>
-               </div>
-             </div>
-           )}
- 
+
            {/* Actions */}
            <div className="flex gap-2 pt-4 border-t">
              {call.caller_phone && (
@@ -177,7 +202,7 @@
              )}
              <Button variant="outline" className="flex-1">
                <Calendar className="w-4 h-4 mr-2" />
-               Create Booking
+               {terms.newBooking}
              </Button>
            </div>
          </div>

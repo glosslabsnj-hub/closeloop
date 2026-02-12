@@ -4,6 +4,8 @@
  import { useAuth } from "@/contexts/AuthContext";
  import { supabase } from "@/integrations/supabase/client";
  import { useLeads } from "@/hooks/useLeads";
+ import { useIndustryContext } from "@/hooks/useIndustryContext";
+ import { computeCallPriority } from "@/lib/priorityScoring";
  import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
  import { Input } from "@/components/ui/input";
  import { Badge } from "@/components/ui/badge";
@@ -21,9 +23,9 @@
  import { InboxCallCard } from "@/components/calls/InboxCallCard";
  import { CallDetailPanel } from "@/components/calls/CallDetailPanel";
  import { LeadCard } from "@/components/leads/LeadCard";
- 
+
  type TabValue = "calls" | "leads";
- 
+
  interface CallSession {
    id: string;
    started_at: string;
@@ -42,7 +44,7 @@
      phone_e164: string;
    } | null;
  }
- 
+
  // Helper to extract customer name from call data
  function getCustomerName(call: CallSession): string {
    if (call.customer?.full_name && call.customer.full_name !== "Unknown") {
@@ -60,40 +62,41 @@
    }
    return "Unknown Caller";
  }
- 
+
  export default function UnifiedInboxPage() {
    const { tenant } = useAuth();
    const queryClient = useQueryClient();
+   const { config } = useIndustryContext();
    const [searchParams, setSearchParams] = useSearchParams();
    const tabParam = searchParams.get("tab");
- 
+
    // Tab state
    const isValidTab = (t: string | null): t is TabValue =>
      t === "calls" || t === "leads";
    const [activeTab, setActiveTab] = useState<TabValue>(
      isValidTab(tabParam) ? tabParam : "calls"
    );
- 
+
    // Search and filter
    const [searchQuery, setSearchQuery] = useState("");
    const [outcomeFilter, setOutcomeFilter] = useState("all");
- 
+
    // Selected call for detail panel
    const [selectedCall, setSelectedCall] = useState<CallSession | null>(null);
- 
+
    // Sync URL with tab state
    useEffect(() => {
      if (tabParam !== activeTab) {
        setSearchParams({ tab: activeTab }, { replace: true });
      }
    }, [activeTab, tabParam, setSearchParams]);
- 
+
    useEffect(() => {
      if (isValidTab(tabParam) && tabParam !== activeTab) {
        setActiveTab(tabParam);
      }
    }, [tabParam]);
- 
+
    // Realtime subscription for calls
    useEffect(() => {
      if (!tenant?.id) return;
@@ -109,7 +112,7 @@
        .subscribe();
      return () => { supabase.removeChannel(channel); };
    }, [tenant?.id, queryClient]);
- 
+
    // Fetch calls
    const { data: calls, isLoading: callsLoading } = useQuery({
      queryKey: ["inbox_calls", tenant?.id],
@@ -135,24 +138,54 @@
      },
      enabled: !!tenant?.id,
    });
- 
+
    // Leads
    const { leads, isLoading: leadsLoading, stats: leadStats } = useLeads();
- 
-   // Filter calls
+
+   // Helper: compute priority for a call
+   const getCallPriority = (call: CallSession) => {
+     const callbackRequested = !!(
+       call.extracted_payload &&
+       typeof call.extracted_payload === "object" &&
+       (call.extracted_payload as Record<string, unknown>).callback &&
+       typeof (call.extracted_payload as Record<string, unknown>).callback === "object" &&
+       ((call.extracted_payload as Record<string, unknown>).callback as Record<string, unknown>)?.requested
+     );
+     return computeCallPriority(
+       { outcome: call.outcome, started_at: call.started_at, callbackRequested },
+       config.priority,
+     );
+   };
+
+   // Filter and sort calls
    const filteredCalls = useMemo(() => {
      if (!calls) return [];
-     return calls.filter((call) => {
-       const query = searchQuery.toLowerCase();
-       const matchesSearch = !query ||
-         call.caller_phone?.toLowerCase().includes(query) ||
-         call.summary?.toLowerCase().includes(query) ||
-         getCustomerName(call).toLowerCase().includes(query);
-       const matchesOutcome = outcomeFilter === "all" || call.outcome === outcomeFilter;
-       return matchesSearch && matchesOutcome;
-     });
-   }, [calls, searchQuery, outcomeFilter]);
- 
+     return calls
+       .filter((call) => {
+         const query = searchQuery.toLowerCase();
+         const matchesSearch = !query ||
+           call.caller_phone?.toLowerCase().includes(query) ||
+           call.summary?.toLowerCase().includes(query) ||
+           getCustomerName(call).toLowerCase().includes(query);
+
+         let matchesOutcome = true;
+         if (outcomeFilter === "high_priority") {
+           matchesOutcome = getCallPriority(call).level === "high";
+         } else if (outcomeFilter !== "all") {
+           matchesOutcome = call.outcome === outcomeFilter;
+         }
+
+         return matchesSearch && matchesOutcome;
+       })
+       .sort((a, b) => {
+         // Sort by priority score descending, then by recency
+         const aPriority = getCallPriority(a);
+         const bPriority = getCallPriority(b);
+         if (bPriority.score !== aPriority.score) return bPriority.score - aPriority.score;
+         return new Date(b.started_at).getTime() - new Date(a.started_at).getTime();
+       });
+   }, [calls, searchQuery, outcomeFilter, config.priority]);
+
    // Filter leads
    const filteredLeads = useMemo(() => {
      if (!leads) return [];
@@ -165,11 +198,11 @@
        return matchesSearch;
      });
    }, [leads, searchQuery]);
- 
+
    // Count unread/new items
    const newCallsCount = calls?.filter((c) => !c.outcome || c.outcome === "followup").length || 0;
    const newLeadsCount = leadStats?.new || 0;
- 
+
    const handleTabChange = (value: string) => {
      if (isValidTab(value)) {
        setActiveTab(value);
@@ -177,7 +210,7 @@
        setOutcomeFilter("all");
      }
    };
- 
+
    return (
      <PageContainer maxWidth="xl">
        <PageHeader
@@ -185,7 +218,7 @@
          title="Inbox"
          description="All your calls and leads in one place."
        />
- 
+
        <Tabs value={activeTab} onValueChange={handleTabChange}>
          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
            <TabsList>
@@ -208,7 +241,7 @@
                )}
              </TabsTrigger>
            </TabsList>
- 
+
            <div className="flex items-center gap-2">
              <div className="relative flex-1 sm:w-64">
                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -221,11 +254,12 @@
              </div>
              {activeTab === "calls" && (
                <Select value={outcomeFilter} onValueChange={setOutcomeFilter}>
-                 <SelectTrigger className="w-32">
+                 <SelectTrigger className="w-36">
                    <SelectValue placeholder="Outcome" />
                  </SelectTrigger>
                  <SelectContent>
                    <SelectItem value="all">All</SelectItem>
+                   <SelectItem value="high_priority">High Priority</SelectItem>
                    <SelectItem value="booked">Booked</SelectItem>
                    <SelectItem value="followup">Follow-up</SelectItem>
                    <SelectItem value="lost">Lost</SelectItem>
@@ -235,7 +269,7 @@
              )}
            </div>
          </div>
- 
+
          <TabsContent value="calls" className="mt-6">
            {callsLoading ? (
              <div className="flex items-center justify-center py-12">
@@ -255,12 +289,14 @@
                    call={call}
                    customerName={getCustomerName(call)}
                    onClick={() => setSelectedCall(call)}
+                   priorityConfig={config.priority}
+                   inboxConfig={config.inbox}
                  />
                ))}
              </div>
            )}
          </TabsContent>
- 
+
          <TabsContent value="leads" className="mt-6">
            {leadsLoading ? (
              <div className="flex items-center justify-center py-12">
@@ -281,7 +317,7 @@
            )}
          </TabsContent>
        </Tabs>
- 
+
        {/* Call Detail Slide-over */}
        <CallDetailPanel
          call={selectedCall}

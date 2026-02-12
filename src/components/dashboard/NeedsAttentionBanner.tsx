@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useCapabilities } from "@/hooks/useCapabilities";
-import { useTerminology } from "@/hooks/useTerminology";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { useKnowledgeSuggestions } from "@/hooks/useKnowledgeSuggestions";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,7 +28,7 @@ export function NeedsAttentionBanner() {
   const { tenant } = useAuth();
   const { businessMode } = useTenantConfig();
   const caps = useCapabilities();
-  const terms = useTerminology();
+  const { terms } = useIndustryContext();
   const { pendingCount: knowledgeGaps } = useKnowledgeSuggestions();
 
   // Fetch pending orders (food mode)
