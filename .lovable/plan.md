@@ -1,59 +1,101 @@
 
 
-# Streamline Business Brain for Callback-Only Service Businesses
+# Fix Callback-Only Mode for Smiles Auto Works
 
-## The Problem
-When you're running a callback-only auto repair shop (no direct booking, just lead capture), the Business Brain still shows sections that don't apply -- like Calendar & Availability, Service Scheduling, Arrival Estimates, Booking Delivery, and Service Packages. The filtering system exists but isn't strict enough for your setup.
+## What's Happening Now
 
-## What Changes
+The AI is still trying to book appointments because of two code bugs and some inaccurate data. The good news: all the right callback-only instructions already exist in the system -- they're just not being delivered to the AI agent.
 
-### Sections that will be HIDDEN for your auto repair shop
-These will only appear when the relevant capability is turned on:
+## What This Plan Does
 
-| Section | Why Hidden |
-|---------|-----------|
-| Calendar & Availability | `aiBooksDirect` is false -- no booking, no calendar needed |
-| Service Scheduling | Only relevant when booking is enabled |
-| Arrival Estimates | No on-site dispatch; you're a shop |
-| Where to Send New Bookings | No booking module enabled |
-| Service Packages | `offersPackages` is false |
-| How Busy Are You Right Now? | Only useful for dispatch or walk-in-heavy shops with booking |
+**You do NOT need to edit your ElevenLabs prompt.** The system already has excellent callback-only instructions built in -- they just aren't reaching the agent due to two code bugs. This fix connects the wiring so it works automatically.
 
-### Sections that STAY (relevant for lead qualification)
-| Section | Why Relevant |
-|---------|-------------|
-| Your Service Area | Helps AI know if caller is local |
-| Cancellation, Deposits & Payments | Deposit policy matters for repairs |
-| What Your AI Should Never Promise | Critical for any business |
-| Info to Collect on Every Call | Core to lead qualification |
-| Other Rules for Your AI | Custom policies always useful |
-| Callback Request Alerts | This IS the primary action |
+### 1. Fix the two code bugs (the real problem)
 
-### How It Works
-The filtering uses your tenant's `capabilities_json` (which already has `aiBooksDirect: false`, `offersPackages: false`, `hasMultipleStaff: false`, etc.) to hide irrelevant items. No new capabilities needed -- just tighter visibility rules on existing items.
+**Bug A -- Prompt builder ignores callback-only mode**
+The code that builds the AI's instructions calls two functions but forgets to tell them "this is a callback-only business." So the callback-only rules never get included in the prompt.
+
+**Bug B -- Prompt never sent to ElevenLabs**
+Even if the prompt were built correctly, the system only sends custom prompts to ElevenLabs for dispatch/towing businesses. Smiles Auto Works is a "service" business, so the prompt gets thrown away and ElevenLabs uses its default dashboard prompt (which has booking logic).
+
+### 2. Fix inaccurate FAQs
+
+| Current FAQ | Problem | Fix |
+|-------------|---------|-----|
+| "Do you offer mobile service?" -- "Yes" | They don't offer mobile service | Delete this FAQ |
+| "Do you charge for estimates?" -- "book online" | There's no online booking | Update to "Give us a call and we'll take a look" |
+
+### 3. Add a "General Auto Repair" catch-all service
+
+Right now there are 6 specific services listed. Since the shop handles a huge range of auto repair work, we'll add a "General Auto Repair" entry with `quote_only` pricing. This tells the AI: "we do pretty much everything automotive -- just collect the details and we'll call back with a quote."
+
+### 4. Add operating hours
+
+No hours are configured, so the AI can't tell callers when the shop is open. We'll add typical auto shop hours (Mon-Fri 8am-6pm, Sat 8am-2pm) that can be adjusted later in the Business Brain.
+
+### 5. Redeploy
+
+Push the updated backend functions so the fix takes effect on real calls.
+
+## Expected Result
+
+After this fix, when someone calls:
+1. "Hi, thanks for calling Smiles Auto Works, how can I help you?"
+2. Caller: "I need a turbo replacement"
+3. "We can definitely help with that. Can I get your name?"
+4. Collects name, confirms phone number
+5. "Great, I'll have someone from our team reach out to you to get that taken care of."
+6. Creates a callback record -- no availability check, no booking attempt
+
+The AI will still be smart -- it knows the shop's services, hours, and can answer questions. It just won't try to schedule anything.
+
+---
 
 ## Technical Details
 
-### File: `src/config/brainSectionRegistry.ts`
-Add `isVisible` guards to items that currently show universally but shouldn't:
+### File Changes
 
-- **`service-coverage`** (Service Scheduling): Already guarded by `mode === "service"` but needs additional `caps.isSchedulingBusiness` check
-- **`travel-times`** (Arrival Estimates): Add guard for dispatch or mobile-service businesses only
-- **`workload`** (How Busy): Add guard requiring dispatch or booking capability
-- **`service-packages`** in Services tab: Already uses `isRelevant("service-packages")` -- verify the relevance rule checks `offersPackages`
-- **`booking-delivery`**: Already guarded by `flags.showBookingDelivery` which checks `caps.isSchedulingBusiness` -- confirm this works
+**`supabase/functions/_shared/buildBusinessContext.ts` (lines 3095-3110)**
+Pass `ai_behavior_mode` to both prompt builder functions:
 
-### File: `src/config/brainSectionRelevance.ts`
-Verify/tighten relevance rules:
-- `service-packages` rule should check `capabilities_json.offersPackages`
-- `price-modifiers` rule should check if any modifier capability is true
+```typescript
+const aiBehaviorMode = ctx.ai_settings.ai_behavior_mode as "full_service" | "callback_only" | undefined;
+const capabilityPrompt = buildPromptForCapabilities(caps, ctx.tenant.industry_slug, aiBehaviorMode);
+// ...
+const basePrompt = getBasePromptForMode(businessMode, aiBehaviorMode);
+```
 
-### File: `src/config/brainSectionRegistry.ts` (Operations items)
-- `calendar-sync` in Business tab: Already guarded by `caps.isSchedulingBusiness` -- good
-- `service-coverage`: Tighten to `mode === "service" && caps.isSchedulingBusiness`
-- `travel-times`: Add `mode !== "food"` AND (`caps.isDispatchBusiness` OR `caps.offersMobileService` check)
-- `workload`: Add visibility guard for dispatch/booking businesses only
+**`supabase/functions/elevenlabs-init/index.ts` (lines 620-629)**
+Send prompt override for callback-only businesses, not just dispatch:
 
-### No database changes needed
-All filtering uses existing `capabilities_json` data already on your tenant.
+```typescript
+const isCallbackOnly = context?.ai_settings?.ai_behavior_mode === "callback_only";
+const conversationConfigOverride =
+  (context?.tenant.business_mode === "dispatch" || isCallbackOnly) && systemPrompt
+    ? { agent: { prompt: { prompt: systemPrompt } } }
+    : undefined;
+```
+
+### Database Changes
+
+**Delete inaccurate FAQ:**
+- Remove "Do you offer mobile service?" (id: `0bcd30d2-...`)
+
+**Update misleading FAQ:**
+- "Do you charge for estimates?" answer changed to: "No, we provide free estimates! Give us a call and we'll take a look at no cost."
+
+**Add General Auto Repair service:**
+- Name: "General Auto Repair"
+- Price type: `quote_only`
+- Description: "Full-service auto repair -- engine, transmission, electrical, suspension, and more. Tell us what's going on and we'll get back to you with a plan."
+
+**Add operating hours:**
+- Mon-Fri: 8:00 AM - 6:00 PM
+- Sat: 8:00 AM - 2:00 PM
+- Sun: Closed
+
+### Redeploy
+- `elevenlabs-init`
+- `build-business-brain`
+- `get-business-context`
 

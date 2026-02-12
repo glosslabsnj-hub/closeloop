@@ -6,6 +6,8 @@ const DEPLOYED_AT = new Date().toISOString();
 // Agent resolution uses getAgentIdForCapabilities() from agentResolver.ts (capabilities-based, replaces legacy mode-based routing)
 import { isHybridCapabilitySet, getAgentIdForCapabilities, derivePrimaryModeFromCapabilities } from "../_shared/agentResolver.ts";
 import { resolveCapabilities } from "../_shared/resolveCapabilities.ts";
+// CALLBACK_ONLY_OVERRIDE removed - conversation_config_override breaks register-call API
+// Callback-only behavior is driven by ai_behavior_mode dynamic variable read by the ElevenLabs agent prompt
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -589,10 +591,10 @@ Deno.serve(async (req) => {
     };
 
     // Step 8: Register call with ElevenLabs (timeout to avoid Twilio hanging)
-    // NOTE: conversation_config_override removed - it was breaking the agent connection.
-    // Identity collection will be enforced via the ElevenLabs dashboard prompt 
-    // and backend placeholder sanitization.
-    console.log(`[twilio-inbound] Registering with agent ${agentId.slice(0, 12)}...`);
+    // Callback-only behavior is driven by the ai_behavior_mode dynamic variable (line 589)
+    // which the ElevenLabs agent prompt reads to decide whether to book or just collect info.
+    // DO NOT add conversation_config_override here — it breaks the register-call API and causes instant hangups.
+    console.log(`[twilio-inbound] Registering with agent ${agentId.slice(0, 12)}... (callback_only=${settings.ai_behavior_mode === "callback_only"})`);
 
     const registerPayload: Record<string, unknown> = {
       agent_id: agentId,

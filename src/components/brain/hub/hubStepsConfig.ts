@@ -31,6 +31,8 @@ export interface HubStep {
   hiddenModes?: BusinessMode[];
   /** Hide this step when a specific capability is false (e.g. "aiBooksDirect") */
   hiddenWhenCapabilityFalse?: string;
+  /** Hide this step for callback-only businesses */
+  hiddenWhenCallbackOnly?: boolean;
 }
 
 /** Mode-specific title overrides keyed by stepId then mode */
@@ -132,6 +134,7 @@ export const HUB_STEPS: HubStep[] = [
       "Politely declines jobs outside coverage",
     ],
     emphasis: ["dispatch", "service"],
+    hiddenWhenCallbackOnly: true,
   },
   {
     id: "calendar",
@@ -147,6 +150,7 @@ export const HUB_STEPS: HubStep[] = [
     emphasis: ["service", "medical", "sales"],
     hiddenModes: ["dispatch", "food"],
     hiddenWhenCapabilityFalse: "aiBooksDirect",
+    hiddenWhenCallbackOnly: true,
   },
   {
     id: "policies",
@@ -187,6 +191,15 @@ export const HUB_STEPS: HubStep[] = [
   },
 ];
 
+/** Purpose text overrides for callback-only businesses */
+const CALLBACK_ONLY_PURPOSES: Record<string, string> = {
+  offerings: "What you do — helps AI qualify callers",
+  hours: "When callers can reach you",
+  policies: "Questions to ask every caller",
+  "ai-setup": "How your AI greets callers and collects info",
+  knowledge: "Common questions callers ask",
+};
+
 /**
  * Get the mode-specific title for a step, falling back to the default title.
  */
@@ -198,8 +211,16 @@ export function getStepTitle(stepId: string, mode: BusinessMode): string {
 }
 
 /**
- * Get steps ordered by relevance for a given mode, hiding inapplicable steps.
+ * Get the purpose text for a step, with callback-only overrides.
  */
+export function getStepPurpose(stepId: string, isCallbackOnly: boolean): string {
+  if (isCallbackOnly && CALLBACK_ONLY_PURPOSES[stepId]) {
+    return CALLBACK_ONLY_PURPOSES[stepId];
+  }
+  const step = HUB_STEPS.find(s => s.id === stepId);
+  return step?.purpose ?? "";
+}
+
 /**
  * Get steps ordered by relevance for a given mode, hiding inapplicable steps.
  * Optionally accepts capabilities to hide steps based on capability flags.
@@ -208,8 +229,11 @@ export function getOrderedSteps(
   mode: BusinessMode,
   capabilities?: Record<string, boolean>
 ): HubStep[] {
+  const isCallbackOnly = capabilities?.callbackOnly === true;
+
   return HUB_STEPS.filter((step) => {
     if (step.hiddenModes?.includes(mode)) return false;
+    if (step.hiddenWhenCallbackOnly && isCallbackOnly) return false;
     if (
       step.hiddenWhenCapabilityFalse &&
       capabilities &&
@@ -233,11 +257,4 @@ export function isStepEmphasized(step: HubStep, mode: BusinessMode): boolean {
  */
 export function getOfferingsTitle(mode: BusinessMode): string {
   return getStepTitle("offerings", mode);
-}
-
-/**
- * Get dynamic title for any brain step based on mode (legacy — prefer getStepTitle)
- */
-export function getDynamicStepTitle(stepId: string, mode: BusinessMode): string {
-  return getStepTitle(stepId, mode);
 }

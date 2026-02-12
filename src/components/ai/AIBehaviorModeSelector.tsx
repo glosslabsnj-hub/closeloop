@@ -5,22 +5,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Bot, PhoneCallback, Loader2 } from "lucide-react";
-import type { AIBehaviorMode } from "@/types/database";
+import { Bot, PhoneCall, Loader2 } from "lucide-react";
+
+type AIBehaviorMode = "full_service" | "callback_only";
 
 export default function AIBehaviorModeSelector() {
   const { tenant, assistantSettings, refreshTenant } = useAuth();
   const { toast } = useToast();
 
   const [behaviorMode, setBehaviorMode] = useState<AIBehaviorMode>(
-    (assistantSettings?.ai_behavior_mode as AIBehaviorMode) || "full_service"
+    ((assistantSettings as any)?.ai_behavior_mode as AIBehaviorMode) || "full_service"
   );
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (assistantSettings) {
       setBehaviorMode(
-        (assistantSettings.ai_behavior_mode as AIBehaviorMode) || "full_service"
+        ((assistantSettings as any).ai_behavior_mode as AIBehaviorMode) || "full_service"
       );
     }
   }, [assistantSettings]);

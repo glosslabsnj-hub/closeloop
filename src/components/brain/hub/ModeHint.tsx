@@ -10,6 +10,7 @@ import {
   Wrench, 
   Stethoscope, 
   Building2,
+  PhoneIncoming,
   LucideIcon 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,7 @@ import type { BusinessMode } from "@/hooks/useTenantConfig";
 
 interface ModeHintProps {
   mode: BusinessMode;
+  isCallbackOnly?: boolean;
   className?: string;
 }
 
@@ -66,8 +68,15 @@ const modeConfigs: Record<BusinessMode, ModeConfig> = {
   },
 };
 
-export function ModeHint({ mode, className }: ModeHintProps) {
-  const config = modeConfigs[mode];
+export function ModeHint({ mode, isCallbackOnly, className }: ModeHintProps) {
+  const config = isCallbackOnly
+    ? {
+        icon: PhoneIncoming,
+        title: "Capture & Callback",
+        emphasis: ["Services List", "AI Greeting", "FAQs"],
+        tip: "Just list what you do — no prices needed. Your AI will qualify callers and collect their info for a callback.",
+      }
+    : modeConfigs[mode];
   const Icon = config.icon;
 
   return (
