@@ -6,6 +6,7 @@ import {
   UtensilsCrossed, 
   Stethoscope, 
   MessageSquare,
+  DollarSign,
   Loader2
 } from "lucide-react";
 import type { BusinessMode } from "@/types/database";
@@ -15,6 +16,7 @@ const MODES: { value: BusinessMode; label: string; icon: React.ElementType }[] =
   { value: "dispatch", label: "Dispatch", icon: Truck },
   { value: "food", label: "Food", icon: UtensilsCrossed },
   { value: "medical", label: "Medical", icon: Stethoscope },
+  { value: "sales", label: "Sales", icon: DollarSign },
   { value: "general", label: "General", icon: MessageSquare },
 ];
 
