@@ -192,7 +192,7 @@ export function HelpGuideDashboard({ mode, searchQuery = "" }: HelpGuideDashboar
           <div className="grid grid-cols-2 gap-2">
             <Button variant="outline" size="sm" asChild className="justify-start">
               <a href="/app/inbox" className="gap-2">
-                <MessageSquare className="h-4 w-4" /> Inbox
+                <Users className="h-4 w-4" /> Leads
               </a>
             </Button>
             <Button variant="outline" size="sm" asChild className="justify-start">

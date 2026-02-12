@@ -181,7 +181,7 @@ export function AppSidebar({
           <SidebarMenu>
             {/* Core nav */}
             {renderItem({ href: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard })}
-            {renderItem({ href: "/app/inbox", label: "Inbox", icon: MessageSquare })}
+            {renderItem({ href: "/app/inbox", label: "Leads", icon: Users })}
             {renderItem({ href: "/app/customers", label: (terms.customers ? String(terms.customers).charAt(0).toUpperCase() + String(terms.customers).slice(1) : "Customers"), icon: UserCircle })}
 
             {/* Workspace (module-gated) */}
