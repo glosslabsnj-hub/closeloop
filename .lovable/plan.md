@@ -1,47 +1,57 @@
 
 
-# Fix: Services Completion + Optional Coverage Step
+# Inbox-to-Leads Redesign
 
-Two focused fixes that won't conflict with Claude Code's work (these are Hub completion logic only).
+Now that the backend is creating leads for all call outcomes and tenant routing is fixed, here's what changes on the Lovable side.
 
----
+## Changes Summary
 
-## Fix 1: Services Still Showing 50%
+### 1. Sidebar: "Inbox" becomes "Leads"
+- In `AppSidebar.tsx` line 184: change label from `"Inbox"` to `"Leads"`, icon from `MessageSquare` to `Users`
+- In `AppLayout.tsx` line 84: same change for the mobile nav
 
-**Problem:** Two bugs in `BusinessBrainHub.tsx`:
-- The Hub caches service data under `["services-count", tenant.id]` but the service editor invalidates `["services", tenant.id]`. So new services don't show up until you reload.
-- Only services with `price_amount > 0` count as "configured." Services set to "Quote Only" (a valid pricing choice) are ignored.
+### 2. Default tab switches to "leads"
+- In `UnifiedInboxPage.tsx` line 81: change default from `"calls"` to `"leads"`
+- Update page title (line 238-239): "Inbox" becomes "Leads", description becomes "Every customer interaction, organized"
+- Swap tab order so Leads tab appears first (left), Calls tab second (right)
 
-**Changes in `src/components/brain/hub/BusinessBrainHub.tsx`:**
-- Line 63: Change query key from `["services-count", tenant?.id]` to `["services", tenant?.id]`
-- Line 68: Change `.select("id, price_amount")` to `.select("id, price_amount, price_type")`
-- Lines 138-140: Update the completion filter to count a service as configured if it has EITHER a price amount greater than zero OR a `price_type` set (meaning the owner made a deliberate pricing decision like "quote only", "fixed", or "starting at")
+### 3. Update all dashboard links that say "Inbox"
+Files with `/app/inbox` references to update labels (URLs stay the same since the route doesn't change):
+- `MetricsGrid.tsx` -- link labels stay, URLs unchanged
+- `LiveActivityFeed.tsx` -- "View All" link unchanged
+- `DashboardHeroCard.tsx` -- unchanged (links to calls tab)
+- `TodaySnapshot.tsx` -- unchanged
+- `ActivityFeed.tsx` -- unchanged
+- `HelpGuideDashboard.tsx` line 195: change label from "Inbox" to "Leads"
 
----
+### 4. Lead Detail Slide-over Panel
+Create `src/components/leads/LeadDetailPanel.tsx`:
+- Triggered when clicking a LeadCard on the Leads tab
+- Shows customer name, phone, status badge, source
+- Lists the customer's call history (queried from `ai_call_sessions` by phone match)
+- Shows extracted payload details using the existing `ExtractedPayloadDisplay` component
+- Action buttons: Call Back, Book Appointment, Send Message
+- Closes with X button or clicking outside
 
-## Fix 2: Coverage Step Should Be Optional for Walk-In Businesses
+### 5. Wire up LeadCard click to open the detail panel
+- In `UnifiedInboxPage.tsx`, add state for `selectedLead`
+- Pass `onClick` to each `LeadCard` to set the selected lead
+- Render `LeadDetailPanel` at the bottom of the page (same pattern as `CallDetailPanel`)
 
-**Problem:** The "Coverage" step requires an address to be marked complete. But a local auto shop, salon, dentist, or restaurant where customers come to the business doesn't need a "service area." They serve whoever walks in or calls, regardless of where the customer lives.
+## Technical Details
 
-**Approach:** Use the existing capability system to determine if coverage is relevant. Businesses that don't do mobile/dispatch/delivery work should either skip the coverage step entirely or auto-complete it.
+### LeadDetailPanel component structure
+- Uses `Sheet` (from shadcn/vaul) for slide-over behavior, matching `CallDetailPanel` pattern
+- Fetches related calls via: `supabase.from('ai_call_sessions').select(...).eq('tenant_id', tenantId).eq('caller_phone', lead.phone)`
+- Displays call history as a timeline list with timestamps, outcomes, and summaries
+- Uses existing `ExtractedPayloadDisplay` for structured data from the most recent call
 
-**Changes in `src/components/brain/hub/hubStepsConfig.ts`:**
-- Add `"general"` to the coverage step's `hiddenModes` array (general businesses rarely need coverage)
-- Add a new capability flag check: if `capabilities.mobileService` is not true AND mode is `"service"`, hide coverage (they're a fixed-location business)
+### Files to create
+1. `src/components/leads/LeadDetailPanel.tsx`
 
-**Changes in `src/components/brain/hub/BusinessBrainHub.tsx`:**
-- Update the `coverage` completion check (line 142-143): For businesses where customers come to them (no mobile service, not dispatch, not food delivery), auto-mark coverage as complete
-- The logic becomes: if coverage step is visible, check for address; if the business is walk-in only, it's automatically complete
-
-This way, Smiles Auto Works -- a local shop where customers drive to them -- won't be penalized for not defining a coverage area.
-
----
-
-## What Won't Change (No Claude Code Conflicts)
-
-- No new files created
-- No database changes
-- No edge function changes
-- Only two files modified, both in the Hub completion logic layer
-- Phase 1/2/3 work in Claude Code touches different files (sidebar, onboarding, industry config)
+### Files to modify
+1. `src/components/layouts/AppSidebar.tsx` -- rename nav item + icon
+2. `src/components/layouts/AppLayout.tsx` -- rename mobile nav item
+3. `src/pages/app/UnifiedInboxPage.tsx` -- default tab, title, tab order, lead detail wiring
+4. `src/components/help/HelpGuideDashboard.tsx` -- rename label
 
