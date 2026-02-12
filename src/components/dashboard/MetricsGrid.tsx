@@ -134,17 +134,16 @@ export function MetricsGrid() {
     enabled: !!tenant?.id && caps.hasMedicalIntake,
   });
 
-  // Callback-only: pending callbacks
-  const { data: callbacksPending = 0 } = useQuery({
-    queryKey: ["metrics-callbacks", tenant?.id, weekStart],
+  // Callback-only: new leads count
+  const { data: newLeadsCount = 0 } = useQuery({
+    queryKey: ["metrics-new-leads", tenant?.id],
     queryFn: async () => {
       if (!tenant?.id) return 0;
       const { count } = await supabase
-        .from("ai_call_sessions")
+        .from("leads")
         .select("*", { count: "exact", head: true })
         .eq("tenant_id", tenant.id)
-        .eq("outcome", "followup" as any)
-        .gte("created_at", weekStart);
+        .eq("status", "new");
       return count || 0;
     },
     enabled: !!tenant?.id && isCallbackOnly,
@@ -184,7 +183,7 @@ export function MetricsGrid() {
         if (isCallbackOnly) {
           return [
             ...base,
-            { label: "Callbacks This Week", value: callbacksPending, icon: Phone, href: "/app/inbox?tab=calls" },
+            { label: "New Leads", value: newLeadsCount, icon: Users, href: "/app/inbox?tab=leads" },
             { label: "Customers", value: totalCustomers, icon: Users, href: "/app/customers" },
           ];
         }

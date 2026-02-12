@@ -60,8 +60,20 @@ export default function CustomersPage() {
   const [bookingCustomerName, setBookingCustomerName] = useState("");
   const [bookingCustomerPhone, setBookingCustomerPhone] = useState("");
 
+  // Lifecycle filtering
+  const activeCustomers = useMemo(
+    () => customers.filter((c) => (c.tags as string[] | null)?.includes("active_customer")),
+    [customers]
+  );
+  const prospects = useMemo(
+    () => customers.filter((c) => !(c.tags as string[] | null)?.includes("active_customer")),
+    [customers]
+  );
+
+  const baseList = activeTab === "active" ? activeCustomers : activeTab === "prospects" ? prospects : customers;
+
   const filteredCustomers = useMemo(() => {
-    let result = customers;
+    let result = baseList;
 
     // Search
     if (searchQuery) {
@@ -87,7 +99,7 @@ export default function CustomersPage() {
     }
 
     return result;
-  }, [customers, searchQuery, sourceFilter, sortBy]);
+  }, [baseList, searchQuery, sourceFilter, sortBy]);
 
   const handleRowClick = (customer: Customer) => {
     setSelectedCustomer(customer);
@@ -121,122 +133,133 @@ export default function CustomersPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="all">
-            All {customerLabel}
+            All
+            <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-xs">{customers.length}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="active">
+            Active
+            <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-xs">{activeCustomers.length}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="prospects">
+            Prospects
+            <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-xs">{prospects.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="merge">
             Merge Queue
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="all" className="mt-6 space-y-4">
-          {/* Toolbar */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder={`Search ${terms.customers || "customers"}...`}
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+        {["all", "active", "prospects"].map((tabKey) => (
+          <TabsContent key={tabKey} value={tabKey} className="mt-6 space-y-4">
+            {/* Toolbar */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder={`Search ${terms.customers || "customers"}...`}
+                  className="pl-10"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Source" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Sources</SelectItem>
+                    <SelectItem value="ai_call">AI Call</SelectItem>
+                    <SelectItem value="manual">Manual</SelectItem>
+                    <SelectItem value="referral">Referral</SelectItem>
+                    <SelectItem value="website_form">Website</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={sortBy} onValueChange={(v) => setSortBy(v as "name" | "recent")}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name">By Name</SelectItem>
+                    <SelectItem value="recent">Most Recent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Table */}
+            {isLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-14 w-full" />
+                ))}
+              </div>
+            ) : filteredCustomers.length === 0 ? (
+              <EmptyState
+                icon={Users}
+                title={searchQuery || sourceFilter !== "all" ? "No matches" : `No ${terms.customers || "customers"} yet`}
+                description={
+                  searchQuery || sourceFilter !== "all"
+                    ? "Try adjusting your search or filters."
+                    : `${customerLabel} will appear here when they call or are added manually.`
+                }
+                action={
+                  !searchQuery && sourceFilter === "all"
+                    ? { label: `Add ${terms.customer || "Customer"}`, onClick: () => setCreateDialogOpen(true) }
+                    : undefined
+                }
               />
-            </div>
-            <div className="flex items-center gap-2">
-              <Select value={sourceFilter} onValueChange={setSourceFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Source" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Sources</SelectItem>
-                  <SelectItem value="ai_call">AI Call</SelectItem>
-                  <SelectItem value="manual">Manual</SelectItem>
-                  <SelectItem value="referral">Referral</SelectItem>
-                  <SelectItem value="website_form">Website</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={sortBy} onValueChange={(v) => setSortBy(v as "name" | "recent")}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="name">By Name</SelectItem>
-                  <SelectItem value="recent">Most Recent</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Table */}
-          {isLoading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-14 w-full" />
-              ))}
-            </div>
-          ) : filteredCustomers.length === 0 ? (
-            <EmptyState
-              icon={Users}
-              title={searchQuery || sourceFilter !== "all" ? "No matches" : `No ${terms.customers || "customers"} yet`}
-              description={
-                searchQuery || sourceFilter !== "all"
-                  ? "Try adjusting your search or filters."
-                  : `${customerLabel} will appear here when they call or are added manually.`
-              }
-              action={
-                !searchQuery && sourceFilter === "all"
-                  ? { label: `Add ${terms.customer || "Customer"}`, onClick: () => setCreateDialogOpen(true) }
-                  : undefined
-              }
-            />
-          ) : (
-            <div className="rounded-lg border bg-card">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead className="hidden sm:table-cell">Phone</TableHead>
-                    <TableHead className="hidden md:table-cell">Email</TableHead>
-                    <TableHead className="hidden md:table-cell">Source</TableHead>
-                    <TableHead className="hidden sm:table-cell">Added</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredCustomers.map((customer) => (
-                    <TableRow
-                      key={customer.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => handleRowClick(customer)}
-                    >
-                      <TableCell>
-                        <p className="font-medium">{customer.full_name}</p>
-                        <p className="text-sm text-muted-foreground sm:hidden">
-                          {customer.phone_e164}
-                        </p>
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell text-muted-foreground">
-                        {customer.phone_e164}
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell text-muted-foreground">
-                        {customer.email || "—"}
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <Badge variant="outline" className="text-xs">
-                          {sourceLabels[customer.source || ""] || customer.source || "—"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
-                        {formatDistanceToNow(new Date(customer.created_at), { addSuffix: true })}
-                      </TableCell>
+            ) : (
+              <div className="rounded-lg border bg-card">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead className="hidden sm:table-cell">Phone</TableHead>
+                      <TableHead className="hidden md:table-cell">Email</TableHead>
+                      <TableHead className="hidden md:table-cell">Source</TableHead>
+                      <TableHead className="hidden sm:table-cell">Added</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+                  </TableHeader>
+                  <TableBody>
+                    {filteredCustomers.map((customer) => (
+                      <TableRow
+                        key={customer.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleRowClick(customer)}
+                      >
+                        <TableCell>
+                          <p className="font-medium">{customer.full_name}</p>
+                          <p className="text-sm text-muted-foreground sm:hidden">
+                            {customer.phone_e164}
+                          </p>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell text-muted-foreground">
+                          {customer.phone_e164}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell text-muted-foreground">
+                          {customer.email || "—"}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <Badge variant="outline" className="text-xs">
+                            {sourceLabels[customer.source || ""] || customer.source || "—"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
+                          {formatDistanceToNow(new Date(customer.created_at), { addSuffix: true })}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
 
-          <p className="text-xs text-muted-foreground text-center">
-            {filteredCustomers.length} {filteredCustomers.length === 1 ? terms.customer || "customer" : terms.customers || "customers"}
-          </p>
-        </TabsContent>
+            <p className="text-xs text-muted-foreground text-center">
+              {filteredCustomers.length} {filteredCustomers.length === 1 ? terms.customer || "customer" : terms.customers || "customers"}
+            </p>
+          </TabsContent>
+        ))}
 
         <TabsContent value="merge" className="mt-6">
           <CustomerMergeQueue />
