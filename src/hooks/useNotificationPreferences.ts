@@ -63,7 +63,7 @@ export function useNotificationPreferences() {
     queryFn: async () => {
       if (!tenantId || !userId) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("notification_preferences")
         .select("id, event_type, channel_email, channel_sms, channel_push, enabled")
         .eq("tenant_id", tenantId)
@@ -79,7 +79,7 @@ export function useNotificationPreferences() {
     mutationFn: async ({ eventType, enabled }: { eventType: string; enabled: boolean }) => {
       if (!tenantId || !userId) throw new Error("Missing tenant or user");
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("notification_preferences")
         .upsert(
           {

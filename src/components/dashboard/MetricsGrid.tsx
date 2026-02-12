@@ -143,7 +143,7 @@ export function MetricsGrid() {
         .from("ai_call_sessions")
         .select("*", { count: "exact", head: true })
         .eq("tenant_id", tenant.id)
-        .eq("outcome", "callback")
+        .eq("outcome", "followup" as any)
         .gte("created_at", weekStart);
       return count || 0;
     },

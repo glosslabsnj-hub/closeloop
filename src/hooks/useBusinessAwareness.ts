@@ -169,7 +169,7 @@ export function useBusinessAwareness(): BusinessAwareness {
       hasCalendar: hasConnectedCalendar,
 
       // Auth/tenant
-      businessName: tenant?.business_name || tenant?.name || "",
+      businessName: (tenant as any)?.business_name || tenant?.name || "",
       aiBehaviorMode: (assistantSettings as Record<string, unknown>)?.ai_booking_mode as string || "full_service",
 
       // Staff
@@ -192,7 +192,7 @@ export function useBusinessAwareness(): BusinessAwareness {
     metrics,
     hasConnectedCalendar,
     tenant?.id,
-    tenant?.business_name,
+    (tenant as any)?.business_name,
     tenant?.hours_json,
     assistantSettings,
     industry,

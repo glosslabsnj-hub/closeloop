@@ -25,7 +25,7 @@ interface SuggestedTestsBannerProps {
 export function SuggestedTestsBanner({ onDismiss }: SuggestedTestsBannerProps) {
   const { tenant } = useAuth();
   const businessMode = (tenant?.business_mode as BusinessMode) || "service";
-  const businessName = tenant?.business_name || tenant?.name || "";
+  const businessName = (tenant as any)?.business_name || tenant?.name || "";
   const { services: allServices } = useServices();
   const { topGaps } = useKnowledgeGaps();
   const { slug } = useIndustryContext();
