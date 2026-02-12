@@ -2708,6 +2708,7 @@ export type Database = {
           dispatch_distance_miles: number | null
           dispatched_at: string | null
           document_type: string | null
+          drivable: boolean | null
           driver_id: string | null
           dropoff_address: string | null
           dropoff_lat: number | null
@@ -2717,6 +2718,7 @@ export type Database = {
           equipment_required: string[] | null
           estimated_arrival_at: string | null
           estimated_duration_minutes: number | null
+          estimated_eta_minutes: number | null
           id: string
           inventory_items: Json | null
           item_count: number | null
@@ -2769,6 +2771,7 @@ export type Database = {
           dispatch_distance_miles?: number | null
           dispatched_at?: string | null
           document_type?: string | null
+          drivable?: boolean | null
           driver_id?: string | null
           dropoff_address?: string | null
           dropoff_lat?: number | null
@@ -2778,6 +2781,7 @@ export type Database = {
           equipment_required?: string[] | null
           estimated_arrival_at?: string | null
           estimated_duration_minutes?: number | null
+          estimated_eta_minutes?: number | null
           id?: string
           inventory_items?: Json | null
           item_count?: number | null
@@ -2830,6 +2834,7 @@ export type Database = {
           dispatch_distance_miles?: number | null
           dispatched_at?: string | null
           document_type?: string | null
+          drivable?: boolean | null
           driver_id?: string | null
           dropoff_address?: string | null
           dropoff_lat?: number | null
@@ -2839,6 +2844,7 @@ export type Database = {
           equipment_required?: string[] | null
           estimated_arrival_at?: string | null
           estimated_duration_minutes?: number | null
+          estimated_eta_minutes?: number | null
           id?: string
           inventory_items?: Json | null
           item_count?: number | null

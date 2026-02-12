@@ -2714,13 +2714,13 @@ async function persistDispatchJob(
       pickup_address: payload.dispatch.pickup_address,
       dropoff_address: payload.dispatch.dropoff_address,
       job_type: payload.dispatch.job_type || "tow",
-      vehicle_type: payload.dispatch.vehicle_type || null,
+      vehicle_category: payload.dispatch.vehicle_type || null,
       drivable: payload.dispatch.drivable,
       description: payload.dispatch.notes,
       priority,
       status: "pending",
       price_cents: dispatchPricing.price_cents,
-      distance_miles: dispatchPricing.distance_miles,
+      dispatch_distance_miles: dispatchPricing.distance_miles,
       estimated_eta_minutes: dispatchPricing.estimated_eta_minutes,
     })
     .select("id, job_number")
