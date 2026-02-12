@@ -712,6 +712,16 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     category: "caller",
     isPhi: true,
   },
+  {
+    key: "active_job_summary",
+    description: "Speech-ready summary of customer's active jobs (e.g., vehicle in shop status)",
+    type: "string",
+    source: "intelligence.active_job_summary",
+    defaultValue: "",
+    category: "caller",
+    includeInCompactJson: true,
+    speechReady: true,
+  },
 
   // ===== HOURS & AVAILABILITY =====
   {

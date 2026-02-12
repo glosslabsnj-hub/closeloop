@@ -9,7 +9,7 @@ const corsHeaders = {
 
 interface DeliveryRequest {
   tenant_id: string;
-  entity_type: "order" | "booking" | "dispatch" | "reservation" | "catering" | "intake" | "callback";
+  entity_type: "order" | "booking" | "dispatch" | "reservation" | "catering" | "intake" | "callback" | "job_update";
   entity_id: string;
   test_mode?: boolean;
 }
@@ -517,6 +517,41 @@ async function buildPayload(
         caller_phone: ctx.caller_phone || null,
         session_id: ctx.session_id || null,
         status: opportunity.status,
+      };
+      break;
+    }
+
+    case "job_update": {
+      const { data: jobData } = await supabaseAdmin
+        .from("active_jobs")
+        .select("*")
+        .eq("id", entityId)
+        .single();
+
+      const job = jobData as {
+        id: string;
+        job_number: string;
+        title: string;
+        status: string;
+        priority: string;
+        customer_name: string | null;
+        customer_phone: string | null;
+        notes: string | null;
+      } | null;
+
+      if (!job) return null;
+
+      customer = {
+        name: job.customer_name || "Customer",
+        phone: job.customer_phone || null,
+        email: null,
+      };
+      summary = `🔧 Job update: ${job.title} (${job.job_number}) — status: ${job.status.replace("_", " ")}`;
+      details = {
+        job_number: job.job_number,
+        title: job.title,
+        status: job.status,
+        priority: job.priority,
       };
       break;
     }

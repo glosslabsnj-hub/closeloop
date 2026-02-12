@@ -182,6 +182,20 @@ const serviceQuestions: ScenarioQuestion[] = [
     group: "core",
     industryFilter: { slugs: ["auto_repair", "body_shop", "auto_glass", "transmission_shop", "engine_repair", "hvac", "plumbing", "electrical", "general_contractor", "roofing", "painting"] },
   },
+  {
+    id: "job-tracking",
+    capabilityKey: "hasJobTracking",
+    label: "Work-In-Progress Tracking",
+    question: "Do customers leave items with you for extended work?",
+    description: "Track jobs as they move through multiple service steps. The AI can update customers on progress when they call.",
+    defaultValue: false,
+    impliesModules: ["job_tracking"],
+    group: "core",
+    preAnsweredFor: {
+      slugs: ["auto-repair", "computer-repair", "appliance-repair", "jewelry-repair", "watch-repair", "dry-cleaning", "tailor"],
+      categories: ["automotive_services", "repair_services"],
+    },
+  },
 ];
 
 const dispatchQuestions: ScenarioQuestion[] = [
