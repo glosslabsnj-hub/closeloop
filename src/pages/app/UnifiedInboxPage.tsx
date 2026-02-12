@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useLeads } from "@/hooks/useLeads";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
+import { useCapabilities } from "@/hooks/useCapabilities";
 import { computeCallPriority } from "@/lib/priorityScoring";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Phone, Users, Search, Loader2, Plus } from "lucide-react";
+import { useTerminology } from "@/hooks/useTerminology";
 import { InboxCallCard } from "@/components/calls/InboxCallCard";
 import { CallDetailPanel } from "@/components/calls/CallDetailPanel";
 import { LeadCard } from "@/components/leads/LeadCard";
@@ -76,14 +78,17 @@ export default function UnifiedInboxPage() {
   const { tenant } = useAuth();
   const queryClient = useQueryClient();
   const { config } = useIndustryContext();
+  const terms = useTerminology();
+  const caps = useCapabilities();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
 
   // Tab state
   const isValidTab = (t: string | null): t is TabValue =>
     t === "calls" || t === "leads";
+  const defaultTab: TabValue = caps.isDispatchBusiness ? "calls" : "leads";
   const [activeTab, setActiveTab] = useState<TabValue>(
-    isValidTab(tabParam) ? tabParam : "leads"
+    isValidTab(tabParam) ? tabParam : defaultTab
   );
 
   // Lead sub-filter
@@ -260,9 +265,9 @@ export default function UnifiedInboxPage() {
   return (
     <PageContainer maxWidth="xl">
       <PageHeader
-        icon={<Users className="h-5 w-5" />}
-        title="Leads"
-        description="Every customer interaction, organized."
+        icon={terms.inboxPageTitle === "Call Log" ? <Phone className="h-5 w-5" /> : <Users className="h-5 w-5" />}
+        title={terms.inboxPageTitle}
+        description={terms.inboxPageSubtitle}
       />
 
       <Tabs value={activeTab} onValueChange={handleTabChange}>

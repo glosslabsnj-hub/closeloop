@@ -33,6 +33,7 @@ import {
   FlaskConical,
   AudioWaveform,
   DollarSign,
+  Phone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useMemo } from "react";
@@ -81,7 +82,7 @@ function AppLayoutContent() {
   const mobileNavItems = useMemo(() => {
     const items: NavItem[] = [
       { href: "/app/dashboard", label: "Home", icon: LayoutDashboard },
-      { href: "/app/inbox", label: "Leads", icon: Users },
+      { href: "/app/inbox", label: (terms.inboxPageTitle as string) || "Leads", icon: caps.isDispatchBusiness ? Phone : Users },
     ];
     if (caps.isFoodBusiness && caps.hasFoodOrders) {
       items.push({ href: "/app/orders", label: "Orders", icon: UtensilsCrossed });

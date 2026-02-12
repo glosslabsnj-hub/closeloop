@@ -39,6 +39,10 @@ export interface IndustryTerms {
 
   // Metrics
   bookingsMetricLabel: string;
+
+  // Inbox / nav
+  inboxPageTitle: string;
+  inboxPageSubtitle: string;
 }
 
 const TERMINOLOGY: Record<BusinessMode, IndustryTerms> = {
@@ -63,6 +67,8 @@ const TERMINOLOGY: Record<BusinessMode, IndustryTerms> = {
     pendingBookings: "pending bookings",
     bookingConfirmed: "Booking confirmed",
     bookingsMetricLabel: "Bookings",
+    inboxPageTitle: "Leads",
+    inboxPageSubtitle: "Every customer interaction, organized.",
   },
   dispatch: {
     booking: "job",
@@ -85,6 +91,8 @@ const TERMINOLOGY: Record<BusinessMode, IndustryTerms> = {
     pendingBookings: "pending jobs",
     bookingConfirmed: "Job assigned",
     bookingsMetricLabel: "Jobs",
+    inboxPageTitle: "Call Log",
+    inboxPageSubtitle: "Every call, organized by priority.",
   },
   food: {
     booking: "order",
@@ -107,6 +115,8 @@ const TERMINOLOGY: Record<BusinessMode, IndustryTerms> = {
     pendingBookings: "new orders",
     bookingConfirmed: "Order confirmed",
     bookingsMetricLabel: "Orders",
+    inboxPageTitle: "Leads",
+    inboxPageSubtitle: "Every customer interaction, organized.",
   },
   medical: {
     booking: "appointment",
@@ -129,6 +139,8 @@ const TERMINOLOGY: Record<BusinessMode, IndustryTerms> = {
     pendingBookings: "pending appointments",
     bookingConfirmed: "Appointment confirmed",
     bookingsMetricLabel: "Appointments",
+    inboxPageTitle: "Leads",
+    inboxPageSubtitle: "Every patient interaction, organized.",
   },
   general: {
     booking: "booking",
@@ -151,6 +163,8 @@ const TERMINOLOGY: Record<BusinessMode, IndustryTerms> = {
     pendingBookings: "pending bookings",
     bookingConfirmed: "Booking confirmed",
     bookingsMetricLabel: "Bookings",
+    inboxPageTitle: "Leads",
+    inboxPageSubtitle: "Every customer interaction, organized.",
   },
   sales: {
     booking: "appointment",
@@ -173,6 +187,8 @@ const TERMINOLOGY: Record<BusinessMode, IndustryTerms> = {
     pendingBookings: "pending appointments",
     bookingConfirmed: "Appointment confirmed",
     bookingsMetricLabel: "Appointments",
+    inboxPageTitle: "Leads",
+    inboxPageSubtitle: "Every prospect interaction, organized.",
   },
 };
 
