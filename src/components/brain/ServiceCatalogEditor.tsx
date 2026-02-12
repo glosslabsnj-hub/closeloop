@@ -30,8 +30,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Trash2, Clock, DollarSign, Loader2, Info, Lightbulb, ChevronDown, ChevronRight, Check, X } from "lucide-react";
+import { Plus, Trash2, Clock, DollarSign, Loader2, Info, Lightbulb, ChevronDown, ChevronRight, Check, X, ClipboardPaste, FileSpreadsheet } from "lucide-react";
 import { InlineUploadButton } from "./InlineUploadButton";
+import { PasteFromPOSDialog } from "./PasteFromPOSDialog";
+import { ServiceCSVImportDialog } from "./ServiceCSVImportDialog";
 import { createService, updateService, deleteService } from "@/lib/brain/writeBrainFact";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -259,6 +261,8 @@ export function ServiceCatalogEditor() {
   const [savingServiceId, setSavingServiceId] = useState<string | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [newServiceData, setNewServiceData] = useState<ServiceFormData>(defaultFormData);
+  const [pasteDialogOpen, setPasteDialogOpen] = useState(false);
+  const [csvDialogOpen, setCsvDialogOpen] = useState(false);
 
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -495,10 +499,20 @@ export function ServiceCatalogEditor() {
             }
           </p>
         </div>
-        <Button onClick={startCreatingNew} disabled={isCreatingNew}>
-          <Plus className="h-4 w-4 mr-2" />
-          {terms.addService}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setPasteDialogOpen(true)}>
+            <ClipboardPaste className="h-3.5 w-3.5 mr-1.5" />
+            Paste from POS
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setCsvDialogOpen(true)}>
+            <FileSpreadsheet className="h-3.5 w-3.5 mr-1.5" />
+            CSV Import
+          </Button>
+          <Button onClick={startCreatingNew} disabled={isCreatingNew}>
+            <Plus className="h-4 w-4 mr-2" />
+            {terms.addService}
+          </Button>
+        </div>
       </div>
 
       {/* New Service Form */}
@@ -651,6 +665,12 @@ export function ServiceCatalogEditor() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* POS Paste Dialog */}
+      <PasteFromPOSDialog open={pasteDialogOpen} onOpenChange={setPasteDialogOpen} />
+
+      {/* CSV Import Dialog */}
+      <ServiceCSVImportDialog open={csvDialogOpen} onOpenChange={setCsvDialogOpen} />
     </div>
   );
 }
