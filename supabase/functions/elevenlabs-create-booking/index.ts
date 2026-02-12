@@ -396,7 +396,7 @@ serve(async (req: Request) => {
           phone_e164: phoneE164,
           phone_raw: customerPhone,
           email: customerEmail || null,
-          source: "voice_ai",
+          source: "ai_call",
         })
         .select("id")
         .single();
@@ -411,7 +411,7 @@ serve(async (req: Request) => {
         full_name: customerName,
         phone: phoneE164 || customerPhone,
         email: customerEmail || null,
-        source: "voice_ai",
+        source: "ai_call",
       })
       .select("id")
       .single();

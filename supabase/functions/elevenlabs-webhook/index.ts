@@ -1043,8 +1043,28 @@ async function processCallData(
     console.warn("[elevenlabs-webhook] Failed to record call outcome:", e);
   }
 
+  // ===== ENSURE LEAD RECORD =====
+  let leadId: string | null = null;
+  if (callerPhoneE164 && !phiMinimization) {
+    try {
+      leadId = await ensureLead(
+        supabase, tenantId, sessionId, validatedPayload,
+        validatedPayload.customer.name, customerId, callerPhoneE164,
+        outcome, leadScore
+      );
+      if (leadId) {
+        await supabase
+          .from("ai_call_sessions")
+          .update({ lead_id: leadId })
+          .eq("id", sessionId);
+      }
+    } catch (e) {
+      console.warn("[ensureLead] Non-critical failure:", e);
+    }
+  }
+
   // ===== PERSIST DERIVED ENTITY =====
-  await persistDerivedEntity(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, tenantBusinessMode, enabledModules, validatedPayload, validatedPayload.customer.name, customerId, callerPhoneE164, payload);
+  await persistDerivedEntity(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, tenantBusinessMode, enabledModules, validatedPayload, validatedPayload.customer.name, customerId, callerPhoneE164, payload, leadId);
 }
 
 // ===== COMPUTE LEAD SCORE =====
@@ -1077,6 +1097,124 @@ function computeLeadScore(
   if (hasName && hasPhone && hasService) return "warm";
 
   return "warm";
+}
+
+// ===== ENSURE LEAD RECORD =====
+// Creates or updates a lead for every call, not just bookings.
+// Uses upsert-by-lookup on (tenant_id, phone) to avoid duplicates.
+// deno-lint-ignore no-explicit-any
+async function ensureLead(
+  supabase: any,
+  tenantId: string,
+  sessionId: string,
+  payload: CanonicalPayload,
+  customerName: string | null,
+  customerId: string | null,
+  callerPhoneE164: string,
+  outcome: string,
+  leadScore: "hot" | "warm" | "cool"
+): Promise<string | null> {
+  // Map outcome → lead status
+  // Status ranking: new < contacted < qualified < booked < won
+  const STATUS_RANK: Record<string, number> = {
+    new: 0,
+    contacted: 1,
+    qualified: 2,
+    booked: 3,
+    won: 4,
+  };
+
+  let targetStatus: string;
+  switch (outcome) {
+    case "booked":
+    case "order":
+    case "reservation":
+      targetStatus = "booked";
+      break;
+    case "followup":
+    case "lead_captured":
+    case "dispatch":
+    case "escalated":
+    case "message":
+      targetStatus = "new";
+      break;
+    case "lost":
+      targetStatus = "contacted";
+      break;
+    default:
+      targetStatus = "new";
+      break;
+  }
+
+  // Build vehicle_or_context from payload
+  let vehicleOrContext: string | null = null;
+  if (payload.booking.service_requested) {
+    vehicleOrContext = `Service: ${payload.booking.service_requested}`;
+  } else if (payload.dispatch.job_type) {
+    vehicleOrContext = `Dispatch: ${payload.dispatch.job_type}`;
+  } else if (payload.order.items.length > 0) {
+    vehicleOrContext = `Order: ${payload.order.items.length} items`;
+  }
+
+  // Look up existing lead by (tenant_id, phone)
+  const { data: existingLead } = await supabase
+    .from("leads")
+    .select("id, status")
+    .eq("tenant_id", tenantId)
+    .eq("phone", callerPhoneE164)
+    .maybeSingle();
+
+  if (existingLead) {
+    // Update existing lead — never downgrade status
+    const currentRank = STATUS_RANK[existingLead.status] ?? -1;
+    const targetRank = STATUS_RANK[targetStatus] ?? 0;
+    const newStatus = targetRank > currentRank ? targetStatus : existingLead.status;
+
+    const updateFields: Record<string, unknown> = {
+      last_message_at: new Date().toISOString(),
+      status: newStatus,
+    };
+
+    if (customerName && customerName !== "Unknown" && customerName !== "Phone Customer") {
+      updateFields.full_name = customerName;
+    }
+    if (vehicleOrContext) {
+      updateFields.vehicle_or_context = vehicleOrContext;
+    }
+
+    await supabase
+      .from("leads")
+      .update(updateFields)
+      .eq("id", existingLead.id);
+
+    console.log(`[ensureLead] Updated existing lead: ${existingLead.id}, status: ${existingLead.status} → ${newStatus}`);
+    return existingLead.id;
+  }
+
+  // Insert new lead
+  const { data: newLead, error: leadError } = await supabase
+    .from("leads")
+    .insert({
+      tenant_id: tenantId,
+      full_name: customerName || "Phone Customer",
+      phone: callerPhoneE164,
+      source: "ai_call",
+      status: targetStatus,
+      vehicle_or_context: vehicleOrContext,
+      tags: [leadScore],
+      customer_id: customerId,
+      last_message_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+
+  if (leadError) {
+    console.error("[ensureLead] Failed to create lead:", leadError);
+    return null;
+  }
+
+  console.log(`[ensureLead] Created new lead: ${newLead.id}, status: ${targetStatus}, score: ${leadScore}`);
+  return newLead.id;
 }
 
 // ===== EXTRACT RAW DATA FROM SOURCES =====
@@ -1912,13 +2050,14 @@ async function persistDerivedEntity(
   customerName: string | null,
   customerId: string | null,
   callerPhoneE164: string,
-  webhookPayload: ElevenLabsWebhookPayload
+  webhookPayload: ElevenLabsWebhookPayload,
+  leadId: string | null = null
 ): Promise<void> {
   const intent = payload.intent;
-  
+
   // Build routing decision
   const routingDecision = determineRoutingTarget(intent, businessMode, enabledModules, payload);
-  
+
   console.log(`[persistDerivedEntity] Intent: ${intent}, BusinessMode: ${businessMode}, Target: ${routingDecision.target}, Reason: ${routingDecision.reason}`);
   
   await logEventStage(supabase, tenantId, sessionId, null, webhookPayload.conversation_id, "extraction_normalized", {
@@ -1962,7 +2101,7 @@ async function persistDerivedEntity(
         break;
         
       case "bookings":
-        const booking = await persistBooking(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, payload, customerName, customerId, callerPhoneE164);
+        const booking = await persistBooking(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, payload, customerName, customerId, callerPhoneE164, leadId);
         if (booking) {
           entityType = "booking";
           entityId = booking.id;
@@ -2373,42 +2512,9 @@ async function persistBooking(
   payload: CanonicalPayload,
   customerName: string | null,
   customerId: string | null,
-  callerPhoneE164: string
+  callerPhoneE164: string,
+  leadId: string | null = null
 ): Promise<{ id: string } | null> {
-  // Get or create lead
-  let leadId: string | null = null;
-  
-  if (customerId) {
-    const { data: existingLead } = await supabase
-      .from("leads")
-      .select("id")
-      .eq("tenant_id", tenantId)
-      .eq("phone", callerPhoneE164)
-      .maybeSingle();
-    
-    if (existingLead) leadId = existingLead.id;
-  }
-  
-  if (!leadId) {
-    const { data: newLead, error: leadError } = await supabase
-      .from("leads")
-      .insert({
-        tenant_id: tenantId,
-        full_name: customerName || "Phone Customer",
-        phone: callerPhoneE164,
-        source: "ai_call",
-        status: "new",
-      })
-      .select("id")
-      .single();
-    
-    if (leadError) {
-      console.error("[persistBooking] Failed to create lead:", leadError);
-      return null;
-    }
-    leadId = newLead.id;
-  }
-  
   // Try to match service
   let serviceId: string | null = null;
   if (payload.booking.service_requested) {
