@@ -121,10 +121,48 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
         })
         .eq("id", tenant.id);
 
+      // Auto-seed availability_slots from tenant hours_json if none exist
+      const { data: existingSlots } = await supabase
+        .from("availability_slots")
+        .select("id")
+        .eq("tenant_id", tenant.id)
+        .limit(1);
+
+      if (!existingSlots || existingSlots.length === 0) {
+        // Fetch tenant hours
+        const { data: tenantData } = await supabase
+          .from("tenants")
+          .select("hours_json")
+          .eq("id", tenant.id)
+          .single();
+
+        const hoursJson = tenantData?.hours_json as Record<string, { closed?: boolean; windows?: { open: string; close: string }[] }> | null;
+        if (hoursJson) {
+          const dayMap: Record<string, number> = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+          const slotsToInsert: { tenant_id: string; day_of_week: number; start_time: string; end_time: string; is_available: boolean }[] = [];
+
+          for (const [dayName, config] of Object.entries(hoursJson)) {
+            const dow = dayMap[dayName.toLowerCase()];
+            if (dow === undefined) continue;
+            if (config.closed || !config.windows?.length) {
+              slotsToInsert.push({ tenant_id: tenant.id, day_of_week: dow, start_time: '00:00:00', end_time: '00:00:00', is_available: false });
+            } else {
+              for (const w of config.windows) {
+                slotsToInsert.push({ tenant_id: tenant.id, day_of_week: dow, start_time: `${w.open}:00`, end_time: `${w.close}:00`, is_available: true });
+              }
+            }
+          }
+
+          if (slotsToInsert.length > 0) {
+            await supabase.from("availability_slots").insert(slotsToInsert);
+          }
+        }
+      }
+
       await refreshTenant();
       toast({
         title: "Calendar Set Up! ✅",
-        description: "Your AI can now book appointments directly. Set your availability in the Settings.",
+        description: "Your AI can now book appointments based on your business hours.",
       });
       onComplete();
     } catch (error: any) {

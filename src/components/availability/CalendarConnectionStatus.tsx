@@ -1,4 +1,5 @@
 import { useCalendarConnections, useCalendarSync, CALENDAR_PROVIDERS } from "@/hooks/useCalendarConnections";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,9 +43,12 @@ function getSyncStatus(lastSyncAt: string | null) {
 
 export function CalendarConnectionStatus() {
   const { connections, hasConnectedCalendar, isLoading, refetch } = useCalendarConnections();
+  const { assistantSettings } = useAuth();
   const { sync, isSyncing } = useCalendarSync();
   const [wizardOpen, setWizardOpen] = useState(false);
   const { toast } = useToast();
+
+  const isInternalCalendar = assistantSettings?.calendar_provider === 'closeloop';
 
   const activeConnection = connections.find((c) => c.status === "connected");
   const errorConnection = connections.find((c) => c.status === "error");
@@ -99,7 +103,7 @@ export function CalendarConnectionStatus() {
   }
 
   // Not connected - show prominent CTA
-  if (!hasConnectedCalendar) {
+  if (!hasConnectedCalendar && !isInternalCalendar) {
     return (
       <>
         <Card className="border-warning/50 bg-warning/5">
@@ -131,6 +135,27 @@ export function CalendarConnectionStatus() {
         </Card>
         <CalendarConnectionWizard open={wizardOpen} onOpenChange={setWizardOpen} />
       </>
+    );
+  }
+
+  // Internal calendar (closeloop) - show simple connected state
+  if (isInternalCalendar && !hasConnectedCalendar) {
+    return (
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="p-2 rounded-full bg-primary/10">
+              <CheckCircle2 className="h-6 w-6 text-primary" />
+            </div>
+            <div className="flex-1 space-y-1.5">
+              <h3 className="font-semibold">Using Voxly Calendar</h3>
+              <p className="text-sm text-muted-foreground">
+                Your AI books appointments based on your configured business hours and availability slots.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
