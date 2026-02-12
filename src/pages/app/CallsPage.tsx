@@ -19,7 +19,7 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Phone, Search, Pencil, Loader2, ExternalLink, AlertTriangle } from "lucide-react";
+import { Phone, Search, Pencil, Loader2, ExternalLink, AlertTriangle, Flame, Thermometer, Snowflake, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { CallEditDialog } from "@/components/calls/CallEditDialog";
 import { CallCard } from "@/components/calls/CallCard";
@@ -45,6 +45,8 @@ interface CallSession {
   context_json: Record<string, unknown> | null;
   extracted_payload: Record<string, unknown> | null;
   customer_id: string | null;
+  lead_score: "hot" | "warm" | "cool" | null;
+  followup_status: "new" | "called_back" | "no_answer" | "completed" | "lost" | null;
   customer?: {
     id: string;
     full_name: string;
@@ -52,6 +54,7 @@ interface CallSession {
   } | null;
 }
 
+type LeadFilter = "all" | "hot" | "needs_followup" | "completed";
 type CallStatus = "booked" | "thinking" | "no_book" | "order" | "dispatch";
 
 export default function CallsPage() {
@@ -63,6 +66,7 @@ export default function CallsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
+  const [leadFilter, setLeadFilter] = useState<LeadFilter>("all");
   const [editingCall, setEditingCall] = useState<CallSession | null>(null);
 
   // Realtime subscription for instant updates when webhook processes calls
@@ -104,6 +108,8 @@ export default function CallsPage() {
           context_json,
           extracted_payload,
           customer_id,
+          lead_score,
+          followup_status,
           customer:customers!ai_call_sessions_customer_id_fkey (
             id,
             full_name,
@@ -149,10 +155,45 @@ export default function CallsPage() {
     },
   });
 
+  const updateFollowupMutation = useMutation({
+    mutationFn: async ({ id, followup_status }: { id: string; followup_status: string }) => {
+      const { error } = await supabase
+        .from("ai_call_sessions")
+        .update({ followup_status })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ai_call_sessions", tenant?.id] });
+      toast({ title: "Status updated" });
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   // De-duplicate by phone number - show only the latest call per phone
   const deduplicatedCalls = calls ? deduplicateByPhone(calls) : [];
 
-  const filteredCalls = deduplicatedCalls.filter(call => {
+  // Sort: hot first, then warm, then cool; within each group, most recent first
+  const sortedCalls = [...deduplicatedCalls].sort((a, b) => {
+    const scoreOrder = { hot: 0, warm: 1, cool: 2 };
+    const aScore = scoreOrder[a.lead_score || "warm"] ?? 1;
+    const bScore = scoreOrder[b.lead_score || "warm"] ?? 1;
+    if (aScore !== bScore) return aScore - bScore;
+    return new Date(b.started_at).getTime() - new Date(a.started_at).getTime();
+  });
+
+  // Apply lead filter
+  const leadFiltered = sortedCalls.filter(call => {
+    if (leadFilter === "all") return true;
+    if (leadFilter === "hot") return call.lead_score === "hot";
+    if (leadFilter === "needs_followup") return call.followup_status === "new" || call.followup_status === "no_answer";
+    if (leadFilter === "completed") return call.followup_status === "completed" || call.followup_status === "called_back";
+    return true;
+  });
+
+  const filteredCalls = leadFiltered.filter(call => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     const customerName = getCustomerName(call);
@@ -240,6 +281,9 @@ export default function CallsPage() {
     );
   }
 
+  const hotCount = deduplicatedCalls.filter(c => c.lead_score === "hot").length;
+  const needsFollowupCount = deduplicatedCalls.filter(c => c.followup_status === "new" || c.followup_status === "no_answer").length;
+
   return (
     <PageContainer maxWidth="xl">
       <PageHeader
@@ -255,26 +299,60 @@ export default function CallsPage() {
 
       {/* Info banner for calls awaiting data */}
       {deduplicatedCalls.some(c => !c.summary && !c.ended_at) && (
-        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 flex items-start gap-3">
-          <Phone className="h-5 w-5 text-blue-500 mt-0.5 shrink-0" />
+        <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 flex items-start gap-3">
+          <Phone className="h-5 w-5 text-primary mt-0.5 shrink-0" />
           <div className="text-sm">
-            <p className="font-medium text-blue-700 dark:text-blue-300">Some recent calls are still being processed</p>
+            <p className="font-medium">Some recent calls are still being processed</p>
             <p className="text-muted-foreground">
-              Summaries and extracted details appear automatically after calls end. You can also click the edit icon to add details manually.
+              Summaries and extracted details appear automatically after calls end.
             </p>
           </div>
         </div>
       )}
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search by name, phone, or service..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
-        />
+      {/* Filter tabs + search */}
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            variant={leadFilter === "all" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setLeadFilter("all")}
+          >
+            All ({deduplicatedCalls.length})
+          </Button>
+          <Button
+            variant={leadFilter === "hot" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setLeadFilter("hot")}
+            className={leadFilter !== "hot" && hotCount > 0 ? "border-destructive/50 text-destructive" : ""}
+          >
+            <Flame className="h-3.5 w-3.5 mr-1" />
+            Hot ({hotCount})
+          </Button>
+          <Button
+            variant={leadFilter === "needs_followup" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setLeadFilter("needs_followup")}
+          >
+            Needs Follow-up ({needsFollowupCount})
+          </Button>
+          <Button
+            variant={leadFilter === "completed" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setLeadFilter("completed")}
+          >
+            Completed
+          </Button>
+        </div>
+        <div className="relative max-w-md w-full sm:w-auto">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name, phone, or service..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
       </div>
 
       {/* Calls List */}
@@ -310,43 +388,40 @@ export default function CallsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[180px]">Customer Name</TableHead>
-                      <TableHead className="w-[120px]">Date</TableHead>
-                      <TableHead className="w-[140px]">Phone</TableHead>
-                      <TableHead className="w-[200px]">Service Requested</TableHead>
-                      <TableHead className="min-w-[250px]">AI Summary</TableHead>
-                      <TableHead className="w-[100px] text-center">Status</TableHead>
+                      <TableHead className="w-[70px] text-center">Lead</TableHead>
+                      <TableHead className="w-[160px]">Customer</TableHead>
+                      <TableHead className="w-[100px]">Time</TableHead>
+                      <TableHead className="w-[130px]">Phone</TableHead>
+                      <TableHead className="w-[180px]">Service</TableHead>
+                      <TableHead className="min-w-[200px]">AI Summary</TableHead>
+                      <TableHead className="w-[120px] text-center">Follow-up</TableHead>
                       <TableHead className="w-[60px]"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredCalls.map((call) => {
-                      const status = getCallStatus(call.outcome);
                       const customerName = getCustomerName(call);
                       const serviceRequested = getServiceRequested(call);
                       const extractedDetails = getExtractedDetails(call);
                       
                       return (
                         <TableRow key={call.id}>
+                          <TableCell className="text-center">
+                            {getLeadScoreBadge(call.lead_score)}
+                          </TableCell>
                           <TableCell className="font-medium">
                             <div className="flex items-center gap-1">
                               {customerName}
                               {call.customer_id && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <ExternalLink className="h-3 w-3 text-muted-foreground" />
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Linked to customer record</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
+                                <ExternalLink className="h-3 w-3 text-muted-foreground" />
                               )}
                             </div>
                           </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {format(new Date(call.started_at), "MMM d, yyyy")}
+                          <TableCell className="text-muted-foreground text-sm">
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {getTimeSince(call.started_at)}
+                            </div>
                           </TableCell>
                           <TableCell className="font-mono text-sm">
                             {formatPhone(call.caller_phone)}
@@ -368,46 +443,41 @@ export default function CallsPage() {
                                 </Tooltip>
                               </TooltipProvider>
                             ) : (
-                              <span className="text-muted-foreground italic">
-                                Not specified
-                              </span>
+                              <span className="text-muted-foreground italic">—</span>
                             )}
                           </TableCell>
-                          <TableCell className="max-w-[300px]">
+                          <TableCell className="max-w-[250px]">
                             {call.summary ? (
-                              <span className="line-clamp-2 text-sm">
-                                {call.summary}
-                              </span>
+                              <span className="line-clamp-2 text-sm">{call.summary}</span>
                             ) : call.ended_at && isWebhookMissing(call.ended_at) ? (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Link 
-                                      to={`/debug/ai-context?session=${call.id}`}
-                                      className="inline-flex items-center gap-1 text-warning hover:underline text-sm"
-                                    >
-                                      <AlertTriangle className="h-3 w-3" />
-                                      <span>Processing delayed</span>
-                                    </Link>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Call processing is taking longer than expected.</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                              <Link 
+                                to={`/debug/ai-context?session=${call.id}`}
+                                className="inline-flex items-center gap-1 text-warning hover:underline text-sm"
+                              >
+                                <AlertTriangle className="h-3 w-3" />
+                                <span>Processing delayed</span>
+                              </Link>
                             ) : call.ended_at ? (
                               <span className="text-muted-foreground italic text-sm flex items-center gap-1">
                                 <Loader2 className="h-3 w-3 animate-spin" />
                                 Processing...
                               </span>
                             ) : (
-                              <span className="text-muted-foreground italic text-sm">
-                                Awaiting AI summary...
-                              </span>
+                              <span className="text-muted-foreground italic text-sm">Awaiting...</span>
                             )}
                           </TableCell>
                           <TableCell className="text-center">
-                            {getStatusBadge(status, call.outcome)}
+                            <select
+                              value={call.followup_status || "new"}
+                              onChange={(e) => updateFollowupMutation.mutate({ id: call.id, followup_status: e.target.value })}
+                              className="text-xs border rounded px-2 py-1 bg-background text-foreground"
+                            >
+                              <option value="new">🆕 New</option>
+                              <option value="called_back">📞 Called Back</option>
+                              <option value="no_answer">📵 No Answer</option>
+                              <option value="completed">✅ Completed</option>
+                              <option value="lost">❌ Lost</option>
+                            </select>
                           </TableCell>
                           <TableCell>
                             <Button
@@ -457,6 +527,30 @@ export default function CallsPage() {
 }
 
 // Helper functions
+
+function getLeadScoreBadge(score: string | null) {
+  switch (score) {
+    case "hot":
+      return <Badge variant="destructive" className="text-xs gap-1"><Flame className="h-3 w-3" />Hot</Badge>;
+    case "cool":
+      return <Badge variant="secondary" className="text-xs gap-1"><Snowflake className="h-3 w-3" />Cool</Badge>;
+    case "warm":
+    default:
+      return <Badge variant="warning" className="text-xs gap-1"><Thermometer className="h-3 w-3" />Warm</Badge>;
+  }
+}
+
+function getTimeSince(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return format(new Date(dateStr), "MMM d");
+}
 
 function getCustomerName(call: CallSession): string {
   // Priority: linked customer record > context_json > extracted_payload > Unknown
