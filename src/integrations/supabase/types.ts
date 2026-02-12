@@ -7615,6 +7615,116 @@ export type Database = {
           },
         ]
       }
+      sales_inventory: {
+        Row: {
+          asking_price_cents: number | null
+          body_style: string | null
+          color_exterior: string | null
+          color_interior: string | null
+          condition: string | null
+          created_at: string
+          days_on_lot: number | null
+          description: string | null
+          external_id: string | null
+          external_source: string | null
+          features: string[] | null
+          financing_available: boolean | null
+          id: string
+          internet_price_cents: number | null
+          last_synced_at: string | null
+          listing_url: string | null
+          lot_location: string | null
+          make: string | null
+          mileage: number | null
+          model: string | null
+          msrp_cents: number | null
+          photo_urls: string[] | null
+          special_notes: string | null
+          status: string | null
+          stock_number: string | null
+          tenant_id: string
+          trade_in_eligible: boolean | null
+          trim: string | null
+          updated_at: string
+          vin: string | null
+          year: string | null
+        }
+        Insert: {
+          asking_price_cents?: number | null
+          body_style?: string | null
+          color_exterior?: string | null
+          color_interior?: string | null
+          condition?: string | null
+          created_at?: string
+          days_on_lot?: number | null
+          description?: string | null
+          external_id?: string | null
+          external_source?: string | null
+          features?: string[] | null
+          financing_available?: boolean | null
+          id?: string
+          internet_price_cents?: number | null
+          last_synced_at?: string | null
+          listing_url?: string | null
+          lot_location?: string | null
+          make?: string | null
+          mileage?: number | null
+          model?: string | null
+          msrp_cents?: number | null
+          photo_urls?: string[] | null
+          special_notes?: string | null
+          status?: string | null
+          stock_number?: string | null
+          tenant_id: string
+          trade_in_eligible?: boolean | null
+          trim?: string | null
+          updated_at?: string
+          vin?: string | null
+          year?: string | null
+        }
+        Update: {
+          asking_price_cents?: number | null
+          body_style?: string | null
+          color_exterior?: string | null
+          color_interior?: string | null
+          condition?: string | null
+          created_at?: string
+          days_on_lot?: number | null
+          description?: string | null
+          external_id?: string | null
+          external_source?: string | null
+          features?: string[] | null
+          financing_available?: boolean | null
+          id?: string
+          internet_price_cents?: number | null
+          last_synced_at?: string | null
+          listing_url?: string | null
+          lot_location?: string | null
+          make?: string | null
+          mileage?: number | null
+          model?: string | null
+          msrp_cents?: number | null
+          photo_urls?: string[] | null
+          special_notes?: string | null
+          status?: string | null
+          stock_number?: string | null
+          tenant_id?: string
+          trade_in_eligible?: boolean | null
+          trim?: string | null
+          updated_at?: string
+          vin?: string | null
+          year?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_inventory_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seasonal_knowledge: {
         Row: {
           ai_announcement: string | null
