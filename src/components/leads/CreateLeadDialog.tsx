@@ -53,10 +53,10 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
         full_name: fullName.trim(),
         phone: phone.trim() || null,
         email: email.trim() || null,
-        source,
-        notes: notes.trim() || null,
+        source: source as any,
         status: "new",
-      });
+        vehicle_or_context: notes.trim() || null,
+      } as any);
       toast.success("Lead created");
       resetForm();
       onOpenChange(false);
