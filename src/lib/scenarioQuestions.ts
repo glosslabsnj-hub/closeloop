@@ -37,7 +37,7 @@ const serviceQuestions: ScenarioQuestion[] = [
     capabilityKey: "aiBooksDirect",
     label: "AI Books Appointments",
     question: "Should the AI book appointments directly into your calendar?",
-    description: "If no, the AI will collect customer info and create a callback request for you to schedule manually",
+    description: "If yes, you'll choose whether bookings are instant or need your approval in the next step",
     defaultValue: true,
     impliesModules: ["booking"],
     overridesBase: true,

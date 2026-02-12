@@ -32,6 +32,15 @@ export interface SetupStepContext {
   showStaffSection: boolean;
   showCurbsideSection: boolean;
   showNewPatientFormsSection: boolean;
+  // Capability-driven flags for actionable setup tasks
+  chargesTripFee?: boolean;
+  hasTripFeeModifier?: boolean;
+  hasMinimumCharge?: boolean;
+  hasMinimumChargeModifier?: boolean;
+  requiresDeposits?: boolean;
+  hasDepositConfigured?: boolean;
+  offersMobileService?: boolean;
+  hasServiceArea?: boolean;
 }
 
 // Icons are passed in from the component to avoid lucide imports in a lib file
@@ -49,6 +58,9 @@ export interface SetupStepIcons {
   Rocket: React.ElementType;
   CalendarIcon: React.ElementType;
   AlertTriangle: React.ElementType;
+  DollarSign: React.ElementType;
+  MapPin: React.ElementType;
+  Shield: React.ElementType;
 }
 
 /**
@@ -196,6 +208,56 @@ export function buildSetupSteps(
       description: "Booking is enabled but no calendar is connected",
       href: "/app/business-brain?section=calendar",
       icon: icons.CalendarIcon,
+      completed: false,
+    });
+  }
+
+  // ── Capability-driven configuration tasks ──
+
+  // Trip fee: toggled ON in discovery but no price modifier set
+  if (ctx.chargesTripFee && !ctx.hasTripFeeModifier) {
+    steps.push({
+      id: "trip-fee",
+      label: "Set your trip fee amount",
+      description: "You said you charge a trip fee — set the amount",
+      href: "/app/business-brain?section=pricing",
+      icon: icons.DollarSign,
+      completed: false,
+    });
+  }
+
+  // Minimum charge: toggled ON but no modifier configured
+  if (ctx.hasMinimumCharge && !ctx.hasMinimumChargeModifier) {
+    steps.push({
+      id: "minimum-charge",
+      label: "Set your minimum charge",
+      description: "Configure the minimum service charge amount",
+      href: "/app/business-brain?section=pricing",
+      icon: icons.DollarSign,
+      completed: false,
+    });
+  }
+
+  // Deposits: toggled ON but not configured
+  if (ctx.requiresDeposits && !ctx.hasDepositConfigured) {
+    steps.push({
+      id: "deposits",
+      label: "Configure deposit policy",
+      description: "Set your deposit amount and requirements",
+      href: "/app/business-brain?section=policies",
+      icon: icons.Shield,
+      completed: false,
+    });
+  }
+
+  // Mobile/on-site: toggled ON but no service area set
+  if (ctx.offersMobileService && !ctx.hasServiceArea) {
+    steps.push({
+      id: "service-area",
+      label: "Set your service area",
+      description: "Define how far you travel for on-site work",
+      href: "/app/business-brain?section=coverage",
+      icon: icons.MapPin,
       completed: false,
     });
   }
