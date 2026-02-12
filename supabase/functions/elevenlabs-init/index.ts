@@ -618,16 +618,22 @@ serve(async (req) => {
   });
 
   const isCallbackOnly = context?.ai_settings?.ai_behavior_mode === "callback_only";
-  const conversationConfigOverride =
-    (context?.tenant.business_mode === "dispatch" || isCallbackOnly) && systemPrompt
-      ? {
-          agent: {
-            prompt: {
-              prompt: systemPrompt,
-            },
-          },
-        }
-      : undefined;
+  const greetingScript = dynamicVariables.greeting_script;
+  
+  // Build conversation_config_override when we need to set first_message or prompt
+  let conversationConfigOverride: Record<string, unknown> | undefined;
+  const needsPromptOverride = (context?.tenant.business_mode === "dispatch" || isCallbackOnly) && systemPrompt;
+  
+  if (greetingScript || needsPromptOverride) {
+    const agentOverride: Record<string, unknown> = {};
+    if (greetingScript) {
+      agentOverride.first_message = greetingScript;
+    }
+    if (needsPromptOverride) {
+      agentOverride.prompt = { prompt: systemPrompt };
+    }
+    conversationConfigOverride = { agent: agentOverride };
+  }
 
   const responsePayload: Record<string, unknown> = {
     dynamic_variables: dynamicVariables,
