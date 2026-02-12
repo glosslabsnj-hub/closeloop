@@ -15,6 +15,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Warehouse, Search, Loader2 } from "lucide-react";
 import { useSalesInventory } from "@/hooks/useSalesInventory";
 import { EmptyState } from "@/components/ui/empty-state";
+import { VehicleDetailDialog } from "@/components/inventory/VehicleDetailDialog";
 import { cn } from "@/lib/utils";
 
 const statusColors: Record<string, string> = {
@@ -40,6 +41,7 @@ export default function SalesInventoryPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [conditionFilter, setConditionFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
 
   const filteredInventory = useMemo(() => {
     return inventory.filter((item) => {
@@ -47,7 +49,7 @@ export default function SalesInventoryPage() {
       if (conditionFilter !== "all" && item.condition !== conditionFilter) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        const desc = `${item.year || ""} ${item.make || ""} ${item.model || ""} ${item.trim || ""} ${item.stock_number || ""} ${item.vin || ""}`.toLowerCase();
+        const desc = `${item.year || ""} ${item.make || ""} ${item.model || ""} ${item.trim || ""} ${item.stock_number || ""} ${item.vin || ""} ${item.color_exterior || ""}`.toLowerCase();
         return desc.includes(q);
       }
       return true;
@@ -76,7 +78,7 @@ export default function SalesInventoryPage() {
           <div className="relative flex-1 min-w-[200px] max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by year, make, model, stock #, VIN..."
+              placeholder="Search by year, make, model, color, stock #..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
@@ -128,10 +130,26 @@ export default function SalesInventoryPage() {
               if (item.make) titleParts.push(item.make);
               if (item.model) titleParts.push(item.model);
               const title = titleParts.join(" ") || "Unnamed Item";
+              const hasPhoto = item.photo_urls && item.photo_urls.length > 0;
 
               return (
-                <Card key={item.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4 space-y-2">
+                <Card
+                  key={item.id}
+                  className="hover:shadow-md transition-shadow cursor-pointer hover:ring-1 hover:ring-primary/20"
+                  onClick={() => setSelectedVehicle(item)}
+                >
+                  {/* Thumbnail */}
+                  {hasPhoto && (
+                    <div className="relative w-full h-32 overflow-hidden rounded-t-lg bg-muted">
+                      <img
+                        src={(item.photo_urls as string[])[0]}
+                        alt={title}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+                  )}
+                  <CardContent className={cn("p-4 space-y-2", !hasPhoto && "pt-4")}>
                     <div className="flex items-start justify-between">
                       <div>
                         <h3 className="font-medium text-sm">{title}</h3>
@@ -142,7 +160,7 @@ export default function SalesInventoryPage() {
                       </Badge>
                     </div>
 
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                       {item.condition && (
                         <Badge variant="outline" className="text-[10px]">
                           {item.condition}
@@ -176,6 +194,12 @@ export default function SalesInventoryPage() {
           </div>
         )}
       </div>
+
+      <VehicleDetailDialog
+        vehicle={selectedVehicle}
+        open={!!selectedVehicle}
+        onOpenChange={(open) => !open && setSelectedVehicle(null)}
+      />
     </PageContainer>
   );
 }
