@@ -1,83 +1,101 @@
 
 
-# Fix: AI Agent Not Using Callback-Only Mode
+# Fix Callback-Only Mode for Smiles Auto Works
 
-## The Problem
+## What's Happening Now
 
-When calling Smiles Auto Works, the AI tries to check availability and book appointments instead of just collecting information and creating a callback. This happens because the "callback-only" signal never reaches the AI agent.
+The AI is still trying to book appointments because of two code bugs and some inaccurate data. The good news: all the right callback-only instructions already exist in the system -- they're just not being delivered to the AI agent.
 
-## Root Cause
+## What This Plan Does
 
-The system has all the right pieces but they're not connected:
+**You do NOT need to edit your ElevenLabs prompt.** The system already has excellent callback-only instructions built in -- they just aren't reaching the agent due to two code bugs. This fix connects the wiring so it works automatically.
 
-- Smiles Auto Works has `callbackOnly: true` in its settings (set during onboarding)
-- The AI prompt override for callback-only mode exists and is well-written
-- The code that builds the AI's instructions looks for a field called `ai_behavior_mode` in the database
-- **That field does not exist in the database** -- so it always defaults to "full service" mode
-- The `callbackOnly` flag from settings is never checked by the voice system
+### 1. Fix the two code bugs (the real problem)
 
-In short: the AI never knows it should be in callback-only mode.
+**Bug A -- Prompt builder ignores callback-only mode**
+The code that builds the AI's instructions calls two functions but forgets to tell them "this is a callback-only business." So the callback-only rules never get included in the prompt.
 
-## The Fix (2 parts)
+**Bug B -- Prompt never sent to ElevenLabs**
+Even if the prompt were built correctly, the system only sends custom prompts to ElevenLabs for dispatch/towing businesses. Smiles Auto Works is a "service" business, so the prompt gets thrown away and ElevenLabs uses its default dashboard prompt (which has booking logic).
 
-### Part 1: Add the missing database column
+### 2. Fix inaccurate FAQs
 
-Add `ai_behavior_mode` column to the `assistant_settings` table with a default of `"full_service"`. Then set it to `"callback_only"` for the Smiles Auto Works tenant.
+| Current FAQ | Problem | Fix |
+|-------------|---------|-----|
+| "Do you offer mobile service?" -- "Yes" | They don't offer mobile service | Delete this FAQ |
+| "Do you charge for estimates?" -- "book online" | There's no online booking | Update to "Give us a call and we'll take a look" |
 
-### Part 2: Auto-derive callback-only from capabilities
+### 3. Add a "General Auto Repair" catch-all service
 
-Update `buildBusinessContext` (the backend function that assembles the AI's instructions) so that even if `ai_behavior_mode` isn't explicitly set, it checks for the `callbackOnly` capability flag and automatically activates callback-only mode. This means:
+Right now there are 6 specific services listed. Since the shop handles a huge range of auto repair work, we'll add a "General Auto Repair" entry with `quote_only` pricing. This tells the AI: "we do pretty much everything automotive -- just collect the details and we'll call back with a quote."
 
-- Any business onboarded as "callback only" will automatically get the right AI behavior
-- No manual database updates needed for future businesses
-- The explicit `ai_behavior_mode` column still works as an override
+### 4. Add operating hours
 
-### What Changes
+No hours are configured, so the AI can't tell callers when the shop is open. We'll add typical auto shop hours (Mon-Fri 8am-6pm, Sat 8am-2pm) that can be adjusted later in the Business Brain.
 
-| What | Change |
-|------|--------|
-| Database | Add `ai_behavior_mode` column to `assistant_settings` |
-| Database | Set Smiles Auto Works to `callback_only` |
-| buildBusinessContext | Check `capabilities_json.callbackOnly` as fallback when `ai_behavior_mode` is not set |
-| Redeploy | Re-deploy affected backend functions |
+### 5. Redeploy
 
-### Expected Result
+Push the updated backend functions so the fix takes effect on real calls.
 
-After this fix, when someone calls Smiles Auto Works, the AI will:
-1. Greet warmly as a real employee
-2. Listen to what the caller needs (e.g., turbo replacement)
-3. Answer general questions (hours, location, services)
-4. Collect their name and confirm phone number
-5. Say "I'll have someone call you back about that"
-6. Create a callback record -- no booking, no availability checks
+## Expected Result
+
+After this fix, when someone calls:
+1. "Hi, thanks for calling Smiles Auto Works, how can I help you?"
+2. Caller: "I need a turbo replacement"
+3. "We can definitely help with that. Can I get your name?"
+4. Collects name, confirms phone number
+5. "Great, I'll have someone from our team reach out to you to get that taken care of."
+6. Creates a callback record -- no availability check, no booking attempt
+
+The AI will still be smart -- it knows the shop's services, hours, and can answer questions. It just won't try to schedule anything.
+
+---
 
 ## Technical Details
 
-**Migration SQL:**
-```sql
-ALTER TABLE assistant_settings
-  ADD COLUMN IF NOT EXISTS ai_behavior_mode text DEFAULT 'full_service';
+### File Changes
 
-UPDATE assistant_settings
-  SET ai_behavior_mode = 'callback_only'
-  WHERE tenant_id IN (
-    SELECT id FROM tenants
-    WHERE capabilities_json->>'callbackOnly' = 'true'
-  );
-```
+**`supabase/functions/_shared/buildBusinessContext.ts` (lines 3095-3110)**
+Pass `ai_behavior_mode` to both prompt builder functions:
 
-**buildBusinessContext change (line ~2306):**
 ```typescript
-// Before:
-ai_behavior_mode: (assistantSettings?.ai_behavior_mode as ...) || "full_service",
-
-// After: also check capabilities_json for callbackOnly
-ai_behavior_mode: (assistantSettings?.ai_behavior_mode as ...) 
-  || (tenant?.capabilities_json?.callbackOnly === true ? "callback_only" : "full_service"),
+const aiBehaviorMode = ctx.ai_settings.ai_behavior_mode as "full_service" | "callback_only" | undefined;
+const capabilityPrompt = buildPromptForCapabilities(caps, ctx.tenant.industry_slug, aiBehaviorMode);
+// ...
+const basePrompt = getBasePromptForMode(businessMode, aiBehaviorMode);
 ```
 
-**Files modified:**
-- `supabase/functions/_shared/buildBusinessContext.ts` -- add capabilities fallback for ai_behavior_mode
-- Database migration -- add column + backfill existing callback-only tenants
-- Redeploy `build-business-brain`, `register-call`, and related functions
+**`supabase/functions/elevenlabs-init/index.ts` (lines 620-629)**
+Send prompt override for callback-only businesses, not just dispatch:
+
+```typescript
+const isCallbackOnly = context?.ai_settings?.ai_behavior_mode === "callback_only";
+const conversationConfigOverride =
+  (context?.tenant.business_mode === "dispatch" || isCallbackOnly) && systemPrompt
+    ? { agent: { prompt: { prompt: systemPrompt } } }
+    : undefined;
+```
+
+### Database Changes
+
+**Delete inaccurate FAQ:**
+- Remove "Do you offer mobile service?" (id: `0bcd30d2-...`)
+
+**Update misleading FAQ:**
+- "Do you charge for estimates?" answer changed to: "No, we provide free estimates! Give us a call and we'll take a look at no cost."
+
+**Add General Auto Repair service:**
+- Name: "General Auto Repair"
+- Price type: `quote_only`
+- Description: "Full-service auto repair -- engine, transmission, electrical, suspension, and more. Tell us what's going on and we'll get back to you with a plan."
+
+**Add operating hours:**
+- Mon-Fri: 8:00 AM - 6:00 PM
+- Sat: 8:00 AM - 2:00 PM
+- Sun: Closed
+
+### Redeploy
+- `elevenlabs-init`
+- `build-business-brain`
+- `get-business-context`
 
