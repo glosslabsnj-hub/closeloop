@@ -70,7 +70,7 @@ export function CommunicationPreferences({
           How should your AI communicate?
         </h2>
         <p className="mt-2 text-muted-foreground">
-          Set your preferences for how the AI handles bookings, missed calls, and unknown questions.
+          Choose how your AI handles bookings and missed calls.
         </p>
       </div>
 
@@ -126,31 +126,6 @@ export function CommunicationPreferences({
         ]}
       />
 
-      {/* Unknown Question Behavior */}
-      <PreferenceSection
-        title="When AI doesn't know the answer:"
-        value={value.unknownQuestionBehavior}
-        onValueChange={(v) => onChange({ ...value, unknownQuestionBehavior: v as CommunicationPrefs["unknownQuestionBehavior"] })}
-        options={[
-          {
-            value: "escalate",
-            label: "Escalate Immediately",
-            description: "Transfer or take a message right away",
-          },
-          {
-            value: "try_help",
-            label: "Try to Help",
-            description: "AI uses general knowledge to assist, then escalates if needed",
-            recommended: true,
-          },
-          {
-            value: "offer_callback",
-            label: "Offer Callback",
-            description: "AI lets the caller know someone will follow up",
-          },
-        ]}
-      />
-
       {/* AI Personality Tone */}
       <PreferenceSection
         title="AI personality tone:"
@@ -172,31 +147,6 @@ export function CommunicationPreferences({
             value: "casual",
             label: "Casual",
             description: "Relaxed and laid-back, like a neighbor helping out",
-          },
-        ]}
-      />
-
-      {/* Follow-up Aggressiveness */}
-      <PreferenceSection
-        title="Follow-up frequency:"
-        value={value.followUpCadence}
-        onValueChange={(v) => onChange({ ...value, followUpCadence: v as FollowUpCadence })}
-        options={[
-          {
-            value: "aggressive",
-            label: "Aggressive",
-            description: "Quick, frequent follow-ups to maximize conversions",
-          },
-          {
-            value: "moderate",
-            label: "Moderate",
-            description: "Balanced follow-ups at reasonable intervals",
-            recommended: true,
-          },
-          {
-            value: "conservative",
-            label: "Conservative",
-            description: "Minimal follow-ups, only when clearly needed",
           },
         ]}
       />

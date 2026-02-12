@@ -3,25 +3,50 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Check, LayoutDashboard, BookOpen, Phone as PhoneIcon, Settings, MapPin, Sparkles, Calendar } from "lucide-react";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
+import { getIndustryBySlug } from "@/data/industryCatalog";
+import { getIndustryOnboardingConfig, type NextStepItem } from "@/config/industryOnboardingConfig";
 
 interface OnboardingCompleteProps {
   businessName: string;
   phoneNumber?: string;
   businessMode?: BusinessMode;
   scenarioAnswers?: Record<string, boolean>;
+  industrySlug?: string;
 }
+
+const iconMap: Record<NextStepItem["icon"], typeof PhoneIcon> = {
+  phone: PhoneIcon,
+  calendar: Calendar,
+  book: BookOpen,
+  sparkles: Sparkles,
+  map: MapPin,
+  settings: Settings,
+};
 
 function getNextSteps(
   mode: BusinessMode = "service",
-  answers: Record<string, boolean> = {}
-) {
+  answers: Record<string, boolean> = {},
+  slug?: string
+): { label: string; icon: typeof PhoneIcon }[] {
+  if (slug) {
+    const industryEntry = getIndustryBySlug(slug);
+    const config = getIndustryOnboardingConfig(
+      mode,
+      industryEntry?.category,
+      slug
+    );
+    return config.nextSteps.map((step) => ({
+      label: step.label,
+      icon: iconMap[step.icon] || Sparkles,
+    }));
+  }
+
+  // Fallback for when no industry slug is set
   const isCallbackOnly = answers.aiBooksDirect === false;
   const steps: { label: string; icon: typeof PhoneIcon }[] = [];
 
-  // Always start with test call
   steps.push({ label: "Make a test call to hear your AI", icon: PhoneIcon });
 
-  // Mode-specific steps
   if (!isCallbackOnly && (mode === "service" || mode === "medical" || mode === "sales")) {
     steps.push({ label: "Connect your calendar for live booking", icon: Calendar });
   }
@@ -30,17 +55,14 @@ function getNextSteps(
     steps.push({ label: "Set up your service area and coverage zones", icon: MapPin });
   }
 
-  // Always recommend FAQs
   steps.push({ label: "Add FAQs so your AI can answer common questions", icon: BookOpen });
-
-  // AI scripts
   steps.push({ label: "Customize your AI's greeting and scripts", icon: Sparkles });
 
   return steps;
 }
 
-export function OnboardingComplete({ businessName, phoneNumber, businessMode, scenarioAnswers }: OnboardingCompleteProps) {
-  const nextSteps = getNextSteps(businessMode, scenarioAnswers);
+export function OnboardingComplete({ businessName, phoneNumber, businessMode, scenarioAnswers, industrySlug }: OnboardingCompleteProps) {
+  const nextSteps = getNextSteps(businessMode, scenarioAnswers, industrySlug);
 
   return (
     <div className="text-center space-y-6">

@@ -9,9 +9,9 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
   Building2, CheckCircle2, Loader2,
-  ChevronRight, ChevronLeft, Sparkles, Sliders,
-  HelpCircle, ExternalLink, Briefcase, Clock,
-  UtensilsCrossed, MapPin, Shield, MessageSquareText
+  ChevronRight, ChevronLeft, Sliders,
+  HelpCircle, ExternalLink, Clock,
+  UtensilsCrossed
 } from "lucide-react";
 import { createDefaultWorkflowsForMode } from "@/lib/createDefaultWorkflows";
 import { getIndustryBySlug } from "@/data/industryCatalog";
@@ -20,7 +20,7 @@ import { BusinessModeSelector, type BusinessMode, getDefaultModulesForMode } fro
 import { ScenarioDiscovery } from "@/components/onboarding/ScenarioDiscovery";
 import { CommunicationPreferences, getDefaultCommunicationPrefs, type CommunicationPrefs } from "@/components/onboarding/CommunicationPreferences";
 import { ConfirmationSummary } from "@/components/onboarding/ConfirmationSummary";
-import { BusinessDetailsForm, getDefaultBusinessDetails, type BusinessDetails } from "@/components/onboarding/BusinessDetailsForm";
+import { getDefaultBusinessDetails, type BusinessDetails } from "@/components/onboarding/BusinessDetailsForm";
 import { SchedulingSetup, getDefaultSchedulingPrefs, getDefaultHoursForMode, type SchedulingPrefs } from "@/components/onboarding/SchedulingSetup";
 import { formatErrorForToast } from "@/lib/errorMessages";
 import { OnboardingProgress, OnboardingProgressMobile, type OnboardingStep } from "@/components/onboarding/OnboardingProgress";
@@ -31,30 +31,22 @@ import { getQuestionsForMode, getDefaultAnswers, deriveModulesFromScenario } fro
 import { DEFAULT_BUSINESS_HOURS } from "@/lib/hoursUtils";
 import { applyScenarioSeeds } from "@/lib/scenarioSeeding";
 import { ServicePreviewStep, type EditableService } from "@/components/onboarding/ServicePreviewStep";
-import { ServiceAreaStep, getDefaultServiceArea, type ServiceAreaConfig } from "@/components/onboarding/ServiceAreaStep";
-import { PolicyPreviewStep, type EditablePolicies } from "@/components/onboarding/PolicyPreviewStep";
-import { FAQPreviewStep, type EditableFAQ } from "@/components/onboarding/FAQPreviewStep";
+import { getDefaultServiceArea, type ServiceAreaConfig } from "@/components/onboarding/ServiceAreaStep";
+import type { EditablePolicies } from "@/components/onboarding/PolicyPreviewStep";
+import type { EditableFAQ } from "@/components/onboarding/FAQPreviewStep";
+import { getIndustryOnboardingConfig } from "@/config/industryOnboardingConfig";
 import type { BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
 import type { PlanCode } from "@/types/database";
 
-/** All possible onboarding steps. Some are conditionally visible based on mode. */
-const ALL_STEPS: (OnboardingStep & { visibleFor?: BusinessMode[] })[] = [
-  { id: "identity", icon: Building2, title: "Business Name", description: "What your AI will call itself" },
-  { id: "industry", icon: Sparkles, title: "Industry", description: "Customize your setup" },
-  { id: "details", icon: Briefcase, title: "Details", description: "Size, pricing & volume" },
-  { id: "scenarios", icon: HelpCircle, title: "Discovery", description: "How your business operates" },
-  { id: "services-preview", icon: UtensilsCrossed, title: "Your Offerings", description: "Review your services" },
+/** Streamlined 6-step onboarding — industry-intelligent setup */
+const ALL_STEPS: OnboardingStep[] = [
+  { id: "identity", icon: Building2, title: "Your Business", description: "Name and industry" },
+  { id: "scenarios", icon: HelpCircle, title: "Discovery", description: "How you operate" },
+  { id: "services-preview", icon: UtensilsCrossed, title: "Your Offerings", description: "Review services" },
   { id: "scheduling", icon: Clock, title: "Scheduling", description: "Hours & availability" },
-  { id: "coverage", icon: MapPin, title: "Coverage", description: "Where you serve", visibleFor: ["dispatch", "service", "food"] },
-  { id: "policies-preview", icon: Shield, title: "Policies", description: "Cancellation & payments" },
-  { id: "faqs-preview", icon: MessageSquareText, title: "FAQs", description: "Common questions" },
-  { id: "communication", icon: Sliders, title: "AI Behavior", description: "Tone, booking & follow-ups" },
+  { id: "communication", icon: Sliders, title: "AI Behavior", description: "Tone & booking mode" },
   { id: "confirm", icon: CheckCircle2, title: "Review", description: "Confirm and launch" },
 ];
-
-function getVisibleSteps(mode: BusinessMode): OnboardingStep[] {
-  return ALL_STEPS.filter(s => !s.visibleFor || s.visibleFor.includes(mode));
-}
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
@@ -98,11 +90,14 @@ export default function OnboardingPage() {
   const [templatePolicies, setTemplatePolicies] = useState<EditablePolicies>({ cancellation: "", deposit: "", refund: "" });
   const [serviceArea, setServiceArea] = useState<ServiceAreaConfig>(getDefaultServiceArea("service"));
 
+  // "Can't find your industry?" fallback toggle
+  const [showModeFallback, setShowModeFallback] = useState(false);
+
   const { user, tenant, loading: authLoading, refreshTenant, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const steps = getVisibleSteps(businessMode);
+  const steps = ALL_STEPS;
   const totalSteps = steps.length;
   const progress = (step / totalSteps) * 100;
 
@@ -144,7 +139,10 @@ export default function OnboardingPage() {
       setBusinessHours(getDefaultHoursForMode(newMode));
       // Reset scenario answers to match new mode (with industry context for filtering)
       const ctx = { slug: industrySlug, category: industryEntry.category };
-      setScenarioAnswers(getDefaultAnswers(newMode, ctx));
+      const defaults = getDefaultAnswers(newMode, ctx);
+      // Merge in industry pre-answers (user can still override in Discovery step)
+      const onboardingConfig = getIndustryOnboardingConfig(newMode, industryEntry.category, industrySlug);
+      setScenarioAnswers({ ...defaults, ...onboardingConfig.preAnswers });
     }
 
     // Auto-update enabled_modules from industry
@@ -205,9 +203,6 @@ export default function OnboardingPage() {
     setSchedulingPrefs(getDefaultSchedulingPrefs(mode));
     setBusinessHours(getDefaultHoursForMode(mode));
     setServiceArea(getDefaultServiceArea(mode));
-    // Clamp step if it's beyond the new visible steps count
-    const newSteps = getVisibleSteps(mode);
-    if (step > newSteps.length) setStep(newSteps.length);
   };
 
   // Current step ID based on numeric position
@@ -217,18 +212,13 @@ export default function OnboardingPage() {
   const canProceed = (stepNum: number) => {
     const stepId = steps[stepNum - 1]?.id;
     switch (stepId) {
-      case "identity": return businessName.trim().length > 0 && businessMode.length > 0;
-      case "industry": return industrySlug.length > 0;
-      case "details": return true;
+      case "identity": return businessName.trim().length > 0 && industrySlug.length > 0;
       case "scenarios": {
         if (businessMode === "medical") return scenarioAnswers.requiresHIPAA === true;
         return true;
       }
       case "services-preview": return templateServices.some(s => s.enabled && s.name.trim().length > 0);
       case "scheduling": return true;
-      case "coverage": return true;
-      case "policies-preview": return true;
-      case "faqs-preview": return true;
       case "communication": return true;
       case "confirm": return true;
       default: return false;
@@ -700,7 +690,7 @@ export default function OnboardingPage() {
 
         {/* Step Content - Centered */}
         <div className="flex-1 flex items-center justify-center p-6">
-          <div className="w-full max-w-lg">
+          <div className="w-full max-w-2xl">
             <AnimatePresence mode="wait">
               {isComplete ? (
                 <motion.div
@@ -710,7 +700,7 @@ export default function OnboardingPage() {
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <OnboardingComplete businessName={businessName} phoneNumber={provisionedPhone} businessMode={businessMode} scenarioAnswers={scenarioAnswers} />
+                  <OnboardingComplete businessName={businessName} phoneNumber={provisionedPhone} businessMode={businessMode} scenarioAnswers={scenarioAnswers} industrySlug={industrySlug} />
                 </motion.div>
               ) : (
                 <motion.div
@@ -721,7 +711,7 @@ export default function OnboardingPage() {
                   transition={{ duration: 0.2 }}
                   className="space-y-6"
                 >
-                  {/* Identity */}
+                  {/* Identity + Industry (combined step) */}
                   {currentStepId === "identity" && (
                     <div className="space-y-6">
                       <div>
@@ -742,25 +732,28 @@ export default function OnboardingPage() {
                           autoFocus
                         />
                       </div>
-                      <BusinessModeSelector value={businessMode} onChange={handleBusinessModeChange} />
+                      <IndustrySelectorGrid
+                        value={industrySlug}
+                        onChange={(slug) => {
+                          setIndustrySlug(slug);
+                          setShowModeFallback(false);
+                        }}
+                      />
+                      {!showModeFallback ? (
+                        <button
+                          type="button"
+                          className="text-sm text-muted-foreground hover:text-primary underline"
+                          onClick={() => setShowModeFallback(true)}
+                        >
+                          Can't find your industry?
+                        </button>
+                      ) : (
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground">Choose your business type instead:</p>
+                          <BusinessModeSelector value={businessMode} onChange={handleBusinessModeChange} />
+                        </div>
+                      )}
                     </div>
-                  )}
-
-                  {/* Industry */}
-                  {currentStepId === "industry" && (
-                    <IndustrySelectorGrid
-                      value={industrySlug}
-                      onChange={(slug) => setIndustrySlug(slug)}
-                    />
-                  )}
-
-                  {/* Business Details */}
-                  {currentStepId === "details" && (
-                    <BusinessDetailsForm
-                      businessMode={businessMode}
-                      value={businessDetails}
-                      onChange={setBusinessDetails}
-                    />
                   )}
 
                   {/* Scenario Discovery */}
@@ -796,34 +789,6 @@ export default function OnboardingPage() {
                     />
                   )}
 
-                  {/* Coverage / Service Area (NEW) */}
-                  {currentStepId === "coverage" && (
-                    <ServiceAreaStep
-                      businessMode={businessMode}
-                      value={serviceArea}
-                      onChange={setServiceArea}
-                    />
-                  )}
-
-                  {/* Policies Preview (NEW) */}
-                  {currentStepId === "policies-preview" && (
-                    <PolicyPreviewStep
-                      businessMode={businessMode}
-                      policies={templatePolicies}
-                      onChange={setTemplatePolicies}
-                    />
-                  )}
-
-                  {/* FAQ Preview (NEW) */}
-                  {currentStepId === "faqs-preview" && (
-                    <FAQPreviewStep
-                      businessMode={businessMode}
-                      industrySlug={industrySlug}
-                      faqs={templateFAQs}
-                      onChange={setTemplateFAQs}
-                    />
-                  )}
-
                   {/* Communication Preferences */}
                   {currentStepId === "communication" && (
                     <CommunicationPreferences
@@ -841,12 +806,9 @@ export default function OnboardingPage() {
                       industrySlug={industrySlug}
                       scenarioAnswers={scenarioAnswers}
                       communicationPrefs={communicationPrefs}
-                      businessDetails={businessDetails}
                       schedulingPrefs={schedulingPrefs}
                       templateServices={templateServices}
-                      templateFAQs={templateFAQs}
-                      templatePolicies={templatePolicies}
-                      serviceArea={serviceArea}
+                      onEditStep={(stepNum) => setStep(stepNum)}
                     />
                   )}
                 </motion.div>
@@ -858,7 +820,7 @@ export default function OnboardingPage() {
         {/* Footer Navigation */}
         {!isComplete && (
           <div className="border-t bg-card p-6">
-            <div className="max-w-lg mx-auto flex justify-between gap-4">
+            <div className="max-w-2xl mx-auto flex justify-between gap-4">
               <Button
                 variant="ghost"
                 onClick={goBack}

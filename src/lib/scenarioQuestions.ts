@@ -24,6 +24,7 @@ export interface ScenarioQuestion {
   industryFilter?: { categories?: string[]; slugs?: string[] };  // industry-gated
   group?: QuestionGroup;       // visual grouping
   requiredForAI?: boolean;     // shows "AI uses this" badge
+  preAnsweredFor?: { slugs?: string[]; categories?: string[] };  // pre-checked for these industries
 }
 
 // ---------------------------------------------------------------------------
@@ -51,6 +52,7 @@ const serviceQuestions: ScenarioQuestion[] = [
     description: "You travel to the customer's location to perform work",
     defaultValue: false,
     group: "core",
+    preAnsweredFor: { categories: ["home_services"] },
   },
   {
     id: "same-day-emergency",
@@ -60,6 +62,7 @@ const serviceQuestions: ScenarioQuestion[] = [
     description: "Customers can call for urgent, same-day service",
     defaultValue: false,
     group: "core",
+    preAnsweredFor: { slugs: ["plumbing", "hvac", "electrical", "towing", "locksmith"] },
   },
   {
     id: "deposits",
@@ -78,6 +81,7 @@ const serviceQuestions: ScenarioQuestion[] = [
     description: "Customers can show up without an appointment",
     defaultValue: true,
     group: "core",
+    preAnsweredFor: { categories: ["beauty_wellness"] },
   },
   // New questions
   {
@@ -272,6 +276,7 @@ const dispatchQuestions: ScenarioQuestion[] = [
     defaultValue: false,
     impliesModules: ["after_hours_handling"],
     group: "core",
+    preAnsweredFor: { slugs: ["towing"] },
   },
   {
     id: "heavy-duty",
@@ -308,6 +313,7 @@ const dispatchQuestions: ScenarioQuestion[] = [
     description: "Roadside assistance for lockouts and dead batteries",
     defaultValue: true,
     group: "core",
+    preAnsweredFor: { slugs: ["towing"] },
   },
   {
     id: "accident-towing",
@@ -329,6 +335,7 @@ const foodQuestions: ScenarioQuestion[] = [
     description: "Customers can order food delivered to their location",
     defaultValue: false,
     group: "core",
+    preAnsweredFor: { slugs: ["pizza", "chinese_restaurant", "indian_restaurant"] },
   },
   {
     id: "catering",
@@ -893,4 +900,19 @@ export function getDefaultAnswers(
     answers[q.capabilityKey] = q.defaultValue;
   }
   return answers;
+}
+
+/**
+ * Checks if a question is pre-answered for a given industry context.
+ * Pre-answered questions are shown pre-checked but can still be toggled off.
+ */
+export function isPreAnswered(
+  q: ScenarioQuestion,
+  ctx?: { slug: string; category: string }
+): boolean {
+  if (!ctx || !q.preAnsweredFor) return false;
+  const { slugs, categories } = q.preAnsweredFor;
+  if (slugs?.includes(ctx.slug)) return true;
+  if (categories?.includes(ctx.category)) return true;
+  return false;
 }

@@ -1,17 +1,12 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Check, Brain } from "lucide-react";
+import { Check, Brain, Pencil } from "lucide-react";
 import { getIndustryBySlug } from "@/data/industryCatalog";
 import { getQuestionsForMode } from "@/lib/scenarioQuestions";
-import { getIndustryTerminology } from "@/data/industryTerminology";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 import type { CommunicationPrefs } from "./CommunicationPreferences";
-import type { BusinessDetails } from "./BusinessDetailsForm";
 import type { SchedulingPrefs } from "./SchedulingSetup";
 import type { EditableService } from "./ServicePreviewStep";
-import type { EditableFAQ } from "./FAQPreviewStep";
-import type { EditablePolicies } from "./PolicyPreviewStep";
-import type { ServiceAreaConfig } from "./ServiceAreaStep";
 
 const modeLabels: Record<BusinessMode, string> = {
   service: "Service Business",
@@ -34,41 +29,10 @@ const missedCallLabels: Record<string, string> = {
   both: "Text + Callback",
 };
 
-const unknownQuestionLabels: Record<string, string> = {
-  escalate: "Escalate Immediately",
-  try_help: "Try to Help",
-  offer_callback: "Offer Callback",
-};
-
 const toneLabels: Record<string, string> = {
   professional: "Professional",
   friendly: "Friendly",
   casual: "Casual",
-};
-
-const cadenceLabels: Record<string, string> = {
-  aggressive: "Aggressive",
-  moderate: "Moderate",
-  conservative: "Conservative",
-};
-
-const teamSizeLabels: Record<string, string> = {
-  solo: "Solo Operator",
-  small: "Small Team (2-5)",
-  medium: "Medium (6-20)",
-  large: "Large (20+)",
-};
-
-const pricingLabels: Record<string, string> = {
-  budget: "Budget / Value",
-  mid: "Mid-Range",
-  premium: "Premium",
-};
-
-const customerTypeLabels: Record<string, string> = {
-  residential: "Residential",
-  commercial: "Commercial",
-  both: "Residential & Commercial",
 };
 
 interface ConfirmationSummaryProps {
@@ -77,12 +41,9 @@ interface ConfirmationSummaryProps {
   industrySlug: string;
   scenarioAnswers: Record<string, boolean>;
   communicationPrefs: CommunicationPrefs;
-  businessDetails?: BusinessDetails;
   schedulingPrefs?: SchedulingPrefs;
   templateServices?: EditableService[];
-  templateFAQs?: EditableFAQ[];
-  templatePolicies?: EditablePolicies;
-  serviceArea?: ServiceAreaConfig;
+  onEditStep: (stepIndex: number) => void;
 }
 
 export function ConfirmationSummary({
@@ -91,15 +52,11 @@ export function ConfirmationSummary({
   industrySlug,
   scenarioAnswers,
   communicationPrefs,
-  businessDetails,
   schedulingPrefs,
   templateServices,
-  templateFAQs,
-  templatePolicies,
-  serviceArea,
+  onEditStep,
 }: ConfirmationSummaryProps) {
   const industryEntry = getIndustryBySlug(industrySlug);
-  const terms = getIndustryTerminology(businessMode);
   const industryCtx = industryEntry
     ? { slug: industrySlug, category: industryEntry.category }
     : undefined;
@@ -109,6 +66,8 @@ export function ConfirmationSummary({
   const enabledCapabilities = questions.filter(
     (q) => scenarioAnswers[q.capabilityKey]
   );
+
+  const enabledServiceCount = templateServices?.filter(s => s.enabled).length ?? 0;
 
   return (
     <div className="space-y-6">
@@ -121,10 +80,20 @@ export function ConfirmationSummary({
         </p>
       </div>
 
-      {/* Identity */}
+      {/* Card 1: Your Business */}
       <Card>
         <CardContent className="p-4 space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">Business</p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-muted-foreground">Your Business</p>
+            <button
+              type="button"
+              onClick={() => onEditStep(1)}
+              className="text-muted-foreground hover:text-primary transition-colors"
+              aria-label="Edit business info"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          </div>
           <p className="text-lg font-semibold">{businessName}</p>
           <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="secondary">{modeLabels[businessMode]}</Badge>
@@ -137,46 +106,21 @@ export function ConfirmationSummary({
         </CardContent>
       </Card>
 
-      {/* Business Details */}
-      {businessDetails && (
-        <Card>
-          <CardContent className="p-4 space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">Business Details</p>
-            <div className="grid grid-cols-2 gap-1 text-sm">
-              {businessDetails.location && (
-                <div className="flex justify-between col-span-2">
-                  <span className="text-muted-foreground">Location</span>
-                  <span className="font-medium">{businessDetails.location}</span>
-                </div>
-              )}
-              <div className="flex justify-between col-span-2">
-                <span className="text-muted-foreground">Team size</span>
-                <span className="font-medium">{teamSizeLabels[businessDetails.teamSize]}</span>
-              </div>
-              <div className="flex justify-between col-span-2">
-                <span className="text-muted-foreground">Pricing</span>
-                <span className="font-medium">{pricingLabels[businessDetails.pricingPosition]}</span>
-              </div>
-              <div className="flex justify-between col-span-2">
-                <span className="text-muted-foreground">Call volume</span>
-                <span className="font-medium">{businessDetails.expectedCallVolume} calls/day</span>
-              </div>
-              {businessMode !== "food" && businessMode !== "medical" && (
-                <div className="flex justify-between col-span-2">
-                  <span className="text-muted-foreground">Customers</span>
-                  <span className="font-medium">{customerTypeLabels[businessDetails.customerType]}</span>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Capabilities */}
+      {/* Card 2: Capabilities */}
       {enabledCapabilities.length > 0 && (
         <Card>
           <CardContent className="p-4 space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">Capabilities</p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-muted-foreground">Capabilities</p>
+              <button
+                type="button"
+                onClick={() => onEditStep(2)}
+                className="text-muted-foreground hover:text-primary transition-colors"
+                aria-label="Edit capabilities"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            </div>
             <div className="flex flex-wrap gap-2">
               {enabledCapabilities.map((q) => (
                 <Badge key={q.id} variant="default" className="gap-1">
@@ -189,48 +133,60 @@ export function ConfirmationSummary({
         </Card>
       )}
 
-      {/* Scheduling */}
-      {schedulingPrefs && (
-        <Card>
-          <CardContent className="p-4 space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">Scheduling</p>
-            <div className="grid grid-cols-1 gap-1 text-sm">
-              {schedulingPrefs.is24x7 ? (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Hours</span>
-                  <span className="font-medium">24/7</span>
-                </div>
-              ) : (
-                <>
-                  {(businessMode === "service" || businessMode === "medical" || businessMode === "general") && (
-                    <>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Appointment duration</span>
-                        <span className="font-medium">{schedulingPrefs.defaultDurationMinutes} min</span>
-                      </div>
-                      {schedulingPrefs.bufferMinutes > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Buffer</span>
-                          <span className="font-medium">{schedulingPrefs.bufferMinutes} min</span>
-                        </div>
-                      )}
-                    </>
-                  )}
+      {/* Card 3: Your Offerings & Schedule */}
+      <Card>
+        <CardContent className="p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-muted-foreground">Offerings & Schedule</p>
+            <button
+              type="button"
+              onClick={() => onEditStep(3)}
+              className="text-muted-foreground hover:text-primary transition-colors"
+              aria-label="Edit offerings and schedule"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="grid grid-cols-1 gap-1 text-sm">
+            {enabledServiceCount > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Services</span>
+                <span className="font-medium">{enabledServiceCount} configured</span>
+              </div>
+            )}
+            {schedulingPrefs && (
+              <>
+                {schedulingPrefs.is24x7 ? (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Hours</span>
+                    <span className="font-medium">24/7</span>
+                  </div>
+                ) : (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Same-day booking</span>
                     <span className="font-medium">{schedulingPrefs.sameDayBooking ? "Yes" : "No"}</span>
                   </div>
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                )}
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Communication */}
+      {/* Card 4: AI Behavior */}
       <Card>
         <CardContent className="p-4 space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">AI Behavior</p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-muted-foreground">AI Behavior</p>
+            <button
+              type="button"
+              onClick={() => onEditStep(5)}
+              className="text-muted-foreground hover:text-primary transition-colors"
+              aria-label="Edit AI behavior"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          </div>
           <div className="grid grid-cols-1 gap-1 text-sm">
             {businessMode !== "dispatch" && (
               <div className="flex justify-between">
@@ -243,56 +199,13 @@ export function ConfirmationSummary({
               <span className="font-medium">{missedCallLabels[communicationPrefs.missedCallBehavior]}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Unknown questions</span>
-              <span className="font-medium">{unknownQuestionLabels[communicationPrefs.unknownQuestionBehavior]}</span>
-            </div>
-            <div className="flex justify-between">
               <span className="text-muted-foreground">AI tone</span>
               <span className="font-medium">{toneLabels[communicationPrefs.aiTone]}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Follow-ups</span>
-              <span className="font-medium">{cadenceLabels[communicationPrefs.followUpCadence]}</span>
             </div>
             {communicationPrefs.customGreeting && (
               <div className="col-span-1 mt-2 p-2 bg-muted/50 rounded text-xs">
                 <span className="text-muted-foreground block mb-0.5">Custom greeting:</span>
                 <span className="italic">"{communicationPrefs.customGreeting}"</span>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Content summary */}
-      <Card>
-        <CardContent className="p-4 space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">What's Ready</p>
-          <div className="grid grid-cols-1 gap-1 text-sm">
-            {templateServices && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{terms.catalogCardTitle}</span>
-                <span className="font-medium">{templateServices.filter(s => s.enabled).length} configured</span>
-              </div>
-            )}
-            {templateFAQs && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">FAQs</span>
-                <span className="font-medium">{templateFAQs.filter(f => f.enabled).length} ready</span>
-              </div>
-            )}
-            {templatePolicies && (templatePolicies.cancellation || templatePolicies.deposit || templatePolicies.refund) && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Policies</span>
-                <span className="font-medium">
-                  {[templatePolicies.cancellation, templatePolicies.deposit, templatePolicies.refund].filter(Boolean).length} set
-                </span>
-              </div>
-            )}
-            {serviceArea && ["dispatch", "service", "food"].includes(businessMode) && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Coverage</span>
-                <span className="font-medium">{serviceArea.radiusMiles}-mile radius</span>
               </div>
             )}
           </div>

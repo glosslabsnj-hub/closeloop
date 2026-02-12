@@ -20,6 +20,8 @@ import { Check, ChevronRight, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
+import { getIndustryOnboardingConfig } from "@/config/industryOnboardingConfig";
 import { getOrderedSteps, getStepTitle, type HubStep } from "./hub/hubStepsConfig";
 import type { BusinessMode } from "@/hooks/useTenantConfig";
 
@@ -70,6 +72,7 @@ export function GuidedSetupOverlay({
   const [searchParams, setSearchParams] = useSearchParams();
   const { businessMode } = useTenantConfig();
   const { tenant } = useAuth();
+  const { slug, category, mode } = useIndustryContext();
   const [open, setOpen] = useState(false);
 
   // Read capabilities from tenant
@@ -95,6 +98,11 @@ export function GuidedSetupOverlay({
       }
     }
   }, [searchParams, setSearchParams]);
+
+  const onboardingConfig = useMemo(
+    () => getIndustryOnboardingConfig(mode, category ?? undefined, slug ?? undefined),
+    [mode, category, slug]
+  );
 
   const allSteps = getOrderedSteps(businessMode);
   const priorityIds = getPrioritySteps(businessMode, capabilities);
@@ -127,7 +135,7 @@ export function GuidedSetupOverlay({
             <DialogHeader>
               <div className="flex items-center gap-2 mb-1">
                 <Sparkles className="h-5 w-5 text-primary" />
-                <DialogTitle>Let's finish setting up</DialogTitle>
+                <DialogTitle>Let's finish setting up {onboardingConfig.setupTitle}</DialogTitle>
               </div>
               <DialogDescription>
                 Here are the most important things to configure for your business.

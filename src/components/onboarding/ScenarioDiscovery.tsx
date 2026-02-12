@@ -8,10 +8,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import {
   getQuestionsForMode,
+  isPreAnswered,
   groupLabels,
   type ScenarioQuestion,
   type QuestionGroup,
 } from "@/lib/scenarioQuestions";
+import { getIndustryBySlug } from "@/data/industryCatalog";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 
 interface ScenarioDiscoveryProps {
@@ -32,6 +34,9 @@ export function ScenarioDiscovery({
   const industryContext = industrySlug && industryCategory
     ? { slug: industrySlug, category: industryCategory }
     : undefined;
+
+  const industryEntry = industrySlug ? getIndustryBySlug(industrySlug) : null;
+  const industryLabel = industryEntry?.name?.toLowerCase();
 
   const questions = getQuestionsForMode(businessMode, industryContext);
 
@@ -80,7 +85,7 @@ export function ScenarioDiscovery({
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-semibold tracking-tight">
-          How does your business operate?
+          How does your {industryLabel || "business"} operate?
         </h2>
         <p className="mt-2 text-muted-foreground">
           Tell us about your operations so we can configure the right capabilities.
@@ -105,6 +110,7 @@ export function ScenarioDiscovery({
                     checked={answers[q.capabilityKey] ?? q.defaultValue}
                     onToggle={() => toggle(q.capabilityKey, q.blocking)}
                     index={index}
+                    isPreSet={isPreAnswered(q, industryContext)}
                   />
                 );
               })}
@@ -121,11 +127,13 @@ function QuestionCard({
   checked,
   onToggle,
   index,
+  isPreSet,
 }: {
   question: ScenarioQuestion;
   checked: boolean;
   onToggle: () => void;
   index: number;
+  isPreSet?: boolean;
 }) {
   const isBlocking = question.blocking;
 
@@ -151,8 +159,13 @@ function QuestionCard({
             )}
 
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h4 className="font-medium">{question.question}</h4>
+                {isPreSet && checked && (
+                  <Badge variant="outline" className="text-[10px] gap-1 shrink-0 border-primary/40 text-primary">
+                    Pre-set for your industry
+                  </Badge>
+                )}
                 {question.requiredForAI && (
                   <Badge variant="secondary" className="text-[10px] gap-1 shrink-0">
                     <Bot className="h-3 w-3" />

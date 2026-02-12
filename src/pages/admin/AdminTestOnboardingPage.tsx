@@ -658,8 +658,8 @@ export default function AdminTestOnboardingPage() {
                     industrySlug={industrySlug}
                     scenarioAnswers={scenarioAnswers}
                     communicationPrefs={communicationPrefs}
-                    businessDetails={businessDetails}
                     schedulingPrefs={schedulingPrefs}
+                    onEditStep={() => {/* admin test page — no-op */}}
                   />
                 </CardContent>
               </Card>
