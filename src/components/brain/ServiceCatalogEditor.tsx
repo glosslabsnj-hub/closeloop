@@ -66,6 +66,181 @@ const defaultFormData: ServiceFormData = {
   price_factors: "",
 };
 
+// Extracted outside ServiceCatalogEditor to prevent focus loss on re-render
+function ServiceForm({ 
+  formData, 
+  onChange, 
+  onSave, 
+  onCancel, 
+  isSaving,
+  isNew = false,
+  serviceExamples,
+  businessMode,
+}: { 
+  formData: ServiceFormData;
+  onChange: (field: keyof ServiceFormData, value: any) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  isSaving: boolean;
+  isNew?: boolean;
+  serviceExamples: ReturnType<typeof getServiceExamples>;
+  businessMode: string;
+}) {
+  return (
+    <div className="p-4 space-y-4 border-t bg-muted/20">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label className="text-xs capitalize">{serviceExamples.serviceName} Name *</Label>
+          <Input
+            value={formData.name}
+            onChange={(e) => onChange("name", e.target.value)}
+            placeholder={serviceExamples.serviceNamePlaceholder}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-xs">How long does this take? (minutes)</Label>
+          <Input
+            type="number"
+            value={formData.duration_minutes}
+            onChange={(e) => onChange("duration_minutes", parseInt(e.target.value) || 60)}
+            placeholder="60"
+          />
+          <p className="text-xs text-muted-foreground">{serviceExamples.durationHint}</p>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-xs">Description</Label>
+        <Textarea
+          value={formData.description}
+          onChange={(e) => onChange("description", e.target.value)}
+          placeholder={serviceExamples.descriptionPlaceholder}
+          rows={2}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label className="text-xs">How should AI quote this?</Label>
+          <Select
+            value={formData.price_type}
+            onValueChange={(v) => onChange("price_type", v)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="fixed">Quote exact price</SelectItem>
+              <SelectItem value="starting_at">Quote "starting at" price</SelectItem>
+              <SelectItem value="quote_only">Don't quote - offer callback</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            {formData.price_type === "fixed" && "AI says: \"That's $X\""}
+            {formData.price_type === "starting_at" && "AI says: \"Starting at $X, depending on...\""}
+            {formData.price_type === "quote_only" && "AI says: \"I'd need to have someone call you with a quote\""}
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-xs">Price ($)</Label>
+          <Input
+            type="number"
+            step="0.01"
+            value={formData.price_amount ?? ""}
+            onChange={(e) => onChange("price_amount", e.target.value ? parseFloat(e.target.value) : null)}
+            placeholder="150.00"
+            disabled={formData.price_type === "quote_only"}
+          />
+        </div>
+      </div>
+
+      {/* Price Factors — shown when price varies */}
+      {(formData.price_type === "starting_at" || formData.price_type === "quote_only") && (
+        <div className="space-y-2">
+          <Label className="text-xs">What makes the price vary? <span className="text-muted-foreground">(AI will explain this to callers)</span></Label>
+          <Textarea
+            value={formData.price_factors}
+            onChange={(e) => onChange("price_factors", e.target.value)}
+            placeholder={PRICE_FACTOR_HINTS[businessMode] || PRICE_FACTOR_HINTS.general}
+            rows={2}
+          />
+        </div>
+      )}
+
+      {/* Complexity Toggle — hidden for food mode */}
+      {businessMode !== "food" && (
+        <div className="space-y-2">
+          <Label className="text-xs">How should the AI handle this?</Label>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant={formData.complexity === "simple" ? "default" : "outline"}
+              size="sm"
+              onClick={() => onChange("complexity", "simple")}
+              className="flex-1"
+            >
+              Quick confirmation
+            </Button>
+            <Button
+              type="button"
+              variant={formData.complexity === "complex" ? "default" : "outline"}
+              size="sm"
+              onClick={() => onChange("complexity", "complex")}
+              className="flex-1"
+            >
+              Ask detailed questions
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {formData.complexity === "simple"
+              ? `Quick: ${(COMPLEXITY_HINTS[businessMode] || COMPLEXITY_HINTS.general).simple}`
+              : `Detailed: ${(COMPLEXITY_HINTS[businessMode] || COMPLEXITY_HINTS.general).complex}`
+            }
+          </p>
+        </div>
+      )}
+
+      <div className="flex items-center gap-4 pt-2">
+        <div className="flex items-center space-x-2">
+          <Switch
+            checked={formData.deposit_required}
+            onCheckedChange={(checked) => onChange("deposit_required", checked)}
+          />
+          <Label className="text-sm">Collect deposit to confirm?</Label>
+        </div>
+        {formData.deposit_required && (
+          <div className="flex items-center gap-2">
+            <Label className="text-xs">Deposit ($):</Label>
+            <Input
+              type="number"
+              step="0.01"
+              value={formData.deposit_amount ?? ""}
+              onChange={(e) => onChange("deposit_amount", e.target.value ? parseFloat(e.target.value) : null)}
+              placeholder="50.00"
+              className="w-24 h-8"
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center justify-end gap-2 pt-2">
+        <Button variant="outline" size="sm" onClick={onCancel} disabled={isSaving}>
+          <X className="h-4 w-4 mr-1" />
+          Cancel
+        </Button>
+        <Button size="sm" onClick={onSave} disabled={isSaving || !formData.name.trim()}>
+          {isSaving ? (
+            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+          ) : (
+            <Check className="h-4 w-4 mr-1" />
+          )}
+          {isNew ? "Add Service" : "Save Changes"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function ServiceCatalogEditor() {
   const { tenant } = useAuth();
   const { services, isLoading } = useServices();
@@ -256,174 +431,7 @@ export function ServiceCatalogEditor() {
       }${firstService.duration_minutes ? ` and takes about ${formatDuration(firstService.duration_minutes)}` : ""}.`
     : "I can tell you about our services and pricing.";
 
-  // Inline form component for reuse
-  const ServiceForm = ({ 
-    formData, 
-    onChange, 
-    onSave, 
-    onCancel, 
-    isSaving,
-    isNew = false 
-  }: { 
-    formData: ServiceFormData;
-    onChange: (field: keyof ServiceFormData, value: any) => void;
-    onSave: () => void;
-    onCancel: () => void;
-    isSaving: boolean;
-    isNew?: boolean;
-  }) => (
-    <div className="p-4 space-y-4 border-t bg-muted/20">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label className="text-xs capitalize">{serviceExamples.serviceName} Name *</Label>
-          <Input
-            value={formData.name}
-            onChange={(e) => onChange("name", e.target.value)}
-            placeholder={serviceExamples.serviceNamePlaceholder}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label className="text-xs">How long does this take? (minutes)</Label>
-          <Input
-            type="number"
-            value={formData.duration_minutes}
-            onChange={(e) => onChange("duration_minutes", parseInt(e.target.value) || 60)}
-            placeholder="60"
-          />
-          <p className="text-xs text-muted-foreground">{serviceExamples.durationHint}</p>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label className="text-xs">Description</Label>
-        <Textarea
-          value={formData.description}
-          onChange={(e) => onChange("description", e.target.value)}
-          placeholder={serviceExamples.descriptionPlaceholder}
-          rows={2}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label className="text-xs">How should AI quote this?</Label>
-          <Select
-            value={formData.price_type}
-            onValueChange={(v) => onChange("price_type", v)}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="fixed">Quote exact price</SelectItem>
-              <SelectItem value="starting_at">Quote "starting at" price</SelectItem>
-              <SelectItem value="quote_only">Don't quote - offer callback</SelectItem>
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">
-            {formData.price_type === "fixed" && "AI says: \"That's $X\""}
-            {formData.price_type === "starting_at" && "AI says: \"Starting at $X, depending on...\""}
-            {formData.price_type === "quote_only" && "AI says: \"I'd need to have someone call you with a quote\""}
-          </p>
-        </div>
-        <div className="space-y-2">
-          <Label className="text-xs">Price ($)</Label>
-          <Input
-            type="number"
-            step="0.01"
-            value={formData.price_amount ?? ""}
-            onChange={(e) => onChange("price_amount", e.target.value ? parseFloat(e.target.value) : null)}
-            placeholder="150.00"
-            disabled={formData.price_type === "quote_only"}
-          />
-        </div>
-      </div>
-
-      {/* Price Factors — shown when price varies */}
-      {(formData.price_type === "starting_at" || formData.price_type === "quote_only") && (
-        <div className="space-y-2">
-          <Label className="text-xs">What makes the price vary? <span className="text-muted-foreground">(AI will explain this to callers)</span></Label>
-          <Textarea
-            value={formData.price_factors}
-            onChange={(e) => onChange("price_factors", e.target.value)}
-            placeholder={PRICE_FACTOR_HINTS[businessMode] || PRICE_FACTOR_HINTS.general}
-            rows={2}
-          />
-        </div>
-      )}
-
-      {/* Complexity Toggle — hidden for food mode */}
-      {businessMode !== "food" && (
-        <div className="space-y-2">
-          <Label className="text-xs">How should the AI handle this?</Label>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant={formData.complexity === "simple" ? "default" : "outline"}
-              size="sm"
-              onClick={() => onChange("complexity", "simple")}
-              className="flex-1"
-            >
-              Quick confirmation
-            </Button>
-            <Button
-              type="button"
-              variant={formData.complexity === "complex" ? "default" : "outline"}
-              size="sm"
-              onClick={() => onChange("complexity", "complex")}
-              className="flex-1"
-            >
-              Ask detailed questions
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {formData.complexity === "simple"
-              ? `Quick: ${(COMPLEXITY_HINTS[businessMode] || COMPLEXITY_HINTS.general).simple}`
-              : `Detailed: ${(COMPLEXITY_HINTS[businessMode] || COMPLEXITY_HINTS.general).complex}`
-            }
-          </p>
-        </div>
-      )}
-
-      <div className="flex items-center gap-4 pt-2">
-        <div className="flex items-center space-x-2">
-          <Switch
-            checked={formData.deposit_required}
-            onCheckedChange={(checked) => onChange("deposit_required", checked)}
-          />
-          <Label className="text-sm">Collect deposit to confirm?</Label>
-        </div>
-        {formData.deposit_required && (
-          <div className="flex items-center gap-2">
-            <Label className="text-xs">Deposit ($):</Label>
-            <Input
-              type="number"
-              step="0.01"
-              value={formData.deposit_amount ?? ""}
-              onChange={(e) => onChange("deposit_amount", e.target.value ? parseFloat(e.target.value) : null)}
-              placeholder="50.00"
-              className="w-24 h-8"
-            />
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center justify-end gap-2 pt-2">
-        <Button variant="outline" size="sm" onClick={onCancel} disabled={isSaving}>
-          <X className="h-4 w-4 mr-1" />
-          Cancel
-        </Button>
-        <Button size="sm" onClick={onSave} disabled={isSaving || !formData.name.trim()}>
-          {isSaving ? (
-            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-          ) : (
-            <Check className="h-4 w-4 mr-1" />
-          )}
-          {isNew ? "Add Service" : "Save Changes"}
-        </Button>
-      </div>
-    </div>
-  );
+  // ServiceForm is now extracted as a top-level component above
 
   return (
     <div className="space-y-6">
@@ -510,6 +518,8 @@ export function ServiceCatalogEditor() {
             }}
             isSaving={savingServiceId === "new"}
             isNew
+            serviceExamples={serviceExamples}
+            businessMode={businessMode}
           />
         </Card>
       )}
@@ -581,6 +591,8 @@ export function ServiceCatalogEditor() {
                         onSave={() => handleSave(service.id)}
                         onCancel={() => setExpandedServiceId(null)}
                         isSaving={savingServiceId === service.id}
+                        serviceExamples={serviceExamples}
+                        businessMode={businessMode}
                       />
                     )}
                     <div className="px-4 py-2 border-t bg-muted/10 flex items-center justify-between">
