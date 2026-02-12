@@ -20,6 +20,10 @@ import {
 import { Plus, Trash2, Loader2 } from "lucide-react";
 import { useActiveJobs, type JobPriority } from "@/hooks/useActiveJobs";
 import { useJobLabels } from "@/hooks/useJobLabels";
+import { useFleetDrivers } from "@/hooks/useFleetDrivers";
+import { CustomerSearchCombobox } from "./CustomerSearchCombobox";
+import { useCustomerVehicles, type CustomerVehicle } from "@/hooks/useCustomerVehicles";
+import type { Customer } from "@/hooks/useCustomers";
 
 interface NewJobDialogProps {
   open: boolean;
@@ -34,10 +38,14 @@ interface ServiceEntry {
 export function NewJobDialog({ open, onOpenChange }: NewJobDialogProps) {
   const { createJob } = useActiveJobs();
   const labels = useJobLabels();
+  const { activeDrivers } = useFleetDrivers();
 
   const [title, setTitle] = useState("");
+  const [customerId, setCustomerId] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [selectedVehicleId, setSelectedVehicleId] = useState("");
+  const [assignedTo, setAssignedTo] = useState("");
   const [priority, setPriority] = useState<JobPriority>("normal");
   const [notes, setNotes] = useState("");
   const [estimatedCompletion, setEstimatedCompletion] = useState("");
@@ -45,16 +53,35 @@ export function NewJobDialog({ open, onOpenChange }: NewJobDialogProps) {
   const [newServiceTitle, setNewServiceTitle] = useState("");
   const [metadata, setMetadata] = useState<Record<string, string>>({});
 
+  const { vehicles } = useCustomerVehicles(customerId);
+
   const reset = () => {
     setTitle("");
+    setCustomerId(null);
     setCustomerName("");
     setCustomerPhone("");
+    setSelectedVehicleId("");
+    setAssignedTo("");
     setPriority("normal");
     setNotes("");
     setEstimatedCompletion("");
     setServices([]);
     setNewServiceTitle("");
     setMetadata({});
+  };
+
+  const handleCustomerSelect = (customer: Customer | null) => {
+    if (customer) {
+      setCustomerId(customer.id);
+      setCustomerName(customer.full_name);
+      setCustomerPhone(customer.phone_e164 || "");
+      setSelectedVehicleId("");
+    } else {
+      setCustomerId(null);
+      setCustomerName("");
+      setCustomerPhone("");
+      setSelectedVehicleId("");
+    }
   };
 
   const handleAddService = () => {
@@ -76,10 +103,15 @@ export function NewJobDialog({ open, onOpenChange }: NewJobDialogProps) {
         title: title.trim(),
         customer_name: customerName.trim() || undefined,
         customer_phone: customerPhone.trim() || undefined,
+        customer_id: customerId || undefined,
         priority,
         notes: notes.trim() || undefined,
         estimated_completion: estimatedCompletion || undefined,
-        metadata_json: Object.keys(metadata).length > 0 ? metadata : undefined,
+        metadata_json: {
+          ...(Object.keys(metadata).length > 0 ? metadata : {}),
+          ...(selectedVehicleId ? { vehicle_id: selectedVehicleId } : {}),
+          ...(assignedTo ? { assigned_to: assignedTo } : {}),
+        },
         services: services.map((s) => ({ title: s.title })),
       },
       {
@@ -90,6 +122,9 @@ export function NewJobDialog({ open, onOpenChange }: NewJobDialogProps) {
       }
     );
   };
+
+  const formatVehicleLabel = (v: CustomerVehicle) =>
+    [v.year, v.make, v.model, v.color].filter(Boolean).join(" ") || "Unnamed Vehicle";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -110,27 +145,57 @@ export function NewJobDialog({ open, onOpenChange }: NewJobDialogProps) {
             />
           </div>
 
-          {/* Customer */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="customer-name">Customer Name</Label>
-              <Input
-                id="customer-name"
-                placeholder="John Smith"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="customer-phone">Phone</Label>
-              <Input
-                id="customer-phone"
-                placeholder="+1 (555) 123-4567"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-              />
-            </div>
+          {/* Customer Search */}
+          <div className="space-y-1.5">
+            <Label>Customer</Label>
+            <CustomerSearchCombobox
+              value={customerId}
+              onSelect={handleCustomerSelect}
+            />
           </div>
+
+          {/* Manual name/phone (shown when no customer selected, or editable) */}
+          {!customerId && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="customer-name">Name</Label>
+                <Input
+                  id="customer-name"
+                  placeholder="John Smith"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="customer-phone">Phone</Label>
+                <Input
+                  id="customer-phone"
+                  placeholder="+1 (555) 123-4567"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Vehicle picker (only when customer selected and has vehicles) */}
+          {customerId && vehicles.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Vehicle</Label>
+              <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Select vehicle" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vehicles.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {formatVehicleLabel(v)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Metadata fields (industry-specific) */}
           {labels.metadataFields.length > 0 && (
@@ -151,12 +216,29 @@ export function NewJobDialog({ open, onOpenChange }: NewJobDialogProps) {
             </div>
           )}
 
-          {/* Priority & Est. Completion */}
+          {/* Assigned To + Priority */}
           <div className="grid grid-cols-2 gap-3">
+            {activeDrivers.length > 0 && (
+              <div className="space-y-1.5">
+                <Label>Assign To</Label>
+                <Select value={assignedTo} onValueChange={setAssignedTo}>
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue placeholder="Unassigned" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeDrivers.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.full_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Priority</Label>
               <Select value={priority} onValueChange={(v) => setPriority(v as JobPriority)}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9 text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -166,15 +248,17 @@ export function NewJobDialog({ open, onOpenChange }: NewJobDialogProps) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="est-completion">Est. Completion</Label>
-              <Input
-                id="est-completion"
-                type="datetime-local"
-                value={estimatedCompletion}
-                onChange={(e) => setEstimatedCompletion(e.target.value)}
-              />
-            </div>
+          </div>
+
+          {/* Est. Completion */}
+          <div className="space-y-1.5">
+            <Label htmlFor="est-completion">Est. Completion</Label>
+            <Input
+              id="est-completion"
+              type="datetime-local"
+              value={estimatedCompletion}
+              onChange={(e) => setEstimatedCompletion(e.target.value)}
+            />
           </div>
 
           {/* Services */}
