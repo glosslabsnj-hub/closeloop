@@ -23,6 +23,7 @@ import {
   Eye,
   PhoneCall,
 } from "lucide-react";
+import { useBusinessAwareness, type BusinessAwareness } from "@/hooks/useBusinessAwareness";
 import type { BusinessMode } from "@/hooks/useTenantConfig";
 
 interface HelpGuideDashboardProps {
@@ -30,7 +31,30 @@ interface HelpGuideDashboardProps {
   searchQuery?: string;
 }
 
+function prioritizeSections(
+  sections: { id: string; title: string; content: React.ReactNode }[],
+  awareness: BusinessAwareness,
+) {
+  const priorityIds: string[] = [];
+
+  // Prioritize agent-control when no calendar but booking enabled
+  if (!awareness.hasCalendar && awareness.caps.hasBooking) {
+    priorityIds.push("agent-control");
+  }
+  // Prioritize overview if very new
+  if (awareness.isNewBusiness) {
+    priorityIds.push("overview");
+  }
+
+  if (priorityIds.length === 0) return sections;
+
+  const prioritized = sections.filter((s) => priorityIds.includes(s.id));
+  const rest = sections.filter((s) => !priorityIds.includes(s.id));
+  return [...prioritized, ...rest];
+}
+
 export function HelpGuideDashboard({ mode, searchQuery = "" }: HelpGuideDashboardProps) {
+  const awareness = useBusinessAwareness();
   const matchesSearch = (text: string) => {
     if (!searchQuery) return true;
     return text.toLowerCase().includes(searchQuery.toLowerCase());
@@ -261,7 +285,12 @@ export function HelpGuideDashboard({ mode, searchQuery = "" }: HelpGuideDashboar
     },
   ];
 
-  const filteredSections = sections.filter(s => matchesSearch(s.title));
+  // Apply business-aware prioritization + search filter
+  const prioritized = prioritizeSections(sections, awareness);
+  const filteredSections = prioritized.filter(s => matchesSearch(s.title));
+
+  // Default open section: if no FAQs, open agent-control; otherwise overview
+  const defaultSection = awareness.faqCount === 0 ? "agent-control" : "overview";
 
   return (
     <div className="space-y-6">
@@ -280,7 +309,7 @@ export function HelpGuideDashboard({ mode, searchQuery = "" }: HelpGuideDashboar
           </div>
         </CardHeader>
         <CardContent>
-          <Accordion type="single" collapsible defaultValue="overview" className="w-full">
+          <Accordion type="single" collapsible defaultValue={defaultSection} className="w-full">
             {filteredSections.map((section) => (
               <AccordionItem key={section.id} value={section.id}>
                 <AccordionTrigger className="text-left">

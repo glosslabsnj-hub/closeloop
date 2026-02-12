@@ -57,10 +57,10 @@ interface NavItem {
 const alwaysAccessibleRoutes = ["/app/settings", "/app/go-live"];
 
 function AppLayoutContent() {
-  const { user, tenant, effectiveTenant, signOut, loading, hasActiveSubscription, isSuperAdmin } = useAuth();
+  const { user, tenant, effectiveTenant, signOut, loading, hasActiveSubscription, isSuperAdmin, assistantSettings } = useAuth();
   const { enabledModules } = useTenantConfig();
   const caps = useCapabilities();
-  const { terms } = useIndustryContext();
+  const { terms, catalog } = useIndustryContext();
   const { unresolvedCount: conflictsCount } = useKnowledgeConflicts();
   const location = useLocation();
   const navigate = useNavigate();
@@ -68,6 +68,14 @@ function AppLayoutContent() {
   const { setOpen } = useSidebar();
   const effectiveHasSubscription = isSuperAdmin || hasActiveSubscription;
   const displayTenant = isSuperAdmin ? (effectiveTenant ?? tenant) : tenant;
+
+  // Business-aware sidebar subtitle
+  const sidebarSubtitle = useMemo(() => {
+    const tagline = (assistantSettings as Record<string, unknown> | null)?.business_tagline as string | undefined;
+    if (tagline) return tagline;
+    if (catalog?.name) return `AI for ${catalog.name}`;
+    return "AI Receptionist";
+  }, [assistantSettings, catalog]);
 
   // Mobile nav - simplified (unchanged from before)
   const mobileNavItems = useMemo(() => {
@@ -162,6 +170,7 @@ function AppLayoutContent() {
           conflictsCount={conflictsCount}
           effectiveHasSubscription={effectiveHasSubscription}
           displayTenant={displayTenant}
+          subtitle={sidebarSubtitle}
         />
 
         {/* Content area */}

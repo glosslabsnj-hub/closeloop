@@ -29,6 +29,7 @@ interface SettingsSidebarProps {
   activeSection: string;
   onSectionChange: (section: string) => void;
   config: SettingsNavConfig;
+  complexityTier?: "simple" | "standard" | "complex";
 }
 
 interface NavGroup {
@@ -45,8 +46,12 @@ interface NavItem {
   visible?: boolean;
 }
 
-export function SettingsSidebar({ activeSection, onSectionChange, config }: SettingsSidebarProps) {
+export function SettingsSidebar({ activeSection, onSectionChange, config, complexityTier }: SettingsSidebarProps) {
+  // For simple businesses, collapse advanced sections by default
+  const isSimple = complexityTier === "simple";
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(!isSimple);
+  const [aiFeaturesOpen, setAiFeaturesOpen] = useState(!isSimple);
 
   // Simplified nav groups: Account, Data & Privacy, Notifications, Advanced
   const navGroups: NavGroup[] = [
@@ -96,6 +101,38 @@ export function SettingsSidebar({ activeSection, onSectionChange, config }: Sett
         {navGroups.map((group) => {
           const visibleItems = group.items.filter((item) => item.visible !== false);
           if (visibleItems.length === 0) return null;
+
+          // For simple tier, make Notifications and AI Features collapsible
+          const isCollapsibleGroup = isSimple && (group.id === "notifications" || group.id === "ai-features");
+          const groupOpen = group.id === "notifications" ? notificationsOpen : group.id === "ai-features" ? aiFeaturesOpen : true;
+          const setGroupOpen = group.id === "notifications" ? setNotificationsOpen : group.id === "ai-features" ? setAiFeaturesOpen : undefined;
+          const hasActiveChild = visibleItems.some((item) => activeSection === item.id);
+
+          if (isCollapsibleGroup && setGroupOpen) {
+            return (
+              <Collapsible key={group.id} open={groupOpen || hasActiveChild} onOpenChange={setGroupOpen}>
+                <CollapsibleTrigger className="flex items-center gap-2 w-full px-3 py-1.5 text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider hover:text-foreground transition-colors">
+                  {groupOpen || hasActiveChild ? (
+                    <ChevronDown className="h-3 w-3" />
+                  ) : (
+                    <ChevronRight className="h-3 w-3" />
+                  )}
+                  {group.label}
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-1 pt-1">
+                  {visibleItems.map((item) => (
+                    <SettingsNavItem
+                      key={item.id}
+                      icon={item.icon}
+                      label={item.label}
+                      isActive={activeSection === item.id}
+                      onClick={() => onSectionChange(item.id)}
+                    />
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          }
 
           return (
             <div key={group.id} className="space-y-1">

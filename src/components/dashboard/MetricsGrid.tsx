@@ -35,10 +35,12 @@ interface Metric {
  */
 export function MetricsGrid() {
   const navigate = useNavigate();
-  const { tenant } = useAuth();
+  const { tenant, assistantSettings } = useAuth();
   const { businessMode } = useTenantConfig();
   const caps = useCapabilities();
   const { terms } = useIndustryContext();
+  const isCallbackOnly = businessMode === "service" &&
+    (assistantSettings as Record<string, unknown> | null)?.ai_booking_mode === "callback_only";
 
   const todayStart = startOfDay(new Date()).toISOString();
   const todayEnd = endOfDay(new Date()).toISOString();
@@ -132,6 +134,22 @@ export function MetricsGrid() {
     enabled: !!tenant?.id && caps.hasMedicalIntake,
   });
 
+  // Callback-only: pending callbacks
+  const { data: callbacksPending = 0 } = useQuery({
+    queryKey: ["metrics-callbacks", tenant?.id, weekStart],
+    queryFn: async () => {
+      if (!tenant?.id) return 0;
+      const { count } = await supabase
+        .from("ai_call_sessions")
+        .select("*", { count: "exact", head: true })
+        .eq("tenant_id", tenant.id)
+        .eq("outcome", "callback")
+        .gte("created_at", weekStart);
+      return count || 0;
+    },
+    enabled: !!tenant?.id && isCallbackOnly,
+  });
+
   // Build metrics
   const getMetrics = (): Metric[] => {
     const base: Metric[] = [
@@ -163,6 +181,13 @@ export function MetricsGrid() {
           ...base,
         ];
       default:
+        if (isCallbackOnly) {
+          return [
+            ...base,
+            { label: "Callbacks This Week", value: callbacksPending, icon: Phone, href: "/app/inbox?tab=calls" },
+            { label: "Customers", value: totalCustomers, icon: Users, href: "/app/customers" },
+          ];
+        }
         return [
           ...base,
           { label: terms.bookingsMetricLabel, value: bookingsWeek, icon: Calendar, href: "/app/bookings" },

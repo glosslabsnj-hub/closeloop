@@ -1,9 +1,14 @@
 import { useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useServices } from "@/hooks/useServices";
+import { useKnowledgeGaps } from "@/hooks/useKnowledgeGaps";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sparkles, X } from "lucide-react";
-import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
+import { buildTestScenarios } from "@/lib/testScenarioBuilder";
+import type { BusinessMode } from "@/hooks/useTenantConfig";
 
 interface SuggestedTestsBannerProps {
   onDismiss?: () => void;
@@ -12,73 +17,33 @@ interface SuggestedTestsBannerProps {
 /**
  * Suggested Tests Banner
  *
- * Shows mode-specific test scenarios after onboarding completion.
- * Helps users get started with testing their AI by providing relevant
- * test prompts based on their business_mode.
+ * Shows business-aware test scenarios built from real data:
+ * 1. Knowledge gaps — questions the AI couldn't answer
+ * 2. Actual services — questions about real service names/prices
+ * 3. Industry/mode fallback — generic questions for the business type
  */
 export function SuggestedTestsBanner({ onDismiss }: SuggestedTestsBannerProps) {
   const { tenant } = useAuth();
   const businessMode = (tenant?.business_mode as BusinessMode) || "service";
+  const businessName = tenant?.business_name || tenant?.name || "";
+  const { services: allServices } = useServices();
+  const { topGaps } = useKnowledgeGaps();
+  const { slug } = useIndustryContext();
 
-  // Generate mode-specific test suggestions
-  const suggestedTests = useMemo(() => {
-    switch (businessMode) {
-      case "service":
-        return [
-          "Hi, I need to schedule an appointment",
-          "What are your prices?",
-          "Are you available tomorrow at 2pm?",
-          "Do you offer emergency services?",
-          "What's your cancellation policy?",
-        ];
+  const activeServices = useMemo(
+    () => (allServices || []).filter((s) => s.is_active !== false),
+    [allServices],
+  );
 
-      case "food":
-        return [
-          "I'd like to place an order for pickup",
-          "Do you deliver to my area?",
-          "What are your hours today?",
-          "Can I make a reservation for 4 people?",
-          "Do you have vegetarian options?",
-        ];
+  const scenarios = useMemo(
+    () => buildTestScenarios(activeServices, topGaps, businessMode, slug),
+    [activeServices, topGaps, businessMode, slug],
+  );
 
-      case "dispatch":
-        return [
-          "I need a tow truck right now",
-          "How quickly can you get here?",
-          "What's the cost for a 10-mile tow?",
-          "Are you available 24/7?",
-          "Do you handle roadside assistance?",
-        ];
-
-      case "medical":
-        return [
-          "I need to schedule a new patient appointment",
-          "Do you accept my insurance?",
-          "What are your office hours?",
-          "Can I get a same-day appointment?",
-          "What should I bring to my first visit?",
-        ];
-
-      case "sales":
-        return [
-          "I'm interested in scheduling a test drive",
-          "What do you have available in my budget?",
-          "Do you offer financing options?",
-          "I'd like to book an appointment with a sales rep",
-          "What's your return or exchange policy?",
-        ];
-
-      case "general":
-      default:
-        return [
-          "What services do you offer?",
-          "How can I contact you?",
-          "What are your business hours?",
-          "Where are you located?",
-          "Do you offer consultations?",
-        ];
-    }
-  }, [businessMode]);
+  const hasRealData = scenarios.some((s) => s.source !== "industry");
+  const bannerText = hasRealData && businessName
+    ? `Questions ${businessName} customers actually ask:`
+    : `Common questions for ${businessMode} businesses:`;
 
   return (
     <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
@@ -102,34 +67,37 @@ export function SuggestedTestsBanner({ onDismiss }: SuggestedTestsBannerProps) {
             </div>
 
             <p className="text-sm text-muted-foreground mb-3">
-              Start testing your AI with these common customer questions for {businessMode} businesses:
+              {bannerText}
             </p>
 
             <div className="flex flex-wrap gap-2">
-              {suggestedTests.map((test, i) => (
+              {scenarios.map((scenario, i) => (
                 <Button
                   key={i}
                   variant="outline"
                   size="sm"
-                  className="h-auto py-2 px-3 text-xs font-normal whitespace-normal text-left"
+                  className="h-auto py-2 px-3 text-xs font-normal whitespace-normal text-left gap-1.5"
                   onClick={() => {
-                    // Copy to clipboard for easy pasting into simulator
-                    navigator.clipboard.writeText(test);
-                    // You could also dispatch a custom event here that CallSimulator listens to
+                    navigator.clipboard.writeText(scenario.text);
                     window.dispatchEvent(
                       new CustomEvent('suggested-test-clicked', {
-                        detail: { text: test }
+                        detail: { text: scenario.text }
                       })
                     );
                   }}
                 >
-                  "{test}"
+                  "{scenario.text}"
+                  {scenario.badge && (
+                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-1 shrink-0">
+                      {scenario.badge}
+                    </Badge>
+                  )}
                 </Button>
               ))}
             </div>
 
             <p className="text-xs text-muted-foreground mt-3">
-              💡 Click any test to copy it to your clipboard
+              Click any test to copy it to your clipboard
             </p>
           </div>
         </div>

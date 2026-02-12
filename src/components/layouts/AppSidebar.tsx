@@ -63,6 +63,8 @@ interface AppSidebarProps {
     hasSalesLeads: boolean;
     hasTestDrives: boolean;
     hasSalesInventory: boolean;
+    hasEstimates: boolean;
+    hasPhoneQuotes: boolean;
     isFoodBusiness: boolean;
     isDispatchBusiness: boolean;
     [key: string]: unknown;
@@ -71,6 +73,7 @@ interface AppSidebarProps {
   conflictsCount: number;
   effectiveHasSubscription: boolean;
   displayTenant: { name?: string } | null;
+  subtitle?: string;
 }
 
 export function AppSidebar({
@@ -80,6 +83,7 @@ export function AppSidebar({
   conflictsCount,
   effectiveHasSubscription,
   displayTenant,
+  subtitle,
 }: AppSidebarProps) {
   const location = useLocation();
 
@@ -118,7 +122,9 @@ export function AppSidebar({
   if (caps.hasSalesInventory) {
     workspaceItems.push({ href: "/app/sales-inventory", label: "Inventory", icon: Warehouse });
   }
-  workspaceItems.push({ href: "/app/estimates", label: "Estimates", icon: FileText });
+  if (caps.hasEstimates || caps.hasPhoneQuotes) {
+    workspaceItems.push({ href: "/app/estimates", label: "Estimates", icon: FileText });
+  }
 
   const renderItem = (item: NavItem) => {
     const isActive = location.pathname === item.href;
@@ -160,7 +166,7 @@ export function AppSidebar({
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
                   <span className="font-semibold text-sm">{displayTenant?.name || BRAND.name}</span>
-                  <span className="text-[11px] text-sidebar-foreground/50">AI Receptionist</span>
+                  <span className="text-[11px] text-sidebar-foreground/50">{subtitle || "AI Receptionist"}</span>
                 </div>
               </Link>
             </SidebarMenuButton>

@@ -88,6 +88,8 @@ Deno.serve(async (req: Request) => {
       insightsResult,
       digestResult,
       revenueResult,
+      staffCountResult,
+      calendarResult,
     ] = await Promise.all([
       getBusinessBrainSnapshot(supabase, { tenantId }),
       supabase
@@ -128,6 +130,15 @@ Deno.serve(async (req: Request) => {
         .select("entity_type, revenue_cents, created_at")
         .eq("tenant_id", tenantId)
         .gte("created_at", thirtyDaysAgo),
+      supabase
+        .from("tenant_users")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", tenantId),
+      supabase
+        .from("calendar_connections")
+        .select("id, status")
+        .eq("tenant_id", tenantId)
+        .eq("status", "connected"),
     ]);
 
     // ─── Compute Metrics ────────────────────────────────────────────
@@ -137,6 +148,8 @@ Deno.serve(async (req: Request) => {
     const insights = insightsResult.data ?? [];
     const digest = digestResult.data;
     const revenueRows = revenueResult.data ?? [];
+    const staffCount = staffCountResult.count ?? 0;
+    const hasCalendarConnected = (calendarResult.data?.length ?? 0) > 0;
 
     const totalCalls = callOutcomes.length;
     const bookedCalls = callOutcomes.filter((c: any) => c.outcome_type === "booked").length;
@@ -170,6 +183,8 @@ Deno.serve(async (req: Request) => {
       totalRevenueCents,
       stage,
       industryEntry,
+      staffCount,
+      hasCalendarConnected,
     });
 
     // ─── Call Claude ────────────────────────────────────────────────
@@ -317,6 +332,8 @@ interface ContextInput {
   totalRevenueCents: number;
   stage: string;
   industryEntry: any;
+  staffCount: number;
+  hasCalendarConnected: boolean;
 }
 
 function buildContextDocument(ctx: ContextInput): string {
@@ -383,13 +400,22 @@ Radius: ${sa.radius_miles || sa.miles || "N/A"} miles
 ZIP Codes: ${sa.zip_codes?.length ?? 0}`);
   }
 
-  // Services list
+  // Services list (with pricing gap flags)
   if (ctx.brainSnapshot.services.length > 0) {
-    const svcList = ctx.brainSnapshot.services.slice(0, 20).map((s: any) =>
-      `- ${s.name} (${s.price_type}${s.price_amount ? `, $${s.price_amount}` : ""}, ${s.duration_minutes}min)`
-    ).join("\n");
+    const svcList = ctx.brainSnapshot.services.slice(0, 20).map((s: any) => {
+      const priceStr = s.price_amount ? `$${s.price_amount}` : "NO PRICE SET";
+      const warning = !s.price_amount && s.price_type !== "quote_only" ? " ⚠" : "";
+      return `- ${s.name} (${s.price_type}, ${priceStr}, ${s.duration_minutes}min)${warning}`;
+    }).join("\n");
     sections.push(`=== SERVICES ===\n${svcList}`);
   }
+
+  // Operational context
+  sections.push(`=== OPERATIONAL CONTEXT ===
+Staff Count: ${ctx.staffCount}
+Calendar Connected: ${ctx.hasCalendarConnected ? "Yes" : "No"}
+AI Booking Mode: ${ctx.brainSnapshot.assistant_settings.ai_booking_mode || "full_service"}`);
+
 
   // Performance metrics
   sections.push(`=== PERFORMANCE (Last 30 Days) ===
@@ -464,6 +490,8 @@ function buildSystemPrompt(): string {
 - Be actionable: every recommendation must have a concrete next step.
 - Be industry-aware: tailor advice to the specific industry and business mode.
 - Be stage-aware: a brand-new business needs different advice than an established one.
+- Always reference the business by name. Instead of "your conversion rate", say "{business_name}'s conversion rate".
+- Reference specific services by name when giving advice. Instead of "add pricing to your services", say "add pricing to Oil Change and Brake Inspection".
 
 ## Deep Link Reference (for action_link and fix_link fields)
 Use these exact paths so the frontend can create clickable links:
