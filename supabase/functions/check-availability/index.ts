@@ -25,6 +25,23 @@ function getTimezoneOffset(tz: string): string {
 }
 
 /**
+ * Normalize hours_json day config to { open, close } format.
+ * Handles both legacy flat format and windows array format.
+ */
+function normalizeHours(dayConfig: any): { open: string; close: string } | null {
+  if (!dayConfig || dayConfig.closed === true) return null;
+  // Windows array format: { closed: false, windows: [{ open, close }] }
+  if (dayConfig.windows?.length) {
+    return { open: dayConfig.windows[0].open, close: dayConfig.windows[0].close };
+  }
+  // Legacy flat format: { open, close }
+  if (dayConfig.open && dayConfig.close) {
+    return { open: dayConfig.open, close: dayConfig.close };
+  }
+  return null;
+}
+
+/**
  * Validate access - supports both user JWT and internal secret (for AI agent)
  */
 async function validateAccess(
@@ -117,7 +134,7 @@ serve(async (req: Request) => {
 
     const timezone = tenant.timezone || "America/New_York";
     const bufferMinutes = tenant.appointment_buffer_minutes || 15;
-    const minLeadHours = tenant.min_lead_hours || 2;
+    const minLeadHours = tenant.min_lead_hours ?? 2;
 
     // Parse the requested date/time in the tenant's timezone
     // The requested_time is in tenant local time, so we build an ISO string with offset
@@ -149,9 +166,10 @@ serve(async (req: Request) => {
     // Check business hours for the day
     const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
     const dayOfWeek = dayNames[requestedStart.getDay()];
-    const dayHours = tenant.hours_json?.[dayOfWeek];
+    const rawDayHours = tenant.hours_json?.[dayOfWeek];
+    const normalizedDay = normalizeHours(rawDayHours);
 
-    if (!dayHours || dayHours.closed === true) {
+    if (!normalizedDay) {
       return new Response(
         JSON.stringify({
           available: false,
@@ -163,8 +181,8 @@ serve(async (req: Request) => {
     }
 
     // Check if requested time is within business hours
-    const openTime = dayHours.open;
-    const closeTime = dayHours.close;
+    const openTime = normalizedDay.open;
+    const closeTime = normalizedDay.close;
     const requestedTimeStr = requested_time;
     const requestedEndTimeStr = `${String(requestedEnd.getHours()).padStart(2, "0")}:${String(requestedEnd.getMinutes()).padStart(2, "0")}`;
 
