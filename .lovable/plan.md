@@ -1,102 +1,186 @@
 
 
-# Callback-Only Tenant Experience Overhaul
+# Auto Repair Tenant: Full CRM Profile, Active Jobs, and Data Import
 
-Smiles Auto Works operates in "Capture & Callback" mode -- the AI never books appointments, it only qualifies leads and collects information. The current UI has several gaps that make this workflow frustrating. This plan addresses all of them.
-
----
-
-## Problem 1: Leads page has no way to convert a lead into a customer
-
-When AI only captures info, there's no booking event to automatically confirm someone became a customer. The owner needs a manual "Mark as Won" / "Convert to Customer" action.
-
-**Fix:**
-- Add a "Convert to Customer" action in the `LeadCard` dropdown menu and `LeadDetailPanel`
-- When clicked: update the lead status to `won`, then upsert a record in the `customers` table using the lead's name, phone, and email
-- Add a "Mark as Lost" quick action too
-- This creates the bridge between Leads and Customers that callback-only tenants need
+This plan covers three stages: (1) creating the missing database tables, (2) enriching the Customer Detail Sheet with vehicles, service history, and active jobs, and (3) wiring up the Jobs page so it's accessible from the sidebar.
 
 ---
 
-## Problem 2: Leads page shows all leads in one flat list with no prioritization
+## Stage 1: Database Tables
 
-Spam calls, hang-ups, and junk sit alongside hot leads. There's no separation.
+Three new tables need to be created (none exist today).
 
-**Fix:**
-- Add sub-tabs within the Leads tab: **Hot** (new + has phone), **Follow-up** (contacted/qualified), **Closed** (won/lost/booked)
-- Default view shows Hot leads only
-- Each sub-tab shows a count badge
-- Unimportant calls (lost with no info, very short duration) go to Closed automatically
+### `customer_vehicles`
+Stores vehicles linked to a customer. An auto repair shop customer may have multiple vehicles.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| tenant_id | uuid FK tenants | RLS anchor |
+| customer_id | uuid FK customers | Owner |
+| year | smallint | nullable |
+| make | text | e.g. "Honda" |
+| model | text | e.g. "Civic" |
+| color | text | nullable |
+| vin | text | nullable, unique per tenant |
+| license_plate | text | nullable |
+| notes | text | nullable |
+| created_at | timestamptz | default now() |
+| updated_at | timestamptz | default now() |
+
+RLS: tenant-scoped read/write for authenticated users with `has_tenant_access()`.
+
+### `active_jobs`
+Tracks work orders / repair jobs. The frontend hook (`useActiveJobs.ts`) already expects this schema.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| tenant_id | uuid FK tenants | |
+| customer_id | uuid FK customers | nullable |
+| vehicle_id | uuid FK customer_vehicles | nullable -- links job to specific vehicle |
+| location_id | uuid | nullable |
+| job_number | text | unique per tenant |
+| title | text | e.g. "Brake replacement" |
+| status | text | intake, in_progress, on_hold, completed, picked_up, cancelled |
+| priority | text | normal, rush, urgent |
+| notes | text | nullable |
+| customer_name | text | nullable (denormalized for display) |
+| customer_phone | text | nullable |
+| metadata_json | jsonb | default '{}' |
+| estimated_completion | timestamptz | nullable |
+| actual_completion | timestamptz | nullable |
+| intake_method | text | default 'manual' |
+| source_session_id | uuid | nullable |
+| notify_on_step_complete | boolean | default false |
+| notify_on_all_complete | boolean | default true |
+| is_active | boolean | default true |
+| created_at | timestamptz | default now() |
+| updated_at | timestamptz | default now() |
+
+Plus an `updated_at` trigger, RLS policies, and realtime enabled.
+
+### `job_service_items`
+Individual service line items within a job (e.g. "Oil Change", "Tire Rotation").
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| job_id | uuid FK active_jobs ON DELETE CASCADE | |
+| tenant_id | uuid FK tenants | |
+| service_id | uuid | nullable (links to services table) |
+| title | text | |
+| status | text | pending, in_progress, completed, skipped |
+| sort_order | int | default 0 |
+| assigned_to | uuid | nullable |
+| started_at | timestamptz | nullable |
+| completed_at | timestamptz | nullable |
+| notes | text | nullable |
+| created_at | timestamptz | default now() |
+
+RLS: same tenant-scoped pattern.
+
+### `generate_job_number` function
+A PL/pgSQL function that generates sequential job numbers per tenant (e.g. "JOB-001", "JOB-002").
 
 ---
 
-## Problem 3: Customers page has no concept of "confirmed customer" vs "just a contact"
+## Stage 2: Enrich Customer Detail Sheet
 
-For callback-only tenants, the Customers table is just a flat list with no lifecycle stage.
+**File: `src/components/customers/CustomerDetailSheet.tsx`**
 
-**Fix:**
-- Add a `lifecycle_stage` concept using the existing `tags` column (tag with "prospect" or "active_customer")
-- Show filter tabs on Customers page: **Active Customers** | **Prospects** | **All**
-- When a lead is converted, the customer gets tagged as "active_customer"
-- Customers created from AI calls default to "prospect"
+Currently has 3 tabs: Calls, Bookings, Notes. Will be expanded to 5 tabs:
 
----
+1. **Overview** (new default) -- Contact info, lifecycle tags, quick actions (replaces the current header area)
+2. **Vehicles** (new) -- List of customer's vehicles with add/edit capability
+3. **Jobs** (new) -- Active and past jobs for this customer, pulled from `active_jobs`
+4. **Calls** (existing) -- Call history
+5. **Notes** (existing) -- Free-form notes
 
-## Problem 4: Dashboard shows booking-centric widgets that don't apply
+### New hook: `src/hooks/useCustomerVehicles.ts`
+- Fetches vehicles for a given `customer_id`
+- CRUD mutations: add vehicle, update vehicle, delete vehicle
+- Queries `customer_vehicles` table
 
-The `ServiceDashboardLayout` shows `TodayCalendarStrip` and "Quick Book" -- irrelevant for callback-only tenants.
+### New component: `src/components/customers/VehiclesTab.tsx`
+- Lists vehicles as cards showing Year Make Model, color, VIN, license plate
+- "Add Vehicle" button opens an inline form
+- Edit/delete actions per vehicle
 
-**Fix:**
-- In `ModeContentArea`, detect callback-only mode (`ai_behavior_mode === 'callback_only'`)
-- When active, render a new `CallbackDashboardLayout` instead of `ServiceDashboardLayout`
-- New layout shows: Lead funnel summary, recent hot leads list, and a "View Leads" quick action (no calendar strip, no booking button)
-
----
-
-## Problem 5: MetricsGrid shows "Bookings This Week" for callback-only -- always zero
-
-**Fix:**
-- Already partially handled (there's an `isCallbackOnly` branch in MetricsGrid)
-- Update it to show: **Calls Today** | **New Leads** | **Customers** instead of bookings
-- Add a "New Leads" metric that counts leads with status `new`
+### New component: `src/components/customers/CustomerJobsTab.tsx`
+- Queries `active_jobs` where `customer_id` matches
+- Shows job cards with status badge, job number, title, service items progress
+- Click opens the existing `JobDetailSheet`
 
 ---
 
-## Summary of Changes
+## Stage 3: Wire Up Jobs Page in Sidebar and Router
 
-### New Files
-1. `src/components/dashboard/layouts/CallbackDashboardLayout.tsx` -- Dashboard layout for capture-and-callback tenants (lead funnel + hot leads list)
+### Sidebar (`src/components/layouts/AppSidebar.tsx`)
+Add to the `workspaceItems` block (after the existing capability checks):
 
-### Modified Files
-1. `src/components/dashboard/ModeContentArea.tsx` -- Add callback-only detection, render `CallbackDashboardLayout`
-2. `src/components/dashboard/MetricsGrid.tsx` -- Add "New Leads" metric for callback-only, replace bookings metric
-3. `src/pages/app/UnifiedInboxPage.tsx` -- Add sub-filtering (Hot / Follow-up / Closed) within the Leads tab
-4. `src/components/leads/LeadCard.tsx` -- Add "Convert to Customer" and "Mark Lost" actions
-5. `src/components/leads/LeadDetailPanel.tsx` -- Add convert/status-change buttons, show lifecycle actions
-6. `src/hooks/useLeads.ts` -- Add `convertToCustomer` mutation (updates lead to `won` + upserts customer)
-7. `src/pages/app/CustomersPage.tsx` -- Add lifecycle filter tabs (Active / Prospects / All)
-
-### Technical Details
-
-**Convert-to-Customer flow (in `useLeads.ts`):**
 ```
-1. Update lead status to "won"
-2. Upsert customer: supabase.from("customers").upsert({
-     tenant_id, full_name, phone_e164: lead.phone,
-     email: lead.email, source: "ai_call",
-     tags: ["active_customer"]
-   }, { onConflict: "tenant_id,phone_e164" })
-3. Invalidate both "leads" and "customers" queries
+if (caps.hasJobTracking) {
+  workspaceItems.push({ href: "/app/jobs", label: "Active Jobs", icon: ClipboardCheck });
+}
 ```
 
-**Callback-only detection (reusable pattern):**
+### Router
+The `JobsPage` component exists at `src/pages/app/JobsPage.tsx` but is not registered in the router. Add the route:
+
 ```
-const isCallbackOnly =
-  (assistantSettings as any)?.ai_behavior_mode === "callback_only";
+{ path: "jobs", element: <JobsPage /> }
 ```
 
-**Lead sub-filters in UnifiedInboxPage:**
-- Hot: `status === "new" && phone !== null`
-- Follow-up: `status === "contacted" || status === "qualified"`
-- Closed: `status === "won" || status === "lost" || status === "booked"`
+This requires finding the app routes file and adding the lazy import.
 
+### Mobile nav (`src/components/layouts/AppLayout.tsx`)
+Same pattern -- add Jobs to the mobile nav when `hasJobTracking` is true.
+
+---
+
+## Stage 4: CSV Import for Customers (bonus)
+
+A `CSVImportDialog` already exists for jobs. A similar pattern will be added to the Customers page:
+
+### New component: `src/components/customers/CustomerCSVImportDialog.tsx`
+- Accepts CSV with columns: Name, Phone, Email, Vehicle Year, Vehicle Make, Vehicle Model, VIN, License Plate
+- Parses CSV, normalizes phone to E.164
+- For each row: upserts customer, then creates vehicle record if vehicle columns are present
+- Shows preview table before import
+- Progress indicator during import
+
+### Customers page update
+- Add "Import" dropdown button next to "Add Customer" (same pattern as JobsPage)
+
+---
+
+## Files Summary
+
+### New files
+1. `src/hooks/useCustomerVehicles.ts` -- CRUD hook for customer_vehicles
+2. `src/components/customers/VehiclesTab.tsx` -- Vehicle list/add UI
+3. `src/components/customers/CustomerJobsTab.tsx` -- Jobs history for a customer
+4. `src/components/customers/CustomerCSVImportDialog.tsx` -- CSV import dialog
+
+### Modified files
+1. `src/components/customers/CustomerDetailSheet.tsx` -- Add Vehicles and Jobs tabs, restructure to 5-tab layout
+2. `src/components/layouts/AppSidebar.tsx` -- Add Jobs to workspaceItems when hasJobTracking
+3. `src/components/layouts/AppLayout.tsx` -- Add Jobs to mobile nav
+4. Router file -- Add `/app/jobs` route pointing to existing JobsPage
+5. `src/pages/app/CustomersPage.tsx` -- Add Import button
+
+### Database migration
+- Create `customer_vehicles` table with RLS
+- Create `active_jobs` table with RLS + realtime
+- Create `job_service_items` table with RLS + realtime
+- Create `generate_job_number` function
+- Create `updated_at` triggers for customer_vehicles and active_jobs
+
+### Technical notes
+
+**Vehicle-to-Job linking**: `active_jobs` has a `vehicle_id` column so when creating a job for a customer, the shop can select which vehicle the work is for. This connects the full chain: Customer -> Vehicle -> Job -> Service Items.
+
+**Existing frontend code is ready**: `useActiveJobs.ts`, `JobsPage.tsx`, `JobCard.tsx`, `JobDetailSheet.tsx`, `NewJobDialog.tsx`, `CSVImportDialog.tsx` all already exist and expect the `active_jobs` / `job_service_items` schema. They just need the tables to exist in the database.
+
+**RLS pattern**: All three tables use the same pattern as `customers` -- tenant-scoped via `has_tenant_access(tenant_id)` for authenticated users.
