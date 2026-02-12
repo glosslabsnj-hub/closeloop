@@ -2343,6 +2343,7 @@ export async function buildBusinessContext(
     // Sales context (populated below for sales businesses)
     sales: {
       inventory_summary: "",
+      inventory_detail: "",
       financing_available: false,
       trade_in_accepted: false,
       sales_rep_names: "",
@@ -2457,6 +2458,52 @@ export async function buildBusinessContext(
         if (topStyles.length) parts.push(`Types: ${topStyles.join(", ")}`);
 
         context.sales.inventory_summary = parts.join(". ");
+
+        // Build per-vehicle detail string for AI to reference specific vehicles
+        const { data: inventoryDetail } = await supabase
+          .from("sales_inventory")
+          .select("year, make, model, trim, body_style, mileage, asking_price_cents, features")
+          .eq("tenant_id", tenantId)
+          .eq("status", "available")
+          .order("make", { ascending: true })
+          .order("asking_price_cents", { ascending: true })
+          .limit(50);
+
+        if (inventoryDetail && inventoryDetail.length > 0) {
+          // Group by make
+          const byMake: Record<string, typeof inventoryDetail> = {};
+          for (const v of inventoryDetail) {
+            const make = ((v as any).make || "OTHER").toUpperCase();
+            if (!byMake[make]) byMake[make] = [];
+            byMake[make].push(v);
+          }
+
+          const lines: string[] = [];
+          for (const [make, vehicles] of Object.entries(byMake).sort((a, b) => a[0].localeCompare(b[0]))) {
+            lines.push(`${make}:`);
+            for (const v of vehicles) {
+              const yr = (v as any).year || "";
+              const model = (v as any).model || "";
+              const trim = (v as any).trim || "";
+              const body = (v as any).body_style || "";
+              const mi = (v as any).mileage;
+              const miStr = mi ? `${Math.round(mi / 1000)}K mi` : "";
+              const price = (v as any).asking_price_cents;
+              const priceStr = price ? `$${Math.round(price / 100).toLocaleString()}` : "";
+              const feats = ((v as any).features as string[] || []).slice(0, 4).join(", ");
+              
+              let line = `- ${yr} ${model}`;
+              if (trim) line += ` ${trim}`;
+              if (body) line += `, ${body}`;
+              if (miStr) line += `, ${miStr}`;
+              if (priceStr) line += `, ${priceStr}`;
+              if (feats) line += ` - ${feats}`;
+              lines.push(line);
+            }
+            lines.push(""); // blank line between makes
+          }
+          context.sales.inventory_detail = lines.join("\n").trim();
+        }
       }
 
       // Read sales-specific context fields
