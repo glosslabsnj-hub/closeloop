@@ -26,22 +26,14 @@ interface VehicleListing {
 
 /**
  * Parse the markdown scraped from a Cars For Sale dealer page into structured vehicle listings.
- * Uses regex patterns matched against the known markdown structure.
  */
 function parseVehicleListings(markdown: string): VehicleListing[] {
   const vehicles: VehicleListing[] = [];
 
-  // Each vehicle block starts with a pattern like:
-  // [**YEAR MAKE MODEL TRIM**  **TRIM_DETAIL** \
-  // followed by price, mileage, engine, drivetrain, days listed, features
-  // and ends with a listing URL
-
-  // Split by listing image pattern to get individual vehicle blocks
   const blocks = markdown.split(/- \[!\[/);
 
   for (const block of blocks) {
     try {
-      // Extract title: **YEAR MAKE MODEL TRIM**
       const titleMatch = block.match(/\[\*\*(\d{4})\s+(.+?)\*\*\s+\*\*(.+?)\*\*/);
       if (!titleMatch) continue;
 
@@ -49,13 +41,11 @@ function parseVehicleListings(markdown: string): VehicleListing[] {
       const fullName = titleMatch[2].trim();
       const trimDetail = titleMatch[3].trim();
 
-      // Parse make/model from full name (e.g., "Nissan Sentra S" or "Chevrolet Equinox LT")
       const nameParts = fullName.split(/\s+/);
       const make = nameParts[0] || "";
       const model = nameParts.slice(1, -1).join(" ") || nameParts.slice(1).join(" ") || "";
       const trim = nameParts[nameParts.length - 1] || "";
 
-      // Extract body style from trim detail (e.g., "S 4dr Sedan CVT", "LT 4dr SUV w/1LT")
       let bodyStyle = "Unknown";
       if (/sedan/i.test(trimDetail)) bodyStyle = "Sedan";
       else if (/suv/i.test(trimDetail)) bodyStyle = "SUV";
@@ -66,7 +56,6 @@ function parseVehicleListings(markdown: string): VehicleListing[] {
       else if (/convertible/i.test(trimDetail)) bodyStyle = "Convertible";
       else if (/hatchback/i.test(trimDetail)) bodyStyle = "Hatchback";
 
-      // Extract asking price (the first/lower price): $X,XXX
       const priceMatches = block.match(/\$([0-9,]+)/g);
       let askingPriceCents = 0;
       let originalPriceCents = 0;
@@ -77,33 +66,26 @@ function parseVehicleListings(markdown: string): VehicleListing[] {
         }
       }
 
-      // Extract mileage: "121,113\\\n    miles\\"
       const mileageMatch = block.match(/- ([0-9,]+)\\\\\s*\n\s*miles/i) || block.match(/([0-9,]+)\s*\\\\\s*\n\s*miles/i);
       const mileage = mileageMatch ? parseInt(mileageMatch[1].replace(/,/g, "")) : 0;
 
-      // Extract engine
       const engineMatch = block.match(/Engine:\s*\\?\s*\n\s*\\?\s*\n?\s*(.+?)\\?\s*\n/);
       const engine = engineMatch ? engineMatch[1].trim().replace(/\\/g, "") : "";
 
-      // Extract drivetrain
       const drivetrainMatch = block.match(/Drivetrain:\s*\\?\s*\n\s*\\?\s*\n?\s*(\w+)/);
       const drivetrain = drivetrainMatch ? drivetrainMatch[1].trim() : "";
 
-      // Extract days listed
       const daysMatch = block.match(/Days Listed\s*\\?\s*\n\s*\\?\s*\n?\s*(\d+)/);
       const daysOnLot = daysMatch ? parseInt(daysMatch[1]) : 0;
 
-      // Extract features
       const featuresMatch = block.match(/Features:(.+?)(?:\]|\n)/);
       const features = featuresMatch
         ? featuresMatch[1].split(",").map(f => f.trim()).filter(Boolean)
         : [];
 
-      // Extract listing URL
       const urlMatch = block.match(/https:\/\/www\.carsforsale\.com\/[^\s")\]]+\/details\/\d+/);
       const listingUrl = urlMatch ? urlMatch[0] : "";
 
-      // Extract photo URL
       const photoMatch = block.match(/https:\/\/cdn\d+\.carsforsale\.com\/[^\s")]+\.jpg/);
       const photoUrl = photoMatch ? photoMatch[0] : "";
 
@@ -132,16 +114,58 @@ function parseVehicleListings(markdown: string): VehicleListing[] {
   return vehicles;
 }
 
+/**
+ * Scrape a single URL and return parsed vehicles.
+ */
+async function scrapeUrl(url: string, firecrawlKey: string): Promise<VehicleListing[]> {
+  console.log(`[scrape-carsforsale] Scraping ${url}`);
+
+  const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${firecrawlKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      url,
+      formats: ["markdown"],
+      onlyMainContent: true,
+      waitFor: 3000,
+    }),
+  });
+
+  const scrapeData = await scrapeResponse.json();
+
+  if (!scrapeResponse.ok || !scrapeData.success) {
+    console.error("[scrape-carsforsale] Firecrawl error for", url, scrapeData);
+    return [];
+  }
+
+  const markdown = scrapeData.data?.markdown || scrapeData.markdown || "";
+  console.log(`[scrape-carsforsale] Got ${markdown.length} chars from ${url}`);
+
+  return parseVehicleListings(markdown);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { tenant_id, dealer_url, full_sync } = await req.json();
+    const body = await req.json();
+    const { tenant_id, full_sync } = body;
 
-    if (!tenant_id || !dealer_url) {
-      throw new Error("tenant_id and dealer_url are required");
+    // Support both single dealer_url and multiple dealer_urls
+    let urls: string[] = [];
+    if (body.dealer_urls && Array.isArray(body.dealer_urls)) {
+      urls = body.dealer_urls;
+    } else if (body.dealer_url) {
+      urls = [body.dealer_url];
+    }
+
+    if (!tenant_id || urls.length === 0) {
+      throw new Error("tenant_id and dealer_url(s) are required");
     }
 
     const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
@@ -149,45 +173,22 @@ serve(async (req) => {
       throw new Error("FIRECRAWL_API_KEY not configured");
     }
 
-    console.log(`[scrape-carsforsale] Scraping ${dealer_url} for tenant ${tenant_id}`);
-
-    // Scrape the dealer page with Firecrawl
-    const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${firecrawlKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        url: dealer_url,
-        formats: ["markdown"],
-        onlyMainContent: true,
-        waitFor: 3000, // Wait for JS rendering
-      }),
-    });
-
-    const scrapeData = await scrapeResponse.json();
-
-    if (!scrapeResponse.ok || !scrapeData.success) {
-      console.error("[scrape-carsforsale] Firecrawl error:", scrapeData);
-      throw new Error(`Firecrawl scrape failed: ${scrapeData.error || scrapeResponse.status}`);
+    // Scrape all URLs and combine results
+    const allVehicles: VehicleListing[] = [];
+    for (const url of urls) {
+      const vehicles = await scrapeUrl(url, firecrawlKey);
+      allVehicles.push(...vehicles);
     }
 
-    const markdown = scrapeData.data?.markdown || scrapeData.markdown || "";
-    console.log(`[scrape-carsforsale] Got ${markdown.length} chars of markdown`);
-
-    // Parse vehicle listings from markdown
-    const vehicles = parseVehicleListings(markdown);
-    console.log(`[scrape-carsforsale] Parsed ${vehicles.length} vehicles`);
+    console.log(`[scrape-carsforsale] Total parsed across ${urls.length} pages: ${allVehicles.length} vehicles`);
 
     // Upsert into sales_inventory
     const supabase = serviceClient();
     let upserted = 0;
     let errors = 0;
 
-    for (const vehicle of vehicles) {
+    for (const vehicle of allVehicles) {
       try {
-        // Use listing URL as external_id for deduplication
         const externalId = vehicle.listing_url
           ? `carsforsale:${vehicle.listing_url.match(/details\/(\d+)/)?.[1] || ""}`
           : null;
@@ -216,7 +217,6 @@ serve(async (req) => {
           last_synced_at: new Date().toISOString(),
         };
 
-        // Try to find existing by external_id, or insert new
         if (externalId) {
           const { data: existing } = await supabase
             .from("sales_inventory")
@@ -230,30 +230,18 @@ serve(async (req) => {
               .from("sales_inventory")
               .update(record)
               .eq("id", existing.id);
-            if (error) {
-              console.error(`[scrape-carsforsale] Update error:`, error.message);
-              errors++;
-              continue;
-            }
+            if (error) { errors++; continue; }
           } else {
             const { error } = await supabase
               .from("sales_inventory")
               .insert(record);
-            if (error) {
-              console.error(`[scrape-carsforsale] Insert error:`, error.message);
-              errors++;
-              continue;
-            }
+            if (error) { errors++; continue; }
           }
         } else {
           const { error } = await supabase
             .from("sales_inventory")
             .insert(record);
-          if (error) {
-            console.error(`[scrape-carsforsale] Insert error:`, error.message);
-            errors++;
-            continue;
-          }
+          if (error) { errors++; continue; }
         }
 
         upserted++;
@@ -264,8 +252,8 @@ serve(async (req) => {
     }
 
     // Full sync: mark items not in this scrape as sold
-    if (full_sync && vehicles.length > 0) {
-      const scrapedExternalIds = vehicles
+    if (full_sync && allVehicles.length > 0) {
+      const scrapedExternalIds = allVehicles
         .map(v => `carsforsale:${v.listing_url.match(/details\/(\d+)/)?.[1] || ""}`)
         .filter(id => id !== "carsforsale:");
 
@@ -283,16 +271,12 @@ serve(async (req) => {
     const result = {
       success: true,
       summary: {
-        total_scraped: vehicles.length,
+        total_scraped: allVehicles.length,
+        pages_scraped: urls.length,
         upserted,
         errors,
-        source_url: dealer_url,
+        source_urls: urls,
       },
-      vehicles: vehicles.map(v => ({
-        title: `${v.year} ${v.make} ${v.model} ${v.trim}`,
-        price: `$${(v.asking_price_cents / 100).toLocaleString()}`,
-        mileage: `${v.mileage.toLocaleString()} mi`,
-      })),
     };
 
     console.log(`[scrape-carsforsale] Done:`, result.summary);
