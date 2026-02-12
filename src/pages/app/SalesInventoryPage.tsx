@@ -17,6 +17,7 @@ import { useSalesInventory } from "@/hooks/useSalesInventory";
 import { EmptyState } from "@/components/ui/empty-state";
 import { VehicleDetailDialog } from "@/components/inventory/VehicleDetailDialog";
 import { cn } from "@/lib/utils";
+import { proxyImageUrl } from "@/lib/proxyImage";
 
 const statusColors: Record<string, string> = {
   available: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
@@ -142,7 +143,7 @@ export default function SalesInventoryPage() {
                   {hasPhoto && (
                     <div className="relative w-full h-32 overflow-hidden rounded-t-lg bg-muted">
                       <img
-                        src={(item.photo_urls as string[])[0]}
+                        src={proxyImageUrl((item.photo_urls as string[])[0])}
                         alt={title}
                         className="w-full h-full object-cover"
                         loading="lazy"

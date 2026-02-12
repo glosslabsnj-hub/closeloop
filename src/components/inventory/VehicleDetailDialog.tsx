@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ExternalLink, Fuel, Gauge, Calendar, MapPin, Palette, Car } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { proxyImageUrl } from "@/lib/proxyImage";
 
 interface VehicleItem {
   id: string;
@@ -74,7 +75,7 @@ export function VehicleDetailDialog({ vehicle, open, onOpenChange }: Props) {
         {vehicle.photo_urls && vehicle.photo_urls.length > 0 && (
           <div className="relative w-full h-48 overflow-hidden rounded-t-lg bg-muted">
             <img
-              src={vehicle.photo_urls[0]}
+              src={proxyImageUrl(vehicle.photo_urls[0])}
               alt={title}
               className="w-full h-full object-cover"
             />
