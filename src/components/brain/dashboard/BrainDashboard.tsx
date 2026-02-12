@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { BRAIN_CATEGORIES, type CategoryConfig } from "@/components/brain/layout/businessBrainNavConfig";
 import { getModeCategories } from "@/config/brainModeLayout";
 import { BrainCategoryCard } from "./BrainCategoryCard";
+import { BrainNextStepsBar } from "./BrainNextStepsBar";
 import { NextStepSuggestion } from "@/components/brain/layout/NextStepSuggestion";
 import { useAllCategoriesCompletion } from "@/hooks/useCategoryCompletion";
 import { useBrainSummaries } from "@/hooks/useBrainSummaries";
@@ -50,21 +51,6 @@ function getCategorySummary(
   }
 }
 
-/**
- * Find the first incomplete category (by order) to suggest as next step.
- */
-function findSuggestedSection(
-  categories: CategoryConfig[],
-  completions: Record<string, { percentage: number }>,
-): string | null {
-  const ordered = [...categories].sort((a, b) => a.order - b.order);
-  for (const cat of ordered) {
-    const stats = completions[cat.section];
-    if (stats && stats.percentage < 100) return cat.section;
-  }
-  return null;
-}
-
 export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
   const completions = useAllCategoriesCompletion();
   const summaries = useBrainSummaries();
@@ -90,17 +76,6 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
   );
   const overallPercent = overall.total > 0 ? Math.round((overall.completed / overall.total) * 100) : 100;
 
-  const suggestedSection = findSuggestedSection(modeCategories, completions);
-
-  // Get the section *before* the suggested one so NextStepSuggestion picks the right message
-  const completedForSuggestion = (() => {
-    if (!suggestedSection) return null;
-    const ordered = [...modeCategories].sort((a, b) => a.order - b.order);
-    const idx = ordered.findIndex((c) => c.section === suggestedSection);
-    if (idx <= 0) return null;
-    return ordered[idx - 1].section;
-  })();
-
   return (
     <div className="space-y-6">
       {/* Editorial header */}
@@ -118,23 +93,12 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
         <Progress value={overallPercent} className="h-1" />
       </div>
 
-      {/* Suggested next step */}
-      {suggestedSection && completedForSuggestion && (
-        <NextStepSuggestion
-          completedSection={completedForSuggestion}
-          mode={businessMode}
-          onNavigate={onNavigate}
-        />
-      )}
-
-      {/* If the very first category is incomplete and there's no "completed before" */}
-      {suggestedSection && !completedForSuggestion && (
-        <NextStepSuggestion
-          completedSection="about"
-          mode={businessMode}
-          onNavigate={onNavigate}
-        />
-      )}
+      {/* Priority next steps engine */}
+      <BrainNextStepsBar
+        completions={completions}
+        categories={modeCategories}
+        onNavigate={onNavigate}
+      />
 
       {/* Category cards grid — 2-col with more breathing room */}
       <div

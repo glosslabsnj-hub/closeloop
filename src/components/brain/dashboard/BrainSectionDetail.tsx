@@ -10,7 +10,7 @@
  * - Prev / Next category navigation
  */
 
-import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { BRAIN_CATEGORIES, type CategoryConfig } from "@/components/brain/layout/businessBrainNavConfig";
@@ -108,9 +108,18 @@ export function BrainSectionDetail({
           <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">{category.description}</p>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold tracking-tight flex-1">{displayTitle}</h1>
-            <span className="text-sm font-medium tabular-nums shrink-0">
-              {completion.percentage}%
-            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              {completion.percentage === 100 ? (
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-full">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Complete
+                </span>
+              ) : (
+                <span className="text-sm font-medium tabular-nums">
+                  {completion.percentage}%
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
