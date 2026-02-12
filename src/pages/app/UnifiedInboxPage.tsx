@@ -3,14 +3,12 @@ import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useLeads } from "@/hooks/useLeads";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { useCapabilities } from "@/hooks/useCapabilities";
 import { computeCallPriority } from "@/lib/priorityScoring";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -21,21 +19,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Phone, Users, Search, Loader2, Plus } from "lucide-react";
+import { Phone, Users, Search, Loader2 } from "lucide-react";
 import { useTerminology } from "@/hooks/useTerminology";
 import { InboxCallCard } from "@/components/calls/InboxCallCard";
 import { CallDetailPanel } from "@/components/calls/CallDetailPanel";
-import { LeadCard } from "@/components/leads/LeadCard";
-import { LeadDetailPanel } from "@/components/leads/LeadDetailPanel";
-import { CreateLeadDialog } from "@/components/leads/CreateLeadDialog";
-import { CreateBookingDialog } from "@/components/calendar/CreateBookingDialog";
-import { toast } from "sonner";
-import type { Database } from "@/integrations/supabase/types";
-
-type Lead = Database["public"]["Tables"]["leads"]["Row"];
 
 type TabValue = "calls" | "leads";
-type LeadSubFilter = "hot" | "followup" | "closed";
+
+/** Outcomes that represent an actual lead / opportunity */
+const LEAD_OUTCOMES = new Set(["followup", "lead_captured", "dispatch", "escalated", "booked", "order", "message"]);
 
 interface CallSession {
   id: string;
@@ -91,25 +83,12 @@ export default function UnifiedInboxPage() {
     isValidTab(tabParam) ? tabParam : defaultTab
   );
 
-  // Lead sub-filter
-  const [leadSubFilter, setLeadSubFilter] = useState<LeadSubFilter>("hot");
-
   // Search and filter
   const [searchQuery, setSearchQuery] = useState("");
   const [outcomeFilter, setOutcomeFilter] = useState("all");
 
-  // Selected call/lead for detail panels
+  // Selected call for detail panel
   const [selectedCall, setSelectedCall] = useState<CallSession | null>(null);
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-
-  // Lead action dialogs
-  const [createLeadDialogOpen, setCreateLeadDialogOpen] = useState(false);
-  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
-  const [bookingLeadName, setBookingLeadName] = useState("");
-  const [bookingLeadPhone, setBookingLeadPhone] = useState("");
-
-  // Leads hook with mutations
-  const { leads, isLoading: leadsLoading, stats: leadStats, convertToCustomer, markAsLost } = useLeads();
 
   // Sync URL with tab state
   useEffect(() => {
@@ -154,7 +133,7 @@ export default function UnifiedInboxPage() {
         `)
         .eq("tenant_id", tenant.id)
         .order("started_at", { ascending: false })
-        .limit(100);
+        .limit(200);
       if (error) throw error;
       return (data || []).map((row) => ({
         ...row,
@@ -181,25 +160,21 @@ export default function UnifiedInboxPage() {
     );
   };
 
-  // Filter and sort calls
-  const filteredCalls = useMemo(() => {
+  // ---- LEADS: call sessions with lead-worthy outcomes, priority-sorted ----
+  const filteredLeads = useMemo(() => {
     if (!calls) return [];
     return calls
       .filter((call) => {
+        // Must have a lead-worthy outcome
+        if (!call.outcome || !LEAD_OUTCOMES.has(call.outcome)) return false;
+
         const query = searchQuery.toLowerCase();
-        const matchesSearch = !query ||
+        if (!query) return true;
+        return (
           call.caller_phone?.toLowerCase().includes(query) ||
           call.summary?.toLowerCase().includes(query) ||
-          getCustomerName(call).toLowerCase().includes(query);
-
-        let matchesOutcome = true;
-        if (outcomeFilter === "high_priority") {
-          matchesOutcome = getCallPriority(call).level === "high";
-        } else if (outcomeFilter !== "all") {
-          matchesOutcome = call.outcome === outcomeFilter;
-        }
-
-        return matchesSearch && matchesOutcome;
+          getCustomerName(call).toLowerCase().includes(query)
+        );
       })
       .sort((a, b) => {
         const aPriority = getCallPriority(a);
@@ -207,30 +182,31 @@ export default function UnifiedInboxPage() {
         if (bPriority.score !== aPriority.score) return bPriority.score - aPriority.score;
         return new Date(b.started_at).getTime() - new Date(a.started_at).getTime();
       });
-  }, [calls, searchQuery, outcomeFilter, config.priority]);
+  }, [calls, searchQuery, config.priority]);
 
-  // Sub-filtered leads
-  const { hotLeads, followUpLeads, closedLeads } = useMemo(() => {
-    const hot = leads.filter((l) => l.status === "new" && l.phone);
-    const followUp = leads.filter((l) => l.status === "contacted" || l.status === "qualified");
-    const closed = leads.filter((l) => l.status === "won" || l.status === "lost" || l.status === "booked");
-    return { hotLeads: hot, followUpLeads: followUp, closedLeads: closed };
-  }, [leads]);
+  // ---- CALLS: simple chronological log, optional outcome filter ----
+  const filteredCalls = useMemo(() => {
+    if (!calls) return [];
+    return calls.filter((call) => {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch = !query ||
+        call.caller_phone?.toLowerCase().includes(query) ||
+        call.summary?.toLowerCase().includes(query) ||
+        getCustomerName(call).toLowerCase().includes(query);
 
-  const activeLeadsList = useMemo(() => {
-    const list = leadSubFilter === "hot" ? hotLeads : leadSubFilter === "followup" ? followUpLeads : closedLeads;
-    if (!searchQuery) return list;
-    const q = searchQuery.toLowerCase();
-    return list.filter((lead) =>
-      lead.full_name.toLowerCase().includes(q) ||
-      lead.phone?.includes(q) ||
-      lead.email?.toLowerCase().includes(q)
-    );
-  }, [leadSubFilter, hotLeads, followUpLeads, closedLeads, searchQuery]);
+      let matchesOutcome = true;
+      if (outcomeFilter !== "all") {
+        matchesOutcome = call.outcome === outcomeFilter;
+      }
 
-  // Count unread/new items
-  const newCallsCount = calls?.filter((c) => !c.outcome || c.outcome === "followup").length || 0;
-  const newLeadsCount = leadStats?.new || 0;
+      return matchesSearch && matchesOutcome;
+    });
+    // Already sorted by started_at DESC from the query
+  }, [calls, searchQuery, outcomeFilter]);
+
+  // Counts
+  const leadsCount = calls?.filter((c) => c.outcome && LEAD_OUTCOMES.has(c.outcome)).length || 0;
+  const totalCallsCount = calls?.length || 0;
 
   const handleTabChange = (value: string) => {
     if (isValidTab(value)) {
@@ -238,28 +214,6 @@ export default function UnifiedInboxPage() {
       setSearchQuery("");
       setOutcomeFilter("all");
     }
-  };
-
-  const handleBookAppointment = (lead: { full_name: string; phone: string | null }) => {
-    setBookingLeadName(lead.full_name);
-    setBookingLeadPhone(lead.phone || "");
-    setBookingDialogOpen(true);
-  };
-
-  const handleSendMessage = () => {
-    toast.info("SMS messaging coming soon");
-  };
-
-  const handleConvertToCustomer = (lead: Lead) => {
-    convertToCustomer.mutate(lead, {
-      onSuccess: () => setSelectedLead(null),
-    });
-  };
-
-  const handleMarkAsLost = (lead: Lead) => {
-    markAsLost.mutate(lead.id, {
-      onSuccess: () => setSelectedLead(null),
-    });
   };
 
   return (
@@ -276,30 +230,24 @@ export default function UnifiedInboxPage() {
             <TabsTrigger value="leads" className="gap-2">
               <Users className="h-4 w-4" />
               Leads
-              {newLeadsCount > 0 && (
+              {leadsCount > 0 && (
                 <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                  {newLeadsCount}
+                  {leadsCount}
                 </Badge>
               )}
             </TabsTrigger>
             <TabsTrigger value="calls" className="gap-2">
               <Phone className="h-4 w-4" />
               Calls
-              {newCallsCount > 0 && (
+              {totalCallsCount > 0 && (
                 <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                  {newCallsCount}
+                  {totalCallsCount}
                 </Badge>
               )}
             </TabsTrigger>
           </TabsList>
 
           <div className="flex items-center gap-2">
-            {activeTab === "leads" && (
-              <Button size="sm" variant="outline" onClick={() => setCreateLeadDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-1" />
-                Add Lead
-              </Button>
-            )}
             <div className="relative flex-1 sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -316,9 +264,9 @@ export default function UnifiedInboxPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="high_priority">High Priority</SelectItem>
                   <SelectItem value="booked">Booked</SelectItem>
                   <SelectItem value="followup">Follow-up</SelectItem>
+                  <SelectItem value="lead_captured">Lead</SelectItem>
                   <SelectItem value="lost">Lost</SelectItem>
                   <SelectItem value="escalated">Escalated</SelectItem>
                 </SelectContent>
@@ -327,6 +275,35 @@ export default function UnifiedInboxPage() {
           </div>
         </div>
 
+        {/* LEADS TAB: lead-worthy calls, priority-sorted */}
+        <TabsContent value="leads" className="mt-6">
+          {callsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : filteredLeads.length === 0 ? (
+            <EmptyState
+              icon={Users}
+              title="No leads yet"
+              description="When callers express interest or request follow-ups, they'll appear here prioritized."
+            />
+          ) : (
+            <div className="divide-y divide-border/20 rounded-2xl bg-card">
+              {filteredLeads.map((call) => (
+                <InboxCallCard
+                  key={call.id}
+                  call={call}
+                  customerName={getCustomerName(call)}
+                  onClick={() => setSelectedCall(call)}
+                  priorityConfig={config.priority}
+                  inboxConfig={config.inbox}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* CALLS TAB: simple chronological call log */}
         <TabsContent value="calls" className="mt-6">
           {callsLoading ? (
             <div className="flex items-center justify-center py-12">
@@ -335,8 +312,8 @@ export default function UnifiedInboxPage() {
           ) : filteredCalls.length === 0 ? (
             <EmptyState
               icon={Phone}
-              title="No messages yet"
-              description="When customers text or call, their conversations will appear here."
+              title="No calls yet"
+              description="All incoming and outgoing calls will appear here."
             />
           ) : (
             <div className="divide-y divide-border/20 rounded-2xl bg-card">
@@ -353,69 +330,6 @@ export default function UnifiedInboxPage() {
             </div>
           )}
         </TabsContent>
-
-        <TabsContent value="leads" className="mt-6 space-y-4">
-          {/* Lead sub-filter tabs */}
-          <div className="flex gap-2">
-            {([
-              { key: "hot" as const, label: "Hot", count: hotLeads.length },
-              { key: "followup" as const, label: "Follow-up", count: followUpLeads.length },
-              { key: "closed" as const, label: "Closed", count: closedLeads.length },
-            ]).map((tab) => (
-              <Button
-                key={tab.key}
-                variant={leadSubFilter === tab.key ? "default" : "outline"}
-                size="sm"
-                onClick={() => setLeadSubFilter(tab.key)}
-                className="gap-1.5"
-              >
-                {tab.label}
-                <Badge
-                  variant="secondary"
-                  className="h-5 px-1.5 text-xs"
-                >
-                  {tab.count}
-                </Badge>
-              </Button>
-            ))}
-          </div>
-
-          {leadsLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : activeLeadsList.length === 0 ? (
-            <EmptyState
-              icon={Users}
-              title={leadSubFilter === "hot" ? "No hot leads" : leadSubFilter === "followup" ? "No follow-ups" : "No closed leads"}
-              description={
-                leadSubFilter === "hot"
-                  ? "New leads with contact info will appear here."
-                  : leadSubFilter === "followup"
-                  ? "Leads you've contacted or qualified show up here."
-                  : "Won and lost leads are archived here."
-              }
-              action={leadSubFilter === "hot" ? {
-                label: "Add Lead",
-                onClick: () => setCreateLeadDialogOpen(true),
-              } : undefined}
-            />
-          ) : (
-            <div className="space-y-3">
-              {activeLeadsList.map((lead) => (
-                <LeadCard
-                  key={lead.id}
-                  lead={lead}
-                  onClick={() => setSelectedLead(lead)}
-                  onBookAppointment={handleBookAppointment}
-                  onSendMessage={handleSendMessage}
-                  onConvertToCustomer={handleConvertToCustomer}
-                  onMarkAsLost={handleMarkAsLost}
-                />
-              ))}
-            </div>
-          )}
-        </TabsContent>
       </Tabs>
 
       {/* Call Detail Slide-over */}
@@ -423,30 +337,6 @@ export default function UnifiedInboxPage() {
         call={selectedCall}
         onClose={() => setSelectedCall(null)}
         customerName={selectedCall ? getCustomerName(selectedCall) : undefined}
-      />
-
-      {/* Lead Detail Slide-over */}
-      <LeadDetailPanel
-        lead={selectedLead}
-        onClose={() => setSelectedLead(null)}
-        onBookAppointment={(lead) => {
-          setSelectedLead(null);
-          handleBookAppointment({ full_name: lead.full_name, phone: lead.phone });
-        }}
-        onConvertToCustomer={handleConvertToCustomer}
-        onMarkAsLost={handleMarkAsLost}
-      />
-
-      {/* Lead action dialogs */}
-      <CreateLeadDialog
-        open={createLeadDialogOpen}
-        onOpenChange={setCreateLeadDialogOpen}
-      />
-      <CreateBookingDialog
-        open={bookingDialogOpen}
-        onOpenChange={setBookingDialogOpen}
-        initialCustomerName={bookingLeadName}
-        initialCustomerPhone={bookingLeadPhone}
       />
     </PageContainer>
   );
