@@ -21,8 +21,9 @@ import { JobNotificationToggles } from "./JobNotificationToggles";
 import { useJobServiceItems } from "@/hooks/useJobServiceItems";
 import { useActiveJobs, type ActiveJob, type JobStatus, type JobPriority } from "@/hooks/useActiveJobs";
 import { useJobLabels } from "@/hooks/useJobLabels";
+import { useFleetDrivers } from "@/hooks/useFleetDrivers";
 import { Progress } from "@/components/ui/progress";
-import { Phone, User, Clock, AlertTriangle, Zap } from "lucide-react";
+import { Phone, User, Clock, AlertTriangle, Zap, UserCheck } from "lucide-react";
 
 interface JobDetailSheetProps {
   job: ActiveJob | null;
@@ -48,6 +49,7 @@ const PRIORITY_OPTIONS: { value: JobPriority; label: string; icon?: typeof Alert
 export function JobDetailSheet({ job, open, onOpenChange }: JobDetailSheetProps) {
   const labels = useJobLabels();
   const { updateJob, updateJobStatus } = useActiveJobs();
+  const { activeDrivers } = useFleetDrivers();
   const {
     items,
     completedCount,
@@ -124,6 +126,34 @@ export function JobDetailSheet({ job, open, onOpenChange }: JobDetailSheetProps)
             </SelectContent>
           </Select>
         </div>
+
+        {/* Assigned To */}
+        {activeDrivers.length > 0 && (
+          <div className="flex items-center gap-2 pb-4">
+            <UserCheck className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <Select
+              value={(meta.assigned_to as string) || "unassigned"}
+              onValueChange={(v) =>
+                updateJob.mutate({
+                  id: job.id,
+                  metadata_json: { ...meta, assigned_to: v === "unassigned" ? null : v },
+                })
+              }
+            >
+              <SelectTrigger className="h-8 text-sm flex-1">
+                <SelectValue placeholder="Unassigned" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unassigned">Unassigned</SelectItem>
+                {activeDrivers.map((d) => (
+                  <SelectItem key={d.id} value={d.id}>
+                    {d.full_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {/* Customer info */}
         {(job.customer_name || job.customer_phone) && (

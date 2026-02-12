@@ -410,6 +410,18 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         setupPriority: "recommended",
       },
       {
+        id: "team-management",
+        title: "Your Team",
+        purpose: "Manage your staff and assign jobs to team members",
+        usedByAI: [
+          "Knows your team members and their specialties",
+          "Can mention technician names when relevant",
+        ],
+        isCapabilityVisible: (caps) => caps.isDispatchBusiness || caps.hasFleetManagement || caps.hasStaffScheduling,
+        isVisible: (mode) => mode === "dispatch",
+        setupPriority: "recommended",
+      },
+      {
         id: "hipaa-settings",
         title: "HIPAA Compliance",
         purpose: "Medical practice compliance settings",
