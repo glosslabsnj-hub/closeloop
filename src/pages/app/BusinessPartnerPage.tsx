@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -6,11 +7,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBusinessPartner } from "@/hooks/useBusinessPartner";
 import { usePartnerAnalysis } from "@/hooks/usePartnerAnalysis";
+import { useBusinessAwareness } from "@/hooks/useBusinessAwareness";
 import { PartnerAnalysisTab } from "@/components/partner/PartnerAnalysisTab";
 import { PartnerActionPlanTab } from "@/components/partner/PartnerActionPlanTab";
 import { PartnerPerformanceTab } from "@/components/partner/PartnerPerformanceTab";
 
-const STAGE_DESCRIPTIONS: Record<string, string> = {
+const STAGE_DESCRIPTIONS_STATIC: Record<string, string> = {
   getting_started: "Let's get your AI assistant set up and ready for calls.",
   building: "Your AI is learning. Keep training it to handle more scenarios.",
   growing: "Calls are flowing. Time to optimize and grow.",
@@ -18,11 +20,55 @@ const STAGE_DESCRIPTIONS: Record<string, string> = {
   established: "Peak performance. Fine-tune and expand.",
 };
 
+function buildStageDescription(
+  stage: string,
+  businessName: string,
+  serviceCount: number,
+  faqCount: number,
+  gapCount: number,
+  recentCallCount: number,
+  conversionRate: number,
+): string {
+  // Fall back to static if no business name
+  if (!businessName) return STAGE_DESCRIPTIONS_STATIC[stage] ?? "Your AI-powered business advisor";
+
+  switch (stage) {
+    case "getting_started":
+      return `Let's get ${businessName} answering calls.${serviceCount > 0 ? "" : " Start by adding your services."}${faqCount === 0 ? " Add FAQs so your AI can answer common questions." : ""}`;
+    case "building":
+      return `${businessName} is learning.${gapCount > 0 ? ` Your AI couldn't answer ${gapCount} question${gapCount === 1 ? "" : "s"} — add those answers.` : " Keep training it."}`;
+    case "growing": {
+      const convPct = Math.round(conversionRate * 100);
+      return `${businessName} handled ${recentCallCount} calls recently.${convPct < 30 ? " Conversion is below average — let's fix that." : " Looking good!"}`;
+    }
+    case "scaling":
+      return `${businessName} is handling serious volume. Focus on quality and consistency.`;
+    case "established":
+      return `${businessName} is at peak performance. Fine-tune and expand.`;
+    default:
+      return STAGE_DESCRIPTIONS_STATIC[stage] ?? "Your AI-powered business advisor";
+  }
+}
+
 export default function BusinessPartnerPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") || "analysis";
   const data = useBusinessPartner();
   const partnerAnalysis = usePartnerAnalysis();
+  const awareness = useBusinessAwareness();
+
+  const stageDescription = useMemo(
+    () => buildStageDescription(
+      data.stage,
+      awareness.businessName,
+      awareness.serviceCount,
+      awareness.faqCount,
+      awareness.gapCount,
+      awareness.recentCallCount,
+      awareness.conversionRate,
+    ),
+    [data.stage, awareness.businessName, awareness.serviceCount, awareness.faqCount, awareness.gapCount, awareness.recentCallCount, awareness.conversionRate],
+  );
 
   const handleTabChange = (value: string) => {
     setSearchParams({ tab: value }, { replace: true });
@@ -58,7 +104,7 @@ export default function BusinessPartnerPage() {
     <>
       <PageHeader
         title="Business Partner"
-        description={STAGE_DESCRIPTIONS[data.stage] ?? "Your AI-powered business advisor"}
+        description={stageDescription}
         icon={Sparkles}
       />
       <PageContainer maxWidth="xl">

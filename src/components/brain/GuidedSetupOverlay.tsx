@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
+import { useBusinessAwareness } from "@/hooks/useBusinessAwareness";
 import { getIndustryOnboardingConfig } from "@/config/industryOnboardingConfig";
 import { getOrderedSteps, getStepTitle, type HubStep } from "./hub/hubStepsConfig";
 import type { BusinessMode } from "@/hooks/useTenantConfig";
@@ -73,6 +74,7 @@ export function GuidedSetupOverlay({
   const { businessMode } = useTenantConfig();
   const { tenant } = useAuth();
   const { slug, category, mode } = useIndustryContext();
+  const { complexityTier } = useBusinessAwareness();
   const [open, setOpen] = useState(false);
 
   // Read capabilities from tenant
@@ -106,7 +108,10 @@ export function GuidedSetupOverlay({
 
   const allSteps = getOrderedSteps(businessMode);
   const priorityIds = getPrioritySteps(businessMode, capabilities);
+  // Simple businesses: show fewer priority steps to avoid overwhelming
+  const maxSteps = complexityTier === "simple" ? 3 : priorityIds.length;
   const prioritySteps = priorityIds
+    .slice(0, maxSteps)
     .map((id) => allSteps.find((s) => s.id === id))
     .filter(Boolean) as HubStep[];
 

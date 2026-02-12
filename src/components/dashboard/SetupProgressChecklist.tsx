@@ -7,6 +7,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { useCapabilities } from "@/hooks/useCapabilities";
 import { useBusinessCapabilities } from "@/hooks/useBusinessCapabilities";
+import { useKnowledgeGaps } from "@/hooks/useKnowledgeGaps";
+import { useConversionMetrics } from "@/hooks/useIntelligence";
+import { useCalendarConnections } from "@/hooks/useCalendarConnections";
+import { useServices } from "@/hooks/useServices";
+import { buildSetupSteps } from "@/lib/setupStepBuilder";
 import { cn } from "@/lib/utils";
 import {
   CheckCircle2,
@@ -19,44 +24,34 @@ import {
   Rocket,
   ChevronRight,
   UtensilsCrossed,
-  Truck,
   Warehouse,
   Users,
   Car,
-  ClipboardList,
   FileText,
+  Calendar as CalendarIcon,
+  AlertTriangle,
 } from "lucide-react";
 
-interface SetupStep {
-  id: string;
-  label: string;
-  description: string;
-  href: string;
-  icon: React.ElementType;
-  completed: boolean;
-  skip?: boolean;
-}
-
 /**
- * SetupProgressChecklist - Mode-aware setup progress with dynamic steps
+ * SetupProgressChecklist - Business-aware setup progress with dynamic steps
  */
 export function SetupProgressChecklist() {
   const { tenant, assistantSettings } = useAuth();
   const { terms } = useIndustryContext();
   const caps = useCapabilities();
   const bizCaps = useBusinessCapabilities();
+  const { totalUnresolvedCount: gapCount } = useKnowledgeGaps();
+  const { metrics } = useConversionMetrics(30);
+  const { hasConnectedCalendar } = useCalendarConnections();
+  const { services: allServices } = useServices();
 
   // Fetch counts for completion checks
   const { data: counts } = useQuery({
     queryKey: ["setup-checklist-counts", tenant?.id],
     queryFn: async () => {
-      if (!tenant?.id) return { services: 0, faqs: 0, menuItems: 0, impoundConfigured: false };
+      if (!tenant?.id) return { faqs: 0, menuItems: 0, impoundConfigured: false };
 
-      const [servicesResult, faqsResult, menuResult, impoundSettingsResult, impoundLotsResult] = await Promise.all([
-        supabase
-          .from("services")
-          .select("*", { count: "exact", head: true })
-          .eq("tenant_id", tenant.id),
+      const [faqsResult, menuResult, impoundSettingsResult, impoundLotsResult] = await Promise.all([
         supabase
           .from("business_faqs")
           .select("*", { count: "exact", head: true })
@@ -79,14 +74,12 @@ export function SetupProgressChecklist() {
           .maybeSingle(),
       ]);
 
-      // Check if impound lot is configured (has settings with fees OR has a lot address)
       const impoundConfigured = !!(
-        (impoundSettingsResult.data?.base_tow_fee_cents && impoundSettingsResult.data.base_tow_fee_cents > 0) || 
+        (impoundSettingsResult.data?.base_tow_fee_cents && impoundSettingsResult.data.base_tow_fee_cents > 0) ||
         impoundLotsResult.data?.address
       );
 
       return {
-        services: servicesResult.count || 0,
         faqs: faqsResult.count || 0,
         menuItems: menuResult.count || 0,
         impoundConfigured,
@@ -95,134 +88,55 @@ export function SetupProgressChecklist() {
     enabled: !!tenant?.id,
   });
 
-  // Check if hours are configured
+  // Derive service data
+  const activeServices = (allServices || []).filter((s) => s.is_active !== false);
+  const servicesWithoutPrices = activeServices
+    .filter((s) => !s.price_amount && s.price_type !== "quote_only")
+    .map((s) => s.name);
+
   const hoursConfigured = !!tenant?.hours_json &&
     Object.keys((tenant?.hours_json as Record<string, unknown>) || {}).length > 0;
 
-  // Determine if calendar step should be shown (service/medical need it, dispatch/food typically don't)
-  const needsCalendar = caps.isServiceBusiness || caps.isMedicalBusiness;
+  // Build steps using the builder
+  const steps = buildSetupSteps(
+    {
+      serviceCount: activeServices.length,
+      servicesWithoutPrices,
+      faqCount: counts?.faqs || 0,
+      gapCount,
+      hoursConfigured,
+      hasCalendar: hasConnectedCalendar,
+      hasBooking: caps.hasBooking,
+      phoneConnected: assistantSettings?.phone_connected || false,
+      tested: assistantSettings?.setup_step_tested || false,
+      goLive: assistantSettings?.go_live_enabled || false,
+      hangupRate: metrics.hangupRate,
+      recentCallCount: metrics.totalCalls,
+      caps,
+      terms,
+      menuItemCount: counts?.menuItems || 0,
+      impoundConfigured: counts?.impoundConfigured || false,
+      showStaffSection: bizCaps.showStaffSection,
+      showCurbsideSection: bizCaps.showCurbsideSection,
+      showNewPatientFormsSection: bizCaps.showNewPatientFormsSection,
+    },
+    {
+      Package,
+      UtensilsCrossed,
+      Clock,
+      HelpCircle,
+      Warehouse,
+      Users,
+      Car,
+      FileText,
+      Phone,
+      FlaskConical,
+      Rocket,
+      CalendarIcon,
+      AlertTriangle,
+    },
+  );
 
-  // Build steps based on business mode and capabilities
-  const steps: SetupStep[] = [];
-
-  // Step 1: Add offerings (mode-aware label and icon)
-  if (caps.isFoodBusiness) {
-    steps.push({
-      id: "menu",
-      label: terms.addServicesStep, // "Add your menu"
-      description: terms.addServicesDescription,
-      href: "/app/menu",
-      icon: UtensilsCrossed,
-      completed: (counts?.menuItems || 0) > 0,
-    });
-  } else {
-    steps.push({
-      id: "services",
-      label: terms.addServicesStep, // "Add your services"
-      description: terms.addServicesDescription,
-      href: "/app/business-brain?section=services",
-      icon: Package,
-      completed: (counts?.services || 0) > 0,
-    });
-  }
-
-  // Step 2: Set hours (always needed)
-  steps.push({
-    id: "hours",
-    label: "Set your hours",
-    description: "When you're open for business",
-    href: "/app/business-brain?section=hours",
-    icon: Clock,
-    completed: hoursConfigured,
-  });
-
-  // Step 3: Add FAQs
-  steps.push({
-    id: "faqs",
-    label: "Add FAQs",
-    description: "Common questions your AI can answer",
-    href: "/app/business-brain?section=knowledge",
-    icon: HelpCircle,
-    completed: (counts?.faqs || 0) >= 3,
-  });
-
-  // Step 4: Impound lot configuration (only for dispatch + impound_lot capability)
-  if (caps.isDispatchBusiness && caps.hasImpoundLot) {
-    steps.push({
-      id: "impound",
-      label: "Configure impound lot",
-      description: "Lot address, fees, and release requirements",
-      href: "/app/business-brain?section=impound",
-      icon: Warehouse,
-      completed: counts?.impoundConfigured || false,
-    });
-  }
-
-  // Mode-specific steps based on new capabilities
-  if (bizCaps.showStaffSection) {
-    steps.push({
-      id: "staff",
-      label: "Add your staff members",
-      description: "Set up technicians or team members for scheduling",
-      href: "/app/business-brain?section=staff",
-      icon: Users,
-      completed: false, // Will be wired to staff count later
-    });
-  }
-
-  if (bizCaps.showCurbsideSection) {
-    steps.push({
-      id: "curbside",
-      label: "Set up curbside pickup",
-      description: "Configure curbside pickup instructions",
-      href: "/app/business-brain?section=ordering",
-      icon: Car,
-      completed: false,
-    });
-  }
-
-  if (bizCaps.showNewPatientFormsSection) {
-    steps.push({
-      id: "patient-forms",
-      label: "Upload patient forms",
-      description: "Add new patient intake forms for your practice",
-      href: "/app/business-brain?section=forms",
-      icon: FileText,
-      completed: false,
-    });
-  }
-
-  // Step 5: Connect phone
-  steps.push({
-    id: "phone",
-    label: "Connect phone",
-    description: "Get your AI phone number",
-    href: "/app/go-live",
-    icon: Phone,
-    completed: assistantSettings?.phone_connected || false,
-  });
-
-  // Step 6: Test AI
-  steps.push({
-    id: "test",
-    label: "Test AI",
-    description: "Make sure everything works",
-    href: "/app/simulator",
-    icon: FlaskConical,
-    completed: assistantSettings?.setup_step_tested || false,
-  });
-
-  // Step 7: Go live
-  steps.push({
-    id: "golive",
-    label: "Go live",
-    description: "Start answering real calls",
-    href: "/app/go-live",
-    icon: Rocket,
-    completed: assistantSettings?.go_live_enabled || false,
-  });
-
-  // Filter out skipped steps
   const visibleSteps = steps.filter(s => !s.skip);
   const completedCount = visibleSteps.filter((s) => s.completed).length;
   const progressPercent = Math.round((completedCount / visibleSteps.length) * 100);
