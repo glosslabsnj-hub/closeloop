@@ -164,16 +164,12 @@ export default function CustomersPage() {
             Active
             <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-xs">{activeCustomers.length}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="prospects">
-            Prospects
-            <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-xs">{prospects.length}</Badge>
-          </TabsTrigger>
           <TabsTrigger value="merge">
             Merge Queue
           </TabsTrigger>
         </TabsList>
 
-        {["all", "active", "prospects"].map((tabKey) => (
+        {["all", "active"].map((tabKey) => (
           <TabsContent key={tabKey} value={tabKey} className="mt-6 space-y-4">
             {/* Toolbar */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">

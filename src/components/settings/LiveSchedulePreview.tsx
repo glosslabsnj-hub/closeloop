@@ -34,7 +34,7 @@ interface CalendarConnection {
 const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export function LiveSchedulePreview() {
-  const { tenant } = useAuth();
+  const { tenant, assistantSettings } = useAuth();
 
   // Fetch weekly availability slots
   const { data: slots, isLoading: slotsLoading } = useQuery({
@@ -116,8 +116,9 @@ export function LiveSchedulePreview() {
     };
   });
 
-  // Check if any calendar is connected
-  const hasCalendarConnected = calendarConnections && calendarConnections.length > 0;
+  // Check if any calendar is connected (external or internal/closeloop)
+  const isInternalCalendar = assistantSettings?.calendar_provider === 'closeloop';
+  const hasCalendarConnected = isInternalCalendar || (calendarConnections && calendarConnections.length > 0);
   const activeConnection = calendarConnections?.find((c) => c.status === "active");
 
   return (
@@ -212,6 +213,11 @@ export function LiveSchedulePreview() {
                           <span className="text-muted-foreground"> ({activeConnection.display_name})</span>
                         )}
                       </span>
+                    </>
+                  ) : isInternalCalendar ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                      <span className="text-sm">Using Voxly Calendar</span>
                     </>
                   ) : hasCalendarConnected ? (
                     <>
