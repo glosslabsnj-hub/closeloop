@@ -20,13 +20,17 @@
    SelectTrigger,
    SelectValue,
  } from "@/components/ui/select";
- import { Phone, Users, Search, Inbox, Loader2, Plus } from "lucide-react";
+ import { Phone, Users, Search, Loader2, Plus } from "lucide-react";
  import { InboxCallCard } from "@/components/calls/InboxCallCard";
  import { CallDetailPanel } from "@/components/calls/CallDetailPanel";
  import { LeadCard } from "@/components/leads/LeadCard";
+ import { LeadDetailPanel } from "@/components/leads/LeadDetailPanel";
  import { CreateLeadDialog } from "@/components/leads/CreateLeadDialog";
  import { CreateBookingDialog } from "@/components/calendar/CreateBookingDialog";
  import { toast } from "sonner";
+ import type { Database } from "@/integrations/supabase/types";
+
+ type Lead = Database["public"]["Tables"]["leads"]["Row"];
 
  type TabValue = "calls" | "leads";
 
@@ -77,16 +81,17 @@
    // Tab state
    const isValidTab = (t: string | null): t is TabValue =>
      t === "calls" || t === "leads";
-   const [activeTab, setActiveTab] = useState<TabValue>(
-     isValidTab(tabParam) ? tabParam : "calls"
-   );
+    const [activeTab, setActiveTab] = useState<TabValue>(
+      isValidTab(tabParam) ? tabParam : "leads"
+    );
 
    // Search and filter
    const [searchQuery, setSearchQuery] = useState("");
    const [outcomeFilter, setOutcomeFilter] = useState("all");
 
-   // Selected call for detail panel
-   const [selectedCall, setSelectedCall] = useState<CallSession | null>(null);
+    // Selected call/lead for detail panels
+    const [selectedCall, setSelectedCall] = useState<CallSession | null>(null);
+    const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
    // Lead action dialogs
    const [createLeadDialogOpen, setCreateLeadDialogOpen] = useState(false);
@@ -233,34 +238,34 @@
 
    return (
      <PageContainer maxWidth="xl">
-       <PageHeader
-         icon={<Inbox className="h-5 w-5" />}
-         title="Inbox"
-         description="All your calls and leads in one place."
-       />
+        <PageHeader
+          icon={<Users className="h-5 w-5" />}
+          title="Leads"
+          description="Every customer interaction, organized."
+        />
 
        <Tabs value={activeTab} onValueChange={handleTabChange}>
          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-           <TabsList>
-             <TabsTrigger value="calls" className="gap-2">
-               <Phone className="h-4 w-4" />
-               Calls
-               {newCallsCount > 0 && (
-                 <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                   {newCallsCount}
-                 </Badge>
-               )}
-             </TabsTrigger>
-             <TabsTrigger value="leads" className="gap-2">
-               <Users className="h-4 w-4" />
-               Leads
-               {newLeadsCount > 0 && (
-                 <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                   {newLeadsCount}
-                 </Badge>
-               )}
-             </TabsTrigger>
-           </TabsList>
+            <TabsList>
+              <TabsTrigger value="leads" className="gap-2">
+                <Users className="h-4 w-4" />
+                Leads
+                {newLeadsCount > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                    {newLeadsCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="calls" className="gap-2">
+                <Phone className="h-4 w-4" />
+                Calls
+                {newCallsCount > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                    {newCallsCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
 
            <div className="flex items-center gap-2">
              {activeTab === "leads" && (
@@ -340,14 +345,15 @@
              />
            ) : (
              <div className="space-y-3">
-               {filteredLeads.map((lead) => (
-                 <LeadCard
-                   key={lead.id}
-                   lead={lead}
-                   onBookAppointment={handleBookAppointment}
-                   onSendMessage={handleSendMessage}
-                 />
-               ))}
+                {filteredLeads.map((lead) => (
+                  <LeadCard
+                    key={lead.id}
+                    lead={lead}
+                    onClick={() => setSelectedLead(lead)}
+                    onBookAppointment={handleBookAppointment}
+                    onSendMessage={handleSendMessage}
+                  />
+                ))}
              </div>
            )}
          </TabsContent>
@@ -358,7 +364,17 @@
          call={selectedCall}
          onClose={() => setSelectedCall(null)}
          customerName={selectedCall ? getCustomerName(selectedCall) : undefined}
-       />
+        />
+
+        {/* Lead Detail Slide-over */}
+        <LeadDetailPanel
+          lead={selectedLead}
+          onClose={() => setSelectedLead(null)}
+          onBookAppointment={(lead) => {
+            setSelectedLead(null);
+            handleBookAppointment({ full_name: lead.full_name, phone: lead.phone });
+          }}
+        />
 
        {/* Lead action dialogs */}
        <CreateLeadDialog

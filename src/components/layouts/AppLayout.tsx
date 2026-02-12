@@ -18,8 +18,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   LayoutDashboard,
-  MessageSquare,
   Calendar,
+  Users,
   Settings,
   LogOut,
   Bot,
@@ -81,7 +81,7 @@ function AppLayoutContent() {
   const mobileNavItems = useMemo(() => {
     const items: NavItem[] = [
       { href: "/app/dashboard", label: "Home", icon: LayoutDashboard },
-      { href: "/app/inbox", label: "Inbox", icon: MessageSquare },
+      { href: "/app/inbox", label: "Leads", icon: Users },
     ];
     if (caps.isFoodBusiness && caps.hasFoodOrders) {
       items.push({ href: "/app/orders", label: "Orders", icon: UtensilsCrossed });
