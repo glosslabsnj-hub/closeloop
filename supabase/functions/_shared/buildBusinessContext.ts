@@ -2391,36 +2391,70 @@ export async function buildBusinessContext(
   // ===== SALES CONTEXT (for sales businesses) =====
   if (caps.isSalesBusiness) {
     try {
-      // Build inventory summary
+      // Build inventory summary with price ranges and body styles
       const { data: inventoryStats } = await supabase
         .from("sales_inventory")
-        .select("condition, make")
+        .select("condition, make, model, body_style, asking_price_cents, year")
         .eq("tenant_id", tenantId)
         .eq("status", "available");
 
       if (inventoryStats && inventoryStats.length > 0) {
         const total = inventoryStats.length;
-        const newCount = inventoryStats.filter(i => i.condition === "new").length;
-        const usedCount = inventoryStats.filter(i => i.condition === "used").length;
-        const certifiedCount = inventoryStats.filter(i => i.condition === "certified").length;
+        const newCount = inventoryStats.filter((i: any) => i.condition === "new").length;
+        const usedCount = inventoryStats.filter((i: any) => i.condition === "used").length;
+        const certifiedCount = inventoryStats.filter((i: any) => i.condition === "certified").length;
 
         // Top makes
         const makeCounts: Record<string, number> = {};
         for (const item of inventoryStats) {
-          if (item.make) makeCounts[item.make] = (makeCounts[item.make] || 0) + 1;
+          if ((item as any).make) makeCounts[(item as any).make] = (makeCounts[(item as any).make] || 0) + 1;
         }
         const topMakes = Object.entries(makeCounts)
           .sort((a, b) => b[1] - a[1])
-          .slice(0, 3)
-          .map(([make]) => make);
+          .slice(0, 5)
+          .map(([make, count]) => `${make} (${count})`);
 
-        const parts: string[] = [`${total} in stock`];
+        // Price range
+        const prices = inventoryStats
+          .map((i: any) => i.asking_price_cents)
+          .filter((p: number | null) => p && p > 0) as number[];
+        let priceRange = "";
+        if (prices.length > 0) {
+          const minPrice = Math.min(...prices);
+          const maxPrice = Math.max(...prices);
+          priceRange = `$${(minPrice / 100).toLocaleString()} to $${(maxPrice / 100).toLocaleString()}`;
+        }
+
+        // Body styles
+        const styleCounts: Record<string, number> = {};
+        for (const item of inventoryStats) {
+          const style = (item as any).body_style;
+          if (style && style !== "Unknown") styleCounts[style] = (styleCounts[style] || 0) + 1;
+        }
+        const topStyles = Object.entries(styleCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 4)
+          .map(([style, count]) => `${count} ${style}${count > 1 ? "s" : ""}`);
+
+        // Year range
+        const years = inventoryStats.map((i: any) => parseInt(i.year)).filter((y: number) => !isNaN(y));
+        let yearRange = "";
+        if (years.length > 0) {
+          const minYear = Math.min(...years);
+          const maxYear = Math.max(...years);
+          yearRange = minYear === maxYear ? `${minYear}` : `${minYear}-${maxYear}`;
+        }
+
+        const parts: string[] = [`${total} vehicles in stock`];
         const conditionParts: string[] = [];
         if (newCount) conditionParts.push(`${newCount} new`);
         if (usedCount) conditionParts.push(`${usedCount} used`);
         if (certifiedCount) conditionParts.push(`${certifiedCount} certified`);
         if (conditionParts.length) parts.push(conditionParts.join(", "));
-        if (topMakes.length) parts.push(`Top: ${topMakes.join(", ")}`);
+        if (yearRange) parts.push(`Years: ${yearRange}`);
+        if (priceRange) parts.push(`Priced from ${priceRange}`);
+        if (topMakes.length) parts.push(`Makes: ${topMakes.join(", ")}`);
+        if (topStyles.length) parts.push(`Types: ${topStyles.join(", ")}`);
 
         context.sales.inventory_summary = parts.join(". ");
       }
