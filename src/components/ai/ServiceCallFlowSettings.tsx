@@ -95,8 +95,9 @@ export default function ServiceCallFlowSettings({ compact, onSave }: ServiceCall
     return () => clearTimeout(timeoutId);
   }, [serviceFlow]);
 
-  // Only show for service mode businesses
-  if (tenant?.business_mode !== "service" && tenant?.business_mode !== "general") {
+  // Hide for non-service businesses OR when in callback-only mode
+  const isCallbackOnly = (assistantSettings as any)?.ai_behavior_mode === "callback_only";
+  if ((tenant?.business_mode !== "service" && tenant?.business_mode !== "general") || isCallbackOnly) {
     return null;
   }
 

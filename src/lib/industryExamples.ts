@@ -248,3 +248,27 @@ export function getObjectionExamples(mode: BusinessMode): ObjectionExamples {
 export function getProfileExamples(mode: BusinessMode): ProfileExamples {
   return PROFILE_EXAMPLES[mode] || PROFILE_EXAMPLES.general;
 }
+
+/**
+ * Complexity hints by business mode — helps owners understand the toggle
+ */
+export const COMPLEXITY_HINTS: Record<BusinessMode, { simple: string; complex: string }> = {
+  service: { simple: "Oil change, tire rotation, basic wash", complex: "Engine diagnostic, electrical, transmission" },
+  dispatch: { simple: "Lockout, jump start, tire change", complex: "Heavy-duty tow, accident recovery, winch-out" },
+  food: { simple: "Standard menu items", complex: "Custom catering, special dietary prep" },
+  medical: { simple: "Follow-up, routine checkup", complex: "Initial consultation, procedure, surgery" },
+  general: { simple: "Standard service, quick task", complex: "Custom project, assessment needed" },
+  sales: { simple: "Standard product inquiry", complex: "Custom configuration, financing discussion" },
+};
+
+/**
+ * Price factor placeholder hints by business mode
+ */
+export const PRICE_FACTOR_HINTS: Record<BusinessMode, string> = {
+  service: "e.g., Vehicle type, material grade, job scope",
+  dispatch: "e.g., Vehicle weight, distance, time of day, road conditions",
+  food: "e.g., Portion size, add-ons, dietary substitutions",
+  medical: "e.g., Treatment area, number of units, insurance",
+  general: "e.g., Project scope, materials, timeline",
+  sales: "e.g., Configuration, financing terms, add-on packages",
+};

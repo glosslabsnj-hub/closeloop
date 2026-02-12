@@ -576,6 +576,15 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
     tab: "training",
 
   },
+  {
+    id: "required-questions",
+    title: "Info to Collect on Every Call",
+    icon: MessageSquareText,
+    group: "essentials",
+    groupLabel: "ESSENTIALS",
+    order: 4,
+    tab: "training",
+  },
 
   // INDUSTRY KNOWLEDGE
   {

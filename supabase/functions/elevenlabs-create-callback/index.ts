@@ -203,21 +203,31 @@ serve(async (req: Request) => {
         .eq("id", sessionId);
     }
 
-    // Trigger notification to business owner
-    try {
-      const { data: tenant } = await supabase
-        .from("tenants")
-        .select("business_name, owner_email, owner_phone")
-        .eq("id", tenantId)
-        .single();
-
-      if (tenant?.owner_phone || tenant?.owner_email) {
-        console.log(`[create-callback] Would notify owner: ${tenant.owner_email || tenant.owner_phone}`);
-        // TODO: Trigger SMS/email notification via universal-delivery
+    // Trigger notification to business owner via universal-delivery
+    if (opportunity?.id) {
+      try {
+        const deliveryRes = await fetch(`${supabaseUrl}/functions/v1/universal-delivery`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${serviceKey}`,
+          },
+          body: JSON.stringify({
+            tenant_id: tenantId,
+            entity_type: "callback",
+            entity_id: opportunity.id,
+          }),
+        });
+        if (deliveryRes.ok) {
+          console.log(`[create-callback] Triggered universal-delivery for callback ${opportunity.id}`);
+        } else {
+          const errText = await deliveryRes.text();
+          console.error(`[create-callback] Delivery failed: ${errText}`);
+        }
+      } catch (notifyErr) {
+        console.error("[create-callback] Notification error:", notifyErr);
+        // Non-fatal
       }
-    } catch (notifyErr) {
-      console.error("[create-callback] Notification error:", notifyErr);
-      // Non-fatal
     }
 
     // Build response message based on preferred time

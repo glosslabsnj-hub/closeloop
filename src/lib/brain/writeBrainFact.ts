@@ -136,6 +136,8 @@ export async function createService(
     deposit_amount?: number;
     deposit_required?: boolean;
     is_active?: boolean;
+    complexity?: "simple" | "complex";
+    price_factors?: string;
     // Dispatch pricing fields
     service_category?: string;
     service_type?: string;
@@ -155,6 +157,8 @@ export async function createService(
       deposit_amount: service.deposit_amount || null,
       deposit_required: service.deposit_required || false,
       is_active: service.is_active !== undefined ? service.is_active : true,
+      complexity: service.complexity || "simple",
+      price_factors: service.price_factors || null,
       // Dispatch pricing fields
       service_category: service.service_category || null,
       service_type: service.service_type || null,
@@ -192,6 +196,8 @@ export async function updateService(
     deposit_amount?: number;
     deposit_required?: boolean;
     is_active?: boolean;
+    complexity?: "simple" | "complex";
+    price_factors?: string;
     // Dispatch pricing fields
     service_category?: string;
     service_type?: string | null;

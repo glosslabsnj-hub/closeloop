@@ -9,7 +9,7 @@ const corsHeaders = {
 
 interface DeliveryRequest {
   tenant_id: string;
-  entity_type: "order" | "booking" | "dispatch" | "reservation" | "catering" | "intake";
+  entity_type: "order" | "booking" | "dispatch" | "reservation" | "catering" | "intake" | "callback";
   entity_id: string;
   test_mode?: boolean;
 }
@@ -480,6 +480,44 @@ async function buildPayload(
           status: intake.status,
         };
       }
+      break;
+    }
+
+    case "callback": {
+      // Callback requests come from opportunities table
+      const { data: opportunityData } = await supabaseAdmin
+        .from("opportunities")
+        .select(`
+          *,
+          customers(full_name, phone_e164, email)
+        `)
+        .eq("id", entityId)
+        .single();
+
+      const opportunity = opportunityData as {
+        notes: string | null;
+        context_json: Record<string, unknown> | null;
+        status: string;
+        customers?: { full_name: string; phone_e164: string | null; email: string | null } | null;
+      } | null;
+
+      if (!opportunity) return null;
+
+      const ctx = opportunity.context_json || {};
+      customer = {
+        name: opportunity.customers?.full_name || (ctx.customer_name as string) || "Unknown",
+        phone: opportunity.customers?.phone_e164 || (ctx.caller_phone as string) || null,
+        email: opportunity.customers?.email || null,
+      };
+      summary = `📞 Callback requested: ${(ctx.reason as string) || "Customer wants a call back"}`;
+      details = {
+        reason: ctx.reason || null,
+        department: ctx.department || null,
+        preferred_time: ctx.preferred_time || null,
+        caller_phone: ctx.caller_phone || null,
+        session_id: ctx.session_id || null,
+        status: opportunity.status,
+      };
       break;
     }
 

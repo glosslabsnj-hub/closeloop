@@ -36,7 +36,7 @@ import { createService, updateService, deleteService } from "@/lib/brain/writeBr
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
-import { getServiceExamples, getSlugServiceExamples } from "@/lib/industryExamples";
+import { getServiceExamples, getSlugServiceExamples, COMPLEXITY_HINTS, PRICE_FACTOR_HINTS } from "@/lib/industryExamples";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { QuotingBehaviorGuidance } from "@/components/brain/guidance/QuotingBehaviorGuidance";
 
@@ -50,6 +50,8 @@ interface ServiceFormData {
   price_amount: number | null;
   deposit_amount: number | null;
   deposit_required: boolean;
+  complexity: "simple" | "complex";
+  price_factors: string;
 }
 
 const defaultFormData: ServiceFormData = {
@@ -60,6 +62,8 @@ const defaultFormData: ServiceFormData = {
   price_amount: null,
   deposit_amount: null,
   deposit_required: false,
+  complexity: "simple",
+  price_factors: "",
 };
 
 export function ServiceCatalogEditor() {
@@ -113,6 +117,8 @@ export function ServiceCatalogEditor() {
             price_amount: service.price_amount ? Number(service.price_amount) : null,
             deposit_amount: service.deposit_amount ? Number(service.deposit_amount) : null,
             deposit_required: service.deposit_required || false,
+            complexity: service.complexity || "simple",
+            price_factors: service.price_factors || "",
           }
         }));
       }
@@ -146,6 +152,8 @@ export function ServiceCatalogEditor() {
         price_amount: formData.price_amount,
         deposit_amount: formData.deposit_amount,
         deposit_required: formData.deposit_required,
+        complexity: formData.complexity,
+        price_factors: formData.price_factors.trim() || undefined,
       });
       toast.success("Service updated");
       queryClient.invalidateQueries({ queryKey: ["services"] });
@@ -171,6 +179,8 @@ export function ServiceCatalogEditor() {
         price_amount: newServiceData.price_amount,
         deposit_amount: newServiceData.deposit_amount,
         deposit_required: newServiceData.deposit_required,
+        complexity: newServiceData.complexity,
+        price_factors: newServiceData.price_factors.trim() || undefined,
       });
       toast.success("Service created");
       queryClient.invalidateQueries({ queryKey: ["services"] });
@@ -328,6 +338,52 @@ export function ServiceCatalogEditor() {
           />
         </div>
       </div>
+
+      {/* Price Factors — shown when price varies */}
+      {(formData.price_type === "starting_at" || formData.price_type === "quote_only") && (
+        <div className="space-y-2">
+          <Label className="text-xs">What makes the price vary? <span className="text-muted-foreground">(AI will explain this to callers)</span></Label>
+          <Textarea
+            value={formData.price_factors}
+            onChange={(e) => onChange("price_factors", e.target.value)}
+            placeholder={PRICE_FACTOR_HINTS[businessMode] || PRICE_FACTOR_HINTS.general}
+            rows={2}
+          />
+        </div>
+      )}
+
+      {/* Complexity Toggle — hidden for food mode */}
+      {businessMode !== "food" && (
+        <div className="space-y-2">
+          <Label className="text-xs">How should the AI handle this?</Label>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant={formData.complexity === "simple" ? "default" : "outline"}
+              size="sm"
+              onClick={() => onChange("complexity", "simple")}
+              className="flex-1"
+            >
+              Quick confirmation
+            </Button>
+            <Button
+              type="button"
+              variant={formData.complexity === "complex" ? "default" : "outline"}
+              size="sm"
+              onClick={() => onChange("complexity", "complex")}
+              className="flex-1"
+            >
+              Ask detailed questions
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {formData.complexity === "simple"
+              ? `Quick: ${(COMPLEXITY_HINTS[businessMode] || COMPLEXITY_HINTS.general).simple}`
+              : `Detailed: ${(COMPLEXITY_HINTS[businessMode] || COMPLEXITY_HINTS.general).complex}`
+            }
+          </p>
+        </div>
+      )}
 
       <div className="flex items-center gap-4 pt-2">
         <div className="flex items-center space-x-2">

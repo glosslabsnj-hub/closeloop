@@ -176,9 +176,11 @@ export type Database = {
           elevenlabs_conversation_id: string | null
           ended_at: string | null
           extracted_payload: Json | null
+          followup_status: string | null
           id: string
           is_recovery_call: boolean | null
           lead_id: string | null
+          lead_score: string | null
           opportunity_id: string | null
           outcome: Database["public"]["Enums"]["ai_call_outcome"] | null
           recovery_campaign_id: string | null
@@ -200,9 +202,11 @@ export type Database = {
           elevenlabs_conversation_id?: string | null
           ended_at?: string | null
           extracted_payload?: Json | null
+          followup_status?: string | null
           id?: string
           is_recovery_call?: boolean | null
           lead_id?: string | null
+          lead_score?: string | null
           opportunity_id?: string | null
           outcome?: Database["public"]["Enums"]["ai_call_outcome"] | null
           recovery_campaign_id?: string | null
@@ -224,9 +228,11 @@ export type Database = {
           elevenlabs_conversation_id?: string | null
           ended_at?: string | null
           extracted_payload?: Json | null
+          followup_status?: string | null
           id?: string
           is_recovery_call?: boolean | null
           lead_id?: string | null
+          lead_score?: string | null
           opportunity_id?: string | null
           outcome?: Database["public"]["Enums"]["ai_call_outcome"] | null
           recovery_campaign_id?: string | null
@@ -7781,6 +7787,7 @@ export type Database = {
       }
       services: {
         Row: {
+          complexity: string
           created_at: string
           deposit_amount: number | null
           deposit_required: boolean | null
@@ -7792,6 +7799,7 @@ export type Database = {
           name: string
           preparation_instructions: string | null
           price_amount: number | null
+          price_factors: string | null
           price_type: Database["public"]["Enums"]["price_type"]
           pricing_config_json: Json | null
           requires_dropoff: boolean | null
@@ -7801,6 +7809,7 @@ export type Database = {
           upsell_suggestions: string[] | null
         }
         Insert: {
+          complexity?: string
           created_at?: string
           deposit_amount?: number | null
           deposit_required?: boolean | null
@@ -7812,6 +7821,7 @@ export type Database = {
           name: string
           preparation_instructions?: string | null
           price_amount?: number | null
+          price_factors?: string | null
           price_type?: Database["public"]["Enums"]["price_type"]
           pricing_config_json?: Json | null
           requires_dropoff?: boolean | null
@@ -7821,6 +7831,7 @@ export type Database = {
           upsell_suggestions?: string[] | null
         }
         Update: {
+          complexity?: string
           created_at?: string
           deposit_amount?: number | null
           deposit_required?: boolean | null
@@ -7832,6 +7843,7 @@ export type Database = {
           name?: string
           preparation_instructions?: string | null
           price_amount?: number | null
+          price_factors?: string | null
           price_type?: Database["public"]["Enums"]["price_type"]
           pricing_config_json?: Json | null
           requires_dropoff?: boolean | null

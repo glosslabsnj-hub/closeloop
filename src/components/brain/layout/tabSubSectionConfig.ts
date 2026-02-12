@@ -57,7 +57,7 @@ export const TRAINING_SUB_SECTIONS: SubSectionDef[] = [
   {
     id: "faq-objections",
     label: "FAQ & Objections",
-    cardIds: ["review", "faqs", "objections"],
+    cardIds: ["review", "faqs", "objections", "required-questions"],
   },
   {
     id: "industry-knowledge",
