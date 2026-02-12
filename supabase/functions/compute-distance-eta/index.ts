@@ -54,6 +54,7 @@ interface ComputeEtaResponse {
   // Geocoding quality indicators
   geocoding_confidence: "high" | "low" | "unverified" | null;
   needs_verification: boolean;
+  verification_hint?: string;
   state_hint_applied: boolean;
   geocode_provider_used: string;
 
@@ -95,7 +96,7 @@ interface BusynessRules {
 }
 
 // Update this string when you want to verify a fresh deploy is running
-const VERSION = "compute-distance-eta@2026-02-06.1";
+const VERSION = "compute-distance-eta@2026-02-12.1";
 const DEPLOYED_AT = new Date().toISOString();
 
 const METERS_PER_MILE = 1609.344;
@@ -311,7 +312,30 @@ serve(async (req: Request) => {
             
             [originLng, originLat] = bestFeature.center;
             originPlaceName = bestFeature.place_name;
-            console.log(`[compute-distance-eta] Origin geocoded: "${originPlaceName?.substring(0, 60)}..." relevance=${bestFeature.relevance?.toFixed(2) || '?'}`);
+            const originPlaceType = bestFeature.place_type?.[0] || "unknown";
+            console.log(`[compute-distance-eta] Origin geocoded: "${originPlaceName?.substring(0, 60)}..." relevance=${bestFeature.relevance?.toFixed(2) || '?'} place_type=${originPlaceType}`);
+            
+            // Place-type guard: city/region-level results are unreliable
+            if (["place", "region", "country", "district"].includes(originPlaceType)) {
+              console.log(`[compute-distance-eta] Origin place-level result detected (${originPlaceType}), trying POI retry`);
+              const poiUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(originPreprocessed.normalized)}.json?access_token=${accessToken}&limit=3&country=US&types=poi,address${settings.base_lat !== null && settings.base_lng !== null ? `&proximity=${settings.base_lng},${settings.base_lat}` : ""}`;
+              const poiRes = await fetch(poiUrl);
+              if (poiRes.ok) {
+                const poiData = await poiRes.json();
+                if (poiData.features?.length > 0) {
+                  const poiFeature = poiData.features[0];
+                  const poiPlaceType = poiFeature.place_type?.[0] || "unknown";
+                  // Only use POI result if it's actually more specific than city-level
+                  if (["address", "poi", "neighborhood", "postcode", "locality"].includes(poiPlaceType)) {
+                    console.log(`[compute-distance-eta] Origin POI retry succeeded: "${poiFeature.place_name?.substring(0, 60)}..." place_type=${poiPlaceType}`);
+                    [originLng, originLat] = poiFeature.center;
+                    originPlaceName = poiFeature.place_name;
+                  } else {
+                    console.log(`[compute-distance-eta] Origin POI retry still place-level (${poiPlaceType}), keeping original`);
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -347,6 +371,8 @@ serve(async (req: Request) => {
     let stateHintApplied = false;
     let geocodingConfidence: "high" | "low" | "unverified" = "high";
     let geocodeProviderUsed = "none";
+    let needsVerification = false;
+    let verificationHint: string | undefined;
 
     if (address_text && (destLat === undefined || destLng === undefined)) {
       // Determine state hint - use explicit setting, or derive from base_place_name
@@ -464,12 +490,75 @@ serve(async (req: Request) => {
         
         // Check geocoding relevance score (Mapbox returns 0-1)
         const relevance = bestFeature.relevance || 0;
+        const destPlaceType = bestFeature.place_type?.[0] || "unknown";
+        
         if (relevance < 0.7) {
           geocodingConfidence = "low";
           console.log(`[compute-distance-eta] Low Mapbox geocoding relevance: ${relevance}`);
         }
         
-        console.log(`[compute-distance-eta] Mapbox geocoded: "${geocodedPlaceName?.substring(0, 60)}..." relevance=${relevance.toFixed(2)}`);
+        console.log(`[compute-distance-eta] Mapbox geocoded: "${geocodedPlaceName?.substring(0, 60)}..." relevance=${relevance.toFixed(2)} place_type=${destPlaceType}`);
+        
+        // Layer 1: Place-type guard — city/region-level results are unreliable for distance
+        if (["place", "region", "country", "district"].includes(destPlaceType)) {
+          console.log(`[compute-distance-eta] Place-level result detected (${destPlaceType}), trying POI retry`);
+          
+          // Layer 2: POI retry — try types=poi,address to find landmarks/schools/businesses
+          const poiUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address_text!.trim())}.json?access_token=${accessToken}&limit=3&country=US&types=poi,address${originLat !== undefined && originLng !== undefined ? `&proximity=${originLng},${originLat}` : ""}`;
+          const poiRes = await fetch(poiUrl);
+          let poiResolved = false;
+          
+          if (poiRes.ok) {
+            const poiData = await poiRes.json();
+            if (poiData.features?.length > 0) {
+              const poiFeature = poiData.features[0];
+              const poiPlaceType = poiFeature.place_type?.[0] || "unknown";
+              
+              // Only use POI result if it's actually more specific than city-level
+              if (["address", "poi", "neighborhood", "postcode", "locality"].includes(poiPlaceType)) {
+                // Sanity check: is the POI within a reasonable distance of the tenant's base?
+                const poiServiceRadius = settings.service_radius_miles || 100;
+                if (originLat !== undefined && originLng !== undefined) {
+                  const [poiLng, poiLat] = poiFeature.center;
+                  // Rough distance check (1 degree ≈ 69 miles)
+                  const roughDistMiles = Math.sqrt(
+                    Math.pow((poiLat - originLat) * 69, 2) +
+                    Math.pow((poiLng - originLng) * 69 * Math.cos(originLat * Math.PI / 180), 2)
+                  );
+                  
+                  if (roughDistMiles <= poiServiceRadius * 2) {
+                    console.log(`[compute-distance-eta] POI retry succeeded: "${poiFeature.place_name?.substring(0, 60)}..." place_type=${poiPlaceType} ~${roughDistMiles.toFixed(1)}mi from base`);
+                    [destLng, destLat] = poiFeature.center;
+                    geocodedPlaceName = poiFeature.place_name;
+                    geocodingConfidence = poiPlaceType === "address" || poiPlaceType === "poi" ? "high" : "low";
+                    poiResolved = true;
+                  } else {
+                    console.log(`[compute-distance-eta] POI retry result too far: ~${roughDistMiles.toFixed(1)}mi (service radius: ${poiServiceRadius}mi)`);
+                  }
+                } else {
+                  // No base coords to compare, use POI result anyway
+                  console.log(`[compute-distance-eta] POI retry succeeded (no base for distance check): "${poiFeature.place_name?.substring(0, 60)}..." place_type=${poiPlaceType}`);
+                  [destLng, destLat] = poiFeature.center;
+                  geocodedPlaceName = poiFeature.place_name;
+                  geocodingConfidence = poiPlaceType === "address" || poiPlaceType === "poi" ? "high" : "low";
+                  poiResolved = true;
+                }
+              } else {
+                console.log(`[compute-distance-eta] POI retry still place-level (${poiPlaceType})`);
+              }
+            } else {
+              console.log(`[compute-distance-eta] POI retry returned no results`);
+            }
+          }
+          
+          // If POI retry didn't resolve, mark as low confidence with verification hint
+          if (!poiResolved) {
+            geocodingConfidence = "low";
+            needsVerification = true;
+            verificationHint = "Can you give me a nearby cross-street or the street address?";
+            console.log(`[compute-distance-eta] Destination remains place-level after POI retry — flagging for verification`);
+          }
+        }
       }
     }
 
@@ -505,13 +594,13 @@ serve(async (req: Request) => {
     const distanceMiles = route.distance / METERS_PER_MILE;
     const durationMinutes = Math.ceil(route.duration / 60);
 
-    // Proximity validation: if distance is > 2x the service radius, flag as unverified
-    let needsVerification = false;
+    // Proximity validation: if distance exceeds service radius, flag for verification
     const serviceRadius = settings.service_radius_miles || 100;
-    if (distanceMiles > serviceRadius * 2) {
+    if (distanceMiles > serviceRadius) {
       geocodingConfidence = "unverified";
       needsVerification = true;
-      console.log(`[compute-distance-eta] Distance ${distanceMiles.toFixed(1)}mi exceeds 2x service radius (${serviceRadius}mi) - flagging as unverified`);
+      verificationHint = "Can you confirm the address? The location seems farther than expected.";
+      console.log(`[compute-distance-eta] Distance ${distanceMiles.toFixed(1)}mi exceeds service radius (${serviceRadius}mi) - flagging as unverified`);
     }
 
     // Calculate ETA - skip complex ETA settings if doing simple point-to-point
@@ -588,6 +677,7 @@ serve(async (req: Request) => {
       error: null,
       geocoding_confidence: geocodingConfidence,
       needs_verification: needsVerification,
+      verification_hint: verificationHint,
       state_hint_applied: stateHintApplied,
       geocode_provider_used: geocodeProviderUsed,
       _version: VERSION,
