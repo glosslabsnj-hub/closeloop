@@ -109,6 +109,7 @@ export function AdminTenantSwitcher() {
       case "dispatch": return "Dispatch";
       case "food": return "Food";
       case "medical": return "Medical";
+      case "sales": return "Sales";
       case "general": return "General";
       default: return "Unknown";
     }
