@@ -2303,7 +2303,8 @@ export async function buildBusinessContext(
       unknown_question_behavior: (assistantSettings?.settings_json as any)?.unknown_question_behavior
         || assistantSettings?.unknown_question_behavior || "try_help",
       followup_cadence: (assistantSettings?.settings_json as any)?.followup_cadence || "moderate",
-      ai_behavior_mode: (assistantSettings?.ai_behavior_mode as "full_service" | "callback_only") || "full_service",
+      ai_behavior_mode: (assistantSettings?.ai_behavior_mode as "full_service" | "callback_only")
+        || ((tenant?.capabilities_json as any)?.callbackOnly === true ? "callback_only" : "full_service"),
       service_default_flow: (assistantSettings?.service_default_flow as "schedule_first" | "urgency_check" | "dispatch_first") || "schedule_first",
       ai_booking_mode: (assistantSettings?.ai_booking_mode as "pending" | "auto_confirm") || "pending",
       same_day_enabled: assistantSettings?.same_day_enabled !== false,
