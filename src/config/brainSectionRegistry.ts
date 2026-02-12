@@ -513,6 +513,19 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
 
     isVisible: (_mode, _caps, flags) => flags.isRelevant("hipaa"),
   },
+
+  // INTEGRATIONS
+  {
+    id: "tekmetric",
+    title: "Tekmetric Integration",
+    icon: Truck,
+    group: "integrations",
+    groupLabel: "INTEGRATIONS",
+    order: 1,
+    tab: "operations",
+    setupPriority: "advanced",
+    isVisible: (_mode, caps) => caps.hasJobTracking,
+  },
 ];
 
 // ─── AI Voice Tab ───────────────────────────────────────────────────────────
