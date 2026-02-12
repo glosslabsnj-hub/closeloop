@@ -24,12 +24,19 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, Plus, Search, Loader2 } from "lucide-react";
+import { Users, Plus, Search, Loader2, Upload, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { formatDistanceToNow } from "date-fns";
 import { CustomerDetailSheet } from "@/components/customers/CustomerDetailSheet";
 import { CreateCustomerDialog } from "@/components/customers/CreateCustomerDialog";
 import CustomerMergeQueue from "@/components/customers/CustomerMergeQueue";
 import { CreateBookingDialog } from "@/components/calendar/CreateBookingDialog";
+import { CustomerCSVImportDialog } from "@/components/customers/CustomerCSVImportDialog";
 
 const sourceLabels: Record<string, string> = {
   ai_call: "AI Call",
@@ -57,6 +64,7 @@ export default function CustomersPage() {
 
   // Booking dialog (from detail sheet)
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [bookingCustomerName, setBookingCustomerName] = useState("");
   const [bookingCustomerPhone, setBookingCustomerPhone] = useState("");
 
@@ -123,10 +131,26 @@ export default function CustomersPage() {
         title={customerLabel}
         description={`Manage your ${terms.customers || "customers"} and their history`}
         action={
-          <Button onClick={() => setCreateDialogOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Add {terms.customer || "Customer"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <Upload className="h-4 w-4 mr-1" />
+                  Import
+                  <ChevronDown className="h-3.5 w-3.5 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
+                  Import from CSV
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button onClick={() => setCreateDialogOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Add {terms.customer || "Customer"}
+            </Button>
+          </div>
         }
       />
 
@@ -278,6 +302,12 @@ export default function CustomersPage() {
       <CreateCustomerDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
+      />
+
+      {/* CSV Import Dialog */}
+      <CustomerCSVImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
       />
 
       {/* Booking Dialog (from detail sheet) */}

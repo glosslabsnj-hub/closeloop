@@ -14,6 +14,103 @@ export type Database = {
   }
   public: {
     Tables: {
+      active_jobs: {
+        Row: {
+          actual_completion: string | null
+          created_at: string
+          customer_id: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          estimated_completion: string | null
+          id: string
+          intake_method: string
+          is_active: boolean
+          job_number: string
+          location_id: string | null
+          metadata_json: Json
+          notes: string | null
+          notify_on_all_complete: boolean
+          notify_on_step_complete: boolean
+          priority: string
+          source_session_id: string | null
+          status: string
+          tenant_id: string
+          title: string
+          updated_at: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          actual_completion?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          estimated_completion?: string | null
+          id?: string
+          intake_method?: string
+          is_active?: boolean
+          job_number: string
+          location_id?: string | null
+          metadata_json?: Json
+          notes?: string | null
+          notify_on_all_complete?: boolean
+          notify_on_step_complete?: boolean
+          priority?: string
+          source_session_id?: string | null
+          status?: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          actual_completion?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          estimated_completion?: string | null
+          id?: string
+          intake_method?: string
+          is_active?: boolean
+          job_number?: string
+          location_id?: string | null
+          metadata_json?: Json
+          notes?: string | null
+          notify_on_all_complete?: boolean
+          notify_on_step_complete?: boolean
+          priority?: string
+          source_session_id?: string | null
+          status?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "active_jobs_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "active_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "active_jobs_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "customer_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_settings: {
         Row: {
           admin_active_mode: string | null
@@ -2126,6 +2223,66 @@ export type Database = {
           },
           {
             foreignKeyName: "customer_merge_queue_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_vehicles: {
+        Row: {
+          color: string | null
+          created_at: string
+          customer_id: string
+          id: string
+          license_plate: string | null
+          make: string | null
+          model: string | null
+          notes: string | null
+          tenant_id: string
+          updated_at: string
+          vin: string | null
+          year: number | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          license_plate?: string | null
+          make?: string | null
+          model?: string | null
+          notes?: string | null
+          tenant_id: string
+          updated_at?: string
+          vin?: string | null
+          year?: number | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          license_plate?: string | null
+          make?: string | null
+          model?: string | null
+          notes?: string | null
+          tenant_id?: string
+          updated_at?: string
+          vin?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_vehicles_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_vehicles_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -4646,6 +4803,66 @@ export type Database = {
           },
           {
             foreignKeyName: "inventory_transactions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_service_items: {
+        Row: {
+          assigned_to: string | null
+          completed_at: string | null
+          created_at: string
+          id: string
+          job_id: string
+          notes: string | null
+          service_id: string | null
+          sort_order: number
+          started_at: string | null
+          status: string
+          tenant_id: string
+          title: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          job_id: string
+          notes?: string | null
+          service_id?: string | null
+          sort_order?: number
+          started_at?: string | null
+          status?: string
+          tenant_id: string
+          title: string
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string
+          notes?: string | null
+          service_id?: string | null
+          sort_order?: number
+          started_at?: string | null
+          status?: string
+          tenant_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_service_items_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "active_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_service_items_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -9664,6 +9881,7 @@ export type Database = {
         Args: { _connection_id: string; _events: Json; _tenant_id: string }
         Returns: number
       }
+      generate_job_number: { Args: { p_tenant_id: string }; Returns: string }
       get_ai_readiness: { Args: { tenant_uuid: string }; Returns: Json }
       get_user_tenant_id: { Args: { _user_id: string }; Returns: string }
       has_active_subscription: {
