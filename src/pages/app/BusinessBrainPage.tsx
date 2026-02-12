@@ -62,6 +62,7 @@ import { IntelligenceDashboard } from "@/components/intelligence";
 // Tab-specific banner components
 import { QuoteReadinessCard } from "@/components/brain/QuoteReadinessCard";
 import ServiceCallFlowSettings from "@/components/ai/ServiceCallFlowSettings";
+import AIBehaviorModeSelector from "@/components/ai/AIBehaviorModeSelector";
 
 
 // ─── Section IDs ────────────────────────────────────────────────────────────
@@ -410,7 +411,12 @@ export default function BusinessBrainPage() {
 
       case "ai-voice":
         if (caps.isServiceBusiness || caps.derivedPrimaryMode === "general") {
-          return <ServiceCallFlowSettings />;
+          return (
+            <div className="space-y-6">
+              <AIBehaviorModeSelector />
+              <ServiceCallFlowSettings />
+            </div>
+          );
         }
         return undefined;
 
