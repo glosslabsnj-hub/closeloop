@@ -60,12 +60,12 @@ export function BusinessBrainHub({ onNavigateToSection }: BusinessBrainHubProps)
 
   // Check services
   const { data: servicesData } = useQuery({
-    queryKey: ["services-count", tenant?.id],
+    queryKey: ["services", tenant?.id],
     queryFn: async () => {
       if (!tenant?.id) return [];
       const { data } = await supabase
         .from("services")
-        .select("id, price_amount")
+        .select("id, price_amount, price_type")
         .eq("tenant_id", tenant.id);
       return data || [];
     },
@@ -136,11 +136,18 @@ export function BusinessBrainHub({ onNavigateToSection }: BusinessBrainHubProps)
           return (servicesData?.length || 0) >= 1;
         }
         const minServices = isFoodMode ? 3 : 1;
-        const servicesWithPrices = servicesData?.filter(s => s.price_amount && s.price_amount > 0) || [];
-        return servicesWithPrices.length >= minServices;
+        const servicesConfigured = servicesData?.filter(s =>
+          (s.price_amount && s.price_amount > 0) || !!s.price_type
+        ) || [];
+        return servicesConfigured.length >= minServices;
       }
-      case "coverage":
+      case "coverage": {
+        // Walk-in businesses without mobile service don't need coverage
+        const needsCoverage = capabilities?.mobileService === true ||
+          caps.isDispatchBusiness || caps.isFoodBusiness;
+        if (!needsCoverage) return true;
         return !!(tenantData?.address);
+      }
       case "calendar":
         if (caps.isDispatchBusiness || caps.isFoodBusiness) return true;
         return calendarData?.some(c => c.status === "active") ?? false;

@@ -134,7 +134,9 @@ export const HUB_STEPS: HubStep[] = [
       "Politely declines jobs outside coverage",
     ],
     emphasis: ["dispatch", "service"],
+    hiddenModes: ["general"],
     hiddenWhenCallbackOnly: true,
+    hiddenWhenCapabilityFalse: "mobileService",
   },
   {
     id: "calendar",
