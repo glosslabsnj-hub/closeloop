@@ -1,11 +1,14 @@
 // twilio-inbound - telephony entrypoint (safe-mode)
 // Update this string when you want to verify a fresh deploy is running
-const VERSION = "twilio-inbound@2026-02-08.1";
+const VERSION = "twilio-inbound@2026-02-12.1";
 const DEPLOYED_AT = new Date().toISOString();
 
 // Agent resolution uses getAgentIdForCapabilities() from agentResolver.ts (capabilities-based, replaces legacy mode-based routing)
 import { isHybridCapabilitySet, getAgentIdForCapabilities, derivePrimaryModeFromCapabilities } from "../_shared/agentResolver.ts";
 import { resolveCapabilities } from "../_shared/resolveCapabilities.ts";
+// Business context builder — same pipeline used by elevenlabs-init / get-business-context
+import { buildBusinessContext, buildDynamicVariables } from "../_shared/buildBusinessContext.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // CALLBACK_ONLY_OVERRIDE removed - conversation_config_override breaks register-call API
 // Callback-only behavior is driven by ai_behavior_mode dynamic variable read by the ElevenLabs agent prompt
 
@@ -550,18 +553,50 @@ Deno.serve(async (req) => {
       tenant.capabilities_json
     );
 
+    // Build full business context (same pipeline as elevenlabs-init / get-business-context)
+    // Wrapped in 4-second timeout to stay within Twilio's response deadline
+    let richDynamicVars: Record<string, string> = {};
+    try {
+      const contextResult = await Promise.race([
+        (async () => {
+          const supabaseClient = createClient(
+            SUPABASE_URL!,
+            SUPABASE_SERVICE_ROLE_KEY!,
+            { auth: { persistSession: false } }
+          );
+          const { context } = await buildBusinessContext(supabaseClient, {
+            tenantId,
+            locationId: null,
+            customerId: null,
+            channel: "voice",
+            sessionId: null,
+            callerPhone: callerPhoneE164,
+            includeIntelligence: false, // Keep it fast for telephony
+          });
+          return buildDynamicVariables(context, callerPhoneE164, null);
+        })(),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
+      ]);
+
+      if (contextResult) {
+        richDynamicVars = contextResult;
+        console.log(`[twilio-inbound] Business context loaded (${Object.keys(richDynamicVars).length} vars)`);
+      } else {
+        console.warn("[twilio-inbound] Business context timed out after 4s, using minimal vars");
+      }
+    } catch (err) {
+      console.warn("[twilio-inbound] Business context build failed, using minimal vars:", err);
+    }
+
+    // Merge: rich context first, then call-specific overrides on top
     const dynamicVariables: Record<string, string> = {
+      ...richDynamicVars,
+      // Call-specific fields (always override context values)
       tenant_id: tenantId,
       business_name: businessName,
       business_mode: businessMode,
       caller_phone: callerPhoneE164,
       caller_phone_last4: callerPhoneLast4,
-      hours_today: tenant.hours_json ? "See business hours" : "Contact us for hours",
-      booking_link: settings.booking_url || "",
-      service_summary: "",
-      menu_summary: "",
-      policies_summary: "",
-      hipaa_mode: caps.hasMedicalIntake ? "true" : "false",
       // Capability flags
       has_booking: caps.hasBooking ? "true" : "false",
       has_dispatch: caps.hasDispatchQueue ? "true" : "false",
@@ -575,18 +610,19 @@ Deno.serve(async (req) => {
       has_eta_tracking: caps.hasEtaTracking ? "true" : "false",
       has_emergency_dispatch: caps.hasDispatchQueue ? "true" : "false",
       has_calendar_sync: caps.hasCalendarSync ? "true" : "false",
+      hipaa_mode: caps.hasMedicalIntake ? "true" : "false",
       // Derived business type flags
       is_scheduling_business: caps.isSchedulingBusiness ? "true" : "false",
       is_dispatch_business: caps.isDispatchBusiness ? "true" : "false",
       is_food_business: caps.isFoodBusiness ? "true" : "false",
       is_medical_business: caps.isMedicalBusiness ? "true" : "false",
       is_service_business: caps.isServiceBusiness ? "true" : "false",
-      // Comma-separated capabilities list for prompt reference
+      // Capabilities list
       capabilities_list: Object.entries(capabilities)
         .filter(([_, v]) => v === true)
         .map(([k]) => k)
         .join(","),
-      // AI behavior mode: full_service or callback_only
+      // AI behavior mode
       ai_behavior_mode: settings.ai_behavior_mode || "full_service",
     };
 
