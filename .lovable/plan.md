@@ -1,117 +1,112 @@
 
-# Callback Lead Hub + Business Brain Clarity Fixes
 
-## The Problems
+# Fix: Make the AI Actually Know Your Business
 
-### 1. Calls come in but there's no clear place to manage them
-Right now, calls land in a generic "Calls" page that's designed around booking outcomes ("Booked" / "No Book" / "Thinking"). For a callback-only business like Smiles Auto Works, every call is a lead that needs follow-up -- but there's no way to:
-- See which leads are high-value vs low-value
-- Get notified (email/SMS) when a new callback request comes in
-- Track whether someone actually called the customer back
-- Sort by urgency or service type
+## The Root Problem
 
-The `create-callback` function even has a `// TODO: Trigger SMS/email notification via universal-delivery` comment -- notifications were planned but never built.
+I traced the entire data flow from your database to ElevenLabs, and found the critical break:
 
-### 2. The Business Brain doesn't adapt to your business type
-You've experienced this firsthand: sections that don't apply to your business are shown, sections you need are hidden, and there's no clear "here's what to configure for YOUR type of business." The Required Questions editor (where you'd configure what info the AI collects) is buried under Operations > Rules where nobody would think to look.
+**Your services and pricing ARE in the database** -- Oil Change starting at $45, Brake Service starting at $200, Diagnostic at $99, etc. -- but they **never reach the AI agent during real phone calls**.
 
----
+Here's why: There are two paths calls can take to reach ElevenLabs:
 
-## What This Plan Does
+1. **Web/Simulator path** (`elevenlabs-init`): Properly calls `buildBusinessContext()` which assembles all your services, pricing, FAQs, hours, policies, and 100+ other variables into a rich context package. This works correctly.
 
-### Part 1: Build a Callback Lead Hub
+2. **Twilio phone call path** (`twilio-inbound`): **Skips `buildBusinessContext()` entirely** and hardcodes empty strings:
+   ```
+   service_summary: ""
+   services_pricing: (not even included)
+   policies_summary: ""
+   faqs_summary: (not included)
+   ```
 
-Replace the generic "Calls" page with a **Lead Hub** that makes sense for callback-only businesses:
+So when someone calls your Twilio number and asks "How much is an oil change?", the AI literally has no data to work with. It doesn't know your services, your prices, your FAQs, your policies -- nothing. It's flying blind.
 
-**Lead Value Scoring** (automatic, based on extracted call data):
-- **Hot** (red badge): Mentions urgency keywords ("ASAP", "broken down", "emergency"), or high-value services (engine, transmission)
-- **Warm** (orange badge): Standard service request with complete info collected (name + phone + service details)
-- **Cool** (blue badge): Quick questions, price shoppers, incomplete info
+## The Fix
 
-**New columns for callback businesses:**
-| Column | Purpose |
-|--------|---------|
-| Lead Score | Hot / Warm / Cool badge |
-| Service Needed | Extracted from call (e.g., "Turbo replacement") |
-| Follow-up Status | New / Called Back / No Answer / Completed |
-| Time Since Call | "23 min ago" -- creates urgency |
+Wire `twilio-inbound` into the same `buildBusinessContext` + `buildDynamicVariables` pipeline that `elevenlabs-init` already uses successfully. This means when someone calls Smiles Auto Works, the AI will know:
 
-**Owner notification on every callback:**
-- Wire up the existing `universal-delivery` function to handle `entity_type: "callback"`
-- Send email + SMS to the business owner with: caller name, phone, what they need, and a one-tap "Call Back" link
-- The `SoundManager` already plays a sound on new calls -- we'll add a toast notification with a "View Lead" button
+- Oil Change starts at $45 (price varies by vehicle)
+- Diagnostic is $99 flat
+- Brake Service starts at $200
+- Transmission Service requires a quote
+- General Auto Repair requires a quote
+- All your FAQs, policies, hours, and intake questions
 
-### Part 2: Fix Business Brain Navigation for Callback-Only Businesses
+## What Changes
 
-**Move "Info to Collect" (Required Questions) to Training tab** so it's findable when you're setting up what the AI should ask.
+### 1. `supabase/functions/twilio-inbound/index.ts` -- Wire up the Business Brain
 
-**Hide irrelevant sections** when in callback-only mode:
-- Calendar & Availability (you're not booking)
-- Service Scheduling (you're not scheduling)
-- Booking Delivery settings (no bookings to deliver)
+**Current state (broken):** Lines 553-591 manually build a sparse `dynamicVariables` object with empty strings for all business knowledge fields.
 
-**Add a "Callback Mode" setup checklist** in the Brain Hub that shows exactly what callback-only businesses need to configure:
-1. Business info (name, hours, address)
-2. Services you offer (so AI can talk about them)
-3. What info to collect on calls
-4. Owner notification preferences
-5. FAQs (common caller questions)
+**New approach:**
+- Import `buildBusinessContext` and `buildDynamicVariables` from `_shared/buildBusinessContext.ts`
+- Import `getAllVariableKeys` from `_shared/voiceContextContract.ts`
+- After resolving the tenant and agent (Step 6), call `buildBusinessContext()` with the tenant ID, caller phone, and channel
+- Use `buildDynamicVariables()` to produce the full set of 100+ context variables
+- Merge the existing capability flags and caller-specific fields on top
+- Use a timeout wrapper so context-building never delays TwiML response beyond Twilio's limit
 
----
+The key code change replaces the hardcoded empty object with:
 
-## Technical Details
+```typescript
+// Build full business context (same pipeline as elevenlabs-init)
+let richDynamicVars: Record<string, string> = {};
+try {
+  const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const { context } = await buildBusinessContext(supabaseClient, {
+    tenantId,
+    locationId: null,
+    customerId: null,
+    channel: "voice",
+    sessionId: null,
+    callerPhone: callerPhoneE164,
+    includeIntelligence: false, // Keep it fast
+  });
+  richDynamicVars = buildDynamicVariables(context, callerPhoneE164, null);
+} catch (err) {
+  console.warn("[twilio-inbound] Context build failed, using minimal vars:", err);
+}
 
-### Database Changes
-
-**Add `lead_score` and `followup_status` to `ai_call_sessions`:**
-```sql
-ALTER TABLE ai_call_sessions 
-  ADD COLUMN lead_score text DEFAULT 'warm' 
-    CHECK (lead_score IN ('hot', 'warm', 'cool')),
-  ADD COLUMN followup_status text DEFAULT 'new'
-    CHECK (followup_status IN ('new', 'called_back', 'no_answer', 'completed', 'lost'));
+// Merge with call-specific fields (these override any context values)
+const dynamicVariables: Record<string, string> = {
+  ...richDynamicVars,
+  tenant_id: tenantId,
+  business_name: businessName,
+  business_mode: businessMode,
+  caller_phone: callerPhoneE164,
+  caller_phone_last4: callerPhoneLast4,
+  ai_behavior_mode: settings.ai_behavior_mode || "full_service",
+  // ... capability flags stay as-is
+};
 ```
 
-**Add `"callback"` to `universal-delivery` entity types:**
-Update the `DeliveryRequest` interface and add a callback notification template.
+**Timeout safety:** The context build will be wrapped in a `Promise.race` with a 4-second timeout. If it takes too long, the call still connects with minimal variables (current behavior) rather than hanging up. Twilio has a ~10 second response deadline, so 4 seconds for context + 4 seconds for ElevenLabs register-call stays within budget.
 
-### Edge Function Changes
+**Fallback:** If `buildBusinessContext` fails for any reason, the function falls back to the current empty-string behavior, so calls never break.
 
-**`supabase/functions/universal-delivery/index.ts`:**
-- Add `"callback"` to the `entity_type` union
-- Add callback notification template that fetches the opportunity/call session and sends email + SMS to the tenant owner
-- Template includes: caller name, phone number, service requested, callback time preference
+### 2. What This Means for Smiles Auto Works
 
-**`supabase/functions/elevenlabs-webhook/index.ts`:**
-- In `persistCallback()` -- already calls `universal-delivery`, just needs the delivery function to actually handle it (done above)
-- Add lead scoring logic: scan `extracted_payload` for urgency keywords and service value to set `lead_score`
+After this fix, when someone calls and asks "How much is an oil change?", the AI will have:
 
-**`supabase/functions/elevenlabs-create-callback/index.ts`:**
-- Replace the `// TODO` with an actual `universal-delivery` call (matching the pattern already used in the webhook's `persistCallback`)
+- `services_pricing`: "Oil Change: starting at $45 | Diagnostic: $99 | Brake Service: starting at $200 | Tune-Up: starting at $150 | AC Repair: starting at $250 | Transmission Service: quote required | General Auto Repair: quote required"
+- `service_summary`: A natural-language summary of all services
+- `faqs_summary`: Any FAQs you've configured
+- `policies_summary`: Your cancellation, deposit, refund policies
+- `hours_today`: Today's actual hours
+- `required_questions_summary`: What info to collect from callers
+- `greeting_script`: Your custom greeting
+- All pricing rules, modifiers, and business brain context
 
-### Frontend Changes
+The AI can then say: "An oil change starts at forty-five dollars, but the price depends on your vehicle. What kind of car do you have?" -- exactly the behavior you described wanting.
 
-**`src/pages/app/CallsPage.tsx`:**
-- Add lead score badge column (Hot/Warm/Cool with color coding)
-- Add follow-up status column with dropdown to update (New -> Called Back -> Completed)
-- Add "Time since call" column for urgency awareness
-- Sort by lead_score (hot first) then by recency
-- Add filter tabs: All / Hot / Needs Follow-up / Completed
+### 3. Deployment
 
-**`src/components/notifications/SoundManager.tsx`:**
-- Enhance the call notification toast to show caller name and service requested (from `extracted_payload`)
-- Add "View Lead" button on the toast that navigates to the Calls page
+Redeploy: `twilio-inbound` only. No database changes needed.
 
-**`src/components/brain/layout/tabSubSectionConfig.ts`:**
-- Add `"required-questions"` to the Training tab's FAQ sub-section
+### What does NOT change
+- The `elevenlabs-init` path (already works correctly)
+- The ElevenLabs prompt (already references these variables)
+- Database schema (services are already stored correctly)
+- Any frontend code
 
-**`src/config/brainSectionRegistry.ts`:**
-- Update required-questions section to appear in Training tab
-- Add visibility guard to hide calendar/booking sections when `ai_behavior_mode === "callback_only"`
-
-**`src/pages/app/BusinessBrainPage.tsx`:**
-- Add callback-mode setup checklist banner showing what's configured vs what's missing
-- Hide irrelevant tab sections for callback-only businesses
-
-### Deployment
-- Redeploy: `universal-delivery`, `elevenlabs-webhook`, `elevenlabs-create-callback`
