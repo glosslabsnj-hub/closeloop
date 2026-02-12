@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format, setHours, setMinutes, addHours } from "date-fns";
 import {
   Dialog,
@@ -28,6 +28,8 @@ interface CreateBookingDialogProps {
   onOpenChange: (open: boolean) => void;
   initialDate?: Date;
   initialHour?: number;
+  initialCustomerName?: string;
+  initialCustomerPhone?: string;
   onSuccess?: () => void;
 }
 
@@ -36,15 +38,24 @@ export function CreateBookingDialog({
   onOpenChange,
   initialDate,
   initialHour = 9,
+  initialCustomerName = "",
+  initialCustomerPhone = "",
   onSuccess,
 }: CreateBookingDialogProps) {
   const { services } = useServices();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerName, setCustomerName] = useState(initialCustomerName);
+  const [customerPhone, setCustomerPhone] = useState(initialCustomerPhone);
   const [serviceId, setServiceId] = useState("");
   const [notes, setNotes] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      setCustomerName(initialCustomerName);
+      setCustomerPhone(initialCustomerPhone);
+    }
+  }, [open, initialCustomerName, initialCustomerPhone]);
 
   const selectedService = services.find((s) => s.id === serviceId);
   const durationMinutes = selectedService?.duration_minutes || 60;

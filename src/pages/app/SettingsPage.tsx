@@ -15,6 +15,7 @@ import { SettingsSidebar, SettingsNavConfig } from "@/components/settings/Settin
 import { MobileSettingsNav } from "@/components/settings/MobileSettingsNav";
 import { BusinessBrainCTA } from "@/components/settings/BusinessBrainCTA";
 import { DangerZoneSection } from "@/components/settings/DangerZoneSection";
+import { NotificationPreferencesPanel } from "@/components/settings/NotificationPreferencesPanel";
 import { SettingsCard } from "@/components/settings/SettingsSection";
 import { RevenueSettingsSection } from "@/components/settings/RevenueSettingsSection";
 import { RecoverySettingsSection } from "@/components/settings/recovery/RecoverySettingsSection";
@@ -128,27 +129,7 @@ export default function SettingsPage() {
         return <DataControlsPanel />;
 
       case "alerts":
-        return (
-          <SettingsCard
-            title="Notification Preferences"
-            description="Choose which events trigger alerts to you."
-          >
-            {[
-              { label: "New leads", description: "When a new lead comes in" },
-              { label: terms.bookingsMetricLabel, description: `When ${terms.bookings} are created or changed` },
-              { label: "Payments", description: "When deposits are collected" },
-              { label: "AI escalations", description: "When AI needs human help" },
-            ].map((item) => (
-              <div key={item.label} className="flex items-center justify-between py-2">
-                <div>
-                  <p className="font-medium text-sm">{item.label}</p>
-                  <p className="text-sm text-muted-foreground">{item.description}</p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-            ))}
-          </SettingsCard>
-        );
+        return <NotificationPreferencesPanel />;
 
       case "integrations":
         return <DeliveryIntegrationsSettings />;

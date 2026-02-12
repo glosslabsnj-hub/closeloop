@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useLeads } from "@/hooks/useLeads";
+import { useCapabilities } from "@/hooks/useCapabilities";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -26,6 +28,9 @@ import { Toolbar, FilterSelect } from "@/components/layout/Toolbar";
 import { Plus, MoreHorizontal, Phone, Mail, Calendar, MessageSquare, Users, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import { CreateLeadDialog } from "@/components/leads/CreateLeadDialog";
+import { CreateBookingDialog } from "@/components/calendar/CreateBookingDialog";
+import { toast } from "sonner";
 
 const statusColors: Record<string, string> = {
   new: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
@@ -45,8 +50,16 @@ const sourceLabels: Record<string, string> = {
 
 export default function LeadsPage() {
   const { leads, isLoading, stats } = useLeads();
+  const navigate = useNavigate();
+  const caps = useCapabilities();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  // Dialog state
+  const [createLeadOpen, setCreateLeadOpen] = useState(false);
+  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+  const [bookingLeadName, setBookingLeadName] = useState("");
+  const [bookingLeadPhone, setBookingLeadPhone] = useState("");
 
   const filteredLeads = leads.filter((lead) => {
     const matchesSearch =
@@ -57,13 +70,19 @@ export default function LeadsPage() {
     return matchesSearch && matchesStatus;
   });
 
+  const handleBookAppointment = (lead: { full_name: string; phone: string | null }) => {
+    setBookingLeadName(lead.full_name);
+    setBookingLeadPhone(lead.phone || "");
+    setBookingDialogOpen(true);
+  };
+
   return (
     <PageContainer>
       <PageHeader
         title="Leads"
         description="Leads are automatically captured from calls and messages"
         action={
-          <Button className="gap-2" variant="outline" disabled title="Leads are automatically captured from calls and messages">
+          <Button className="gap-2" variant="outline" onClick={() => setCreateLeadOpen(true)}>
             <Plus className="h-4 w-4" />
             Add Lead
           </Button>
@@ -180,19 +199,29 @@ export default function LeadsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => toast.info("SMS messaging coming soon")}>
                           <MessageSquare className="mr-2 h-4 w-4" />
                           Send Message
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Phone className="mr-2 h-4 w-4" />
-                          Call
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        {lead.phone && (
+                          <DropdownMenuItem onClick={() => window.open(`tel:${lead.phone}`, "_self")}>
+                            <Phone className="mr-2 h-4 w-4" />
+                            Call
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => handleBookAppointment(lead)}>
                           <Calendar className="mr-2 h-4 w-4" />
                           Book Appointment
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (caps.hasEstimates) {
+                              navigate("/app/estimates");
+                            } else {
+                              toast.info("Estimates module not enabled");
+                            }
+                          }}
+                        >
                           <Mail className="mr-2 h-4 w-4" />
                           Send Quote
                         </DropdownMenuItem>
@@ -210,12 +239,24 @@ export default function LeadsPage() {
             description="Leads will appear here when you receive calls, texts, or add them manually."
             action={{
               label: "Add Your First Lead",
-              onClick: () => {},
+              onClick: () => setCreateLeadOpen(true),
             }}
             compact
           />
         )}
       </SectionCard>
+
+      {/* Dialogs */}
+      <CreateLeadDialog
+        open={createLeadOpen}
+        onOpenChange={setCreateLeadOpen}
+      />
+      <CreateBookingDialog
+        open={bookingDialogOpen}
+        onOpenChange={setBookingDialogOpen}
+        initialCustomerName={bookingLeadName}
+        initialCustomerPhone={bookingLeadPhone}
+      />
     </PageContainer>
   );
 }

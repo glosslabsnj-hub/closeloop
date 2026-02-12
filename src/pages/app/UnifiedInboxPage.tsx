@@ -9,6 +9,7 @@
  import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
  import { Input } from "@/components/ui/input";
  import { Badge } from "@/components/ui/badge";
+ import { Button } from "@/components/ui/button";
  import { PageContainer } from "@/components/layout/PageContainer";
  import { PageHeader } from "@/components/layout/PageHeader";
  import { EmptyState } from "@/components/ui/empty-state";
@@ -19,10 +20,13 @@
    SelectTrigger,
    SelectValue,
  } from "@/components/ui/select";
- import { Phone, Users, Search, Inbox, Loader2 } from "lucide-react";
+ import { Phone, Users, Search, Inbox, Loader2, Plus } from "lucide-react";
  import { InboxCallCard } from "@/components/calls/InboxCallCard";
  import { CallDetailPanel } from "@/components/calls/CallDetailPanel";
  import { LeadCard } from "@/components/leads/LeadCard";
+ import { CreateLeadDialog } from "@/components/leads/CreateLeadDialog";
+ import { CreateBookingDialog } from "@/components/calendar/CreateBookingDialog";
+ import { toast } from "sonner";
 
  type TabValue = "calls" | "leads";
 
@@ -83,6 +87,12 @@
 
    // Selected call for detail panel
    const [selectedCall, setSelectedCall] = useState<CallSession | null>(null);
+
+   // Lead action dialogs
+   const [createLeadDialogOpen, setCreateLeadDialogOpen] = useState(false);
+   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+   const [bookingLeadName, setBookingLeadName] = useState("");
+   const [bookingLeadPhone, setBookingLeadPhone] = useState("");
 
    // Sync URL with tab state
    useEffect(() => {
@@ -211,6 +221,16 @@
      }
    };
 
+   const handleBookAppointment = (lead: { full_name: string; phone: string | null }) => {
+     setBookingLeadName(lead.full_name);
+     setBookingLeadPhone(lead.phone || "");
+     setBookingDialogOpen(true);
+   };
+
+   const handleSendMessage = () => {
+     toast.info("SMS messaging coming soon");
+   };
+
    return (
      <PageContainer maxWidth="xl">
        <PageHeader
@@ -243,6 +263,12 @@
            </TabsList>
 
            <div className="flex items-center gap-2">
+             {activeTab === "leads" && (
+               <Button size="sm" variant="outline" onClick={() => setCreateLeadDialogOpen(true)}>
+                 <Plus className="h-4 w-4 mr-1" />
+                 Add Lead
+               </Button>
+             )}
              <div className="relative flex-1 sm:w-64">
                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                <Input
@@ -307,11 +333,20 @@
                icon={Users}
                title="No leads yet"
                description="Leads captured from calls and messages will appear here."
+               action={{
+                 label: "Add Lead",
+                 onClick: () => setCreateLeadDialogOpen(true),
+               }}
              />
            ) : (
              <div className="space-y-3">
                {filteredLeads.map((lead) => (
-                 <LeadCard key={lead.id} lead={lead} />
+                 <LeadCard
+                   key={lead.id}
+                   lead={lead}
+                   onBookAppointment={handleBookAppointment}
+                   onSendMessage={handleSendMessage}
+                 />
                ))}
              </div>
            )}
@@ -323,6 +358,18 @@
          call={selectedCall}
          onClose={() => setSelectedCall(null)}
          customerName={selectedCall ? getCustomerName(selectedCall) : undefined}
+       />
+
+       {/* Lead action dialogs */}
+       <CreateLeadDialog
+         open={createLeadDialogOpen}
+         onOpenChange={setCreateLeadDialogOpen}
+       />
+       <CreateBookingDialog
+         open={bookingDialogOpen}
+         onOpenChange={setBookingDialogOpen}
+         initialCustomerName={bookingLeadName}
+         initialCustomerPhone={bookingLeadPhone}
        />
      </PageContainer>
    );

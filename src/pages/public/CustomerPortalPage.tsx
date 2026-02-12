@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -11,13 +9,10 @@ import {
   Calendar,
   FileText,
   FileCheck,
-  Receipt,
   Phone,
-  Mail,
   Building2,
-  Clock,
-  CheckCircle2,
   AlertCircle,
+  ShieldAlert,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -93,9 +88,7 @@ export default function CustomerPortalPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [tenant, setTenant] = useState<TenantInfo | null>(null);
   const [customer, setCustomer] = useState<CustomerData | null>(null);
-  const [lookupEmail, setLookupEmail] = useState("");
-  const [lookupError, setLookupError] = useState("");
-  const [isLookingUp, setIsLookingUp] = useState(false);
+  const [tokenError, setTokenError] = useState("");
 
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [estimates, setEstimates] = useState<Estimate[]>([]);
@@ -108,10 +101,10 @@ export default function CustomerPortalPage() {
     }
   }, [tenantId]);
 
-  // If token provided, auto-load customer
+  // If token provided, verify it via edge function
   useEffect(() => {
     if (customerToken && tenant) {
-      loadCustomerByToken(customerToken);
+      verifyToken(customerToken);
     }
   }, [customerToken, tenant]);
 
@@ -137,50 +130,30 @@ export default function CustomerPortalPage() {
     }
   };
 
-  const loadCustomerByToken = async (token: string) => {
-    // Token is just the customer ID for now (in production, use signed JWT)
+  const verifyToken = async (token: string) => {
     try {
-      const { data, error } = await supabase
-        .from("customers")
-        .select("id, full_name, email, phone_e164")
-        .eq("id", token)
-        .eq("tenant_id", tenantId)
-        .single();
+      const { data, error } = await supabase.functions.invoke("verify-portal-token", {
+        body: { token, tenant_id: tenantId },
+      });
 
-      if (data) {
-        setCustomer(data);
-        loadCustomerData(data.id);
-      }
-    } catch (err) {
-      console.error("Error loading customer by token:", err);
-    }
-  };
-
-  const handleLookup = async () => {
-    if (!lookupEmail.trim()) return;
-
-    setIsLookingUp(true);
-    setLookupError("");
-
-    try {
-      const { data, error } = await supabase
-        .from("customers")
-        .select("id, full_name, email, phone_e164")
-        .eq("tenant_id", tenantId)
-        .or(`email.eq.${lookupEmail},phone_e164.eq.${lookupEmail}`)
-        .single();
-
-      if (error || !data) {
-        setLookupError("No account found with that email or phone number.");
+      if (error) {
+        setTokenError("Unable to verify your link. Please contact the business for a new one.");
         return;
       }
 
-      setCustomer(data);
-      loadCustomerData(data.id);
-    } catch (err: any) {
-      setLookupError("Error looking up account. Please try again.");
-    } finally {
-      setIsLookingUp(false);
+      if (data?.valid && data.customer) {
+        setCustomer(data.customer);
+        loadCustomerData(data.customer_id);
+      } else {
+        setTokenError(
+          data?.error === "Token expired"
+            ? "This link has expired. Please contact the business for a new one."
+            : "Invalid portal link. Please contact the business for a new one."
+        );
+      }
+    } catch (err) {
+      console.error("Error verifying token:", err);
+      setTokenError("Unable to verify your link. Please try again later.");
     }
   };
 
@@ -276,47 +249,49 @@ export default function CustomerPortalPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8">
-        {!customer ? (
-          /* Login/Lookup Form */
+        {/* Error state — invalid/expired token */}
+        {tokenError ? (
+          <Card className="max-w-md mx-auto">
+            <CardContent className="pt-6 text-center space-y-4">
+              <ShieldAlert className="h-12 w-12 text-amber-500 mx-auto" />
+              <h2 className="text-lg font-bold">Portal Access Issue</h2>
+              <p className="text-muted-foreground">{tokenError}</p>
+              {tenant.phone_public && (
+                <Button variant="outline" asChild>
+                  <a href={`tel:${tenant.phone_public}`}>
+                    <Phone className="h-4 w-4 mr-2" />
+                    Call {tenant.name}
+                  </a>
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        ) : !customer && !customerToken ? (
+          /* No token provided — show contact message */
           <Card className="max-w-md mx-auto">
             <CardHeader className="text-center">
               <Building2 className="h-12 w-12 text-primary mx-auto mb-2" />
               <CardTitle>Welcome to {tenant.name}</CardTitle>
               <CardDescription>
-                Enter your email or phone number to access your account
+                Contact {tenant.name} to receive your personal portal link.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="lookup">Email or Phone</Label>
-                <Input
-                  id="lookup"
-                  type="text"
-                  placeholder="you@example.com or +1234567890"
-                  value={lookupEmail}
-                  onChange={(e) => setLookupEmail(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleLookup()}
-                />
-              </div>
-              {lookupError && (
-                <p className="text-sm text-red-600">{lookupError}</p>
+            <CardContent className="text-center space-y-4">
+              {tenant.phone_public && (
+                <Button variant="outline" asChild>
+                  <a href={`tel:${tenant.phone_public}`}>
+                    <Phone className="h-4 w-4 mr-2" />
+                    Call {tenant.phone_public}
+                  </a>
+                </Button>
               )}
-              <Button
-                onClick={handleLookup}
-                disabled={isLookingUp || !lookupEmail.trim()}
-                className="w-full"
-              >
-                {isLookingUp ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Looking up...
-                  </>
-                ) : (
-                  "Access My Account"
-                )}
-              </Button>
             </CardContent>
           </Card>
+        ) : !customer ? (
+          /* Token provided, still loading */
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          </div>
         ) : (
           /* Customer Dashboard */
           <div className="space-y-6">
@@ -332,13 +307,6 @@ export default function CustomerPortalPage() {
                       Here's an overview of your account with {tenant.name}
                     </p>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCustomer(null)}
-                  >
-                    Sign Out
-                  </Button>
                 </div>
               </CardContent>
             </Card>

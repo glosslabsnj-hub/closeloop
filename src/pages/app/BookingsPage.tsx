@@ -17,7 +17,10 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Calendar as CalendarIcon, Plus, Loader2, List, Search } from "lucide-react";
 import { ScheduleCalendar } from "@/components/calendar/ScheduleCalendar";
 import { CreateBookingDialog } from "@/components/calendar/CreateBookingDialog";
-import { useBookings } from "@/hooks/useBookings";
+import { EditBookingDialog } from "@/components/bookings/EditBookingDialog";
+import { CancelBookingDialog } from "@/components/bookings/CancelBookingDialog";
+import { useBookings, type BookingWithDetails } from "@/hooks/useBookings";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { BookingCard } from "@/components/bookings/BookingCard";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { ScheduleEvent } from "@/hooks/useScheduleData";
@@ -25,12 +28,18 @@ import type { ScheduleEvent } from "@/hooks/useScheduleData";
 export default function BookingsPage() {
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["booking"]);
   const { bookings, isLoading } = useBookings();
+  const { terms } = useIndustryContext();
 
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ date: Date; hour: number } | null>(null);
+
+  // Edit/Cancel dialog state
+  const [selectedBooking, setSelectedBooking] = useState<BookingWithDetails | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
   const filteredBookings = useMemo(() => {
     return bookings.filter((booking) => {
@@ -45,12 +54,14 @@ export default function BookingsPage() {
     });
   }, [bookings, statusFilter, searchQuery]);
 
-  const handleEditBooking = (booking: typeof bookings[0]) => {
-    // Edit booking functionality - to be implemented
+  const handleEditBooking = (booking: BookingWithDetails) => {
+    setSelectedBooking(booking);
+    setEditDialogOpen(true);
   };
 
-  const handleCancelBooking = (booking: typeof bookings[0]) => {
-    // Cancel booking functionality - to be implemented
+  const handleCancelBooking = (booking: BookingWithDetails) => {
+    setSelectedBooking(booking);
+    setCancelDialogOpen(true);
   };
 
   const handleSlotClick = (date: Date, hour: number) => {
@@ -59,7 +70,11 @@ export default function BookingsPage() {
   };
 
   const handleEventClick = (event: ScheduleEvent) => {
-    // Open event details - to be implemented
+    const booking = bookings.find((b) => b.id === event.id);
+    if (booking) {
+      setSelectedBooking(booking);
+      setEditDialogOpen(true);
+    }
   };
 
   if (moduleLoading || !isAllowed || isLoading) {
@@ -75,12 +90,12 @@ export default function BookingsPage() {
       <div className="space-y-6">
         <PageHeader
           icon={CalendarIcon}
-          title="Schedule"
-          description="Your calendar and upcoming appointments"
+          title={terms.bookingsPageTitle || "Schedule"}
+          description={terms.bookingsPageSubtitle || "Your calendar and upcoming appointments"}
           action={
             <Button onClick={() => setCreateDialogOpen(true)}>
               <Plus className="h-4 w-4" />
-              New Booking
+              {terms.newBooking || "New Booking"}
             </Button>
           }
         />
@@ -174,6 +189,18 @@ export default function BookingsPage() {
           onSuccess={() => {
             setSelectedSlot(null);
           }}
+        />
+
+        <EditBookingDialog
+          booking={selectedBooking}
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+        />
+
+        <CancelBookingDialog
+          booking={selectedBooking}
+          open={cancelDialogOpen}
+          onOpenChange={setCancelDialogOpen}
         />
       </div>
     </PageContainer>

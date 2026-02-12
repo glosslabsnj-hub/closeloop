@@ -67,6 +67,7 @@ export interface ROIReportData {
   celebratoryTone: boolean;
   emptyStateSteps: [string, string, string];
   emptyStateEncouragement: string;
+  funnelLabels: [string, string, string, string];
 }
 
 function getMonthRange(option: DateRangeOption): { start: Date; end: Date; months: number } {
@@ -287,6 +288,7 @@ export function useROIReport(dateRange: DateRangeOption = "this_month") {
         celebratoryTone: config.celebratoryTone,
         emptyStateSteps: config.emptyStateSteps,
         emptyStateEncouragement: config.emptyStateEncouragement,
+        funnelLabels: config.funnelLabels,
       };
     },
     enabled: !!tenant?.id,

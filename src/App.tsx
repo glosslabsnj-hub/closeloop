@@ -38,6 +38,7 @@ import ReadinessFixCenterPage from "@/pages/app/ReadinessFixCenterPage";
 import UsagePage from "@/pages/app/UsagePage";
 import EstimatesPage from "@/pages/app/EstimatesPage";
 import AgreementsPage from "@/pages/app/AgreementsPage";
+import CustomersPage from "@/pages/app/CustomersPage";
 import TimeTrackingPage from "@/pages/app/TimeTrackingPage";
 import DispatchMapPage from "@/pages/app/DispatchMapPage";
 import InventoryPage from "@/pages/app/InventoryPage";
@@ -127,6 +128,7 @@ const App = () => (
               {/* Legacy routes - redirect to unified inbox tabs */}
               <Route path="/app/calls" element={<Navigate to="/app/inbox?tab=calls" replace />} />
               <Route path="/app/leads" element={<Navigate to="/app/inbox?tab=leads" replace />} />
+              <Route path="/app/customers" element={<CustomersPage />} />
               <Route path="/app/bookings" element={<BookingsPage />} />
               <Route path="/app/services" element={<Navigate to="/app/business-brain?section=services" replace />} />
               <Route path="/app/integrations" element={<IntegrationsPage />} />
