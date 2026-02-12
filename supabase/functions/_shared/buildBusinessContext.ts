@@ -54,6 +54,10 @@ export interface NormalizedService {
   service_type: string;
   /** Whether this service requires a dropoff/destination location */
   requires_dropoff: boolean;
+  /** Simple = quick confirmation, Complex = ask detailed questions */
+  complexity: "simple" | "complex";
+  /** What makes the price vary (plain English for AI) */
+  price_factors: string;
 }
 
 export interface NormalizedMenuItem {
@@ -1069,6 +1073,8 @@ function normalizeServices(services: Array<{
       service_category: "",
       service_type: "primary",
       requires_dropoff: s.requires_dropoff !== false,
+      complexity: (s as any).complexity === "complex" ? "complex" : "simple",
+      price_factors: (s as any).price_factors || "",
     };
   });
 }
@@ -1217,7 +1223,14 @@ function buildServicesForPrompt(services: NormalizedService[]): string {
     // Add dropoff requirement tag
     const dropoffTag = s.requires_dropoff ? "[REQUIRES DROPOFF]" : "[ON-SITE ONLY]";
 
-    let line = `• ${s.name}: ${priceText} ${dropoffTag}`;
+    // Complexity tag tells AI how to handle this service
+    const complexityTag = s.complexity === "complex"
+      ? "[NEEDS DETAILS - ask about symptoms/specifics before quoting]"
+      : "[QUICK SERVICE]";
+
+    let line = `• ${s.name}: ${priceText} ${dropoffTag} ${complexityTag}`;
+    if (s.price_factors) line += `\n  Price depends on: ${s.price_factors}`;
+    if (s.complexity === "complex" && s.description) line += `\n  Info: ${s.description}`;
     if (s.duration_minutes) line += `\n  Duration: ${s.duration_minutes} min`;
     if (s.synonyms.length > 0) line += ` [also: ${s.synonyms.slice(0, 3).join(", ")}]`;
     return line;
