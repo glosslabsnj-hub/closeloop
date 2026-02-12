@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Phone, Calendar, MessageSquare, Clock, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { Phone, Calendar, MessageSquare, UserCheck, XCircle, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +18,8 @@ interface LeadDetailPanelProps {
   lead: Lead | null;
   onClose: () => void;
   onBookAppointment?: (lead: Lead) => void;
+  onConvertToCustomer?: (lead: Lead) => void;
+  onMarkAsLost?: (lead: Lead) => void;
 }
 
 const statusStyles: Record<string, { bg: string; text: string }> = {
@@ -37,9 +39,11 @@ const sourceLabels: Record<string, string> = {
   ai_call: "AI Call",
 };
 
-export function LeadDetailPanel({ lead, onClose, onBookAppointment }: LeadDetailPanelProps) {
+export function LeadDetailPanel({ lead, onClose, onBookAppointment, onConvertToCustomer, onMarkAsLost }: LeadDetailPanelProps) {
   const { tenant } = useAuth();
   const { config } = useIndustryContext();
+
+  const canConvert = lead ? lead.status !== "won" && lead.status !== "lost" : false;
 
   // Fetch related call sessions by phone match
   const { data: callHistory } = useQuery({
@@ -87,6 +91,29 @@ export function LeadDetailPanel({ lead, onClose, onBookAppointment }: LeadDetail
               {formatDistanceToNow(new Date(lead.created_at), { addSuffix: true })}
             </span>
           </div>
+
+          {/* Convert / Lost actions */}
+          {canConvert && (
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                className="flex-1"
+                onClick={() => onConvertToCustomer?.(lead)}
+              >
+                <UserCheck className="w-4 h-4 mr-2" />
+                Convert to Customer
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-destructive hover:text-destructive"
+                onClick={() => onMarkAsLost?.(lead)}
+              >
+                <XCircle className="w-4 h-4 mr-1" />
+                Lost
+              </Button>
+            </div>
+          )}
 
           {/* Context / notes */}
           {lead.vehicle_or_context && (

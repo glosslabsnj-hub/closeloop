@@ -87,6 +87,64 @@ export function useLeads() {
     },
   });
 
+  // Convert lead to customer
+  const convertToCustomer = useMutation({
+    mutationFn: async (lead: Lead) => {
+      if (!tenant?.id) throw new Error("No tenant");
+
+      // 1. Update lead status to "won"
+      const { error: leadError } = await supabase
+        .from("leads")
+        .update({ status: "won" })
+        .eq("id", lead.id);
+      if (leadError) throw leadError;
+
+      // 2. Upsert customer with "active_customer" tag
+      if (lead.phone) {
+        const { error: custError } = await supabase
+          .from("customers")
+          .upsert(
+            {
+              tenant_id: tenant.id,
+              full_name: lead.full_name,
+              phone_e164: lead.phone,
+              email: lead.email || undefined,
+              source: "ai_call",
+              tags: ["active_customer"],
+            },
+            { onConflict: "tenant_id,phone_e164" }
+          );
+        if (custError) throw custError;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leads", tenant?.id] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      toast({ title: "Lead converted", description: "Customer created successfully." });
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Mark lead as lost
+  const markAsLost = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("leads")
+        .update({ status: "lost" })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leads", tenant?.id] });
+      toast({ title: "Lead marked as lost" });
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   // Computed stats
   const stats = {
     total: leadsQuery.data?.length ?? 0,
@@ -103,6 +161,8 @@ export function useLeads() {
     createLead,
     updateLead,
     deleteLead,
+    convertToCustomer,
+    markAsLost,
     refetch: leadsQuery.refetch,
   };
 }
