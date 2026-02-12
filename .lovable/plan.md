@@ -1,86 +1,53 @@
 
 
-# Dispatch-Friendly Navigation Overhaul
+# Fix: Dispatch Jobs Not Persisting After Calls
 
-## The Problem
+## Root Cause
 
-For a dispatch company (like a towing business), the sidebar shows **"Leads"** and **"Customers"** as separate tabs. This doesn't match how they think:
+The `elevenlabs-webhook` edge function tries to insert dispatch jobs with **4 columns that don't exist** on the `dispatch_jobs` table:
 
-- A tow truck company doesn't think in "leads" -- they get **calls** and either dispatch a truck or don't.
-- "Customers" as a standalone section feels disconnected from the job flow -- they track people through the jobs themselves, not a separate CRM page.
+| Insert Uses | Table Actually Has | Fix |
+|---|---|---|
+| `distance_miles` | `dispatch_distance_miles` | Rename in insert |
+| `estimated_eta_minutes` | `estimated_arrival_at` (timestamp) | Convert minutes to timestamp, or store in `description`/`notes` |
+| `vehicle_type` | (doesn't exist on dispatch_jobs) | Store in `vehicle_make` or `description` |
+| `drivable` | (doesn't exist on dispatch_jobs) | Store in `notes` or `description` |
 
-The existing `UnifiedInboxPage` already contains both a **Calls** tab and a **Leads** tab, but it's labeled "Leads" in the sidebar, which buries the most important thing (the call log).
+The Postgres error `Could not find the 'distance_miles' column` kills the entire insert, so no dispatch job is ever created.
 
----
+## Fix Plan
 
-## The Solution
+### 1. Add Missing Columns via Migration
 
-Make the sidebar navigation **mode-aware** so dispatch businesses see terminology and structure that matches their workflow.
+Add `estimated_eta_minutes` and `drivable` to `dispatch_jobs` so we don't lose data. `vehicle_type` already doesn't map cleanly (the table has `vehicle_make`, `vehicle_model`, `vehicle_category`), so we'll map it to `vehicle_category`.
 
-### Changes
+```sql
+ALTER TABLE dispatch_jobs
+  ADD COLUMN IF NOT EXISTS estimated_eta_minutes integer,
+  ADD COLUMN IF NOT EXISTS drivable boolean;
+```
 
-#### 1. Sidebar Labels Become Mode-Aware
+### 2. Fix the Insert in `elevenlabs-webhook`
 
-In `AppSidebar.tsx`, change the hardcoded "Leads" label to use industry terms:
+In `supabase/functions/elevenlabs-webhook/index.ts`, update the `persistDispatchJob` function (around line 2707-2725):
 
-| Business Mode | Current Label | New Label | Icon |
-|---------------|--------------|-----------|------|
-| dispatch | Leads | Call Log | Phone |
-| food | Leads | Leads | Users |
-| medical | Leads | Leads | Users |
-| service | Leads | Leads | Users |
-| sales | Leads | Leads | Users |
+- `distance_miles` becomes `dispatch_distance_miles`
+- `estimated_eta_minutes` stays (after migration adds column)
+- `vehicle_type` maps to `vehicle_category`
+- `drivable` stays (after migration adds column)
 
-Similarly for "Customers":
+### 3. Fix the Pricing Type Definition
 
-| Business Mode | Current Label | New Label |
-|---------------|--------------|-----------|
-| dispatch | Customers | Customers (keep, but lower in nav) |
-| food | Customers | Guests |
-| medical | Customers | Patients |
-| sales | Customers | Prospects |
-| service/general | Customers | Customers |
-
-The Customers label already partially works via `terms.customers` -- it just needs consistent capitalization.
-
-#### 2. Default Tab Flips for Dispatch
-
-In `UnifiedInboxPage.tsx`, the default tab is currently `"leads"`. For dispatch-mode tenants, flip the default to `"calls"` so they land on the call log first.
-
-#### 3. Page Title Adapts
-
-In `UnifiedInboxPage.tsx`, change the page header from a hardcoded "Leads" to a mode-aware title:
-
-- Dispatch: **"Call Log"** with description "Every call, organized by priority."
-- Others: Keep **"Leads"** with "Every customer interaction, organized."
-
-#### 4. Mobile Nav Follows Suit
-
-In `AppLayout.tsx`, the mobile bottom nav also hardcodes "Leads". Update it to use the same mode-aware label and icon.
+Update the `dispatchPricing` type (line 2682) to use `dispatch_distance_miles` instead of `distance_miles` for clarity, or just remap at insert time.
 
 ---
 
-## Technical Details
+## About the Admin Phone / Same-Number Concern
 
-### Files Modified
+Your hunch about using the same phone across tenants is **not the issue here**. The call routing worked correctly -- it found Hawks Towing, ran the conversation, and extracted the dispatch payload. The failure is purely a schema mismatch in the database insert. Once these columns are fixed, dispatch jobs will persist normally regardless of which phone you call from.
 
-1. **`src/components/layouts/AppSidebar.tsx`** (lines 189-190)
-   - Replace hardcoded "Leads" with mode-aware label and icon
-   - The `caps` prop already includes `isDispatchBusiness`; use it to select the label
-   - Pass `terms` through for customer label (already partially done)
+## Files Changed
 
-2. **`src/pages/app/UnifiedInboxPage.tsx`** (lines 85-87, 262-266)
-   - Add `useCapabilities()` hook
-   - Default tab: `caps.isDispatchBusiness ? "calls" : "leads"`
-   - Page title: conditional on `caps.isDispatchBusiness`
+- **Migration**: Add `estimated_eta_minutes` and `drivable` columns to `dispatch_jobs`
+- **`supabase/functions/elevenlabs-webhook/index.ts`**: Fix column names in the `persistDispatchJob` insert (lines ~2707-2725)
 
-3. **`src/components/layouts/AppLayout.tsx`** (line 84)
-   - Mobile nav: change "Leads" to mode-aware label using `caps.isDispatchBusiness`
-
-4. **`src/lib/terminology.ts`**
-   - Add two new fields to `IndustryTerms`: `inboxPageTitle` and `inboxPageIcon`
-   - Dispatch: `"Call Log"`, all others: `"Leads"`
-
-### No New Files
-
-This is purely label/default changes in existing files. No new components, no database changes, no edge functions.
