@@ -28,7 +28,7 @@ export function JobTimeline({ jobId }: JobTimelineProps) {
   const { data: updates, isLoading } = useQuery({
     queryKey: ["job-status-updates", jobId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("job_status_updates")
         .select("*")
         .eq("job_id", jobId)

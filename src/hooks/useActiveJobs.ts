@@ -64,7 +64,7 @@ export function useActiveJobs() {
     queryFn: async () => {
       if (!tenant?.id) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("active_jobs")
         .select("*, job_service_items(*)")
         .eq("tenant_id", tenant.id)
@@ -129,13 +129,13 @@ export function useActiveJobs() {
       if (!tenant?.id) throw new Error("No tenant");
 
       // Generate job number
-      const { data: jobNumData, error: jobNumError } = await supabase
+      const { data: jobNumData, error: jobNumError } = await (supabase as any)
         .rpc("generate_job_number", { p_tenant_id: tenant.id });
       if (jobNumError) throw jobNumError;
 
-      const jobNumber = jobNumData as string;
+      const jobNumber = jobNumData as unknown as string;
 
-      const { data: job, error: jobError } = await supabase
+      const { data: job, error: jobError } = await (supabase as any)
         .from("active_jobs")
         .insert({
           tenant_id: tenant.id,
@@ -166,7 +166,7 @@ export function useActiveJobs() {
           status: "pending" as const,
         }));
 
-        const { error: itemsError } = await supabase
+        const { error: itemsError } = await (supabase as any)
           .from("job_service_items")
           .insert(items);
         if (itemsError) throw itemsError;
@@ -185,7 +185,7 @@ export function useActiveJobs() {
 
   const updateJob = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<ActiveJob> & { id: string }) => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("active_jobs")
         .update(updates)
         .eq("id", id)
@@ -214,7 +214,7 @@ export function useActiveJobs() {
         updates.is_active = false;
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("active_jobs")
         .update(updates)
         .eq("id", id)
