@@ -3293,6 +3293,12 @@ export function buildDynamicVariables(
   // Delegate to the registry-driven builder
   const vars = buildDynamicVariablesFromRegistry(ctx, callerPhoneE164, customerId);
 
+  // Ensure greeting_script always has a sensible value (never empty)
+  // When empty, ElevenLabs falls back to its dashboard first_message which may be generic
+  if (!vars.greeting_script) {
+    vars.greeting_script = `Thanks for calling ${vars.business_name || "us"}, how can I help you today?`;
+  }
+
   // Log variable keys for debugging (one-time dev log)
   if (Deno.env.get("LOG_DYNAMIC_VAR_KEYS") === "true") {
     console.log("[buildDynamicVariables] Keys:", getAllVariableKeys().join(", "));

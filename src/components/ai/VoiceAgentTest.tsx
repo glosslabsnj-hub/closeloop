@@ -157,6 +157,11 @@ export default function VoiceAgentTest() {
       console.log("🎙️ [VoiceTest] Step 3: Starting session...");
       addDebugEvent("STARTING_SESSION", { mode: data?.connectionType || connectionMode });
 
+      // Build greeting override if custom greeting exists
+      const greetingOverride = data?.dynamicVariables?.greeting_script
+        ? { agent: { firstMessage: String(data.dynamicVariables.greeting_script) } }
+        : undefined;
+
       // Start session based on returned connection type
       if (data?.token && data?.connectionType === "webrtc") {
         // WebRTC mode - use conversation token
@@ -164,6 +169,7 @@ export default function VoiceAgentTest() {
           conversationToken: data.token,
           connectionType: "webrtc" as const,
           dynamicVariables: toSafeVars(data.dynamicVariables),
+          overrides: greetingOverride,
         });
       } else if (data?.conversationId && data?.connectionType === "webrtc") {
         // Backwards compatibility (older backend versions)
@@ -171,6 +177,7 @@ export default function VoiceAgentTest() {
           conversationToken: data.conversationId,
           connectionType: "webrtc" as const,
           dynamicVariables: toSafeVars(data.dynamicVariables),
+          overrides: greetingOverride,
         });
       } else if (data?.signedUrl) {
         // WebSocket mode - use signed URL
@@ -178,6 +185,7 @@ export default function VoiceAgentTest() {
           signedUrl: data.signedUrl,
           connectionType: "websocket" as const,
           dynamicVariables: toSafeVars(data.dynamicVariables),
+          overrides: greetingOverride,
         });
       } else {
         throw new Error("No token, conversationId, or signedUrl received from server");
