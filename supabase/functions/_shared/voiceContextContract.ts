@@ -968,6 +968,15 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     category: "offerings",
     includeInCompactJson: true,
   },
+  {
+    key: "capacity_7day_overview",
+    description: "7-day booking density overview (e.g., 'Mon: busy (8) | Tue: open | Wed: closed')",
+    type: "string",
+    source: "operations.capacity_7day_overview",
+    defaultValue: "",
+    category: "offerings",
+    includeInCompactJson: false, // Keep compact JSON small
+  },
 
   // ===== SALES =====
   {

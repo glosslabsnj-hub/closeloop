@@ -58,6 +58,14 @@ export interface NormalizedService {
   complexity: "simple" | "complex";
   /** What makes the price vary (plain English for AI) */
   price_factors: string;
+  /** Booking type: direct_book, estimate_first, or consultation */
+  booking_type: "direct_book" | "estimate_first" | "consultation";
+  /** Prerequisites the AI should mention (e.g., "Requires permit") */
+  prerequisite_note: string;
+  /** Minimum duration in minutes (for variable-duration services) */
+  duration_min_minutes: number | null;
+  /** Maximum duration in minutes (for variable-duration services) */
+  duration_max_minutes: number | null;
 }
 
 export interface NormalizedMenuItem {
@@ -257,6 +265,8 @@ export interface BusinessContext {
       booking_url: string;
       booking_mode: string;
     };
+    /** 7-day capacity overview for booking-enabled tenants (e.g., "Mon: busy (8) | Tue: open | Wed: closed") */
+    capacity_7day_overview: string;
   };
   intelligence: {
     settings: {
@@ -1097,6 +1107,10 @@ function normalizeServices(services: Array<{
   preparation_instructions?: string | null;
   pricing_config_json?: Record<string, unknown> | null;
   requires_dropoff?: boolean | null;
+  booking_type?: string | null;
+  prerequisite_note?: string | null;
+  duration_min_minutes?: number | null;
+  duration_max_minutes?: number | null;
 }> | null): NormalizedService[] {
   if (!services || services.length === 0) return [];
   
@@ -1168,6 +1182,12 @@ function normalizeServices(services: Array<{
       requires_dropoff: s.requires_dropoff !== false,
       complexity: (s as any).complexity === "complex" ? "complex" : "simple",
       price_factors: (s as any).price_factors || "",
+      booking_type: (["direct_book", "estimate_first", "consultation"].includes(s.booking_type || "")
+        ? s.booking_type as "direct_book" | "estimate_first" | "consultation"
+        : "direct_book"),
+      prerequisite_note: s.prerequisite_note || "",
+      duration_min_minutes: s.duration_min_minutes ?? null,
+      duration_max_minutes: s.duration_max_minutes ?? null,
     };
   });
 }
@@ -1316,15 +1336,28 @@ function buildServicesForPrompt(services: NormalizedService[]): string {
     // Add dropoff requirement tag
     const dropoffTag = s.requires_dropoff ? "[REQUIRES DROPOFF]" : "[ON-SITE ONLY]";
 
-    // Complexity tag tells AI how to handle this service
-    const complexityTag = s.complexity === "complex"
-      ? "[NEEDS DETAILS - ask about symptoms/specifics before quoting]"
-      : "[QUICK SERVICE]";
+    // Booking type tag — data-driven from DB (replaces old hardcoded complexity-only tag)
+    let bookingTag: string;
+    if (s.booking_type === "estimate_first") {
+      bookingTag = "[ESTIMATE FIRST]";
+    } else if (s.booking_type === "consultation") {
+      bookingTag = "[CONSULTATION]";
+    } else if (s.complexity === "complex") {
+      bookingTag = "[NEEDS DETAILS - ask about symptoms/specifics before quoting]";
+    } else {
+      bookingTag = "[DIRECT BOOK]";
+    }
 
-    let line = `• ${s.name}: ${priceText} ${dropoffTag} ${complexityTag}`;
+    let line = `• ${s.name}: ${priceText} ${dropoffTag} ${bookingTag}`;
     if (s.price_factors) line += `\n  Price depends on: ${s.price_factors}`;
+    if (s.prerequisite_note) line += `\n  Prerequisite: ${s.prerequisite_note}`;
     if (s.complexity === "complex" && s.description) line += `\n  Info: ${s.description}`;
-    if (s.duration_minutes) line += `\n  Duration: ${s.duration_minutes} min`;
+    // Duration line — show range when min/max are set
+    if (s.duration_min_minutes && s.duration_max_minutes && s.duration_minutes) {
+      line += `\n  Duration: ${s.duration_min_minutes}-${s.duration_max_minutes} min (typical: ${s.duration_minutes})`;
+    } else if (s.duration_minutes) {
+      line += `\n  Duration: ${s.duration_minutes} min`;
+    }
     if (s.synonyms.length > 0) line += ` [also: ${s.synonyms.slice(0, 3).join(", ")}]`;
     return line;
   }).join("\n");
@@ -1543,6 +1576,76 @@ function determineUsage(memoryType: string): string {
 }
 
 // Removed duplicate buildPricingRulesSummary function - consolidated above at line 678
+
+/**
+ * Build 7-day capacity overview from upcoming bookings.
+ * Output: "Mon: busy (8) | Tue: open | Wed: closed | Thu: light (2)"
+ * Only for booking-enabled tenants. Wrapped in try/catch to never break context building.
+ */
+async function buildCapacity7DayOverview(
+  supabase: SupabaseClient,
+  tenantId: string,
+  hoursJson: Record<string, any>,
+  timezone: string,
+): Promise<string> {
+  try {
+    // Compute 7-day window in tenant timezone
+    const now = new Date();
+    const endDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    const { data: bookings } = await supabase
+      .from("bookings")
+      .select("scheduled_at")
+      .eq("tenant_id", tenantId)
+      .in("status", ["pending", "confirmed"])
+      .gte("scheduled_at", now.toISOString())
+      .lte("scheduled_at", endDate.toISOString())
+      .limit(200);
+
+    if (!bookings) return "";
+
+    // Count bookings per day-of-week
+    const dayOrder = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const countByDayIndex: Record<number, number> = {};
+
+    for (const b of bookings) {
+      if (!b.scheduled_at) continue;
+      const d = new Date(b.scheduled_at);
+      const dayIdx = d.getDay(); // 0=Sun
+      countByDayIndex[dayIdx] = (countByDayIndex[dayIdx] || 0) + 1;
+    }
+
+    // Build output for next 7 days
+    const parts: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(now.getTime() + i * 24 * 60 * 60 * 1000);
+      const dayIdx = date.getDay();
+      const dayKey = dayOrder[dayIdx];
+      const label = dayLabels[dayIdx];
+      const hours = hoursJson?.[dayKey];
+      const isClosed = !hours || hours.closed || hours.is_open === false || (!hours.open && !hours.close);
+
+      if (isClosed) {
+        parts.push(`${label}: closed`);
+      } else {
+        const count = countByDayIndex[dayIdx] || 0;
+        if (count === 0) {
+          parts.push(`${label}: open`);
+        } else if (count >= 6) {
+          parts.push(`${label}: busy (${count})`);
+        } else {
+          parts.push(`${label}: light (${count})`);
+        }
+      }
+    }
+
+    return parts.join(" | ");
+  } catch (err) {
+    console.warn("[buildCapacity7DayOverview] Error (non-fatal):", err);
+    return "";
+  }
+}
 
 function buildEtaRulesSummary(busynessRules: Record<string, any>): string {
   if (!busynessRules || Object.keys(busynessRules).length === 0) return "";
@@ -2246,6 +2349,17 @@ export async function buildBusinessContext(
   // Pre-compute service area for summaries
   const serviceAreaData = tenant.service_area_json as BusinessContext["tenant"]["service_area"];
 
+  // Compute 7-day capacity overview (booking-enabled tenants only)
+  let capacity7DayOverview = "";
+  if (capabilities.booking) {
+    capacity7DayOverview = await buildCapacity7DayOverview(
+      supabase,
+      tenantId,
+      tenant.hours_json || {},
+      tenant.timezone || "America/New_York",
+    );
+  }
+
   const context: BusinessContext = {
     tenant: {
       tenant_id: tenantId,
@@ -2382,6 +2496,7 @@ export async function buildBusinessContext(
         booking_url: assistantSettings?.booking_url || tenant.website_url || "",
         booking_mode: assistantSettings?.ai_booking_mode || "pending_approval",
       },
+      capacity_7day_overview: capacity7DayOverview,
     },
     intelligence: {
       settings: {

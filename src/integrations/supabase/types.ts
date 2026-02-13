@@ -8145,17 +8145,21 @@ export type Database = {
       }
       services: {
         Row: {
+          booking_type: string
           complexity: string
           created_at: string
           deposit_amount: number | null
           deposit_required: boolean | null
           description: string | null
           display_order: number | null
+          duration_max_minutes: number | null
+          duration_min_minutes: number | null
           duration_minutes: number
           id: string
           is_active: boolean
           name: string
           preparation_instructions: string | null
+          prerequisite_note: string | null
           price_amount: number | null
           price_factors: string | null
           price_type: Database["public"]["Enums"]["price_type"]
@@ -8167,17 +8171,21 @@ export type Database = {
           upsell_suggestions: string[] | null
         }
         Insert: {
+          booking_type?: string
           complexity?: string
           created_at?: string
           deposit_amount?: number | null
           deposit_required?: boolean | null
           description?: string | null
           display_order?: number | null
+          duration_max_minutes?: number | null
+          duration_min_minutes?: number | null
           duration_minutes?: number
           id?: string
           is_active?: boolean
           name: string
           preparation_instructions?: string | null
+          prerequisite_note?: string | null
           price_amount?: number | null
           price_factors?: string | null
           price_type?: Database["public"]["Enums"]["price_type"]
@@ -8189,17 +8197,21 @@ export type Database = {
           upsell_suggestions?: string[] | null
         }
         Update: {
+          booking_type?: string
           complexity?: string
           created_at?: string
           deposit_amount?: number | null
           deposit_required?: boolean | null
           description?: string | null
           display_order?: number | null
+          duration_max_minutes?: number | null
+          duration_min_minutes?: number | null
           duration_minutes?: number
           id?: string
           is_active?: boolean
           name?: string
           preparation_instructions?: string | null
+          prerequisite_note?: string | null
           price_amount?: number | null
           price_factors?: string | null
           price_type?: Database["public"]["Enums"]["price_type"]
