@@ -1,99 +1,101 @@
 
+# DreamDrive Auto Motors: Complete Sales Mode Fix
 
-# Fix: Custom Greeting Script + Ensure All Business Brain Data Reaches ElevenLabs
+## Problems Identified
 
-## The Core Problem
+1. **AI tools not firing on calls** -- The ElevenLabs sales agent has 5 tools defined in code (`agentToolsConfig.ts`) but they must be **manually registered in the ElevenLabs dashboard** for each agent. Without that, the agent can't call `create_booking`, `check_availability`, etc. This is why nothing shows up on the calendar -- the agent literally cannot create bookings.
 
-The greeting script is stored correctly and sent as `{{greeting_script}}` dynamic variable. But ElevenLabs agents have a **`first_message`** setting (configured in the dashboard) that fires *before* any prompt logic runs. So even though the prompt says "Use the custom greeting if one is set: {{greeting_script}}", the agent already spoke its default first message.
+2. **No self-service inventory scraping** -- Business owners currently have no UI to add/manage their dealer URLs or trigger a scrape. You had to manually insert `dealer_urls` into `context_fields_json`. The Inventory page has no "Sync from website" button.
 
-## Safest Route (3 changes, no breaking risk)
+3. **Prospects tab still visible** -- The Customers page tab was already removed, but the memory note says it should be gone for sales mode. Looking at the code, the tab IS already removed (only "All", "Active", "Merge Queue" exist). If you're seeing "Prospects" somewhere, it may be a cached view or a different page. The sidebar and CRM page need checking.
 
-### Change 1: elevenlabs-init -- Add `first_message` override (Production Twilio calls)
+4. **Dashboard not optimally configured post-onboarding** -- After onboarding, a sales tenant should see a dashboard that makes sense immediately: Inventory, Sales Pipeline, Test Drives, and relevant quick actions.
 
-This function already uses `conversation_config_override` successfully for dispatch/callback-only modes (lines 620-630). We simply extend it to **always** include `agent.first_message` when a greeting script exists. This is safe because:
-- `elevenlabs-init` is the Client Data Webhook (not `register-call` which breaks with overrides)
-- The override pattern is already proven working in this exact function
+---
 
-```typescript
-// Current (lines 620-630):
-const conversationConfigOverride =
-  (context?.tenant.business_mode === "dispatch" || isCallbackOnly) && systemPrompt
-    ? { agent: { prompt: { prompt: systemPrompt } } }
-    : undefined;
+## Fix Plan (4 workstreams)
 
-// New: Always build override when greeting exists OR dispatch/callback mode
-const greetingScript = dynamicVariables.greeting_script;
-let conversationConfigOverride: Record<string, unknown> | undefined;
+### Workstream 1: ElevenLabs Dashboard Tool Registration (MANUAL -- You Must Do This)
 
-if (greetingScript || ((context?.tenant.business_mode === "dispatch" || isCallbackOnly) && systemPrompt)) {
-  conversationConfigOverride = { agent: {} };
-  if (greetingScript) {
-    conversationConfigOverride.agent.first_message = greetingScript;
-  }
-  if ((context?.tenant.business_mode === "dispatch" || isCallbackOnly) && systemPrompt) {
-    conversationConfigOverride.agent.prompt = { prompt: systemPrompt };
-  }
-}
-```
+This is the root cause of bookings not appearing. The 5 sales agent tools must be registered in the ElevenLabs dashboard under the Sales agent:
 
-### Change 2: VoiceAgentTest.tsx -- Pass `first_message` override (Browser tests)
+| Tool Name | Endpoint URL | Key Params (LLM Prompt type) | Hidden Params (Dynamic Variable type) |
+|-----------|-------------|------------------------------|--------------------------------------|
+| `check_availability` | `https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-check-availability` | date, time, service_name | tenant_id = `{{tenant_id}}`, conversation_id |
+| `suggest_availability` | `https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-suggest-availability` | date, service_name, preference | tenant_id = `{{tenant_id}}`, conversation_id |
+| `create_booking` | `https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-create-booking` | customer_name, date, time, service_name, notes | tenant_id = `{{tenant_id}}`, customer_phone = `{{caller_phone}}`, conversation_id |
+| `check_service_area` | `https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-check-service-area` | address | tenant_id = `{{tenant_id}}`, conversation_id |
+| `create_callback` | `https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-create-callback` | reason, customer_name, department, preferred_time, notes | tenant_id = `{{tenant_id}}`, customer_phone = `{{caller_phone}}`, conversation_id |
 
-The browser test component calls `startSession()` with `dynamicVariables` but no `overrides`. We add `overrides.agent.first_message` when a greeting script is present. This is safe because:
-- `startSession` already accepts an `overrides` parameter per the ElevenLabs SDK
-- It only adds the override when a greeting exists, otherwise no change
+**Critical configuration detail**: `tenant_id` and `customer_phone` MUST be set as "Dynamic Variable" type using handlebars syntax. All other params (name, date, time, etc.) must be "LLM Prompt" type so the AI fills them from the conversation.
 
-```typescript
-// In startSession calls, add overrides when greeting exists:
-const greetingOverride = data?.dynamicVariables?.greeting_script
-  ? { agent: { first_message: data.dynamicVariables.greeting_script } }
-  : undefined;
+I cannot do this step for you -- it requires the ElevenLabs agent dashboard.
 
-await conversation.startSession({
-  conversationToken: data.token,
-  connectionType: "webrtc" as const,
-  dynamicVariables: toSafeVars(data.dynamicVariables),
-  overrides: greetingOverride,
-});
-```
+---
 
-### Change 3: voiceContextContract.ts -- Mode-aware greeting fallback
+### Workstream 2: Self-Service Inventory Scraping UI
 
-Currently `greeting_script` defaults to `""` (empty string). When empty, the agent falls back to whatever is hardcoded in the ElevenLabs dashboard. We update the default to generate a mode-appropriate greeting using the business name, so there is always a sensible first message.
+**Problem**: Business owners can't add their dealer URLs or trigger scrapes.
 
-```typescript
-// In the registry entry for greeting_script:
-{
-  key: "greeting_script",
-  defaultValue: "",  // Changed to compute at runtime below
-  // ...
-}
+**Solution**: Add an "Import from Web" section to the Sales Inventory page.
 
-// In buildDynamicVariables, after building vars:
-if (!vars.greeting_script) {
-  vars.greeting_script = `Thanks for calling ${vars.business_name || "us"}, how can I help you today?`;
-}
-```
+#### Files to create:
+- `src/components/inventory/InventorySyncPanel.tsx` -- A collapsible panel at the top of the Inventory page with:
+  - Input field(s) for dealer page URLs (with add/remove)
+  - "Sync Now" button that calls `scrape-carsforsale` edge function
+  - Status indicator showing last sync time and result
+  - Auto-saves URLs to `tenants.context_fields_json.dealer_urls`
 
-## What This Does NOT Touch (safe boundaries)
+#### Files to modify:
+- `src/pages/app/SalesInventoryPage.tsx` -- Add the `InventorySyncPanel` above the inventory grid
+- `src/hooks/useSalesInventory.ts` -- Add mutations for saving dealer URLs and triggering sync
 
-| Component | Status | Why it's safe |
-|-----------|--------|---------------|
-| `twilio-inbound` / `register-call` | NOT modified | `conversation_config_override` breaks register-call -- we don't touch it |
-| `buildBusinessContext` | NOT modified | Already correctly extracts greeting_script from DB |
-| Prompt templates | NOT modified | The `{{greeting_script}}` reference stays as-is for in-conversation behavior |
-| ElevenLabs dashboard | No change needed | The override from our code takes priority over dashboard first_message |
+#### How it works:
+1. Owner enters their carsforsale.com (or other) dealer page URL
+2. URL is saved to `context_fields_json.dealer_urls` on the tenant record
+3. "Sync Now" button invokes the existing `scrape-carsforsale` edge function
+4. Progress/result is displayed
+5. The existing `cron-inventory-sync` continues to auto-refresh every 6 hours
 
-## Files to Modify
+---
 
-| File | Change | Risk |
-|------|--------|------|
-| `supabase/functions/elevenlabs-init/index.ts` | Add `first_message` to existing override block (lines 620-639) | Very low -- extending existing pattern |
-| `src/components/ai/VoiceAgentTest.tsx` | Add `overrides` param to `startSession` calls (3 locations) | Very low -- optional SDK parameter |
-| `supabase/functions/_shared/buildBusinessContext.ts` | Add fallback greeting when `greeting_script` is empty | Very low -- only fills empty values |
+### Workstream 3: Sales-Mode Dashboard Polish
 
-## Result
+**Problem**: Post-onboarding dashboard shows elements that don't make sense for a car dealership.
 
-- **Production Twilio calls**: Custom greeting spoken immediately via `first_message` override in elevenlabs-init
-- **Browser test calls**: Custom greeting spoken via SDK `overrides` parameter
-- **Empty greeting**: Falls back to "Thanks for calling [Business Name], how can I help you today?"
-- **All other Business Brain data**: Already flowing correctly (services, hours, FAQs, policies all confirmed working)
+#### Files to modify:
+- `src/pages/app/CustomersPage.tsx` -- For sales-mode tenants, hide the "Merge Queue" tab (not relevant) and relabel "Active" to "Buyers" using `useIndustryContext` terms
+- `src/components/dashboard/layouts/SalesDashboardLayout.tsx` -- Add an "Inventory Summary" quick-stat card showing available vehicle count, and a "Sync Inventory" quick action linking to `/app/sales-inventory`
+
+---
+
+### Workstream 4: ElevenLabs Workflows Question
+
+Regarding the ElevenLabs workflows video you watched -- **yes, workflows could help** but they solve a different problem. Workflows are for multi-step, branching conversation flows (like an IVR tree built visually). Your current architecture already handles this via:
+- `twilio-inbound` IVR for hybrid tenants (press 1 for scheduling, 2 for dispatch)
+- Capability-based tool injection
+- Mode-specific system prompts
+
+Workflows would be useful if you wanted to build complex branching logic *inside* ElevenLabs instead of in your code. For now, the tool-based approach is more flexible and keeps control in your codebase. The immediate priority is getting the 5 tools registered in the dashboard so bookings actually work.
+
+---
+
+## Implementation Order
+
+1. **You (manual)**: Register the 5 tools in ElevenLabs Sales agent dashboard
+2. **Code**: Build InventorySyncPanel for self-service scraping
+3. **Code**: Polish SalesDashboardLayout with inventory stats
+4. **Code**: Minor CustomersPage tweaks for sales mode
+5. **Test**: Call DreamDrive, book a test drive, verify it appears on calendar
+
+## Technical Details
+
+### InventorySyncPanel Component
+- Reads `dealer_urls` from tenant's `context_fields_json` via existing query pattern (see `FoodSettingsEditor.tsx` for the pattern)
+- Saves URLs back using `supabase.from("tenants").update({ context_fields_json: { ...existing, dealer_urls: urls } })`
+- Triggers scrape via `supabase.functions.invoke("scrape-carsforsale", { body: { tenant_id, dealer_urls, full_sync: true } })`
+- Shows loading state during scrape (can take 30-60 seconds for large lots)
+- Displays last sync timestamp from most recent `sales_inventory.updated_at`
+
+### No database migrations needed
+All data storage already exists (`sales_inventory` table, `context_fields_json` column, `scrape-carsforsale` function). This is purely a UI addition.
