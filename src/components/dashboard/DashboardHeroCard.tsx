@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { useCapabilities } from "@/hooks/useCapabilities";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -36,9 +37,13 @@ import {
 
 export function DashboardHeroCard() {
   const { tenant, assistantSettings, refreshTenant, subscription } = useAuth();
+  const caps = useCapabilities();
   const { context } = useBusinessContext(tenant?.id || null);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Busyness slider only applies to dispatch/food modes
+  const showBusynessSlider = caps.derivedPrimaryMode === "dispatch" || caps.derivedPrimaryMode === "food";
 
   // Use centralized helpers for feature detection
   const planCode = subscription?.plan_code;
@@ -51,7 +56,7 @@ export function DashboardHeroCard() {
   const closeloopNumber = assistantSettings?.closeloop_number;
 
   // Busyness level state
-  const [busynessLevel, setBusynessLevel] = useState(30);
+  const [busynessLevel, setBusynessLevel] = useState(0);
   const [busynessSaving, setBusynessSaving] = useState(false);
 
   // OFF behavior modal state
@@ -61,7 +66,7 @@ export function DashboardHeroCard() {
   useEffect(() => {
     if (tenant?.busyness_rules_jsonb) {
       const rules = tenant.busyness_rules_jsonb as { manual_busyness_pct?: number };
-      setBusynessLevel(rules.manual_busyness_pct || 30);
+      setBusynessLevel(rules.manual_busyness_pct ?? 0);
     }
   }, [tenant]);
 
@@ -402,7 +407,8 @@ export function DashboardHeroCard() {
           </div>
         </div>
 
-        {/* Middle Section: Busyness Slider */}
+        {/* Middle Section: Busyness Slider (dispatch/food only) */}
+        {showBusynessSlider && (
         <TooltipProvider>
           <div className="border-t border-border/50 bg-muted/30 px-5 py-4">
             <div className="flex items-center gap-2 mb-3">
@@ -439,6 +445,7 @@ export function DashboardHeroCard() {
             </p>
           </div>
         </TooltipProvider>
+        )}
 
         {/* Bottom Section: Metrics Strip */}
         <div className="border-t border-border/50 bg-muted/20 px-5 py-4">
