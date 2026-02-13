@@ -427,7 +427,7 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
     setIsRefreshingCalendars(true);
     try {
       const response = await supabase.functions.invoke("refresh-calendar-list", {
-        body: { connection_id: connection.id },
+        body: { connection_id: connection.id, tenant_id: tenant?.id },
       });
 
       if (response.error) {

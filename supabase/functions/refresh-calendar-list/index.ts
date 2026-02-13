@@ -13,10 +13,12 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { tenantId } = await requireAuthedTenant(req);
+    const body = await req.json();
+    const { connection_id, tenant_id: bodyTenantId } = body;
+
+    const { tenantId } = await requireAuthedTenant(req, bodyTenantId || null);
     const supabase = serviceClient();
 
-    const { connection_id } = await req.json();
     if (!connection_id) {
       return errorResponse("connection_id required", 400);
     }
@@ -168,7 +170,7 @@ serve(async (req: Request) => {
       .eq("id", connection_id);
 
     return jsonResponse({ calendars });
-  } catch (error: unknown) {
+  } catch (error) {
     console.error("Error in refresh-calendar-list:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
     return errorResponse(message, 500);
