@@ -10306,7 +10306,12 @@ export type Database = {
         | "services_doc"
         | "faq_doc"
         | "general"
-      lead_source: "missed_call" | "website_form" | "manual" | "referral"
+      lead_source:
+        | "missed_call"
+        | "website_form"
+        | "manual"
+        | "referral"
+        | "ai_call"
       lead_status: "new" | "contacted" | "qualified" | "booked" | "lost" | "won"
       memory_type:
         | "customer_preference"
@@ -10645,7 +10650,13 @@ export const Constants = {
         "faq_doc",
         "general",
       ],
-      lead_source: ["missed_call", "website_form", "manual", "referral"],
+      lead_source: [
+        "missed_call",
+        "website_form",
+        "manual",
+        "referral",
+        "ai_call",
+      ],
       lead_status: ["new", "contacted", "qualified", "booked", "lost", "won"],
       memory_type: [
         "customer_preference",
