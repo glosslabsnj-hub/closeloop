@@ -476,9 +476,9 @@ export default function BusinessBrainPage() {
       case "operations": {
         const opsAddOns = [...coverageAddOns.addOnItems, ...policiesAddOns.addOnItems];
         if (opsAddOns.length > 0) {
-          const enableAddOn = (id: string) => {
-            coverageAddOns.enableAddOn(id);
-            policiesAddOns.enableAddOn(id);
+          const enableAddOn = async (item: Parameters<typeof coverageAddOns.enableAddOn>[0]) => {
+            await coverageAddOns.enableAddOn(item);
+            await policiesAddOns.enableAddOn(item);
           };
           return <AddOnGroup items={opsAddOns} onEnable={enableAddOn} />;
         }

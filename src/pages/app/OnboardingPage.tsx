@@ -665,22 +665,15 @@ export default function OnboardingPage() {
 
           // Store team data in capabilities_json (alongside other capabilities)
           // This will be migrated to staff_members table in Phase 3
-          const { error: teamCapError } = await supabase.rpc("update_tenant_context_field", {
-            _tenant_id: tenantId,
-            _field_key: "_team_members",
-            _field_value: JSON.stringify(teamData),
-          }).catch(() => {
-            // Fallback: update capabilities_json directly if RPC doesn't exist
-            return supabase
-              .from("tenants")
-              .update({
-                capabilities_json: {
-                  ...capabilitiesJson,
-                  _team_members: teamData,
-                },
-              })
-              .eq("id", tenantId);
-          });
+          const { error: teamCapError } = await supabase
+            .from("tenants")
+            .update({
+              capabilities_json: {
+                ...(capabilitiesJson as Record<string, unknown> || {}),
+                _team_members: teamData,
+              } as unknown as import("@/integrations/supabase/types").Json,
+            })
+            .eq("id", tenantId);
 
           if (teamCapError) {
             console.error("Team members save error:", teamCapError);
@@ -703,7 +696,7 @@ export default function OnboardingPage() {
       if (Object.keys(pricingFromDetails).length > 0) {
         const { error: pricingError } = await supabase
           .from("tenants")
-          .update({ pricing_rules_jsonb: pricingFromDetails })
+          .update({ pricing_rules_jsonb: pricingFromDetails as unknown as import("@/integrations/supabase/types").Json })
           .eq("id", tenantId);
         if (pricingError) {
           console.error("Pricing rules save error:", pricingError);

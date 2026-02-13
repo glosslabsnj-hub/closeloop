@@ -40,7 +40,7 @@ export function useStaffMembers() {
         .order("sort_order", { ascending: true });
 
       if (error) throw error;
-      return (data ?? []) as StaffMember[];
+      return (data ?? []) as unknown as StaffMember[];
     },
     enabled: !!tenant?.id,
   });
@@ -58,7 +58,7 @@ export function useStaffMembers() {
         .single();
 
       if (error) throw error;
-      return data as StaffMember;
+      return data as unknown as StaffMember;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["staff_members", tenant?.id] });
@@ -79,7 +79,7 @@ export function useStaffMembers() {
         .single();
 
       if (error) throw error;
-      return data as StaffMember;
+      return data as unknown as StaffMember;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["staff_members", tenant?.id] });
