@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Phone, Mail, Calendar, Clock, FileText, User, Link2, Car, ClipboardCheck } from "lucide-react";
+import { Phone, Mail, Calendar, Clock, FileText, User, Link2, Car, ClipboardCheck, MapPin } from "lucide-react";
 import { type Customer, useCustomers } from "@/hooks/useCustomers";
 import { useCustomerActivity } from "@/hooks/useCustomerActivity";
 import { SharePortalLinkDialog } from "@/components/customers/SharePortalLinkDialog";
@@ -98,6 +98,12 @@ export function CustomerDetailSheet({
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Mail className="h-4 w-4" />
               {customer.email}
+            </div>
+          )}
+          {customer.service_address && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <MapPin className="h-4 w-4" />
+              {customer.service_address}
             </div>
           )}
           <div className="flex items-center gap-2 text-sm text-muted-foreground">

@@ -1,43 +1,38 @@
 import { useState, useMemo } from "react";
 import { useCustomers, type Customer } from "@/hooks/useCustomers";
+import { useCustomerEnrichment } from "@/hooks/useCustomerEnrichment";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { StatCard } from "@/components/layout/StatCard";
+import { SectionCard } from "@/components/layout/SectionCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, Plus, Search, Loader2, Upload, ChevronDown } from "lucide-react";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+  Users, Plus, Search, Upload, ChevronDown, Phone as PhoneIcon,
+  MapPin, CalendarCheck, UserPlus,
+} from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { CustomerDetailSheet } from "@/components/customers/CustomerDetailSheet";
 import { CreateCustomerDialog } from "@/components/customers/CreateCustomerDialog";
 import CustomerMergeQueue from "@/components/customers/CustomerMergeQueue";
 import { CreateBookingDialog } from "@/components/calendar/CreateBookingDialog";
 import { CustomerCSVImportDialog } from "@/components/customers/CustomerCSVImportDialog";
+import { cn } from "@/lib/utils";
 
 const sourceLabels: Record<string, string> = {
   ai_call: "AI Call",
@@ -47,70 +42,87 @@ const sourceLabels: Record<string, string> = {
   walk_in: "Walk-in",
 };
 
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .map((n) => n.charAt(0))
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
+function getModeLabels(mode: string) {
+  const map: Record<string, { address: string; lastService: string; customerLabel: string; customersLabel: string }> = {
+    service: { address: "Service Address", lastService: "Last Service", customerLabel: "Customer", customersLabel: "Customers" },
+    dispatch: { address: "Pickup Location", lastService: "Last Job", customerLabel: "Customer", customersLabel: "Customers" },
+    food: { address: "Delivery Address", lastService: "Last Order", customerLabel: "Guest", customersLabel: "Guests" },
+    medical: { address: "Patient Address", lastService: "Last Visit", customerLabel: "Patient", customersLabel: "Patients" },
+    sales: { address: "Address", lastService: "Last Appointment", customerLabel: "Prospect", customersLabel: "Prospects" },
+    general: { address: "Address", lastService: "Last Interaction", customerLabel: "Customer", customersLabel: "Customers" },
+  };
+  return map[mode] || map.service;
+}
+
 export default function CustomersPage() {
   const { customers, isLoading } = useCustomers();
-  const { terms } = useIndustryContext();
+  const { terms, mode } = useIndustryContext();
   const { businessMode } = useTenantConfig();
-  const isSalesMode = businessMode === "sales";
+  const modeLabels = getModeLabels(mode);
+
+  const customerIds = useMemo(() => customers.map((c) => c.id), [customers]);
+  const { data: enrichmentMap } = useCustomerEnrichment(customerIds);
 
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [sourceFilter, setSourceFilter] = useState("all");
   const [sortBy, setSortBy] = useState<"name" | "recent">("name");
 
-  // Detail sheet
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
-
-  // Create dialog
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-
-  // Booking dialog (from detail sheet)
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [bookingCustomerName, setBookingCustomerName] = useState("");
   const [bookingCustomerPhone, setBookingCustomerPhone] = useState("");
 
-  // Lifecycle filtering
   const activeCustomers = useMemo(
     () => customers.filter((c) => (c.tags as string[] | null)?.includes("active_customer")),
     [customers]
   );
-  const prospects = useMemo(
-    () => customers.filter((c) => !(c.tags as string[] | null)?.includes("active_customer")),
-    [customers]
-  );
 
-  const baseList = activeTab === "active" ? activeCustomers : activeTab === "prospects" ? prospects : customers;
+  const baseList = activeTab === "active" ? activeCustomers : customers;
 
   const filteredCustomers = useMemo(() => {
     let result = baseList;
-
-    // Search
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
         (c) =>
           c.full_name.toLowerCase().includes(q) ||
           c.phone_e164.includes(q) ||
-          c.email?.toLowerCase().includes(q),
+          c.email?.toLowerCase().includes(q) ||
+          c.service_address?.toLowerCase().includes(q)
       );
     }
-
-    // Source filter
     if (sourceFilter !== "all") {
       result = result.filter((c) => c.source === sourceFilter);
     }
-
-    // Sort
     if (sortBy === "recent") {
       result = [...result].sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
     }
-
     return result;
   }, [baseList, searchQuery, sourceFilter, sortBy]);
+
+  // Stats
+  const totalCount = customers.length;
+  const activeCount = activeCustomers.length;
+  const withEmail = customers.filter((c) => c.email).length;
+  const recentCount = customers.filter((c) => {
+    const created = new Date(c.created_at).getTime();
+    return Date.now() - created < 30 * 24 * 60 * 60 * 1000;
+  }).length;
 
   const handleRowClick = (customer: Customer) => {
     setSelectedCustomer(customer);
@@ -123,16 +135,12 @@ export default function CustomersPage() {
     setBookingDialogOpen(true);
   };
 
-  const customerLabel = terms.customers
-    ? terms.customers.charAt(0).toUpperCase() + terms.customers.slice(1)
-    : "Customers";
-
   return (
     <PageContainer maxWidth="xl">
       <PageHeader
         icon={Users}
-        title={customerLabel}
-        description={`Manage your ${terms.customers || "customers"} and their history`}
+        title={modeLabels.customersLabel === "Customer" ? "Customers" : modeLabels.customersLabel}
+        description={`Your complete ${modeLabels.customersLabel.toLowerCase()} database`}
         action={
           <div className="flex items-center gap-2">
             <DropdownMenu>
@@ -150,12 +158,28 @@ export default function CustomersPage() {
               </DropdownMenuContent>
             </DropdownMenu>
             <Button onClick={() => setCreateDialogOpen(true)}>
-              <Plus className="h-4 w-4" />
-              Add {terms.customer || "Customer"}
+              <Plus className="h-4 w-4 mr-1" />
+              Add {modeLabels.customerLabel}
             </Button>
           </div>
         }
       />
+
+      {/* Stats */}
+      {isLoading ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-lg" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard label={`Total ${modeLabels.customersLabel}`} value={totalCount} icon={Users} description="All time" />
+          <StatCard label="Active" value={activeCount} icon={CalendarCheck} description="With service history" variant="success" />
+          <StatCard label="New This Month" value={recentCount} icon={UserPlus} description="Last 30 days" variant="primary" />
+          <StatCard label="With Email" value={withEmail} icon={Users} description="Reachable" />
+        </div>
+      )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
@@ -164,14 +188,12 @@ export default function CustomersPage() {
             <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-xs">{customers.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="active">
-            {isSalesMode ? "Buyers" : "Active"}
+            Active
             <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-xs">{activeCustomers.length}</Badge>
           </TabsTrigger>
-          {!isSalesMode && (
-            <TabsTrigger value="merge">
-              Merge Queue
-            </TabsTrigger>
-          )}
+          <TabsTrigger value="merge">
+            Merge Queue
+          </TabsTrigger>
         </TabsList>
 
         {["all", "active"].map((tabKey) => (
@@ -181,7 +203,7 @@ export default function CustomersPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder={`Search ${terms.customers || "customers"}...`}
+                  placeholder={`Search ${modeLabels.customersLabel.toLowerCase()}...`}
                   className="pl-10"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -222,66 +244,102 @@ export default function CustomersPage() {
             ) : filteredCustomers.length === 0 ? (
               <EmptyState
                 icon={Users}
-                title={searchQuery || sourceFilter !== "all" ? "No matches" : `No ${terms.customers || "customers"} yet`}
+                title={searchQuery || sourceFilter !== "all" ? "No matches" : `No ${modeLabels.customersLabel.toLowerCase()} yet`}
                 description={
                   searchQuery || sourceFilter !== "all"
                     ? "Try adjusting your search or filters."
-                    : `${customerLabel} will appear here when they call or are added manually.`
+                    : `${modeLabels.customersLabel} will appear here when they call or are added manually.`
                 }
                 action={
                   !searchQuery && sourceFilter === "all"
-                    ? { label: `Add ${terms.customer || "Customer"}`, onClick: () => setCreateDialogOpen(true) }
+                    ? { label: `Add ${modeLabels.customerLabel}`, onClick: () => setCreateDialogOpen(true) }
                     : undefined
                 }
               />
             ) : (
-              <div className="rounded-lg border bg-card">
+              <SectionCard noPadding>
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
                       <TableHead className="hidden sm:table-cell">Phone</TableHead>
                       <TableHead className="hidden md:table-cell">Email</TableHead>
-                      <TableHead className="hidden md:table-cell">Source</TableHead>
+                      <TableHead className="hidden lg:table-cell">{modeLabels.address}</TableHead>
+                      <TableHead className="hidden md:table-cell">{modeLabels.lastService}</TableHead>
+                      <TableHead className="hidden lg:table-cell">Calls</TableHead>
+                      <TableHead className="hidden sm:table-cell">Source</TableHead>
                       <TableHead className="hidden sm:table-cell">Added</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredCustomers.map((customer) => (
-                      <TableRow
-                        key={customer.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleRowClick(customer)}
-                      >
-                        <TableCell>
-                          <p className="font-medium">{customer.full_name}</p>
-                          <p className="text-sm text-muted-foreground sm:hidden">
+                    {filteredCustomers.map((customer) => {
+                      const enrichment = enrichmentMap?.get(customer.id);
+                      return (
+                        <TableRow
+                          key={customer.id}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => handleRowClick(customer)}
+                        >
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary shrink-0">
+                                {getInitials(customer.full_name)}
+                              </div>
+                              <div>
+                                <p className="font-medium">{customer.full_name}</p>
+                                <p className="text-sm text-muted-foreground sm:hidden">
+                                  {customer.phone_e164}
+                                </p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell text-muted-foreground">
                             {customer.phone_e164}
-                          </p>
-                        </TableCell>
-                        <TableCell className="hidden sm:table-cell text-muted-foreground">
-                          {customer.phone_e164}
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell text-muted-foreground">
-                          {customer.email || "—"}
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell">
-                          <Badge variant="outline" className="text-xs">
-                            {sourceLabels[customer.source || ""] || customer.source || "—"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
-                          {formatDistanceToNow(new Date(customer.created_at), { addSuffix: true })}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell text-muted-foreground">
+                            {customer.email || "—"}
+                          </TableCell>
+                          <TableCell className="hidden lg:table-cell text-muted-foreground text-sm max-w-[180px] truncate">
+                            {customer.service_address ? (
+                              <span className="flex items-center gap-1">
+                                <MapPin className="h-3.5 w-3.5 shrink-0" />
+                                {customer.service_address}
+                              </span>
+                            ) : "—"}
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
+                            {enrichment?.lastServiceDate
+                              ? format(new Date(enrichment.lastServiceDate), "MMM d, yyyy")
+                              : "Never"}
+                          </TableCell>
+                          <TableCell className="hidden lg:table-cell">
+                            {enrichment?.recentCallCount ? (
+                              <Badge variant="secondary" className="text-xs">
+                                <PhoneIcon className="h-3 w-3 mr-1" />
+                                {enrichment.recentCallCount}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">0</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell">
+                            <Badge variant="outline" className="text-xs">
+                              {sourceLabels[customer.source || ""] || customer.source || "—"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
+                            {formatDistanceToNow(new Date(customer.created_at), { addSuffix: true })}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
-              </div>
+              </SectionCard>
             )}
 
             <p className="text-xs text-muted-foreground text-center">
-              {filteredCustomers.length} {filteredCustomers.length === 1 ? terms.customer || "customer" : terms.customers || "customers"}
+              {filteredCustomers.length} {filteredCustomers.length === 1 ? modeLabels.customerLabel.toLowerCase() : modeLabels.customersLabel.toLowerCase()}
             </p>
           </TabsContent>
         ))}
@@ -299,19 +357,8 @@ export default function CustomersPage() {
         onBookAppointment={handleBookFromDetail}
       />
 
-      {/* Create Dialog */}
-      <CreateCustomerDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-      />
-
-      {/* CSV Import Dialog */}
-      <CustomerCSVImportDialog
-        open={importDialogOpen}
-        onOpenChange={setImportDialogOpen}
-      />
-
-      {/* Booking Dialog (from detail sheet) */}
+      <CreateCustomerDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+      <CustomerCSVImportDialog open={importDialogOpen} onOpenChange={setImportDialogOpen} />
       <CreateBookingDialog
         open={bookingDialogOpen}
         onOpenChange={setBookingDialogOpen}
