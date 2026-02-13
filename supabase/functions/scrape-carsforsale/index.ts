@@ -327,7 +327,12 @@ serve(async (req) => {
             if (detail.mpg_highway) v.mpg_highway = detail.mpg_highway;
             if (detail.features && detail.features.length > 0) v.features = detail.features;
             if (detail.seller_notes) v.seller_notes = detail.seller_notes;
-            if (detail.photo_urls && detail.photo_urls.length > 0) v.photo_urls = detail.photo_urls;
+            if (detail.photo_urls && detail.photo_urls.length > 0) {
+              const cover = v.photo_url || v.photo_urls?.[0];
+              v.photo_urls = cover
+                ? [cover, ...detail.photo_urls.filter((u: string) => u !== cover)]
+                : detail.photo_urls;
+            }
             enriched++;
           }
         }
