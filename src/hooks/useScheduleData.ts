@@ -17,6 +17,8 @@ export interface ScheduleEvent {
   location?: string;
   description?: string;
   metadata?: Record<string, unknown>;
+  staffMemberId?: string;
+  staffName?: string;
 }
 
 export function useScheduleData(weekStart: Date) {
@@ -41,6 +43,7 @@ export function useScheduleData(weekStart: Date) {
           end_at,
           status,
           notes,
+          staff_member_id,
           lead:leads(full_name),
           service:services(name)
         `)
@@ -54,6 +57,48 @@ export function useScheduleData(weekStart: Date) {
     },
     enabled: !!tenant?.id,
   });
+
+  // Fetch staff names for assigned bookings
+  const staffIds = bookings
+    ?.map((b) => b.staff_member_id)
+    .filter((id): id is string => !!id) ?? [];
+  const uniqueStaffIds = [...new Set(staffIds)];
+
+  const { data: staffMembers } = useQuery({
+    queryKey: ["schedule-staff", tenant?.id, uniqueStaffIds.join(",")],
+    queryFn: async () => {
+      if (uniqueStaffIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("tenant_users")
+        .select("id, user_id")
+        .in("id", uniqueStaffIds);
+      if (error) return [];
+      
+      // Get profile names
+      if (!data || data.length === 0) return [];
+      const userIds = data.map((d) => d.user_id);
+      const { data: profiles } = await supabase
+        .from("profiles" as any)
+        .select("user_id, display_name")
+        .in("user_id", userIds);
+      
+      const nameMap = new Map<string, string>();
+      for (const p of (profiles || []) as any[]) {
+        nameMap.set(p.user_id, p.display_name || "Team Member");
+      }
+      
+      return data.map((tu) => ({
+        tenantUserId: tu.id,
+        name: nameMap.get(tu.user_id) || "Team Member",
+      }));
+    },
+    enabled: uniqueStaffIds.length > 0,
+  });
+
+  const staffNameMap = new Map<string, string>();
+  for (const s of staffMembers || []) {
+    staffNameMap.set(s.tenantUserId, s.name);
+  }
 
   const { data: busyBlocks, isLoading: busyLoading, refetch: refetchBusyBlocks } = useQuery({
     queryKey: ["schedule-busy-blocks", tenant?.id, startISO, endISO],
@@ -115,6 +160,10 @@ export function useScheduleData(weekStart: Date) {
         status: booking.status,
         customerName: booking.lead?.full_name || "Unknown",
         serviceName: booking.service?.name,
+        staffMemberId: booking.staff_member_id || undefined,
+        staffName: booking.staff_member_id
+          ? staffNameMap.get(booking.staff_member_id) || "Team Member"
+          : undefined,
       });
     }
   }

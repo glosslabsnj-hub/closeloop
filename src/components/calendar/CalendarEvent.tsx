@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { MapPin } from "lucide-react";
+import { MapPin, User } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -52,6 +52,12 @@ export function CalendarEvent({ event, style, onClick }: CalendarEventProps) {
       <div className="font-medium truncate">{event.title}</div>
       {event.customerName && event.type === "booking" && (
         <div className="truncate opacity-80">{event.customerName}</div>
+      )}
+      {event.staffName && event.type === "booking" && (
+        <div className="truncate opacity-70 flex items-center gap-1 text-[10px]">
+          <User className="h-2.5 w-2.5 flex-shrink-0" />
+          <span className="truncate">{event.staffName}</span>
+        </div>
       )}
       {event.location && event.type === "busy_block" && (
         <div className="truncate opacity-70 flex items-center gap-1">
