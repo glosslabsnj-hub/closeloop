@@ -10,6 +10,23 @@ import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector"
 
 export type QuestionGroup = "core" | "ai_behavior" | "advanced";
 
+export interface FollowUpOption {
+  value: string;
+  label: string;
+  description: string;
+}
+
+export interface ScenarioFollowUp {
+  id: string;
+  /** Key stored in the answers record */
+  answerKey: string;
+  label: string;
+  description?: string;
+  type: "radio" | "select";
+  options: FollowUpOption[];
+  defaultValue: string;
+}
+
 export interface ScenarioQuestion {
   id: string;
   capabilityKey: string;       // Key stored in context_fields_json.capabilities
@@ -31,6 +48,8 @@ export interface ScenarioQuestion {
    * Questions hidden during onboarding still get their defaultValue applied silently.
    */
   onboardingVisible?: boolean;
+  /** Follow-up question shown inline when parent is toggled ON */
+  followUp?: ScenarioFollowUp;
 }
 
 // ---------------------------------------------------------------------------
@@ -43,13 +62,24 @@ const serviceQuestions: ScenarioQuestion[] = [
     capabilityKey: "aiBooksDirect",
     label: "AI Books Appointments",
     question: "Should the AI book appointments directly into your calendar?",
-    description: "If yes, you'll choose whether bookings are instant or need your approval in the next step",
+    description: "If yes, choose how bookings are confirmed below",
     defaultValue: true,
     impliesModules: ["booking"],
     overridesBase: true,
     group: "core",
     requiredForAI: true,
     onboardingVisible: true,
+    followUp: {
+      id: "booking-mode",
+      answerKey: "_aiBookingMode",
+      label: "How should bookings be confirmed?",
+      type: "radio",
+      options: [
+        { value: "auto_book", label: "Auto-book instantly", description: "AI confirms the appointment right away based on your availability" },
+        { value: "pending_approval", label: "Require your approval", description: "AI finds a time but tells the caller you'll confirm — you approve or adjust" },
+      ],
+      defaultValue: "auto_book",
+    },
   },
   {
     id: "mobile-service",
@@ -104,6 +134,19 @@ const serviceQuestions: ScenarioQuestion[] = [
     defaultValue: false,
     impliesModules: ["staff_scheduling"],
     group: "core",
+    onboardingVisible: true,
+    followUp: {
+      id: "team-size",
+      answerKey: "_teamSize",
+      label: "How many crew members?",
+      type: "radio",
+      options: [
+        { value: "small", label: "2–5 people", description: "Small team" },
+        { value: "medium", label: "6–15 people", description: "Medium team" },
+        { value: "large", label: "16+ people", description: "Large team" },
+      ],
+      defaultValue: "small",
+    },
   },
   {
     id: "packages",

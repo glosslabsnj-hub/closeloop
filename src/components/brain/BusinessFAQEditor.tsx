@@ -21,6 +21,9 @@ export function BusinessFAQEditor() {
   const { tenant } = useAuth();
   const queryClient = useQueryClient();
 
+  // Fetch tenant policies to filter overlapping FAQ suggestions
+  const [tenantPolicies, setTenantPolicies] = useState<{ cancellation?: string; deposit?: string; refund?: string }>({});
+
   const [faqs, setFaqs] = useState<BusinessFAQ[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -30,7 +33,24 @@ export function BusinessFAQEditor() {
   const [formAnswer, setFormAnswer] = useState('');
 
   useEffect(() => {
-    if (tenant?.id) fetchFAQs();
+    if (tenant?.id) {
+      fetchFAQs();
+      // Fetch policies for dedup
+      supabase
+        .from('tenants')
+        .select('cancellation_policy, deposit_policy, refund_policy')
+        .eq('id', tenant.id)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            setTenantPolicies({
+              cancellation: data.cancellation_policy || undefined,
+              deposit: data.deposit_policy || undefined,
+              refund: data.refund_policy || undefined,
+            });
+          }
+        });
+    }
   }, [tenant?.id]);
 
   const fetchFAQs = async () => {
@@ -108,6 +128,13 @@ export function BusinessFAQEditor() {
 
   return (
     <>
+      {/* Policy dedup notice */}
+      {(tenantPolicies.cancellation || tenantPolicies.deposit || tenantPolicies.refund) && (
+        <div className="mb-4 p-3 rounded-lg border border-border bg-muted/30 text-sm text-muted-foreground">
+          💡 Your cancellation, deposit, and refund policies are managed in the <strong>How You Operate → Policies</strong> tab. Your AI already uses those — no need to duplicate them here as FAQs.
+        </div>
+      )}
+
       {/* Prominent Upload Banner */}
       <div className="mb-4">
         <InlineUploadButton 
@@ -136,6 +163,7 @@ export function BusinessFAQEditor() {
           <SuggestedFAQButtons 
             onAdd={handleSuggestionClick}
             existingQuestions={faqs.map(f => f.question)}
+            tenantPolicies={tenantPolicies}
           />
         }
         renderItem={(faq) => (

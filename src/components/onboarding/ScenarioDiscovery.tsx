@@ -1,8 +1,9 @@
 import { useMemo, useState, useCallback, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Shield, Bot, ChevronDown } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -12,6 +13,7 @@ import {
   groupLabels,
   type ScenarioQuestion,
   type QuestionGroup,
+  type ScenarioFollowUp,
 } from "@/lib/scenarioQuestions";
 import { getIndustryBySlug } from "@/data/industryCatalog";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
@@ -84,6 +86,13 @@ export function ScenarioDiscovery({
     });
   };
 
+  const handleFollowUpChange = (key: string, value: string) => {
+    onChange({
+      ...answers,
+      [key]: value as any,
+    });
+  };
+
   let globalIndex = 0;
 
   const [hasScrolled, setHasScrolled] = useState(false);
@@ -131,6 +140,8 @@ export function ScenarioDiscovery({
                       onToggle={() => toggle(q.capabilityKey, q.blocking)}
                       index={index}
                       isPreSet={isPreAnswered(q, industryContext)}
+                      answers={answers as Record<string, boolean | string>}
+                      onAnswerChange={handleFollowUpChange}
                     />
                   );
                 })}
@@ -162,14 +173,19 @@ function QuestionCard({
   onToggle,
   index,
   isPreSet,
+  answers,
+  onAnswerChange,
 }: {
   question: ScenarioQuestion;
   checked: boolean;
   onToggle: () => void;
   index: number;
   isPreSet?: boolean;
+  answers: Record<string, boolean | string>;
+  onAnswerChange: (key: string, value: string) => void;
 }) {
   const isBlocking = question.blocking;
+  const showFollowUp = checked && question.followUp;
 
   return (
     <motion.div
@@ -220,8 +236,62 @@ function QuestionCard({
               disabled={isBlocking}
             />
           </div>
+
+          {/* Inline follow-up question */}
+          <AnimatePresence>
+            {showFollowUp && question.followUp && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <FollowUpSection
+                  followUp={question.followUp}
+                  value={(answers[question.followUp.answerKey] as string) || question.followUp.defaultValue}
+                  onChange={(val) => onAnswerChange(question.followUp!.answerKey, val)}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </CardContent>
       </Card>
     </motion.div>
+  );
+}
+
+function FollowUpSection({
+  followUp,
+  value,
+  onChange,
+}: {
+  followUp: ScenarioFollowUp;
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  return (
+    <div className="mt-3 pt-3 border-t border-border/50">
+      <p className="text-sm font-medium mb-2">{followUp.label}</p>
+      <RadioGroup value={value} onValueChange={onChange} className="space-y-1.5">
+        {followUp.options.map((opt) => (
+          <label
+            key={opt.value}
+            className={cn(
+              "flex items-start gap-3 p-2.5 rounded-md cursor-pointer transition-all text-sm",
+              value === opt.value
+                ? "bg-primary/10 border border-primary/30"
+                : "hover:bg-muted/50 border border-transparent"
+            )}
+          >
+            <RadioGroupItem value={opt.value} className="mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <span className="font-medium">{opt.label}</span>
+              <p className="text-xs text-muted-foreground mt-0.5">{opt.description}</p>
+            </div>
+          </label>
+        ))}
+      </RadioGroup>
+    </div>
   );
 }
