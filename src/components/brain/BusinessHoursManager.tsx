@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Loader2, Save, Check } from "lucide-react";
 import { updateBusinessHours } from "@/lib/brain/writeBrainFact";
+import { invalidateBrainQueries } from "@/lib/brain/invalidateBrainQueries";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import BusinessHoursEditor, { BusinessHours, normalizeHours } from "@/components/onboarding/BusinessHoursEditor";
@@ -51,11 +52,7 @@ export function BusinessHoursManager({ onSaveComplete }: BusinessHoursManagerPro
       await updateBusinessHours(tenant.id, hours);
       
       // Invalidate all relevant queries so UI updates
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["business-context"] }),
-        queryClient.invalidateQueries({ queryKey: ["brain-summaries-tenant"] }),
-        queryClient.invalidateQueries({ queryKey: ["tenant"] }),
-      ]);
+      invalidateBrainQueries(queryClient, tenant.id);
       
       // Refresh the tenant in AuthContext so hours_json is updated
       if (refreshTenant) {

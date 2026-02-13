@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import type { BusinessFAQ } from "@/types/database";
 import { HelpCircle, Loader2 } from "lucide-react";
 import { createFAQ, updateFAQ, deleteFAQ } from "@/lib/brain/writeBrainFact";
+import { invalidateBrainQueries } from "@/lib/brain/invalidateBrainQueries";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { SuggestedFAQButtons } from "./SuggestedFAQButtons";
@@ -78,7 +79,7 @@ export function BusinessFAQEditor() {
       }
       setIsDialogOpen(false);
       fetchFAQs();
-      queryClient.invalidateQueries({ queryKey: ["business-context"] });
+      invalidateBrainQueries(queryClient, tenant?.id);
     } catch (error: any) {
       toast.error(error.message || "Failed to save FAQ");
     } finally {
@@ -92,7 +93,7 @@ export function BusinessFAQEditor() {
       await deleteFAQ(id, tenant.id);
       setFaqs(faqs.filter(f => f.id !== id));
       toast.success("FAQ removed");
-      queryClient.invalidateQueries({ queryKey: ["business-context"] });
+      invalidateBrainQueries(queryClient, tenant?.id);
     } catch (error: any) {
       toast.error(error.message || "Failed to delete");
     }
@@ -114,7 +115,7 @@ export function BusinessFAQEditor() {
           variant="prominent"
           onUploadComplete={() => {
             fetchFAQs();
-            queryClient.invalidateQueries({ queryKey: ["business-context"] });
+            invalidateBrainQueries(queryClient, tenant?.id);
           }}
         />
       </div>
