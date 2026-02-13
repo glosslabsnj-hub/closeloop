@@ -404,7 +404,7 @@ serve(async (req: Request) => {
     }
 
     // Create lead for booking reference
-    const { data: lead } = await supabase
+    const { data: lead, error: leadError } = await supabase
       .from("leads")
       .insert({
         tenant_id: tenantId,
@@ -412,20 +412,26 @@ serve(async (req: Request) => {
         phone: phoneE164 || customerPhone,
         email: customerEmail || null,
         source: "ai_call",
+        customer_id: customerId,
       })
       .select("id")
       .single();
 
+    if (leadError) {
+      console.error("[create-booking] Lead creation error:", leadError);
+    }
+
     leadId = lead?.id || null;
 
     if (!leadId) {
+      console.error("[create-booking] Failed to create lead - no ID returned");
       return new Response(
         JSON.stringify({
           success: false,
           status: "failed",
           appointment: null,
           message: "Unable to complete the booking right now. We'll call you back.",
-          error: "Failed to create lead record",
+          error: `Failed to create lead record: ${leadError?.message || "unknown"}`,
         } as CreateBookingResponse),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
