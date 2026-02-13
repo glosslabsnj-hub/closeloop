@@ -1,124 +1,106 @@
 
 
-# Service Team Management + FieldEdge Integration
+# Onboarding Depth, Multi-Crew Availability, Feature Access, and FAQ Duplication Fixes
 
-## Overview
+## Problems Identified
 
-This plan covers two connected features:
+1. **Onboarding Discovery is too shallow** -- Simple yes/no toggles don't capture nuance. For example, "Should AI book appointments?" is binary, but the user wants "yes, but require approval" which is only revealed in the NEXT step (AI Behavior). The flow doesn't explain this well, causing confusion.
 
-1. **Rebrand Fleet Management for service businesses** -- change "Fleet/Drivers" language to "Your Team/Technicians" and make the page about assigning daily jobs to crew members
-2. **Crew member dashboard** -- let technicians log in and see their assigned jobs for the day
-3. **FieldEdge integration** -- self-service setup where the tenant enters their own FieldEdge API credentials, enabling bidirectional booking sync
+2. **Team size selection doesn't unlock Team features reliably** -- The onboarding correctly sets `fleet_management: true` and `hasMultipleStaff: true` in `capabilities_json` (confirmed in DB for Blue Boxer Plumbing). However, the user reports the Team tab didn't appear. This is likely a timing/session issue where the sidebar doesn't re-render after onboarding completes, OR the `FleetPage` guard was blocking due to the previous bug (dispatch_queue check). The recent fix to FleetPage.tsx may have resolved this, but we need to verify and ensure `useModuleRequired` properly checks for `fleet_management`.
 
----
+3. **Availability is tenant-wide, not per-crew-member** -- The slot computation (`fn_compute_available_slots`) checks a single set of `availability_slots` and `busy_blocks` for the tenant. With 9 crew members, a 9am slot should remain available until all crew members are booked. Currently the system treats availability as if there's one person.
 
-## Part 1: Service-Aware Team Page
+4. **FAQ/Policy duplication** -- Cancellation policy is asked during onboarding (PolicyPreviewStep), stored in `tenants.cancellation_policy`, AND then the Business Brain shows "Commonly Asked Questions" (FAQs) where a similar cancellation FAQ exists. The user ends up answering the same question twice in different places.
 
-### Problem
-The current `/app/fleet` page uses dispatch language ("Drivers", "Vehicles", "Dispatch jobs") which doesn't fit service businesses like plumbing companies.
-
-### Changes
-- **FleetPage.tsx**: Detect business mode. For `service` mode, show "Your Team" header with "Manage your technicians and assign jobs" description. Hide the Vehicles section entirely (service businesses don't need fleet vehicles).
-- **FleetDriversManager.tsx**: Mode-aware labels -- "Add Technician" instead of "Add Driver", "Crew & Technicians" instead of "Crew & Drivers"
-- **Add a "Today's Assignments" section** below the team list showing active jobs grouped by technician, with drag-and-drop or dropdown assignment. This reads from `active_jobs` where `metadata_json.assigned_to` matches a `fleet_drivers.id`.
+5. **AI Training tab is confusing** -- The "Essentials" and FAQ sections overlap with policies, creating a disjointed experience.
 
 ---
 
-## Part 2: Crew Member Dashboard
+## Part 1: Deeper, Contextual Onboarding Discovery
 
-### Problem
-Crew members (technicians) who log in currently have no way to see jobs assigned to them from the Active Jobs board.
+### Changes to ScenarioDiscovery
 
-### How it works today
-- `fleet_drivers` has a `user_id` column that links to an auth user
-- `active_jobs` stores assignment in `metadata_json.assigned_to` (stores the `fleet_drivers.id`)
-- `useDriverJobs` hook exists but only queries `dispatch_jobs`, not `active_jobs`
+Instead of only yes/no toggles, add **follow-up context** for key questions. When a user answers "Yes" to certain questions, show an inline follow-up:
 
-### Changes
-- **New hook: `useCrewJobs.ts`** -- queries `active_jobs` where `metadata_json->>assigned_to` equals the current user's `fleet_drivers.id`. Returns today's jobs, upcoming jobs, and completed jobs.
-- **Update the Dashboard** -- when a logged-in user has a `fleet_drivers` record and role is `driver`, show a "My Jobs" widget on their dashboard with their assigned jobs for the day, including customer name, phone, address, service items, and status.
-- **Job status updates from crew** -- crew members can update job status (mark service items complete, update job status) directly from their view.
-
----
-
-## Part 3: FieldEdge Integration (Self-Service)
-
-### How FieldEdge API works
-FieldEdge uses a partner API hosted on Azure API Management. Access requires API credentials (API key or OAuth). The tenant will provide their own credentials.
-
-### Architecture (follows existing Tekmetric pattern)
-
-```text
-Tenant enters credentials
-       |
-       v
-fieldedge-auth edge function
-       |
-       v
-tenant_integrations table (provider: "fieldedge")
-       |
-       v
-sync-fieldedge edge function (bidirectional)
-       |
-       +-- CloseLoop bookings --> FieldEdge work orders
-       +-- FieldEdge dispatches --> CloseLoop active_jobs
-       |
-       v
-cron-fieldedge-sync (every 5 min)
-```
-
-### New files
-
-| File | Purpose |
-|------|---------|
-| `src/hooks/useFieldEdgeIntegration.ts` | Frontend hook (mirrors `useTekmetricIntegration.ts`) |
-| `src/components/integrations/FieldEdgeSetupCard.tsx` | Self-service credential input UI on Integrations page |
-| `supabase/functions/fieldedge-auth/index.ts` | Validates credentials, stores in `tenant_integrations` |
-| `supabase/functions/sync-fieldedge/index.ts` | Bidirectional sync logic |
-| `supabase/functions/cron-fieldedge-sync/index.ts` | Cron trigger for auto-sync |
-
-### Sync logic
-
-**Outbound (CloseLoop to FieldEdge):**
-- When a booking is created with status `pending` or `confirmed`, push it to FieldEdge as a work order/dispatch
-- Store FieldEdge's returned ID in `bookings.metadata_json.fieldedge_id` for dedup
-
-**Inbound (FieldEdge to CloseLoop):**
-- Poll FieldEdge for new/updated dispatches
-- Map to `active_jobs` using `external_id = fieldedge:{dispatch_id}` (same dedup pattern as Tekmetric)
-- Map FieldEdge statuses to internal statuses
-
-### Self-service flow for the tenant
-1. Tenant goes to Integrations page
-2. Clicks "Connect FieldEdge"
-3. Enters their FieldEdge API key (provided by FieldEdge to the contractor)
-4. System validates credentials by making a test API call
-5. On success, integration is active and sync begins
-
----
-
-## Technical Details
-
-### Database changes
-- No new tables needed -- reuses `tenant_integrations` with `provider = 'fieldedge'`
-- Add `external_id` column to `bookings` table (if not already present) for outbound dedup
-
-### Edge function secrets
-- FieldEdge credentials are stored per-tenant in `tenant_integrations.credentials_json` (encrypted at rest by the database), NOT as global secrets
-- No global API keys needed since each tenant provides their own
+- **"Should AI book appointments?"** -- Yes toggles a sub-option: "Auto-book instantly" vs "Require your approval first" (currently this is deferred to Step 5, causing confusion)
+- **"Do you have multiple technicians?"** -- Yes shows a follow-up: "How many crew members?" with the same solo/small/medium/large selector (reinforcing what was set in BusinessDetailsForm, or allowing correction)
 
 ### Files to modify
-| File | Change |
-|------|--------|
-| `src/pages/app/FleetPage.tsx` | Mode-aware title/description, hide vehicles for service mode |
-| `src/components/brain/dispatch/FleetDriversManager.tsx` | Mode-aware labels |
-| `src/hooks/useCrewJobs.ts` | New hook for crew member job view |
-| `src/hooks/useFieldEdgeIntegration.ts` | New hook mirroring Tekmetric pattern |
-| `src/components/integrations/FieldEdgeSetupCard.tsx` | New self-service UI |
-| `src/pages/app/IntegrationsPage.tsx` | Add FieldEdge card for service tenants |
-| `supabase/functions/fieldedge-auth/index.ts` | New edge function |
-| `supabase/functions/sync-fieldedge/index.ts` | New edge function |
-| `supabase/functions/cron-fieldedge-sync/index.ts` | New edge function |
+- `src/lib/scenarioQuestions.ts` -- Add `followUp` field to `ScenarioQuestion` type for inline sub-questions
+- `src/components/onboarding/ScenarioDiscovery.tsx` -- Render follow-up inputs when parent question is toggled on
+- `src/components/onboarding/CommunicationPreferences.tsx` -- Pre-select booking mode based on discovery answers (if user already answered "require approval" in discovery, auto-set `pending_approval`)
 
-### Important note on FieldEdge API
-FieldEdge's API is partner-only and documentation is behind a login wall. The edge functions will be built with the standard REST patterns (auth header, JSON endpoints) but **you may need to provide the exact FieldEdge API endpoint URLs and data format** once you or your client have access to their developer portal. The sync functions will be structured so that updating the endpoint URLs and field mappings is straightforward.
+---
+
+## Part 2: Multi-Crew Availability (Capacity-Aware Slots)
+
+### Problem
+`fn_compute_available_slots` treats the tenant as having a single resource. A plumbing company with 9 technicians should have 9x the capacity at any given time slot.
+
+### Solution
+Add a `capacity` concept to slot computation:
+
+1. **New column on `tenants`**: `default_capacity` (integer, default 1) -- how many concurrent appointments can be handled
+2. **Auto-set from onboarding**: When `hasMultipleStaff = true`, set `default_capacity` based on team size (small=3, medium=9, large=20)
+3. **Update `fn_compute_available_slots`**: Instead of eliminating a slot when ANY booking exists, count bookings in that window and only eliminate the slot when bookings >= capacity
+4. **Future enhancement**: Per-technician calendars (not in this phase -- this gives the 80% solution now)
+
+### Files to modify
+- New migration: Add `default_capacity` column to `tenants`
+- `supabase/migrations/...` -- Update `fn_compute_available_slots` to check booking count vs capacity
+- `src/pages/app/OnboardingPage.tsx` -- Set `default_capacity` based on team size during tenant creation
+- `supabase/functions/compute-available-slots/index.ts` -- Pass capacity to RPC
+
+---
+
+## Part 3: Ensure Team Tab Appears Post-Onboarding
+
+### Root cause
+The `FleetPage.tsx` guard was recently updated to check for either `dispatch_queue` OR `fleet_management`. However, `useRouteGuard.ts` (line 14) still maps `/app/fleet` to ONLY `["fleet_management"]` -- this is actually correct and should work.
+
+### Verification needed
+The sidebar (`AppSidebar.tsx` line 105) correctly checks `caps.hasFleetManagement`. The DB confirms `fleet_management: true`. The issue may be that after onboarding, the auth context isn't refreshed. 
+
+### Fix
+- `src/pages/app/OnboardingPage.tsx` -- After completing onboarding, call `refreshTenant()` before navigating to dashboard, ensuring the sidebar picks up the new capabilities immediately
+- Add a small delay or await the refresh to ensure sidebar renders with updated caps
+
+---
+
+## Part 4: Eliminate FAQ/Policy Duplication
+
+### Problem
+Cancellation policy is collected in:
+1. Onboarding PolicyPreviewStep -> `tenants.cancellation_policy`
+2. Business Brain Policies Editor -> `tenants.cancellation_policy` (same field, so this is fine -- it's editing the same data)
+3. Business Brain FAQ Editor -> Suggested FAQ "What's your cancellation policy?" with a separate answer
+
+The duplication is between the stored policy text and a separate FAQ entry that asks the same thing.
+
+### Solution
+- **Auto-generate FAQ from policy**: When `tenants.cancellation_policy` is set, auto-populate a system FAQ "What's your cancellation policy?" with the policy text, instead of asking the user to type it again
+- **Remove "cancellation policy" from SuggestedFAQButtons**: If the tenant already has a cancellation policy set, don't suggest that FAQ
+- **AI Training simplification**: Rename/reorganize the Brain tabs so "Essentials" focuses on knowledge gaps and "Policies" is the single source for cancellation/deposit/refund rules
+
+### Files to modify
+- `src/components/brain/SuggestedFAQButtons.tsx` -- Filter out FAQ suggestions that overlap with existing policies
+- `src/components/brain/BusinessFAQEditor.tsx` -- Show a note: "Your cancellation policy is managed in the Policies tab" instead of duplicating
+- `src/components/brain/layout/businessBrainNavConfig.ts` -- Clarify section descriptions to reduce confusion
+
+---
+
+## Technical Summary
+
+| Area | Files | Type |
+|------|-------|------|
+| Deeper Discovery | `scenarioQuestions.ts`, `ScenarioDiscovery.tsx`, `CommunicationPreferences.tsx` | Modify |
+| Multi-Crew Capacity | New migration, `fn_compute_available_slots`, `OnboardingPage.tsx`, `compute-available-slots/index.ts` | Migration + Modify |
+| Team Tab Post-Onboarding | `OnboardingPage.tsx` | Modify |
+| FAQ Deduplication | `SuggestedFAQButtons.tsx`, `BusinessFAQEditor.tsx`, `businessBrainNavConfig.ts` | Modify |
+
+### Implementation order
+1. Multi-crew capacity (DB migration first, then edge function update)
+2. Team tab refresh fix (small change in onboarding completion)
+3. FAQ deduplication (frontend only)
+4. Deeper discovery questions (most complex UI change, saved for last)
+
