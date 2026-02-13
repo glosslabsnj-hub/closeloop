@@ -1,4 +1,4 @@
-import { Car, Users, TrendingUp, CalendarCheck } from "lucide-react";
+import { Car, Users, TrendingUp, CalendarCheck, Warehouse } from "lucide-react";
 import { QuickActionButton } from "../widgets/QuickActionButton";
 import { ROIPerformanceWidget } from "../ROIPerformanceWidget";
 import { LeadRecoveryWidget } from "../LeadRecoveryWidget";
@@ -9,10 +9,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
+import { useSalesInventory } from "@/hooks/useSalesInventory";
 
 export function SalesDashboardLayout() {
   const { tenant } = useAuth();
-  const { stats, testDrives } = useTestDrives();
+  const { stats: driveStats, testDrives } = useTestDrives();
+  const { stats: inventoryStats } = useSalesInventory();
 
   // Get hot leads count
   const { data: hotLeadsCount = 0 } = useQuery({
@@ -51,7 +53,7 @@ export function SalesDashboardLayout() {
               <Car className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{stats.today}</p>
+              <p className="text-2xl font-bold">{driveStats.today}</p>
               <p className="text-xs text-muted-foreground">Test Drives Today</p>
             </div>
           </CardContent>
@@ -62,7 +64,7 @@ export function SalesDashboardLayout() {
               <CalendarCheck className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{stats.thisWeek}</p>
+              <p className="text-2xl font-bold">{driveStats.thisWeek}</p>
               <p className="text-xs text-muted-foreground">This Week</p>
             </div>
           </CardContent>
@@ -78,13 +80,24 @@ export function SalesDashboardLayout() {
             </div>
           </CardContent>
         </Card>
+         <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-full bg-secondary">
+              <Warehouse className="h-5 w-5 text-secondary-foreground" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{inventoryStats.available}</p>
+              <p className="text-xs text-muted-foreground">Vehicles Available</p>
+            </div>
+          </CardContent>
+        </Card>
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2 rounded-full bg-secondary">
               <Users className="h-5 w-5 text-secondary-foreground" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{stats.pending}</p>
+              <p className="text-2xl font-bold">{driveStats.pending}</p>
               <p className="text-xs text-muted-foreground">Pending Appointments</p>
             </div>
           </CardContent>
@@ -128,6 +141,12 @@ export function SalesDashboardLayout() {
         </Card>
 
         <div className="space-y-2">
+          <QuickActionButton
+            label="View Inventory"
+            description="Browse & sync vehicle inventory"
+            href="/app/sales-inventory"
+            icon={Warehouse}
+          />
           <QuickActionButton
             label="View Test Drives"
             description="Manage all test drive appointments"

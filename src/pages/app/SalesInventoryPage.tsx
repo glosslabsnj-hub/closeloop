@@ -18,6 +18,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { VehicleDetailDialog } from "@/components/inventory/VehicleDetailDialog";
 import { cn } from "@/lib/utils";
 import { proxyImageUrl } from "@/lib/proxyImage";
+import { InventorySyncPanel } from "@/components/inventory/InventorySyncPanel";
 
 const statusColors: Record<string, string> = {
   available: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
@@ -38,7 +39,7 @@ function formatPrice(cents: number | null): string {
 
 export default function SalesInventoryPage() {
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["sales_inventory"]);
-  const { inventory, isLoading, stats } = useSalesInventory();
+  const { inventory, isLoading, stats, refetch } = useSalesInventory();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [conditionFilter, setConditionFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -72,6 +73,11 @@ export default function SalesInventoryPage() {
           icon={Warehouse}
           title="Inventory"
           description={`${stats.available} available, ${stats.total} total items`}
+        />
+
+        {/* Self-service inventory import */}
+        <InventorySyncPanel
+          lastSyncedAt={inventory.length > 0 ? inventory[0].last_synced_at ?? inventory[0].updated_at : null}
         />
 
         {/* Filters */}

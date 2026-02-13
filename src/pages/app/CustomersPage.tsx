@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useCustomers, type Customer } from "@/hooks/useCustomers";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -49,6 +50,8 @@ const sourceLabels: Record<string, string> = {
 export default function CustomersPage() {
   const { customers, isLoading } = useCustomers();
   const { terms } = useIndustryContext();
+  const { businessMode } = useTenantConfig();
+  const isSalesMode = businessMode === "sales";
 
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -161,12 +164,14 @@ export default function CustomersPage() {
             <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-xs">{customers.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="active">
-            Active
+            {isSalesMode ? "Buyers" : "Active"}
             <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-xs">{activeCustomers.length}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="merge">
-            Merge Queue
-          </TabsTrigger>
+          {!isSalesMode && (
+            <TabsTrigger value="merge">
+              Merge Queue
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {["all", "active"].map((tabKey) => (
