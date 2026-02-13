@@ -147,6 +147,23 @@ Stay helpful and warm. Don't make it sound like a limitation — frame it as per
 - BAD: "I'm not able to book appointments."
 `;
 
+export const PENDING_BOOKING_OVERRIDE = `
+## PENDING BOOKING MODE (ACTIVE)
+
+**The business owner reviews and confirms all bookings manually. Bookings are NOT auto-confirmed.**
+
+### AFTER CREATING A BOOKING:
+- ALWAYS tell the caller: "Your appointment is pending confirmation. Someone from our team will reach out to confirm your booking."
+- Do NOT say "You're all set" or "You're confirmed" — the booking is NOT confirmed yet.
+- Frame it positively: "I've got you penciled in for [time]. We just need to confirm on our end, and someone will give you a call or text to lock it in."
+- If they ask "So am I booked?": "You're on the schedule, but we do a quick confirmation on our end. You'll hear from us shortly."
+
+### TONE:
+- Keep it casual and reassuring — don't make it sound like there's a problem
+- GOOD: "I've got that down for you. We'll just confirm and reach out shortly."
+- BAD: "Your booking is pending approval and requires manual confirmation by management."
+`;
+
 export const DEBUG_OVERRIDE = `
 ## DEBUG MODE
 
@@ -1515,13 +1532,19 @@ When handling fleet-related inquiries:
 export function buildPromptForCapabilities(
   caps: Capabilities,
   industrySlug?: string,
-  aiBehaviorMode?: "full_service" | "callback_only"
+  aiBehaviorMode?: "full_service" | "callback_only",
+  aiBookingMode?: string
 ): string {
   const sections: string[] = [HUMAN_PHONE_RULES, TIME_NUMBER_SPEAKING_RULES];
 
   // If callback_only mode, inject the override FIRST so it takes priority
   if (aiBehaviorMode === "callback_only") {
     sections.push(CALLBACK_ONLY_OVERRIDE);
+  }
+
+  // If pending_approval booking mode, inject notification instruction
+  if (aiBookingMode === "pending_approval") {
+    sections.push(PENDING_BOOKING_OVERRIDE);
   }
 
   // Always include lead capture

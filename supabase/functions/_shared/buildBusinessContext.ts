@@ -3260,7 +3260,8 @@ IMPORTANT GUIDELINES:
     ctx._meta.capabilities
   );
   const aiBehaviorMode = ctx.ai_settings.ai_behavior_mode as "full_service" | "callback_only" | undefined;
-  const capabilityPrompt = buildPromptForCapabilities(caps, ctx.tenant.industry_slug, aiBehaviorMode);
+  const aiBookingMode = ctx.ai_settings.ai_booking_mode as string | undefined;
+  const capabilityPrompt = buildPromptForCapabilities(caps, ctx.tenant.industry_slug, aiBehaviorMode, aiBookingMode);
   prompt += `\n\n${capabilityPrompt}`;
   
   // Also append the mode-specific base prompt for backward compatibility
