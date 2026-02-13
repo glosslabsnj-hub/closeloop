@@ -15,7 +15,7 @@ import { Users } from "lucide-react";
 import { Navigate } from "react-router-dom";
 
 export default function FleetPage() {
-  const { isAllowed, isLoading } = useModuleRequired(["dispatch_queue"]);
+  const { isAllowed, isLoading } = useModuleRequired(["dispatch_queue", "fleet_management"]);
 
   if (isLoading) {
     return (
