@@ -287,7 +287,7 @@ export function ScheduleConnectionWizard({ embedded = false, onComplete, onSkip 
       const conn = connections.find(c => c.provider === "ics");
       if (conn) {
         await supabase.functions.invoke("sync-availability", {
-          body: { connection_id: conn.id, days: 30 },
+          body: { connection_id: conn.id, days: 30, tenant_id: tenant?.id },
         });
       }
       
