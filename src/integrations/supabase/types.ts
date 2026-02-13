@@ -8905,6 +8905,7 @@ export type Database = {
           context_fields_json: Json | null
           created_at: string
           custom_industry: string | null
+          default_capacity: number
           deposit_policy: string | null
           dispatch_config_json: Json | null
           enabled_modules: Json | null
@@ -8950,6 +8951,7 @@ export type Database = {
           context_fields_json?: Json | null
           created_at?: string
           custom_industry?: string | null
+          default_capacity?: number
           deposit_policy?: string | null
           dispatch_config_json?: Json | null
           enabled_modules?: Json | null
@@ -8995,6 +8997,7 @@ export type Database = {
           context_fields_json?: Json | null
           created_at?: string
           custom_industry?: string | null
+          default_capacity?: number
           deposit_policy?: string | null
           dispatch_config_json?: Json | null
           enabled_modules?: Json | null
@@ -10045,22 +10048,38 @@ export type Database = {
         Returns: number
       }
       fn_cleanup_expired_holds: { Args: never; Returns: number }
-      fn_compute_available_slots: {
-        Args: {
-          _buffer_minutes?: number
-          _business_hours?: Json
-          _duration_minutes?: number
-          _end_date: string
-          _start_date: string
-          _tenant_id: string
-        }
-        Returns: {
-          slot_date: string
-          slot_end: string
-          slot_start: string
-          slot_time_local: string
-        }[]
-      }
+      fn_compute_available_slots:
+        | {
+            Args: {
+              _buffer_minutes?: number
+              _business_hours?: Json
+              _duration_minutes?: number
+              _end_date: string
+              _start_date: string
+              _tenant_id: string
+            }
+            Returns: {
+              slot_date: string
+              slot_end: string
+              slot_start: string
+              slot_time_local: string
+            }[]
+          }
+        | {
+            Args: {
+              _buffer_minutes?: number
+              _business_hours?: Json
+              _capacity?: number
+              _duration_minutes?: number
+              _end_date: string
+              _start_date: string
+              _tenant_id: string
+            }
+            Returns: {
+              slot_end: string
+              slot_start: string
+            }[]
+          }
       fn_confirm_booking: {
         Args: {
           _hold_id: string
