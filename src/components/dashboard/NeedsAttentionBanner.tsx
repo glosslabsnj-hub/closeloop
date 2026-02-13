@@ -46,7 +46,7 @@ export function NeedsAttentionBanner() {
     enabled: !!tenant?.id && caps.hasFoodOrders,
   });
 
-  // Fetch pending bookings (pending_deposit status)
+  // Fetch pending bookings (pending or pending_deposit status)
   const { data: pendingBookings = 0 } = useQuery({
     queryKey: ["attention-pending-bookings", tenant?.id],
     queryFn: async () => {
@@ -55,7 +55,7 @@ export function NeedsAttentionBanner() {
         .from("bookings")
         .select("*", { count: "exact", head: true })
         .eq("tenant_id", tenant.id)
-        .eq("status", "pending_deposit");
+        .in("status", ["pending", "pending_deposit"]);
       return count || 0;
     },
     enabled: !!tenant?.id,
