@@ -1,55 +1,64 @@
 
 
-# Fix Inventory Cover Photos + ElevenLabs Tool Clarification
+# Fix Calendar Availability + Pending Booking Notification
 
-## Problem 1: Wrong Photos Showing on Inventory Cards
+## What's Wrong (Summary)
 
-The scraper initially captures the correct cover photo from the listing page. But then during the "deep scrape" enrichment step, it visits each vehicle's detail page and collects ALL photos from that page (lines 184-193 in `scrape-carsforsale`). This replaces the original cover photo array with the full gallery, and the first image in that gallery may not be the same as the listing thumbnail.
+1. **Blue Boxer has NO `assistant_settings` row** -- so booking mode, calendar provider, and all settings are null
+2. **`min_lead_hours` is 24** -- blocks all same-day/next-day bookings
+3. **`fn_compute_available_slots` SQL function only reads flat `hours_json`** (e.g., `{"open": "08:00", "close": "16:30"}`) but Blue Boxer uses the newer **windows format** (`{"windows": [{"open": "08:00", "close": "16:30"}]}`) -- result: zero slots returned, AI says "fully booked"
+4. **`elevenlabs-check-availability` edge function** has the same flat-format assumption on lines 316-317
+5. **No prompt instruction** tells the AI to notify callers that bookings are "pending confirmation" when `ai_booking_mode = pending_approval`
 
-### Fix
+## What I Will Change (Code)
 
-Preserve the original listing cover photo as the first element in `photo_urls`, and append any additional detail-page photos after it. This ensures `photo_urls[0]` is always the cover photo shown on cards.
+### 1. SQL Migration: Fix `fn_compute_available_slots` to handle windows format
+Update lines 80-81 to normalize before reading open/close:
 
-**File to modify**: `supabase/functions/scrape-carsforsale/index.ts`
-
-- In the enrichment section (~line 326-331), instead of blindly replacing `photo_urls` with the detail page photos, prepend the original `photo_url` (cover) and deduplicate:
-
-```
-Before: if (detail.photo_urls && detail.photo_urls.length > 0) v.photo_urls = detail.photo_urls;
-
-After:  if (detail.photo_urls && detail.photo_urls.length > 0) {
-          // Keep original cover photo first, append detail photos
-          const cover = v.photo_url || v.photo_urls?.[0];
-          const allPhotos = cover
-            ? [cover, ...detail.photo_urls.filter(u => u !== cover)]
-            : detail.photo_urls;
-          v.photo_urls = allPhotos;
-        }
+```text
+IF day_hours ? 'windows' AND jsonb_array_length(day_hours->'windows') > 0 THEN
+  open_time := (day_hours->'windows'->0->>'open')::time;
+  close_time := (day_hours->'windows'->0->>'close')::time;
+ELSE
+  open_time := (day_hours->>'open')::time;
+  close_time := (day_hours->>'close')::time;
+END IF;
 ```
 
-This is a one-line change in the edge function. The UI code (`SalesInventoryPage.tsx`) already correctly uses `photo_urls[0]` for the card thumbnail -- no frontend changes needed.
+### 2. Edge Function: Fix `elevenlabs-check-availability/index.ts`
+Add a `normalizeHours` helper that extracts `open`/`close` from either format. Update lines 316-317 and line 320 to use the normalized values instead of `dayHours.open` / `dayHours.close`.
 
----
+### 3. Edge Function: Add pending-booking prompt to `agentBasePrompts.ts`
+Add a new constant `PENDING_BOOKING_OVERRIDE` with instructions like:
+- "After creating a booking, inform the customer that their appointment is pending confirmation and someone from the team will reach out to confirm."
 
-## Problem 2: ElevenLabs Tools -- Already Universal, No Per-Client Config Needed
+Inject it in `buildPromptForCapabilities` when `ai_booking_mode` is available. Since `buildPromptForCapabilities` doesn't currently receive `ai_booking_mode`, I'll add it as an optional parameter.
 
-Good news: **you do NOT need to configure different endpoints per client.** Here's why:
+### 4. Wire `ai_booking_mode` into prompt builder
+In `buildBusinessContext.ts` (~line 3263), pass `ctx.ai_settings.ai_booking_mode` to `buildPromptForCapabilities` so it can conditionally include the pending-booking instruction.
 
-- All 5 tool edge functions (`elevenlabs-check-availability`, `elevenlabs-create-booking`, etc.) accept `tenant_id` as a parameter
-- `tenant_id` is injected as a **Dynamic Variable** (`{{tenant_id}}`) in the ElevenLabs dashboard
-- When a call comes in via Twilio, `twilio-inbound` passes `tenant_id` in the `dynamic_variables` payload to ElevenLabs
-- ElevenLabs then passes that `tenant_id` to every tool call automatically
+### 5. Database fixes for Blue Boxer
+- Insert `assistant_settings` row with `ai_booking_mode = 'pending_approval'`, `calendar_provider = 'google'`, `same_day_enabled = true`
+- Update `min_lead_hours` from 24 to 2
 
-So the same agent with the same tool URLs works for DreamDrive, and every future tenant. The tools route to the correct tenant's data based on the `tenant_id` variable.
+### 6. Deploy and verify
+Deploy `elevenlabs-check-availability` and test `compute-available-slots` to confirm slots are returned.
 
-**What to verify in ElevenLabs dashboard**: Make sure each tool's `tenant_id` parameter is set to type "Dynamic Variable" with value `{{tenant_id}}`, and `customer_phone` (on create_booking and create_callback) is set to `{{caller_phone}}`. If those are configured, every tenant's calls will route correctly through the same agent.
+## What You Need To Do (ElevenLabs Dashboard)
 
----
+**Nothing changes about the universal agent setup.** The `ai_booking_mode` variable is already registered in the voice context contract and gets passed as a dynamic variable automatically. However, you should verify these two things in the ElevenLabs dashboard:
 
-## Summary of Code Changes
+1. **Confirm `ai_booking_mode` is listed as a Dynamic Variable** on the Service agent -- it should already be there since it's in the contract, but verify it appears with value `{{ai_booking_mode}}`. If it's missing, add it as a new dynamic variable.
+
+2. **No per-client changes needed** -- the prompt injection happens server-side via `buildPromptForCapabilities`. The agent will automatically receive the pending-booking behavioral instruction when any tenant has `ai_booking_mode = pending_approval`. This keeps the agent universal.
+
+## Files Modified
 
 | File | Change |
 |------|--------|
-| `supabase/functions/scrape-carsforsale/index.ts` | Preserve original cover photo as first element when merging detail-page photos |
+| SQL migration (new) | Update `fn_compute_available_slots` to handle windows hours format |
+| `supabase/functions/elevenlabs-check-availability/index.ts` | Add `normalizeHours` helper, fix business hours reading |
+| `supabase/functions/_shared/agentBasePrompts.ts` | Add `PENDING_BOOKING_OVERRIDE` constant, update `buildPromptForCapabilities` signature |
+| `supabase/functions/_shared/buildBusinessContext.ts` | Pass `ai_booking_mode` to prompt builder |
+| Database (Blue Boxer tenant) | Insert `assistant_settings` row, reduce `min_lead_hours` to 2 |
 
-No database changes. No frontend changes. Just one edge function fix + redeploy.
