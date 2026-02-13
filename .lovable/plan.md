@@ -1,132 +1,158 @@
 
-# Professional CRM Redesign: Leads + Customers Pages
 
-## Overview
+# Professional CRM & Scheduling Overhaul
 
-Redesign both the Leads and Customers pages into a polished, professional CRM experience with intelligent lead scoring, mode-aware terminology, and rich customer profiles.
+## Problems Identified
 
----
-
-## Part 1: Database Migration
-
-Add two columns to the `customers` table that are currently missing:
-
-| Column | Type | Purpose |
-|--------|------|---------|
-| `service_address` | `text` | Customer's primary service/delivery address |
-| `lead_status` | `text` (default `'new'`) | Lead temperature tracking on the customer record |
-
-No changes needed to the `leads` table -- it already has `vehicle_or_context`, `status`, and the linked `customer_id`.
+1. **Leads Kanban is unprofessional** -- The Kanban board in the Unified Inbox (New/Contacted/Quoted/Won/Lost columns) is cluttered and unclear about WHY a lead is in a given stage
+2. **Not every caller is a customer** -- Someone asking "what time do you close?" should NOT become a customer record. The system needs smarter filtering based on call outcome/intent
+3. **Leads page is too generic** -- The "Request" column with `vehicle_or_context` feels automotive, not plumbing. Every mode needs contextually appropriate fields
+4. **Calendar can't handle multi-staff** -- The calendar shows one flat view. With 9 employees going to 9 jobs at 9am, it becomes a visual mess with overlapping blocks and no way to tell who is assigned to what
+5. **Scheduling page needs polish** -- The list view and pending approval banner need a more professional, dense layout
+6. **Must work for ALL business modes** -- Plumber, salon, tow truck, restaurant, medical office -- each needs to feel purpose-built
 
 ---
 
-## Part 2: Leads Page Redesign
+## Part 1: Smart Lead Qualification (Not Every Caller = Customer)
 
-### Smart Lead Intelligence
+### The Logic
+Currently, `ai_call_sessions` produces outcomes: `booked`, `followup`, `lead_captured`, `dispatch`, `lost`. Many calls are informational (hours, directions, general questions) and produce no lead record.
 
-The leads table already has linked `ai_call_sessions` with `lead_score` (hot/warm) and `outcome`. The redesigned page will:
+The fix is to ensure the **Leads page only shows genuine leads** -- people who expressed interest in a service, requested a callback, or were captured by the AI. This is already partially handled since leads are created by the AI webhook only for qualifying outcomes, but the temperature scoring needs refinement:
 
-1. **Compute lead temperature** from the most recent call session's `lead_score` + recency + status:
-   - **Hot**: `lead_score = 'hot'` OR status = `booked` OR called within last 24h
-   - **Warm**: `lead_score = 'warm'` OR status = `contacted`/`qualified` OR called within 3 days
-   - **Cold**: Everything else (no recent activity, older than 7 days, no score)
+- **Hot**: Outcome = `booked` or `dispatch`, OR status = `booked`/`won`, OR called within 24h with `followup`/`lead_captured` outcome
+- **Warm**: Status = `contacted`/`qualified`, OR `lead_captured` outcome within 72h
+- **Cold**: Older than 7 days with no progression, OR `followup` with no follow-through
+- **Not a lead at all**: Informational calls that don't create lead records stay out entirely (already the case, but we'll add a note clarifying this)
 
-2. **New stat cards**: Total | Hot | Warm | Cold (replacing the current generic stats)
-
-3. **Visual temperature indicators**: Color-coded flame/thermometer badges on each row
-
-4. **Segmented view with tabs**: "All", "Hot", "Warm", "Cold" tabs for quick filtering
-
-5. **Enhanced table columns**:
-   - Name + phone (existing)
-   - Temperature badge (new -- hot/warm/cold with color)
-   - Status badge (existing)
-   - Source (existing)
-   - Context/request (from `vehicle_or_context` -- mode-aware label)
-   - Last activity (computed from `last_message_at` or linked call session)
-   - Actions dropdown (existing)
-
-6. **Mode-aware labels**: Use `useIndustryContext()` terms throughout -- "Prospects" for sales, "Patients" for medical, "Leads" for service/general, "Callers" for dispatch.
-
-### Lead Detail Panel Enhancement
-
-- Show linked customer info if `customer_id` exists
-- Display temperature badge prominently
-- Show all call sessions with extracted payload data
-- Mode-aware action buttons
+### Changes
+- Update `useLeadIntelligence.ts` to refine temperature computation with outcome-awareness
+- Add an explanatory tooltip on each temperature badge showing WHY the lead is hot/warm/cold (e.g., "Called 2 hours ago, requested callback")
 
 ---
 
-## Part 3: Customers Page Redesign
+## Part 2: Leads Page -- Mode-Aware Professional Redesign
 
-### Professional CRM Table
+### Replace the Kanban with an enhanced table
 
-Redesign the table to show all critical fields at a glance:
+The Kanban in the **Unified Inbox** (`LeadsKanbanView`) will be replaced with a cleaner pipeline summary bar (visual stage indicators at the top, but data displayed in a professional table below). The standalone **Leads Page** table is already close -- it needs these mode-specific improvements:
 
-| Column | Source | Notes |
-|--------|--------|-------|
-| Name | `full_name` | With avatar initials circle |
-| Phone | `phone_e164` | Formatted display |
-| Email | `email` | With dash fallback |
-| Service Address | `service_address` (new column) | Mode-aware label ("Delivery Address" for food, "Patient Address" for medical) |
-| Last Service | Computed from most recent completed booking | Shows date or "Never" |
-| Source | `source` | Badge |
-| Added | `created_at` | Relative time |
+| Mode | "Request" Column Label | Example Values | Extra Column |
+|------|----------------------|----------------|--------------|
+| service (plumbing) | Service Needed | "Water heater repair", "Drain cleaning" | Address |
+| dispatch | Job Request | "Tow needed", "Lockout" | Pickup Location |
+| food | Order Interest | "Catering inquiry", "Large order" | -- |
+| medical | Visit Reason | "New patient consult", "Follow-up" | Insurance |
+| sales | Interest | "2024 Camry", "Trade-in inquiry" | Vehicle |
 
-### Call History Integration
-
-Add a **"Recent Calls"** column or indicator showing the count of calls in the last 30 days, making it easy to see engagement at a glance.
-
-### Customer Detail Sheet Enhancement
-
-- Add `service_address` field (editable)
-- Show "Last Service Date" computed from bookings
-- Mode-aware tab labels (e.g., "Orders" instead of "Bookings" for food, "Appointments" for medical)
-
-### Mode-Aware Adaptations
-
-| Mode | Address Label | Service Label | Customer Label |
-|------|--------------|---------------|----------------|
-| service | Service Address | Last Service | Customer |
-| dispatch | Pickup Location | Last Job | Customer |
-| food | Delivery Address | Last Order | Guest |
-| medical | Patient Address | Last Visit | Patient |
-| sales | Address | Last Appointment | Prospect |
-| general | Address | Last Interaction | Customer |
+### Kanban Replacement in Unified Inbox
+Replace the `LeadsKanbanView` component with a professional **Pipeline Summary + Table** view:
+- Top bar: Visual pipeline stages with counts (New: 5 | Contacted: 3 | Quoted: 2 | Won: 1 | Lost: 0) as clickable filters
+- Below: Same professional table layout as the Leads page, filtered by the selected stage
+- Each row shows the temperature badge + a one-line reason (e.g., "Requested callback 2h ago")
 
 ---
 
-## Part 4: Build Error Fix
+## Part 3: Calendar -- Multi-Staff Support
 
-The `npm:openai` error is a Supabase runtime/types issue from `@supabase/functions-js` -- not caused by our code (no openai imports exist in the codebase). This is an environment-level issue that resolves on redeployment and does not affect the frontend build.
+### The Core Problem
+The `bookings` table has no `staff_member_id` column. When 9 employees have 9 jobs at 9am, they all stack on top of each other in one column.
+
+### Database Change
+```sql
+ALTER TABLE public.bookings 
+  ADD COLUMN IF NOT EXISTS staff_member_id uuid REFERENCES public.staff_members(id);
+```
+
+But wait -- `staff_members` doesn't exist as a real table (the hook uses `as any` cast). We need to verify if the table exists or create it. Based on the code, it's cast with `as any` which means it may exist but isn't in the generated types. We'll work with whatever exists.
+
+### Calendar Redesign: Staff-Grouped View
+
+Add a new view mode to the calendar: **"By Team Member"**
+
+- **Week view (current)**: Shows all events in time columns (good for solo operators)
+- **Day + Staff view (new)**: When viewing a single day, shows one column PER staff member. Each column header shows the staff member's name and color. Unassigned bookings go in an "Unassigned" column.
+
+This is the standard pattern used by ServiceTitan, Housecall Pro, and every professional field service tool.
+
+```text
+| Time  | Mike (Blue)      | Sarah (Green)    | Jake (Orange)    | Unassigned |
+|-------|-----------------|-----------------|-----------------|------------|
+| 9:00  | Water Heater    | Drain Clean     | Faucet Install  |            |
+|       | 123 Oak St      | 456 Elm St      | 789 Pine Ave    |            |
+| 10:00 |                 | Toilet Repair   |                 | Leak Check |
+|       |                 | 321 Maple Dr    |                 | 654 Birch  |
+```
+
+### Implementation
+- Update `ScheduleEvent` interface to include optional `staffMemberId` and `staffName`
+- Update `useScheduleData` to join bookings with the staff member (if assigned)
+- Create a new `StaffDayView` component that renders one `DayColumn` per active staff member
+- Add a view toggle: "Timeline" (current week view) vs "Team" (staff-grouped day view)
+- The `CalendarEvent` component will show the staff member's color as a left border accent
 
 ---
 
-## Technical Implementation
+## Part 4: Bookings Page Professional Polish
 
-### Files to Create
-- `src/hooks/useLeadIntelligence.ts` -- Hook that joins leads with their latest `ai_call_sessions` to compute temperature scores
-- `src/hooks/useCustomerLastService.ts` -- Hook that fetches most recent completed booking per customer
+### Pending Approval Banner
+Add a prominent "Needs Attention" section at the top when there are pending bookings:
+- Card with amber/warning styling
+- Shows count + list of pending bookings with one-click approve buttons
+- Collapses when empty
 
-### Files to Modify
-- `src/pages/app/LeadsPage.tsx` -- Full redesign with temperature tabs, smart stats, enhanced table
-- `src/pages/app/CustomersPage.tsx` -- Enhanced table with address, last service, call count columns
-- `src/hooks/useCustomers.ts` -- Update `Customer` interface to include `service_address` and `lead_status`
-- `src/components/customers/CustomerDetailSheet.tsx` -- Add address field, mode-aware tab labels, last service date
-- `src/components/customers/CreateCustomerDialog.tsx` -- Add service address field
-- `src/components/leads/LeadCard.tsx` -- Add temperature badge (if still used elsewhere)
+### Enhanced List View
+Upgrade `BookingCard` to show:
+- Staff member name (when assigned)
+- Service address (from the linked lead/customer)
+- Mode-aware labels throughout (using `terms`)
+- Better visual hierarchy with date grouping (Today, Tomorrow, This Week, Later)
+
+### Mode-Specific Adaptations
+| Mode | Primary Sort | Extra Info Shown |
+|------|-------------|-----------------|
+| service | By date/time | Technician name, service address |
+| dispatch | By urgency then time | Driver, pickup/dropoff |
+| food | By prep time | Order items, delivery/pickup |
+| medical | By provider | Patient, visit type |
+| sales | By date/time | Prospect, interest |
+
+---
+
+## Part 5: Customers Page Refinements
+
+The current Customers page is already well-structured. Small refinements:
+- Mode-aware "Request" context in the detail sheet
+- For plumbing: show service history (past jobs with dates and descriptions)
+- Remove any automotive-specific language from default labels
+
+---
+
+## Technical Implementation Summary
 
 ### Database Migration
 ```sql
-ALTER TABLE public.customers 
-  ADD COLUMN IF NOT EXISTS service_address text,
-  ADD COLUMN IF NOT EXISTS lead_status text DEFAULT 'new';
+-- Add staff assignment to bookings
+ALTER TABLE public.bookings 
+  ADD COLUMN IF NOT EXISTS staff_member_id uuid;
 ```
 
-### Query Strategy for Lead Intelligence
+### Files to Create
+- `src/components/calendar/StaffDayView.tsx` -- Multi-column staff view for the calendar
+- `src/components/leads/PipelineSummaryBar.tsx` -- Visual pipeline stage bar replacing the Kanban
 
-Instead of N+1 queries, the `useLeadIntelligence` hook will fetch all leads with a single joined query to get the most recent call session's `lead_score` per lead, then compute temperature client-side. This keeps the implementation simple and performant.
+### Files to Modify
+- `src/hooks/useScheduleData.ts` -- Add staff member join to bookings query
+- `src/components/calendar/ScheduleCalendar.tsx` -- Add "Team" view toggle, integrate StaffDayView
+- `src/components/calendar/CalendarEvent.tsx` -- Show staff color/name
+- `src/pages/app/BookingsPage.tsx` -- Add pending approval banner, date grouping, staff display
+- `src/components/bookings/BookingCard.tsx` -- Show staff name, service address, mode-aware labels
+- `src/pages/app/LeadsPage.tsx` -- Mode-aware context column, temperature reason tooltips
+- `src/pages/app/UnifiedInboxPage.tsx` -- Replace `LeadsKanbanView` with `PipelineSummaryBar` + table
+- `src/hooks/useLeadIntelligence.ts` -- Refine temperature with outcome-based reasoning, add `reason` field
+- `src/hooks/useBookings.ts` -- Include staff member name in query
 
-### Query Strategy for Last Service Date
+### No Changes Needed
+- Terminology system (`terminology.ts`) already handles mode labels correctly
+- Customer enrichment hooks are already in good shape
 
-The customers page will batch-fetch the most recent `completed` booking for all displayed customers using an RPC or a separate query grouped by `lead_id` joined through leads by phone number. This avoids per-customer queries.
