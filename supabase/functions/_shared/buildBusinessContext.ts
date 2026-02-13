@@ -302,6 +302,16 @@ export interface BusinessContext {
     recurring_enabled: boolean;
     deposit_required: boolean;
     deposit_amount: string;
+    ai_guardrails: string;
+    required_intake_fields: string[];
+    escalation_rules: {
+      transferOnRequest: boolean;
+      transferOnAnger: boolean;
+      transferOnPriceObjection: boolean;
+      transferOnComplexQuestion: boolean;
+      transferOnComplaint: boolean;
+      fallbackAction: string;
+    };
   };
   // Business Brain snapshot (full structured data)
   business_brain?: BusinessBrainSnapshot;
@@ -311,6 +321,8 @@ export interface BusinessContext {
   business_brain_json: string;
   // Whether JSON was truncated due to size
   business_brain_json_truncated: boolean;
+  // Staff members for multi-resource scheduling
+  staff_members: Array<{ id: string; full_name: string; role: string; is_active: boolean; service_ids: string[] | null }>;
   // Impound lot data (null if capability not enabled)
   impound: {
     lot_id: string;
@@ -1933,6 +1945,7 @@ export async function buildBusinessContext(
     distanceSettingsResult,
     servicePackagesResult,
     seasonalKnowledgeResult,
+    staffMembersResult,
   ] = await Promise.all([
     supabase.from("tenants").select("*, pricing_rules_jsonb, busyness_rules_jsonb").eq("id", tenantId).single(),
     supabase.from("services").select("*").eq("tenant_id", tenantId).eq("is_active", true).limit(20),
@@ -1951,6 +1964,8 @@ export async function buildBusinessContext(
     supabase.from("service_packages").select("name, description, package_type, regular_price_cents, package_price_cents, billing_interval, member_discount_percent, is_featured").eq("tenant_id", tenantId).eq("is_active", true).order("display_order").limit(10),
     // Fetch seasonal knowledge for active promotions (current date filter)
     supabase.from("seasonal_knowledge").select("event_name, ai_announcement, special_pricing_notes, start_date, end_date").eq("tenant_id", tenantId).limit(10),
+    // Fetch staff members for multi-resource awareness
+    supabase.from("staff_members").select("id, full_name, role, is_active, service_ids").eq("tenant_id", tenantId).eq("is_active", true).order("sort_order").limit(50),
   ]);
   
   // ===== CONDITIONAL FETCH: IMPOUND LOT DATA =====
@@ -2333,11 +2348,31 @@ export async function buildBusinessContext(
       recurring_enabled: assistantSettings?.recurring_enabled === true,
       deposit_required: assistantSettings?.deposit_required === true,
       deposit_amount: assistantSettings?.deposit_amount || "",
+      ai_guardrails: (assistantSettings?.settings_json as any)?.ai_guardrails || "",
+      required_intake_fields: Array.isArray((assistantSettings?.settings_json as any)?.required_intake_fields)
+        ? (assistantSettings?.settings_json as any).required_intake_fields
+        : ["customer_name", "customer_phone"],
+      escalation_rules: {
+        transferOnRequest: (assistantSettings?.settings_json as any)?.escalation_rules?.transferOnRequest ?? true,
+        transferOnAnger: (assistantSettings?.settings_json as any)?.escalation_rules?.transferOnAnger ?? true,
+        transferOnPriceObjection: (assistantSettings?.settings_json as any)?.escalation_rules?.transferOnPriceObjection ?? false,
+        transferOnComplexQuestion: (assistantSettings?.settings_json as any)?.escalation_rules?.transferOnComplexQuestion ?? true,
+        transferOnComplaint: (assistantSettings?.settings_json as any)?.escalation_rules?.transferOnComplaint ?? true,
+        fallbackAction: (assistantSettings?.settings_json as any)?.escalation_rules?.fallbackAction || "callback",
+      },
     },
     // Business Brain fields - initialized with defaults, populated below
     business_brain_summary: "",
     business_brain_json: "{}",
     business_brain_json_truncated: false,
+    // Staff members
+    staff_members: (staffMembersResult?.data ?? []).map((s: any) => ({
+      id: s.id,
+      full_name: s.full_name,
+      role: s.role,
+      is_active: s.is_active,
+      service_ids: s.service_ids,
+    })),
     // Impound lot data (built from fetched impound data)
     impound: buildImpoundContext(impoundLotData.lot, impoundLotData.settings, tenant.timezone || "America/New_York"),
     // Sales context (populated below for sales businesses)
@@ -2494,6 +2529,23 @@ export async function buildBusinessContext(
       console.error(`[buildBusinessContext] Failed to fetch active jobs:`, jobError);
       // Non-fatal: active_job_summary stays empty string
     }
+  }
+
+  // ===== RESOLVE EFFECTIVE BOOKING BEHAVIOR =====
+  // Must happen BEFORE buildDynamicVariables() so the resolved mode
+  // is available via {{ai_behavior_mode}} dynamic variable.
+  // The ElevenLabs agent prompt reads this to decide how to handle bookings.
+  {
+    const rawMode = context.ai_settings.ai_behavior_mode;
+    let resolved = rawMode || "full_service";
+    if (!rawMode || rawMode === "full_service") {
+      const bookingMode = context.ai_settings.ai_booking_mode;
+      if (bookingMode === "pending_approval" || bookingMode === "pending") resolved = "book_pending";
+      else if ((bookingMode as string) === "suggest_callback") resolved = "suggest_callback";
+      else if ((bookingMode as string) === "callback_only") resolved = "callback_only";
+    }
+    // Write resolved value back onto context so dynamic variables pick it up
+    (context.ai_settings as any).ai_behavior_mode = resolved;
   }
 
   // ===== BUILD SYSTEM PROMPT =====
@@ -3178,7 +3230,10 @@ IMPORTANT GUIDELINES:
     null, // enabled_modules is already resolved into capabilities_json
     ctx._meta.capabilities
   );
-  const aiBehaviorMode = ctx.ai_settings.ai_behavior_mode as "full_service" | "callback_only" | undefined;
+  // ai_behavior_mode is already resolved to 4-mode value on context
+  // (done in buildBusinessContext() before buildSystemPrompt is called)
+  const aiBehaviorMode = (ctx.ai_settings.ai_behavior_mode || "full_service") as
+    "full_service" | "callback_only" | "suggest_callback" | "book_pending";
   const capabilityPrompt = buildPromptForCapabilities(caps, ctx.tenant.industry_slug, aiBehaviorMode);
   prompt += `\n\n${capabilityPrompt}`;
   

@@ -10,6 +10,17 @@ import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector"
 
 export type QuestionGroup = "core" | "ai_behavior" | "advanced";
 
+/** A follow-up field shown inline when a scenario question is answered "yes" */
+export interface FollowUpField {
+  key: string;                 // e.g. "depositAmount" — stored in scenarioDetails
+  label: string;               // e.g. "Deposit amount"
+  type: "number" | "text" | "select" | "currency" | "miles";
+  placeholder?: string;
+  options?: { value: string; label: string }[];  // for select type
+  suffix?: string;             // e.g. "miles", "%"
+  defaultValue?: string;
+}
+
 export interface ScenarioQuestion {
   id: string;
   capabilityKey: string;       // Key stored in context_fields_json.capabilities
@@ -31,6 +42,10 @@ export interface ScenarioQuestion {
    * Questions hidden during onboarding still get their defaultValue applied silently.
    */
   onboardingVisible?: boolean;
+  /** Follow-up fields shown inline when the user answers "yes" */
+  followUp?: {
+    fields: FollowUpField[];
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -61,6 +76,12 @@ const serviceQuestions: ScenarioQuestion[] = [
     group: "core",
     preAnsweredFor: { categories: ["home_services"] },
     onboardingVisible: true,
+    followUp: {
+      fields: [
+        { key: "serviceRadiusMiles", label: "Service radius", type: "miles", placeholder: "e.g. 25" },
+        { key: "travelFee", label: "Travel/trip fee", type: "currency", placeholder: "e.g. 35" },
+      ],
+    },
   },
   {
     id: "same-day-emergency",
@@ -72,6 +93,22 @@ const serviceQuestions: ScenarioQuestion[] = [
     group: "core",
     preAnsweredFor: { slugs: ["plumbing", "hvac", "electrical", "towing", "locksmith"] },
     onboardingVisible: true,
+    followUp: {
+      fields: [
+        {
+          key: "sameDayLeadTime",
+          label: "Minimum lead time",
+          type: "select",
+          options: [
+            { value: "1", label: "1 hour" },
+            { value: "2", label: "2 hours" },
+            { value: "4", label: "4 hours" },
+            { value: "morning", label: "Same-day morning only" },
+          ],
+          defaultValue: "2",
+        },
+      ],
+    },
   },
   {
     id: "deposits",
@@ -82,6 +119,21 @@ const serviceQuestions: ScenarioQuestion[] = [
     defaultValue: false,
     group: "core",
     onboardingVisible: true,
+    followUp: {
+      fields: [
+        {
+          key: "depositType",
+          label: "Deposit type",
+          type: "select",
+          options: [
+            { value: "fixed", label: "Fixed dollar amount" },
+            { value: "percentage", label: "Percentage of service" },
+          ],
+          defaultValue: "fixed",
+        },
+        { key: "depositAmount", label: "Amount", type: "number", placeholder: "e.g. 50" },
+      ],
+    },
   },
   {
     id: "walk-ins",
@@ -154,6 +206,11 @@ const serviceQuestions: ScenarioQuestion[] = [
     description: "AI will mention the trip fee when quoting mobile services",
     defaultValue: false,
     group: "core",
+    followUp: {
+      fields: [
+        { key: "tripFeeAmount", label: "Trip fee amount", type: "currency", placeholder: "e.g. 35" },
+      ],
+    },
   },
   {
     id: "reminders",
@@ -172,6 +229,37 @@ const serviceQuestions: ScenarioQuestion[] = [
     description: "AI will mention the minimum when quoting small jobs",
     defaultValue: false,
     group: "core",
+    followUp: {
+      fields: [
+        { key: "minimumChargeAmount", label: "Minimum charge", type: "currency", placeholder: "e.g. 75" },
+      ],
+    },
+  },
+  {
+    id: "cancellation-policy",
+    capabilityKey: "hasCancellationPolicy",
+    label: "Cancellation Policy",
+    question: "Do you have a cancellation policy?",
+    description: "AI will inform callers about your cancellation rules",
+    defaultValue: true,
+    group: "core",
+    onboardingVisible: true,
+    followUp: {
+      fields: [
+        {
+          key: "cancellationNoticeHours",
+          label: "Required notice",
+          type: "select",
+          options: [
+            { value: "24", label: "24 hours" },
+            { value: "48", label: "48 hours" },
+            { value: "72", label: "72 hours" },
+          ],
+          defaultValue: "24",
+        },
+        { key: "cancellationFee", label: "Cancellation fee", type: "currency", placeholder: "e.g. 25 (or 0 for no fee)" },
+      ],
+    },
   },
   {
     id: "after-hours-service",
@@ -182,6 +270,11 @@ const serviceQuestions: ScenarioQuestion[] = [
     defaultValue: false,
     impliesModules: ["after_hours_handling"],
     group: "core",
+    followUp: {
+      fields: [
+        { key: "afterHoursSurcharge", label: "After-hours surcharge", type: "currency", placeholder: "e.g. 50 (or 0 for none)" },
+      ],
+    },
   },
   {
     id: "long-duration-jobs",
@@ -250,6 +343,12 @@ const dispatchQuestions: ScenarioQuestion[] = [
     defaultValue: true,
     group: "core",
     onboardingVisible: true,
+    followUp: {
+      fields: [
+        { key: "baseRate", label: "Base/hookup rate", type: "currency", placeholder: "e.g. 75" },
+        { key: "perMileRate", label: "Per-mile rate", type: "currency", placeholder: "e.g. 4" },
+      ],
+    },
   },
   // New questions
   {
@@ -367,6 +466,13 @@ const foodQuestions: ScenarioQuestion[] = [
     group: "core",
     preAnsweredFor: { slugs: ["pizza", "chinese_restaurant", "indian_restaurant"] },
     onboardingVisible: true,
+    followUp: {
+      fields: [
+        { key: "deliveryRadiusMiles", label: "Delivery radius", type: "miles", placeholder: "e.g. 5" },
+        { key: "deliveryFee", label: "Delivery fee", type: "currency", placeholder: "e.g. 5" },
+        { key: "deliveryMinimumOrder", label: "Minimum order", type: "currency", placeholder: "e.g. 15" },
+      ],
+    },
   },
   {
     id: "catering",

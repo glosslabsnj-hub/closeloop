@@ -672,7 +672,7 @@ export const SECTION_TO_CATEGORY: Record<string, string> = {
   about: "your-business",
   services: "services-pricing",
   operations: "how-you-operate",
-  rules: "how-you-operate",
+  rules: "how-you-operate", // legacy alias — rules tab merged into operations
   training: "knowledge",
   intelligence: "intelligence",
   // Legacy sections (for backward compatibility)

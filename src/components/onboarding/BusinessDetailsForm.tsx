@@ -4,8 +4,11 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 
+export type LocationType = "single_shop" | "multiple_locations" | "mobile_only" | "shop_and_mobile";
+
 export interface BusinessDetails {
   location: string;
+  locationType: LocationType;
   teamSize: "solo" | "small" | "medium" | "large";
   yearsInBusiness: "new" | "1-3" | "3-10" | "10+";
   pricingPosition: "budget" | "mid" | "premium";
@@ -16,6 +19,7 @@ export interface BusinessDetails {
 export function getDefaultBusinessDetails(): BusinessDetails {
   return {
     location: "",
+    locationType: "single_shop",
     teamSize: "solo",
     yearsInBusiness: "new",
     pricingPosition: "mid",
@@ -29,6 +33,13 @@ interface BusinessDetailsFormProps {
   value: BusinessDetails;
   onChange: (details: BusinessDetails) => void;
 }
+
+const locationTypeOptions = [
+  { value: "single_shop", label: "Single Location", description: "One shop or office" },
+  { value: "multiple_locations", label: "Multiple Locations", description: "Several offices/shops" },
+  { value: "mobile_only", label: "Mobile Only", description: "You go to the customer" },
+  { value: "shop_and_mobile", label: "Shop + Mobile", description: "Both shop and on-site" },
+] as const;
 
 const teamSizeOptions = [
   { value: "solo", label: "Solo Operator", description: "Just you" },
@@ -92,6 +103,14 @@ export function BusinessDetailsForm({ businessMode, value, onChange }: BusinessD
         />
         <p className="text-xs text-muted-foreground">Used to set your default service area</p>
       </div>
+
+      {/* Location Type */}
+      <OptionGrid
+        label="Location type"
+        options={locationTypeOptions}
+        value={value.locationType}
+        onChange={(v) => update("locationType", v as BusinessDetails["locationType"])}
+      />
 
       {/* Team Size */}
       <OptionGrid

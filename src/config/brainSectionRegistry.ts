@@ -90,6 +90,16 @@ const BUSINESS_ITEMS: BrainSectionItem[] = [
     isVisible: (_mode, caps) => caps.isSchedulingBusiness,
   },
   {
+    id: "team",
+    title: "Your Team",
+    icon: Users,
+    group: "team",
+    groupLabel: "TEAM",
+    order: 4,
+    tab: "business",
+    setupPriority: "recommended",
+  },
+  {
     id: "templates",
     title: "Quick Setup Templates",
     icon: Palette,

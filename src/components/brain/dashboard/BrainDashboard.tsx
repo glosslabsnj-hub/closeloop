@@ -38,9 +38,7 @@ function getCategorySummary(
     case "services":
       return [summaries.catalog, summaries.pricingRules].filter(Boolean).join(" \u00B7 ");
     case "operations":
-      return [summaries.coverage].filter(Boolean).join(" \u00B7 ");
-    case "rules":
-      return [summaries.policies].filter(Boolean).join(" \u00B7 ");
+      return [summaries.coverage, summaries.policies].filter(Boolean).join(" \u00B7 ");
     case "ai-voice":
       return [summaries.scripts, summaries.guidelines].filter(Boolean).join(" \u00B7 ");
     case "training":

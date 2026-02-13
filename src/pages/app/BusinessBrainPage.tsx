@@ -73,8 +73,8 @@ import AIBehaviorModeSelector from "@/components/ai/AIBehaviorModeSelector";
 // ─── Section IDs ────────────────────────────────────────────────────────────
 
 /** Mode-shaped tab sections (replaces the old 6-tab fixed structure) */
-type ModeSectionId = "about" | "services" | "operations" | "rules" | "training" | "intelligence";
-const NEW_VALID_SECTIONS = ["about", "services", "operations", "rules", "training", "intelligence"] as const;
+type ModeSectionId = "about" | "services" | "operations" | "training" | "intelligence";
+const NEW_VALID_SECTIONS = ["about", "services", "operations", "training", "intelligence"] as const;
 
 /** All old section params still work — resolve to the new tab */
 const LEGACY_SECTION_ALIASES: Record<string, ModeSectionId> = {
@@ -88,7 +88,8 @@ const LEGACY_SECTION_ALIASES: Record<string, ModeSectionId> = {
   "calendar-sync": "about",
   calendar: "about",
   "service-area": "operations",
-  policies: "rules",
+  rules: "operations",
+  policies: "operations",
   "ai-behavior": "training",
   knowledge: "training",
 };
@@ -472,17 +473,17 @@ export default function BusinessBrainPage() {
         }
         return undefined;
 
-      case "operations":
-        if (coverageAddOns.addOnItems.length > 0) {
-          return <AddOnGroup items={coverageAddOns.addOnItems} onEnable={coverageAddOns.enableAddOn} />;
+      case "operations": {
+        const opsAddOns = [...coverageAddOns.addOnItems, ...policiesAddOns.addOnItems];
+        if (opsAddOns.length > 0) {
+          const enableAddOn = (id: string) => {
+            coverageAddOns.enableAddOn(id);
+            policiesAddOns.enableAddOn(id);
+          };
+          return <AddOnGroup items={opsAddOns} onEnable={enableAddOn} />;
         }
         return undefined;
-
-      case "rules":
-        if (policiesAddOns.addOnItems.length > 0) {
-          return <AddOnGroup items={policiesAddOns.addOnItems} onEnable={policiesAddOns.enableAddOn} />;
-        }
-        return undefined;
+      }
 
       case "training":
         if (knowledgeAddOns.addOnItems.length > 0) {

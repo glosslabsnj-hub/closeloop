@@ -722,6 +722,44 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     includeInCompactJson: true,
     speechReady: true,
   },
+  {
+    key: "twilio_call_sid",
+    description: "Twilio Call SID for the active call (used by transfer_to_owner tool)",
+    type: "string",
+    source: () => "", // Set by twilio-inbound as a call-specific override
+    defaultValue: "",
+    category: "caller",
+  },
+
+  // ===== TEAM / STAFF =====
+  {
+    key: "team_size",
+    description: "Number of active staff members (0 = solo operator)",
+    type: "number",
+    source: (ctx) => {
+      const staff = (ctx as any)?.staff_members;
+      if (!staff || !Array.isArray(staff)) return 0;
+      return staff.filter((s: any) => s.is_active).length;
+    },
+    defaultValue: 0,
+    category: "core",
+    includeInCompactJson: true,
+  },
+  {
+    key: "staff_names",
+    description: "Comma-separated names of active staff members",
+    type: "string",
+    source: (ctx) => {
+      const staff = (ctx as any)?.staff_members;
+      if (!staff || !Array.isArray(staff)) return "";
+      return staff
+        .filter((s: any) => s.is_active)
+        .map((s: any) => s.full_name)
+        .join(", ");
+    },
+    defaultValue: "",
+    category: "core",
+  },
 
   // ===== HOURS & AVAILABILITY =====
   {
@@ -1146,7 +1184,7 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
   // ===== AI SETTINGS =====
   {
     key: "ai_behavior_mode",
-    description: "AI call behavior mode: full_service (book/dispatch/order) or callback_only (capture info only)",
+    description: "AI call behavior mode: full_service, callback_only, suggest_callback, or book_pending",
     type: "string",
     source: "ai_settings.ai_behavior_mode",
     defaultValue: "full_service",
@@ -1257,6 +1295,125 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     source: "ai_settings.deposit_amount",
     defaultValue: "",
     category: "ai_settings",
+  },
+  {
+    key: "ai_guardrails",
+    description: "Things the AI should never promise or say (owner-defined guardrails)",
+    type: "string",
+    source: "ai_settings.ai_guardrails",
+    defaultValue: "",
+    category: "ai_settings",
+    includeInCompactJson: true,
+    speechReady: true,
+  },
+  {
+    key: "required_intake_fields_summary",
+    description: "Required info AI must collect before booking (e.g. name, phone, vehicle info)",
+    type: "string",
+    source: (ctx) => {
+      const fields = (ctx as any)?.ai_settings?.required_intake_fields;
+      if (!fields || !Array.isArray(fields) || fields.length === 0) return "customer name, phone number";
+      const labelMap: Record<string, string> = {
+        customer_name: "customer name",
+        customer_phone: "phone number",
+        customer_email: "email address",
+        vehicle_info: "vehicle information",
+        address: "service address",
+        pickup_address: "pickup address",
+        vehicle_description: "vehicle description",
+        is_drivable: "whether vehicle is drivable",
+        insurance_info: "insurance information",
+        date_of_birth: "date of birth",
+      };
+      return fields.filter((f: unknown) => typeof f === "string" && f).map((f: string) => labelMap[f] || f.replace(/_/g, " ")).join(", ");
+    },
+    defaultValue: "customer name, phone number",
+    category: "ai_settings",
+    includeInCompactJson: true,
+    speechReady: true,
+  },
+  {
+    key: "escalation_rules_summary",
+    description: "When the AI should transfer to a human (speech-ready summary)",
+    type: "string",
+    source: (ctx) => {
+      const rules = (ctx as any)?.ai_settings?.escalation_rules;
+      if (!rules) return "Transfer when caller requests it or when AI cannot answer.";
+      const triggers: string[] = [];
+      if (rules.transferOnRequest) triggers.push("caller asks to speak to someone");
+      if (rules.transferOnAnger) triggers.push("caller sounds frustrated");
+      if (rules.transferOnPriceObjection) triggers.push("caller objects to pricing");
+      if (rules.transferOnComplexQuestion) triggers.push("you cannot answer the question");
+      if (rules.transferOnComplaint) triggers.push("caller has a complaint");
+      if (triggers.length === 0) return "Do not transfer calls unless absolutely necessary.";
+      const fallbackMap: Record<string, string> = {
+        callback: "promise a callback",
+        voicemail: "take a voicemail",
+        text_owner: "send an urgent text to the owner",
+      };
+      const fallback = fallbackMap[rules.fallbackAction] || "promise a callback";
+      return `Transfer to a human when: ${triggers.join("; ")}. If no one is available, ${fallback}.`;
+    },
+    defaultValue: "Transfer when caller requests it or when AI cannot answer.",
+    category: "ai_settings",
+    includeInCompactJson: true,
+    speechReady: true,
+  },
+
+  {
+    key: "ai_booking_behavior_instructions",
+    description: "Mode-specific booking behavior instructions for the AI (based on resolved ai_behavior_mode and business_mode)",
+    type: "string",
+    source: (ctx) => {
+      const behaviorMode = (ctx as any)?.ai_settings?.ai_behavior_mode || "full_service";
+      const businessMode = (ctx as any)?.tenant?.business_mode || "general";
+
+      // Callback only applies universally — just capture info, no booking
+      if (behaviorMode === "callback_only") {
+        return "BOOKING MODE: Callback Only. Do NOT check availability or create bookings. When a caller asks to book, collect their name, phone number, and what they need. Then use create_callback to log the request. Tell them someone will call back to schedule. Be helpful about general questions (hours, services, pricing) but always direct booking requests to a callback.";
+      }
+
+      // For modes without booking capability, always default to callback behavior
+      if (businessMode === "general") {
+        return "Collect the caller's information and use create_callback so the team can follow up.";
+      }
+
+      // Dispatch mode has its own flow — booking modes map differently
+      if (businessMode === "dispatch") {
+        if (behaviorMode === "suggest_callback") {
+          return "When a caller needs service: Collect their details (location, vehicle info, situation). Share estimated response times if available. Then use create_callback with the details so dispatch can assign a driver.";
+        }
+        if (behaviorMode === "book_pending") {
+          return "When a caller needs service: Collect their details and create the dispatch job. Let the caller know the job is logged and dispatch will confirm assignment shortly. Do not say the job is confirmed — say 'We have your request and a driver will be assigned shortly.'";
+        }
+        return "When a caller needs service: Collect their details and create the dispatch job. Confirm the job directly with the caller.";
+      }
+
+      // Food mode — booking modes apply to reservations, not orders
+      if (businessMode === "food") {
+        if (behaviorMode === "suggest_callback") {
+          return "For reservations: Check availability, share available times, then use create_callback with the preferred time so the restaurant can confirm. For orders: Take the order normally using the order flow.";
+        }
+        if (behaviorMode === "book_pending") {
+          return "For reservations: Check availability and create the reservation, but tell the caller it is tentative and the restaurant will confirm. For orders: Take the order normally using the order flow.";
+        }
+        return "For reservations: Check availability and book directly. For orders: Take the order normally using the order flow.";
+      }
+
+      // Service, medical, and other booking-capable modes
+      switch (behaviorMode) {
+        case "suggest_callback":
+          return "BOOKING MODE: Suggest and Callback. When a caller wants to book: Use suggest_availability to check times. Share the available times with the caller. Then use create_callback (NOT create_booking) and include the preferred time in the notes. Frame it as personal service: say something like 'Let me have the team confirm that for you' or 'I'll get that time held for you and someone will confirm shortly.' Never create a booking directly.";
+        case "book_pending":
+          return "BOOKING MODE: Book Pending Approval. When a caller wants to book: Check availability and create the booking normally. But tell the caller the appointment is TENTATIVE. Say it's 'penciled in' and 'you'll get a confirmation shortly.' Never say the word 'confirmed.' The business owner will review and confirm. If the caller asks if it's confirmed, say 'It's reserved for you and the team will send you a confirmation very soon.'";
+        default:
+          return "BOOKING MODE: Auto Book. When a caller wants to book: Check availability, find a time that works, and create the booking. Confirm the appointment directly with the caller. You have full authority to book appointments.";
+      }
+    },
+    defaultValue: "Collect the caller's information and use create_callback so the team can follow up.",
+    category: "ai_settings",
+    includeInCompactJson: true,
+    speechReady: true,
   },
 
   // ===== INTELLIGENCE =====

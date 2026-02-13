@@ -597,6 +597,7 @@ Deno.serve(async (req) => {
       business_mode: businessMode,
       caller_phone: callerPhoneE164,
       caller_phone_last4: callerPhoneLast4,
+      twilio_call_sid: callSidSafe,
       // Capability flags
       has_booking: caps.hasBooking ? "true" : "false",
       has_dispatch: caps.hasDispatchQueue ? "true" : "false",

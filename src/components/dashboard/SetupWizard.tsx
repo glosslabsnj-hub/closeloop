@@ -6,6 +6,10 @@ import { Phone, Brain, Power, Check, ChevronDown, ChevronRight, CheckCircle2 } f
 import { PhoneConnectionStep } from "./PhoneConnectionStep";
 import { ConfigureAIStep } from "./ConfigureAIStep";
 import { GoLiveStep } from "./GoLiveStep";
+import { WelcomeBanner } from "./WelcomeBanner";
+import { ReadinessRing } from "./ReadinessRing";
+import { TestCallCard } from "./TestCallCard";
+import { SmartChecklist } from "./SmartChecklist";
 import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
 
 interface SetupWizardProps {
@@ -104,30 +108,36 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 p-4 md:p-6">
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-2">
-          <Check className="h-4 w-4" />
-          Let's get you set up
+      {/* Welcome Banner — replaces generic header */}
+      <WelcomeBanner />
+
+      {/* Readiness Ring + Progress */}
+      <div className="flex items-center gap-6 justify-center">
+        <ReadinessRing score={score} size={100} strokeWidth={7} />
+        <div className="space-y-2 text-left">
+          <p className="text-sm font-medium">
+            {completedCount === steps.length
+              ? "You're all set!"
+              : `${completedCount} of ${steps.length} steps complete`
+            }
+          </p>
+          <Progress value={progress} className="h-2 w-40" />
+          {score < 85 && (
+            <p className="text-xs text-muted-foreground">
+              Need 85% readiness to go live
+            </p>
+          )}
         </div>
-        <h1 className="text-2xl md:text-3xl font-bold">Go Live Checklist</h1>
-        <p className="text-muted-foreground">
-          {completedCount === steps.length
-            ? "You're all set!"
-            : `${completedCount} of ${steps.length} steps complete`
-          }
-        </p>
       </div>
 
-      {/* Progress Bar */}
-      <Progress value={progress} className="h-2" />
+      {/* Test Call CTA — show after phone is connected */}
+      {phoneComplete && <TestCallCard variant="full" />}
 
       {/* Accordion Steps */}
       <div className="space-y-3">
         {steps.map((step, index) => {
           const Icon = step.icon;
           const isExpanded = expandedStep === index;
-          const isClickable = true; // All steps are clickable for viewing
 
           return (
             <div
@@ -211,7 +221,10 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
         })}
       </div>
 
-      {/* Business Name */}
+      {/* Smart Checklist — contextual next steps */}
+      <SmartChecklist />
+
+      {/* Business Name footer */}
       <div className="text-center pt-4 border-t">
         <p className="text-sm text-muted-foreground">
           Setting up AI for <span className="font-medium text-foreground">{tenant?.name || "your business"}</span>

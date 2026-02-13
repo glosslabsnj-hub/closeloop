@@ -11,7 +11,7 @@ import {
   Building2, CheckCircle2, Loader2,
   ChevronRight, ChevronLeft, Sliders,
   HelpCircle, ExternalLink, Clock,
-  UtensilsCrossed
+  UtensilsCrossed, Users
 } from "lucide-react";
 import { createDefaultWorkflowsForMode } from "@/lib/createDefaultWorkflows";
 import { getIndustryBySlug } from "@/data/industryCatalog";
@@ -20,8 +20,9 @@ import { BusinessModeSelector, type BusinessMode, getDefaultModulesForMode } fro
 import { ScenarioDiscovery } from "@/components/onboarding/ScenarioDiscovery";
 import { CommunicationPreferences, getDefaultCommunicationPrefs, type CommunicationPrefs } from "@/components/onboarding/CommunicationPreferences";
 import { ConfirmationSummary } from "@/components/onboarding/ConfirmationSummary";
-import { getDefaultBusinessDetails, type BusinessDetails } from "@/components/onboarding/BusinessDetailsForm";
+import { BusinessDetailsForm, getDefaultBusinessDetails, type BusinessDetails } from "@/components/onboarding/BusinessDetailsForm";
 import { SchedulingSetup, getDefaultSchedulingPrefs, getDefaultHoursForMode, type SchedulingPrefs } from "@/components/onboarding/SchedulingSetup";
+import { TeamSetupStep, type TeamMember } from "@/components/onboarding/TeamSetupStep";
 import { formatErrorForToast } from "@/lib/errorMessages";
 import { OnboardingProgress, OnboardingProgressMobile, type OnboardingStep } from "@/components/onboarding/OnboardingProgress";
 import { OnboardingComplete } from "@/components/onboarding/OnboardingComplete";
@@ -38,12 +39,13 @@ import { getIndustryOnboardingConfig } from "@/config/industryOnboardingConfig";
 import type { BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
 import type { PlanCode } from "@/types/database";
 
-/** Streamlined 6-step onboarding — industry-intelligent setup */
+/** 7-step onboarding — deeper, business-aware setup */
 const ALL_STEPS: OnboardingStep[] = [
-  { id: "identity", icon: Building2, title: "Your Business", description: "Name and industry" },
+  { id: "identity", icon: Building2, title: "Your Business", description: "Name, industry & profile" },
   { id: "scenarios", icon: HelpCircle, title: "Discovery", description: "How you operate" },
   { id: "services-preview", icon: UtensilsCrossed, title: "Your Offerings", description: "Review services" },
   { id: "scheduling", icon: Clock, title: "Scheduling", description: "Hours & availability" },
+  { id: "team", icon: Users, title: "Your Team", description: "Staff & scheduling" },
   { id: "communication", icon: Sliders, title: "AI Behavior", description: "Tone & booking mode" },
   { id: "confirm", icon: CheckCircle2, title: "Review", description: "Confirm and launch" },
 ];
@@ -56,6 +58,7 @@ interface OnboardingState {
   businessMode: BusinessMode;
   industrySlug: string;
   scenarioAnswers: Record<string, boolean>;
+  scenarioDetails: Record<string, string>;
   schedulingPrefs: SchedulingPrefs;
   communicationPrefs: CommunicationPrefs;
   templateServices: EditableService[];
@@ -64,6 +67,8 @@ interface OnboardingState {
   serviceArea: ServiceAreaConfig;
   businessDetails: BusinessDetails;
   businessHours: BusinessHours;
+  teamMembers: TeamMember[];
+  isSoloOperator: boolean;
 }
 
 function saveOnboardingProgress(state: OnboardingState) {
@@ -115,6 +120,11 @@ export default function OnboardingPage() {
 
   // Step 4: Scenario Discovery
   const [scenarioAnswers, setScenarioAnswers] = useState<Record<string, boolean>>(saved.current?.scenarioAnswers ?? {});
+  const [scenarioDetails, setScenarioDetails] = useState<Record<string, string>>(saved.current?.scenarioDetails ?? {});
+
+  // Team setup
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(saved.current?.teamMembers ?? []);
+  const [isSoloOperator, setIsSoloOperator] = useState(saved.current?.isSoloOperator ?? true);
 
   // Step 5: Scheduling & Hours
   const [businessHours, setBusinessHours] = useState<BusinessHours>(saved.current?.businessHours ?? DEFAULT_BUSINESS_HOURS);
@@ -140,13 +150,14 @@ export default function OnboardingPage() {
     const timer = setTimeout(() => {
       saveOnboardingProgress({
         step, businessName, businessMode, industrySlug,
-        scenarioAnswers, schedulingPrefs, communicationPrefs,
+        scenarioAnswers, scenarioDetails, schedulingPrefs, communicationPrefs,
         templateServices, templateFAQs, templatePolicies,
         serviceArea, businessDetails, businessHours,
+        teamMembers, isSoloOperator,
       });
     }, 500); // debounce
     return () => clearTimeout(timer);
-  }, [step, businessName, businessMode, industrySlug, scenarioAnswers, schedulingPrefs, communicationPrefs, templateServices, templateFAQs, templatePolicies, serviceArea, businessDetails, businessHours, isComplete]);
+  }, [step, businessName, businessMode, industrySlug, scenarioAnswers, scenarioDetails, schedulingPrefs, communicationPrefs, templateServices, templateFAQs, templatePolicies, serviceArea, businessDetails, businessHours, teamMembers, isSoloOperator, isComplete]);
 
   const { user, tenant, loading: authLoading, refreshTenant, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
@@ -274,6 +285,7 @@ export default function OnboardingPage() {
       }
       case "services-preview": return templateServices.some(s => s.enabled && s.name.trim().length > 0);
       case "scheduling": return true;
+      case "team": return true; // Solo toggle or team members — always valid
       case "communication": return true;
       case "confirm": return true;
       default: return false;
@@ -329,7 +341,7 @@ export default function OnboardingPage() {
         isFoodMode,
       });
 
-      // Build capabilities_json from modules + scenario answers + business details
+      // Build capabilities_json from modules + scenario answers + details + business profile
       const capabilitiesJson: Record<string, boolean | string> = {};
       for (const mod of enabledModules) {
         capabilitiesJson[mod] = true;
@@ -337,12 +349,18 @@ export default function OnboardingPage() {
       for (const [key, val] of Object.entries(scenarioAnswers)) {
         capabilitiesJson[key] = val;
       }
+      // Merge follow-up detail values (e.g. depositAmount, serviceRadiusMiles)
+      for (const [key, val] of Object.entries(scenarioDetails)) {
+        if (val) capabilitiesJson[`_${key}`] = val;
+      }
       // Store business details as capability metadata
       capabilitiesJson._teamSize = businessDetails.teamSize;
+      capabilitiesJson._locationType = businessDetails.locationType;
       capabilitiesJson._pricingPosition = businessDetails.pricingPosition;
       capabilitiesJson._customerType = businessDetails.customerType;
       capabilitiesJson._expectedCallVolume = businessDetails.expectedCallVolume;
       capabilitiesJson._yearsInBusiness = businessDetails.yearsInBusiness;
+      capabilitiesJson._isSoloOperator = isSoloOperator;
 
       // Use the hours from scheduling step (not default)
       const hoursToSave = schedulingPrefs.is24x7
@@ -565,11 +583,14 @@ export default function OnboardingPage() {
         unknown_question_behavior: communicationPrefs.unknownQuestionBehavior,
       };
 
-      // Store AI tone, follow-up cadence, and custom greeting in settings_json as backup
-      const settingsJson: Record<string, string> = {};
+      // Store all enriched settings in settings_json
+      const settingsJson: Record<string, unknown> = {};
       if (communicationPrefs.aiTone) settingsJson.ai_tone = communicationPrefs.aiTone;
       if (communicationPrefs.followUpCadence) settingsJson.followup_cadence = communicationPrefs.followUpCadence;
       if (communicationPrefs.customGreeting) settingsJson.custom_greeting = communicationPrefs.customGreeting;
+      if (communicationPrefs.aiGuardrails) settingsJson.ai_guardrails = communicationPrefs.aiGuardrails;
+      if (communicationPrefs.requiredIntakeFields?.length) settingsJson.required_intake_fields = communicationPrefs.requiredIntakeFields;
+      if (communicationPrefs.escalationRules) settingsJson.escalation_rules = communicationPrefs.escalationRules;
 
       if (Object.keys(settingsJson).length > 0) {
         commUpdate.settings_json = settingsJson;
@@ -596,6 +617,94 @@ export default function OnboardingPage() {
           await supabase.from("ai_assistants").update(assistantUpsertData).eq("tenant_id", tenantId);
         } else {
           await supabase.from("ai_assistants").insert({ tenant_id: tenantId, ...assistantUpsertData });
+        }
+      }
+
+      // 7b. Save team members (stored in capabilities_json for now; Phase 3 creates staff_members table)
+      if (!isSoloOperator && teamMembers.length > 0) {
+        const teamData = teamMembers
+          .filter((m) => m.name.trim().length > 0)
+          .map((m) => ({
+            name: m.name.trim(),
+            role: m.role,
+            phone: m.phone || null,
+            email: m.email || null,
+            canPerformAllServices: m.canPerformAllServices,
+            serviceNames: m.serviceNames,
+          }));
+
+        if (teamData.length > 0) {
+          const { error: teamError } = await supabase
+            .from("tenants")
+            .update({
+              context_fields_json: supabase.rpc ? undefined : undefined, // handled below
+            })
+            .eq("id", tenantId);
+
+          // Store team data in capabilities_json (alongside other capabilities)
+          // This will be migrated to staff_members table in Phase 3
+          const { error: teamCapError } = await supabase.rpc("update_tenant_context_field", {
+            _tenant_id: tenantId,
+            _field_key: "_team_members",
+            _field_value: JSON.stringify(teamData),
+          }).catch(() => {
+            // Fallback: update capabilities_json directly if RPC doesn't exist
+            return supabase
+              .from("tenants")
+              .update({
+                capabilities_json: {
+                  ...capabilitiesJson,
+                  _team_members: teamData,
+                },
+              })
+              .eq("id", tenantId);
+          });
+
+          if (teamCapError) {
+            console.error("Team members save error:", teamCapError);
+          }
+        }
+      }
+
+      // 7c. Save scenario details (pricing data from follow-ups) to pricing_rules_jsonb
+      const pricingFromDetails: Record<string, unknown> = {};
+      if (scenarioDetails.depositType) pricingFromDetails.deposit_type = scenarioDetails.depositType;
+      if (scenarioDetails.depositAmount) pricingFromDetails.deposit_amount = Number(scenarioDetails.depositAmount);
+      if (scenarioDetails.tripFeeAmount) pricingFromDetails.trip_fee = Number(scenarioDetails.tripFeeAmount);
+      if (scenarioDetails.minimumChargeAmount) pricingFromDetails.minimum_charge = Number(scenarioDetails.minimumChargeAmount);
+      if (scenarioDetails.afterHoursSurcharge) pricingFromDetails.after_hours_surcharge = Number(scenarioDetails.afterHoursSurcharge);
+      if (scenarioDetails.baseRate) pricingFromDetails.base_rate = Number(scenarioDetails.baseRate);
+      if (scenarioDetails.perMileRate) pricingFromDetails.per_mile_rate = Number(scenarioDetails.perMileRate);
+      if (scenarioDetails.cancellationNoticeHours) pricingFromDetails.cancellation_notice_hours = Number(scenarioDetails.cancellationNoticeHours);
+      if (scenarioDetails.cancellationFee) pricingFromDetails.cancellation_fee = Number(scenarioDetails.cancellationFee);
+
+      if (Object.keys(pricingFromDetails).length > 0) {
+        const { error: pricingError } = await supabase
+          .from("tenants")
+          .update({ pricing_rules_jsonb: pricingFromDetails })
+          .eq("id", tenantId);
+        if (pricingError) {
+          console.error("Pricing rules save error:", pricingError);
+        }
+      }
+
+      // 7d. Save service area details from follow-ups
+      if (scenarioDetails.serviceRadiusMiles || scenarioDetails.deliveryRadiusMiles) {
+        const currentRadius = Number(scenarioDetails.serviceRadiusMiles || scenarioDetails.deliveryRadiusMiles);
+        if (currentRadius > 0) {
+          const { error: areaUpdateError } = await supabase
+            .from("tenants")
+            .update({
+              service_area_json: {
+                radius_miles: currentRadius,
+                zip_codes: serviceArea.zipCodes ? serviceArea.zipCodes.split(",").map(z => z.trim()).filter(Boolean) : [],
+                out_of_area_message: serviceArea.outOfAreaMessage,
+              },
+            })
+            .eq("id", tenantId);
+          if (areaUpdateError) {
+            console.error("Service area update from details error:", areaUpdateError);
+          }
         }
       }
 
@@ -767,7 +876,7 @@ export default function OnboardingPage() {
                   transition={{ duration: 0.2 }}
                   className="space-y-6"
                 >
-                  {/* Identity + Industry (combined step) */}
+                  {/* Identity + Industry + Business Profile (combined step) */}
                   {currentStepId === "identity" && (
                     <div className="space-y-6">
                       <div>
@@ -809,15 +918,36 @@ export default function OnboardingPage() {
                           <BusinessModeSelector value={businessMode} onChange={handleBusinessModeChange} />
                         </div>
                       )}
+
+                      {/* Business Profile — shown after industry is selected */}
+                      {industrySlug && (
+                        <div className="pt-4 border-t space-y-6">
+                          <div>
+                            <h3 className="text-lg font-semibold tracking-tight">
+                              Tell us a bit more
+                            </h3>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              These details help us customize your AI and dashboard.
+                            </p>
+                          </div>
+                          <BusinessDetailsForm
+                            businessMode={businessMode}
+                            value={businessDetails}
+                            onChange={setBusinessDetails}
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  {/* Scenario Discovery */}
+                  {/* Scenario Discovery — with inline follow-up fields */}
                   {currentStepId === "scenarios" && (
                     <ScenarioDiscovery
                       businessMode={businessMode}
                       answers={scenarioAnswers}
                       onChange={setScenarioAnswers}
+                      details={scenarioDetails}
+                      onDetailsChange={setScenarioDetails}
                       industrySlug={industrySlug}
                       industryCategory={getIndustryBySlug(industrySlug)?.category}
                     />
@@ -845,6 +975,17 @@ export default function OnboardingPage() {
                     />
                   )}
 
+                  {/* Team Setup */}
+                  {currentStepId === "team" && (
+                    <TeamSetupStep
+                      isSolo={isSoloOperator}
+                      onSoloChange={setIsSoloOperator}
+                      members={teamMembers}
+                      onChange={setTeamMembers}
+                      services={templateServices}
+                    />
+                  )}
+
                   {/* Communication Preferences */}
                   {currentStepId === "communication" && (
                     <CommunicationPreferences
@@ -864,6 +1005,8 @@ export default function OnboardingPage() {
                       communicationPrefs={communicationPrefs}
                       schedulingPrefs={schedulingPrefs}
                       templateServices={templateServices}
+                      teamMembers={teamMembers}
+                      isSoloOperator={isSoloOperator}
                       onEditStep={(stepNum) => setStep(stepNum)}
                     />
                   )}

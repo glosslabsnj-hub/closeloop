@@ -1,12 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Check, Brain, Pencil } from "lucide-react";
+import { Check, Brain, Pencil, Users } from "lucide-react";
 import { getIndustryBySlug } from "@/data/industryCatalog";
 import { getQuestionsForMode } from "@/lib/scenarioQuestions";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 import type { CommunicationPrefs } from "./CommunicationPreferences";
 import type { SchedulingPrefs } from "./SchedulingSetup";
 import type { EditableService } from "./ServicePreviewStep";
+import type { TeamMember } from "./TeamSetupStep";
 
 const modeLabels: Record<BusinessMode, string> = {
   service: "Service Business",
@@ -19,7 +20,8 @@ const modeLabels: Record<BusinessMode, string> = {
 
 const bookingModeLabels: Record<string, string> = {
   auto_book: "Auto-Book",
-  pending_approval: "Require Approval",
+  pending_approval: "Book + Require Approval",
+  suggest_callback: "Suggest + Callback",
   callback_only: "Callback Only",
 };
 
@@ -43,6 +45,8 @@ interface ConfirmationSummaryProps {
   communicationPrefs: CommunicationPrefs;
   schedulingPrefs?: SchedulingPrefs;
   templateServices?: EditableService[];
+  teamMembers?: TeamMember[];
+  isSoloOperator?: boolean;
   onEditStep: (stepIndex: number) => void;
 }
 
@@ -54,6 +58,8 @@ export function ConfirmationSummary({
   communicationPrefs,
   schedulingPrefs,
   templateServices,
+  teamMembers = [],
+  isSoloOperator = true,
   onEditStep,
 }: ConfirmationSummaryProps) {
   const industryEntry = getIndustryBySlug(industrySlug);
@@ -173,14 +179,39 @@ export function ConfirmationSummary({
         </CardContent>
       </Card>
 
-      {/* Card 4: AI Behavior */}
+      {/* Card 4: Team */}
+      <Card>
+        <CardContent className="p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-muted-foreground">Your Team</p>
+            <button
+              type="button"
+              onClick={() => onEditStep(5)}
+              className="text-muted-foreground hover:text-primary transition-colors"
+              aria-label="Edit team"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">
+              {isSoloOperator
+                ? "Solo operator"
+                : `${teamMembers.filter((m) => m.name.trim()).length} team member${teamMembers.filter((m) => m.name.trim()).length !== 1 ? "s" : ""}`}
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Card 5: AI Behavior */}
       <Card>
         <CardContent className="p-4 space-y-2">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-muted-foreground">AI Behavior</p>
             <button
               type="button"
-              onClick={() => onEditStep(5)}
+              onClick={() => onEditStep(6)}
               className="text-muted-foreground hover:text-primary transition-colors"
               aria-label="Edit AI behavior"
             >

@@ -29,6 +29,7 @@ import { MedicalHIPAASettings } from "@/components/settings/MedicalHIPAASettings
 import { CallbackDeliverySettings } from "@/components/settings/CallbackDeliverySettings";
 import { MedicalIntakeDeliverySettings } from "@/components/settings/MedicalIntakeDeliverySettings";
 import { BusinessProfileEditor } from "@/components/brain/BusinessProfileEditor";
+import StaffManagementEditor from "@/components/brain/StaffManagementEditor";
 import { BusinessPoliciesEditor } from "@/components/brain/BusinessPoliciesEditor";
 import { CustomPoliciesEditor } from "@/components/brain/CustomPoliciesEditor";
 import { ServiceAreaManager } from "@/components/brain/ServiceAreaManager";
@@ -98,6 +99,8 @@ export function BrainEditorRenderer({
       return <BusinessHoursManager />;
     case "calendar-sync":
       return <AvailabilityHub />;
+    case "team":
+      return <StaffManagementEditor />;
     case "templates":
       return <IndustryTemplateCard />;
 

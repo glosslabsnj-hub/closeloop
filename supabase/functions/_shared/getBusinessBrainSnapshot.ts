@@ -120,6 +120,16 @@ export interface AssistantSettingsSnapshot {
   ai_tone: string;
   followup_cadence: string;
   unknown_question_behavior: string;
+  ai_guardrails: string;
+  required_intake_fields: string[];
+  escalation_rules: {
+    transferOnRequest: boolean;
+    transferOnAnger: boolean;
+    transferOnPriceObjection: boolean;
+    transferOnComplexQuestion: boolean;
+    transferOnComplaint: boolean;
+    fallbackAction: string;
+  };
 }
 
 export interface IntelligenceSettingsSnapshot {
@@ -426,6 +436,16 @@ function getDefaultAssistantSettings(): AssistantSettingsSnapshot {
     ai_tone: "",
     followup_cadence: "moderate",
     unknown_question_behavior: "try_help",
+    ai_guardrails: "",
+    required_intake_fields: ["customer_name", "customer_phone"],
+    escalation_rules: {
+      transferOnRequest: true,
+      transferOnAnger: true,
+      transferOnPriceObjection: false,
+      transferOnComplexQuestion: true,
+      transferOnComplaint: true,
+      fallbackAction: "callback",
+    },
   };
 }
 
@@ -774,6 +794,16 @@ export async function getBusinessBrainSnapshot(
         ai_tone: safeString(settingsJsonRaw?.ai_tone),
         followup_cadence: safeString(settingsJsonRaw?.followup_cadence) || "moderate",
         unknown_question_behavior: safeString((assistantSettingsRaw as any)?.unknown_question_behavior || settingsJsonRaw?.unknown_question_behavior) || "try_help",
+        ai_guardrails: safeString((settingsJsonRaw as any)?.ai_guardrails),
+        required_intake_fields: Array.isArray((settingsJsonRaw as any)?.required_intake_fields) ? (settingsJsonRaw as any).required_intake_fields : ["customer_name", "customer_phone"],
+        escalation_rules: {
+          transferOnRequest: (settingsJsonRaw as any)?.escalation_rules?.transferOnRequest ?? true,
+          transferOnAnger: (settingsJsonRaw as any)?.escalation_rules?.transferOnAnger ?? true,
+          transferOnPriceObjection: (settingsJsonRaw as any)?.escalation_rules?.transferOnPriceObjection ?? false,
+          transferOnComplexQuestion: (settingsJsonRaw as any)?.escalation_rules?.transferOnComplexQuestion ?? true,
+          transferOnComplaint: (settingsJsonRaw as any)?.escalation_rules?.transferOnComplaint ?? true,
+          fallbackAction: safeString((settingsJsonRaw as any)?.escalation_rules?.fallbackAction) || "callback",
+        },
       }
     : getDefaultAssistantSettings();
 

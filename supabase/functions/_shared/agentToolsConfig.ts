@@ -610,6 +610,106 @@ function createLookupDispatchStatusTool(): AgentTool {
   };
 }
 
+/**
+ * lookup_active_job - Check status of a customer's active job/vehicle in the shop
+ * Used by: Service (capability: job_tracking), callback_only mode
+ */
+function createLookupActiveJobTool(): AgentTool {
+  return {
+    name: "lookup_active_job",
+    description: `Look up the status of a customer's active job or vehicle in the shop. Use when caller asks: "How's my car?", "Is my car ready?", "What's the status of my repair?", "When will it be done?", or provides a job number. Can search by phone, name, job number, or vehicle description.`,
+    url: `${BASE_URL}/elevenlabs-lookup-active-job`,
+    method: "POST",
+    parameters: [
+      {
+        name: "tenant_id",
+        type: "string",
+        required: true,
+        description: "Tenant identifier",
+        dynamicValue: "{{tenant_id}}",
+      },
+      {
+        name: "customer_phone",
+        type: "string",
+        required: false,
+        description: "Customer's phone number for lookup",
+        dynamicValue: "{{caller_phone}}",
+      },
+      {
+        name: "customer_name",
+        type: "string",
+        required: false,
+        description: "Customer's name to match against job records",
+      },
+      {
+        name: "job_number",
+        type: "string",
+        required: false,
+        description: "Job number if the customer provides one (e.g., 'JOB-1234')",
+      },
+      {
+        name: "vehicle_description",
+        type: "string",
+        required: false,
+        description: "Vehicle year/make/model if mentioned (e.g., '2019 Honda Civic')",
+      },
+      {
+        name: "conversation_id",
+        type: "string",
+        required: false,
+        description: "Conversation tracking",
+      },
+    ],
+  };
+}
+
+/**
+ * transfer_to_owner - Transfer the live call to the business owner/manager
+ * Used by: All agent types (universal)
+ */
+function createTransferToOwnerTool(): AgentTool {
+  return {
+    name: "transfer_to_owner",
+    description: `Transfer the caller to the business owner or manager. Use IMMEDIATELY when caller says: "Let me talk to someone", "Can I speak to the owner?", "Transfer me", "I want to talk to a person", "Get me your manager". Do NOT try to talk them out of it — just transfer.`,
+    url: `${BASE_URL}/elevenlabs-transfer-call`,
+    method: "POST",
+    parameters: [
+      {
+        name: "tenant_id",
+        type: "string",
+        required: true,
+        description: "Tenant identifier",
+        dynamicValue: "{{tenant_id}}",
+      },
+      {
+        name: "conversation_id",
+        type: "string",
+        required: false,
+        description: "Conversation tracking for session lookup",
+      },
+      {
+        name: "twilio_call_sid",
+        type: "string",
+        required: false,
+        description: "Twilio Call SID for the active call",
+        dynamicValue: "{{twilio_call_sid}}",
+      },
+      {
+        name: "customer_name",
+        type: "string",
+        required: false,
+        description: "Customer's name if collected",
+      },
+      {
+        name: "reason",
+        type: "string",
+        required: false,
+        description: "Why the caller wants to be transferred",
+      },
+    ],
+  };
+}
+
 // ============= AGENT CONFIGURATIONS =============
 
 /**
@@ -1414,6 +1514,8 @@ export function buildToolsForCapabilities(
     cancel_booking: () => createCancelBookingTool(),
     add_to_waitlist: () => createAddToWaitlistTool(),
     lookup_dispatch_status: () => createLookupDispatchStatusTool(),
+    lookup_active_job: () => createLookupActiveJobTool(),
+    transfer_to_owner: () => createTransferToOwnerTool(),
   };
   
   // Inject bonus tools that aren't already in the base set

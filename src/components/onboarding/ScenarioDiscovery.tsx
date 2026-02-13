@@ -1,9 +1,11 @@
 import { useMemo, useState, useCallback, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Bot, ChevronDown } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Shield, Bot, ChevronDown, DollarSign } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import {
@@ -12,6 +14,7 @@ import {
   groupLabels,
   type ScenarioQuestion,
   type QuestionGroup,
+  type FollowUpField,
 } from "@/lib/scenarioQuestions";
 import { getIndustryBySlug } from "@/data/industryCatalog";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
@@ -20,6 +23,9 @@ interface ScenarioDiscoveryProps {
   businessMode: BusinessMode;
   answers: Record<string, boolean>;
   onChange: (answers: Record<string, boolean>) => void;
+  /** Follow-up detail values (non-boolean) keyed by FollowUpField.key */
+  details?: Record<string, string>;
+  onDetailsChange?: (details: Record<string, string>) => void;
   industrySlug?: string;
   industryCategory?: string;
 }
@@ -28,6 +34,8 @@ export function ScenarioDiscovery({
   businessMode,
   answers,
   onChange,
+  details = {},
+  onDetailsChange,
   industrySlug,
   industryCategory,
 }: ScenarioDiscoveryProps) {
@@ -84,6 +92,10 @@ export function ScenarioDiscovery({
     });
   };
 
+  const updateDetail = (key: string, value: string) => {
+    onDetailsChange?.({ ...details, [key]: value });
+  };
+
   let globalIndex = 0;
 
   const [hasScrolled, setHasScrolled] = useState(false);
@@ -131,6 +143,8 @@ export function ScenarioDiscovery({
                       onToggle={() => toggle(q.capabilityKey, q.blocking)}
                       index={index}
                       isPreSet={isPreAnswered(q, industryContext)}
+                      details={details}
+                      onDetailChange={updateDetail}
                     />
                   );
                 })}
@@ -156,20 +170,88 @@ export function ScenarioDiscovery({
   );
 }
 
+function FollowUpFields({
+  fields,
+  details,
+  onDetailChange,
+}: {
+  fields: FollowUpField[];
+  details: Record<string, string>;
+  onDetailChange: (key: string, value: string) => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.2 }}
+      className="overflow-hidden"
+    >
+      <div className="mt-3 pt-3 border-t border-border/50 flex flex-wrap gap-3">
+        {fields.map((field) => (
+          <div key={field.key} className="flex-1 min-w-[140px] max-w-[200px]">
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">
+              {field.label}
+            </label>
+            {field.type === "select" ? (
+              <Select
+                value={details[field.key] || field.defaultValue || ""}
+                onValueChange={(v) => onDetailChange(field.key, v)}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Select..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {field.options?.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="relative">
+                {(field.type === "currency") && (
+                  <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                )}
+                <Input
+                  type={field.type === "number" || field.type === "currency" || field.type === "miles" ? "number" : "text"}
+                  value={details[field.key] || ""}
+                  onChange={(e) => onDetailChange(field.key, e.target.value)}
+                  placeholder={field.placeholder}
+                  className={cn("h-8 text-xs", field.type === "currency" && "pl-6")}
+                />
+                {field.type === "miles" && (
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">mi</span>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
 function QuestionCard({
   question,
   checked,
   onToggle,
   index,
   isPreSet,
+  details = {},
+  onDetailChange,
 }: {
   question: ScenarioQuestion;
   checked: boolean;
   onToggle: () => void;
   index: number;
   isPreSet?: boolean;
+  details?: Record<string, string>;
+  onDetailChange?: (key: string, value: string) => void;
 }) {
   const isBlocking = question.blocking;
+  const showFollowUp = checked && question.followUp && question.followUp.fields.length > 0;
 
   return (
     <motion.div
@@ -220,6 +302,17 @@ function QuestionCard({
               disabled={isBlocking}
             />
           </div>
+
+          {/* Inline follow-up fields */}
+          <AnimatePresence>
+            {showFollowUp && onDetailChange && (
+              <FollowUpFields
+                fields={question.followUp!.fields}
+                details={details}
+                onDetailChange={onDetailChange}
+              />
+            )}
+          </AnimatePresence>
         </CardContent>
       </Card>
     </motion.div>

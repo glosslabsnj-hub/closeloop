@@ -56,11 +56,23 @@ export const TOOL_CAPABILITY_MAP: ToolCapabilityMapping[] = [
     priority: 80,
   },
   
+  // ===== JOB TRACKING TOOLS =====
+  {
+    toolName: "lookup_active_job",
+    requiredCapabilities: ["job_tracking"],
+    priority: 85,
+  },
+
   // ===== UNIVERSAL TOOLS =====
   {
     toolName: "create_callback",
     requiredCapabilities: ["*"], // Always available
     priority: 50,
+  },
+  {
+    toolName: "transfer_to_owner",
+    requiredCapabilities: ["*"], // Always available
+    priority: 75,
   },
 ];
 
