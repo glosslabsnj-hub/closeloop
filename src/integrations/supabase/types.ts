@@ -645,6 +645,7 @@ export type Database = {
           recurring_enabled: boolean | null
           same_day_enabled: boolean | null
           service_default_flow: string | null
+          settings_json: Json | null
           setup_completed_at: string | null
           setup_step_calendar: boolean | null
           setup_step_phone: boolean | null
@@ -699,6 +700,7 @@ export type Database = {
           recurring_enabled?: boolean | null
           same_day_enabled?: boolean | null
           service_default_flow?: string | null
+          settings_json?: Json | null
           setup_completed_at?: string | null
           setup_step_calendar?: boolean | null
           setup_step_phone?: boolean | null
@@ -753,6 +755,7 @@ export type Database = {
           recurring_enabled?: boolean | null
           same_day_enabled?: boolean | null
           service_default_flow?: string | null
+          settings_json?: Json | null
           setup_completed_at?: string | null
           setup_step_calendar?: boolean | null
           setup_step_phone?: boolean | null
