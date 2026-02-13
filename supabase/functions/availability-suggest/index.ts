@@ -101,6 +101,14 @@ serve(async (req: Request) => {
 
     console.log(`[availability-suggest] Tenant: ${tenantId}, Date: ${date}, Duration: ${finalDuration}min, Preference: ${preference}`);
 
+    // Get tenant capacity
+    const { data: tenantCapData } = await supabase
+      .from("tenants")
+      .select("default_capacity")
+      .eq("id", tenantId)
+      .single();
+    const capacity = (tenantCapData as any)?.default_capacity || 1;
+
     // Call the timezone-aware database function
     const { data: slots, error: slotsError } = await supabase.rpc(
       "fn_compute_available_slots",
@@ -111,6 +119,7 @@ serve(async (req: Request) => {
         _duration_minutes: finalDuration,
         _buffer_minutes: bufferMinutes,
         _business_hours: tenant.hours_json,
+        _capacity: capacity,
       }
     );
 
