@@ -1,64 +1,124 @@
 
 
-# Fix Calendar Availability + Pending Booking Notification
+# Service Team Management + FieldEdge Integration
 
-## What's Wrong (Summary)
+## Overview
 
-1. **Blue Boxer has NO `assistant_settings` row** -- so booking mode, calendar provider, and all settings are null
-2. **`min_lead_hours` is 24** -- blocks all same-day/next-day bookings
-3. **`fn_compute_available_slots` SQL function only reads flat `hours_json`** (e.g., `{"open": "08:00", "close": "16:30"}`) but Blue Boxer uses the newer **windows format** (`{"windows": [{"open": "08:00", "close": "16:30"}]}`) -- result: zero slots returned, AI says "fully booked"
-4. **`elevenlabs-check-availability` edge function** has the same flat-format assumption on lines 316-317
-5. **No prompt instruction** tells the AI to notify callers that bookings are "pending confirmation" when `ai_booking_mode = pending_approval`
+This plan covers two connected features:
 
-## What I Will Change (Code)
+1. **Rebrand Fleet Management for service businesses** -- change "Fleet/Drivers" language to "Your Team/Technicians" and make the page about assigning daily jobs to crew members
+2. **Crew member dashboard** -- let technicians log in and see their assigned jobs for the day
+3. **FieldEdge integration** -- self-service setup where the tenant enters their own FieldEdge API credentials, enabling bidirectional booking sync
 
-### 1. SQL Migration: Fix `fn_compute_available_slots` to handle windows format
-Update lines 80-81 to normalize before reading open/close:
+---
+
+## Part 1: Service-Aware Team Page
+
+### Problem
+The current `/app/fleet` page uses dispatch language ("Drivers", "Vehicles", "Dispatch jobs") which doesn't fit service businesses like plumbing companies.
+
+### Changes
+- **FleetPage.tsx**: Detect business mode. For `service` mode, show "Your Team" header with "Manage your technicians and assign jobs" description. Hide the Vehicles section entirely (service businesses don't need fleet vehicles).
+- **FleetDriversManager.tsx**: Mode-aware labels -- "Add Technician" instead of "Add Driver", "Crew & Technicians" instead of "Crew & Drivers"
+- **Add a "Today's Assignments" section** below the team list showing active jobs grouped by technician, with drag-and-drop or dropdown assignment. This reads from `active_jobs` where `metadata_json.assigned_to` matches a `fleet_drivers.id`.
+
+---
+
+## Part 2: Crew Member Dashboard
+
+### Problem
+Crew members (technicians) who log in currently have no way to see jobs assigned to them from the Active Jobs board.
+
+### How it works today
+- `fleet_drivers` has a `user_id` column that links to an auth user
+- `active_jobs` stores assignment in `metadata_json.assigned_to` (stores the `fleet_drivers.id`)
+- `useDriverJobs` hook exists but only queries `dispatch_jobs`, not `active_jobs`
+
+### Changes
+- **New hook: `useCrewJobs.ts`** -- queries `active_jobs` where `metadata_json->>assigned_to` equals the current user's `fleet_drivers.id`. Returns today's jobs, upcoming jobs, and completed jobs.
+- **Update the Dashboard** -- when a logged-in user has a `fleet_drivers` record and role is `driver`, show a "My Jobs" widget on their dashboard with their assigned jobs for the day, including customer name, phone, address, service items, and status.
+- **Job status updates from crew** -- crew members can update job status (mark service items complete, update job status) directly from their view.
+
+---
+
+## Part 3: FieldEdge Integration (Self-Service)
+
+### How FieldEdge API works
+FieldEdge uses a partner API hosted on Azure API Management. Access requires API credentials (API key or OAuth). The tenant will provide their own credentials.
+
+### Architecture (follows existing Tekmetric pattern)
 
 ```text
-IF day_hours ? 'windows' AND jsonb_array_length(day_hours->'windows') > 0 THEN
-  open_time := (day_hours->'windows'->0->>'open')::time;
-  close_time := (day_hours->'windows'->0->>'close')::time;
-ELSE
-  open_time := (day_hours->>'open')::time;
-  close_time := (day_hours->>'close')::time;
-END IF;
+Tenant enters credentials
+       |
+       v
+fieldedge-auth edge function
+       |
+       v
+tenant_integrations table (provider: "fieldedge")
+       |
+       v
+sync-fieldedge edge function (bidirectional)
+       |
+       +-- CloseLoop bookings --> FieldEdge work orders
+       +-- FieldEdge dispatches --> CloseLoop active_jobs
+       |
+       v
+cron-fieldedge-sync (every 5 min)
 ```
 
-### 2. Edge Function: Fix `elevenlabs-check-availability/index.ts`
-Add a `normalizeHours` helper that extracts `open`/`close` from either format. Update lines 316-317 and line 320 to use the normalized values instead of `dayHours.open` / `dayHours.close`.
+### New files
 
-### 3. Edge Function: Add pending-booking prompt to `agentBasePrompts.ts`
-Add a new constant `PENDING_BOOKING_OVERRIDE` with instructions like:
-- "After creating a booking, inform the customer that their appointment is pending confirmation and someone from the team will reach out to confirm."
+| File | Purpose |
+|------|---------|
+| `src/hooks/useFieldEdgeIntegration.ts` | Frontend hook (mirrors `useTekmetricIntegration.ts`) |
+| `src/components/integrations/FieldEdgeSetupCard.tsx` | Self-service credential input UI on Integrations page |
+| `supabase/functions/fieldedge-auth/index.ts` | Validates credentials, stores in `tenant_integrations` |
+| `supabase/functions/sync-fieldedge/index.ts` | Bidirectional sync logic |
+| `supabase/functions/cron-fieldedge-sync/index.ts` | Cron trigger for auto-sync |
 
-Inject it in `buildPromptForCapabilities` when `ai_booking_mode` is available. Since `buildPromptForCapabilities` doesn't currently receive `ai_booking_mode`, I'll add it as an optional parameter.
+### Sync logic
 
-### 4. Wire `ai_booking_mode` into prompt builder
-In `buildBusinessContext.ts` (~line 3263), pass `ctx.ai_settings.ai_booking_mode` to `buildPromptForCapabilities` so it can conditionally include the pending-booking instruction.
+**Outbound (CloseLoop to FieldEdge):**
+- When a booking is created with status `pending` or `confirmed`, push it to FieldEdge as a work order/dispatch
+- Store FieldEdge's returned ID in `bookings.metadata_json.fieldedge_id` for dedup
 
-### 5. Database fixes for Blue Boxer
-- Insert `assistant_settings` row with `ai_booking_mode = 'pending_approval'`, `calendar_provider = 'google'`, `same_day_enabled = true`
-- Update `min_lead_hours` from 24 to 2
+**Inbound (FieldEdge to CloseLoop):**
+- Poll FieldEdge for new/updated dispatches
+- Map to `active_jobs` using `external_id = fieldedge:{dispatch_id}` (same dedup pattern as Tekmetric)
+- Map FieldEdge statuses to internal statuses
 
-### 6. Deploy and verify
-Deploy `elevenlabs-check-availability` and test `compute-available-slots` to confirm slots are returned.
+### Self-service flow for the tenant
+1. Tenant goes to Integrations page
+2. Clicks "Connect FieldEdge"
+3. Enters their FieldEdge API key (provided by FieldEdge to the contractor)
+4. System validates credentials by making a test API call
+5. On success, integration is active and sync begins
 
-## What You Need To Do (ElevenLabs Dashboard)
+---
 
-**Nothing changes about the universal agent setup.** The `ai_booking_mode` variable is already registered in the voice context contract and gets passed as a dynamic variable automatically. However, you should verify these two things in the ElevenLabs dashboard:
+## Technical Details
 
-1. **Confirm `ai_booking_mode` is listed as a Dynamic Variable** on the Service agent -- it should already be there since it's in the contract, but verify it appears with value `{{ai_booking_mode}}`. If it's missing, add it as a new dynamic variable.
+### Database changes
+- No new tables needed -- reuses `tenant_integrations` with `provider = 'fieldedge'`
+- Add `external_id` column to `bookings` table (if not already present) for outbound dedup
 
-2. **No per-client changes needed** -- the prompt injection happens server-side via `buildPromptForCapabilities`. The agent will automatically receive the pending-booking behavioral instruction when any tenant has `ai_booking_mode = pending_approval`. This keeps the agent universal.
+### Edge function secrets
+- FieldEdge credentials are stored per-tenant in `tenant_integrations.credentials_json` (encrypted at rest by the database), NOT as global secrets
+- No global API keys needed since each tenant provides their own
 
-## Files Modified
-
+### Files to modify
 | File | Change |
 |------|--------|
-| SQL migration (new) | Update `fn_compute_available_slots` to handle windows hours format |
-| `supabase/functions/elevenlabs-check-availability/index.ts` | Add `normalizeHours` helper, fix business hours reading |
-| `supabase/functions/_shared/agentBasePrompts.ts` | Add `PENDING_BOOKING_OVERRIDE` constant, update `buildPromptForCapabilities` signature |
-| `supabase/functions/_shared/buildBusinessContext.ts` | Pass `ai_booking_mode` to prompt builder |
-| Database (Blue Boxer tenant) | Insert `assistant_settings` row, reduce `min_lead_hours` to 2 |
+| `src/pages/app/FleetPage.tsx` | Mode-aware title/description, hide vehicles for service mode |
+| `src/components/brain/dispatch/FleetDriversManager.tsx` | Mode-aware labels |
+| `src/hooks/useCrewJobs.ts` | New hook for crew member job view |
+| `src/hooks/useFieldEdgeIntegration.ts` | New hook mirroring Tekmetric pattern |
+| `src/components/integrations/FieldEdgeSetupCard.tsx` | New self-service UI |
+| `src/pages/app/IntegrationsPage.tsx` | Add FieldEdge card for service tenants |
+| `supabase/functions/fieldedge-auth/index.ts` | New edge function |
+| `supabase/functions/sync-fieldedge/index.ts` | New edge function |
+| `supabase/functions/cron-fieldedge-sync/index.ts` | New edge function |
 
+### Important note on FieldEdge API
+FieldEdge's API is partner-only and documentation is behind a login wall. The edge functions will be built with the standard REST patterns (auth header, JSON endpoints) but **you may need to provide the exact FieldEdge API endpoint URLs and data format** once you or your client have access to their developer portal. The sync functions will be structured so that updating the endpoint URLs and field mappings is straightforward.
