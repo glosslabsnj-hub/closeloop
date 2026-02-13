@@ -9,6 +9,7 @@ export type LeadTemperature = "hot" | "warm" | "cold";
 
 export interface EnrichedLead extends Lead {
   temperature: LeadTemperature;
+  temperatureReason: string;
   latestCallScore: string | null;
   latestCallOutcome: string | null;
   latestCallAt: string | null;
@@ -20,7 +21,7 @@ function computeTemperature(
   latestScore: string | null,
   latestOutcome: string | null,
   latestCallAt: string | null,
-): LeadTemperature {
+): { temperature: LeadTemperature; reason: string } {
   const now = Date.now();
   const lastActivity = lead.last_message_at
     ? new Date(lead.last_message_at).getTime()
@@ -30,28 +31,49 @@ function computeTemperature(
 
   const hoursSinceActivity = (now - lastActivity) / (1000 * 60 * 60);
 
-  // Hot: explicit hot score, booked status, or very recent activity
-  if (
-    latestScore === "hot" ||
-    lead.status === "booked" ||
-    lead.status === "won" ||
-    (hoursSinceActivity <= 24 && lead.status !== "lost")
-  ) {
-    return "hot";
+  // Hot: explicit hot score, booked/dispatched, or very recent high-intent activity
+  if (latestScore === "hot") {
+    return { temperature: "hot", reason: "AI scored as high-intent" };
+  }
+  if (lead.status === "booked" || lead.status === "won") {
+    return { temperature: "hot", reason: `Status: ${lead.status}` };
+  }
+  if (latestOutcome === "booked" || latestOutcome === "dispatch") {
+    return { temperature: "hot", reason: `Outcome: ${latestOutcome === "booked" ? "booked appointment" : "dispatch requested"}` };
+  }
+  if (hoursSinceActivity <= 24 && lead.status !== "lost" && (latestOutcome === "followup" || latestOutcome === "lead_captured")) {
+    const hrs = Math.round(hoursSinceActivity);
+    return { temperature: "hot", reason: `${latestOutcome === "followup" ? "Requested callback" : "Lead captured"} ${hrs}h ago` };
   }
 
   // Warm: warm score, contacted/qualified, or recent activity within 3 days
-  if (
-    latestScore === "warm" ||
-    lead.status === "contacted" ||
-    lead.status === "qualified" ||
-    latestOutcome === "followup" ||
-    (hoursSinceActivity <= 72 && lead.status !== "lost")
-  ) {
-    return "warm";
+  if (latestScore === "warm") {
+    return { temperature: "warm", reason: "AI scored as engaged" };
+  }
+  if (lead.status === "contacted") {
+    return { temperature: "warm", reason: "Contacted — awaiting response" };
+  }
+  if (lead.status === "qualified") {
+    return { temperature: "warm", reason: "Qualified — ready for quote" };
+  }
+  if (latestOutcome === "followup" && hoursSinceActivity <= 72) {
+    return { temperature: "warm", reason: "Follow-up requested recently" };
+  }
+  if (latestOutcome === "lead_captured" && hoursSinceActivity <= 72) {
+    return { temperature: "warm", reason: "Captured within 3 days" };
+  }
+  if (hoursSinceActivity <= 72 && lead.status !== "lost") {
+    return { temperature: "warm", reason: "Active within 3 days" };
   }
 
-  return "cold";
+  // Cold
+  if (lead.status === "lost") {
+    return { temperature: "cold", reason: "Marked as lost" };
+  }
+  if (hoursSinceActivity > 168) {
+    return { temperature: "cold", reason: "No activity in 7+ days" };
+  }
+  return { temperature: "cold", reason: "No recent engagement" };
 }
 
 export function useLeadIntelligence() {
@@ -63,7 +85,6 @@ export function useLeadIntelligence() {
     queryFn: async (): Promise<EnrichedLead[]> => {
       if (!tenantId) return [];
 
-      // Fetch leads
       const { data: leads, error: leadsErr } = await supabase
         .from("leads")
         .select("*")
@@ -73,7 +94,6 @@ export function useLeadIntelligence() {
       if (leadsErr) throw leadsErr;
       if (!leads || leads.length === 0) return [];
 
-      // Fetch latest call session per lead (batch)
       const leadIds = leads.map((l) => l.id);
       const { data: sessions } = await supabase
         .from("ai_call_sessions")
@@ -82,7 +102,6 @@ export function useLeadIntelligence() {
         .in("lead_id", leadIds)
         .order("started_at", { ascending: false });
 
-      // Build map: lead_id -> latest session info + count
       const sessionMap = new Map<
         string,
         { score: string | null; outcome: string | null; at: string | null; count: number }
@@ -105,7 +124,7 @@ export function useLeadIntelligence() {
 
       return leads.map((lead): EnrichedLead => {
         const session = sessionMap.get(lead.id);
-        const temperature = computeTemperature(
+        const { temperature, reason } = computeTemperature(
           lead,
           session?.score ?? null,
           session?.outcome ?? null,
@@ -114,6 +133,7 @@ export function useLeadIntelligence() {
         return {
           ...lead,
           temperature,
+          temperatureReason: reason,
           latestCallScore: session?.score ?? null,
           latestCallOutcome: session?.outcome ?? null,
           latestCallAt: session?.at ?? null,

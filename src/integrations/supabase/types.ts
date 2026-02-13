@@ -1236,6 +1236,7 @@ export type Database = {
           price_cents: number | null
           service_id: string | null
           session_id: string | null
+          staff_member_id: string | null
           start_at: string
           status: Database["public"]["Enums"]["booking_status"]
           stripe_payment_intent_id: string | null
@@ -1255,6 +1256,7 @@ export type Database = {
           price_cents?: number | null
           service_id?: string | null
           session_id?: string | null
+          staff_member_id?: string | null
           start_at: string
           status?: Database["public"]["Enums"]["booking_status"]
           stripe_payment_intent_id?: string | null
@@ -1274,6 +1276,7 @@ export type Database = {
           price_cents?: number | null
           service_id?: string | null
           session_id?: string | null
+          staff_member_id?: string | null
           start_at?: string
           status?: Database["public"]["Enums"]["booking_status"]
           stripe_payment_intent_id?: string | null
@@ -1299,6 +1302,13 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "ai_call_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_staff_member_id_fkey"
+            columns: ["staff_member_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_users"
             referencedColumns: ["id"]
           },
           {

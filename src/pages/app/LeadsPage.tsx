@@ -25,6 +25,11 @@ import {
   Users, Flame, Thermometer, Snowflake, TrendingUp, UserCheck, UserX,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { formatDistanceToNow } from "date-fns";
 import { CreateLeadDialog } from "@/components/leads/CreateLeadDialog";
 import { CreateBookingDialog } from "@/components/calendar/CreateBookingDialog";
@@ -69,14 +74,25 @@ const temperatureConfig: Record<LeadTemperature, { icon: typeof Flame; label: st
   },
 };
 
-function TemperatureBadge({ temp }: { temp: LeadTemperature }) {
+function TemperatureBadge({ temp, reason }: { temp: LeadTemperature; reason?: string }) {
   const cfg = temperatureConfig[temp];
   const Icon = cfg.icon;
-  return (
+  const badge = (
     <Badge variant="outline" className={cn("gap-1 font-medium", cfg.badgeCls)}>
       <Icon className="h-3 w-3" />
       {cfg.label}
     </Badge>
+  );
+  
+  if (!reason) return badge;
+  
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{badge}</TooltipTrigger>
+      <TooltipContent side="top" className="text-xs max-w-[200px]">
+        {reason}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -253,7 +269,7 @@ export default function LeadsPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <TemperatureBadge temp={lead.temperature} />
+                    <TemperatureBadge temp={lead.temperature} reason={lead.temperatureReason} />
                   </TableCell>
                   <TableCell>
                     <Badge className={cn(statusColors[lead.status])}>
