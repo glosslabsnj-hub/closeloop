@@ -344,6 +344,16 @@ export default function OnboardingPage() {
       capabilitiesJson._expectedCallVolume = businessDetails.expectedCallVolume;
       capabilitiesJson._yearsInBusiness = businessDetails.yearsInBusiness;
 
+      // Derive team/fleet capabilities from team size
+      const hasTeam = businessDetails.teamSize === "medium" || businessDetails.teamSize === "large";
+      if (hasTeam) {
+        capabilitiesJson.hasMultipleStaff = true;
+        capabilitiesJson.fleet_management = true;
+        if (!enabledModules.includes("fleet_management")) {
+          enabledModules.push("fleet_management");
+        }
+      }
+
       // Use the hours from scheduling step (not default)
       const hoursToSave = schedulingPrefs.is24x7
         ? (await import("@/lib/hoursUtils")).HOURS_24_7
