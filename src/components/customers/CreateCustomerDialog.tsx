@@ -27,6 +27,7 @@ export function CreateCustomerDialog({ open, onOpenChange }: CreateCustomerDialo
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [serviceAddress, setServiceAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [dupWarning, setDupWarning] = useState("");
 
@@ -34,6 +35,7 @@ export function CreateCustomerDialog({ open, onOpenChange }: CreateCustomerDialo
     setFullName("");
     setPhone("");
     setEmail("");
+    setServiceAddress("");
     setNotes("");
     setDupWarning("");
   };
@@ -76,6 +78,7 @@ export function CreateCustomerDialog({ open, onOpenChange }: CreateCustomerDialo
         phone_raw: phone.trim(),
         email: email.trim() || undefined,
         notes: notes.trim() || undefined,
+        service_address: serviceAddress.trim() || undefined,
         source: "manual",
       });
       toast.success("Customer created");
@@ -131,6 +134,16 @@ export function CreateCustomerDialog({ open, onOpenChange }: CreateCustomerDialo
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="john@example.com"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="cust-address">Address</Label>
+            <Input
+              id="cust-address"
+              value={serviceAddress}
+              onChange={(e) => setServiceAddress(e.target.value)}
+              placeholder="123 Main St, City, State"
             />
           </div>
 

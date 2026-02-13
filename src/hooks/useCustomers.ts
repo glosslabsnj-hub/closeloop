@@ -3,29 +3,32 @@
  import { useAuth } from "@/contexts/AuthContext";
  import { useToast } from "@/hooks/use-toast";
  
- export interface Customer {
-   id: string;
-   tenant_id: string;
-   full_name: string;
-   phone_e164: string;
-   phone_raw: string | null;
-   email: string | null;
-   notes: string | null;
-   tags: string[] | null;
-   source: string | null;
-   created_at: string;
-   updated_at: string;
- }
+export interface Customer {
+  id: string;
+  tenant_id: string;
+  full_name: string;
+  phone_e164: string;
+  phone_raw: string | null;
+  email: string | null;
+  notes: string | null;
+  tags: string[] | null;
+  source: string | null;
+  service_address: string | null;
+  lead_status: string | null;
+  created_at: string;
+  updated_at: string;
+}
  
- export interface CreateCustomerInput {
-   full_name: string;
-   phone_e164: string;
-   phone_raw?: string;
-   email?: string;
-   notes?: string;
-   tags?: string[];
-   source?: string;
- }
+export interface CreateCustomerInput {
+  full_name: string;
+  phone_e164: string;
+  phone_raw?: string;
+  email?: string;
+  notes?: string;
+  tags?: string[];
+  source?: string;
+  service_address?: string;
+}
  
  export interface UpdateCustomerInput extends Partial<CreateCustomerInput> {
    id: string;
@@ -67,18 +70,19 @@
      mutationFn: async (input: CreateCustomerInput) => {
        if (!tenantId) throw new Error("No tenant ID");
  
-       const { data, error } = await supabase
-         .from("customers")
-         .insert({
-           tenant_id: tenantId,
-           full_name: input.full_name,
-           phone_e164: input.phone_e164,
-           phone_raw: input.phone_raw || null,
-           email: input.email || null,
-           notes: input.notes || null,
-           tags: input.tags || null,
-           source: input.source || null,
-         })
+        const { data, error } = await supabase
+          .from("customers")
+          .insert({
+            tenant_id: tenantId,
+            full_name: input.full_name,
+            phone_e164: input.phone_e164,
+            phone_raw: input.phone_raw || null,
+            email: input.email || null,
+            notes: input.notes || null,
+            tags: input.tags || null,
+            source: input.source || null,
+            service_address: input.service_address || null,
+          })
          .select()
          .single();
  

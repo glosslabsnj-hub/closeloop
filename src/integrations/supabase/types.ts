@@ -2313,10 +2313,12 @@ export type Database = {
           email: string | null
           full_name: string
           id: string
+          lead_status: string | null
           notes: string | null
           phone_e164: string
           phone_raw: string | null
           preferred_contact_method: string | null
+          service_address: string | null
           source: string | null
           tags: string[] | null
           tenant_id: string
@@ -2329,10 +2331,12 @@ export type Database = {
           email?: string | null
           full_name: string
           id?: string
+          lead_status?: string | null
           notes?: string | null
           phone_e164: string
           phone_raw?: string | null
           preferred_contact_method?: string | null
+          service_address?: string | null
           source?: string | null
           tags?: string[] | null
           tenant_id: string
@@ -2345,10 +2349,12 @@ export type Database = {
           email?: string | null
           full_name?: string
           id?: string
+          lead_status?: string | null
           notes?: string | null
           phone_e164?: string
           phone_raw?: string | null
           preferred_contact_method?: string | null
+          service_address?: string | null
           source?: string | null
           tags?: string[] | null
           tenant_id?: string
