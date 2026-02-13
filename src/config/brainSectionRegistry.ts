@@ -13,7 +13,7 @@ import {
   MapPin, Navigation, Gauge, FileText, Shield, MessageSquareText, Send,
   Truck, Phone, Warehouse, HeartPulse, Mic, BookOpen, AlertCircle,
   HelpCircle, MessageCircle, Lightbulb, FileUp, Heart, Users, Package,
-  FileCheck, type LucideIcon,
+  FileCheck, Settings2, GitBranch, CalendarCheck, type LucideIcon,
 } from "lucide-react";
 import type { BusinessMode } from "@/hooks/useTenantConfig";
 import type { Capabilities } from "@/hooks/useCapabilities";
@@ -61,7 +61,7 @@ const BUSINESS_ITEMS: BrainSectionItem[] = [
     title: "About Your Business",
     icon: Building2,
     group: "essentials",
-    groupLabel: "ESSENTIALS",
+    groupLabel: "Basics",
     order: 1,
     tab: "business",
     isEssential: true,
@@ -72,7 +72,7 @@ const BUSINESS_ITEMS: BrainSectionItem[] = [
     title: "Your Hours",
     icon: Clock,
     group: "essentials",
-    groupLabel: "ESSENTIALS",
+    groupLabel: "Basics",
     order: 2,
     tab: "business",
     isEssential: true,
@@ -83,7 +83,7 @@ const BUSINESS_ITEMS: BrainSectionItem[] = [
     title: "Calendar & Availability",
     icon: Calendar,
     group: "essentials",
-    groupLabel: "ESSENTIALS",
+    groupLabel: "Basics",
     order: 3,
     tab: "business",
 
@@ -94,7 +94,7 @@ const BUSINESS_ITEMS: BrainSectionItem[] = [
     title: "Your Team",
     icon: Users,
     group: "team",
-    groupLabel: "TEAM",
+    groupLabel: "Your Team",
     order: 4,
     tab: "business",
     setupPriority: "recommended",
@@ -104,7 +104,7 @@ const BUSINESS_ITEMS: BrainSectionItem[] = [
     title: "Quick Setup Templates",
     icon: Palette,
     group: "optional",
-    groupLabel: "OPTIONAL",
+    groupLabel: "Quick Start",
     order: 1,
     tab: "business",
 
@@ -119,7 +119,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     title: "Service Types",
     icon: UtensilsCrossed,
     group: "your-catalog",
-    groupLabel: "YOUR CATALOG",
+    groupLabel: "Your Services",
     order: 1,
     tab: "services",
     isEssential: true,
@@ -131,7 +131,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     title: "How You Price Things",
     icon: DollarSign,
     group: "your-catalog",
-    groupLabel: "YOUR CATALOG",
+    groupLabel: "Your Services",
     order: 2,
     tab: "services",
 
@@ -142,7 +142,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     title: "Your Services",
     icon: Tag,
     group: "your-catalog",
-    groupLabel: "YOUR CATALOG",
+    groupLabel: "Your Services",
     order: 3,
     tab: "services",
     isEssential: true,
@@ -153,7 +153,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     title: "Extra Fees & Surcharges",
     icon: DollarSign,
     group: "pricing-options",
-    groupLabel: "PRICING OPTIONS",
+    groupLabel: "Pricing & Fees",
     order: 1,
     tab: "services",
 
@@ -164,7 +164,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     title: "Service Packages",
     icon: Package,
     group: "pricing-options",
-    groupLabel: "PRICING OPTIONS",
+    groupLabel: "Pricing & Fees",
     order: 2,
     tab: "services",
 
@@ -175,7 +175,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     title: "Dispatch Fees",
     icon: DollarSign,
     group: "pricing-options",
-    groupLabel: "PRICING OPTIONS",
+    groupLabel: "Pricing & Fees",
     order: 3,
     tab: "services",
 
@@ -186,7 +186,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     title: "Distance Pricing",
     icon: Navigation,
     group: "pricing-options",
-    groupLabel: "PRICING OPTIONS",
+    groupLabel: "Pricing & Fees",
     order: 4,
     tab: "services",
 
@@ -197,7 +197,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     title: "Order Settings",
     icon: UtensilsCrossed,
     group: "pricing-options",
-    groupLabel: "PRICING OPTIONS",
+    groupLabel: "Pricing & Fees",
     order: 5,
     tab: "services",
 
@@ -208,7 +208,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     title: "Size Options",
     icon: Tag,
     group: "pricing-options",
-    groupLabel: "PRICING OPTIONS",
+    groupLabel: "Pricing & Fees",
     order: 6,
     tab: "services",
 
@@ -219,7 +219,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     title: "Specials & Deals",
     icon: Lightbulb,
     group: "pricing-options",
-    groupLabel: "PRICING OPTIONS",
+    groupLabel: "Pricing & Fees",
     order: 7,
     tab: "services",
 
@@ -230,7 +230,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     title: "Practice Pricing",
     icon: HeartPulse,
     group: "pricing-options",
-    groupLabel: "PRICING OPTIONS",
+    groupLabel: "Pricing & Fees",
     order: 8,
     tab: "services",
 
@@ -241,7 +241,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     title: "Other Things You Offer",
     icon: Tag,
     group: "other-offerings",
-    groupLabel: "OTHER OFFERINGS",
+    groupLabel: "Additional Offerings",
     order: 1,
     tab: "services",
 
@@ -251,13 +251,13 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
 // ─── Operations Tab ─────────────────────────────────────────────────────────
 
 const OPERATIONS_ITEMS: BrainSectionItem[] = [
-  // WHERE YOU WORK
+  // Service Area
   {
     id: "coverage",
     title: "Your Service Area",
     icon: MapPin,
     group: "where-you-work",
-    groupLabel: "WHERE YOU WORK",
+    groupLabel: "Service Area",
     order: 1,
     tab: "operations",
     isEssential: true,
@@ -270,7 +270,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     title: "Arrival Estimates",
     icon: Navigation,
     group: "where-you-work",
-    groupLabel: "WHERE YOU WORK",
+    groupLabel: "Service Area",
     order: 2,
     tab: "operations",
 
@@ -283,7 +283,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     title: "Service Scheduling",
     icon: Clock,
     group: "where-you-work",
-    groupLabel: "WHERE YOU WORK",
+    groupLabel: "Service Area",
     order: 3,
     tab: "operations",
 
@@ -294,7 +294,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     title: "Coverage Zones & ETA",
     icon: MapPin,
     group: "where-you-work",
-    groupLabel: "WHERE YOU WORK",
+    groupLabel: "Service Area",
     order: 4,
     tab: "operations",
 
@@ -305,7 +305,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     title: "Delivery Zones",
     icon: Truck,
     group: "where-you-work",
-    groupLabel: "WHERE YOU WORK",
+    groupLabel: "Service Area",
     order: 5,
     tab: "operations",
 
@@ -317,7 +317,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     title: "Catering Coverage",
     icon: Users,
     group: "where-you-work",
-    groupLabel: "WHERE YOU WORK",
+    groupLabel: "Service Area",
     order: 6,
     tab: "operations",
 
@@ -329,7 +329,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     title: "Visit Options",
     icon: HeartPulse,
     group: "where-you-work",
-    groupLabel: "WHERE YOU WORK",
+    groupLabel: "Service Area",
     order: 7,
     tab: "operations",
 
@@ -340,7 +340,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     title: "Response Times",
     icon: Phone,
     group: "where-you-work",
-    groupLabel: "WHERE YOU WORK",
+    groupLabel: "Service Area",
     order: 8,
     tab: "operations",
 
@@ -351,62 +351,20 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     title: "How Busy Are You Right Now?",
     icon: Gauge,
     group: "where-you-work",
-    groupLabel: "WHERE YOU WORK",
+    groupLabel: "Service Area",
     order: 9,
     tab: "operations",
 
     isVisible: (_mode, caps) => caps.isDispatchBusiness || caps.isSchedulingBusiness,
   },
 
-  // YOUR RULES
-  {
-    id: "policies",
-    title: "Cancellation, Deposits & Payments",
-    icon: FileText,
-    group: "your-rules",
-    groupLabel: "YOUR RULES",
-    order: 1,
-    tab: "operations",
-
-  },
-  {
-    id: "never-promise",
-    title: "What Your AI Should Never Promise",
-    icon: Shield,
-    group: "your-rules",
-    groupLabel: "YOUR RULES",
-    order: 2,
-    tab: "operations",
-
-  },
-  {
-    id: "required-questions",
-    title: "Info to Collect on Every Call",
-    icon: MessageSquareText,
-    group: "your-rules",
-    groupLabel: "YOUR RULES",
-    order: 3,
-    tab: "operations",
-
-  },
-  {
-    id: "custom-policies",
-    title: "Other Rules for Your AI",
-    icon: FileText,
-    group: "your-rules",
-    groupLabel: "YOUR RULES",
-    order: 4,
-    tab: "operations",
-
-  },
-
-  // DELIVERY
+  // Notifications
   {
     id: "booking-delivery",
     title: "Where to Send New Bookings",
     icon: Send,
     group: "delivery",
-    groupLabel: "DELIVERY",
+    groupLabel: "Notifications",
     order: 1,
     tab: "operations",
 
@@ -417,7 +375,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     title: "How Orders Are Handled",
     icon: UtensilsCrossed,
     group: "delivery",
-    groupLabel: "DELIVERY",
+    groupLabel: "Notifications",
     order: 2,
     tab: "operations",
 
@@ -428,7 +386,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     title: "Where to Send New Jobs",
     icon: Truck,
     group: "delivery",
-    groupLabel: "DELIVERY",
+    groupLabel: "Notifications",
     order: 3,
     tab: "operations",
 
@@ -439,7 +397,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     title: "How You Charge for Distance",
     icon: Navigation,
     group: "delivery",
-    groupLabel: "DELIVERY",
+    groupLabel: "Notifications",
     order: 4,
     tab: "operations",
 
@@ -450,7 +408,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     title: "Call Routing (IVR)",
     icon: Phone,
     group: "delivery",
-    groupLabel: "DELIVERY",
+    groupLabel: "Notifications",
     order: 5,
     tab: "operations",
 
@@ -461,7 +419,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     title: "Callback Request Alerts",
     icon: Phone,
     group: "delivery",
-    groupLabel: "DELIVERY",
+    groupLabel: "Notifications",
     order: 6,
     tab: "operations",
 
@@ -471,20 +429,20 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     title: "Intake Notification Settings",
     icon: HeartPulse,
     group: "delivery",
-    groupLabel: "DELIVERY",
+    groupLabel: "Notifications",
     order: 7,
     tab: "operations",
 
     isVisible: (_mode, _caps, flags) => flags.isRelevant("hipaa"),
   },
 
-  // COMPLIANCE
+  // Compliance
   {
     id: "impound-lot",
     title: "Impound Lot Details",
     icon: Warehouse,
     group: "compliance",
-    groupLabel: "COMPLIANCE",
+    groupLabel: "Compliance",
     order: 1,
     tab: "operations",
 
@@ -495,7 +453,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     title: "Impound Fee Structure",
     icon: DollarSign,
     group: "compliance",
-    groupLabel: "COMPLIANCE",
+    groupLabel: "Compliance",
     order: 2,
     tab: "operations",
 
@@ -506,7 +464,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     title: "Release Requirements",
     icon: FileCheck,
     group: "compliance",
-    groupLabel: "COMPLIANCE",
+    groupLabel: "Compliance",
     order: 3,
     tab: "operations",
 
@@ -517,20 +475,20 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
     title: "HIPAA Compliance",
     icon: HeartPulse,
     group: "compliance",
-    groupLabel: "COMPLIANCE",
+    groupLabel: "Compliance",
     order: 4,
     tab: "operations",
 
     isVisible: (_mode, _caps, flags) => flags.isRelevant("hipaa"),
   },
 
-  // INTEGRATIONS
+  // Integrations
   {
     id: "tekmetric",
     title: "Tekmetric Integration",
     icon: Truck,
     group: "integrations",
-    groupLabel: "INTEGRATIONS",
+    groupLabel: "Integrations",
     order: 1,
     tab: "operations",
     setupPriority: "advanced",
@@ -540,204 +498,246 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
 
 // ─── AI Voice Tab ───────────────────────────────────────────────────────────
 
-const AI_VOICE_ITEMS: BrainSectionItem[] = [
+const AI_VOICE_ITEMS: BrainSectionItem[] = [];
+
+// ─── Training Tab ───────────────────────────────────────────────────────────
+
+const TRAINING_ITEMS: BrainSectionItem[] = [
+  // How Your AI Acts
+  {
+    id: "ai-behavior-mode",
+    title: "AI Behavior Mode",
+    icon: Settings2,
+    group: "how-ai-acts",
+    groupLabel: "How Your AI Acts",
+    order: 1,
+    tab: "training",
+  },
+  {
+    id: "call-flow",
+    title: "Call Flow",
+    icon: GitBranch,
+    group: "how-ai-acts",
+    groupLabel: "How Your AI Acts",
+    order: 2,
+    tab: "training",
+    isVisible: (mode) => mode === "service" || mode === "general",
+  },
+  {
+    id: "booking-behavior",
+    title: "Booking Behavior",
+    icon: CalendarCheck,
+    group: "how-ai-acts",
+    groupLabel: "How Your AI Acts",
+    order: 3,
+    tab: "training",
+    isVisible: (_mode, caps) => caps.isSchedulingBusiness,
+  },
   {
     id: "scripts",
     title: "How Your AI Answers the Phone",
     icon: Mic,
-    group: "voice-scripts",
-    groupLabel: "VOICE & SCRIPTS",
-    order: 1,
-    tab: "ai-voice",
+    group: "how-ai-acts",
+    groupLabel: "How Your AI Acts",
+    order: 4,
+    tab: "training",
     isEssential: true,
+  },
 
+  // Business Rules
+  {
+    id: "policies",
+    title: "Cancellation, Deposits & Payments",
+    icon: FileText,
+    group: "business-rules",
+    groupLabel: "Business Rules",
+    order: 1,
+    tab: "training",
+  },
+  {
+    id: "never-promise",
+    title: "What Your AI Should Never Promise",
+    icon: Shield,
+    group: "business-rules",
+    groupLabel: "Business Rules",
+    order: 2,
+    tab: "training",
+  },
+  {
+    id: "required-questions",
+    title: "Info to Collect on Every Call",
+    icon: MessageSquareText,
+    group: "business-rules",
+    groupLabel: "Business Rules",
+    order: 3,
+    tab: "training",
+  },
+  {
+    id: "custom-policies",
+    title: "Other Rules for Your AI",
+    icon: FileText,
+    group: "business-rules",
+    groupLabel: "Business Rules",
+    order: 4,
+    tab: "training",
   },
   {
     id: "guidelines",
     title: "Special Instructions for Your AI",
     icon: BookOpen,
-    group: "advanced",
-    groupLabel: "ADVANCED",
-    order: 1,
-    tab: "ai-voice",
-
+    group: "business-rules",
+    groupLabel: "Business Rules",
+    order: 5,
+    tab: "training",
   },
-];
 
-// ─── Training Tab ───────────────────────────────────────────────────────────
-
-const TRAINING_ITEMS: BrainSectionItem[] = [
-  // ESSENTIALS
+  // Knowledge Base
   {
     id: "review",
     title: "Items Needing Your Approval",
     icon: AlertCircle,
-    group: "essentials",
-    groupLabel: "ESSENTIALS",
+    group: "knowledge-base",
+    groupLabel: "Knowledge Base",
     order: 1,
     tab: "training",
-
     isVisible: (_mode, _caps, flags) => flags.reviewCount > 0,
   },
   {
     id: "faqs",
     title: "Common Questions & Answers",
     icon: HelpCircle,
-    group: "essentials",
-    groupLabel: "ESSENTIALS",
+    group: "knowledge-base",
+    groupLabel: "Knowledge Base",
     order: 2,
     tab: "training",
-
   },
   {
     id: "objections",
     title: "When Customers Push Back",
     icon: MessageCircle,
-    group: "essentials",
-    groupLabel: "ESSENTIALS",
+    group: "knowledge-base",
+    groupLabel: "Knowledge Base",
     order: 3,
     tab: "training",
-
-  },
-  {
-    id: "required-questions",
-    title: "Info to Collect on Every Call",
-    icon: MessageSquareText,
-    group: "essentials",
-    groupLabel: "ESSENTIALS",
-    order: 4,
-    tab: "training",
   },
 
-  // INDUSTRY KNOWLEDGE
+  // Industry Expertise
   {
     id: "menu-knowledge",
     title: "Menu Item Details",
     icon: UtensilsCrossed,
-    group: "industry-knowledge",
-    groupLabel: "INDUSTRY KNOWLEDGE",
+    group: "industry-expertise",
+    groupLabel: "Industry Expertise",
     order: 1,
     tab: "training",
-
     isVisible: (_mode, _caps, flags) => flags.isRelevant("food-knowledge"),
   },
   {
     id: "catering-knowledge",
     title: "Catering by Event Type",
     icon: Tag,
-    group: "industry-knowledge",
-    groupLabel: "INDUSTRY KNOWLEDGE",
+    group: "industry-expertise",
+    groupLabel: "Industry Expertise",
     order: 2,
     tab: "training",
-
     isVisible: (_mode, _caps, flags) => flags.isRelevant("food-knowledge"),
   },
   {
     id: "vehicle-knowledge",
     title: "Vehicle Requirements",
     icon: Truck,
-    group: "industry-knowledge",
-    groupLabel: "INDUSTRY KNOWLEDGE",
+    group: "industry-expertise",
+    groupLabel: "Industry Expertise",
     order: 3,
     tab: "training",
-
     isVisible: (_mode, _caps, flags) => flags.isRelevant("dispatch-knowledge"),
   },
   {
     id: "roadside-knowledge",
     title: "Roadside Situations",
     icon: AlertCircle,
-    group: "industry-knowledge",
-    groupLabel: "INDUSTRY KNOWLEDGE",
+    group: "industry-expertise",
+    groupLabel: "Industry Expertise",
     order: 4,
     tab: "training",
-
     isVisible: (_mode, _caps, flags) => flags.isRelevant("dispatch-knowledge"),
   },
   {
     id: "symptom-triage",
     title: "Symptom Triage Scripts",
     icon: HeartPulse,
-    group: "industry-knowledge",
-    groupLabel: "INDUSTRY KNOWLEDGE",
+    group: "industry-expertise",
+    groupLabel: "Industry Expertise",
     order: 5,
     tab: "training",
-
     isVisible: (_mode, _caps, flags) => flags.isRelevant("medical-knowledge"),
   },
   {
     id: "insurance-knowledge",
     title: "Insurance Carrier Info",
     icon: Shield,
-    group: "industry-knowledge",
-    groupLabel: "INDUSTRY KNOWLEDGE",
+    group: "industry-expertise",
+    groupLabel: "Industry Expertise",
     order: 6,
     tab: "training",
-
     isVisible: (_mode, _caps, flags) => flags.isRelevant("medical-knowledge"),
   },
   {
     id: "product-knowledge",
     title: "Product & Material Knowledge",
     icon: Package,
-    group: "industry-knowledge",
-    groupLabel: "INDUSTRY KNOWLEDGE",
+    group: "industry-expertise",
+    groupLabel: "Industry Expertise",
     order: 7,
     tab: "training",
-
     isVisible: (_mode, _caps, flags) => flags.isRelevant("product-knowledge"),
   },
 
-  // MORE OPTIONS
+  // Additional Knowledge
   {
     id: "aftercare",
     title: "Aftercare Instructions",
     icon: Heart,
-    group: "more-options",
-    groupLabel: "MORE OPTIONS",
+    group: "additional-knowledge",
+    groupLabel: "Additional Knowledge",
     order: 1,
     tab: "training",
-
   },
   {
     id: "competitors",
     title: "Competitor Positioning",
     icon: Users,
-    group: "more-options",
-    groupLabel: "MORE OPTIONS",
+    group: "additional-knowledge",
+    groupLabel: "Additional Knowledge",
     order: 2,
     tab: "training",
-
   },
   {
     id: "seasonal",
     title: "Seasonal & Events",
     icon: Calendar,
-    group: "more-options",
-    groupLabel: "MORE OPTIONS",
+    group: "additional-knowledge",
+    groupLabel: "Additional Knowledge",
     order: 3,
     tab: "training",
-
   },
   {
     id: "custom",
     title: "Extra Info for Your AI",
     icon: Lightbulb,
-    group: "more-options",
-    groupLabel: "MORE OPTIONS",
+    group: "additional-knowledge",
+    groupLabel: "Additional Knowledge",
     order: 4,
     tab: "training",
-
   },
   {
     id: "documents",
     title: "Reference Documents",
     icon: FileUp,
-    group: "more-options",
-    groupLabel: "MORE OPTIONS",
+    group: "additional-knowledge",
+    groupLabel: "Additional Knowledge",
     order: 5,
     tab: "training",
-
   },
 ];
 

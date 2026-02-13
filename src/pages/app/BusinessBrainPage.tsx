@@ -66,8 +66,6 @@ import { GuidedSetupFlow } from "@/components/brain/guided/GuidedSetupFlow";
 
 // Tab-specific banner components
 import { QuoteReadinessCard } from "@/components/brain/QuoteReadinessCard";
-import ServiceCallFlowSettings from "@/components/ai/ServiceCallFlowSettings";
-import AIBehaviorModeSelector from "@/components/ai/AIBehaviorModeSelector";
 
 
 // ─── Section IDs ────────────────────────────────────────────────────────────
@@ -88,8 +86,8 @@ const LEGACY_SECTION_ALIASES: Record<string, ModeSectionId> = {
   "calendar-sync": "about",
   calendar: "about",
   "service-area": "operations",
-  rules: "operations",
-  policies: "operations",
+  rules: "training",
+  policies: "training",
   "ai-behavior": "training",
   knowledge: "training",
 };
@@ -445,15 +443,7 @@ export default function BusinessBrainPage() {
         return undefined;
 
       case "training":
-        // ServiceCallFlowSettings banner for service/general modes
-        if (caps.isServiceBusiness || caps.derivedPrimaryMode === "general") {
-          return (
-            <div className="space-y-6">
-              <AIBehaviorModeSelector />
-              <ServiceCallFlowSettings />
-            </div>
-          );
-        }
+        // AI behavior settings are now proper sidebar items (ai-behavior-mode, call-flow)
         return undefined;
 
       default:

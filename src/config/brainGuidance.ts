@@ -175,4 +175,29 @@ export const SECTION_GUIDANCE: Record<string, SectionGuidance> = {
       default: "Email is the quickest to set up. Add a webhook later if you use a booking platform.",
     },
   },
+  "ai-behavior-mode": {
+    what: "Choose what your AI does on calls — take messages, book appointments, or handle the full conversation.",
+    why: "This is the single most impactful setting. It determines whether your AI is a receptionist, a booking agent, or a full service rep.",
+    tips: {
+      default: "Start with 'Book appointments' if you're a service business. Switch to 'Full service' once you've trained your AI with FAQs and policies.",
+      dispatch: "Most towing companies use 'Full service' so the AI can collect all job details and dispatch immediately.",
+      food: "Use 'Full service' so your AI can take orders, answer menu questions, and handle reservations.",
+    },
+  },
+  "call-flow": {
+    what: "Set the order your AI follows on calls — schedule first, or check urgency first.",
+    why: "Controls whether your AI leads with 'When would you like to come in?' or 'What's going on?' This affects conversion rates.",
+    tips: {
+      default: "Schedule-first works best for appointment-based businesses. Urgency-first is better if you need to triage before booking.",
+      service: "If most callers already know what they need, use schedule-first. If they often need diagnosis, use urgency-first.",
+    },
+  },
+  "booking-behavior": {
+    what: "Choose whether your AI confirms bookings instantly or holds them for your review.",
+    why: "Auto-confirm gives callers instant gratification. Pending mode gives you control but adds a delay before the customer hears back.",
+    tips: {
+      default: "Auto-confirm is recommended if your calendar is connected. Use pending mode if you need to manually approve appointments.",
+      medical: "Many practices prefer pending mode so staff can verify insurance and prepare for the visit.",
+    },
+  },
 };

@@ -296,6 +296,22 @@ const SERVICE_REQUIRED_FIELDS: FieldDefinition[] = [
 
 const SERVICE_RECOMMENDED_FIELDS: FieldDefinition[] = [
   {
+    id: "ai_behavior_mode",
+    label: "AI Behavior Mode",
+    priority: "recommended",
+    description: "What your AI does on calls — take messages, book, or full service",
+    aiImpact: "AI uses default behavior mode which may not match your business needs",
+    section: "ai-behavior",
+  },
+  {
+    id: "service_default_flow",
+    label: "Service Call Flow",
+    priority: "recommended",
+    description: "Whether your AI leads with scheduling or urgency check",
+    aiImpact: "AI uses default call flow which may not optimize for your conversion style",
+    section: "ai-behavior",
+  },
+  {
     id: "calendar_connection",
     label: "Calendar Connection",
     priority: "recommended",

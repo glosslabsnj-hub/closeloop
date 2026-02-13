@@ -76,6 +76,9 @@ import {
   SeasonalKnowledgeEditor,
 } from "@/components/brain/knowledge";
 import { TekmetricSetup } from "@/components/brain/integrations/TekmetricSetup";
+import AIBehaviorModeSelector from "@/components/ai/AIBehaviorModeSelector";
+import ServiceCallFlowSettings from "@/components/ai/ServiceCallFlowSettings";
+import BookingBehaviorSettings from "@/components/ai/BookingBehaviorSettings";
 
 interface BrainEditorRendererProps {
   itemId: string;
@@ -205,7 +208,13 @@ export function BrainEditorRenderer({
     case "hipaa":
       return <MedicalHIPAASettings />;
 
-    // ── AI Voice tab ──
+    // ── AI behavior (Training tab) ──
+    case "ai-behavior-mode":
+      return <AIBehaviorModeSelector />;
+    case "call-flow":
+      return <ServiceCallFlowSettings />;
+    case "booking-behavior":
+      return <BookingBehaviorSettings />;
     case "scripts":
       return <AIScriptsEditor />;
     case "guidelines":
