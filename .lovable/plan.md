@@ -1,96 +1,132 @@
 
+# Professional CRM Redesign: Leads + Customers Pages
 
-# Fix: Pass Weekly Hours Schedule to the AI Voice Agent
+## Overview
 
-## Root Cause
+Redesign both the Leads and Customers pages into a polished, professional CRM experience with intelligent lead scoring, mode-aware terminology, and rich customer profiles.
 
-Your business hours are stored in the **windows format** (`{closed: false, windows: [{open: "08:00", close: "16:30"}]}`), but the two functions that read them -- `getTodayHours()` and `normalizeHours()` -- only understand the **legacy flat format** (`{open: "08:00", close: "16:30"}`). This means:
+---
 
-- `hours_today` is always **empty** -- the AI doesn't know today's hours
-- `tenant.hours` is always **empty** -- no structured hours reach the AI at all
-- There is **no weekly schedule variable** -- even if today's hours worked, the AI can't check if Saturday or Sunday is open before suggesting an appointment
+## Part 1: Database Migration
 
-Your hours are: Mon-Fri 8:00 AM - 4:30 PM, Sat-Sun closed. The AI sees none of this.
+Add two columns to the `customers` table that are currently missing:
 
-## What Will Change
+| Column | Type | Purpose |
+|--------|------|---------|
+| `service_address` | `text` | Customer's primary service/delivery address |
+| `lead_status` | `text` (default `'new'`) | Lead temperature tracking on the customer record |
 
-### 1. Fix `getTodayHours()` to handle the windows format
-Update the function in `buildBusinessContext.ts` to extract `open/close` from `windows[0]` when the flat properties aren't present. This fixes the `hours_today` dynamic variable immediately.
+No changes needed to the `leads` table -- it already has `vehicle_or_context`, `status`, and the linked `customer_id`.
 
-### 2. Fix `normalizeHours()` to handle the windows format
-Same fix -- when `dayData.open` is missing, look inside `dayData.windows[0]` for the times. This fixes the `tenant.hours` object in the BusinessContext.
+---
 
-### 3. Add a new `weekly_hours_schedule` dynamic variable
-Add a new entry in `voiceContextContract.ts` that builds a speech-ready weekly summary from `tenant.hours`, e.g.:
-> "Monday through Friday 8 AM to 4:30 PM, Saturday and Sunday closed"
+## Part 2: Leads Page Redesign
 
-This will be marked `includeInCompactJson: true` so it appears in the business brain JSON the AI reads.
+### Smart Lead Intelligence
 
-### 4. Reference weekly hours in the agent prompt
-Update the base prompt in `agentBasePrompts.ts` to include `{{weekly_hours_schedule}}` alongside `{{hours_today}}` so the AI knows the full week's schedule and can validate appointment days.
+The leads table already has linked `ai_call_sessions` with `lead_score` (hot/warm) and `outcome`. The redesigned page will:
 
-## Technical Details
+1. **Compute lead temperature** from the most recent call session's `lead_score` + recency + status:
+   - **Hot**: `lead_score = 'hot'` OR status = `booked` OR called within last 24h
+   - **Warm**: `lead_score = 'warm'` OR status = `contacted`/`qualified` OR called within 3 days
+   - **Cold**: Everything else (no recent activity, older than 7 days, no score)
 
-### File: `supabase/functions/_shared/buildBusinessContext.ts`
+2. **New stat cards**: Total | Hot | Warm | Cold (replacing the current generic stats)
 
-**`getTodayHours()` (lines ~963-985)** -- Add windows format support:
-```typescript
-// After casting todayHours, resolve open/close from windows if needed
-let open = todayHours.open;
-let close = todayHours.close;
-if (!open && !close && Array.isArray(todayHours.windows) && todayHours.windows.length > 0) {
-  open = todayHours.windows[0].open;
-  close = todayHours.windows[0].close;
-}
+3. **Visual temperature indicators**: Color-coded flame/thermometer badges on each row
+
+4. **Segmented view with tabs**: "All", "Hot", "Warm", "Cold" tabs for quick filtering
+
+5. **Enhanced table columns**:
+   - Name + phone (existing)
+   - Temperature badge (new -- hot/warm/cold with color)
+   - Status badge (existing)
+   - Source (existing)
+   - Context/request (from `vehicle_or_context` -- mode-aware label)
+   - Last activity (computed from `last_message_at` or linked call session)
+   - Actions dropdown (existing)
+
+6. **Mode-aware labels**: Use `useIndustryContext()` terms throughout -- "Prospects" for sales, "Patients" for medical, "Leads" for service/general, "Callers" for dispatch.
+
+### Lead Detail Panel Enhancement
+
+- Show linked customer info if `customer_id` exists
+- Display temperature badge prominently
+- Show all call sessions with extracted payload data
+- Mode-aware action buttons
+
+---
+
+## Part 3: Customers Page Redesign
+
+### Professional CRM Table
+
+Redesign the table to show all critical fields at a glance:
+
+| Column | Source | Notes |
+|--------|--------|-------|
+| Name | `full_name` | With avatar initials circle |
+| Phone | `phone_e164` | Formatted display |
+| Email | `email` | With dash fallback |
+| Service Address | `service_address` (new column) | Mode-aware label ("Delivery Address" for food, "Patient Address" for medical) |
+| Last Service | Computed from most recent completed booking | Shows date or "Never" |
+| Source | `source` | Badge |
+| Added | `created_at` | Relative time |
+
+### Call History Integration
+
+Add a **"Recent Calls"** column or indicator showing the count of calls in the last 30 days, making it easy to see engagement at a glance.
+
+### Customer Detail Sheet Enhancement
+
+- Add `service_address` field (editable)
+- Show "Last Service Date" computed from bookings
+- Mode-aware tab labels (e.g., "Orders" instead of "Bookings" for food, "Appointments" for medical)
+
+### Mode-Aware Adaptations
+
+| Mode | Address Label | Service Label | Customer Label |
+|------|--------------|---------------|----------------|
+| service | Service Address | Last Service | Customer |
+| dispatch | Pickup Location | Last Job | Customer |
+| food | Delivery Address | Last Order | Guest |
+| medical | Patient Address | Last Visit | Patient |
+| sales | Address | Last Appointment | Prospect |
+| general | Address | Last Interaction | Customer |
+
+---
+
+## Part 4: Build Error Fix
+
+The `npm:openai` error is a Supabase runtime/types issue from `@supabase/functions-js` -- not caused by our code (no openai imports exist in the codebase). This is an environment-level issue that resolves on redeployment and does not affect the frontend build.
+
+---
+
+## Technical Implementation
+
+### Files to Create
+- `src/hooks/useLeadIntelligence.ts` -- Hook that joins leads with their latest `ai_call_sessions` to compute temperature scores
+- `src/hooks/useCustomerLastService.ts` -- Hook that fetches most recent completed booking per customer
+
+### Files to Modify
+- `src/pages/app/LeadsPage.tsx` -- Full redesign with temperature tabs, smart stats, enhanced table
+- `src/pages/app/CustomersPage.tsx` -- Enhanced table with address, last service, call count columns
+- `src/hooks/useCustomers.ts` -- Update `Customer` interface to include `service_address` and `lead_status`
+- `src/components/customers/CustomerDetailSheet.tsx` -- Add address field, mode-aware tab labels, last service date
+- `src/components/customers/CreateCustomerDialog.tsx` -- Add service address field
+- `src/components/leads/LeadCard.tsx` -- Add temperature badge (if still used elsewhere)
+
+### Database Migration
+```sql
+ALTER TABLE public.customers 
+  ADD COLUMN IF NOT EXISTS service_address text,
+  ADD COLUMN IF NOT EXISTS lead_status text DEFAULT 'new';
 ```
 
-**`normalizeHours()` (lines ~988-1007)** -- Same pattern:
-```typescript
-let open = dayData.open || "";
-let close = dayData.close || "";
-if (!open && !close && Array.isArray(dayData.windows) && dayData.windows.length > 0) {
-  open = dayData.windows[0].open || "";
-  close = dayData.windows[0].close || "";
-}
-```
+### Query Strategy for Lead Intelligence
 
-**Add `buildWeeklyHoursSummary()` function** -- Similar to the existing impound lot `getImpoundLotHoursContext()` logic (lines 588-627), build a speech-ready string from the normalized hours:
-- Groups consecutive days with same hours (e.g., "Monday through Friday 8 AM to 4:30 PM")
-- Explicitly states closed days (e.g., "Saturday and Sunday closed")
+Instead of N+1 queries, the `useLeadIntelligence` hook will fetch all leads with a single joined query to get the most recent call session's `lead_score` per lead, then compute temperature client-side. This keeps the implementation simple and performant.
 
-### File: `supabase/functions/_shared/voiceContextContract.ts`
+### Query Strategy for Last Service Date
 
-Add new variable after `hours_today`:
-```typescript
-{
-  key: "weekly_hours_schedule",
-  description: "Full weekly hours schedule for appointment validation",
-  type: "string",
-  source: (ctx) => buildWeeklyHoursSummary(ctx.tenant.hours),
-  defaultValue: "",
-  category: "hours",
-  includeInCompactJson: true,
-},
-```
-
-### File: `supabase/functions/_shared/agentBasePrompts.ts`
-
-Update the context block that references hours to include:
-```
-- Hours Today: {{hours_today}}
-- Weekly Schedule: {{weekly_hours_schedule}}
-```
-
-And add a scheduling rule:
-```
-IMPORTANT: Before suggesting any appointment day, verify it falls on a day when the business is open per the weekly schedule. Never offer times on closed days.
-```
-
-### Deployment
-The `buildBusinessContext.ts`, `voiceContextContract.ts`, and `agentBasePrompts.ts` are shared modules used by edge functions like `twilio-inbound`, `register-call`, and `get-business-context`. Changes will take effect after the edge functions are redeployed (automatic).
-
-## Expected Result
-After this fix:
-- `hours_today` will correctly show "8:00 AM - 4:30 PM" (or "Closed today" on weekends)
-- `weekly_hours_schedule` will show "Monday through Friday 8 AM to 4:30 PM, Saturday and Sunday closed"
-- The AI will check the weekly schedule before suggesting appointment times and will never offer Saturday or Sunday slots
+The customers page will batch-fetch the most recent `completed` booking for all displayed customers using an RPC or a separate query grouped by `lead_id` joined through leads by phone number. This avoids per-customer queries.
