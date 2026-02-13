@@ -312,9 +312,9 @@ serve(async (req: Request) => {
       );
     }
 
-    // Check if time is within business hours
-    const openTime = dayHours.open;
-    const closeTime = dayHours.close;
+    // Normalize business hours (handle both flat and windows format)
+    const openTime = dayHours.windows?.length > 0 ? dayHours.windows[0].open : dayHours.open;
+    const closeTime = dayHours.windows?.length > 0 ? dayHours.windows[0].close : dayHours.close;
     const requestedEndTime = `${String(requestedEnd.getHours()).padStart(2, "0")}:${String(requestedEnd.getMinutes()).padStart(2, "0")}`;
 
     if (targetTime < openTime || requestedEndTime > closeTime) {
