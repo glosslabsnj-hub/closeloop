@@ -960,13 +960,17 @@ function getTodayHours(hoursJson: Record<string, unknown> | null, timezone?: str
   }
   
   const today = days[todayIndex];
-  const todayHours = hoursJson[today] as { open?: string; close?: string; closed?: boolean; isOpen?: boolean } | undefined;
+  const todayHours = hoursJson[today] as { open?: string; close?: string; closed?: boolean; isOpen?: boolean; windows?: Array<{ open?: string; close?: string }> } | undefined;
   
   if (!todayHours) {
     // Try to find ANY hours data to provide a fallback
     for (const day of days) {
-      const dayData = hoursJson[day] as { open?: string; close?: string; closed?: boolean; isOpen?: boolean } | undefined;
-      if (dayData?.open && dayData?.close && dayData.closed !== true && dayData.isOpen !== false) {
+      const dayData = hoursJson[day] as { open?: string; close?: string; closed?: boolean; isOpen?: boolean; windows?: Array<{ open?: string; close?: string }> } | undefined;
+      if (!dayData) continue;
+      // Resolve open/close from windows format if needed
+      const dOpen = dayData.open || (Array.isArray(dayData.windows) && dayData.windows.length > 0 ? dayData.windows[0].open : undefined);
+      const dClose = dayData.close || (Array.isArray(dayData.windows) && dayData.windows.length > 0 ? dayData.windows[0].close : undefined);
+      if (dOpen && dClose && dayData.closed !== true && dayData.isOpen !== false) {
         // Has hours data but not for today - business might be closed today
         return `Closed today (${today.charAt(0).toUpperCase() + today.slice(1)})`;
       }
@@ -978,8 +982,12 @@ function getTodayHours(hoursJson: Record<string, unknown> | null, timezone?: str
     return `Closed today (${today.charAt(0).toUpperCase() + today.slice(1)})`;
   }
   
-  if (todayHours.open && todayHours.close) {
-    return `${todayHours.open} - ${todayHours.close}`;
+  // Resolve open/close from windows format if flat properties are missing
+  const resolvedOpen = todayHours.open || (Array.isArray(todayHours.windows) && todayHours.windows.length > 0 ? todayHours.windows[0].open : undefined);
+  const resolvedClose = todayHours.close || (Array.isArray(todayHours.windows) && todayHours.windows.length > 0 ? todayHours.windows[0].close : undefined);
+  
+  if (resolvedOpen && resolvedClose) {
+    return `${resolvedOpen} - ${resolvedClose}`;
   }
   
   return "";
@@ -992,18 +1000,89 @@ function normalizeHours(hoursJson: Record<string, unknown> | null): Record<strin
   const days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
   
   for (const day of days) {
-    const dayData = hoursJson[day] as { open?: string; close?: string; closed?: boolean; isOpen?: boolean } | undefined;
+    const dayData = hoursJson[day] as { open?: string; close?: string; closed?: boolean; isOpen?: boolean; windows?: Array<{ open?: string; close?: string }> } | undefined;
     if (dayData) {
       const isOpen = dayData.isOpen !== false && dayData.closed !== true;
+      // Resolve open/close from windows format if flat properties are missing
+      let open = dayData.open || "";
+      let close = dayData.close || "";
+      if (!open && !close && Array.isArray(dayData.windows) && dayData.windows.length > 0) {
+        open = dayData.windows[0].open || "";
+        close = dayData.windows[0].close || "";
+      }
       result[day] = {
-        open: dayData.open || "",
-        close: dayData.close || "",
-        is_open: isOpen,
+        open,
+        close,
+        is_open: isOpen && !!open && !!close,
       };
     }
   }
   
   return result;
+}
+
+/**
+ * Build a speech-ready weekly hours summary from normalized hours.
+ * Groups consecutive days with same hours (e.g., "Monday through Friday 8 AM to 4:30 PM")
+ * and explicitly states closed days.
+ */
+export function buildWeeklyHoursSummary(hours: Record<string, { open: string; close: string; is_open: boolean }>): string {
+  if (!hours || Object.keys(hours).length === 0) return "";
+  
+  const dayOrder = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+  const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  
+  const formatTime = (time24: string): string => {
+    if (!time24) return "";
+    const [hours, minutes] = time24.split(":").map(Number);
+    const hours12 = hours % 12 || 12;
+    const period = hours >= 12 ? "PM" : "AM";
+    if (minutes === 0) return `${hours12} ${period}`;
+    return `${hours12}:${minutes.toString().padStart(2, "0")} ${period}`;
+  };
+  
+  // Build groups of consecutive days with same hours
+  interface DayGroup {
+    startIdx: number;
+    endIdx: number;
+    open: string;
+    close: string;
+    isOpen: boolean;
+  }
+  
+  const groups: DayGroup[] = [];
+  
+  for (let i = 0; i < dayOrder.length; i++) {
+    const day = dayOrder[i];
+    const h = hours[day];
+    const isOpen = h?.is_open && !!h?.open && !!h?.close;
+    const open = h?.open || "";
+    const close = h?.close || "";
+    
+    const lastGroup = groups[groups.length - 1];
+    if (lastGroup && lastGroup.isOpen === isOpen && lastGroup.open === open && lastGroup.close === close) {
+      lastGroup.endIdx = i;
+    } else {
+      groups.push({ startIdx: i, endIdx: i, open, close, isOpen });
+    }
+  }
+  
+  const parts: string[] = [];
+  for (const group of groups) {
+    const startName = dayNames[group.startIdx];
+    const endName = dayNames[group.endIdx];
+    const range = group.startIdx === group.endIdx
+      ? startName
+      : `${startName} through ${endName}`;
+    
+    if (group.isOpen) {
+      parts.push(`${range} ${formatTime(group.open)} to ${formatTime(group.close)}`);
+    } else {
+      parts.push(`${range} closed`);
+    }
+  }
+  
+  return parts.join(", ");
 }
 
 function normalizeServices(services: Array<{

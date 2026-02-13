@@ -782,6 +782,61 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     includeInCompactJson: true,
   },
   {
+    key: "weekly_hours_schedule",
+    description: "Full weekly hours schedule for appointment day validation (e.g., 'Monday through Friday 8 AM to 4:30 PM, Saturday through Sunday closed')",
+    type: "string",
+    source: (ctx) => {
+      // Import is not needed - buildWeeklyHoursSummary is re-exported from buildBusinessContext.ts
+      const hours = ctx.tenant?.hours;
+      if (!hours || Object.keys(hours).length === 0) return "";
+      
+      // Use the same logic as buildWeeklyHoursSummary inline
+      const dayOrder = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+      const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+      
+      const formatTime = (time24: string): string => {
+        if (!time24) return "";
+        const [h, m] = time24.split(":").map(Number);
+        const h12 = h % 12 || 12;
+        const period = h >= 12 ? "PM" : "AM";
+        if (m === 0) return `${h12} ${period}`;
+        return `${h12}:${m.toString().padStart(2, "0")} ${period}`;
+      };
+      
+      interface DayGroup { startIdx: number; endIdx: number; open: string; close: string; isOpen: boolean; }
+      const groups: DayGroup[] = [];
+      
+      for (let i = 0; i < dayOrder.length; i++) {
+        const day = dayOrder[i];
+        const h = (hours as Record<string, { open: string; close: string; is_open: boolean }>)[day];
+        const isOpen = h?.is_open && !!h?.open && !!h?.close;
+        const open = h?.open || "";
+        const close = h?.close || "";
+        
+        const lastGroup = groups[groups.length - 1];
+        if (lastGroup && lastGroup.isOpen === isOpen && lastGroup.open === open && lastGroup.close === close) {
+          lastGroup.endIdx = i;
+        } else {
+          groups.push({ startIdx: i, endIdx: i, open, close, isOpen });
+        }
+      }
+      
+      const parts: string[] = [];
+      for (const group of groups) {
+        const startName = dayNames[group.startIdx];
+        const endName = dayNames[group.endIdx];
+        const range = group.startIdx === group.endIdx ? startName : `${startName} through ${endName}`;
+        parts.push(group.isOpen ? `${range} ${formatTime(group.open)} to ${formatTime(group.close)}` : `${range} closed`);
+      }
+      
+      return parts.join(", ");
+    },
+    defaultValue: "",
+    category: "hours",
+    includeInCompactJson: true,
+    speechReady: true,
+  },
+  {
     key: "calendar_connected",
     description: "Whether calendar integration is connected",
     type: "boolean",

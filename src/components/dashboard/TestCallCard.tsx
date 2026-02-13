@@ -74,9 +74,9 @@ export function TestCallCard({ variant = "full" }: TestCallCardProps) {
         ];
       default: // service
         return [
-          `"I need to schedule ${terms.bookingLabel?.toLowerCase() || "an appointment"}"`,
+          `"I need to schedule ${(terms.bookingLabel as string)?.toLowerCase() || "an appointment"}"`,
           `"What are your hours?"`,
-          `"How much does a ${terms.serviceLabel?.toLowerCase() || "service"} cost?"`,
+          `"How much does a ${(terms.serviceLabel as string)?.toLowerCase() || "service"} cost?"`,
           `"Do you have any availability today?"`,
         ];
     }
