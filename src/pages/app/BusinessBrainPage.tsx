@@ -136,9 +136,9 @@ export default function BusinessBrainPage() {
   const isGuidedMode = modeParam === "setup";
   const { p0Flags: readinessP0Flags } = useAIReadinessV2();
 
-  // Auto-enter guided mode if user has P0 flags and hasn't explicitly left guided mode
+  // Only show guided mode when explicitly requested via URL param
   const hasGuidedDismissal = searchParams.get("mode") === "full";
-  const shouldShowGuided = isGuidedMode || (readinessP0Flags.length > 0 && !hasGuidedDismissal && !searchParams.get("section"));
+  const shouldShowGuided = isGuidedMode;
 
   const handleSwitchToFullBrain = useCallback(() => {
     setSearchParams({ mode: "full" }, { replace: true });

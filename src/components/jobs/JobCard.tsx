@@ -68,6 +68,13 @@ export function JobCard({ job, labels, onClick }: JobCardProps) {
           </Badge>
         </div>
 
+        {/* Source badge */}
+        {job.intake_method === "tekmetric" && (
+          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 w-fit border-primary/30 text-primary">
+            Tekmetric
+          </Badge>
+        )}
+
         {/* Customer */}
         {job.customer_name && (
           <p className="text-xs text-muted-foreground truncate">

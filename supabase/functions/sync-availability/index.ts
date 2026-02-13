@@ -31,7 +31,7 @@ serve(async (req: Request) => {
       console.log("[sync-availability] Cron mode for tenant:", tenantId);
     } else {
       // User mode: verify user and get tenant
-      const result = await requireAuthedTenant(req);
+      const result = await requireAuthedTenant(req, body.tenant_id);
       tenantId = result.tenantId;
     }
 

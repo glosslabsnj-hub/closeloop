@@ -313,6 +313,16 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     includeInCompactJson: true,
   },
   {
+    key: "industry_type",
+    description: "Specific industry/business type (e.g. car-dealership-used, solar-installer, locksmith)",
+    type: "string",
+    source: "tenant.industry_slug",
+    defaultValue: "",
+    category: "core",
+    includeInCompactJson: true,
+    speechReady: true,
+  },
+  {
     key: "enabled_modules",
     description: "Comma-separated list of enabled modules",
     type: "string",
@@ -918,6 +928,18 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     includeInCompactJson: true,
   },
   {
+    key: "inventory_detail",
+    description: "Per-vehicle listing grouped by make with year, model, trim, body style, mileage, price, and top features",
+    type: "string",
+    source: (ctx: Record<string, unknown>) => {
+      const sales = ctx.sales as Record<string, unknown> | undefined;
+      return sales?.inventory_detail || "";
+    },
+    defaultValue: "",
+    category: "offerings",
+    speechReady: true,
+  },
+  {
     key: "financing_available",
     description: "Whether financing options are available",
     type: "string",
@@ -975,7 +997,7 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     description: "Base preparation time in minutes",
     type: "number",
     source: "pricing.busyness_config.base_prep_minutes",
-    defaultValue: 30,
+    defaultValue: 0,
     category: "pricing",
   },
   {
@@ -983,7 +1005,7 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     description: "Buffer time when busy",
     type: "number",
     source: "pricing.busyness_config.busy_buffer_minutes",
-    defaultValue: 15,
+    defaultValue: 0,
     category: "pricing",
   },
   {

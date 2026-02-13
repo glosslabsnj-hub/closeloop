@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useCustomers, type Customer } from "@/hooks/useCustomers";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -49,6 +50,8 @@ const sourceLabels: Record<string, string> = {
 export default function CustomersPage() {
   const { customers, isLoading } = useCustomers();
   const { terms } = useIndustryContext();
+  const { businessMode } = useTenantConfig();
+  const isSalesMode = businessMode === "sales";
 
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -161,19 +164,17 @@ export default function CustomersPage() {
             <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-xs">{customers.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="active">
-            Active
+            {isSalesMode ? "Buyers" : "Active"}
             <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-xs">{activeCustomers.length}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="prospects">
-            Prospects
-            <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-xs">{prospects.length}</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="merge">
-            Merge Queue
-          </TabsTrigger>
+          {!isSalesMode && (
+            <TabsTrigger value="merge">
+              Merge Queue
+            </TabsTrigger>
+          )}
         </TabsList>
 
-        {["all", "active", "prospects"].map((tabKey) => (
+        {["all", "active"].map((tabKey) => (
           <TabsContent key={tabKey} value={tabKey} className="mt-6 space-y-4">
             {/* Toolbar */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">

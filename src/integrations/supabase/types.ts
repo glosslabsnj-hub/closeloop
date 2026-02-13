@@ -22,6 +22,7 @@ export type Database = {
           customer_name: string | null
           customer_phone: string | null
           estimated_completion: string | null
+          external_id: string | null
           id: string
           intake_method: string
           is_active: boolean
@@ -46,6 +47,7 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           estimated_completion?: string | null
+          external_id?: string | null
           id?: string
           intake_method?: string
           is_active?: boolean
@@ -70,6 +72,7 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           estimated_completion?: string | null
+          external_id?: string | null
           id?: string
           intake_method?: string
           is_active?: boolean
@@ -642,6 +645,7 @@ export type Database = {
           recurring_enabled: boolean | null
           same_day_enabled: boolean | null
           service_default_flow: string | null
+          settings_json: Json | null
           setup_completed_at: string | null
           setup_step_calendar: boolean | null
           setup_step_phone: boolean | null
@@ -696,6 +700,7 @@ export type Database = {
           recurring_enabled?: boolean | null
           same_day_enabled?: boolean | null
           service_default_flow?: string | null
+          settings_json?: Json | null
           setup_completed_at?: string | null
           setup_step_calendar?: boolean | null
           setup_step_phone?: boolean | null
@@ -750,6 +755,7 @@ export type Database = {
           recurring_enabled?: boolean | null
           same_day_enabled?: boolean | null
           service_default_flow?: string | null
+          settings_json?: Json | null
           setup_completed_at?: string | null
           setup_step_calendar?: boolean | null
           setup_step_phone?: boolean | null
@@ -1220,11 +1226,14 @@ export type Database = {
           created_at: string
           deposit_paid: boolean
           deposit_required: boolean
+          duration_minutes: number | null
           end_at: string
           external_event_id: string | null
           id: string
           lead_id: string
           notes: string | null
+          price_breakdown: Json | null
+          price_cents: number | null
           service_id: string | null
           session_id: string | null
           start_at: string
@@ -1236,11 +1245,14 @@ export type Database = {
           created_at?: string
           deposit_paid?: boolean
           deposit_required?: boolean
+          duration_minutes?: number | null
           end_at: string
           external_event_id?: string | null
           id?: string
           lead_id: string
           notes?: string | null
+          price_breakdown?: Json | null
+          price_cents?: number | null
           service_id?: string | null
           session_id?: string | null
           start_at: string
@@ -1252,11 +1264,14 @@ export type Database = {
           created_at?: string
           deposit_paid?: boolean
           deposit_required?: boolean
+          duration_minutes?: number | null
           end_at?: string
           external_event_id?: string | null
           id?: string
           lead_id?: string
           notes?: string | null
+          price_breakdown?: Json | null
+          price_cents?: number | null
           service_id?: string | null
           session_id?: string | null
           start_at?: string
@@ -2708,6 +2723,7 @@ export type Database = {
           dispatch_distance_miles: number | null
           dispatched_at: string | null
           document_type: string | null
+          drivable: boolean | null
           driver_id: string | null
           dropoff_address: string | null
           dropoff_lat: number | null
@@ -2717,6 +2733,7 @@ export type Database = {
           equipment_required: string[] | null
           estimated_arrival_at: string | null
           estimated_duration_minutes: number | null
+          estimated_eta_minutes: number | null
           id: string
           inventory_items: Json | null
           item_count: number | null
@@ -2769,6 +2786,7 @@ export type Database = {
           dispatch_distance_miles?: number | null
           dispatched_at?: string | null
           document_type?: string | null
+          drivable?: boolean | null
           driver_id?: string | null
           dropoff_address?: string | null
           dropoff_lat?: number | null
@@ -2778,6 +2796,7 @@ export type Database = {
           equipment_required?: string[] | null
           estimated_arrival_at?: string | null
           estimated_duration_minutes?: number | null
+          estimated_eta_minutes?: number | null
           id?: string
           inventory_items?: Json | null
           item_count?: number | null
@@ -2830,6 +2849,7 @@ export type Database = {
           dispatch_distance_miles?: number | null
           dispatched_at?: string | null
           document_type?: string | null
+          drivable?: boolean | null
           driver_id?: string | null
           dropoff_address?: string | null
           dropoff_lat?: number | null
@@ -2839,6 +2859,7 @@ export type Database = {
           equipment_required?: string[] | null
           estimated_arrival_at?: string | null
           estimated_duration_minutes?: number | null
+          estimated_eta_minutes?: number | null
           id?: string
           inventory_items?: Json | null
           item_count?: number | null
@@ -5635,6 +5656,7 @@ export type Database = {
       leads: {
         Row: {
           created_at: string
+          customer_id: string | null
           email: string | null
           full_name: string
           id: string
@@ -5652,6 +5674,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          customer_id?: string | null
           email?: string | null
           full_name: string
           id?: string
@@ -5669,6 +5692,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          customer_id?: string | null
           email?: string | null
           full_name?: string
           id?: string
@@ -5685,6 +5709,13 @@ export type Database = {
           vehicle_or_context?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "leads_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "leads_recovery_campaign_id_fkey"
             columns: ["recovery_campaign_id"]
@@ -7606,6 +7637,116 @@ export type Database = {
           },
         ]
       }
+      sales_inventory: {
+        Row: {
+          asking_price_cents: number | null
+          body_style: string | null
+          color_exterior: string | null
+          color_interior: string | null
+          condition: string | null
+          created_at: string
+          days_on_lot: number | null
+          description: string | null
+          external_id: string | null
+          external_source: string | null
+          features: string[] | null
+          financing_available: boolean | null
+          id: string
+          internet_price_cents: number | null
+          last_synced_at: string | null
+          listing_url: string | null
+          lot_location: string | null
+          make: string | null
+          mileage: number | null
+          model: string | null
+          msrp_cents: number | null
+          photo_urls: string[] | null
+          special_notes: string | null
+          status: string | null
+          stock_number: string | null
+          tenant_id: string
+          trade_in_eligible: boolean | null
+          trim: string | null
+          updated_at: string
+          vin: string | null
+          year: string | null
+        }
+        Insert: {
+          asking_price_cents?: number | null
+          body_style?: string | null
+          color_exterior?: string | null
+          color_interior?: string | null
+          condition?: string | null
+          created_at?: string
+          days_on_lot?: number | null
+          description?: string | null
+          external_id?: string | null
+          external_source?: string | null
+          features?: string[] | null
+          financing_available?: boolean | null
+          id?: string
+          internet_price_cents?: number | null
+          last_synced_at?: string | null
+          listing_url?: string | null
+          lot_location?: string | null
+          make?: string | null
+          mileage?: number | null
+          model?: string | null
+          msrp_cents?: number | null
+          photo_urls?: string[] | null
+          special_notes?: string | null
+          status?: string | null
+          stock_number?: string | null
+          tenant_id: string
+          trade_in_eligible?: boolean | null
+          trim?: string | null
+          updated_at?: string
+          vin?: string | null
+          year?: string | null
+        }
+        Update: {
+          asking_price_cents?: number | null
+          body_style?: string | null
+          color_exterior?: string | null
+          color_interior?: string | null
+          condition?: string | null
+          created_at?: string
+          days_on_lot?: number | null
+          description?: string | null
+          external_id?: string | null
+          external_source?: string | null
+          features?: string[] | null
+          financing_available?: boolean | null
+          id?: string
+          internet_price_cents?: number | null
+          last_synced_at?: string | null
+          listing_url?: string | null
+          lot_location?: string | null
+          make?: string | null
+          mileage?: number | null
+          model?: string | null
+          msrp_cents?: number | null
+          photo_urls?: string[] | null
+          special_notes?: string | null
+          status?: string | null
+          stock_number?: string | null
+          tenant_id?: string
+          trade_in_eligible?: boolean | null
+          trim?: string | null
+          updated_at?: string
+          vin?: string | null
+          year?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_inventory_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seasonal_knowledge: {
         Row: {
           ai_announcement: string | null
@@ -8535,6 +8676,53 @@ export type Database = {
           },
         ]
       }
+      tenant_integrations: {
+        Row: {
+          config_json: Json
+          created_at: string
+          credentials_json: Json
+          id: string
+          is_active: boolean
+          last_synced_at: string | null
+          provider: string
+          sync_cursor: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          config_json?: Json
+          created_at?: string
+          credentials_json?: Json
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          provider: string
+          sync_cursor?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          config_json?: Json
+          created_at?: string
+          credentials_json?: Json
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          provider?: string
+          sync_cursor?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_integrations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_intelligence_settings: {
         Row: {
           copilot_can_suggest_rules: boolean | null
@@ -8720,6 +8908,7 @@ export type Database = {
           context_fields_json: Json | null
           created_at: string
           custom_industry: string | null
+          default_capacity: number
           deposit_policy: string | null
           dispatch_config_json: Json | null
           enabled_modules: Json | null
@@ -8765,6 +8954,7 @@ export type Database = {
           context_fields_json?: Json | null
           created_at?: string
           custom_industry?: string | null
+          default_capacity?: number
           deposit_policy?: string | null
           dispatch_config_json?: Json | null
           enabled_modules?: Json | null
@@ -8810,6 +9000,7 @@ export type Database = {
           context_fields_json?: Json | null
           created_at?: string
           custom_industry?: string | null
+          default_capacity?: number
           deposit_policy?: string | null
           dispatch_config_json?: Json | null
           enabled_modules?: Json | null
@@ -8837,6 +9028,72 @@ export type Database = {
           yelp_review_url?: string | null
         }
         Relationships: []
+      }
+      test_drives: {
+        Row: {
+          booking_id: string | null
+          created_at: string | null
+          customer_id: string | null
+          duration_minutes: number | null
+          id: string
+          notes: string | null
+          salesperson: string | null
+          scheduled_at: string
+          session_id: string | null
+          status: string | null
+          tenant_id: string
+          updated_at: string | null
+          vehicle_description: string | null
+          vehicle_id: string | null
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          duration_minutes?: number | null
+          id?: string
+          notes?: string | null
+          salesperson?: string | null
+          scheduled_at: string
+          session_id?: string | null
+          status?: string | null
+          tenant_id: string
+          updated_at?: string | null
+          vehicle_description?: string | null
+          vehicle_id?: string | null
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          duration_minutes?: number | null
+          id?: string
+          notes?: string | null
+          salesperson?: string | null
+          scheduled_at?: string
+          session_id?: string | null
+          status?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+          vehicle_description?: string | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_drives_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_drives_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       time_entries: {
         Row: {
@@ -9798,6 +10055,7 @@ export type Database = {
         Args: {
           _buffer_minutes?: number
           _business_hours?: Json
+          _capacity?: number
           _duration_minutes?: number
           _end_date: string
           _start_date: string
@@ -9978,6 +10236,7 @@ export type Database = {
         | "completed"
         | "canceled"
         | "no_show"
+        | "pending"
       business_mode:
         | "service"
         | "dispatch"
@@ -10047,7 +10306,12 @@ export type Database = {
         | "services_doc"
         | "faq_doc"
         | "general"
-      lead_source: "missed_call" | "website_form" | "manual" | "referral"
+      lead_source:
+        | "missed_call"
+        | "website_form"
+        | "manual"
+        | "referral"
+        | "ai_call"
       lead_status: "new" | "contacted" | "qualified" | "booked" | "lost" | "won"
       memory_type:
         | "customer_preference"
@@ -10307,6 +10571,7 @@ export const Constants = {
         "completed",
         "canceled",
         "no_show",
+        "pending",
       ],
       business_mode: [
         "service",
@@ -10385,7 +10650,13 @@ export const Constants = {
         "faq_doc",
         "general",
       ],
-      lead_source: ["missed_call", "website_form", "manual", "referral"],
+      lead_source: [
+        "missed_call",
+        "website_form",
+        "manual",
+        "referral",
+        "ai_call",
+      ],
       lead_status: ["new", "contacted", "qualified", "booked", "lost", "won"],
       memory_type: [
         "customer_preference",

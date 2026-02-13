@@ -435,6 +435,16 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         isCapabilityVisible: (caps) => caps.isMedicalBusiness,
         setupPriority: "essential",
       },
+      {
+        id: "tekmetric",
+        title: "Tekmetric Integration",
+        purpose: "Sync repair orders from Tekmetric into Active Jobs",
+        usedByAI: [
+          "Keeps your job board up to date automatically",
+        ],
+        isCapabilityVisible: (caps) => caps.hasJobTracking,
+        setupPriority: "advanced",
+      },
     ],
   },
   {

@@ -2378,6 +2378,7 @@ export async function buildBusinessContext(
     // Sales context (populated below for sales businesses)
     sales: {
       inventory_summary: "",
+      inventory_detail: "",
       financing_available: false,
       trade_in_accepted: false,
       sales_rep_names: "",
@@ -2426,38 +2427,118 @@ export async function buildBusinessContext(
   // ===== SALES CONTEXT (for sales businesses) =====
   if (caps.isSalesBusiness) {
     try {
-      // Build inventory summary
+      // Build inventory summary with price ranges and body styles
       const { data: inventoryStats } = await supabase
         .from("sales_inventory")
-        .select("condition, make")
+        .select("condition, make, model, body_style, asking_price_cents, year")
         .eq("tenant_id", tenantId)
         .eq("status", "available");
 
       if (inventoryStats && inventoryStats.length > 0) {
         const total = inventoryStats.length;
-        const newCount = inventoryStats.filter(i => i.condition === "new").length;
-        const usedCount = inventoryStats.filter(i => i.condition === "used").length;
-        const certifiedCount = inventoryStats.filter(i => i.condition === "certified").length;
+        const newCount = inventoryStats.filter((i: any) => i.condition === "new").length;
+        const usedCount = inventoryStats.filter((i: any) => i.condition === "used").length;
+        const certifiedCount = inventoryStats.filter((i: any) => i.condition === "certified").length;
 
         // Top makes
         const makeCounts: Record<string, number> = {};
         for (const item of inventoryStats) {
-          if (item.make) makeCounts[item.make] = (makeCounts[item.make] || 0) + 1;
+          if ((item as any).make) makeCounts[(item as any).make] = (makeCounts[(item as any).make] || 0) + 1;
         }
         const topMakes = Object.entries(makeCounts)
           .sort((a, b) => b[1] - a[1])
-          .slice(0, 3)
-          .map(([make]) => make);
+          .slice(0, 5)
+          .map(([make, count]) => `${make} (${count})`);
 
-        const parts: string[] = [`${total} in stock`];
+        // Price range
+        const prices = inventoryStats
+          .map((i: any) => i.asking_price_cents)
+          .filter((p: number | null) => p && p > 0) as number[];
+        let priceRange = "";
+        if (prices.length > 0) {
+          const minPrice = Math.min(...prices);
+          const maxPrice = Math.max(...prices);
+          priceRange = `$${(minPrice / 100).toLocaleString()} to $${(maxPrice / 100).toLocaleString()}`;
+        }
+
+        // Body styles
+        const styleCounts: Record<string, number> = {};
+        for (const item of inventoryStats) {
+          const style = (item as any).body_style;
+          if (style && style !== "Unknown") styleCounts[style] = (styleCounts[style] || 0) + 1;
+        }
+        const topStyles = Object.entries(styleCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 4)
+          .map(([style, count]) => `${count} ${style}${count > 1 ? "s" : ""}`);
+
+        // Year range
+        const years = inventoryStats.map((i: any) => parseInt(i.year)).filter((y: number) => !isNaN(y));
+        let yearRange = "";
+        if (years.length > 0) {
+          const minYear = Math.min(...years);
+          const maxYear = Math.max(...years);
+          yearRange = minYear === maxYear ? `${minYear}` : `${minYear}-${maxYear}`;
+        }
+
+        const parts: string[] = [`${total} vehicles in stock`];
         const conditionParts: string[] = [];
         if (newCount) conditionParts.push(`${newCount} new`);
         if (usedCount) conditionParts.push(`${usedCount} used`);
         if (certifiedCount) conditionParts.push(`${certifiedCount} certified`);
         if (conditionParts.length) parts.push(conditionParts.join(", "));
-        if (topMakes.length) parts.push(`Top: ${topMakes.join(", ")}`);
+        if (yearRange) parts.push(`Years: ${yearRange}`);
+        if (priceRange) parts.push(`Priced from ${priceRange}`);
+        if (topMakes.length) parts.push(`Makes: ${topMakes.join(", ")}`);
+        if (topStyles.length) parts.push(`Types: ${topStyles.join(", ")}`);
 
         context.sales.inventory_summary = parts.join(". ");
+
+        // Build per-vehicle detail string for AI to reference specific vehicles
+        const { data: inventoryDetail } = await supabase
+          .from("sales_inventory")
+          .select("year, make, model, trim, body_style, mileage, asking_price_cents, features")
+          .eq("tenant_id", tenantId)
+          .eq("status", "available")
+          .order("make", { ascending: true })
+          .order("asking_price_cents", { ascending: true })
+          .limit(50);
+
+        if (inventoryDetail && inventoryDetail.length > 0) {
+          // Group by make
+          const byMake: Record<string, typeof inventoryDetail> = {};
+          for (const v of inventoryDetail) {
+            const make = ((v as any).make || "OTHER").toUpperCase();
+            if (!byMake[make]) byMake[make] = [];
+            byMake[make].push(v);
+          }
+
+          const lines: string[] = [];
+          for (const [make, vehicles] of Object.entries(byMake).sort((a, b) => a[0].localeCompare(b[0]))) {
+            lines.push(`${make}:`);
+            for (const v of vehicles) {
+              const yr = (v as any).year || "";
+              const model = (v as any).model || "";
+              const trim = (v as any).trim || "";
+              const body = (v as any).body_style || "";
+              const mi = (v as any).mileage;
+              const miStr = mi ? `${Math.round(mi / 1000)}K mi` : "";
+              const price = (v as any).asking_price_cents;
+              const priceStr = price ? `$${Math.round(price / 100).toLocaleString()}` : "";
+              const feats = ((v as any).features as string[] || []).slice(0, 4).join(", ");
+              
+              let line = `- ${yr} ${model}`;
+              if (trim) line += ` ${trim}`;
+              if (body) line += `, ${body}`;
+              if (miStr) line += `, ${miStr}`;
+              if (priceStr) line += `, ${priceStr}`;
+              if (feats) line += ` - ${feats}`;
+              lines.push(line);
+            }
+            lines.push(""); // blank line between makes
+          }
+          context.sales.inventory_detail = lines.join("\n").trim();
+        }
       }
 
       // Read sales-specific context fields
@@ -3234,7 +3315,8 @@ IMPORTANT GUIDELINES:
   // (done in buildBusinessContext() before buildSystemPrompt is called)
   const aiBehaviorMode = (ctx.ai_settings.ai_behavior_mode || "full_service") as
     "full_service" | "callback_only" | "suggest_callback" | "book_pending";
-  const capabilityPrompt = buildPromptForCapabilities(caps, ctx.tenant.industry_slug, aiBehaviorMode);
+  const aiBookingMode = ctx.ai_settings.ai_booking_mode as string | undefined;
+  const capabilityPrompt = buildPromptForCapabilities(caps, ctx.tenant.industry_slug, aiBehaviorMode, aiBookingMode);
   prompt += `\n\n${capabilityPrompt}`;
   
   // Also append the mode-specific base prompt for backward compatibility
@@ -3266,6 +3348,12 @@ export function buildDynamicVariables(
 ): Record<string, string | number | boolean> {
   // Delegate to the registry-driven builder
   const vars = buildDynamicVariablesFromRegistry(ctx, callerPhoneE164, customerId);
+
+  // Ensure greeting_script always has a sensible value (never empty)
+  // When empty, ElevenLabs falls back to its dashboard first_message which may be generic
+  if (!vars.greeting_script) {
+    vars.greeting_script = `Thanks for calling ${vars.business_name || "us"}, how can I help you today?`;
+  }
 
   // Log variable keys for debugging (one-time dev log)
   if (Deno.env.get("LOG_DYNAMIC_VAR_KEYS") === "true") {

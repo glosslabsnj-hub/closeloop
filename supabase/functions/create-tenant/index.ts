@@ -39,6 +39,7 @@ interface CreateTenantRequest {
   ai_never_promise?: string[];
   hipaa_mode?: boolean;
   capabilities_json?: Record<string, boolean>;
+  default_capacity?: number;
 }
 
 serve(async (req) => {
@@ -141,6 +142,7 @@ serve(async (req) => {
       ai_never_promise: body.ai_never_promise ?? [],
       hipaa_mode: body.hipaa_mode ?? (body.business_mode === "medical"),
       capabilities_json: body.capabilities_json ?? null,
+      default_capacity: body.default_capacity ?? 1,
       // System defaults
       ai_enabled: false,
       custom_industry: null,

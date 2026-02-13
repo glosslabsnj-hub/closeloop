@@ -362,6 +362,27 @@ export default function OnboardingPage() {
       capabilitiesJson._yearsInBusiness = businessDetails.yearsInBusiness;
       capabilitiesJson._isSoloOperator = isSoloOperator;
 
+      // Derive team/fleet capabilities from team size (prefer discovery follow-up over businessDetails)
+      const discoveryTeamSize = (scenarioAnswers as Record<string, any>)._teamSize as string | undefined;
+      const effectiveTeamSize = discoveryTeamSize || businessDetails.teamSize;
+      const hasTeam = effectiveTeamSize === "small" || effectiveTeamSize === "medium" || effectiveTeamSize === "large";
+      if (hasTeam) {
+        capabilitiesJson.hasMultipleStaff = true;
+        capabilitiesJson.fleet_management = true;
+        if (!enabledModules.includes("fleet_management")) {
+          enabledModules.push("fleet_management");
+        }
+      }
+
+      // Derive default_capacity from team size
+      const teamCapacityMap: Record<string, number> = {
+        solo: 1,
+        small: 3,
+        medium: 9,
+        large: 20,
+      };
+      const defaultCapacity = teamCapacityMap[effectiveTeamSize] || 1;
+
       // Use the hours from scheduling step (not default)
       const hoursToSave = schedulingPrefs.is24x7
         ? (await import("@/lib/hoursUtils")).HOURS_24_7
@@ -371,7 +392,7 @@ export default function OnboardingPage() {
       const { data: createResult, error: createError } = await supabase.functions.invoke(
         "create-tenant",
         {
-          body: {
+            body: {
             name: businessName.trim(),
             business_mode: businessMode,
             timezone,
@@ -381,6 +402,7 @@ export default function OnboardingPage() {
             capabilities_json: capabilitiesJson,
             hipaa_mode: businessMode === "medical",
             location: businessDetails.location || undefined,
+            default_capacity: defaultCapacity,
           },
         }
       );
@@ -992,6 +1014,7 @@ export default function OnboardingPage() {
                       businessMode={businessMode}
                       value={communicationPrefs}
                       onChange={setCommunicationPrefs}
+                      scenarioAnswers={scenarioAnswers}
                     />
                   )}
 

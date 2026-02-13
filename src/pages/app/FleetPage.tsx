@@ -1,9 +1,8 @@
 /**
- * FleetPage - Standalone fleet management page
+ * FleetPage - Team & Fleet management page
  * 
- * Displays drivers and vehicles for dispatch businesses.
- * This is the same content as Business Brain > Fleet section,
- * but accessible directly from the sidebar for quick access.
+ * For service businesses: "Your Team" with technician management + job assignments
+ * For dispatch businesses: "Fleet Management" with drivers + vehicles
  */
 
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -11,11 +10,15 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { FleetDriversManager } from "@/components/brain/dispatch/FleetDriversManager";
 import { FleetVehiclesManager } from "@/components/brain/dispatch/FleetVehiclesManager";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
-import { Users } from "lucide-react";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { Users, Wrench } from "lucide-react";
 import { Navigate } from "react-router-dom";
 
 export default function FleetPage() {
-  const { isAllowed, isLoading } = useModuleRequired(["dispatch_queue"]);
+  const { isAllowed, isLoading } = useModuleRequired(["dispatch_queue", "fleet_management", "booking"]);
+  const { businessMode } = useTenantConfig();
+
+  const isServiceMode = businessMode === "service" || businessMode === "medical" || businessMode === "general";
 
   if (isLoading) {
     return (
@@ -34,14 +37,18 @@ export default function FleetPage() {
   return (
     <PageContainer>
       <PageHeader
-        icon={<Users className="h-5 w-5" />}
-        title="Fleet Management"
-        description="Manage your drivers and vehicles for dispatch operations"
+        icon={isServiceMode ? <Wrench className="h-5 w-5" /> : <Users className="h-5 w-5" />}
+        title={isServiceMode ? "Your Team" : "Fleet Management"}
+        description={
+          isServiceMode
+            ? "Manage your technicians and assign jobs to crew members"
+            : "Manage your drivers and vehicles for dispatch operations"
+        }
       />
 
       <div className="space-y-6">
         <FleetDriversManager />
-        <FleetVehiclesManager />
+        {!isServiceMode && <FleetVehiclesManager />}
       </div>
     </PageContainer>
   );

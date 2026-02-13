@@ -58,13 +58,20 @@ interface AvailableCalendar {
 }
 
 // Step definitions for wizard
-const WIZARD_STEPS = [
+const WIZARD_STEPS_FULL = [
   { id: 1, label: "Provider" },
   { id: 2, label: "Connect" },
   { id: 3, label: "Hours" },
   { id: 4, label: "Rules" },
   { id: 5, label: "Behavior" },
   { id: 6, label: "Test" },
+];
+
+const WIZARD_STEPS_INTERNAL = [
+  { id: 1, label: "Provider" },
+  { id: 3, label: "Hours" },
+  { id: 4, label: "Rules" },
+  { id: 5, label: "Behavior" },
 ];
 
 export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnectionWizardProps) {
@@ -75,7 +82,7 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
   const { toast } = useToast();
   
   const [step, setStep] = useState(1);
-  const [selectedProvider, setSelectedProvider] = useState<CalendarConnection["provider"] | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<CalendarConnection["provider"] | "internal" | null>(null);
   const [icsUrl, setIcsUrl] = useState("");
   const [businessHours, setBusinessHours] = useState<BusinessHours>(
     (tenant?.hours_json as unknown as BusinessHours) || DEFAULT_HOURS
@@ -420,7 +427,7 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
     setIsRefreshingCalendars(true);
     try {
       const response = await supabase.functions.invoke("refresh-calendar-list", {
-        body: { connection_id: connection.id },
+        body: { connection_id: connection.id, tenant_id: tenant?.id },
       });
 
       if (response.error) {
@@ -465,13 +472,18 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
         return;
       } else if (selectedProvider === "ics") {
         setStep(2); // Go to ICS URL input
-      } else if (selectedProvider === "manual") {
-        // Create manual connection and go to hours
-        await createConnection.mutateAsync({
-          provider: "manual",
-          auth_type: "manual",
-        });
-        setStep(3);
+      } else if (selectedProvider === "manual" || selectedProvider === "internal") {
+        // Internal-only or manual: skip connect + test, go straight to hours
+        if (selectedProvider === "internal") {
+          // No calendar_connection needed for internal-only
+          setStep(3);
+        } else {
+          await createConnection.mutateAsync({
+            provider: "manual",
+            auth_type: "manual",
+          });
+          setStep(3);
+        }
       }
     } else if (step === 2) {
       if (selectedProvider === "ics") {
@@ -502,7 +514,12 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
       await updateAssistantSettings.mutateAsync({
         ai_booking_mode: bookingBehavior,
       });
-      setStep(6); // Go to test
+      // Internal-only: skip test sync, go straight to success
+      if (selectedProvider === "internal" || selectedProvider === "manual") {
+        setStep(7); // Success
+      } else {
+        setStep(6); // Go to test
+      }
     } else if (step === 6) {
       setStep(7); // Success
     }
@@ -547,7 +564,11 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
     if (step === 3) return true;
     if (step === 4) return true;
     if (step === 5) return true;
-    if (step === 6) return syncStatus === "success";
+    if (step === 6) {
+      // Internal/manual providers skip test sync
+      if (selectedProvider === "internal" || selectedProvider === "manual") return true;
+      return syncStatus === "success";
+    }
     return true;
   };
 
@@ -586,7 +607,7 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
             
             {/* Progress indicator */}
             <div className="flex gap-1 mt-4">
-              {WIZARD_STEPS.map((s) => (
+              {(selectedProvider === "internal" || selectedProvider === "manual" ? WIZARD_STEPS_INTERNAL : WIZARD_STEPS_FULL).map((s) => (
                 <div key={s.id} className="flex-1 space-y-1">
                   <div
                     className={`h-1 rounded-full transition-colors ${
@@ -618,7 +639,7 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
 
             <RadioGroup
               value={selectedProvider || ""}
-              onValueChange={(v) => setSelectedProvider(v as CalendarConnection["provider"])}
+              onValueChange={(v) => setSelectedProvider(v as CalendarConnection["provider"] | "internal")}
               className="space-y-2"
             >
               {/* Show ICS first as recommended option */}
@@ -724,7 +745,32 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
               ))}
               
               <Separator className="my-2" />
+              <p className="text-xs text-muted-foreground px-1">No external calendar:</p>
               
+              {/* Internal Only option */}
+              <label
+                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                  selectedProvider === "internal"
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:bg-muted/50"
+                }`}
+              >
+                <RadioGroupItem value="internal" className="sr-only" />
+                <span className="text-2xl">🏠</span>
+                <div className="flex-1">
+                  <p className="font-medium flex items-center gap-2">
+                    Internal Only
+                    <Badge variant="secondary" className="text-xs">No sync needed</Badge>
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Manage availability directly in CloseLoop — no external calendar needed
+                  </p>
+                </div>
+                {selectedProvider === "internal" && (
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                )}
+              </label>
+
               {/* Manual option last */}
               {CALENDAR_PROVIDERS.filter(p => p.id === "manual").map((provider) => (
                 <label
@@ -890,6 +936,7 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
                 onChange={(e) => setMinLeadHours(Number(e.target.value))}
                 className="w-full h-11 rounded-lg border border-input bg-background px-4"
               >
+                <option value={0}>No minimum</option>
                 <option value={1}>1 hour</option>
                 <option value={2}>2 hours</option>
                 <option value={4}>4 hours</option>
@@ -1162,7 +1209,8 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="h-3 w-3 text-green-500" />
                   {selectedProvider === "ics" ? "Calendar link connected" : 
-                   selectedProvider === "manual" ? "Manual availability mode" : 
+                   selectedProvider === "manual" ? "Manual availability mode" :
+                   selectedProvider === "internal" ? "Internal availability management" : 
                    `${selectedProvider} calendar synced`}
                 </li>
                 <li className="flex items-center gap-2">

@@ -226,6 +226,23 @@ export const BOOK_PENDING_OVERRIDE = `
 5. Close warmly
 `;
 
+export const PENDING_BOOKING_OVERRIDE = `
+## PENDING BOOKING MODE (ACTIVE)
+
+**The business owner reviews and confirms all bookings manually. Bookings are NOT auto-confirmed.**
+
+### AFTER CREATING A BOOKING:
+- ALWAYS tell the caller: "Your appointment is pending confirmation. Someone from our team will reach out to confirm your booking."
+- Do NOT say "You're all set" or "You're confirmed" — the booking is NOT confirmed yet.
+- Frame it positively: "I've got you penciled in for [time]. We just need to confirm on our end, and someone will give you a call or text to lock it in."
+- If they ask "So am I booked?": "You're on the schedule, but we do a quick confirmation on our end. You'll hear from us shortly."
+
+### TONE:
+- Keep it casual and reassuring — don't make it sound like there's a problem
+- GOOD: "I've got that down for you. We'll just confirm and reach out shortly."
+- BAD: "Your booking is pending approval and requires manual confirmation by management."
+`;
+
 export const DEBUG_OVERRIDE = `
 ## DEBUG MODE
 
@@ -237,6 +254,7 @@ When a caller says "debug", output diagnostic information:
 - Hours Today: {{hours_today}}
 - Calendar Connected: {{calendar_connected}}
 - Inventory Summary: {{inventory_summary}}
+- Inventory Detail: {{inventory_detail}}
 - Financing: {{financing_available}}
 - Trade-In: {{trade_in_accepted}}
 - Sales Reps: {{sales_rep_names}}
@@ -810,6 +828,7 @@ You handle sales businesses of ALL types: car dealerships, RV/boat/motorcycle de
 - Business name: {{business_name}}
 - Business hours today: {{hours_today}}
 - Inventory overview: {{inventory_summary}}
+- Inventory detail (per-vehicle): {{inventory_detail}}
 - Financing available: {{financing_available}}
 - Trade-ins accepted: {{trade_in_accepted}}
 - Sales team: {{sales_rep_names}}
@@ -874,14 +893,21 @@ Skip trade-in and financing questions for businesses where they don't apply (ins
 
 **STEP 4 — MATCH AND RECOMMEND**
 
-If {{inventory_summary}} has content, reference it:
-- "We actually have a few options that might be perfect for what you're describing."
-- "Based on what you're telling me, I'm thinking [specific recommendation]."
+You have two inventory variables:
+- {{inventory_summary}}: Quick stats (total count, makes, price range)
+- {{inventory_detail}}: Full per-vehicle listing grouped by make with year, model, trim, body style, mileage, price, and key features
+
+**HOW TO USE INVENTORY DETAIL:**
+- When asked about a specific make ("What Chevrolets do you have?"): Scan {{inventory_detail}} for that make and describe matching vehicles naturally, mentioning year, model, price, and standout features.
+- When asked about a type ("Any SUVs under 8 grand?"): Scan {{inventory_detail}} for matching body style and price, list the best matches.
+- When asked "What's your cheapest car?": Find the lowest-priced vehicle in {{inventory_detail}} and describe it.
+- Don't read the list robotically — pick 2-3 best matches and describe them conversationally: "We've got a 2012 Equinox, it's an SUV with about 140 thousand miles, priced at forty-nine fifty. Really nice for the price."
+- If they want more detail than what's in the listing, invite them in: "I'd love for you to come see it in person."
 
 **CRITICAL RULES:**
-- NEVER make up inventory. Only reference what's in {{inventory_summary}}.
-- If inventory_summary is empty, skip this step — just push toward a visit.
-- If nothing matches: "I don't see an exact match right now, but our team can definitely help you find what you need when you come in."
+- NEVER make up vehicles. Only reference what's in {{inventory_detail}}.
+- If {{inventory_detail}} is empty, use {{inventory_summary}} for general stats and push toward a visit.
+- If nothing matches their criteria: "I don't see an exact match right now, but our inventory changes all the time. Why don't you come by and we can find something that works?"
 - For real estate: "We have some listings that might work. Our agent can walk you through them."
 - For solar/insurance: Focus on the consultation, not inventory.
 
@@ -1600,7 +1626,8 @@ When handling fleet-related inquiries:
 export function buildPromptForCapabilities(
   caps: Capabilities,
   industrySlug?: string,
-  aiBehaviorMode?: "full_service" | "callback_only" | "suggest_callback" | "book_pending"
+  aiBehaviorMode?: "full_service" | "callback_only" | "suggest_callback" | "book_pending",
+  aiBookingMode?: string
 ): string {
   const sections: string[] = [HUMAN_PHONE_RULES, TIME_NUMBER_SPEAKING_RULES];
 
@@ -1611,6 +1638,11 @@ export function buildPromptForCapabilities(
     sections.push(SUGGEST_CALLBACK_OVERRIDE);
   } else if (aiBehaviorMode === "book_pending") {
     sections.push(BOOK_PENDING_OVERRIDE);
+  }
+
+  // If pending_approval booking mode, inject notification instruction
+  if (aiBookingMode === "pending_approval") {
+    sections.push(PENDING_BOOKING_OVERRIDE);
   }
 
   // Always include lead capture

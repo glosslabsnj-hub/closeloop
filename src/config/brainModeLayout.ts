@@ -91,6 +91,7 @@ const SERVICE_LAYOUT: ModeLayout = {
         { key: "coverage", label: "COVERAGE", itemIds: ["coverage", "service-coverage", "travel-times", "workload"] },
         { key: "policies", label: "POLICIES", itemIds: ["policies", "never-promise", "custom-policies"] },
         { key: "delivery", label: "DELIVERY", itemIds: ["booking-delivery", "callback-delivery"] },
+        { key: "integrations", label: "INTEGRATIONS", itemIds: ["tekmetric"] },
       ],
       completionSections: ["coverage", "policies"],
     },

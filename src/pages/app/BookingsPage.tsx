@@ -27,7 +27,7 @@ import type { ScheduleEvent } from "@/hooks/useScheduleData";
 
 export default function BookingsPage() {
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["booking"]);
-  const { bookings, isLoading } = useBookings();
+  const { bookings, isLoading, updateBooking } = useBookings();
   const { terms } = useIndustryContext();
 
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
@@ -62,6 +62,10 @@ export default function BookingsPage() {
   const handleCancelBooking = (booking: BookingWithDetails) => {
     setSelectedBooking(booking);
     setCancelDialogOpen(true);
+  };
+
+  const handleApproveBooking = (booking: BookingWithDetails) => {
+    updateBooking.mutate({ id: booking.id, status: "confirmed" });
   };
 
   const handleSlotClick = (date: Date, hour: number) => {
@@ -175,6 +179,7 @@ export default function BookingsPage() {
                   booking={booking}
                   onEdit={handleEditBooking}
                   onCancel={handleCancelBooking}
+                  onApprove={handleApproveBooking}
                 />
               </AnimatedListItem>
             ))}

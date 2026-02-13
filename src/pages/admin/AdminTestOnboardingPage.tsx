@@ -200,6 +200,16 @@ export default function AdminTestOnboardingPage() {
       capabilitiesJson._expectedCallVolume = businessDetails.expectedCallVolume;
       capabilitiesJson._yearsInBusiness = businessDetails.yearsInBusiness;
 
+      // Derive team/fleet capabilities from team size
+      const hasTeam = businessDetails.teamSize === "medium" || businessDetails.teamSize === "large";
+      if (hasTeam) {
+        capabilitiesJson.hasMultipleStaff = true;
+        capabilitiesJson.fleet_management = true;
+        if (!enabledModules.includes("fleet_management")) {
+          enabledModules.push("fleet_management");
+        }
+      }
+
       const hoursToSave = schedulingPrefs.is24x7 ? HOURS_24_7 : businessHours;
 
       // 1. Create tenant via edge function

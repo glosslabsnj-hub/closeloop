@@ -21,14 +21,15 @@ serve(async (req: Request) => {
       lock_ttl_minutes = 10, // How long to hold the locks
     } = await req.json();
 
-    // Get tenant settings for business hours
+    // Get tenant settings for business hours and capacity
     const { data: tenant } = await supabase
       .from("tenants")
-      .select("hours_json, timezone, min_lead_hours, max_advance_days")
+      .select("hours_json, timezone, min_lead_hours, max_advance_days, default_capacity")
       .eq("id", tenantId)
       .single();
 
     const businessHours = tenant?.hours_json || null;
+    const capacity = (tenant as any)?.default_capacity || 1;
 
     let slots;
     let slotsError;
@@ -55,6 +56,7 @@ serve(async (req: Request) => {
         _duration_minutes: duration_minutes,
         _buffer_minutes: buffer_minutes,
         _business_hours: businessHours,
+        _capacity: capacity,
       });
       slots = result.data;
       slotsError = result.error;

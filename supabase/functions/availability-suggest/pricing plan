@@ -1,0 +1,91 @@
+You are auditing the pricing configuration system for a multi-industry AI receptionist platform. The platform supports businesses in "dispatch" and "service" modes — including but not limited to: towing, locksmith, plumber, HVAC, electrician, mobile mechanic, mobile detailing, mobile car wash, pest control, junk removal, courier, medical transport, appliance repair, carpet cleaning, tree service, septic/porta-potty, dumpster rental, mobile vet, roadside assistance (non-tow), IT support, handyman, pool service, and lawn care.
+
+Each of these businesses prices differently. Your job is to:
+
+## 1. Map Real-World Pricing Patterns
+
+For every business type above (and any others you can think of that fit dispatch or service mode), document:
+- How do they actually charge customers? (e.g., flat fee, trip charge + hourly, per-unit, distance-based, etc.)
+- What are the typical components? (e.g., service call fee, labor, materials/parts, mileage, minimum charge, surcharges)
+- What factors affect the price? (e.g., time of day, urgency, distance, vehicle/property size, job complexity)
+- Do they need to quote on the phone, or is pricing fixed and known upfront?
+
+## 2. Audit the Current Pricing System
+
+Read these files thoroughly:
+- `src/types/dispatchPricing.ts` — current pricing models (flat, distance_tiered, variable) and calculation logic
+- `src/components/brain/dispatch/DispatchServiceEditor.tsx` — the UI for configuring service pricing
+- `src/components/brain/dispatch/DispatchServiceCatalog.tsx` — the service list
+- `supabase/functions/elevenlabs-check-service-area/index.ts` — backend pricing engine used during calls
+- `supabase/functions/elevenlabs-create-dispatch-job/index.ts` — how prices are persisted
+- `src/hooks/useTenantDistanceSettings.ts` — distance basis configuration
+- `src/components/brain/dispatch/DistanceBasisSettings.tsx` — distance basis UI
+- `src/components/brain/ServiceAreaManager.tsx` — service area config
+- `src/components/brain/editors/PriceModifiersEditor.tsx` — surcharges (after-hours, weekend, etc.)
+
+For each business type from step 1, answer:
+- Can this business fully configure their pricing with the current system? 
+- If not, what's missing?
+- If yes, is it obvious HOW to do it, or would they be confused?
+
+## 3. Identify the Universal Pricing Components
+
+From your analysis, identify the common building blocks that appear across all business types. I suspect they are something like:
+- **Trip/Service Call Fee** (getting to the customer) — flat or distance-based
+- **Base Service Charge** (the core job) — flat, tiered, or variable
+- **Per-Unit Charges** (per mile towed, per hour of labor, per cubic yard, per room, etc.)
+- **Surcharges/Modifiers** (after-hours, weekend, holiday, urgency, vehicle size, etc.)
+- **Minimum Charge** (floor price regardless of job scope)
+- **Parts/Materials** (pass-through or marked up — often "variable/quote required")
+
+## 4. Design the Simplified Configuration
+
+The critical constraint: **business owners are NOT technical people**. They should never see more than 3-4 fields at once. The UI must progressively disclose complexity only when needed.
+
+Design a pricing configuration approach that:
+- Works for ALL the business types you identified
+- Uses the MINIMUM number of distinct "pricing model" options (don't create 15 models)
+- Shows only relevant fields based on what the business actually needs
+- Cross-references related settings (service area, distance basis, surcharges) with clear explanations
+- Produces a "Sample Quotes" preview so the owner can verify the AI will quote correctly
+- Generates a clear voice script the AI can use to explain pricing to callers
+
+For each pricing model option, explain:
+- What it's called (in plain business language, not technical jargon)
+- What fields are shown
+- What business types would use it
+- An example configuration and resulting AI quote
+
+## 5. Gap Analysis and Recommendations
+
+Produce a table:
+
+| Business Type | Current Model | Works Today? | What's Missing/Confusing | Recommended Fix |
+|---|---|---|---|---|
+
+## 6. Implementation Plan
+
+For any changes needed:
+- What fields need to be added to `DispatchPricingConfig` in `src/types/dispatchPricing.ts`?
+- What UI changes in `DispatchServiceEditor.tsx`?
+- What backend changes in `elevenlabs-check-service-area/index.ts`?
+- Do any changes affect the existing `price_modifiers` system (surcharges), or are these separate?
+- Are there any database migrations needed, or does everything fit in the existing `pricing_config_json` JSONB column?
+
+## Key Rules
+
+- Do NOT propose separate pricing systems per industry. ONE system must handle all.
+- Do NOT overwhelm the UI. Use progressive disclosure — start simple, reveal complexity only when toggled on.
+- Do NOT break existing flat/distance_tiered/variable configurations. All changes must be backward compatible.
+- DO make sure the AI agent can explain every quote component naturally in speech.
+- DO make sure the Sample Quotes preview accurately reflects what the AI would say on a call.
+- DO consider the interaction between: service call fee, base charge, per-unit charge, surcharges (price_modifiers), minimum charge, and service area limits.
+
+## Output Format
+
+For each finding, provide:
+1. **Business types affected**
+2. **Current state** (what works, what doesn't)
+3. **Recommended change** (specific fields, UI, backend)
+4. **Example** (a real business scenario showing the config + resulting AI quote)
+5. **Files to modify** (exact paths)

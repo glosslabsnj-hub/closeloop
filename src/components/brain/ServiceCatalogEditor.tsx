@@ -35,6 +35,7 @@ import { InlineUploadButton } from "./InlineUploadButton";
 import { PasteFromPOSDialog } from "./PasteFromPOSDialog";
 import { ServiceCSVImportDialog } from "./ServiceCSVImportDialog";
 import { createService, updateService, deleteService } from "@/lib/brain/writeBrainFact";
+import { invalidateBrainQueries } from "@/lib/brain/invalidateBrainQueries";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
@@ -336,7 +337,7 @@ export function ServiceCatalogEditor() {
       });
       toast.success("Service updated");
       queryClient.invalidateQueries({ queryKey: ["services"] });
-      queryClient.invalidateQueries({ queryKey: ["business-context"] });
+      invalidateBrainQueries(queryClient, tenant?.id);
       setExpandedServiceId(null);
     } catch (error: any) {
       toast.error(error.message || "Failed to save service");
@@ -363,7 +364,7 @@ export function ServiceCatalogEditor() {
       });
       toast.success("Service created");
       queryClient.invalidateQueries({ queryKey: ["services"] });
-      queryClient.invalidateQueries({ queryKey: ["business-context"] });
+      invalidateBrainQueries(queryClient, tenant?.id);
       setIsCreatingNew(false);
       setNewServiceData(defaultFormData);
     } catch (error: any) {
@@ -380,7 +381,7 @@ export function ServiceCatalogEditor() {
       await deleteService(deletingService.id, tenant.id);
       toast.success("Service deleted");
       queryClient.invalidateQueries({ queryKey: ["services"] });
-      queryClient.invalidateQueries({ queryKey: ["business-context"] });
+      invalidateBrainQueries(queryClient, tenant?.id);
       setDeleteDialogOpen(false);
       setDeletingService(null);
     } catch (error: any) {
@@ -398,7 +399,7 @@ export function ServiceCatalogEditor() {
       });
       toast.success(service.is_active ? "Service deactivated" : "Service activated");
       queryClient.invalidateQueries({ queryKey: ["services"] });
-      queryClient.invalidateQueries({ queryKey: ["business-context"] });
+      invalidateBrainQueries(queryClient, tenant?.id);
     } catch (error: any) {
       toast.error(error.message || "Failed to update service");
     }

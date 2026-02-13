@@ -235,6 +235,14 @@ serve(async (req: Request) => {
     }
 
     // Call the database function for slot computation
+    // Fetch tenant capacity for multi-technician support
+    const { data: tenantCapacity } = await supabase
+      .from("tenants")
+      .select("default_capacity")
+      .eq("id", tenantId)
+      .single();
+    const capacity = (tenantCapacity as any)?.default_capacity || 1;
+
     const { data: slots, error: slotsError } = await supabase.rpc(
       "fn_compute_available_slots",
       {
@@ -244,6 +252,7 @@ serve(async (req: Request) => {
         _duration_minutes: finalDuration,
         _buffer_minutes: bufferMinutes,
         _business_hours: tenant?.hours_json,
+        _capacity: capacity,
       }
     );
 
@@ -325,6 +334,7 @@ serve(async (req: Request) => {
             _duration_minutes: finalDuration,
             _buffer_minutes: bufferMinutes,
             _business_hours: tenant?.hours_json,
+            _capacity: capacity,
           });
 
           if (futureSlots && futureSlots.length > 0) {

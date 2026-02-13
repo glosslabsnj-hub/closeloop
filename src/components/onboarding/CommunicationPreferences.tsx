@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -93,6 +93,7 @@ interface CommunicationPreferencesProps {
   businessMode: BusinessMode;
   value: CommunicationPrefs;
   onChange: (prefs: CommunicationPrefs) => void;
+  scenarioAnswers?: Record<string, boolean | string>;
 }
 
 /** Available intake field options per mode */
@@ -128,6 +129,7 @@ export function CommunicationPreferences({
   businessMode,
   value,
   onChange,
+  scenarioAnswers,
 }: CommunicationPreferencesProps) {
   const showBookingMode = businessMode !== "dispatch";
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -147,6 +149,20 @@ export function CommunicationPreferences({
       escalationRules: { ...value.escalationRules, ...updates },
     });
   };
+
+  // Pre-select booking mode from discovery follow-up if answered there
+  const discoveryBookingMode = scenarioAnswers?._aiBookingMode as string | undefined;
+  const hasAppliedDiscovery = useRef(false);
+
+  if (discoveryBookingMode && !hasAppliedDiscovery.current) {
+    hasAppliedDiscovery.current = true;
+    if (discoveryBookingMode !== value.aiBookingMode) {
+      // Defer to avoid state update during render
+      setTimeout(() => {
+        onChange({ ...value, aiBookingMode: discoveryBookingMode as CommunicationPrefs["aiBookingMode"] });
+      }, 0);
+    }
+  }
 
   return (
     <div className="space-y-6">

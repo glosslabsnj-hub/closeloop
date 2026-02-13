@@ -633,6 +633,9 @@ Deno.serve(async (req) => {
     // DO NOT add conversation_config_override here — it breaks the register-call API and causes instant hangups.
     console.log(`[twilio-inbound] Registering with agent ${agentId.slice(0, 12)}... (callback_only=${settings.ai_behavior_mode === "callback_only"})`);
 
+    // conversation_config_override BREAKS register-call API (causes instant hangups).
+    // Greeting script is delivered via dynamic_variables.greeting_script instead.
+    // The ElevenLabs dashboard agent's first_message must use {{greeting_script}} handlebars.
     const registerPayload: Record<string, unknown> = {
       agent_id: agentId,
       from_number: callerPhoneE164 || fromNumber,

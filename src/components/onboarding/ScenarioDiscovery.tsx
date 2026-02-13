@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Shield, Bot, ChevronDown, DollarSign } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,6 +16,7 @@ import {
   type ScenarioQuestion,
   type QuestionGroup,
   type FollowUpField,
+  type ScenarioFollowUp,
 } from "@/lib/scenarioQuestions";
 import { getIndustryBySlug } from "@/data/industryCatalog";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
@@ -96,6 +98,13 @@ export function ScenarioDiscovery({
     onDetailsChange?.({ ...details, [key]: value });
   };
 
+  const handleFollowUpChange = (key: string, value: string) => {
+    onChange({
+      ...answers,
+      [key]: value as any,
+    });
+  };
+
   let globalIndex = 0;
 
   const [hasScrolled, setHasScrolled] = useState(false);
@@ -145,6 +154,8 @@ export function ScenarioDiscovery({
                       isPreSet={isPreAnswered(q, industryContext)}
                       details={details}
                       onDetailChange={updateDetail}
+                      answers={answers as Record<string, boolean | string>}
+                      onAnswerChange={handleFollowUpChange}
                     />
                   );
                 })}
@@ -241,6 +252,8 @@ function QuestionCard({
   isPreSet,
   details = {},
   onDetailChange,
+  answers,
+  onAnswerChange,
 }: {
   question: ScenarioQuestion;
   checked: boolean;
@@ -249,9 +262,14 @@ function QuestionCard({
   isPreSet?: boolean;
   details?: Record<string, string>;
   onDetailChange?: (key: string, value: string) => void;
+  answers: Record<string, boolean | string>;
+  onAnswerChange: (key: string, value: string) => void;
 }) {
   const isBlocking = question.blocking;
-  const showFollowUp = checked && question.followUp && question.followUp.fields.length > 0;
+  const showFollowUp = checked && question.followUp;
+  // Determine which type of follow-up this is
+  const isFieldsFollowUp = showFollowUp && "fields" in question.followUp!;
+  const isRadioFollowUp = showFollowUp && "answerKey" in question.followUp!;
 
   return (
     <motion.div
@@ -303,18 +321,72 @@ function QuestionCard({
             />
           </div>
 
-          {/* Inline follow-up fields */}
+          {/* Inline follow-up fields (input-based) */}
           <AnimatePresence>
-            {showFollowUp && onDetailChange && (
+            {isFieldsFollowUp && onDetailChange && (
               <FollowUpFields
-                fields={question.followUp!.fields}
+                fields={(question.followUp as { fields: FollowUpField[] }).fields}
                 details={details}
                 onDetailChange={onDetailChange}
               />
             )}
           </AnimatePresence>
+
+          {/* Inline follow-up question (radio/select-based) */}
+          <AnimatePresence>
+            {isRadioFollowUp && question.followUp && "answerKey" in question.followUp && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <FollowUpSection
+                  followUp={question.followUp as ScenarioFollowUp}
+                  value={(answers[(question.followUp as ScenarioFollowUp).answerKey] as string) || (question.followUp as ScenarioFollowUp).defaultValue}
+                  onChange={(val) => onAnswerChange((question.followUp as ScenarioFollowUp).answerKey, val)}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </CardContent>
       </Card>
     </motion.div>
+  );
+}
+
+function FollowUpSection({
+  followUp,
+  value,
+  onChange,
+}: {
+  followUp: ScenarioFollowUp;
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  return (
+    <div className="mt-3 pt-3 border-t border-border/50">
+      <p className="text-sm font-medium mb-2">{followUp.label}</p>
+      <RadioGroup value={value} onValueChange={onChange} className="space-y-1.5">
+        {followUp.options.map((opt) => (
+          <label
+            key={opt.value}
+            className={cn(
+              "flex items-start gap-3 p-2.5 rounded-md cursor-pointer transition-all text-sm",
+              value === opt.value
+                ? "bg-primary/10 border border-primary/30"
+                : "hover:bg-muted/50 border border-transparent"
+            )}
+          >
+            <RadioGroupItem value={opt.value} className="mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <span className="font-medium">{opt.label}</span>
+              <p className="text-xs text-muted-foreground mt-0.5">{opt.description}</p>
+            </div>
+          </label>
+        ))}
+      </RadioGroup>
+    </div>
   );
 }

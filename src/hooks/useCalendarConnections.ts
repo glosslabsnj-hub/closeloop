@@ -399,7 +399,7 @@ export function useCalendarSync() {
     setIsSyncing(true);
     try {
       const response = await supabase.functions.invoke("sync-availability", {
-        body: { connection_id: connectionId, days },
+        body: { connection_id: connectionId, days, tenant_id: tenant?.id },
       });
 
       if (response.error) {

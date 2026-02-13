@@ -75,6 +75,7 @@ import {
   CompetitorKnowledgeEditor,
   SeasonalKnowledgeEditor,
 } from "@/components/brain/knowledge";
+import { TekmetricSetup } from "@/components/brain/integrations/TekmetricSetup";
 
 interface BrainEditorRendererProps {
   itemId: string;
@@ -241,6 +242,10 @@ export function BrainEditorRenderer({
       return <CustomKnowledgeEditor />;
     case "documents":
       return <BrainAssetsManager />;
+
+    // ── Integrations ──
+    case "tekmetric":
+      return <TekmetricSetup />;
 
     default:
       return (

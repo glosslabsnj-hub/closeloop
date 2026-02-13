@@ -10,6 +10,7 @@ interface SuggestedFAQ {
 interface SuggestedFAQButtonsProps {
   onAdd: (question: string, answer: string) => void;
   existingQuestions?: string[];
+  tenantPolicies?: { cancellation?: string; deposit?: string; refund?: string };
 }
 
 /**
@@ -222,15 +223,27 @@ const MODE_FAQS: Record<BusinessMode, SuggestedFAQ[]> = {
   ],
 };
 
-export function SuggestedFAQButtons({ onAdd, existingQuestions = [] }: SuggestedFAQButtonsProps) {
+export function SuggestedFAQButtons({ onAdd, existingQuestions = [], tenantPolicies }: SuggestedFAQButtonsProps) {
   const { businessMode } = useTenantConfig();
   
   // Get FAQs for current business mode
   const suggestedFaqs = MODE_FAQS[businessMode] || MODE_FAQS.general;
   
-  // Filter out already-added FAQs
+  // Filter out already-added FAQs and policy-covered FAQs
+  const policyOverlapPatterns = [
+    ...(tenantPolicies?.cancellation ? ["cancellation"] : []),
+    ...(tenantPolicies?.deposit ? ["deposit"] : []),
+    ...(tenantPolicies?.refund ? ["refund", "return"] : []),
+  ];
+
   const availableFAQs = suggestedFaqs.filter(
-    faq => !existingQuestions.some(q => q.toLowerCase().includes(faq.question.toLowerCase().slice(0, 20)))
+    faq => {
+      // Skip if already added
+      if (existingQuestions.some(q => q.toLowerCase().includes(faq.question.toLowerCase().slice(0, 20)))) return false;
+      // Skip if covered by a policy
+      if (policyOverlapPatterns.some(pattern => faq.question.toLowerCase().includes(pattern))) return false;
+      return true;
+    }
   );
 
   if (availableFAQs.length === 0) {

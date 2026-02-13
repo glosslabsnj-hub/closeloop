@@ -15,7 +15,19 @@ import { addDays, startOfDay, endOfDay, format } from "date-fns";
 import { Clock, ChevronRight } from "lucide-react";
 
 interface BusinessHours {
-  [key: string]: { open: string; close: string; closed?: boolean };
+  [key: string]: any;
+}
+
+/** Normalize hours_json day config (supports both legacy flat and windows array formats) */
+function normalizeDayHours(dayConfig: any): { open: string; close: string } | null {
+  if (!dayConfig || dayConfig.closed === true) return null;
+  if (dayConfig.windows?.length) {
+    return { open: dayConfig.windows[0].open, close: dayConfig.windows[0].close };
+  }
+  if (dayConfig.open && dayConfig.close) {
+    return { open: dayConfig.open, close: dayConfig.close };
+  }
+  return null;
 }
 
 const DAY_MAP: Record<number, string> = {
@@ -60,7 +72,8 @@ export function AvailabilityHub() {
   // Get hours for a specific day
   const getHoursForDay = (date: Date) => {
     const dayName = DAY_MAP[date.getDay()];
-    return businessHours?.[dayName] || null;
+    const raw = businessHours?.[dayName] || null;
+    return normalizeDayHours(raw);
   };
 
   const handleOpenBlockDialog = (date?: Date) => {
@@ -75,9 +88,10 @@ export function AvailabilityHub() {
   const isLoading = tenantLoading || blocksLoading;
 
   // Summary stats
-  const todayHours = getHoursForDay(today);
+  const rawTodayHours = getHoursForDay(today);
+  const todayHours = normalizeDayHours(rawTodayHours);
   const todayBlocks = getBlocksForDay(today);
-  const isTodayOpen = todayHours && !todayHours.closed;
+  const isTodayOpen = !!todayHours;
 
   return (
     <div className="space-y-6">
@@ -109,7 +123,7 @@ export function AvailabilityHub() {
                   <div>
                     <p className="text-sm text-muted-foreground">Today ({format(today, "EEEE, MMM d")})</p>
                     <p className="text-xl font-semibold">
-                      {isTodayOpen ? (
+                      {isTodayOpen && todayHours ? (
                         <span className="text-primary">
                           {formatTime(todayHours.open)} – {formatTime(todayHours.close)}
                         </span>

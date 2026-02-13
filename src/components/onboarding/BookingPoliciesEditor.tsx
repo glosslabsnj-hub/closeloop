@@ -17,6 +17,7 @@ interface BookingPoliciesEditorProps {
 }
 
 const leadTimeOptions = [
+  { value: 0, label: 'No minimum' },
   { value: 1, label: '1 hour' },
   { value: 2, label: '2 hours' },
   { value: 4, label: '4 hours' },

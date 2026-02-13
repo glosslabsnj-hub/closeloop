@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Clock, MoreVertical, Pencil, Phone, X, MessageSquare, CalendarClock } from "lucide-react";
+import { Clock, MoreVertical, Pencil, Phone, X, MessageSquare, CalendarClock, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import type { BookingWithDetails } from "@/hooks/useBookings";
 
 export const bookingStatusColors: Record<string, string> = {
+  pending: "bg-warning/10 text-warning border-warning/30",
   pending_deposit: "bg-warning/10 text-warning border-warning/30",
   confirmed: "bg-success/10 text-success border-success/30",
   completed: "bg-muted text-muted-foreground border-border",
@@ -21,7 +22,8 @@ export const bookingStatusColors: Record<string, string> = {
 };
 
 export const bookingStatusLabels: Record<string, string> = {
-  pending_deposit: "Pending",
+  pending: "Awaiting Approval",
+  pending_deposit: "Pending Deposit",
   confirmed: "Confirmed",
   completed: "Completed",
   canceled: "Cancelled",
@@ -32,6 +34,7 @@ interface BookingCardProps {
   booking: BookingWithDetails;
   onEdit?: (booking: BookingWithDetails) => void;
   onCancel?: (booking: BookingWithDetails) => void;
+  onApprove?: (booking: BookingWithDetails) => void;
 }
 
 function formatPrice(amount: number | null | undefined): string {
@@ -39,7 +42,7 @@ function formatPrice(amount: number | null | undefined): string {
   return `$${amount.toFixed(0)}`;
 }
 
-export function BookingCard({ booking, onEdit, onCancel }: BookingCardProps) {
+export function BookingCard({ booking, onEdit, onCancel, onApprove }: BookingCardProps) {
   const startDate = new Date(booking.start_at);
   const serviceName = booking.service?.name || "Service";
   const customerName = booking.lead?.full_name || "Unknown";
@@ -81,6 +84,20 @@ export function BookingCard({ booking, onEdit, onCancel }: BookingCardProps) {
 
       {/* Actions — visible on hover (desktop), always on mobile */}
       <div className="shrink-0 flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+        {booking.status === "pending" && onApprove && (
+          <Button
+            variant="default"
+            size="sm"
+            className="h-7 text-xs font-semibold gap-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              onApprove(booking);
+            }}
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Approve
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="icon-sm"

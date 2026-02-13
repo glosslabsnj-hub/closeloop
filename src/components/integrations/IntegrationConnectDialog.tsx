@@ -123,6 +123,12 @@ export function IntegrationConnectDialog({
       return;
     }
 
+    if (providerId === "fieldedge") {
+      // FieldEdge has its own setup card - just close dialog and switch to connect tab
+      handleClose();
+      return;
+    }
+
     if (providerId === "webhook") {
       // Just save webhook URL config
       await createIntegration.mutateAsync({

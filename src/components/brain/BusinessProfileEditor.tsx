@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Loader2, Save } from "lucide-react";
 import { updateBusinessProfile } from "@/lib/brain/writeBrainFact";
+import { invalidateBrainQueries } from "@/lib/brain/invalidateBrainQueries";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -134,7 +135,7 @@ export function BusinessProfileEditor() {
       if (error) throw error;
 
       toast.success("Profile saved");
-      queryClient.invalidateQueries({ queryKey: ["business-context"] });
+      invalidateBrainQueries(queryClient, tenant?.id);
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : "Failed to save");
     } finally {
