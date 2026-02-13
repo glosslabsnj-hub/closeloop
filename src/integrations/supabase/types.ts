@@ -10251,6 +10251,7 @@ export type Database = {
         | "completed"
         | "canceled"
         | "no_show"
+        | "pending"
       business_mode:
         | "service"
         | "dispatch"
@@ -10580,6 +10581,7 @@ export const Constants = {
         "completed",
         "canceled",
         "no_show",
+        "pending",
       ],
       business_mode: [
         "service",
