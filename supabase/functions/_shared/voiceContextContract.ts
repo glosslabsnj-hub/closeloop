@@ -959,7 +959,7 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     description: "Base preparation time in minutes",
     type: "number",
     source: "pricing.busyness_config.base_prep_minutes",
-    defaultValue: 30,
+    defaultValue: 0,
     category: "pricing",
   },
   {
@@ -967,7 +967,7 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     description: "Buffer time when busy",
     type: "number",
     source: "pricing.busyness_config.busy_buffer_minutes",
-    defaultValue: 15,
+    defaultValue: 0,
     category: "pricing",
   },
   {
