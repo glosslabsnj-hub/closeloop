@@ -47,6 +47,7 @@ interface DriverEditorDialogProps {
   onOpenChange: (open: boolean) => void;
   driver: FleetDriver | null;
   vehicles: FleetVehicle[];
+  isServiceMode?: boolean;
 }
 
 export function DriverEditorDialog({
@@ -54,9 +55,12 @@ export function DriverEditorDialog({
   onOpenChange,
   driver,
   vehicles,
+  isServiceMode = false,
 }: DriverEditorDialogProps) {
   const { createDriver, updateDriver } = useFleetDrivers();
   const isEditing = !!driver;
+
+  const memberLabel = isServiceMode ? "Technician" : "Driver";
 
   const form = useForm<DriverFormValues>({
     resolver: zodResolver(driverSchema),
@@ -122,11 +126,11 @@ export function DriverEditorDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Driver" : "Add Driver"}</DialogTitle>
+          <DialogTitle>{isEditing ? `Edit ${memberLabel}` : `Add ${memberLabel}`}</DialogTitle>
           <DialogDescription>
             {isEditing
-              ? "Update driver information"
-              : "Add a new crew member or driver to your fleet"}
+              ? `Update ${memberLabel.toLowerCase()} information`
+              : `Add a new ${memberLabel.toLowerCase()} to your team`}
           </DialogDescription>
         </DialogHeader>
 
@@ -176,35 +180,37 @@ export function DriverEditorDialog({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="license_number"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>License Number</FormLabel>
-                    <FormControl>
-                      <Input placeholder="DL123456" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            {!isServiceMode && (
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="license_number"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>License Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="DL123456" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="license_expiry"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>License Expiry</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                <FormField
+                  control={form.control}
+                  name="license_expiry"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>License Expiry</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
@@ -230,34 +236,36 @@ export function DriverEditorDialog({
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="default_vehicle_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Default Vehicle</FormLabel>
-                    <Select 
-                      onValueChange={(val) => field.onChange(val === "none" ? "" : val)} 
-                      value={field.value || "none"}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select vehicle" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        {availableVehicles.map((vehicle) => (
-                          <SelectItem key={vehicle.id} value={vehicle.id}>
-                            {vehicle.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {!isServiceMode && (
+                <FormField
+                  control={form.control}
+                  name="default_vehicle_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Default Vehicle</FormLabel>
+                      <Select 
+                        onValueChange={(val) => field.onChange(val === "none" ? "" : val)} 
+                        value={field.value || "none"}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select vehicle" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          {availableVehicles.map((vehicle) => (
+                            <SelectItem key={vehicle.id} value={vehicle.id}>
+                              {vehicle.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
 
             <DialogFooter>
@@ -272,7 +280,7 @@ export function DriverEditorDialog({
                   ? "Saving..."
                   : isEditing
                   ? "Save Changes"
-                  : "Add Driver"}
+                  : `Add ${memberLabel}`}
               </Button>
             </DialogFooter>
           </form>

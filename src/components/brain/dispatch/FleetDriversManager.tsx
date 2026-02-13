@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useFleetDrivers, FleetDriver } from "@/hooks/useFleetDrivers";
 import { useFleetVehicles } from "@/hooks/useFleetVehicles";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, User, Phone, Mail, Truck, MoreVertical, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, User, Phone, Mail, Truck, MoreVertical, Pencil, Trash2, Loader2, Wrench } from "lucide-react";
 import { DriverEditorDialog } from "./DriverEditorDialog";
 import {
   DropdownMenu,
@@ -26,10 +27,18 @@ import {
 export function FleetDriversManager() {
   const { drivers, isLoading, deleteDriver } = useFleetDrivers();
   const { vehicles } = useFleetVehicles();
+  const { businessMode } = useTenantConfig();
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingDriver, setEditingDriver] = useState<FleetDriver | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [driverToDelete, setDriverToDelete] = useState<FleetDriver | null>(null);
+
+  const isServiceMode = businessMode === "service" || businessMode === "medical" || businessMode === "general";
+
+  // Mode-aware labels
+  const labels = isServiceMode
+    ? { title: "Crew & Technicians", addBtn: "Add Technician", icon: <Wrench className="h-5 w-5" />, description: "Add the people who can be assigned to jobs", emptyTitle: "No technicians added yet", emptyDesc: "Add your first crew member to start assigning jobs", removeTitle: "Remove Technician" }
+    : { title: "Crew & Drivers", addBtn: "Add Driver", icon: <User className="h-5 w-5" />, description: "Add the people who can be assigned to dispatch jobs", emptyTitle: "No drivers added yet", emptyDesc: "Add your first crew member to start assigning jobs", removeTitle: "Remove Driver" };
 
   const handleEdit = (driver: FleetDriver) => {
     setEditingDriver(driver);
@@ -83,24 +92,22 @@ export function FleetDriversManager() {
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Crew & Drivers
+              {labels.icon}
+              {labels.title}
             </CardTitle>
-            <CardDescription>
-              Add the people who can be assigned to dispatch jobs
-            </CardDescription>
+            <CardDescription>{labels.description}</CardDescription>
           </div>
           <Button onClick={handleAdd} size="sm">
             <Plus className="h-4 w-4 mr-2" />
-            Add Driver
+            {labels.addBtn}
           </Button>
         </CardHeader>
         <CardContent>
           {drivers.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <User className="h-12 w-12 mx-auto mb-3 opacity-20" />
-              <p>No drivers added yet</p>
-              <p className="text-sm">Add your first crew member to start assigning jobs</p>
+              <p>{labels.emptyTitle}</p>
+              <p className="text-sm">{labels.emptyDesc}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -131,7 +138,7 @@ export function FleetDriversManager() {
                             {driver.email}
                           </span>
                         )}
-                        {driver.default_vehicle && (
+                        {!isServiceMode && driver.default_vehicle && (
                           <span className="flex items-center gap-1">
                             <Truck className="h-3 w-3" />
                             {driver.default_vehicle.name}
@@ -172,12 +179,13 @@ export function FleetDriversManager() {
         onOpenChange={setEditorOpen}
         driver={editingDriver}
         vehicles={vehicles}
+        isServiceMode={isServiceMode}
       />
 
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove Driver</AlertDialogTitle>
+            <AlertDialogTitle>{labels.removeTitle}</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to remove {driverToDelete?.full_name}? This action cannot be undone.
             </AlertDialogDescription>

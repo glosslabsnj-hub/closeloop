@@ -4,6 +4,7 @@ import {
   Calendar, FileSpreadsheet, Printer, Webhook, MessageSquare, ExternalLink,
   CheckCircle, AlertCircle, Play, Loader2, Check, ArrowRight, HelpCircle
 } from "lucide-react";
+import { FieldEdgeSetupCard } from "@/components/integrations/FieldEdgeSetupCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -557,6 +558,20 @@ export default function IntegrationsPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* FieldEdge Self-Service Setup (for service/dispatch businesses) */}
+          {(businessMode === "service" || businessMode === "dispatch") && (
+            <section className="space-y-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">⚙️</span>
+                <h2 className="text-lg font-semibold">FieldEdge</h2>
+              </div>
+              <p className="text-sm text-muted-foreground -mt-2">
+                Sync bookings and dispatches with your FieldEdge account
+              </p>
+              <FieldEdgeSetupCard />
+            </section>
+          )}
 
           {/* Section A: Self-Setup Integrations */}
           <section className="space-y-4">

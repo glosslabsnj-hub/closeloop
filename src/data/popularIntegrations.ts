@@ -62,6 +62,7 @@ export const POPULAR_INTEGRATIONS: PopularIntegration[] = [
 export const SELF_SETUP_INTEGRATIONS = [
   { id: "google_calendar", name: "Google Calendar", icon: "📅", logo: "https://cdn.brandfetch.io/idnrCPuv87/theme/dark/symbol.svg?c=1id1sPTWgaw12fOGbUd", description: "Sync bookings to your calendar" },
   { id: "google_sheets", name: "Google Sheets", icon: "📊", logo: "https://cdn.brandfetch.io/idnrCPuv87/theme/dark/symbol.svg?c=1id1sPTWgaw12fOGbUd", description: "Log data to spreadsheets" },
+  { id: "fieldedge", name: "FieldEdge", icon: "⚙️", logo: "https://cdn.brandfetch.io/idHKtLfVPo/w/400/h/400/theme/dark/icon.png", description: "Sync bookings & dispatches with FieldEdge", modes: ["service", "dispatch"] },
   { id: "webhook", name: "Webhook", icon: "🔗", description: "Send data to any URL (Zapier, Make, etc.)" },
   { id: "printer", name: "Printer", icon: "🖨️", description: "Print kitchen tickets and receipts" },
 ] as const;
