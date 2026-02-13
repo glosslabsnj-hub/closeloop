@@ -5,7 +5,7 @@
  * These configurations are used to programmatically register tools with ElevenLabs agents.
  *
  * Each agent type has a specific set of tools based on its industry needs:
- * - Service (6 tools): Salons, HVAC, plumbers, contractors
+ * - Service (10 tools): Salons, HVAC, plumbers, contractors
  * - Dispatch (6 tools): Towing, roadside, couriers, locksmiths
  * - Food (6 tools): Restaurants, pizza, catering, bakeries
  * - Medical (5 tools): Doctors, dentists, clinics, veterinary
@@ -713,14 +713,14 @@ function createTransferToOwnerTool(): AgentTool {
 // ============= AGENT CONFIGURATIONS =============
 
 /**
- * SERVICE AGENT (8 Tools)
+ * SERVICE AGENT (10 Tools)
  * Industries: Salons, spas, HVAC, plumbers, electricians, auto detailing, cleaning services, contractors
  */
 export const SERVICE_AGENT_CONFIG: AgentToolsConfig = {
   mode: "service",
   agentName: "Service Agent",
   industries: ["Salons", "spas", "HVAC", "plumbers", "electricians", "auto detailing", "cleaning services", "contractors"],
-  toolCount: 8,
+  toolCount: 10,
   tools: [
     createCheckAvailabilityTool(
       `Check if a specific appointment time is available. Call this BEFORE confirming any appointment. Use when customer says "Do you have 2pm tomorrow?" or requests a specific time slot.`
@@ -741,112 +741,10 @@ export const SERVICE_AGENT_CONFIG: AgentToolsConfig = {
     createCallbackTool(
       `Schedule a callback when customer needs a quote, wants to discuss a complex job, or asks to speak with someone. Use when: "I need a quote", "Have someone call me", "I want to talk to the owner", or any question you cannot fully answer.`
     ),
-    // CANCEL BOOKING
-    {
-      name: "cancel_booking",
-      description: `Cancel an existing appointment. Use when caller says: "I need to cancel", "Cancel my appointment", "I can't make it". Ask for name or phone to identify the booking.`,
-      url: `${BASE_URL}/elevenlabs-cancel-booking`,
-      method: "POST",
-      parameters: [
-        {
-          name: "tenant_id",
-          type: "string",
-          required: true,
-          description: "Tenant identifier",
-          dynamicValue: "{{tenant_id}}",
-        },
-        {
-          name: "customer_name",
-          type: "string",
-          required: false,
-          description: "Customer's name to find the booking",
-        },
-        {
-          name: "customer_phone",
-          type: "string",
-          required: false,
-          description: "Customer's phone number to find the booking",
-          dynamicValue: "{{caller_phone}}",
-        },
-        {
-          name: "booking_id",
-          type: "string",
-          required: false,
-          description: "Direct booking ID if known",
-        },
-        {
-          name: "reason",
-          type: "string",
-          required: false,
-          description: "Reason for cancellation",
-        },
-        {
-          name: "conversation_id",
-          type: "string",
-          required: false,
-          description: "Conversation tracking",
-        },
-      ],
-    },
-    // ADD TO WAITLIST
-    {
-      name: "add_to_waitlist",
-      description: `Add caller to waitlist when their preferred time is unavailable. Use when: waitlist_enabled is "true" AND the time they want is fully booked. Ask if they want to be notified if something opens up.`,
-      url: `${BASE_URL}/elevenlabs-add-to-waitlist`,
-      method: "POST",
-      parameters: [
-        {
-          name: "tenant_id",
-          type: "string",
-          required: true,
-          description: "Tenant identifier",
-          dynamicValue: "{{tenant_id}}",
-        },
-        {
-          name: "customer_name",
-          type: "string",
-          required: true,
-          description: "Customer's name",
-        },
-        {
-          name: "customer_phone",
-          type: "string",
-          required: false,
-          description: "Customer's phone number for callback",
-          dynamicValue: "{{caller_phone}}",
-        },
-        {
-          name: "preferred_date",
-          type: "string",
-          required: true,
-          description: "Date they wanted",
-        },
-        {
-          name: "preferred_time",
-          type: "string",
-          required: false,
-          description: "Time they wanted",
-        },
-        {
-          name: "service_name",
-          type: "string",
-          required: false,
-          description: "Service they're waiting for",
-        },
-        {
-          name: "notes",
-          type: "string",
-          required: false,
-          description: "Additional notes",
-        },
-        {
-          name: "conversation_id",
-          type: "string",
-          required: false,
-          description: "Conversation tracking",
-        },
-      ],
-    },
+    createCancelBookingTool(),
+    createAddToWaitlistTool(),
+    createLookupActiveJobTool(),
+    createTransferToOwnerTool(),
   ],
 };
 
