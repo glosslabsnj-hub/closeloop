@@ -80,6 +80,14 @@ export interface ServiceSnapshot {
   service_type: string;
   /** Complex pricing configuration for variable/distance-tiered pricing */
   pricing_config_json: any;
+  /** Booking type: direct_book, estimate_first, or consultation */
+  booking_type: string;
+  /** Prerequisites the AI should mention (e.g., "Requires on-site estimate first") */
+  prerequisite_note: string;
+  /** Minimum duration in minutes (for variable-duration services) */
+  duration_min_minutes: number | null;
+  /** Maximum duration in minutes (for variable-duration services) */
+  duration_max_minutes: number | null;
 }
 
 export interface FAQSnapshot {
@@ -521,7 +529,7 @@ export async function getBusinessBrainSnapshot(
   // STEP 2: Fetch all Business Brain data in parallel (typed separately to avoid inference issues)
   const servicesQuery = supabase
     .from("services")
-    .select("id, name, description, price_type, price_amount, duration_minutes, deposit_required, deposit_amount, preparation_instructions, upsell_suggestions, is_active, service_category, service_type, pricing_config_json")
+    .select("id, name, description, price_type, price_amount, duration_minutes, deposit_required, deposit_amount, preparation_instructions, upsell_suggestions, is_active, service_category, service_type, pricing_config_json, booking_type, prerequisite_note, duration_min_minutes, duration_max_minutes")
     .eq("tenant_id", tenantId)
     .eq("is_active", true)
     .order("display_order", { ascending: true })
@@ -751,6 +759,10 @@ export async function getBusinessBrainSnapshot(
     service_category: safeString(s.service_category),
     service_type: safeString(s.service_type) || "primary",
     pricing_config_json: s.pricing_config_json || null,
+    booking_type: safeString(s.booking_type) || "direct_book",
+    prerequisite_note: safeString(s.prerequisite_note),
+    duration_min_minutes: s.duration_min_minutes ?? null,
+    duration_max_minutes: s.duration_max_minutes ?? null,
   }));
 
   const faqs: FAQSnapshot[] = safeArray(faqsResult.data).map((f: any) => ({

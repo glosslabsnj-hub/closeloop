@@ -45,6 +45,8 @@ import { QuotingBehaviorGuidance } from "@/components/brain/guidance/QuotingBeha
 
 type PriceType = "fixed" | "starting_at" | "quote_only";
 
+type BookingType = "direct_book" | "estimate_first" | "consultation";
+
 interface ServiceFormData {
   name: string;
   description: string;
@@ -55,6 +57,10 @@ interface ServiceFormData {
   deposit_required: boolean;
   complexity: "simple" | "complex";
   price_factors: string;
+  booking_type: BookingType;
+  prerequisite_note: string;
+  duration_min_minutes: number | null;
+  duration_max_minutes: number | null;
 }
 
 const defaultFormData: ServiceFormData = {
@@ -67,6 +73,10 @@ const defaultFormData: ServiceFormData = {
   deposit_required: false,
   complexity: "simple",
   price_factors: "",
+  booking_type: "direct_book",
+  prerequisite_note: "",
+  duration_min_minutes: null,
+  duration_max_minutes: null,
 };
 
 // Extracted outside ServiceCatalogEditor to prevent focus loss on re-render
@@ -203,6 +213,84 @@ function ServiceForm({
         </div>
       )}
 
+      {/* Booking Type — hidden for food mode */}
+      {businessMode !== "food" && (
+        <div className="space-y-2">
+          <Label className="text-xs">What happens when someone calls for this?</Label>
+          <Select
+            value={formData.booking_type}
+            onValueChange={(v) => onChange("booking_type", v)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="direct_book">Book it directly</SelectItem>
+              <SelectItem value="estimate_first">Schedule an estimate visit first</SelectItem>
+              <SelectItem value="consultation">Take their info for a callback</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            {formData.booking_type === "direct_book" && "AI will check availability and book the appointment on the call."}
+            {formData.booking_type === "estimate_first" && "AI will book an estimate visit instead of the full job. Good for jobs that need an on-site quote."}
+            {formData.booking_type === "consultation" && "AI will collect details and schedule a callback. Good for custom or complex projects."}
+          </p>
+        </div>
+      )}
+
+      {/* Prerequisite note — shown when not direct_book */}
+      {businessMode !== "food" && formData.booking_type !== "direct_book" && (
+        <div className="space-y-2">
+          <Label className="text-xs">Any prerequisites the AI should mention?</Label>
+          <Input
+            value={formData.prerequisite_note}
+            onChange={(e) => onChange("prerequisite_note", e.target.value)}
+            placeholder="e.g., Requires on-site estimate first, Permit needed (adds 2 weeks)"
+          />
+        </div>
+      )}
+
+      {/* Duration Range — collapsible enhancement */}
+      {(formData.duration_min_minutes !== null || formData.duration_max_minutes !== null) ? (
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="text-xs">Min duration (minutes)</Label>
+            <Input
+              type="number"
+              value={formData.duration_min_minutes ?? ""}
+              onChange={(e) => onChange("duration_min_minutes", e.target.value ? parseInt(e.target.value) : null)}
+              placeholder="30"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs">Max duration (minutes)</Label>
+            <Input
+              type="number"
+              value={formData.duration_max_minutes ?? ""}
+              onChange={(e) => onChange("duration_max_minutes", e.target.value ? parseInt(e.target.value) : null)}
+              placeholder="180"
+            />
+          </div>
+          <p className="col-span-2 text-xs text-muted-foreground">
+            AI will say "typically {formData.duration_minutes} minutes, but can range from {formData.duration_min_minutes || '?'} to {formData.duration_max_minutes || '?'} minutes"
+          </p>
+        </div>
+      ) : (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="text-xs text-muted-foreground"
+          onClick={() => {
+            onChange("duration_min_minutes", Math.max(15, Math.round(formData.duration_minutes * 0.5)));
+            onChange("duration_max_minutes", Math.round(formData.duration_minutes * 2));
+          }}
+        >
+          <Clock className="h-3 w-3 mr-1" />
+          + Add duration range (for variable-length jobs)
+        </Button>
+      )}
+
       <div className="flex items-center gap-4 pt-2">
         <div className="flex items-center space-x-2">
           <Switch
@@ -299,6 +387,10 @@ export function ServiceCatalogEditor() {
             deposit_required: service.deposit_required || false,
             complexity: service.complexity || "simple",
             price_factors: service.price_factors || "",
+            booking_type: service.booking_type || "direct_book",
+            prerequisite_note: service.prerequisite_note || "",
+            duration_min_minutes: service.duration_min_minutes ?? null,
+            duration_max_minutes: service.duration_max_minutes ?? null,
           }
         }));
       }
@@ -334,6 +426,10 @@ export function ServiceCatalogEditor() {
         deposit_required: formData.deposit_required,
         complexity: formData.complexity,
         price_factors: formData.price_factors.trim() || undefined,
+        booking_type: formData.booking_type,
+        prerequisite_note: formData.prerequisite_note.trim() || undefined,
+        duration_min_minutes: formData.duration_min_minutes,
+        duration_max_minutes: formData.duration_max_minutes,
       });
       toast.success("Service updated");
       queryClient.invalidateQueries({ queryKey: ["services"] });
@@ -361,6 +457,10 @@ export function ServiceCatalogEditor() {
         deposit_required: newServiceData.deposit_required,
         complexity: newServiceData.complexity,
         price_factors: newServiceData.price_factors.trim() || undefined,
+        booking_type: newServiceData.booking_type,
+        prerequisite_note: newServiceData.prerequisite_note.trim() || undefined,
+        duration_min_minutes: newServiceData.duration_min_minutes,
+        duration_max_minutes: newServiceData.duration_max_minutes,
       });
       toast.success("Service created");
       queryClient.invalidateQueries({ queryKey: ["services"] });

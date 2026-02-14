@@ -143,6 +143,11 @@ export async function createService(
     service_type?: string;
     pricing_config_json?: Record<string, unknown>;
     display_order?: number;
+    // Service intelligence fields
+    booking_type?: "direct_book" | "estimate_first" | "consultation";
+    prerequisite_note?: string;
+    duration_min_minutes?: number | null;
+    duration_max_minutes?: number | null;
   }
 ) {
   const { data, error } = await supabase
@@ -164,6 +169,11 @@ export async function createService(
       service_type: service.service_type || null,
       pricing_config_json: service.pricing_config_json as Json || null,
       display_order: service.display_order || 0,
+      // Service intelligence fields
+      booking_type: service.booking_type || "direct_book",
+      prerequisite_note: service.prerequisite_note || null,
+      duration_min_minutes: service.duration_min_minutes ?? null,
+      duration_max_minutes: service.duration_max_minutes ?? null,
     })
     .select()
     .single();
@@ -203,6 +213,11 @@ export async function updateService(
     service_type?: string | null;
     pricing_config_json?: Record<string, unknown>;
     display_order?: number;
+    // Service intelligence fields
+    booking_type?: "direct_book" | "estimate_first" | "consultation";
+    prerequisite_note?: string;
+    duration_min_minutes?: number | null;
+    duration_max_minutes?: number | null;
   }
 ) {
   // Transform pricing_config_json to Json type if present
