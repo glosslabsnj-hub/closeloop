@@ -80,7 +80,6 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Knowledge Base</p>
             <h1 className="text-2xl font-bold tracking-tight">Business Brain</h1>
           </div>
           <div className="text-right">

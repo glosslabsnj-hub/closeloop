@@ -33,7 +33,7 @@ export function BrainMobileItemList({
     <div className="md:hidden space-y-4">
       {groups.map((group) => (
         <div key={group.groupKey}>
-          <div className="text-[11px] font-semibold px-4 py-1.5 uppercase tracking-wider text-muted-foreground/60">
+          <div className="text-xs font-medium px-4 py-1.5 text-muted-foreground">
             {group.groupLabel}
           </div>
           <div className="space-y-1">
