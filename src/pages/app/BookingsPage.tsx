@@ -132,7 +132,7 @@ export default function BookingsPage() {
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</h3>
           <Badge variant="secondary" size="sm">{items.length}</Badge>
         </div>
-        <div className="divide-y divide-border/20 rounded-xl bg-card shadow-sm">
+        <div className="divide-y divide-border/20 rounded-xl bg-card border border-border">
           {items.map((booking) => (
             <BookingCard
               key={booking.id}
@@ -152,7 +152,6 @@ export default function BookingsPage() {
     <PageContainer maxWidth="xl">
       <div className="space-y-6">
         <PageHeader
-          icon={CalendarIcon}
           title={terms.bookingsPageTitle || "Schedule"}
           description={terms.bookingsPageSubtitle || "Your calendar and upcoming appointments"}
           action={
