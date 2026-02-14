@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { LeadKanbanCard } from "./LeadKanbanCard";
 import type { PriorityConfig } from "@/config/industryBrainConfig";
 import { computeCallPriority } from "@/lib/priorityScoring";
+import { computeLeadTemperatureFromSession, TEMPERATURE_COLORS, type LeadTemperature } from "@/lib/leadTemperature";
 import {
   Select,
   SelectContent,
@@ -107,14 +108,12 @@ export function LeadsKanbanView({
       grouped[stage].push(lead);
     }
 
-    // Sort each stage by priority desc, then recency desc
+    // Sort each stage by temperature score desc, then recency desc
     for (const stage of Object.keys(grouped) as PipelineStage[]) {
       grouped[stage].sort((a, b) => {
-        const callbackA = !!(a.extracted_payload as Record<string, unknown> | null)?.callback;
-        const callbackB = !!(b.extracted_payload as Record<string, unknown> | null)?.callback;
-        const pA = computeCallPriority({ outcome: a.outcome, started_at: a.started_at, callbackRequested: callbackA }, priorityConfig);
-        const pB = computeCallPriority({ outcome: b.outcome, started_at: b.started_at, callbackRequested: callbackB }, priorityConfig);
-        if (pB.score !== pA.score) return pB.score - pA.score;
+        const tempA = computeLeadTemperatureFromSession(a);
+        const tempB = computeLeadTemperatureFromSession(b);
+        if (tempB.score !== tempA.score) return tempB.score - tempA.score;
         return new Date(b.started_at).getTime() - new Date(a.started_at).getTime();
       });
     }
@@ -187,14 +186,26 @@ export function LeadsKanbanView({
                     No leads
                   </p>
                 ) : (
-                  items.map((call) => (
+                  items.map((call) => {
+                    const temp = computeLeadTemperatureFromSession(call);
+                    const tempColors = TEMPERATURE_COLORS[temp.temperature];
+                    return (
                     <div key={call.id} className="space-y-1">
-                      <LeadKanbanCard
-                        call={call}
-                        customerName={getCustomerName(call)}
-                        onClick={() => onSelectCall(call)}
-                        priorityConfig={priorityConfig}
-                      />
+                      <div className="relative">
+                        <LeadKanbanCard
+                          call={call}
+                          customerName={getCustomerName(call)}
+                          onClick={() => onSelectCall(call)}
+                          priorityConfig={priorityConfig}
+                        />
+                        <span className={cn(
+                          "absolute top-1.5 right-1.5 flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium",
+                          tempColors.bg, tempColors.text,
+                        )}>
+                          <span className={cn("w-1.5 h-1.5 rounded-full", tempColors.dot)} />
+                          {temp.temperature}
+                        </span>
+                      </div>
                       {/* Stage change dropdown */}
                       <Select
                         value={getLeadStage(call)}
@@ -215,7 +226,8 @@ export function LeadsKanbanView({
                         </SelectContent>
                       </Select>
                     </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </ScrollArea>

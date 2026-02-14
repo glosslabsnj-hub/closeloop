@@ -5,8 +5,6 @@
  */
 
 // Existing components
-export { BusinessBrainNav } from "./BusinessBrainNav";
-export { BusinessBrainTabs } from "./BusinessBrainTabs";
 export { BusinessBrainSectionCard, SpeechReadyBadge, PreviewSentence, HIPAAWarning } from "./BusinessBrainSectionCard";
 export { CollapsibleBrainSection } from "./CollapsibleBrainSection";
 export { SetupProgressBar } from "./SetupProgressBar";
@@ -29,13 +27,6 @@ export { getModeTheme, getModeGradient, getModeDisplayName, type ModeThemeColors
 
 // Sub-section navigation
 export { TabSubNav } from "./TabSubNav";
-export {
-  findSubSectionForCard,
-  getVisibleSubSections,
-  OPERATIONS_SUB_SECTIONS,
-  TRAINING_SUB_SECTIONS,
-  SERVICES_SUB_SECTIONS,
-} from "./tabSubSectionConfig";
 
 // Sidebar + Content Panel layout (Phase 2)
 export { BrainSidebarItem } from "./BrainSidebarItem";

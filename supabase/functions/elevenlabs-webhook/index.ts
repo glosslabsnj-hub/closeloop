@@ -5,6 +5,7 @@ import { encode as encodeHex } from "https://deno.land/std@0.168.0/encoding/hex.
 import { computePriceQuote, computeEtaQuote, type QuoteResult } from "../_shared/computeQuote.ts";
 import { computeBookingPrice, computeFoodOrderTotals, computeDispatchPrice } from "../_shared/computeEntityPricing.ts";
 import { captureException } from "../_shared/sentry.ts";
+import { computeLeadTemperature, type TemperatureResult } from "../_shared/leadTemperature.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -759,8 +760,12 @@ async function processCallData(
   const outcome = determineOutcomeFromIntent(validatedPayload.intent, tenantBusinessMode);
 
   // ===== CUSTOMER RESOLUTION =====
+  // Only create NEW customers for intents that indicate real engagement.
+  // FAQ/other callers become leads only, not customers.
+  // Existing customers are ALWAYS looked up regardless of intent.
+  const CUSTOMER_WORTHY_INTENTS = new Set(["booking", "dispatch", "order", "reservation", "callback"]);
   let customerId = session.customer_id;
-  
+
   if (!customerId && callerPhoneE164 && !phiMinimization && storeCallerPhone) {
     const { data: existingCustomer } = await supabase
       .from("customers")
@@ -776,7 +781,8 @@ async function processCallData(
       } else {
         await supabase.from("customers").update({ updated_at: new Date().toISOString() }).eq("id", customerId);
       }
-    } else if (callerPhoneE164) {
+    } else if (callerPhoneE164 && CUSTOMER_WORTHY_INTENTS.has(validatedPayload.intent)) {
+      // Gate: only INSERT new customers for customer-worthy intents
       const { data: newCustomer, error: createError } = await supabase
         .from("customers")
         .insert({
@@ -806,8 +812,25 @@ async function processCallData(
     ...dataCollection,
   };
 
-  // ===== COMPUTE LEAD SCORE =====
-  const leadScore = computeLeadScore(validatedPayload, transcriptText || "", outcome);
+  // ===== COMPUTE LEAD TEMPERATURE =====
+  const callDurationSecs = payload.metadata?.call_duration_secs || 0;
+  const temperatureResult: TemperatureResult = computeLeadTemperature({
+    intent: validatedPayload.intent,
+    outcome,
+    customerName: validatedPayload.customer.name,
+    customerPhone: validatedPayload.customer.phone_e164,
+    customerEmail: validatedPayload.customer.email,
+    serviceRequested: validatedPayload.booking.service_requested,
+    servicePrice: null,
+    callbackRequested: validatedPayload.callback.requested,
+    callDurationSecs,
+    isRepeatCustomer: !!session.customer_id,
+    urgency: validatedPayload.dispatch.urgency,
+    dispatchJobType: validatedPayload.dispatch.job_type,
+    pricingInquiry: false,
+    transcriptText: transcriptText || "",
+  });
+  const leadScore = temperatureResult.temperature;
 
   // ===== UPDATE CALL SESSION =====
   const { error: updateError } = await supabase
@@ -853,7 +876,6 @@ async function processCallData(
   console.log("Updated session:", sessionId, { outcome, hasTranscript: !!transcriptText, hasSummary: !!summaryText, customerId, intent: validatedPayload.intent });
 
   // ===== TRACK VOICE USAGE =====
-  const callDurationSecs = payload.metadata?.call_duration_secs || 0;
   if (callDurationSecs > 0) {
     // Round UP to nearest minute for billing
     const voiceMinutes = Math.ceil(callDurationSecs / 60);
@@ -1050,7 +1072,7 @@ async function processCallData(
       leadId = await ensureLead(
         supabase, tenantId, sessionId, validatedPayload,
         validatedPayload.customer.name, customerId, callerPhoneE164,
-        outcome, leadScore
+        outcome, temperatureResult
       );
       if (leadId) {
         await supabase
@@ -1067,38 +1089,6 @@ async function processCallData(
   await persistDerivedEntity(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, tenantBusinessMode, enabledModules, validatedPayload, validatedPayload.customer.name, customerId, callerPhoneE164, payload, leadId);
 }
 
-// ===== COMPUTE LEAD SCORE =====
-function computeLeadScore(
-  payload: CanonicalPayload,
-  transcriptText: string,
-  outcome: string
-): "hot" | "warm" | "cool" {
-  // Hot: urgency keywords, high-value services, or booked
-  if (outcome === "booked" || outcome === "order" || outcome === "dispatch") return "hot";
-
-  const lowerTranscript = transcriptText.toLowerCase();
-  const urgencyKeywords = ["asap", "emergency", "urgent", "broken down", "stranded", "right away", "immediately", "today"];
-  const highValueKeywords = ["engine", "transmission", "rebuild", "replace", "overhaul", "turbo", "full service"];
-
-  const hasUrgency = urgencyKeywords.some(k => lowerTranscript.includes(k));
-  const hasHighValue = highValueKeywords.some(k => lowerTranscript.includes(k));
-  const dispatchUrgent = payload.dispatch.urgency === "urgent" || payload.dispatch.urgency === "high";
-
-  if (hasUrgency || hasHighValue || dispatchUrgent) return "hot";
-
-  // Cool: no name, no service, or abandoned/lost
-  if (outcome === "lost" || outcome === "abandoned") return "cool";
-
-  const hasName = !!payload.customer.name && payload.customer.name !== "Unknown";
-  const hasPhone = !!payload.customer.phone_e164;
-  const hasService = !!payload.booking.service_requested || !!payload.dispatch.job_type;
-
-  if (!hasName && !hasService) return "cool";
-  if (hasName && hasPhone && hasService) return "warm";
-
-  return "warm";
-}
-
 // ===== ENSURE LEAD RECORD =====
 // Creates or updates a lead for every call, not just bookings.
 // Uses upsert-by-lookup on (tenant_id, phone) to avoid duplicates.
@@ -1112,7 +1102,7 @@ async function ensureLead(
   customerId: string | null,
   callerPhoneE164: string,
   outcome: string,
-  leadScore: "hot" | "warm" | "cool"
+  temp: TemperatureResult
 ): Promise<string | null> {
   // Map outcome → lead status
   // Status ranking: new < contacted < qualified < booked < won
@@ -1159,7 +1149,7 @@ async function ensureLead(
   // Look up existing lead by (tenant_id, phone)
   const { data: existingLead } = await supabase
     .from("leads")
-    .select("id, status")
+    .select("id, status, total_calls")
     .eq("tenant_id", tenantId)
     .eq("phone", callerPhoneE164)
     .maybeSingle();
@@ -1173,6 +1163,11 @@ async function ensureLead(
     const updateFields: Record<string, unknown> = {
       last_message_at: new Date().toISOString(),
       status: newStatus,
+      temperature: temp.temperature,
+      temperature_score: temp.score,
+      temperature_signals: temp.signals,
+      last_session_id: sessionId,
+      total_calls: (existingLead.total_calls || 1) + 1,
     };
 
     if (customerName && customerName !== "Unknown" && customerName !== "Phone Customer") {
@@ -1187,7 +1182,7 @@ async function ensureLead(
       .update(updateFields)
       .eq("id", existingLead.id);
 
-    console.log(`[ensureLead] Updated existing lead: ${existingLead.id}, status: ${existingLead.status} → ${newStatus}`);
+    console.log(`[ensureLead] Updated existing lead: ${existingLead.id}, status: ${existingLead.status} → ${newStatus}, temp: ${temp.temperature} (${temp.score})`);
     return existingLead.id;
   }
 
@@ -1201,9 +1196,14 @@ async function ensureLead(
       source: "ai_call",
       status: targetStatus,
       vehicle_or_context: vehicleOrContext,
-      tags: [leadScore],
+      tags: [temp.temperature],
       customer_id: customerId,
       last_message_at: new Date().toISOString(),
+      temperature: temp.temperature,
+      temperature_score: temp.score,
+      temperature_signals: temp.signals,
+      last_session_id: sessionId,
+      total_calls: 1,
     })
     .select("id")
     .single();
