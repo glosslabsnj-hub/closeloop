@@ -303,7 +303,6 @@ export default function DispatchPage() {
       <PageContainer maxWidth="full">
         <div className="space-y-6">
           <PageHeader
-            icon={Truck}
             title="Dispatch Command Center"
             description={`${filteredJobs.length} ${statusFilter === "active" ? "active " : ""}jobs in queue`}
             action={

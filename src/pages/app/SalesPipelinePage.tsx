@@ -65,7 +65,6 @@ export default function SalesPipelinePage() {
     <PageContainer maxWidth="full">
       <div className="space-y-6">
         <PageHeader
-          icon={DollarSign}
           title="Sales Pipeline"
           description={`${stats.total} leads total — ${stats.hot} hot, ${stats.new} new`}
         />

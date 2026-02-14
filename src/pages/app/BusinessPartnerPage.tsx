@@ -78,9 +78,8 @@ export default function BusinessPartnerPage() {
     return (
       <>
         <PageHeader
-          title="Business Partner"
+          title="AI Insights"
           description="Your AI-powered business advisor"
-          icon={Sparkles}
         />
         <PageContainer maxWidth="xl">
           <div className="space-y-6">
@@ -103,9 +102,8 @@ export default function BusinessPartnerPage() {
   return (
     <>
       <PageHeader
-        title="Business Partner"
+        title="AI Insights"
         description={stageDescription}
-        icon={Sparkles}
       />
       <PageContainer maxWidth="xl">
         <Tabs value={activeTab} onValueChange={handleTabChange}>
