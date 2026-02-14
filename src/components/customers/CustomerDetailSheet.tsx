@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { format, formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import {
   Sheet,
   SheetContent,
@@ -17,6 +17,8 @@ import { useCustomerActivity } from "@/hooks/useCustomerActivity";
 import { SharePortalLinkDialog } from "@/components/customers/SharePortalLinkDialog";
 import { VehiclesTab } from "@/components/customers/VehiclesTab";
 import { CustomerJobsTab } from "@/components/customers/CustomerJobsTab";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
+import { useCapabilities } from "@/hooks/useCapabilities";
 import { toast } from "sonner";
 
 interface CustomerDetailSheetProps {
@@ -41,6 +43,60 @@ const bookingStatusColors: Record<string, string> = {
   no_show: "bg-red-500/10 text-red-700",
 };
 
+/* ─── Industry-aware helpers ─── */
+
+function getCustomerLabel(mode: string): string {
+  switch (mode) {
+    case "medical": return "Patient";
+    case "food": return "Guest";
+    case "sales": return "Prospect";
+    default: return "Customer";
+  }
+}
+
+function getSinceLabel(mode: string): string {
+  return `${getCustomerLabel(mode)} since`;
+}
+
+function getAddressLabel(mode: string, category: string | null): string {
+  if (mode === "food") return "Delivery Address";
+  if (mode === "medical") return "Patient Address";
+  if (mode === "dispatch") return "Pickup Location";
+  if (category === "home_services") return "Service Address";
+  return "Address";
+}
+
+function getBookingsTabLabel(mode: string): string {
+  switch (mode) {
+    case "service":
+    case "medical":
+    case "sales": return "Appointments";
+    case "food": return "Reservations";
+    case "dispatch": return "Dispatches";
+    default: return "Bookings";
+  }
+}
+
+function getHistoryTabLabel(mode: string, category: string | null): string {
+  if (mode === "medical" || category === "beauty_wellness") return "Visit History";
+  if (mode === "food") return "Order History";
+  return "Service History";
+}
+
+function getBookActionLabel(mode: string): string {
+  switch (mode) {
+    case "medical": return "Schedule Visit";
+    case "food": return "Place Order";
+    case "sales": return "Schedule Meeting";
+    case "dispatch": return "Create Job";
+    default: return "Book Appointment";
+  }
+}
+
+function showVehiclesTab(mode: string, category: string | null): boolean {
+  return category === "auto_services" || mode === "dispatch" || mode === "sales";
+}
+
 export function CustomerDetailSheet({
   customer,
   open,
@@ -52,6 +108,8 @@ export function CustomerDetailSheet({
     customer?.id ?? null,
     customer?.phone_e164 ?? null,
   );
+  const { mode, category } = useIndustryContext();
+  const caps = useCapabilities();
 
   const [notes, setNotes] = useState(customer?.notes || "");
   const [notesDirty, setNotesDirty] = useState(false);
@@ -74,6 +132,11 @@ export function CustomerDetailSheet({
   };
 
   if (!customer) return null;
+
+  const hasVehicles = showVehiclesTab(mode, category);
+  const hasJobs = caps.hasJobTracking;
+  const customerLabel = getCustomerLabel(mode);
+  const defaultTab = hasVehicles ? "vehicles" : "history";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -103,12 +166,15 @@ export function CustomerDetailSheet({
           {customer.service_address && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <MapPin className="h-4 w-4" />
+              <span className="text-xs font-medium text-muted-foreground/70 mr-1">
+                {getAddressLabel(mode, category)}:
+              </span>
               {customer.service_address}
             </div>
           )}
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" />
-            Customer since {format(new Date(customer.created_at), "MMM d, yyyy")}
+            {getSinceLabel(mode)} {format(new Date(customer.created_at), "MMM d, yyyy")}
           </div>
           {customer.source && (
             <Badge variant="outline" className="text-xs">
@@ -143,7 +209,7 @@ export function CustomerDetailSheet({
               onClick={() => onBookAppointment(customer)}
             >
               <Calendar className="h-4 w-4 mr-1" />
-              Book
+              {getBookActionLabel(mode)}
             </Button>
           )}
           <Button
@@ -156,24 +222,28 @@ export function CustomerDetailSheet({
           </Button>
         </div>
 
-        {/* Tabs — 5 tabs: Vehicles, Jobs, Calls, Bookings, Notes */}
-        <Tabs defaultValue="vehicles" className="mt-6">
+        {/* Tabs — industry-aware */}
+        <Tabs defaultValue={defaultTab} className="mt-6">
           <TabsList className="w-full flex-wrap h-auto gap-1">
-            <TabsTrigger value="vehicles" className="flex-1 min-w-0">
-              <Car className="h-3.5 w-3.5 mr-1" />
-              <span className="hidden sm:inline">Vehicles</span>
-            </TabsTrigger>
-            <TabsTrigger value="jobs" className="flex-1 min-w-0">
-              <ClipboardCheck className="h-3.5 w-3.5 mr-1" />
-              <span className="hidden sm:inline">Jobs</span>
-            </TabsTrigger>
+            {hasVehicles && (
+              <TabsTrigger value="vehicles" className="flex-1 min-w-0">
+                <Car className="h-3.5 w-3.5 mr-1" />
+                <span className="hidden sm:inline">Vehicles</span>
+              </TabsTrigger>
+            )}
+            {hasJobs && (
+              <TabsTrigger value="jobs" className="flex-1 min-w-0">
+                <ClipboardCheck className="h-3.5 w-3.5 mr-1" />
+                <span className="hidden sm:inline">Jobs</span>
+              </TabsTrigger>
+            )}
             <TabsTrigger value="history" className="flex-1 min-w-0">
               <Phone className="h-3.5 w-3.5 mr-1" />
               <span className="hidden sm:inline">Calls</span>
             </TabsTrigger>
             <TabsTrigger value="bookings" className="flex-1 min-w-0">
               <Calendar className="h-3.5 w-3.5 mr-1" />
-              <span className="hidden sm:inline">Bookings</span>
+              <span className="hidden sm:inline">{getBookingsTabLabel(mode)}</span>
             </TabsTrigger>
             <TabsTrigger value="notes" className="flex-1 min-w-0">
               <FileText className="h-3.5 w-3.5 mr-1" />
@@ -182,14 +252,18 @@ export function CustomerDetailSheet({
           </TabsList>
 
           {/* Vehicles Tab */}
-          <TabsContent value="vehicles" className="mt-4">
-            <VehiclesTab customerId={customer.id} />
-          </TabsContent>
+          {hasVehicles && (
+            <TabsContent value="vehicles" className="mt-4">
+              <VehiclesTab customerId={customer.id} />
+            </TabsContent>
+          )}
 
           {/* Jobs Tab */}
-          <TabsContent value="jobs" className="mt-4">
-            <CustomerJobsTab customerId={customer.id} />
-          </TabsContent>
+          {hasJobs && (
+            <TabsContent value="jobs" className="mt-4">
+              <CustomerJobsTab customerId={customer.id} />
+            </TabsContent>
+          )}
 
           {/* Calls Tab */}
           <TabsContent value="history" className="mt-4">
@@ -236,7 +310,7 @@ export function CustomerDetailSheet({
             )}
           </TabsContent>
 
-          {/* Bookings Tab */}
+          {/* Bookings/Appointments/Reservations Tab */}
           <TabsContent value="bookings" className="mt-4">
             {isLoading ? (
               <div className="space-y-3">
@@ -245,7 +319,7 @@ export function CustomerDetailSheet({
               </div>
             ) : bookings.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">
-                No bookings yet
+                No {getBookingsTabLabel(mode).toLowerCase()} yet
               </p>
             ) : (
               <div className="space-y-3">
@@ -280,7 +354,7 @@ export function CustomerDetailSheet({
             <Textarea
               value={notes}
               onChange={(e) => handleNotesChange(e.target.value)}
-              placeholder="Add notes about this customer..."
+              placeholder={`Add notes about this ${customerLabel.toLowerCase()}...`}
               rows={6}
             />
             {notesDirty && (
