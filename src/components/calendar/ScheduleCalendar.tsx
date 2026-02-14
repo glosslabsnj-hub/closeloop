@@ -3,8 +3,15 @@ import { startOfWeek, addDays, isSameDay } from "date-fns";
 import { CalendarHeader } from "./CalendarHeader";
 import { TimeGrid } from "./TimeGrid";
 import { DayColumn } from "./DayColumn";
+import { StaffDayView } from "./StaffDayView";
 import { useScheduleData, type ScheduleEvent } from "@/hooks/useScheduleData";
-import { Loader2, Calendar } from "lucide-react";
+import { Loader2, Calendar, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ScheduleCalendarProps {
   onEventClick?: (event: ScheduleEvent) => void;
@@ -14,6 +21,7 @@ interface ScheduleCalendarProps {
 export function ScheduleCalendar({ onEventClick, onSlotClick }: ScheduleCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<"week" | "day">("week");
+  const [teamView, setTeamView] = useState(false);
 
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 });
   const { events, isLoading } = useScheduleData(weekStart);
@@ -22,16 +30,13 @@ export function ScheduleCalendar({ onEventClick, onSlotClick }: ScheduleCalendar
   const endHour = 20;
 
   const getDaysToShow = () => {
-    if (view === "day") {
-      return [currentDate];
-    }
+    if (view === "day") return [currentDate];
     return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   };
 
   const days = getDaysToShow();
-
-  // Check if there are any events this week
   const hasEventsThisWeek = events.length > 0;
+  const hasStaffAssignments = events.some((e) => e.staffMemberId);
 
   if (isLoading) {
     return (
@@ -43,14 +48,40 @@ export function ScheduleCalendar({ onEventClick, onSlotClick }: ScheduleCalendar
 
   return (
     <div className="flex flex-col h-full">
-      <CalendarHeader
-        currentDate={currentDate}
-        view={view}
-        onDateChange={setCurrentDate}
-        onViewChange={setView}
-      />
+      <div className="flex items-center justify-between gap-2 pb-4">
+        <div className="flex-1">
+          <CalendarHeader
+            currentDate={currentDate}
+            view={view}
+            onDateChange={setCurrentDate}
+            onViewChange={(v) => {
+              setView(v);
+              if (v === "week") setTeamView(false);
+            }}
+          />
+        </div>
+        {/* Team view toggle — only in day view */}
+        {view === "day" && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={teamView ? "secondary" : "outline"}
+                size="sm"
+                className="gap-1.5 shrink-0"
+                onClick={() => setTeamView(!teamView)}
+              >
+                <Users className="h-3.5 w-3.5" />
+                Team
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {teamView ? "Switch to timeline view" : "View by team member"}
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </div>
 
-      {/* Legend - Moved above calendar for visibility */}
+      {/* Legend */}
       <div className="flex flex-wrap items-center gap-4 pb-4 text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded bg-primary/20 border border-primary/50" />
@@ -68,6 +99,12 @@ export function ScheduleCalendar({ onEventClick, onSlotClick }: ScheduleCalendar
           <div className="w-3 h-3 rounded bg-accent/20 border border-accent/50 border-dashed" />
           <span>Hold</span>
         </div>
+        {hasStaffAssignments && (
+          <div className="flex items-center gap-1.5">
+            <Users className="h-3 w-3" />
+            <span>Staff assigned</span>
+          </div>
+        )}
         <div className="ml-auto text-muted-foreground/70">
           <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted rounded">←</kbd>
           {" "}
@@ -77,28 +114,35 @@ export function ScheduleCalendar({ onEventClick, onSlotClick }: ScheduleCalendar
       </div>
 
       <div className="flex-1 overflow-auto border rounded-lg bg-background">
-        <div className="flex min-w-[600px]">
-          {/* Time column */}
-          <div className="w-16 flex-shrink-0">
-            <TimeGrid startHour={startHour} endHour={endHour} />
+        {view === "day" && teamView ? (
+          <StaffDayView
+            date={currentDate}
+            events={events}
+            startHour={startHour}
+            endHour={endHour}
+            onEventClick={onEventClick}
+            onSlotClick={onSlotClick}
+          />
+        ) : (
+          <div className="flex min-w-[600px]">
+            <div className="w-16 flex-shrink-0">
+              <TimeGrid startHour={startHour} endHour={endHour} />
+            </div>
+            {days.map((day) => (
+              <DayColumn
+                key={day.toISOString()}
+                date={day}
+                events={events}
+                startHour={startHour}
+                endHour={endHour}
+                onEventClick={onEventClick}
+                onSlotClick={onSlotClick}
+              />
+            ))}
           </div>
-
-          {/* Day columns */}
-          {days.map((day) => (
-            <DayColumn
-              key={day.toISOString()}
-              date={day}
-              events={events}
-              startHour={startHour}
-              endHour={endHour}
-              onEventClick={onEventClick}
-              onSlotClick={onSlotClick}
-            />
-          ))}
-        </div>
+        )}
       </div>
 
-      {/* Empty week message */}
       {!hasEventsThisWeek && (
         <div className="flex items-center justify-center py-6 text-sm text-muted-foreground border-t mt-4">
           <Calendar className="h-4 w-4 mr-2 opacity-50" />

@@ -19,11 +19,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Phone, Users, Search, Loader2 } from "lucide-react";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Phone, Users, Search, Loader2, MoreHorizontal, Flame, Thermometer, Snowflake } from "lucide-react";
 import { useTerminology } from "@/hooks/useTerminology";
 import { InboxCallCard } from "@/components/calls/InboxCallCard";
 import { CallDetailPanel } from "@/components/calls/CallDetailPanel";
-import { LeadsKanbanView } from "@/components/calls/LeadsKanbanView";
+import { PipelineSummaryBar, type PipelineStage } from "@/components/leads/PipelineSummaryBar";
+import { cn } from "@/lib/utils";
+import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 
 type TabValue = "calls" | "leads";
 
@@ -68,6 +78,34 @@ function getCustomerName(call: CallSession): string {
   return "Unknown Caller";
 }
 
+function getLeadStage(call: CallSession): PipelineStage {
+  if (call.outcome === "booked") return "won";
+  if (call.outcome === "lost") return "lost";
+  const status = call.followup_status;
+  if (status === "contacted") return "contacted";
+  if (status === "quoted") return "quoted";
+  if (status === "won") return "won";
+  if (status === "lost") return "lost";
+  return "new";
+}
+
+function getLeadTemperature(call: CallSession): "hot" | "warm" | "cold" {
+  const hoursSince = (Date.now() - new Date(call.started_at).getTime()) / (1000 * 60 * 60);
+  if (call.outcome === "booked" || call.outcome === "dispatch") return "hot";
+  if (hoursSince <= 24 && call.outcome !== "lost") return "hot";
+  if (call.outcome === "followup" || call.outcome === "lead_captured") {
+    return hoursSince <= 72 ? "warm" : "cold";
+  }
+  if (hoursSince <= 72) return "warm";
+  return "cold";
+}
+
+const tempConfig = {
+  hot: { icon: Flame, color: "text-red-500", bg: "bg-red-500/10" },
+  warm: { icon: Thermometer, color: "text-amber-500", bg: "bg-amber-500/10" },
+  cold: { icon: Snowflake, color: "text-sky-500", bg: "bg-sky-500/10" },
+};
+
 export default function UnifiedInboxPage() {
   const { tenant } = useAuth();
   const queryClient = useQueryClient();
@@ -88,8 +126,7 @@ export default function UnifiedInboxPage() {
   // Search and filter
   const [searchQuery, setSearchQuery] = useState("");
   const [outcomeFilter, setOutcomeFilter] = useState("all");
-
-  // Selected call for detail panel
+  const [pipelineStage, setPipelineStage] = useState<PipelineStage | "all">("all");
   const [selectedCall, setSelectedCall] = useState<CallSession | null>(null);
 
   // Sync URL with tab state
@@ -162,14 +199,26 @@ export default function UnifiedInboxPage() {
     );
   };
 
-  // ---- LEADS: call sessions with lead-worthy outcomes, priority-sorted ----
-  const filteredLeads = useMemo(() => {
+  // Leads: lead-worthy outcomes
+  const allLeads = useMemo(() => {
     if (!calls) return [];
-    return calls
-      .filter((call) => {
-        // Must have a lead-worthy outcome
-        if (!call.outcome || !LEAD_OUTCOMES.has(call.outcome)) return false;
+    return calls.filter((call) => call.outcome && LEAD_OUTCOMES.has(call.outcome));
+  }, [calls]);
 
+  // Pipeline counts
+  const pipelineCounts = useMemo(() => {
+    const counts: Record<PipelineStage, number> = { new: 0, contacted: 0, quoted: 0, won: 0, lost: 0 };
+    for (const lead of allLeads) {
+      counts[getLeadStage(lead)]++;
+    }
+    return counts;
+  }, [allLeads]);
+
+  // Filtered leads with pipeline + search
+  const filteredLeads = useMemo(() => {
+    return allLeads
+      .filter((call) => {
+        if (pipelineStage !== "all" && getLeadStage(call) !== pipelineStage) return false;
         const query = searchQuery.toLowerCase();
         if (!query) return true;
         return (
@@ -184,9 +233,9 @@ export default function UnifiedInboxPage() {
         if (bPriority.score !== aPriority.score) return bPriority.score - aPriority.score;
         return new Date(b.started_at).getTime() - new Date(a.started_at).getTime();
       });
-  }, [calls, searchQuery, config.priority]);
+  }, [allLeads, pipelineStage, searchQuery, config.priority]);
 
-  // ---- CALLS: simple chronological log, optional outcome filter ----
+  // Calls: chronological log
   const filteredCalls = useMemo(() => {
     if (!calls) return [];
     return calls.filter((call) => {
@@ -195,19 +244,16 @@ export default function UnifiedInboxPage() {
         call.caller_phone?.toLowerCase().includes(query) ||
         call.summary?.toLowerCase().includes(query) ||
         getCustomerName(call).toLowerCase().includes(query);
-
       let matchesOutcome = true;
       if (outcomeFilter !== "all") {
         matchesOutcome = call.outcome === outcomeFilter;
       }
-
       return matchesSearch && matchesOutcome;
     });
-    // Already sorted by started_at DESC from the query
   }, [calls, searchQuery, outcomeFilter]);
 
   // Counts
-  const leadsCount = calls?.filter((c) => c.outcome && LEAD_OUTCOMES.has(c.outcome)).length || 0;
+  const leadsCount = allLeads.length;
   const totalCallsCount = calls?.length || 0;
 
   const handleTabChange = (value: string) => {
@@ -215,7 +261,33 @@ export default function UnifiedInboxPage() {
       setActiveTab(value);
       setSearchQuery("");
       setOutcomeFilter("all");
+      setPipelineStage("all");
     }
+  };
+
+  const handleStageChange = async (callId: string, newStage: PipelineStage) => {
+    let followup_status: string | null = newStage;
+    let outcome: string | undefined;
+
+    if (newStage === "won") { outcome = "booked"; followup_status = "won"; }
+    else if (newStage === "lost") { outcome = "lost"; followup_status = "lost"; }
+    else if (newStage === "new") { followup_status = null; }
+
+    const updateData: Record<string, unknown> = { followup_status };
+    if (outcome) updateData.outcome = outcome;
+
+    const { error } = await supabase
+      .from("ai_call_sessions")
+      .update(updateData)
+      .eq("id", callId);
+
+    if (error) {
+      toast.error("Failed to update lead stage");
+      return;
+    }
+
+    queryClient.invalidateQueries({ queryKey: ["inbox_calls", tenant?.id] });
+    toast.success(`Lead moved to ${newStage}`);
   };
 
   return (
@@ -277,26 +349,140 @@ export default function UnifiedInboxPage() {
           </div>
         </div>
 
-        {/* LEADS TAB: Kanban pipeline board */}
-        <TabsContent value="leads" className="mt-6">
+        {/* LEADS TAB: Pipeline summary bar + professional table */}
+        <TabsContent value="leads" className="mt-6 space-y-4">
           {callsLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : filteredLeads.length === 0 ? (
+          ) : allLeads.length === 0 ? (
             <EmptyState
               icon={Users}
               title="No leads yet"
               description="When callers express interest or request follow-ups, they'll appear here in your pipeline."
             />
           ) : (
-            <LeadsKanbanView
-              leads={filteredLeads}
-              getCustomerName={getCustomerName}
-              onSelectCall={setSelectedCall}
-              priorityConfig={config.priority}
-              tenantId={tenant?.id || ""}
-            />
+            <>
+              {/* Pipeline summary bar */}
+              <div className="overflow-x-auto">
+                <PipelineSummaryBar
+                  counts={pipelineCounts}
+                  activeStage={pipelineStage}
+                  onStageClick={setPipelineStage}
+                />
+              </div>
+
+              {/* Professional leads table */}
+              {filteredLeads.length === 0 ? (
+                <EmptyState
+                  icon={Users}
+                  title="No leads in this stage"
+                  description="Try selecting a different pipeline stage."
+                  compact
+                />
+              ) : (
+                <div className="rounded-xl border border-border/30 bg-card overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Contact</TableHead>
+                        <TableHead>Temperature</TableHead>
+                        <TableHead>Stage</TableHead>
+                        <TableHead className="hidden md:table-cell">Summary</TableHead>
+                        <TableHead className="hidden sm:table-cell">Last Activity</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredLeads.map((call) => {
+                        const name = getCustomerName(call);
+                        const temp = getLeadTemperature(call);
+                        const TempIcon = tempConfig[temp].icon;
+                        const stage = getLeadStage(call);
+
+                        return (
+                          <TableRow
+                            key={call.id}
+                            className="cursor-pointer hover:bg-muted/30"
+                            onClick={() => setSelectedCall(call)}
+                          >
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <div className={cn(
+                                  "h-9 w-9 rounded-full flex items-center justify-center text-sm font-semibold shrink-0",
+                                  tempConfig[temp].bg, tempConfig[temp].color
+                                )}>
+                                  {name.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                  <p className="font-medium text-sm">{name}</p>
+                                  <p className="text-xs text-muted-foreground">{call.caller_phone || "No phone"}</p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={cn("gap-1 text-xs", tempConfig[temp].bg, tempConfig[temp].color)}>
+                                <TempIcon className="h-3 w-3" />
+                                {temp.charAt(0).toUpperCase() + temp.slice(1)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Select
+                                value={stage}
+                                onValueChange={(val) => {
+                                  handleStageChange(call.id, val as PipelineStage);
+                                }}
+                              >
+                                <SelectTrigger className="h-7 w-28 text-xs border-border/30" onClick={(e) => e.stopPropagation()}>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="new">New</SelectItem>
+                                  <SelectItem value="contacted">Contacted</SelectItem>
+                                  <SelectItem value="quoted">Quoted</SelectItem>
+                                  <SelectItem value="won">Won</SelectItem>
+                                  <SelectItem value="lost">Lost</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell className="hidden md:table-cell max-w-[250px]">
+                              <p className="text-sm text-muted-foreground truncate">
+                                {call.summary || "No summary"}
+                              </p>
+                            </TableCell>
+                            <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
+                              {formatDistanceToNow(new Date(call.started_at), { addSuffix: true })}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                  <Button variant="ghost" size="icon-sm">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {call.caller_phone && (
+                                    <DropdownMenuItem onClick={() => window.open(`tel:${call.caller_phone}`, "_self")}>
+                                      <Phone className="mr-2 h-4 w-4" /> Call
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuItem onClick={() => setSelectedCall(call)}>
+                                    <Users className="mr-2 h-4 w-4" /> View Details
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground text-center">
+                {filteredLeads.length} lead{filteredLeads.length !== 1 ? "s" : ""}
+              </p>
+            </>
           )}
         </TabsContent>
 
