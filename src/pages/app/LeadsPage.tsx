@@ -32,6 +32,8 @@ import {
 } from "@/components/ui/tooltip";
 import { formatDistanceToNow } from "date-fns";
 import { CreateLeadDialog } from "@/components/leads/CreateLeadDialog";
+import { LeadDetailPanel } from "@/components/leads/LeadDetailPanel";
+import { PipelineSummaryBar, type PipelineStage } from "@/components/leads/PipelineSummaryBar";
 import { CreateBookingDialog } from "@/components/calendar/CreateBookingDialog";
 import { toast } from "sonner";
 
@@ -96,16 +98,33 @@ function TemperatureBadge({ temp, reason }: { temp: LeadTemperature; reason?: st
   );
 }
 
+function getModeLabels(mode: string) {
+  const map: Record<string, { leadLabel: string; leadsLabel: string; contextLabel: string; bookingLabel: string }> = {
+    service: { leadLabel: "Lead", leadsLabel: "Leads", contextLabel: "Service Needed", bookingLabel: "Appointment" },
+    dispatch: { leadLabel: "Caller", leadsLabel: "Callers", contextLabel: "Job Request", bookingLabel: "Pickup" },
+    food: { leadLabel: "Lead", leadsLabel: "Leads", contextLabel: "Order Interest", bookingLabel: "Order" },
+    medical: { leadLabel: "Patient", leadsLabel: "Patients", contextLabel: "Visit Reason", bookingLabel: "Visit" },
+    sales: { leadLabel: "Prospect", leadsLabel: "Prospects", contextLabel: "Interest", bookingLabel: "Meeting" },
+    general: { leadLabel: "Lead", leadsLabel: "Leads", contextLabel: "Request", bookingLabel: "Appointment" },
+  };
+  return map[mode] || map.service;
+}
+
 export default function LeadsPage() {
   const { data: enrichedLeads, isLoading: intelligenceLoading } = useLeadIntelligence();
   const { convertToCustomer, markAsLost } = useLeads();
   const { terms, mode } = useIndustryContext();
   const navigate = useNavigate();
   const caps = useCapabilities();
+  const modeLabels = getModeLabels(mode);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [tempTab, setTempTab] = useState<string>("all");
+  const [pipelineStage, setPipelineStage] = useState<PipelineStage | "all">("all");
+
+  // Detail panel
+  const [selectedLead, setSelectedLead] = useState<EnrichedLead | null>(null);
 
   // Dialog state
   const [createLeadOpen, setCreateLeadOpen] = useState(false);
@@ -116,10 +135,6 @@ export default function LeadsPage() {
   const leads = enrichedLeads ?? [];
   const isLoading = intelligenceLoading;
 
-  // Mode-aware labels
-  const leadLabel = mode === "sales" ? "Prospect" : mode === "medical" ? "Patient" : mode === "dispatch" ? "Caller" : "Lead";
-  const leadsLabel = mode === "sales" ? "Prospects" : mode === "medical" ? "Patients" : mode === "dispatch" ? "Callers" : "Leads";
-
   // Temperature stats
   const stats = useMemo(() => {
     const hot = leads.filter((l) => l.temperature === "hot").length;
@@ -128,14 +143,22 @@ export default function LeadsPage() {
     return { total: leads.length, hot, warm, cold };
   }, [leads]);
 
+  // Pipeline counts
+  const pipelineCounts = useMemo(() => {
+    const counts: Record<PipelineStage, number> = { new: 0, contacted: 0, quoted: 0, won: 0, lost: 0 };
+    for (const lead of leads) {
+      const stage = lead.status as PipelineStage;
+      if (stage in counts) counts[stage]++;
+    }
+    return counts;
+  }, [leads]);
+
   // Filtering
   const filteredLeads = useMemo(() => {
     return leads.filter((lead) => {
-      // Temperature tab
       if (tempTab !== "all" && lead.temperature !== tempTab) return false;
-      // Status filter
+      if (pipelineStage !== "all" && lead.status !== pipelineStage) return false;
       if (statusFilter !== "all" && lead.status !== statusFilter) return false;
-      // Search
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         const matchesName = lead.full_name.toLowerCase().includes(q);
@@ -146,26 +169,23 @@ export default function LeadsPage() {
       }
       return true;
     });
-  }, [leads, tempTab, statusFilter, searchQuery]);
+  }, [leads, tempTab, pipelineStage, statusFilter, searchQuery]);
 
-  const handleBookAppointment = (lead: EnrichedLead) => {
+  const handleBookAppointment = (lead: EnrichedLead | { full_name: string; phone?: string | null }) => {
     setBookingLeadName(lead.full_name);
     setBookingLeadPhone(lead.phone || "");
     setBookingDialogOpen(true);
   };
 
-  // Mode-aware context column label
-  const contextLabel = mode === "sales" ? "Interest" : mode === "dispatch" ? "Request" : mode === "medical" ? "Reason" : "Request";
-
   return (
     <PageContainer maxWidth="xl">
       <PageHeader
-        title={leadsLabel}
-        description={`Smart pipeline — ${leadsLabel.toLowerCase()} scored by engagement & recency`}
+        title={modeLabels.leadsLabel}
+        description={`Smart pipeline — ${modeLabels.leadsLabel.toLowerCase()} scored by engagement & intent`}
         action={
           <Button className="gap-2" onClick={() => setCreateLeadOpen(true)}>
             <Plus className="h-4 w-4" />
-            Add {leadLabel}
+            Add {modeLabels.leadLabel}
           </Button>
         }
       />
@@ -177,60 +197,52 @@ export default function LeadsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label={`Total ${leadsLabel}`} value={stats.total} icon={Users} description="All time" />
+          <StatCard label={`Total ${modeLabels.leadsLabel}`} value={stats.total} icon={Users} description="All time" />
           <StatCard label="Hot" value={stats.hot} icon={Flame} description="Ready to convert" variant="destructive" />
           <StatCard label="Warm" value={stats.warm} icon={Thermometer} description="Engaged recently" variant="warning" />
-          <StatCard label="Cold" value={stats.cold} icon={Snowflake} description="Need follow-up" />
+          <StatCard label="Cold" value={stats.cold} icon={Snowflake} description="Needs follow-up" />
         </div>
       )}
 
-      {/* Temperature Tabs */}
-      <Tabs value={tempTab} onValueChange={setTempTab}>
-        <TabsList>
-          <TabsTrigger value="all">
-            All
-            <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-xs">{stats.total}</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="hot" className="gap-1">
-            <Flame className="h-3.5 w-3.5 text-red-500" />
-            Hot
-            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{stats.hot}</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="warm" className="gap-1">
-            <Thermometer className="h-3.5 w-3.5 text-amber-500" />
-            Warm
-            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{stats.warm}</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="cold" className="gap-1">
-            <Snowflake className="h-3.5 w-3.5 text-sky-500" />
-            Cold
-            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{stats.cold}</Badge>
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+      {/* Pipeline Summary */}
+      <div className="overflow-x-auto">
+        <PipelineSummaryBar
+          counts={pipelineCounts}
+          activeStage={pipelineStage}
+          onStageClick={(stage) => {
+            setPipelineStage(stage);
+            setStatusFilter("all");
+          }}
+        />
+      </div>
 
-      {/* Toolbar */}
-      <Toolbar
-        searchPlaceholder={`Search ${leadsLabel.toLowerCase()}...`}
-        searchValue={searchQuery}
-        onSearchChange={setSearchQuery}
-        filters={
-          <FilterSelect
-            placeholder="Status"
-            value={statusFilter}
-            onValueChange={setStatusFilter}
-            options={[
-              { value: "all", label: "All Status" },
-              { value: "new", label: "New" },
-              { value: "contacted", label: "Contacted" },
-              { value: "qualified", label: "Qualified" },
-              { value: "booked", label: "Booked" },
-              { value: "won", label: "Won" },
-              { value: "lost", label: "Lost" },
-            ]}
+      {/* Temperature Tabs + Toolbar */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <Tabs value={tempTab} onValueChange={setTempTab}>
+          <TabsList>
+            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="hot" className="gap-1">
+              <Flame className="h-3.5 w-3.5 text-red-500" />
+              Hot
+            </TabsTrigger>
+            <TabsTrigger value="warm" className="gap-1">
+              <Thermometer className="h-3.5 w-3.5 text-amber-500" />
+              Warm
+            </TabsTrigger>
+            <TabsTrigger value="cold" className="gap-1">
+              <Snowflake className="h-3.5 w-3.5 text-sky-500" />
+              Cold
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <div className="flex-1">
+          <Toolbar
+            searchPlaceholder={`Search ${modeLabels.leadsLabel.toLowerCase()}...`}
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
           />
-        }
-      />
+        </div>
+      </div>
 
       {/* Table */}
       <SectionCard noPadding>
@@ -244,14 +256,18 @@ export default function LeadsPage() {
                 <TableHead>Score</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="hidden md:table-cell">Source</TableHead>
-                <TableHead className="hidden lg:table-cell">{contextLabel}</TableHead>
+                <TableHead className="hidden lg:table-cell">{modeLabels.contextLabel}</TableHead>
                 <TableHead className="hidden sm:table-cell">Last Activity</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredLeads.map((lead) => (
-                <TableRow key={lead.id} zebra>
+                <TableRow
+                  key={lead.id}
+                  className="cursor-pointer"
+                  onClick={() => setSelectedLead(lead)}
+                >
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className={cn(
@@ -272,7 +288,7 @@ export default function LeadsPage() {
                     <TemperatureBadge temp={lead.temperature} reason={lead.temperatureReason} />
                   </TableCell>
                   <TableCell>
-                    <Badge className={cn(statusColors[lead.status])}>
+                    <Badge variant="outline" className={cn(statusColors[lead.status])}>
                       {lead.status}
                     </Badge>
                   </TableCell>
@@ -291,7 +307,7 @@ export default function LeadsPage() {
                         ? formatDistanceToNow(new Date(lead.latestCallAt), { addSuffix: true })
                         : formatDistanceToNow(new Date(lead.created_at), { addSuffix: true })}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon">
@@ -311,7 +327,7 @@ export default function LeadsPage() {
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleBookAppointment(lead)}>
                           <Calendar className="mr-2 h-4 w-4" />
-                          Book {terms.booking || "Appointment"}
+                          {modeLabels.bookingLabel}
                         </DropdownMenuItem>
                         {caps.hasEstimates && (
                           <DropdownMenuItem onClick={() => navigate("/app/estimates")}>
@@ -341,15 +357,15 @@ export default function LeadsPage() {
         ) : (
           <EmptyState
             icon={Users}
-            title={`No ${leadsLabel.toLowerCase()} found`}
+            title={`No ${modeLabels.leadsLabel.toLowerCase()} found`}
             description={
-              searchQuery || statusFilter !== "all" || tempTab !== "all"
+              searchQuery || statusFilter !== "all" || tempTab !== "all" || pipelineStage !== "all"
                 ? "Try adjusting your filters."
-                : `${leadsLabel} will appear here when you receive calls, texts, or add them manually.`
+                : `${modeLabels.leadsLabel} will appear here when you receive calls or add them manually.`
             }
             action={
-              !searchQuery && statusFilter === "all" && tempTab === "all"
-                ? { label: `Add Your First ${leadLabel}`, onClick: () => setCreateLeadOpen(true) }
+              !searchQuery && statusFilter === "all" && tempTab === "all" && pipelineStage === "all"
+                ? { label: `Add Your First ${modeLabels.leadLabel}`, onClick: () => setCreateLeadOpen(true) }
                 : undefined
             }
             compact
@@ -358,8 +374,19 @@ export default function LeadsPage() {
       </SectionCard>
 
       <p className="text-xs text-muted-foreground text-center">
-        {filteredLeads.length} {filteredLeads.length === 1 ? leadLabel.toLowerCase() : leadsLabel.toLowerCase()}
+        {filteredLeads.length} {filteredLeads.length === 1 ? modeLabels.leadLabel.toLowerCase() : modeLabels.leadsLabel.toLowerCase()}
       </p>
+
+      {/* Lead Detail Panel */}
+      <LeadDetailPanel
+        lead={selectedLead}
+        onClose={() => setSelectedLead(null)}
+        onBookAppointment={(lead) => handleBookAppointment(lead)}
+        onConvertToCustomer={(lead) => convertToCustomer.mutate(lead)}
+        onMarkAsLost={(lead) => markAsLost.mutate(lead.id)}
+        temperature={selectedLead?.temperature}
+        temperatureReason={selectedLead?.temperatureReason}
+      />
 
       {/* Dialogs */}
       <CreateLeadDialog open={createLeadOpen} onOpenChange={setCreateLeadOpen} />
