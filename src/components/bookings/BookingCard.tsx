@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { format } from "date-fns";
-import { Clock, MoreVertical, Pencil, Phone, X, MessageSquare, CalendarClock, CheckCircle2 } from "lucide-react";
+import { Clock, MoreVertical, Pencil, Phone, X, MessageSquare, CalendarClock, CheckCircle2, UserCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import type { BookingWithDetails } from "@/hooks/useBookings";
+import { SendSmsDialog } from "@/components/messaging/SendSmsDialog";
 
 export const bookingStatusColors: Record<string, string> = {
   pending: "bg-warning/10 text-warning border-warning/30",
@@ -35,6 +37,7 @@ interface BookingCardProps {
   onEdit?: (booking: BookingWithDetails) => void;
   onCancel?: (booking: BookingWithDetails) => void;
   onApprove?: (booking: BookingWithDetails) => void;
+  onComplete?: (booking: BookingWithDetails) => void;
 }
 
 function formatPrice(amount: number | null | undefined): string {
@@ -42,7 +45,8 @@ function formatPrice(amount: number | null | undefined): string {
   return `$${amount.toFixed(0)}`;
 }
 
-export function BookingCard({ booking, onEdit, onCancel, onApprove }: BookingCardProps) {
+export function BookingCard({ booking, onEdit, onCancel, onApprove, onComplete }: BookingCardProps) {
+  const [smsOpen, setSmsOpen] = useState(false);
   const startDate = new Date(booking.start_at);
   const serviceName = booking.service?.name || "Service";
   const customerName = booking.lead?.full_name || "Unknown";
@@ -59,12 +63,24 @@ export function BookingCard({ booking, onEdit, onCancel, onApprove }: BookingCar
           <span className="text-sm font-medium">
             {format(startDate, "EEE, MMM d")} at {format(startDate, "h:mm a")}
           </span>
-          <Badge
-            variant="outline"
-            className={cn("text-[11px] h-5 shrink-0", bookingStatusColors[booking.status])}
-          >
-            {bookingStatusLabels[booking.status] || booking.status}
-          </Badge>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {(booking as any).customer_confirmed_at && (
+              <Badge
+                variant="outline"
+                className="text-[11px] h-5 bg-emerald-50 text-emerald-600 border-emerald-200 gap-0.5"
+                title={`Customer confirmed ${format(new Date((booking as any).customer_confirmed_at), "MMM d, h:mm a")}`}
+              >
+                <UserCheck className="h-3 w-3" />
+                Confirmed
+              </Badge>
+            )}
+            <Badge
+              variant="outline"
+              className={cn("text-[11px] h-5", bookingStatusColors[booking.status])}
+            >
+              {bookingStatusLabels[booking.status] || booking.status}
+            </Badge>
+          </div>
         </div>
 
         {/* Middle: service — customer */}
@@ -124,9 +140,16 @@ export function BookingCard({ booking, onEdit, onCancel, onApprove }: BookingCar
                 <Phone className="w-4 h-4 mr-2" /> Call Customer
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem>
-              <MessageSquare className="w-4 h-4 mr-2" /> Send Message
-            </DropdownMenuItem>
+            {phone && (
+              <DropdownMenuItem onClick={() => setSmsOpen(true)}>
+                <MessageSquare className="w-4 h-4 mr-2" /> Send Message
+              </DropdownMenuItem>
+            )}
+            {booking.status === "confirmed" && onComplete && (
+              <DropdownMenuItem onClick={() => onComplete(booking)}>
+                <CheckCircle2 className="w-4 h-4 mr-2" /> Mark Complete
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => onCancel?.(booking)}
@@ -137,6 +160,16 @@ export function BookingCard({ booking, onEdit, onCancel, onApprove }: BookingCar
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {phone && (
+        <SendSmsDialog
+          open={smsOpen}
+          onOpenChange={setSmsOpen}
+          recipientPhone={phone}
+          recipientName={customerName}
+          customerId={booking.lead?.customer_id ?? undefined}
+        />
+      )}
     </div>
   );
 }

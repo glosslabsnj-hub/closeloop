@@ -1359,6 +1359,11 @@ function buildServicesForPrompt(services: NormalizedService[]): string {
       line += `\n  Duration: ${s.duration_minutes} min`;
     }
     if (s.synonyms.length > 0) line += ` [also: ${s.synonyms.slice(0, 3).join(", ")}]`;
+    // Per-service required intake fields
+    const reqFields = (s as any).required_intake_fields;
+    if (Array.isArray(reqFields) && reqFields.length > 0) {
+      line += `\n  Required info: ${reqFields.join(", ")}`;
+    }
     return line;
   }).join("\n");
 }
@@ -1587,6 +1592,7 @@ async function buildCapacity7DayOverview(
   tenantId: string,
   hoursJson: Record<string, any>,
   timezone: string,
+  busyThreshold = 6,
 ): Promise<string> {
   try {
     // Compute 7-day window in tenant timezone
@@ -1604,38 +1610,41 @@ async function buildCapacity7DayOverview(
 
     if (!bookings) return "";
 
-    // Count bookings per day-of-week
+    // Count bookings per actual calendar date (YYYY-MM-DD), not by day-of-week
     const dayOrder = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const countByDayIndex: Record<number, number> = {};
+    const countByDate: Record<string, number> = {};
 
     for (const b of bookings) {
       if (!b.scheduled_at) continue;
       const d = new Date(b.scheduled_at);
-      const dayIdx = d.getDay(); // 0=Sun
-      countByDayIndex[dayIdx] = (countByDayIndex[dayIdx] || 0) + 1;
+      const dateKey = d.toISOString().slice(0, 10); // YYYY-MM-DD
+      countByDate[dateKey] = (countByDate[dateKey] || 0) + 1;
     }
 
-    // Build output for next 7 days
+    // Build output for next 7 days with actual dates
     const parts: string[] = [];
     for (let i = 0; i < 7; i++) {
       const date = new Date(now.getTime() + i * 24 * 60 * 60 * 1000);
       const dayIdx = date.getDay();
       const dayKey = dayOrder[dayIdx];
       const label = dayLabels[dayIdx];
+      const dateStr = `${monthNames[date.getMonth()]} ${date.getDate()}`;
+      const dateKey = date.toISOString().slice(0, 10);
       const hours = hoursJson?.[dayKey];
       const isClosed = !hours || hours.closed || hours.is_open === false || (!hours.open && !hours.close);
 
       if (isClosed) {
-        parts.push(`${label}: closed`);
+        parts.push(`${dateStr} (${label}): closed`);
       } else {
-        const count = countByDayIndex[dayIdx] || 0;
+        const count = countByDate[dateKey] || 0;
         if (count === 0) {
-          parts.push(`${label}: open`);
-        } else if (count >= 6) {
-          parts.push(`${label}: busy (${count})`);
+          parts.push(`${dateStr} (${label}): open`);
+        } else if (count >= busyThreshold) {
+          parts.push(`${dateStr} (${label}): busy (${count})`);
         } else {
-          parts.push(`${label}: light (${count})`);
+          parts.push(`${dateStr} (${label}): light (${count})`);
         }
       }
     }
@@ -2352,11 +2361,13 @@ export async function buildBusinessContext(
   // Compute 7-day capacity overview (booking-enabled tenants only)
   let capacity7DayOverview = "";
   if (capabilities.booking) {
+    const busyThreshold = (tenant.busyness_rules_jsonb as any)?.busy_threshold ?? 6;
     capacity7DayOverview = await buildCapacity7DayOverview(
       supabase,
       tenantId,
       tenant.hours_json || {},
       tenant.timezone || "America/New_York",
+      busyThreshold,
     );
   }
 
@@ -2431,6 +2442,7 @@ export async function buildBusinessContext(
         deposit: tenant.deposit_policy || "",
         refund: tenant.refund_policy || "",
         payment_methods: tenant.payment_methods || [],
+        payment_timing: (tenant.context_fields_json as any)?.payment_timing || "",
         ai_never_promise: tenant.ai_never_promise || [],
         ai_guidelines: {
           upselling: aiGuidelines.upselling,
@@ -2929,6 +2941,7 @@ Do NOT claim you cannot take orders if menu IS available above.
     if (ctx.policies.deposit) prompt += `- Deposit: ${ctx.policies.deposit}\\n`;
     if (ctx.policies.refund) prompt += `- Refund: ${ctx.policies.refund}\\n`;
     if (ctx.policies.payment_methods.length > 0) prompt += `- Payment methods: ${ctx.policies.payment_methods.join(", ")}\\n`;
+    if (ctx.policies.payment_timing) prompt += `- Payment timing: ${ctx.policies.payment_timing}\\n`;
     prompt += `\\n`;
   }
 

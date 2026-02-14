@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Save, Info } from "lucide-react";
 import { updateBusinessPolicies } from "@/lib/brain/writeBrainFact";
+import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PolicyTemplateButtons } from "./PolicyTemplateButtons";
@@ -34,6 +36,15 @@ const PAYMENT_METHODS = [
   { id: "zelle", label: "Zelle" },
 ];
 
+const PAYMENT_TIMING_OPTIONS = [
+  { id: "", label: "Not specified" },
+  { id: "at_booking", label: "Payment at time of booking" },
+  { id: "deposit_then_balance", label: "Deposit at booking, balance at service" },
+  { id: "at_service", label: "Payment due at time of service" },
+  { id: "after_completion", label: "Payment due after service completion" },
+  { id: "net_30", label: "Net 30 (invoice after service)" },
+];
+
 export function BusinessPoliciesEditor() {
   const { tenant } = useAuth();
   const { businessMode } = useTenantConfig();
@@ -44,17 +55,20 @@ export function BusinessPoliciesEditor() {
     deposit_policy: "",
     refund_policy: "",
     payment_methods: [] as string[],
+    payment_timing: "",
   });
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (tenant) {
+      const ctxFields = (tenant as any).context_fields_json as Record<string, any> | null;
       setFormData({
         cancellation_policy: tenant.cancellation_policy || "",
         deposit_policy: tenant.deposit_policy || "",
         refund_policy: tenant.refund_policy || "",
         payment_methods: Array.isArray(tenant.payment_methods) ? tenant.payment_methods : [],
+        payment_timing: ctxFields?.payment_timing || "",
       });
       setIsLoading(false);
     }
@@ -70,6 +84,17 @@ export function BusinessPoliciesEditor() {
         refund_policy: formData.refund_policy.trim() || undefined,
         payment_methods: formData.payment_methods.length > 0 ? formData.payment_methods : undefined,
       });
+
+      // Save payment timing to context_fields_json
+      const timingLabel = PAYMENT_TIMING_OPTIONS.find(o => o.id === formData.payment_timing)?.label || "";
+      const existingCtx = ((tenant as any).context_fields_json as Record<string, any>) || {};
+      await supabase
+        .from("tenants")
+        .update({
+          context_fields_json: { ...existingCtx, payment_timing: timingLabel },
+        })
+        .eq("id", tenant.id);
+
       toast.success("Policies saved");
       queryClient.invalidateQueries({ queryKey: ["business-context"] });
     } catch (error: any) {
@@ -193,6 +218,29 @@ export function BusinessPoliciesEditor() {
             </label>
           ))}
         </div>
+      </div>
+
+      {/* Payment Timing */}
+      <div className="space-y-2">
+        <Label>When Is Payment Due?</Label>
+        <p className="text-xs text-muted-foreground">
+          AI will mention this when customers ask about payment timing
+        </p>
+        <Select
+          value={formData.payment_timing}
+          onValueChange={(v) => setFormData({ ...formData, payment_timing: v })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select payment timing..." />
+          </SelectTrigger>
+          <SelectContent>
+            {PAYMENT_TIMING_OPTIONS.map((opt) => (
+              <SelectItem key={opt.id} value={opt.id || "none"}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Save */}

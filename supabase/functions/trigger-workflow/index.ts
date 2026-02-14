@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsResponse, errorResponse, jsonResponse } from "../_shared/cors.ts";
+import { sendEmail } from "../_shared/sendEmail.ts";
 
 interface TriggerWorkflowRequest {
   tenant_id: string;
@@ -476,20 +477,30 @@ async function executeNotifyEmail(
   context: Record<string, any>
 ): Promise<Record<string, any>> {
   const to = resolveTemplate(config?.to || "{{customer_email}}", context);
-  const subject = resolveTemplate(config?.subject || "", context);
+  const subject = resolveTemplate(config?.subject || "Notification", context);
   const body = resolveTemplate(config?.body || "", context);
 
   if (!to) {
     throw new Error("Email requires 'to'");
   }
 
-  console.log(`[executeNotifyEmail] Would send email to ${to}: ${subject}`);
-
-  return {
-    simulated: true,
+  const businessName = context.business_name || context.tenant_name || "CloseLoop";
+  const result = await sendEmail({
     to,
     subject,
-    message: "Email service not configured - logged only",
+    businessName,
+    html: body.includes("<") ? body : `<p>${body.replace(/\n/g, "<br>")}</p>`,
+  });
+
+  if (!result.success) {
+    throw new Error(`Email delivery failed: ${result.error}`);
+  }
+
+  return {
+    success: true,
+    to,
+    subject,
+    resendId: result.resendId,
   };
 }
 
@@ -726,10 +737,56 @@ async function executeAssignToUser(
   config: any,
   context: Record<string, any>
 ): Promise<Record<string, any>> {
+  const userId = config?.user_id;
+  const entityType = context.entity_type;
+  const entityId = context.entity_id;
+
+  if (!userId || !entityId) {
+    return { skipped: true, reason: "Missing user_id or entity_id" };
+  }
+
+  // Map entity types to their assignment column
+  const assignmentMap: Record<string, { table: string; column: string }> = {
+    dispatch_job: { table: "dispatch_jobs", column: "driver_id" },
+    booking: { table: "bookings", column: "notes" }, // bookings don't have assigned_to; append to notes
+  };
+
+  const mapping = assignmentMap[entityType];
+  if (!mapping) {
+    return { skipped: true, reason: `No assignment mapping for ${entityType}` };
+  }
+
+  // Look up the user name for logging
+  const { data: userProfile } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("id", userId)
+    .single();
+
+  const userName = userProfile?.full_name || userId;
+
+  if (entityType === "booking") {
+    // For bookings, append assignment info to notes since there's no assigned_to column
+    const { data: existing } = await supabase
+      .from("bookings")
+      .select("notes")
+      .eq("id", entityId)
+      .single();
+
+    const existingNotes = existing?.notes || "";
+    const assignNote = `Assigned to: ${userName}`;
+    const updatedNotes = existingNotes ? `${existingNotes}\n${assignNote}` : assignNote;
+
+    await supabase.from("bookings").update({ notes: updatedNotes }).eq("id", entityId);
+  } else {
+    await supabase.from(mapping.table).update({ [mapping.column]: userId }).eq("id", entityId);
+  }
+
   return {
-    simulated: true,
-    user_id: config?.user_id,
-    message: "Assignment system not yet implemented",
+    success: true,
+    assigned_to: userId,
+    assigned_name: userName,
+    entity_type: entityType,
   };
 }
 

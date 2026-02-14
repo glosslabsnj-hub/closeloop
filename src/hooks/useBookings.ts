@@ -111,6 +111,40 @@ export function useBookings() {
     },
   });
 
+  const completeBooking = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase
+        .from("bookings")
+        .update({ status: "completed" })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Fire booking.completed workflow trigger for automations (review requests, follow-ups)
+      if (tenant?.id) {
+        supabase.functions.invoke("trigger-workflow", {
+          body: {
+            tenant_id: tenant.id,
+            trigger: "booking.completed",
+            entity_type: "booking",
+            entity_id: id,
+          },
+        }).catch((err) => console.error("trigger-workflow error:", err));
+      }
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookings", tenant?.id] });
+      toast({ title: "Booking completed", description: "Service marked as finished." });
+    },
+    onError: (error) => {
+      toast({ title: "Something went wrong", description: "Try again?", variant: "destructive" });
+    },
+  });
+
   const deleteBooking = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("bookings").delete().eq("id", id);
@@ -152,6 +186,7 @@ export function useBookings() {
     stats,
     createBooking,
     updateBooking,
+    completeBooking,
     deleteBooking,
     refetch: bookingsQuery.refetch,
   };

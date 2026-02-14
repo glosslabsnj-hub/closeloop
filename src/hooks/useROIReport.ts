@@ -26,6 +26,12 @@ export interface ConversionFunnel {
   entitiesCompleted: number;
 }
 
+export interface RevenueByServiceItem {
+  serviceName: string;
+  revenueCents: number;
+  count: number;
+}
+
 export interface ROIReportData {
   // Summary for selected range
   aiRevenueCents: number;
@@ -53,6 +59,7 @@ export interface ROIReportData {
   // Chart data
   monthlyData: MonthlyDataPoint[];
   revenueBySource: { ai: number; manual: number; recovery: number };
+  revenueByService: RevenueByServiceItem[];
   conversionFunnel: ConversionFunnel;
 
   // Config
@@ -182,6 +189,41 @@ export function useROIReport(dateRange: DateRangeOption = "this_month") {
       const totalCostCents = subscriptionCostCents * months;
       const roiMultiplier = totalCostCents > 0 ? Math.round((aiRevenueCents / totalCostCents) * 10) / 10 : 0;
 
+      // Revenue by service type — join bookings → services for AI-attributed revenue
+      const revenueByService: RevenueByServiceItem[] = [];
+      try {
+        const { data: bookingsWithService } = await supabase
+          .from("bookings")
+          .select("id, service_id, services(name, price_amount)")
+          .eq("tenant_id", tenant.id)
+          .gte("start_at", startStr)
+          .lte("start_at", endStr)
+          .in("status", ["confirmed", "completed", "pending"]);
+
+        if (bookingsWithService && bookingsWithService.length > 0) {
+          const serviceMap = new Map<string, { name: string; revenueCents: number; count: number }>();
+          for (const b of bookingsWithService as any[]) {
+            const svc = b.services;
+            const name = svc?.name || "Unknown Service";
+            const rev = (svc?.price_amount || 0) * 100; // price_amount is in dollars
+            const existing = serviceMap.get(name);
+            if (existing) {
+              existing.revenueCents += rev;
+              existing.count++;
+            } else {
+              serviceMap.set(name, { name, revenueCents: rev, count: 1 });
+            }
+          }
+          // Sort by revenue descending
+          const sorted = Array.from(serviceMap.values()).sort((a, b) => b.revenueCents - a.revenueCents);
+          for (const s of sorted) {
+            revenueByService.push({ serviceName: s.name, revenueCents: s.revenueCents, count: s.count });
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching revenue by service:", err);
+      }
+
       // Build monthly data points
       const monthlyData: MonthlyDataPoint[] = [];
       for (let i = months - 1; i >= 0; i--) {
@@ -273,6 +315,7 @@ export function useROIReport(dateRange: DateRangeOption = "this_month") {
         trends,
         monthlyData,
         revenueBySource: { ai: aiRevenueCents, manual: manualRevenueCents, recovery: recoveryRevenueCents },
+        revenueByService,
         conversionFunnel: {
           totalCalls,
           callsWithOutcome,

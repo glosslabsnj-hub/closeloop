@@ -5,6 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
   Loader2,
   Calendar,
   FileText,
@@ -13,6 +23,8 @@ import {
   Building2,
   AlertCircle,
   ShieldAlert,
+  CalendarClock,
+  X,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -93,6 +105,14 @@ export default function CustomerPortalPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [agreements, setAgreements] = useState<Agreement[]>([]);
+
+  // Booking action dialogs
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [newDateTime, setNewDateTime] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionMessage, setActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Load tenant info
   useEffect(() => {
@@ -198,6 +218,54 @@ export default function CustomerPortalPage() {
       if (agreementsData) setAgreements(agreementsData);
     } catch (err) {
       console.error("Error loading agreements:", err);
+    }
+  };
+
+  const handleBookingAction = async (action: "cancel" | "reschedule") => {
+    if (!selectedBooking || !customerToken || !tenantId) return;
+    setActionLoading(true);
+    setActionMessage(null);
+
+    try {
+      const body: Record<string, string> = {
+        token: customerToken,
+        tenant_id: tenantId,
+        booking_id: selectedBooking.id,
+        action,
+      };
+      if (action === "reschedule" && newDateTime) {
+        body.new_start_at = new Date(newDateTime).toISOString();
+      }
+
+      const { data, error } = await supabase.functions.invoke("portal-booking-action", { body });
+
+      if (error || !data?.success) {
+        setActionMessage({ type: "error", text: data?.error || "Something went wrong. Please try again." });
+        return;
+      }
+
+      // Update local state
+      setBookings((prev) =>
+        prev.map((b) => {
+          if (b.id !== selectedBooking.id) return b;
+          if (action === "cancel") return { ...b, status: "cancelled" };
+          return { ...b, start_at: newDateTime ? new Date(newDateTime).toISOString() : b.start_at, status: "pending" };
+        }),
+      );
+
+      setActionMessage({
+        type: "success",
+        text: action === "cancel" ? "Booking cancelled successfully." : "Booking rescheduled. Awaiting confirmation.",
+      });
+      setCancelDialogOpen(false);
+      setRescheduleDialogOpen(false);
+      setSelectedBooking(null);
+      setNewDateTime("");
+    } catch (err) {
+      console.error("Booking action error:", err);
+      setActionMessage({ type: "error", text: "Unable to process your request. Please try again." });
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -341,27 +409,73 @@ export default function CustomerPortalPage() {
                       </p>
                     ) : (
                       <div className="space-y-3">
-                        {bookings.map((booking) => (
+                        {actionMessage && (
                           <div
-                            key={booking.id}
-                            className="flex items-center justify-between p-4 border rounded-lg"
+                            className={`p-3 rounded-lg text-sm ${
+                              actionMessage.type === "success"
+                                ? "bg-green-50 text-green-700 border border-green-200"
+                                : "bg-red-50 text-red-700 border border-red-200"
+                            }`}
                           >
-                            <div className="flex items-center gap-4">
-                              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                <Calendar className="h-5 w-5 text-primary" />
+                            {actionMessage.text}
+                          </div>
+                        )}
+                        {bookings.map((booking) => {
+                          const canModify = ["pending", "confirmed"].includes(booking.status);
+                          return (
+                            <div
+                              key={booking.id}
+                              className="flex items-center justify-between p-4 border rounded-lg"
+                            >
+                              <div className="flex items-center gap-4">
+                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                  <Calendar className="h-5 w-5 text-primary" />
+                                </div>
+                                <div>
+                                  <p className="font-medium">Appointment</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {format(new Date(booking.start_at), "EEEE, MMMM d 'at' h:mm a")}
+                                  </p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="font-medium">Appointment</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {format(new Date(booking.start_at), "EEEE, MMMM d 'at' h:mm a")}
-                                </p>
+                              <div className="flex items-center gap-2">
+                                {canModify && (
+                                  <>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="gap-1 text-xs"
+                                      onClick={() => {
+                                        setSelectedBooking(booking);
+                                        setRescheduleDialogOpen(true);
+                                        setActionMessage(null);
+                                      }}
+                                    >
+                                      <CalendarClock className="h-3.5 w-3.5" />
+                                      Reschedule
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="gap-1 text-xs text-destructive hover:text-destructive"
+                                      onClick={() => {
+                                        setSelectedBooking(booking);
+                                        setCancelDialogOpen(true);
+                                        setActionMessage(null);
+                                      }}
+                                    >
+                                      <X className="h-3.5 w-3.5" />
+                                      Cancel
+                                    </Button>
+                                  </>
+                                )}
+                                <Badge className={statusColors[booking.status] || "bg-gray-100"}>
+                                  {booking.status}
+                                </Badge>
                               </div>
                             </div>
-                            <Badge className={statusColors[booking.status] || "bg-gray-100"}>
-                              {booking.status}
-                            </Badge>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </CardContent>
@@ -490,6 +604,91 @@ export default function CustomerPortalPage() {
           </div>
         )}
       </main>
+
+      {/* Cancel Booking Dialog */}
+      <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cancel Appointment</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel your appointment
+              {selectedBooking
+                ? ` on ${format(new Date(selectedBooking.start_at), "EEEE, MMMM d 'at' h:mm a")}`
+                : ""}
+              ?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setCancelDialogOpen(false)}
+              disabled={actionLoading}
+            >
+              Keep Appointment
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => handleBookingAction("cancel")}
+              disabled={actionLoading}
+            >
+              {actionLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Cancel Appointment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reschedule Booking Dialog */}
+      <Dialog open={rescheduleDialogOpen} onOpenChange={setRescheduleDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reschedule Appointment</DialogTitle>
+            <DialogDescription>
+              Choose a new date and time for your appointment.
+              {selectedBooking && (
+                <span className="block mt-1 text-foreground font-medium">
+                  Current: {format(new Date(selectedBooking.start_at), "EEEE, MMMM d 'at' h:mm a")}
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="new-datetime">New Date & Time</Label>
+              <Input
+                id="new-datetime"
+                type="datetime-local"
+                value={newDateTime}
+                onChange={(e) => setNewDateTime(e.target.value)}
+                min={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRescheduleDialogOpen(false);
+                setNewDateTime("");
+              }}
+              disabled={actionLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => handleBookingAction("reschedule")}
+              disabled={actionLoading || !newDateTime}
+            >
+              {actionLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Reschedule
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Footer */}
       <footer className="border-t mt-auto py-4 bg-white">

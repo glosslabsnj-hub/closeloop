@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsResponse, errorResponse, jsonResponse } from "../_shared/cors.ts";
+import { sendEmail } from "../_shared/sendEmail.ts";
 
 interface ExecuteActionRequest {
   campaign_id: string;
@@ -341,14 +342,21 @@ async function executeEmailAction(
       recoverySettings
     );
 
-    // For now, log as pending - would integrate with email service
-    console.log(`Would send email to ${customer.email}: ${message}`);
+    const subject = step.email_subject
+      || resolveTemplateTokens("We'd love to help — {{business_name}}", campaign, customer, assistantSettings, recoverySettings);
 
-    // TODO: Integrate with Resend or SendGrid
+    const result = await sendEmail({
+      to: customer.email,
+      subject,
+      businessName: assistantSettings?.business_name || campaign.business_name || "CloseLoop",
+      html: `<p>${message.replace(/\n/g, "<br>")}</p>`,
+    });
+
     return {
-      success: true,
-      delivery_status: "pending",
+      success: result.success,
+      delivery_status: result.success ? "sent" : "failed",
       messageSent: message,
+      error: result.error,
     };
   } catch (error) {
     console.error("Email action error:", error);

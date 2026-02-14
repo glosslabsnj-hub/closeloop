@@ -58,7 +58,7 @@ import {
   LineChart,
   Line,
 } from "recharts";
-import { useROIReport, type DateRangeOption } from "@/hooks/useROIReport";
+import { useROIReport, type DateRangeOption, type RevenueByServiceItem } from "@/hooks/useROIReport";
 import type { HeroIconName } from "@/config/industryRevenueConfig";
 import {
   formatRevenue,
@@ -294,6 +294,76 @@ function RevenueTrendChart({ data }: { data: { monthLabel: string; aiRevenueCent
   );
 }
 
+const SERVICE_COLORS = [
+  "hsl(160, 60%, 45%)",
+  "hsl(200, 60%, 50%)",
+  "hsl(260, 50%, 55%)",
+  "hsl(30, 70%, 50%)",
+  "hsl(340, 60%, 50%)",
+  "hsl(180, 50%, 45%)",
+  "hsl(80, 50%, 45%)",
+  "hsl(310, 50%, 50%)",
+];
+
+function RevenueByServiceChart({ items }: { items: RevenueByServiceItem[] }) {
+  if (items.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-48 text-sm text-muted-foreground">
+        No service revenue data yet
+      </div>
+    );
+  }
+
+  const chartData = items.slice(0, 8).map((item, i) => ({
+    name: item.serviceName,
+    revenue: item.revenueCents / 100,
+    count: item.count,
+    color: SERVICE_COLORS[i % SERVICE_COLORS.length],
+  }));
+
+  return (
+    <div className="space-y-4">
+      <ResponsiveContainer width="100%" height={Math.max(200, chartData.length * 40)}>
+        <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border) / 0.3)" />
+          <XAxis
+            type="number"
+            tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+            axisLine={false}
+            tickLine={false}
+            tickFormatter={(v) => `$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+          />
+          <YAxis
+            type="category"
+            dataKey="name"
+            tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+            width={120}
+            axisLine={false}
+            tickLine={false}
+          />
+          <RechartsTooltip
+            contentStyle={{
+              backgroundColor: "hsl(var(--card))",
+              border: "1px solid hsl(var(--border))",
+              borderRadius: "8px",
+              fontSize: "12px",
+            }}
+            formatter={(value: number, _name: string, props: any) => [
+              `$${value.toLocaleString()} (${props.payload.count} bookings)`,
+              "Revenue",
+            ]}
+          />
+          <Bar dataKey="revenue" radius={[0, 4, 4, 0]} barSize={24}>
+            {chartData.map((entry, i) => (
+              <Cell key={i} fill={entry.color} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 function ReportEmpty({
   steps,
   encouragement,
@@ -476,6 +546,18 @@ export default function ReportsROIPage() {
                     </CardContent>
                   </Card>
                 </div>
+
+                {/* Revenue by Service Type */}
+                {data.revenueByService.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Revenue by Service</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <RevenueByServiceChart items={data.revenueByService} />
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Revenue Trend */}
                 {data.monthlyData.length > 1 && (

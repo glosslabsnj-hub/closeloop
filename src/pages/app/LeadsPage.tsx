@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { CreateLeadDialog } from "@/components/leads/CreateLeadDialog";
 import { CreateBookingDialog } from "@/components/calendar/CreateBookingDialog";
+import { SendSmsDialog } from "@/components/messaging/SendSmsDialog";
 import { toast } from "sonner";
 
 const statusColors: Record<string, string> = {
@@ -60,6 +61,8 @@ export default function LeadsPage() {
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [bookingLeadName, setBookingLeadName] = useState("");
   const [bookingLeadPhone, setBookingLeadPhone] = useState("");
+  const [smsOpen, setSmsOpen] = useState(false);
+  const [smsRecipient, setSmsRecipient] = useState<{ phone: string; name: string; customerId?: string }>({ phone: "", name: "" });
 
   const filteredLeads = leads.filter((lead) => {
     const matchesSearch =
@@ -199,10 +202,15 @@ export default function LeadsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => toast.info("SMS messaging coming soon")}>
-                          <MessageSquare className="mr-2 h-4 w-4" />
-                          Send Message
-                        </DropdownMenuItem>
+                        {lead.phone && (
+                          <DropdownMenuItem onClick={() => {
+                            setSmsRecipient({ phone: lead.phone!, name: lead.full_name, customerId: lead.customer_id ?? undefined });
+                            setSmsOpen(true);
+                          }}>
+                            <MessageSquare className="mr-2 h-4 w-4" />
+                            Send Message
+                          </DropdownMenuItem>
+                        )}
                         {lead.phone && (
                           <DropdownMenuItem onClick={() => window.open(`tel:${lead.phone}`, "_self")}>
                             <Phone className="mr-2 h-4 w-4" />
@@ -256,6 +264,13 @@ export default function LeadsPage() {
         onOpenChange={setBookingDialogOpen}
         initialCustomerName={bookingLeadName}
         initialCustomerPhone={bookingLeadPhone}
+      />
+      <SendSmsDialog
+        open={smsOpen}
+        onOpenChange={setSmsOpen}
+        recipientPhone={smsRecipient.phone}
+        recipientName={smsRecipient.name}
+        customerId={smsRecipient.customerId}
       />
     </PageContainer>
   );

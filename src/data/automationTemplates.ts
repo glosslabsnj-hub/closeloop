@@ -55,6 +55,19 @@ export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
       { order: 2, action: "send_sms", provider: "sms", description: "Request review from customer" },
     ],
   },
+  {
+    id: "post-service-followup",
+    name: "Post-Service Follow-Up",
+    description: "After booking is completed: thank-you SMS immediately, then review request after 2 hours",
+    category: "booking",
+    businessModes: ["service", "medical", "general"],
+    recommended: true,
+    steps: [
+      { order: 1, action: "send_sms", provider: "sms", description: "Send thank-you SMS to customer" },
+      { order: 2, action: "delay", provider: "system", description: "Wait 2 hours" },
+      { order: 3, action: "send_review_request", provider: "sms", description: "Send review request via SMS/email" },
+    ],
+  },
 
   // Restaurant Templates
   {

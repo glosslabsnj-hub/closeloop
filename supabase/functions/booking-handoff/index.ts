@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { requireAuthedTenant, requireInternalSecret, serviceClient } from "../_shared/tenant.ts";
 import { captureException } from "../_shared/sentry.ts";
+import { sendEmail } from "../_shared/sendEmail.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -346,17 +347,35 @@ serve(async (req) => {
         }
 
         if (handoffMethod === "email" && settings.notify_email) {
-          // Email delivery not yet implemented — log as "skipped" for honest monitoring
-          console.log(`[booking-handoff] Email to ${settings.notify_email}: skipped — email provider not configured`);
-          results.email = { success: false, error: "Email provider not configured" };
+          const customerName = payload.customer.name;
+          const serviceName = payload.service?.name || "Service";
+          const startTime = new Date(payload.scheduled_start).toLocaleString();
+          const businessName = payload.tenant_name || "Your Business";
+
+          const emailResult = await sendEmail({
+            to: settings.notify_email,
+            subject: `New Booking: ${customerName} — ${serviceName}`,
+            businessName,
+            html: `
+              <h2>New Booking Received</h2>
+              <p><strong>Customer:</strong> ${customerName}</p>
+              ${payload.customer.phone ? `<p><strong>Phone:</strong> ${payload.customer.phone}</p>` : ""}
+              <p><strong>Service:</strong> ${serviceName}</p>
+              <p><strong>Scheduled:</strong> ${startTime}</p>
+              ${payload.notes ? `<p><strong>Notes:</strong> ${payload.notes}</p>` : ""}
+              ${payload.deposit_required && !payload.deposit_paid ? `<p><em>Deposit required — not yet paid</em></p>` : ""}
+            `.trim(),
+          });
+
+          results.email = { success: emailResult.success, error: emailResult.error };
 
           await supabase.from("handoff_attempts").insert({
             tenant_id: tenantId,
             entity_type: "booking",
             entity_id: booking_id,
             method: "email",
-            status: "skipped",
-            error_message: "Email provider not configured — enable via Integrations > Email",
+            status: emailResult.success ? "success" : "failed",
+            error_message: emailResult.error || null,
           });
         }
 

@@ -61,7 +61,21 @@ interface ServiceFormData {
   prerequisite_note: string;
   duration_min_minutes: number | null;
   duration_max_minutes: number | null;
+  required_intake_fields: string[];
 }
+
+const COMMON_INTAKE_FIELDS = [
+  "address",
+  "property_type",
+  "urgency",
+  "budget_range",
+  "scope_of_work",
+  "access_instructions",
+  "preferred_date",
+  "vehicle_info",
+  "photos",
+  "warranty_status",
+];
 
 const defaultFormData: ServiceFormData = {
   name: "",
@@ -77,6 +91,7 @@ const defaultFormData: ServiceFormData = {
   prerequisite_note: "",
   duration_min_minutes: null,
   duration_max_minutes: null,
+  required_intake_fields: [],
 };
 
 // Extracted outside ServiceCatalogEditor to prevent focus loss on re-render
@@ -250,6 +265,34 @@ function ServiceForm({
         </div>
       )}
 
+      {/* Required Intake Fields */}
+      {businessMode !== "food" && (
+        <div className="space-y-2">
+          <Label className="text-xs">Required info to collect before booking</Label>
+          <p className="text-[11px] text-muted-foreground">AI will ask for these before scheduling this service</p>
+          <div className="flex flex-wrap gap-1.5">
+            {COMMON_INTAKE_FIELDS.map((field) => {
+              const selected = formData.required_intake_fields.includes(field);
+              return (
+                <Badge
+                  key={field}
+                  variant={selected ? "default" : "outline"}
+                  className="cursor-pointer text-xs"
+                  onClick={() => {
+                    const next = selected
+                      ? formData.required_intake_fields.filter((f) => f !== field)
+                      : [...formData.required_intake_fields, field];
+                    onChange("required_intake_fields", next);
+                  }}
+                >
+                  {field.replace(/_/g, " ")}
+                </Badge>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Duration Range — collapsible enhancement */}
       {(formData.duration_min_minutes !== null || formData.duration_max_minutes !== null) ? (
         <div className="grid grid-cols-2 gap-4">
@@ -391,6 +434,7 @@ export function ServiceCatalogEditor() {
             prerequisite_note: service.prerequisite_note || "",
             duration_min_minutes: service.duration_min_minutes ?? null,
             duration_max_minutes: service.duration_max_minutes ?? null,
+            required_intake_fields: Array.isArray((service as any).required_intake_fields) ? (service as any).required_intake_fields : [],
           }
         }));
       }
@@ -430,6 +474,7 @@ export function ServiceCatalogEditor() {
         prerequisite_note: formData.prerequisite_note.trim() || undefined,
         duration_min_minutes: formData.duration_min_minutes,
         duration_max_minutes: formData.duration_max_minutes,
+        required_intake_fields: formData.required_intake_fields.length > 0 ? formData.required_intake_fields : undefined,
       });
       toast.success("Service updated");
       queryClient.invalidateQueries({ queryKey: ["services"] });
@@ -461,6 +506,7 @@ export function ServiceCatalogEditor() {
         prerequisite_note: newServiceData.prerequisite_note.trim() || undefined,
         duration_min_minutes: newServiceData.duration_min_minutes,
         duration_max_minutes: newServiceData.duration_max_minutes,
+        required_intake_fields: newServiceData.required_intake_fields.length > 0 ? newServiceData.required_intake_fields : undefined,
       });
       toast.success("Service created");
       queryClient.invalidateQueries({ queryKey: ["services"] });

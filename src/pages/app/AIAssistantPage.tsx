@@ -15,6 +15,7 @@ import KnowledgeGapQueue from "@/components/knowledge/KnowledgeGapQueue";
 import VoiceSelector from "@/components/ai/VoiceSelector";
 import VoiceAgentTest from "@/components/ai/VoiceAgentTest";
 import BookingBehaviorSettings from "@/components/ai/BookingBehaviorSettings";
+import AppointmentReminderSettings from "@/components/ai/AppointmentReminderSettings";
 import ServiceCallFlowSettings from "@/components/ai/ServiceCallFlowSettings";
 import CalendarSyncSettings from "@/components/ai/CalendarSyncSettings";
 import ElevenLabsSetupGuide from "@/components/ai/ElevenLabsSetupGuide";
@@ -241,6 +242,7 @@ export default function AIAssistantPage() {
             <BookingBehaviorSettings />
             <CalendarSyncSettings />
           </div>
+          <AppointmentReminderSettings />
         </TabsContent>
 
         {/* Scripts Tab */}

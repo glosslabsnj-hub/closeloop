@@ -1142,6 +1142,7 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
         ctx.policies.cancellation && `Cancellation: ${ctx.policies.cancellation}`,
         ctx.policies.deposit && `Deposit: ${ctx.policies.deposit}`,
         ctx.policies.payment_methods.length > 0 && `Payment: ${ctx.policies.payment_methods.join(", ")}`,
+        ctx.policies.payment_timing && `Payment timing: ${ctx.policies.payment_timing}`,
       ].filter(Boolean);
       return parts.join(". ");
     },

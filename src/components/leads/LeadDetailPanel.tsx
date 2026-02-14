@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { ExtractedPayloadDisplay } from "@/components/calls/ExtractedPayloadDisplay";
-import { toast } from "sonner";
+import { SendSmsDialog } from "@/components/messaging/SendSmsDialog";
 import type { Database } from "@/integrations/supabase/types";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
@@ -42,6 +43,7 @@ const sourceLabels: Record<string, string> = {
 export function LeadDetailPanel({ lead, onClose, onBookAppointment, onConvertToCustomer, onMarkAsLost }: LeadDetailPanelProps) {
   const { tenant } = useAuth();
   const { config } = useIndustryContext();
+  const [smsOpen, setSmsOpen] = useState(false);
 
   const canConvert = lead ? lead.status !== "won" && lead.status !== "lost" : false;
 
@@ -204,14 +206,26 @@ export function LeadDetailPanel({ lead, onClose, onBookAppointment, onConvertToC
               <Calendar className="w-4 h-4 mr-2" />
               Book Appointment
             </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => toast.info("SMS messaging coming soon")}
-            >
-              <MessageSquare className="w-4 h-4" />
-            </Button>
+            {lead.phone && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setSmsOpen(true)}
+              >
+                <MessageSquare className="w-4 h-4" />
+              </Button>
+            )}
           </div>
+
+          {lead.phone && (
+            <SendSmsDialog
+              open={smsOpen}
+              onOpenChange={setSmsOpen}
+              recipientPhone={lead.phone}
+              recipientName={lead.full_name}
+              customerId={lead.customer_id ?? undefined}
+            />
+          )}
         </div>
       </SheetContent>
     </Sheet>
