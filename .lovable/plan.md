@@ -1,166 +1,150 @@
 
 
-# Clean & Minimalistic UI Redesign
+# Complete Minimalistic UI Redesign
 
-## What's Wrong Today
+This is a comprehensive, multi-phase redesign to transform the app from its current dense, dark "mission control" aesthetic into a clean, minimal, modern SaaS tool -- think Linear, Notion, or Stripe Dashboard. No logic changes. Only visual and layout changes.
 
-After reviewing every page, here's what makes the current design feel overwhelming:
+## Current Problems
 
-1. **Sidebar is icon-only when collapsed** -- just tiny icons with no labels, forcing users to hover/guess
-2. **Too many CSS effects** -- glass morphism, neumorphic shadows, glow effects, floating animations, shimmer effects. It looks like a sci-fi dashboard, not a business tool
-3. **Visual clutter on every page** -- uppercase labels ("YOUR COMPLETE CUSTOMERS DATABASE"), decorative badges, gradient backgrounds, excessive card nesting
-4. **Dashboard is dense** -- Hero card + alert banners + stat cards + calendar strips + activity feeds + widgets, all stacked with different visual treatments
-5. **Inconsistent page headers** -- Some pages have subtitle badges, some have icons, some have neither
-6. **The dark theme is too aggressive** -- Deep obsidian blacks with teal glow create a gaming aesthetic rather than a professional tool
-
-## Design Philosophy: "Calm Software"
-
-Inspired by Linear, Notion, and Stripe Dashboard. The goal is: **clean backgrounds, clear typography, generous whitespace, and zero decorative effects**.
+1. The sidebar was changed to always-expanded at 220px, eating screen space -- the user preferred the collapsible icon-only mode with hover-to-expand
+2. Dark theme is too aggressive (deep obsidian blacks with teal glow)
+3. Pages still have decorative elements, icon containers in stat cards, and visual clutter
+4. Dashboard has too many stacked widgets (hero card + busyness slider + test call card + alerts + metrics + content grid + activity feed + setup checklist)
+5. Pages are inconsistent in how they present content
+6. Everything feels "sophisticated and intimidating" rather than simple and clear
 
 ---
 
-## Part 1: Clean Up the CSS (Remove Visual Noise)
+## Phase 1: Sidebar -- Restore Collapsible Icon Mode
 
-Strip out the decorative effect classes from `index.css` while keeping the functional ones:
+Revert the sidebar back to `collapsible="icon"` so it collapses to a narrow icon rail (~48px) and expands on hover or click. This was the behavior the user preferred.
 
-**Remove:**
-- All glass morphism classes (`.glass`, `.glass-card`, `.glass-panel`, `.glass-button`, `.glass-input`, etc.)
-- All neumorphic classes (`.neu-raised`, `.neu-pressed`, `.neu-flat`, etc.)
-- All glow animations (`.animate-pulse-glow`, `.hover-glow`, `.hover-border-glow`, `.btn-glow`)
-- Float/bounce animations (`.animate-float`, `.animate-bounce-subtle`)
-- Inner glow utilities (`.inner-glow`, `.inner-glow-strong`)
-- Glass overlay and shimmer effects
-- Sidebar active glow box-shadow
-
-**Keep:**
-- Color variables (both dark and light mode)
-- Core layout classes (`.page-container`, `.stat-card`, `.status-badge`)
-- Simple animations (`.animate-fade-in`, `.animate-slide-up`)
-- Scrollbar styling
-- Typography classes
-
-**Simplify the theme colors:**
-- Lighten the background slightly (less "obsidian", more neutral dark gray)
-- Reduce border opacity effects -- use simple solid borders
-- Remove `radial-gradient` from `.app-bg` -- just use flat `background`
+**Files:**
+- `AppSidebar.tsx` -- Change `collapsible="offcanvas"` back to `collapsible="icon"`, remove the fixed `w-[220px]`
+- `SlimTopBar.tsx` -- Re-add `SidebarTrigger` so users can toggle the sidebar
+- `AppLayout.tsx` -- Ensure `SidebarProvider defaultOpen={false}` so sidebar starts collapsed
 
 ---
 
-## Part 2: Sidebar Redesign -- Always Show Labels
+## Phase 2: Theme Refresh -- Lighter, Calmer Colors
 
-The collapsed icon-only sidebar is the biggest UX problem. Users can't tell what's what.
+Update the CSS color variables for a softer, more professional palette. Less "obsidian emerald sci-fi" and more "neutral professional with a teal accent."
 
-**Changes to `AppSidebar.tsx`:**
-- Remove the `collapsible="icon"` behavior -- sidebar is always expanded (narrow but readable)
-- Reduce sidebar width from the default to ~200px
-- Remove the separator-based grouping. Use a single flat list with subtle spacing
-- Consolidate navigation:
-  - Keep: Dashboard, Leads (Inbox), Customers, Schedule (Bookings), Business Brain, Settings
-  - Move to sub-navigation or secondary: Integrations, Reports, Test Calls, Business Partner
-  - The module-specific items (Dispatch, Orders, etc.) stay capability-gated as they are
-
-**Changes to `SlimTopBar.tsx`:**
-- Remove the sidebar toggle trigger (since sidebar is always visible)
-- Keep just: search, notifications, avatar menu
-
-**Changes to `AppLayout.tsx`:**
-- Remove the `SidebarProvider` collapsed state management
-- Remove the auto-collapse effect for smaller desktops
-- Use a fixed-width sidebar instead
+**Changes to `src/index.css`:**
+- Dark mode: Lighten backgrounds from `200 12% 6%` to `220 10% 10%` (neutral dark gray, not obsidian). Cards from `195 10% 9%` to `220 10% 13%`
+- Reduce primary saturation slightly (from `168 72% 44%` to `168 55% 45%`) -- still teal, just calmer
+- Borders: slightly more visible (`220 10% 18%` instead of `195 8% 16%`)
+- Sidebar: match the new neutral dark instead of the "deepest obsidian"
+- Light mode: Keep warm stone whites but ensure consistency
+- Remove remaining decorative utility classes: `card-premium-hover` translateY effect, `hover-lift`, `gradient-brand-subtle`, `text-gradient-brand`
+- Remove `btn-premium` hover translateY -- buttons should not "lift"
 
 ---
 
-## Part 3: Page Layout Consistency
+## Phase 3: Dashboard Simplification
 
-Every page should follow the same simple pattern:
+The dashboard currently stacks 8+ sections vertically. Reduce to 4 clear sections.
 
-```text
-+------------------------------------------+
-| Page Title                    [Actions]   |
-| Short description                         |
-+------------------------------------------+
-| [Content]                                 |
-+------------------------------------------+
-```
+**`LiveDashboard.tsx`:**
+- Remove `BusynessSliderWidget` from dashboard (move to Settings or Business Brain)
+- Remove `TestCallCard` from dashboard (accessible from sidebar "Test Calls")
+- Remove `SetupProgressChecklist` from the sidebar column (keep it only for first-time setup, hide after setup is complete)
+- Simplified layout:
+  1. Agent status bar (already clean)
+  2. Alerts (only when present -- already conditional)
+  3. Metrics strip (3 cards)
+  4. Two-column: Mode content (left) + Activity feed (right)
 
-**Changes to `PageContainer.tsx` and `PageHeader.tsx`:**
-- Standardize: Title (h1, left-aligned) + optional action buttons (right-aligned)
-- Remove all-caps subtitles like "YOUR COMPLETE CUSTOMERS DATABASE"
-- Remove decorative icons next to page titles
-- Consistent max-width and padding across all pages
+**`AgentControlPanel.tsx`:**
+- Remove the "Quick Actions" row (Test, Knowledge, Settings buttons) -- these are already in the sidebar
+- Remove the readiness progress bar detail -- just show a simple percentage badge if below 85%
+- Result: A single clean status bar with toggle + phone number + status badge
 
-**Apply to each page:**
-- `DashboardPage` -- Remove the "Good evening" greeting card chrome
-- `CustomersPage` -- Remove "YOUR COMPLETE CUSTOMERS DATABASE" uppercase label
-- `UnifiedInboxPage` -- Remove "EVERY CUSTOMER INTERACTION, ORGANIZED." label
-- `BookingsPage` -- Remove "YOUR CALENDAR AND UPCOMING APPOINTMENTS" label
-- `BusinessBrainPage` -- Remove "KNOWLEDGE BASE" uppercase label
+**`MetricsGrid.tsx`:**
+- Remove the icon from stat cards entirely (the label is enough)
+- Remove hover background color change -- just keep cursor pointer
+- Tighten padding from `p-5` to `p-4`
 
 ---
 
-## Part 4: Dashboard Simplification
+## Phase 4: Page Headers -- Consistent Minimalism
 
-The dashboard has too many visual layers. Simplify to:
+Every page should have the same clean header pattern. No icons next to titles.
 
-1. **Agent status** -- A simple, single-line status bar (not a hero card). Shows: business name, on/off toggle, phone number. No gradients, no glow.
-2. **Metrics** -- Keep the 3 stat cards but make them simpler (no icon containers, just number + label)
-3. **Alerts banner** -- Keep but simplify styling (plain card with amber left border, not a gradient)
-4. **Main content** -- Calendar strip + activity feed side by side (already good layout)
-5. **Remove** the Copilot floating button (it adds visual noise)
+**`PageHeader.tsx`:**
+- Remove the `icon` prop rendering entirely -- page titles don't need icons
+- Simplify to just: title (h2 size, not h1), optional description, optional action button
 
----
-
-## Part 5: Bookings/Schedule Page Polish
-
-- Keep the pending approval banner but simplify it to a clean card with a count badge
-- Keep List/Calendar toggle
-- The list view grouped by Today/Tomorrow/This Week is good -- just clean up card styling
-- Remove decorative borders and shadows from booking cards
+**Apply across all pages** (remove `icon` prop from PageHeader calls):
+- `CustomersPage.tsx` -- Remove `icon={Users}`
+- `UnifiedInboxPage.tsx` -- Remove icon prop
+- `BookingsPage.tsx` -- Remove `icon={CalendarIcon}`
+- `BusinessBrainPage.tsx` -- Remove any header icon
+- `SettingsPage.tsx` -- Already clean
 
 ---
 
-## Part 6: Settings Page
+## Phase 5: Customers Page Cleanup
 
-Already looks clean. Minor tweaks:
-- Remove the "Business Brain CTA" banner at the top (it's noise in settings)
-- Tighten the spacing slightly
+- Remove `StatCard` row at the top (Total, Active, New This Month, With Email) -- this data is available in the table itself and adds visual weight
+- Simplify to: Header + Tabs + Search bar + Table
+- Remove the `SectionCard` wrapper around the table (unnecessary nesting)
+
+**`CustomersPage.tsx`:**
+- Remove the 4 StatCards grid
+- Remove the import of StatCard, CalendarCheck, UserPlus
 
 ---
+
+## Phase 6: Bookings Page Cleanup
+
+Already mostly clean. Minor changes:
+- Pending approval banner: simplify from `Card` with nested content to a simple amber bar with inline approve buttons
+- Remove the `shadow-sm` from the date-grouped booking cards
+
+**`BookingsPage.tsx`:**
+- Clean up the date group wrapper: remove `shadow-sm` from the booking group container
+
+---
+
+## Phase 7: Unified Inbox (Leads) Cleanup
+
+Already professionally structured. Minor tweaks:
+- Remove temperature icon containers' colored backgrounds in the table -- just use the icon color directly
+- The PipelineSummaryBar is good, keep it
+
+---
+
+## Phase 8: Remove Remaining Decorative CSS
+
+Final CSS cleanup pass:
+- Remove `card-premium` and `card-premium-hover` classes (use regular Card component)
+- Remove `surface-elevated` and `surface-subtle` (replace with simple bg + border)
+- Remove `stat-icon` and `stat-icon-container` classes
+- Remove all legacy alias classes at the bottom of index.css (`editorial-header`, `work-area`, `surface-1`, `surface-2`, `entry-zone`, `focus-zone`, `supporting-zone`, etc.)
+- Keep: color variables, typography, animations, scrollbar, skeleton, status badges, page layout classes
+
+---
+
+## Summary of Files Modified Per Phase
+
+| Phase | Files |
+|-------|-------|
+| 1 - Sidebar | `AppSidebar.tsx`, `SlimTopBar.tsx`, `AppLayout.tsx` |
+| 2 - Theme | `src/index.css` |
+| 3 - Dashboard | `LiveDashboard.tsx`, `AgentControlPanel.tsx`, `MetricsGrid.tsx` |
+| 4 - Headers | `PageHeader.tsx`, `CustomersPage.tsx`, `UnifiedInboxPage.tsx`, `BookingsPage.tsx` |
+| 5 - Customers | `CustomersPage.tsx` |
+| 6 - Bookings | `BookingsPage.tsx` |
+| 7 - Inbox | `UnifiedInboxPage.tsx` |
+| 8 - CSS cleanup | `src/index.css` |
 
 ## What Will NOT Change
 
-- All routing and page logic stays identical
-- All data fetching hooks stay identical
-- All business logic, mode-awareness, capability gating stays identical
-- All form logic and validation stays identical
-- Database schema unchanged
-- Edge functions unchanged
-
----
-
-## Technical Implementation
-
-### Files to Modify
-
-| File | Change |
-|------|--------|
-| `src/index.css` | Remove glass/neumorphic/glow classes, simplify backgrounds |
-| `src/components/layouts/AppSidebar.tsx` | Always-expanded sidebar, consolidated nav |
-| `src/components/layouts/AppLayout.tsx` | Remove collapse logic, simplify shell |
-| `src/components/layouts/SlimTopBar.tsx` | Remove sidebar trigger |
-| `src/components/layout/PageContainer.tsx` | Minor padding adjustments |
-| `src/components/dashboard/LiveDashboard.tsx` | Remove Copilot FAB |
-| `src/components/dashboard/AgentControlPanel.tsx` | Simplify to status bar style |
-| `src/components/dashboard/MetricsGrid.tsx` | Simpler stat cards |
-| `src/pages/app/CustomersPage.tsx` | Remove decorative header |
-| `src/pages/app/UnifiedInboxPage.tsx` | Remove decorative header |
-| `src/pages/app/BookingsPage.tsx` | Clean up header |
-| `src/pages/app/BusinessBrainPage.tsx` | Clean up header |
-| `src/pages/app/SettingsPage.tsx` | Remove Business Brain CTA |
-
-### Files NOT Touched
-- No hooks changed
-- No context providers changed
-- No database changes
-- No edge functions changed
-
+- All routing, hooks, data fetching, and business logic
+- Business Brain content and ElevenLabs integration
+- All edge functions
+- Database schema
+- Mode-awareness and capability gating
+- All form validation and submission logic
+- Mobile bottom nav behavior
