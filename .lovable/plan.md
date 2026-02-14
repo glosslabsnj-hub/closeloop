@@ -1,181 +1,158 @@
 
-# Business Brain Tab-by-Tab UX Polish
 
-## What's Wrong Today
+# Business Brain Editor Cleanup: Clean, Professional Layout
 
-After reviewing every tab in the Business Brain, here are the core UX issues:
+## The Problem
 
-1. **Dashboard hub** still shows "KNOWLEDGE BASE" uppercase micro-label above "Business Brain" -- this is jargon and adds visual noise
-2. **Section detail headers** are cluttered: uppercase micro-label ("AI BEHAVIOR, RULES & KNOWLEDGE") + big title + progress bar + "Complete" badge -- too many competing elements for a minimalistic design
-3. **Sidebar labels truncate** badly -- "How Your AI Answer...", "What Your AI Shoul...", "Cancellation, Depos...", "Info to Collect on Ev..." -- these are unusable
-4. **Sidebar group headers** use ALL CAPS tiny text ("HOW YOUR AI ACTS", "BUSINESS RULES") -- feels aggressive
-5. **Content panel** shows icon + title + status badge + status text -- the status badge and text are redundant (the sidebar already shows status dots)
-6. **"AI Uses This To..." callout boxes** appear inside SectionSummaryCard with violet backgrounds -- these add visual weight and are rarely read
-7. **Category cards on dashboard** have left-border color accents that feel decorative
-8. **Banner content** (progress indicators, setup banners, next step suggestions) stack up at the top of certain tabs creating walls of callouts before the user reaches the actual form
-9. **The "Almost there! 3/4" progress banner** inside the "Your Business" tab is redundant with the progress bar already shown in the header
+When you click into any tab and select an item, you're hit with 3-5 colored callout boxes stacked vertically BEFORE you ever reach the actual form:
+
+1. "What is this?" box (teal border, Info icon)
+2. "Import your service list" banner (teal dashed border, prominent)
+3. "Your service catalog IS your pricing config" guidance box (teal border)
+4. "What the AI tells customers" preview box (teal/green tinted)
+5. Then finally the actual catalog/form
+
+This happens across almost every editor. The Service Area page has a similar problem: ServiceAreaPreview card + ServiceAreaGuidance card + "How your AI uses this" callout + the actual form fields.
+
+The result: you scroll through walls of instructional boxes to find the thing you actually need to fill out.
+
+## The Fix: Form-First, Help-Second
+
+Every editor should follow one pattern:
+- **Form fields first** -- the thing the owner came to fill out
+- **Contextual help inline** -- small helper text beneath fields, not big callout boxes above
+- **Import/upload tools** -- compact buttons in the header row, not banners
+- **AI preview** -- collapsed by default at the bottom, expandable
+
+## Phase 1: Create a Unified Editor Header Pattern
+
+Create a small `EditorHeader` component that replaces the per-editor "What is this?" boxes. It renders:
+- A one-line description (plain text, not a box)
+- Action buttons inline (Import, CSV, Paste from POS)
+
+This replaces the current pattern where each editor builds its own explanation card with `<Info>` icon, bold "What is this?", paragraph, tip.
+
+**New file:** `src/components/brain/shared/EditorHeader.tsx`
+
+## Phase 2: Clean Up ServiceCatalogEditor
+
+The biggest editor. Current layout has 4 boxes before the catalog list.
+
+**Changes:**
+- Remove the "What is this?" callout box (lines 587-606) -- replace with a one-line description under the catalog header
+- Remove the `QuotingBehaviorGuidance` callout (line 616-618) -- this info is already implied by the price type dropdown
+- Move `InlineUploadButton` from a prominent banner to a compact button in the header row next to "Paste from POS" and "CSV Import"
+- Move the "What the AI tells customers" preview to a collapsible section at the bottom, default collapsed
+- Keep all form fields, service list, expand/collapse behavior exactly as-is
+
+**File:** `src/components/brain/ServiceCatalogEditor.tsx`
+
+## Phase 3: Clean Up ServiceAreaManager
+
+Current layout: ServiceAreaPreview card + ServiceAreaGuidance card (with "How your AI uses this" sub-box) + form fields.
+
+**Changes:**
+- Remove `ServiceAreaGuidance` import and rendering -- the form labels are self-explanatory
+- Keep `ServiceAreaPreview` but make it a compact inline summary (1 line, not a full Card with CardHeader)
+- Remove the `FieldHelper` callout under the out-of-area message textarea -- use a simple `placeholder` instead
+- Keep all form inputs, chip inputs, coverage mode selector exactly as-is
+
+**File:** `src/components/brain/ServiceAreaManager.tsx`
+
+## Phase 4: Clean Up BusinessHoursManager
+
+Review and remove any "What is this?" or guidance boxes. Hours setup is self-explanatory.
+
+**File:** `src/components/brain/BusinessHoursManager.tsx`
+
+## Phase 5: Clean Up AIScriptsEditor (Greeting Script)
+
+Remove "What is this?" box. The title "Greeting Script" and the textarea label are enough context.
+
+**File:** `src/components/brain/AIScriptsEditor.tsx`
+
+## Phase 6: Clean Up BusinessPoliciesEditor (Policies)
+
+Remove the `PoliciesGuidance` card with its "How your AI uses this" sub-box. Keep the actual policy form fields.
+
+**File:** `src/components/brain/BusinessPoliciesEditor.tsx`
+
+## Phase 7: Clean Up AINeverPromiseEditor (Guardrails)
+
+Remove explanation box. "Things your AI should never promise" is self-explanatory.
+
+**File:** `src/components/brain/AINeverPromiseEditor.tsx`
+
+## Phase 8: Clean Up RequiredQuestionsEditor
+
+Remove guidance box. "Questions to ask on every call" is clear from the title.
+
+**File:** `src/components/settings/RequiredQuestionsEditor.tsx`
+
+## Phase 9: Clean Up FAQEditor and ObjectionEditor
+
+Both have explanation boxes. Remove them -- "Common Questions and Answers" and "When Customers Push Back" are self-descriptive.
+
+**Files:** `src/components/brain/BusinessFAQEditor.tsx`, `src/components/brain/BusinessObjectionEditor.tsx`
+
+## Phase 10: Clean Up MenuCatalogEditor and DispatchServiceCatalog
+
+Same pattern as ServiceCatalogEditor -- remove "What is this?" boxes, move import tools to header row.
+
+**Files:** `src/components/brain/MenuCatalogEditor.tsx`, `src/components/brain/dispatch/DispatchServiceCatalog.tsx`
+
+## Phase 11: Clean Up Remaining Editors
+
+Apply the same form-first pattern to all remaining editors that have guidance boxes:
+- `DispatchPricingEditor` -- remove "What is this?" box
+- `DailySpecialsEditor` -- remove explanation box  
+- `PriceModifiersEditor` -- remove guidance box
+- `CustomKnowledgeEditor` -- remove explanation box
+- `CustomPoliciesEditor` -- remove explanation box
+
+## Phase 12: Simplify QuoteReadinessCard Banner
+
+The `QuoteReadinessCard` at the top of the Services tab is useful but should be more compact:
+- When ready (100%): single line green text, no card border
+- When not ready: compact amber bar with issue count, expandable
+
+**File:** `src/components/brain/QuoteReadinessCard.tsx`
+
+## Phase 13: Simplify ServiceAreaPreview
+
+Currently a full Card with CardHeader. Convert to a simple inline summary line: "Service Area: Within 100 miles of Wrightstown, NJ" -- no card wrapper.
+
+**File:** `src/components/debug/ServiceAreaPreview.tsx`
 
 ---
 
-## Design Principles for the Fix
+## Design Principle Applied
 
-- **Labels should never truncate** -- shorten the titles themselves
-- **One status indicator per item** -- not three (sidebar dot + badge + text)
-- **Remove uppercase micro-labels** -- use normal case, smaller text
-- **Strip callout boxes** -- guidance text goes inline as helper text under form fields, not as separate colored boxes
-- **Flat, breathing layout** -- more whitespace, less visual layering
-
----
-
-## Phase 1: Shorten Sidebar Item Titles
-
-The #1 readability issue. These titles are too long for a 224px sidebar:
-
-| Current Title | New Title |
-|---|---|
-| About Your Business | Business Info |
-| Calendar & Availability | Calendar |
-| Quick Setup Templates | Templates |
-| How Your AI Answers the Phone | Greeting Script |
-| Cancellation, Deposits & Payments | Policies |
-| What Your AI Should Never Promise | Guardrails |
-| Info to Collect on Every Call | Required Info |
-| Other Rules for Your AI | Custom Rules |
-| Special Instructions for Your AI | AI Guidelines |
-| Common Questions & Answers | FAQs |
-| When Customers Push Back | Objections |
-| Items Needing Your Approval | Review Queue |
-| Product & Material Knowledge | Product Knowledge |
-| How Busy Are You Right Now? | Current Workload |
-| Where to Send New Bookings | Booking Alerts |
-| Callback Request Alerts | Callback Alerts |
-| Extra Fees & Surcharges | Price Modifiers |
-| Other Things You Offer | Additional Services |
-| Your Service Area | Service Area |
-| How You Charge for Distance | Distance Pricing |
-| Extra Info for Your AI | Custom Knowledge |
-| Reference Documents | Documents |
-| Arrival Estimates | ETAs |
-| AI Behavior Mode | AI Mode |
-
-**File:** `src/config/brainSectionRegistry.ts` -- update `title` field on ~25 items
-
----
-
-## Phase 2: Clean Up Section Detail Header
-
-Currently the header shows:
+Before (per editor):
 ```
-<- Business Brain / [icon] Train Your AI
-AI BEHAVIOR, RULES & KNOWLEDGE          (uppercase micro-label)
-Train Your AI                           (big h1 title)
-[============================] 57%      (progress bar)
+[What is this? -- callout box]
+[Import banner -- dashed border]  
+[Pricing guidance -- callout box]
+[AI preview -- tinted box]
+[Actual form/catalog]
 ```
 
-Simplify to:
+After (per editor):
 ```
-<- Business Brain / Train Your AI
-[============================] 57%
+Header: "Services Catalog" + [Import] [CSV] [+ Add] buttons
+Subtitle: "13 services -- click to expand and edit"
+[Actual form/catalog]
+[Collapsed: "Preview what AI says" toggle]
 ```
-
-Changes:
-- Remove the uppercase `category.description` micro-label from `BrainSectionDetail.tsx`
-- Remove the icon from the breadcrumb (just text)
-- Move progress bar inline with the breadcrumb row (compact)
-- Remove the "Complete" badge (the 100% bar is enough)
-
-**File:** `src/components/brain/dashboard/BrainSectionDetail.tsx`
-
----
-
-## Phase 3: Simplify Content Panel Header
-
-Currently shows: icon + title + "Done"/"Set up" badge + status text below.
-
-Simplify to: title only + small helper text. The sidebar already shows the status dot.
-
-**File:** `src/components/brain/layout/BrainContentPanel.tsx`
-- Remove the icon from the header
-- Remove the status badge
-- Keep just the title (h2) and a brief description line
-
----
-
-## Phase 4: Clean Up Sidebar Group Headers
-
-Change from aggressive ALL CAPS to normal case with lighter styling.
-
-**File:** `src/components/brain/layout/BrainSectionSidebar.tsx`
-- Change `text-[11px] font-semibold uppercase tracking-wider` to `text-xs font-medium text-muted-foreground` (no uppercase)
-
-**File:** `src/components/brain/layout/BrainMobileItemList.tsx`
-- Same change for mobile group headers
-
----
-
-## Phase 5: Clean Up Dashboard Hub
-
-Remove visual noise from the dashboard landing:
-- Remove "KNOWLEDGE BASE" uppercase label from `BrainDashboard.tsx`
-- Remove decorative left-border color from category cards in `BrainCategoryCard.tsx` (use simple hover:bg-muted/30 instead)
-- Simplify the "essential items" count text to just show the percentage
-
-**Files:** `src/components/brain/dashboard/BrainDashboard.tsx`, `src/components/brain/dashboard/BrainCategoryCard.tsx`
-
----
-
-## Phase 6: Remove Stacking Banner Content
-
-The `buildBannerContent()` in BusinessBrainPage can stack up to 4 banners on the "about" tab: CompletionCelebration + BrainSetupBanner + BrainProgressIndicator + NextStepSuggestion. This creates walls of callouts.
-
-Simplify:
-- Remove `BrainProgressIndicator` from banner content (the header progress bar is enough)
-- Remove `NextStepSuggestion` from banner content (the dashboard hub already has BrainNextStepsBar)
-- Keep only `CompletionCelebration` (shown once at 100%) and `BrainSetupBanner` (shown for new users under 50%)
-
-**File:** `src/pages/app/BusinessBrainPage.tsx` -- simplify `buildBannerContent()`
-
----
-
-## Phase 7: Remove "AI Uses This To..." Callout from SectionSummaryCard
-
-The violet "Your AI uses this to..." callout box in `SectionSummaryCard` adds visual weight to every expanded section in the Intelligence dashboard. Remove it -- the information is not actionable.
-
-Also remove the blue "guidance" callout box for incomplete items. Instead, just show helper text directly below form fields where needed (this is already handled by the individual editors).
-
-**File:** `src/components/brain/layout/SectionSummaryCard.tsx`
-- Remove the `usedByAI` rendering block
-- Remove the guidance callout block
-- Keep the clean expand/collapse with just the editor children
-
----
-
-## Phase 8: Widen the Sidebar Slightly
-
-The sidebar is 224px (`w-56`) which causes truncation. Widen to 256px (`w-64`) to accommodate the shorter (but still meaningful) titles.
-
-**File:** `src/components/brain/layout/BrainSectionSidebar.tsx` -- change `w-56` to `w-64`
-
----
-
-## Summary
-
-| Phase | Files | What Changes |
-|-------|-------|--------------|
-| 1 | `brainSectionRegistry.ts` | Shorten ~25 sidebar item titles |
-| 2 | `BrainSectionDetail.tsx` | Remove uppercase label, icon, complete badge |
-| 3 | `BrainContentPanel.tsx` | Remove icon and status badge |
-| 4 | `BrainSectionSidebar.tsx`, `BrainMobileItemList.tsx` | Normal case group headers |
-| 5 | `BrainDashboard.tsx`, `BrainCategoryCard.tsx` | Remove jargon label, simplify cards |
-| 6 | `BusinessBrainPage.tsx` | Remove stacking banners |
-| 7 | `SectionSummaryCard.tsx` | Remove callout boxes |
-| 8 | `BrainSectionSidebar.tsx` | Widen sidebar to 256px |
 
 ## What Will NOT Change
-- All editor components and their forms
-- All data hooks and save logic
-- Business Brain content sent to ElevenLabs
+
+- All form fields, inputs, dropdowns, and their behavior
+- All save/create/delete logic and hooks
+- All data sent to ElevenLabs
 - Database schema
 - Edge functions
-- Mode-awareness and capability gating
-- The 5-tab structure and item groupings
+- The sidebar navigation structure (already cleaned up)
+- Mode-awareness and visibility rules
+- The `BrainEditorRenderer` switch statement
+
