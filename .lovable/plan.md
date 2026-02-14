@@ -1,150 +1,127 @@
 
 
-# Complete Minimalistic UI Redesign
+# Service Business Gap Analysis: Blue Boxer Plumbing
 
-This is a comprehensive, multi-phase redesign to transform the app from its current dense, dark "mission control" aesthetic into a clean, minimal, modern SaaS tool -- think Linear, Notion, or Stripe Dashboard. No logic changes. Only visual and layout changes.
+## Executive Summary
 
-## Current Problems
-
-1. The sidebar was changed to always-expanded at 220px, eating screen space -- the user preferred the collapsible icon-only mode with hover-to-expand
-2. Dark theme is too aggressive (deep obsidian blacks with teal glow)
-3. Pages still have decorative elements, icon containers in stat cards, and visual clutter
-4. Dashboard has too many stacked widgets (hero card + busyness slider + test call card + alerts + metrics + content grid + activity feed + setup checklist)
-5. Pages are inconsistent in how they present content
-6. Everything feels "sophisticated and intimidating" rather than simple and clear
+After auditing every page, component, and flow that a plumbing company owner would encounter, here are the real gaps preventing a 100% polished service-business experience. This is organized by severity: what breaks the experience vs. what's just rough.
 
 ---
 
-## Phase 1: Sidebar -- Restore Collapsible Icon Mode
+## Critical Gaps (Blocks Business Readiness)
 
-Revert the sidebar back to `collapsible="icon"` so it collapses to a narrow icon rail (~48px) and expands on hover or click. This was the behavior the user preferred.
+### 1. Sidebar Still Shows Irrelevant Pages
+The sidebar renders items like "Business Partner", "Test Calls", "Integrations", "Reports" for ALL businesses regardless of stage. A plumber who just signed up sees 12+ sidebar items when they only need 5-6. This is the #1 source of "confusing and intimidating."
 
-**Files:**
-- `AppSidebar.tsx` -- Change `collapsible="offcanvas"` back to `collapsible="icon"`, remove the fixed `w-[220px]`
-- `SlimTopBar.tsx` -- Re-add `SidebarTrigger` so users can toggle the sidebar
-- `AppLayout.tsx` -- Ensure `SidebarProvider defaultOpen={false}` so sidebar starts collapsed
+**Fix:** Collapse secondary items (Integrations, Reports, Business Partner, Test Calls) into a "More" group or hide them until the business is live. A plumber on day 1 needs: Dashboard, Leads, Customers, Schedule, Business Brain, Settings. Everything else should be earned/discovered.
 
----
+### 2. PageHeader `icon` Prop Still Used on 10+ Pages
+The Phase 4 redesign removed icon rendering from PageHeader, but at least 10 pages still pass `icon` props (SimulatorPage, CallsPage, DispatchPage, BusinessPartnerPage, IntegrationsPage, InventoryPage, ReportsROIPage, InboxPage, SalesPipelinePage, DispatchMapPage). These silently break or show inconsistent headers.
 
-## Phase 2: Theme Refresh -- Lighter, Calmer Colors
+**Fix:** Remove all `icon` props from PageHeader calls across every page file.
 
-Update the CSS color variables for a softer, more professional palette. Less "obsidian emerald sci-fi" and more "neutral professional with a teal accent."
+### 3. Dashboard is Still Dense for a Plumber
+Looking at the screenshot, a plumber sees:
+- Agent status bar (good)
+- "Needs Your Attention: 23 pending bookings" alert
+- 3 metric cards
+- "No appointments scheduled today" + "Book Boiler Repair" quick action
+- Calendar widget (Next 7 Days with appointments)
+- ROI widget ("Your AI booked... 10x ROI")
+- Lead Recovery Widget
+- Activity Feed
 
-**Changes to `src/index.css`:**
-- Dark mode: Lighten backgrounds from `200 12% 6%` to `220 10% 10%` (neutral dark gray, not obsidian). Cards from `195 10% 9%` to `220 10% 13%`
-- Reduce primary saturation slightly (from `168 72% 44%` to `168 55% 45%`) -- still teal, just calmer
-- Borders: slightly more visible (`220 10% 18%` instead of `195 8% 16%`)
-- Sidebar: match the new neutral dark instead of the "deepest obsidian"
-- Light mode: Keep warm stone whites but ensure consistency
-- Remove remaining decorative utility classes: `card-premium-hover` translateY effect, `hover-lift`, `gradient-brand-subtle`, `text-gradient-brand`
-- Remove `btn-premium` hover translateY -- buttons should not "lift"
+That's 7-8 distinct visual sections. A plumber just wants: "Am I live? Any urgent items? What's coming up today?"
 
----
+**Fix:** For service businesses, simplify to 4 sections max:
+1. Agent status bar
+2. Attention banner (only when items exist)
+3. Metrics strip (3 cards)
+4. Two-column: Today's schedule (left) + Activity feed (right)
 
-## Phase 3: Dashboard Simplification
+Remove ROIPerformanceWidget and LeadRecoveryWidget from the main dashboard -- move to Reports page.
 
-The dashboard currently stacks 8+ sections vertically. Reduce to 4 clear sections.
+### 4. "Bookings" Language is Wrong for Plumbers
+The sidebar shows "Bookings" but a plumber calls them "Appointments" or "Jobs." The `terms.bookingsPageTitle` should resolve to "Schedule" or "Appointments" for home services, but the terminology system may not have the right mapping for plumbing specifically.
 
-**`LiveDashboard.tsx`:**
-- Remove `BusynessSliderWidget` from dashboard (move to Settings or Business Brain)
-- Remove `TestCallCard` from dashboard (accessible from sidebar "Test Calls")
-- Remove `SetupProgressChecklist` from the sidebar column (keep it only for first-time setup, hide after setup is complete)
-- Simplified layout:
-  1. Agent status bar (already clean)
-  2. Alerts (only when present -- already conditional)
-  3. Metrics strip (3 cards)
-  4. Two-column: Mode content (left) + Activity feed (right)
+**Fix:** Verify `getTerminology("service")` returns "Schedule" for bookingsPageTitle. If the plumber's industry slug is "plumbing", verify `getIndustryTerminology` maps to "Appointments" or "Schedule."
 
-**`AgentControlPanel.tsx`:**
-- Remove the "Quick Actions" row (Test, Knowledge, Settings buttons) -- these are already in the sidebar
-- Remove the readiness progress bar detail -- just show a simple percentage badge if below 85%
-- Result: A single clean status bar with toggle + phone number + status badge
+### 5. SimulatorPage Title Says "Simulator & Setup"
+This is confusing -- it mixes testing tools with setup. A plumber doesn't know what a "Simulator" is. It should be "Test Your AI" with a simpler layout.
 
-**`MetricsGrid.tsx`:**
-- Remove the icon from stat cards entirely (the label is enough)
-- Remove hover background color change -- just keep cursor pointer
-- Tighten padding from `p-5` to `p-4`
+**Fix:** Rename to "Test Your AI", remove the Quick Setup and Debug tabs (move them to developer settings), simplify to just: Call Test + Brain Debugger.
 
 ---
 
-## Phase 4: Page Headers -- Consistent Minimalism
+## Medium Gaps (Polish & Consistency)
 
-Every page should have the same clean header pattern. No icons next to titles.
+### 6. Settings Page Has Developer-Only Sections Visible
+Settings shows "Developer Tools" and "Danger Zone" to all users. A plumber should see: Team, Plan, Notifications, Data & Privacy. Developer tools should be hidden behind a toggle or super-admin only.
 
-**`PageHeader.tsx`:**
-- Remove the `icon` prop rendering entirely -- page titles don't need icons
-- Simplify to just: title (h2 size, not h1), optional description, optional action button
+### 7. Integrations Page is Over-Engineered for a Plumber
+The Integrations page shows "Quick Automations" with webhook presets, "Connect" tab with provider cards, and "History" tab. A plumber just wants: "Push my bookings to Google Calendar." The current page is more suited to a developer.
 
-**Apply across all pages** (remove `icon` prop from PageHeader calls):
-- `CustomersPage.tsx` -- Remove `icon={Users}`
-- `UnifiedInboxPage.tsx` -- Remove icon prop
-- `BookingsPage.tsx` -- Remove `icon={CalendarIcon}`
-- `BusinessBrainPage.tsx` -- Remove any header icon
-- `SettingsPage.tsx` -- Already clean
+**Fix:** Simplify to a checklist of available integrations relevant to the business mode, with one-click toggles.
 
----
+### 8. Business Partner Page is Confusing Terminology
+"Business Partner" with "Analysis", "Action Plan", "Performance" tabs is abstract. A plumber doesn't know what "Business Partner" means in this context. Rename to "AI Insights" or "Performance."
 
-## Phase 5: Customers Page Cleanup
+### 9. GoLivePage Still Has Decorative Gradient Background
+`GoLivePage` still uses `bg-gradient-to-b from-background to-secondary/20` and decorative trust badges. This breaks the "calm software" aesthetic.
 
-- Remove `StatCard` row at the top (Total, Active, New This Month, With Email) -- this data is available in the table itself and adds visual weight
-- Simplify to: Header + Tabs + Search bar + Table
-- Remove the `SectionCard` wrapper around the table (unnecessary nesting)
-
-**`CustomersPage.tsx`:**
-- Remove the 4 StatCards grid
-- Remove the import of StatCard, CalendarCheck, UserPlus
+### 10. Onboarding to Dashboard Transition is Abrupt
+After completing onboarding, the user hits SetupWizard (4-step accordion: Business Info, Connect Phone, Configure AI, Go Live). The setup wizard is clear but the transition from onboarding completion to the dashboard could be smoother -- there's no clear "your plumbing business is set up, here's what to do next" moment.
 
 ---
 
-## Phase 6: Bookings Page Cleanup
+## Minor Gaps (Nice-to-Have)
 
-Already mostly clean. Minor changes:
-- Pending approval banner: simplify from `Card` with nested content to a simple amber bar with inline approve buttons
-- Remove the `shadow-sm` from the date-grouped booking cards
+### 11. Mobile Bottom Nav Not Audited
+The mobile navigation experience should be verified to ensure it only shows relevant items for the active business mode.
 
-**`BookingsPage.tsx`:**
-- Clean up the date group wrapper: remove `shadow-sm` from the booking group container
+### 12. Customer Detail Sheet Tabs Were Updated but Not Tested
+The industry-aware customer tabs (from previous plan) should be verified working for a plumbing business -- "Service History", "Calls", "Appointments", "Notes" tabs should appear (no "Vehicles" or "Jobs").
 
----
-
-## Phase 7: Unified Inbox (Leads) Cleanup
-
-Already professionally structured. Minor tweaks:
-- Remove temperature icon containers' colored backgrounds in the table -- just use the icon color directly
-- The PipelineSummaryBar is good, keep it
+### 13. Business Brain Dashboard Cards Need Industry Terminology
+Brain category cards should use plumbing-specific language where possible (e.g., "Your Services" card should say "Your Plumbing Services" or at minimum "What You Offer").
 
 ---
 
-## Phase 8: Remove Remaining Decorative CSS
+## Recommended Implementation Order
 
-Final CSS cleanup pass:
-- Remove `card-premium` and `card-premium-hover` classes (use regular Card component)
-- Remove `surface-elevated` and `surface-subtle` (replace with simple bg + border)
-- Remove `stat-icon` and `stat-icon-container` classes
-- Remove all legacy alias classes at the bottom of index.css (`editorial-header`, `work-area`, `surface-1`, `surface-2`, `entry-zone`, `focus-zone`, `supporting-zone`, etc.)
-- Keep: color variables, typography, animations, scrollbar, skeleton, status badges, page layout classes
+Given the user's request to get one business (Blue Boxer Plumbing) to 100%, here is the prioritized order:
+
+**Phase 1: Sidebar Cleanup** -- Collapse secondary nav items, remove noise
+**Phase 2: Dashboard Simplification** -- Remove ROI/Lead Recovery widgets from service dashboard, tighten layout
+**Phase 3: PageHeader Consistency** -- Remove all remaining `icon` props across pages
+**Phase 4: Terminology Verification** -- Ensure plumbing-specific terms flow through everywhere
+**Phase 5: Settings/Simulator/Integrations Cleanup** -- Hide developer features, simplify test page, rename Business Partner
+**Phase 6: GoLive Page Polish** -- Remove decorative gradients, match calm aesthetic
 
 ---
 
-## Summary of Files Modified Per Phase
+## Technical Details
 
-| Phase | Files |
-|-------|-------|
-| 1 - Sidebar | `AppSidebar.tsx`, `SlimTopBar.tsx`, `AppLayout.tsx` |
-| 2 - Theme | `src/index.css` |
-| 3 - Dashboard | `LiveDashboard.tsx`, `AgentControlPanel.tsx`, `MetricsGrid.tsx` |
-| 4 - Headers | `PageHeader.tsx`, `CustomersPage.tsx`, `UnifiedInboxPage.tsx`, `BookingsPage.tsx` |
-| 5 - Customers | `CustomersPage.tsx` |
-| 6 - Bookings | `BookingsPage.tsx` |
-| 7 - Inbox | `UnifiedInboxPage.tsx` |
-| 8 - CSS cleanup | `src/index.css` |
+### Files to Modify
 
-## What Will NOT Change
+| Phase | Files | Change |
+|-------|-------|--------|
+| 1 | `AppSidebar.tsx` | Group secondary items, hide until live |
+| 2 | `ServiceDashboardLayout.tsx` | Remove ROIPerformanceWidget, LeadRecoveryWidget |
+| 2 | `LiveDashboard.tsx` | Already clean, verify |
+| 3 | `SimulatorPage.tsx`, `CallsPage.tsx`, `DispatchPage.tsx`, `BusinessPartnerPage.tsx`, `IntegrationsPage.tsx`, `InventoryPage.tsx`, `ReportsROIPage.tsx`, `InboxPage.tsx`, `SalesPipelinePage.tsx`, `DispatchMapPage.tsx` | Remove `icon` prop from PageHeader calls |
+| 4 | `src/data/industryTerminology.ts`, `src/lib/terminology.ts` | Verify plumbing terms |
+| 5 | `SimulatorPage.tsx` | Rename, simplify tabs |
+| 5 | `BusinessPartnerPage.tsx` | Rename to "AI Insights" |
+| 5 | `SettingsPage.tsx` | Hide developer/danger sections |
+| 6 | `GoLivePage.tsx` | Remove gradient bg, trust badges |
 
-- All routing, hooks, data fetching, and business logic
+### What Will NOT Change
+- All edge functions and AI logic
 - Business Brain content and ElevenLabs integration
-- All edge functions
 - Database schema
-- Mode-awareness and capability gating
-- All form validation and submission logic
-- Mobile bottom nav behavior
+- Onboarding flow logic (it works well)
+- Customer detail sheet logic (already updated)
+- Calendar/booking/availability system
+- Mode-awareness and capability gating logic
+
