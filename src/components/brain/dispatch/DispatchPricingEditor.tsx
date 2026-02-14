@@ -323,35 +323,6 @@ export function DispatchPricingEditor() {
 
   return (
     <div className="space-y-6">
-      {/* Explanation */}
-      <div className="rounded-lg border bg-muted/30 p-4">
-        <div className="flex items-start gap-3">
-          <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-          <div className="space-y-2">
-            <p className="text-sm font-medium">What is this?</p>
-            <p className="text-sm text-muted-foreground">
-              Configure all the additional fees and rate adjustments for your dispatch business.
-              These include <strong>after-hours rates</strong>, <strong>equipment fees</strong> (flatbed, winch, dollies),
-              <strong>storage charges</strong>, and <strong>emergency surcharges</strong>.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              <strong>How it works:</strong> When a caller needs an after-hours tow with a flatbed, 
-              your AI adds up the base service price + after-hours multiplier + flatbed fee to give an accurate quote.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* AI Preview */}
-      <div className="rounded-lg border bg-primary/5 border-primary/20 p-4">
-        <div className="flex items-start gap-3">
-          <Truck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-primary mb-1">What the AI tells callers</p>
-            <p className="text-sm italic">"{aiPreview}"</p>
-          </div>
-        </div>
-      </div>
 
       {/* Tabs for fee categories */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as FeeCategory)}>

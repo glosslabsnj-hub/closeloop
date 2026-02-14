@@ -261,49 +261,12 @@ export function MenuCatalogEditor() {
 
   return (
     <div className="space-y-6">
-      {/* Explanation Card */}
-      <div className="rounded-lg border bg-muted/30 p-4">
-        <div className="flex items-start gap-3">
-          <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-          <div className="space-y-2">
-            <p className="text-sm font-medium">What is this?</p>
-            <p className="text-sm text-muted-foreground">
-              Your menu items are what your AI assistant uses to answer pricing questions and take orders. 
-              Each item needs a <strong>name</strong>, <strong>category</strong> (like "Appetizers" or "Drinks"), 
-              and <strong>price</strong>. The AI will use this to help customers.
-            </p>
-            <div className="flex items-center gap-2 pt-1">
-              <Lightbulb className="h-4 w-4 text-amber-500" />
-              <p className="text-xs text-muted-foreground">
-                <strong>Tip:</strong> Have a menu PDF or photo? Upload it and we'll extract all the items automatically.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Prominent Upload Banner - Always visible */}
+      {/* Upload action */}
       <InlineUploadButton 
         contentType="menu" 
         variant="prominent"
         onUploadComplete={() => queryClient.invalidateQueries({ queryKey: ["menu-items"] })}
       />
-
-      {/* AI Preview */}
-      {menuItems && menuItems.length > 0 && (
-        <div className="rounded-lg border bg-primary/5 border-primary/20 p-4">
-          <div className="flex items-start gap-3">
-            <Utensils className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-primary mb-1">What the AI tells guests</p>
-              <p className="text-sm italic">"{aiPreview}"</p>
-              <p className="text-xs text-muted-foreground mt-2">
-                The AI uses your menu to answer questions and take orders
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Header with stats and actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

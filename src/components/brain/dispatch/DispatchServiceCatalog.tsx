@@ -237,28 +237,15 @@ export function DispatchServiceCatalog() {
 
   return (
     <div className="space-y-6">
-      {/* AI Preview */}
-      {activeServices.length > 0 && (
-        <div className="rounded-lg border bg-primary/5 border-primary/20 p-4">
-          <div className="flex items-start gap-3">
-            <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-primary mb-1">What the AI tells customers</p>
-              <p className="text-sm italic">"{aiQuotePreview}"</p>
-              <p className="text-xs text-muted-foreground mt-2">
-                {activeServices.length} active service{activeServices.length !== 1 ? "s" : ""} across {groupedServices.length} categor{groupedServices.length !== 1 ? "ies" : "y"}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex-1">
           <h3 className="text-lg font-semibold">Dispatch Services</h3>
           <p className="text-sm text-muted-foreground">
-            Configure the services you offer with accurate pricing. The AI uses these to quote callers.
+            {activeServices.length > 0
+              ? `${activeServices.length} active service${activeServices.length !== 1 ? "s" : ""} across ${groupedServices.length} categor${groupedServices.length !== 1 ? "ies" : "y"}`
+              : "Add your services so the AI can quote callers accurately"
+            }
           </p>
         </div>
         <Button onClick={() => { setEditingService(null); setEditorOpen(true); }}>
@@ -266,17 +253,6 @@ export function DispatchServiceCatalog() {
           Add Service
         </Button>
       </div>
-
-      {/* Explanation for new users */}
-      {(!services || services.length === 0) && (
-        <div className="rounded-lg border bg-muted/30 p-4">
-          <p className="text-sm text-muted-foreground">
-            <strong>Why this matters:</strong> When someone calls needing a tow or roadside help, 
-            your AI will ask for their location, then calculate and quote the price based on these services. 
-            Without services configured, the AI can only take callback requests.
-          </p>
-        </div>
-      )}
 
       {/* Search */}
       {services && services.length > 5 && (
