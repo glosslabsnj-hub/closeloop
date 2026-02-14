@@ -12,8 +12,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PolicyTemplateButtons } from "./PolicyTemplateButtons";
-import { PreviewSentence } from "./layout/BusinessBrainSectionCard";
-import { EditorExplainer } from "./shared/EditorExplainer";
+
+
 import type { BusinessMode } from "@/hooks/useTenantConfig";
 
 // Mode-specific tips for policies
@@ -138,20 +138,8 @@ export function BusinessPoliciesEditor() {
 
   return (
     <div className="space-y-6">
-      {/* Explanation */}
-      <EditorExplainer
-        whatItIs="Your cancellation, deposit, refund, and payment policies. These help your AI answer questions about booking terms and set clear expectations with customers."
-        howAIUsesIt={[
-          "Explains cancellation terms when customers ask about changing bookings",
-          "Mentions deposit requirements when confirming appointments",
-          "Lists accepted payment methods when customers ask how to pay",
-        ]}
-        tip={POLICY_TIPS[businessMode]}
-        mode={businessMode}
-      />
-
-      {/* Preview */}
-      <PreviewSentence sentence={buildPreview()} />
+      {/* Compact mode tip */}
+      <p className="text-xs text-muted-foreground">{POLICY_TIPS[businessMode]}</p>
 
       {/* Cancellation */}
       <div className="space-y-2">

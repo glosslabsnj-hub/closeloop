@@ -7,7 +7,7 @@ import { Loader2, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { PreviewSentence } from "./layout/BusinessBrainSectionCard";
+
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import type { BusinessMode } from "@/hooks/useTenantConfig";
 
@@ -135,9 +135,6 @@ export function AIScriptsEditor() {
 
   return (
     <div className="space-y-6">
-      {/* Preview */}
-      <PreviewSentence sentence={scripts.greeting || defaultGreeting} />
-
       {/* Greeting */}
       <div className="space-y-2">
         <Label>How should your AI answer calls?</Label>

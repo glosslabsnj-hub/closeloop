@@ -259,20 +259,6 @@ export function CustomPoliciesEditor() {
 
   return (
     <div className="space-y-4">
-      {/* Explanation */}
-      <div className="rounded-lg border bg-muted/30 p-4">
-        <div className="flex items-start gap-3">
-          <Lightbulb className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <p className="text-sm font-medium">Add Custom Policies</p>
-            <p className="text-sm text-muted-foreground">
-              Add any policies not covered above. Your AI will reference these when relevant questions come up.
-              Write them as you'd explain to a customer.
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Quick Add Suggestions */}
       {availableSuggestions.length > 0 && (
         <div className="space-y-2">

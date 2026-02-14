@@ -31,8 +31,7 @@ import {
   CheckCircle2,
   Ban,
 } from "lucide-react";
-import { ServiceAreaGuidance } from "./guidance";
-import { FieldHelper, SpeechReadyBadge } from "./guidance/SectionGuidanceCard";
+
 
 interface ChipInputProps {
   label: string;
@@ -342,50 +341,21 @@ export function ServiceAreaManager() {
 
   return (
     <div className="space-y-6">
-      {/* Guidance Card */}
-      <ServiceAreaGuidance
-        businessMode={businessMode}
-        outOfAreaMessage={formData.notes}
-        serviceAreaSummary={summary}
-      />
-
-      {/* Pricing cross-reference note */}
-      <div className="rounded-lg border bg-muted/30 p-3">
-        <p className="text-xs text-muted-foreground">
-          <strong>Service area vs. pricing:</strong> This defines <em>where</em> you'll accept jobs. Pricing for each service is configured separately under <strong>Offerings → Services</strong>. The AI checks this area first — if a caller is outside it, they're told you don't cover that location before pricing comes up.
-        </p>
+      {/* Compact coverage summary */}
+      <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
+        <MapPin className="h-4 w-4 shrink-0" />
+        <span>{summary}</span>
+        <Badge variant="outline" className="gap-1 text-xs">
+          {modeIcons[formData.mode]}
+          {modeLabels[formData.mode]}
+        </Badge>
+        {hasExclusions && (
+          <Badge variant="destructive" className="gap-1 text-xs">
+            <Ban className="h-3 w-3" />
+            Exclusions
+          </Badge>
+        )}
       </div>
-
-      {/* Summary Card */}
-      <Card className="border-primary/20 bg-primary/5">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-primary" />
-            Current Coverage
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Badge variant="outline" className="gap-1">
-              {modeIcons[formData.mode]}
-              {modeLabels[formData.mode]}
-            </Badge>
-            {hasExclusions && (
-              <Badge variant="destructive" className="gap-1">
-                <Ban className="h-3 w-3" />
-                Has Exclusions
-              </Badge>
-            )}
-            {formData.restrictions.no_cross_state_lines && formData.base_address.state && (
-              <Badge variant="secondary" className="gap-1">
-                <AlertTriangle className="h-3 w-3" />
-                {formData.base_address.state} Only
-              </Badge>
-            )}
-          </div>
-          <p className="text-sm text-muted-foreground mt-2">{summary}</p>
-        </CardContent>
-      </Card>
 
       {/* Main Configuration */}
       <Card>
@@ -646,24 +616,17 @@ export function ServiceAreaManager() {
 
           {/* Out-of-Area Message / Notes */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="notes">What should AI say when someone is outside your area?</Label>
-              <SpeechReadyBadge />
-            </div>
+            <Label htmlFor="notes">What should AI say when someone is outside your area?</Label>
             <Textarea
               id="notes"
               value={formData.notes}
               onChange={(e) => updateForm({ notes: e.target.value })}
-              placeholder="e.g., It looks like you're outside our normal service area. I can take your details and have someone call you back with options—what's your ZIP code?"
+              placeholder="e.g., It looks like you're outside our normal service area. I can take your details and have someone call you back with options."
               rows={3}
             />
-            <FieldHelper
-              usedWhen="A caller's location is outside your service area"
-              sayItLike="It looks like you're outside our normal service area. I can take your details and have someone call you back."
-              avoid="Error: radius limit exceeded (sounds robotic)"
-              characterCount={formData.notes.length}
-              characterWarning={240}
-            />
+            <p className="text-xs text-muted-foreground">
+              Write this naturally — your AI will say it when a caller's location is outside your coverage.
+            </p>
           </div>
 
           {/* Save Button */}

@@ -544,38 +544,6 @@ export function PriceModifiersEditor() {
 
   return (
     <div className="space-y-6">
-      {/* Explanation */}
-      <div className="rounded-lg border bg-muted/30 p-4">
-        <div className="flex items-start gap-3">
-          <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-          <div className="space-y-2">
-            <p className="text-sm font-medium">What are {industryConfig.pricing.priceModifiersLabel}?</p>
-            <p className="text-sm text-muted-foreground">
-              Modifiers let you adjust prices based on factors like vehicle size, urgency, or time of day. 
-              When the AI quotes a price, it automatically applies relevant modifiers and explains them naturally.
-            </p>
-            <div className="flex items-center gap-2 pt-1">
-              <Lightbulb className="h-4 w-4 text-warning shrink-0" />
-              <p className="text-xs text-muted-foreground">
-                <strong>Example:</strong> "For an SUV, that'll be $175 — that's $150 for the detail plus $25 for the larger vehicle."
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* AI Preview */}
-      {aiPreview && (
-        <div className="rounded-lg border bg-primary/5 border-primary/20 p-4">
-          <div className="flex items-start gap-3">
-            <DollarSign className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-primary mb-1">How the AI uses modifiers</p>
-              <p className="text-sm italic">"{aiPreview}"</p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Quick Add by Type */}
       {!isCreatingNew && relevantTypes.length > 0 && (

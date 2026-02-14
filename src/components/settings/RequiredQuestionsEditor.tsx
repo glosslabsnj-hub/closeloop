@@ -24,7 +24,7 @@ import {
   UtensilsCrossed,
   Phone
 } from "lucide-react";
-import { RequiredQuestionsGuidance } from "@/components/brain/guidance";
+
 
 // Intent types that support required questions
 type Intent = "booking" | "dispatch" | "order" | "reservation" | "callback";
@@ -469,12 +469,6 @@ export function RequiredQuestionsEditor() {
 
   return (
     <div className="space-y-6">
-      {/* Guidance Card */}
-      <RequiredQuestionsGuidance
-        businessMode={businessMode}
-        requiredCount={currentConfig?.required_inputs?.length || 0}
-      />
-
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
