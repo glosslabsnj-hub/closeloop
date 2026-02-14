@@ -120,16 +120,6 @@ function AppLayoutContent() {
     }
   }, [loading, tenant, hasActiveSubscription, isSuperAdmin, location.pathname, navigate]);
 
-  // Auto-collapse sidebar on smaller desktops (< 1280px)
-  useEffect(() => {
-    const mql = window.matchMedia("(max-width: 1279px)");
-    const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
-      if (e.matches) setOpen(false);
-    };
-    handleChange(mql);
-    mql.addEventListener("change", handleChange);
-    return () => mql.removeEventListener("change", handleChange);
-  }, [setOpen]);
 
   const handleSignOut = async () => {
     await signOut();

@@ -161,7 +161,7 @@ export function AppSidebar({
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border/50">
+    <Sidebar collapsible="offcanvas" className="border-r border-sidebar-border/50 w-[220px]">
       {/* Header: Logo + tenant name */}
       <SidebarHeader className="p-3">
         <SidebarMenu>
@@ -193,13 +193,13 @@ export function AppSidebar({
             {/* Workspace (module-gated) */}
             {workspaceItems.length > 0 && (
               <>
-                <SidebarSeparator className="my-2" />
+                <div className="h-2" />
                 {workspaceItems.map(renderItem)}
               </>
             )}
 
             {/* Configure */}
-            <SidebarSeparator className="my-2" />
+            <div className="h-2" />
             {renderItem({ href: "/app/business-brain", label: "Business Brain", icon: Bot, badge: conflictsCount || undefined })}
             {renderItem({ href: "/app/partner", label: "Business Partner", icon: Sparkles })}
             {renderItem({ href: "/app/integrations", label: "Integrations", icon: Route })}

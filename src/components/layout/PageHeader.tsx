@@ -41,19 +41,7 @@ export function PageHeader({
     >
       <div className="flex items-end justify-between gap-4">
         <div className="flex-1 min-w-0">
-          {/* Category label (description above title) */}
-          {description && (
-            <div className="flex items-center gap-2 mb-1">
-              {icon && (
-                <div className="flex-shrink-0 text-muted-foreground">
-                  {renderIcon()}
-                </div>
-              )}
-              <p className="text-micro text-muted-foreground truncate">
-                {description}
-              </p>
-            </div>
-          )}
+          {/* Description below title */}
 
           {/* Title row */}
           <div className="flex items-center gap-2.5">
@@ -65,16 +53,16 @@ export function PageHeader({
                 <ArrowLeft className="h-5 w-5" />
               </Link>
             )}
-            {!description && icon && (
-              <div className="flex-shrink-0 text-muted-foreground">
-                {renderIcon()}
-              </div>
-            )}
             <h1 className="text-2xl font-bold tracking-tight text-foreground truncate">
               {title}
             </h1>
             {badge && <div className="flex-shrink-0">{badge}</div>}
           </div>
+          {description && (
+            <p className="text-sm text-muted-foreground mt-1">
+              {description}
+            </p>
+          )}
         </div>
 
         {/* Action */}
