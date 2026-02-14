@@ -137,13 +137,6 @@ export function AgentControlPanel() {
 
   const businessName = tenant?.name || "Your Business";
 
-  function getGreeting(): string {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 17) return "Good afternoon";
-    return "Good evening";
-  }
-
   // No subscription — prompt to start
   if (!planCode && !isSuperAdmin) {
     return (
@@ -170,28 +163,15 @@ export function AgentControlPanel() {
 
   return (
     <>
-      <Card className={cn(
-        "overflow-hidden transition-all duration-300",
-        isActive && "ring-1 ring-success/20"
-      )}>
+      <Card className="overflow-hidden">
         <CardContent className="p-0">
-          {/* Hero Section */}
-          <div className={cn(
-            "relative p-6 pb-5",
-            isActive
-              ? "bg-gradient-to-br from-success/8 via-success/4 to-transparent"
-              : "bg-gradient-to-br from-muted/60 via-muted/30 to-transparent"
-          )}>
-            {/* Greeting + Status Row */}
-            <div className="flex items-start justify-between gap-4 mb-5">
-              <div className="min-w-0">
-                <p className="text-sm text-muted-foreground mb-0.5">{getGreeting()}</p>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                  {businessName}
-                </h1>
-              </div>
-
-              {/* Status Indicator */}
+          {/* Status Bar */}
+          <div className="px-6 py-4">
+            {/* Status Row */}
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <h1 className="text-lg font-semibold tracking-tight text-foreground truncate">
+                {businessName}
+              </h1>
               <div className="flex items-center gap-3 shrink-0">
                 {isSuperAdmin && (
                   <Badge variant="outline" className="gap-1 text-xs border-primary/30">
@@ -200,14 +180,14 @@ export function AgentControlPanel() {
                   </Badge>
                 )}
                 <div className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
+                  "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium",
                   isActive
                     ? "bg-success/15 text-success"
                     : "bg-muted text-muted-foreground"
                 )}>
                   <span className={cn(
                     "w-2 h-2 rounded-full shrink-0",
-                    isActive ? "bg-success animate-pulse" : "bg-muted-foreground/40"
+                    isActive ? "bg-success" : "bg-muted-foreground/40"
                   )} />
                   {isActive ? "Live" : "Paused"}
                 </div>

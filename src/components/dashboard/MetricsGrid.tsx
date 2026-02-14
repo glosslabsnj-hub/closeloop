@@ -204,21 +204,15 @@ export function MetricsGrid() {
         return (
           <Card
             key={metric.label}
-            className="group cursor-pointer hover:shadow-md transition-all duration-200 hover:border-primary/20"
+            className="group cursor-pointer hover:bg-muted/30 transition-colors"
             onClick={() => navigate(metric.href)}
           >
             <CardContent className="p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div className="h-9 w-9 rounded-xl bg-primary/8 flex items-center justify-center">
-                  <Icon className="h-4 w-4 text-primary" />
-                </div>
-                <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/0 group-hover:text-muted-foreground transition-all" />
-              </div>
+              <p className="text-xs font-medium text-muted-foreground mb-1">
+                {metric.label}
+              </p>
               <p className="text-2xl font-bold tracking-tight tabular-nums text-foreground">
                 {metric.value}
-              </p>
-              <p className="text-xs font-medium text-muted-foreground mt-1">
-                {metric.label}
               </p>
             </CardContent>
           </Card>

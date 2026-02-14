@@ -5,7 +5,7 @@ import { AgentControlPanel } from "./AgentControlPanel";
 import { NeedsAttentionBanner } from "./NeedsAttentionBanner";
 import { LiveActivityFeed } from "./LiveActivityFeed";
 import { UnifiedAlertBanner } from "./UnifiedAlertBanner";
-import { Copilot, CopilotTrigger } from "./Copilot";
+
 import { SetupProgressChecklist } from "./SetupProgressChecklist";
 import { ModeContentArea } from "./ModeContentArea";
 import { MetricsGrid } from "./MetricsGrid";
@@ -16,7 +16,7 @@ import { SoundManager } from "@/components/notifications/SoundManager";
 export function LiveDashboard() {
   const { tenant, assistantSettings } = useAuth();
   const caps = useCapabilities();
-  const [copilotOpen, setCopilotOpen] = useState(false);
+  
 
   // Show test call prompt for recently onboarded users (within 7 days of setup)
   const showTestCallPrompt = useMemo(() => {
@@ -59,14 +59,6 @@ export function LiveDashboard() {
         </div>
       </div>
 
-      {/* Copilot FAB */}
-      <div className="fixed bottom-6 right-6 z-30 md:bottom-8 md:right-8">
-        {copilotOpen ? (
-          <Copilot isOpen={copilotOpen} onClose={() => setCopilotOpen(false)} />
-        ) : (
-          <CopilotTrigger onClick={() => setCopilotOpen(true)} />
-        )}
-      </div>
     </div>
   );
 }

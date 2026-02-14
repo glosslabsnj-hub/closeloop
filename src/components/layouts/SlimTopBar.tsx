@@ -9,8 +9,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 interface SlimTopBarProps {
@@ -23,10 +21,7 @@ export function SlimTopBar({ userEmail, tenantName, onSignOut }: SlimTopBarProps
   const navigate = useNavigate();
 
   return (
-    <header className="hidden md:flex h-12 sticky top-0 z-30 items-center gap-2 bg-background/80 backdrop-blur-lg border-b border-border/20 px-3">
-      {/* Left: sidebar toggle */}
-      <SidebarTrigger className="-ml-1" />
-      <Separator orientation="vertical" className="h-4 mx-1" />
+    <header className="hidden md:flex h-12 sticky top-0 z-30 items-center gap-2 bg-background border-b border-border px-4">
 
       {/* Spacer */}
       <div className="flex-1" />

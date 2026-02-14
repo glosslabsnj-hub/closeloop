@@ -204,8 +204,6 @@ export default function SettingsPage() {
 
         {/* Content */}
         <div className="px-6 md:px-8 lg:px-12 py-6 space-y-6 max-w-4xl">
-          {/* Business Brain CTA Banner */}
-          <BusinessBrainCTA />
 
           {/* Section Content */}
           <div className="space-y-6">
