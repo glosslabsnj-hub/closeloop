@@ -65,18 +65,8 @@ export function BrainContentPanel({
           Back
         </Button>
 
-        {/* Header: icon + title + status badge */}
-        <div className="flex items-center gap-3">
-          <Icon className="h-5 w-5 text-muted-foreground shrink-0" />
-          <h2 className="text-lg font-semibold tracking-tight flex-1">{activeItem.title}</h2>
-          {badge && (
-            <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full", badge.className)}>
-              {badge.label}
-            </span>
-          )}
-        </div>
-
-        {/* Brief status line */}
+        {/* Header: title + status text */}
+        <h2 className="text-lg font-semibold tracking-tight">{activeItem.title}</h2>
         {status && (
           <p className="text-sm text-muted-foreground -mt-2">{status.statusText}</p>
         )}

@@ -215,40 +215,6 @@ export function SectionSummaryCard({
       {isExpanded && (
         <div className="px-4 pb-4 pt-0">
           <div className="mt-4 space-y-4">
-            {/* "AI Uses This To..." block */}
-            {usedByAI && usedByAI.length > 0 && (
-              <div className="rounded-xl bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-800/50 p-3">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Zap className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
-                  <span className="text-xs font-medium text-violet-700 dark:text-violet-300">Your AI uses this to...</span>
-                </div>
-                <ul className="space-y-1">
-                  {usedByAI.map((item, i) => (
-                    <li key={i} className="text-xs text-violet-900 dark:text-violet-200 flex items-start gap-1.5">
-                      <span className="text-violet-400 dark:text-violet-500 mt-0.5 shrink-0">&#8226;</span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Guidance callout — split what + tip (or fallback to legacy concatenated guidanceText) */}
-            {status === "incomplete" && (effectiveWhatText || effectiveTipText) && (
-              <div className="rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-3 space-y-1.5">
-                {effectiveWhatText && (
-                  <p className="text-sm text-blue-900 dark:text-blue-100">
-                    {effectiveWhatText}
-                  </p>
-                )}
-                {effectiveTipText && (
-                  <p className="text-xs text-blue-700 dark:text-blue-300 flex items-start gap-1.5">
-                    <Lightbulb className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                    {effectiveTipText}
-                  </p>
-                )}
-              </div>
-            )}
             {children}
           </div>
         </div>

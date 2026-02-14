@@ -392,21 +392,6 @@ export default function BusinessBrainPage() {
                 dismissible
               />
             )}
-            {summaries.completionStats.percentage < 100 && (
-              <BrainProgressIndicator
-                completedSections={summaries.completionStats.completed}
-                totalSections={summaries.completionStats.total}
-                incompleteItems={summaries.completionStats.incompleteItems}
-                onNavigateToSection={handleSectionChange}
-              />
-            )}
-            {tenant?.name && summaries.hours !== "No hours set yet" && (summaries.catalog === "No services added yet") && (
-              <NextStepSuggestion
-                completedSection="about"
-                mode={businessMode}
-                onNavigate={handleSectionChange}
-              />
-            )}
           </>
         );
 

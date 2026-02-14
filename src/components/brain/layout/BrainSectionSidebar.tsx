@@ -47,7 +47,7 @@ export function BrainSectionSidebar({
 
   const renderGroup = (group: SectionGroup) => (
     <div key={group.groupKey}>
-      <div className="text-[11px] font-semibold px-3 py-1.5 uppercase tracking-wider text-muted-foreground/60">
+      <div className="text-xs font-medium px-3 py-1.5 text-muted-foreground">
         {group.groupLabel}
       </div>
       <div className="space-y-0.5">
@@ -70,7 +70,7 @@ export function BrainSectionSidebar({
   );
 
   return (
-    <aside className="w-56 shrink-0 border-r border-border/10 hidden md:block">
+    <aside className="w-64 shrink-0 border-r border-border/10 hidden md:block">
       <nav className="sticky top-4 max-h-[calc(100vh-6rem)] overflow-y-auto py-4 px-2 space-y-5">
         {mainGroups.map(renderGroup)}
 
