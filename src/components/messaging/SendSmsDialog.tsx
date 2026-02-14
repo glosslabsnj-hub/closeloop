@@ -33,7 +33,7 @@ export function SendSmsDialog({
   customerId,
   conversationId,
 }: SendSmsDialogProps) {
-  const { currentTenantId } = useAuth();
+  const { tenant } = useAuth();
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
 
@@ -52,7 +52,7 @@ export function SendSmsDialog({
         body: {
           to: recipientPhone,
           body: body.trim(),
-          tenant_id: currentTenantId,
+          tenant_id: tenant?.id,
           customer_id: customerId,
           conversation_id: conversationId,
         },

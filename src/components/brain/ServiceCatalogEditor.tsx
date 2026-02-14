@@ -474,8 +474,7 @@ export function ServiceCatalogEditor() {
         prerequisite_note: formData.prerequisite_note.trim() || undefined,
         duration_min_minutes: formData.duration_min_minutes,
         duration_max_minutes: formData.duration_max_minutes,
-        required_intake_fields: formData.required_intake_fields.length > 0 ? formData.required_intake_fields : undefined,
-      });
+      } as any);
       toast.success("Service updated");
       queryClient.invalidateQueries({ queryKey: ["services"] });
       invalidateBrainQueries(queryClient, tenant?.id);
@@ -506,8 +505,7 @@ export function ServiceCatalogEditor() {
         prerequisite_note: newServiceData.prerequisite_note.trim() || undefined,
         duration_min_minutes: newServiceData.duration_min_minutes,
         duration_max_minutes: newServiceData.duration_max_minutes,
-        required_intake_fields: newServiceData.required_intake_fields.length > 0 ? newServiceData.required_intake_fields : undefined,
-      });
+      } as any);
       toast.success("Service created");
       queryClient.invalidateQueries({ queryKey: ["services"] });
       invalidateBrainQueries(queryClient, tenant?.id);
