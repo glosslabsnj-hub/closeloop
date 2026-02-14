@@ -13,7 +13,7 @@ import { AutomationRulesSettings } from "@/components/settings/AutomationRulesSe
 import { DataControlsPanel } from "@/components/settings/DataControlsPanel";
 import { SettingsSidebar, SettingsNavConfig } from "@/components/settings/SettingsSidebar";
 import { MobileSettingsNav } from "@/components/settings/MobileSettingsNav";
-import { BusinessBrainCTA } from "@/components/settings/BusinessBrainCTA";
+// BusinessBrainCTA removed for cleaner settings layout
 import { DangerZoneSection } from "@/components/settings/DangerZoneSection";
 import { NotificationPreferencesPanel } from "@/components/settings/NotificationPreferencesPanel";
 import { SettingsCard } from "@/components/settings/SettingsSection";

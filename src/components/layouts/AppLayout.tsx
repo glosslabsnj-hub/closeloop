@@ -315,7 +315,7 @@ export function AppLayout() {
   return (
     <AdminModeProvider>
       <DispatchJobListener />
-      <SidebarProvider defaultOpen={true}>
+      <SidebarProvider defaultOpen={false}>
         <AppLayoutContent />
       </SidebarProvider>
     </AdminModeProvider>

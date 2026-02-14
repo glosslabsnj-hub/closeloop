@@ -7,32 +7,17 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Phone,
-  Calendar,
-  Users,
-  UtensilsCrossed,
-  Truck,
-  Stethoscope,
-  TrendingUp,
-  TrendingDown,
-  ArrowRight,
+  Phone, Calendar, Users, UtensilsCrossed, Truck, Stethoscope,
 } from "lucide-react";
 import { startOfDay, startOfWeek, endOfDay } from "date-fns";
-import { cn } from "@/lib/utils";
 
 interface Metric {
   label: string;
   value: number | string;
   icon: React.ElementType;
   href: string;
-  change?: number;
-  changeLabel?: string;
 }
 
-/**
- * MetricsGrid - Stripe-inspired stat cards
- * Clean, scannable, clickable
- */
 export function MetricsGrid() {
   const navigate = useNavigate();
   const { tenant, assistantSettings } = useAuth();
@@ -46,7 +31,6 @@ export function MetricsGrid() {
   const todayEnd = endOfDay(new Date()).toISOString();
   const weekStart = startOfWeek(new Date()).toISOString();
 
-  // Fetch calls today
   const { data: callsToday = 0 } = useQuery({
     queryKey: ["metrics-calls", tenant?.id, todayStart],
     queryFn: async () => {
@@ -62,7 +46,6 @@ export function MetricsGrid() {
     enabled: !!tenant?.id,
   });
 
-  // Fetch bookings this week
   const { data: bookingsWeek = 0 } = useQuery({
     queryKey: ["metrics-bookings", tenant?.id, weekStart],
     queryFn: async () => {
@@ -77,7 +60,6 @@ export function MetricsGrid() {
     enabled: !!tenant?.id,
   });
 
-  // Fetch customers
   const { data: totalCustomers = 0 } = useQuery({
     queryKey: ["metrics-customers", tenant?.id],
     queryFn: async () => {
@@ -91,7 +73,6 @@ export function MetricsGrid() {
     enabled: !!tenant?.id,
   });
 
-  // Mode-specific queries
   const { data: ordersToday = 0 } = useQuery({
     queryKey: ["metrics-orders", tenant?.id, todayStart],
     queryFn: async () => {
@@ -134,7 +115,6 @@ export function MetricsGrid() {
     enabled: !!tenant?.id && caps.hasMedicalIntake,
   });
 
-  // Callback-only: new leads count
   const { data: newLeadsCount = 0 } = useQuery({
     queryKey: ["metrics-new-leads", tenant?.id],
     queryFn: async () => {
@@ -149,15 +129,9 @@ export function MetricsGrid() {
     enabled: !!tenant?.id && isCallbackOnly,
   });
 
-  // Build metrics
   const getMetrics = (): Metric[] => {
     const base: Metric[] = [
-      {
-        label: "Calls Today",
-        value: callsToday,
-        icon: Phone,
-        href: "/app/inbox?tab=calls",
-      },
+      { label: "Calls Today", value: callsToday, icon: Phone, href: "/app/inbox?tab=calls" },
     ];
 
     switch (businessMode) {
@@ -199,25 +173,22 @@ export function MetricsGrid() {
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-      {metrics.slice(0, 3).map((metric) => {
-        const Icon = metric.icon;
-        return (
-          <Card
-            key={metric.label}
-            className="group cursor-pointer hover:bg-muted/30 transition-colors"
-            onClick={() => navigate(metric.href)}
-          >
-            <CardContent className="p-5">
-              <p className="text-xs font-medium text-muted-foreground mb-1">
-                {metric.label}
-              </p>
-              <p className="text-2xl font-bold tracking-tight tabular-nums text-foreground">
-                {metric.value}
-              </p>
-            </CardContent>
-          </Card>
-        );
-      })}
+      {metrics.slice(0, 3).map((metric) => (
+        <Card
+          key={metric.label}
+          className="cursor-pointer transition-colors hover:border-border/80"
+          onClick={() => navigate(metric.href)}
+        >
+          <CardContent className="p-4">
+            <p className="text-xs font-medium text-muted-foreground mb-1">
+              {metric.label}
+            </p>
+            <p className="text-2xl font-bold tracking-tight tabular-nums text-foreground">
+              {metric.value}
+            </p>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }

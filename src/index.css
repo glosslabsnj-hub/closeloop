@@ -3,138 +3,114 @@
 @tailwind utilities;
 
 /* =====================================================
-   Voxly Design System — 2026
-   Theme: "Obsidian Emerald" — Teal-Green + Copper
+   CloseLoop Design System — 2026
+   Theme: "Calm Software" — Neutral + Teal accent
    ===================================================== */
 
 @layer base {
   /* =====================================================
      DARK MODE (Default)
-     Rich teal-emerald primary on deep obsidian blacks
+     Neutral dark grays with calm teal accent
      ===================================================== */
   :root,
   .dark {
-    /* Core Background - True obsidian */
-    --background: 200 12% 6%;
-    --foreground: 180 8% 96%;
+    --background: 220 10% 10%;
+    --foreground: 210 10% 93%;
 
-    /* Cards - Charcoal with warmth */
-    --card: 195 10% 9%;
-    --card-foreground: 180 6% 93%;
+    --card: 220 10% 13%;
+    --card-foreground: 210 8% 90%;
 
-    --popover: 195 10% 11%;
-    --popover-foreground: 180 8% 96%;
+    --popover: 220 10% 14%;
+    --popover-foreground: 210 10% 93%;
 
-    /* Primary - Teal-emerald */
-    --primary: 168 72% 44%;
+    --primary: 168 55% 45%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 168 72% 44%;
 
-    /* Secondary - Warm charcoal panel */
-    --secondary: 195 8% 12%;
-    --secondary-foreground: 180 6% 68%;
+    --secondary: 220 8% 15%;
+    --secondary-foreground: 210 6% 65%;
 
-    /* Muted - Neutral dark */
-    --muted: 195 7% 14%;
-    --muted-foreground: 180 5% 50%;
+    --muted: 220 7% 17%;
+    --muted-foreground: 210 5% 50%;
 
-    /* Accent - Warm copper-bronze */
-    --accent: 25 55% 16%;
-    --accent-foreground: 25 60% 82%;
-    --accent-signature: 25 75% 55%;
+    --accent: 25 45% 18%;
+    --accent-foreground: 25 50% 80%;
+    --accent-signature: 25 65% 55%;
 
-    /* Status Colors */
-    --destructive: 0 68% 50%;
+    --destructive: 0 65% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 158 65% 40%;
+    --success: 158 60% 40%;
     --success-foreground: 0 0% 100%;
 
     --warning: 35 90% 50%;
     --warning-foreground: 35 95% 10%;
 
-    /* Borders & Inputs */
-    --border: 195 8% 16%;
-    --input: 195 8% 11%;
-    --ring: 168 72% 44%;
+    --border: 220 10% 18%;
+    --input: 220 8% 14%;
+    --ring: 168 55% 45%;
 
-    /* Radius */
     --radius: 0.625rem;
 
-    /* Sidebar - Deepest obsidian */
-    --sidebar-background: 200 14% 5%;
-    --sidebar-foreground: 180 5% 55%;
-    --sidebar-primary: 168 72% 44%;
+    --sidebar-background: 220 10% 8%;
+    --sidebar-foreground: 210 5% 55%;
+    --sidebar-primary: 168 55% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 195 8% 10%;
-    --sidebar-accent-foreground: 180 6% 78%;
-    --sidebar-border: 195 8% 12%;
-    --sidebar-ring: 168 72% 44%;
-
+    --sidebar-accent: 220 8% 13%;
+    --sidebar-accent-foreground: 210 6% 78%;
+    --sidebar-border: 220 8% 15%;
+    --sidebar-ring: 168 55% 45%;
   }
 
   /* =====================================================
      LIGHT MODE
-     Warm stone whites with teal-emerald primary
+     Warm stone whites with teal accent
      ===================================================== */
   .light {
-    /* Core Background - Warm stone white */
     --background: 40 15% 97%;
     --foreground: 200 15% 10%;
 
-    /* Cards - Clean warm white */
     --card: 40 20% 99%;
     --card-foreground: 200 15% 10%;
 
     --popover: 40 20% 99%;
     --popover-foreground: 200 15% 10%;
 
-    /* Primary - Deep teal */
-    --primary: 168 65% 36%;
+    --primary: 168 55% 36%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 168 65% 36%;
 
-    /* Secondary - Warm light gray */
     --secondary: 40 10% 92%;
     --secondary-foreground: 200 10% 38%;
 
-    /* Muted - Stone gray */
     --muted: 40 10% 94%;
     --muted-foreground: 200 8% 42%;
 
-    /* Accent - Copper (adjusted for light) */
     --accent: 25 70% 95%;
     --accent-foreground: 25 55% 28%;
-    --accent-signature: 25 75% 48%;
+    --accent-signature: 25 65% 48%;
 
-    /* Status Colors */
-    --destructive: 0 68% 48%;
+    --destructive: 0 65% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 158 60% 34%;
+    --success: 158 55% 34%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 35 92% 42%;
+    --warning: 35 90% 42%;
     --warning-foreground: 35 95% 14%;
 
-    /* Borders & Inputs */
     --border: 40 12% 87%;
     --input: 40 10% 96%;
-    --ring: 168 65% 36%;
+    --ring: 168 55% 36%;
 
-    /* Radius */
     --radius: 0.625rem;
 
-    /* Sidebar - Light warm */
     --sidebar-background: 40 15% 98%;
     --sidebar-foreground: 200 8% 42%;
-    --sidebar-primary: 168 65% 36%;
+    --sidebar-primary: 168 55% 36%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 40 10% 94%;
     --sidebar-accent-foreground: 200 10% 22%;
     --sidebar-border: 40 10% 90%;
-    --sidebar-ring: 168 65% 36%;
-
+    --sidebar-ring: 168 55% 36%;
   }
 }
 
@@ -152,7 +128,6 @@
     letter-spacing: -0.015em;
   }
 
-  /* Typography - Clean, Premium Hierarchy */
   h1 {
     @apply text-2xl md:text-3xl font-bold tracking-tight leading-tight;
     letter-spacing: -0.03em;
@@ -176,12 +151,10 @@
     @apply leading-relaxed;
   }
 
-  /* Focus states - Subtle but clear */
   *:focus-visible {
     @apply outline-none ring-2 ring-primary/40 ring-offset-2 ring-offset-background;
   }
 
-  /* Reduced motion support */
   @media (prefers-reduced-motion: reduce) {
     *, ::before, ::after {
       animation-duration: 0.01ms !important;
@@ -190,10 +163,6 @@
     }
   }
 
-  /* =====================================================
-     TYPOGRAPHY UTILITY CLASSES
-     6-step scale for consistent hierarchy
-     ===================================================== */
   .text-display {
     font-size: 40px;
     font-weight: 800;
@@ -219,10 +188,7 @@
 }
 
 @layer utilities {
-  /* ==========================================
-     PREMIUM APP BACKGROUND
-     Clean, solid, professional
-     ========================================== */
+  /* App background */
   .app-bg {
     background: hsl(var(--background));
   }
@@ -231,63 +197,13 @@
     @apply app-bg;
   }
 
-  /* ==========================================
-     SIDEBAR
-     ========================================== */
+  /* Sidebar active state */
   [data-sidebar="menu-button"][data-active="true"] {
     background: hsl(var(--sidebar-accent));
   }
 
   /* ==========================================
-     PREMIUM CARD SYSTEM
-     Clean elevation, subtle depth
-     ========================================== */
-  .card-premium {
-    @apply relative rounded-2xl;
-    background: hsl(var(--card));
-    box-shadow:
-      0 1px 2px hsl(0 0% 0% / 0.1),
-      0 4px 12px hsl(0 0% 0% / 0.08);
-  }
-
-  .card-premium-hover {
-    @apply card-premium transition-all duration-200;
-  }
-
-  .card-premium-hover:hover {
-    border-color: hsl(var(--border));
-    box-shadow:
-      0 2px 4px hsl(0 0% 0% / 0.12),
-      0 8px 24px hsl(0 0% 0% / 0.12);
-    transform: translateY(-1px);
-  }
-
-  .card-interactive {
-    @apply transition-all duration-200 cursor-pointer;
-  }
-
-  .card-interactive:hover {
-    background: hsl(var(--card) / 0.8);
-    border-color: hsl(var(--border) / 0.8);
-  }
-
-  /* Surface layers */
-  .surface-elevated {
-    @apply rounded-xl;
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border) / 0.5);
-    box-shadow: 0 4px 16px hsl(0 0% 0% / 0.15);
-  }
-
-  .surface-subtle {
-    @apply rounded-lg;
-    background: hsl(var(--secondary) / 0.5);
-    border: 1px solid hsl(var(--border) / 0.3);
-  }
-
-  /* ==========================================
-     PAGE LAYOUT - Premium Spacing
-     Generous whitespace, clear hierarchy
+     PAGE LAYOUT
      ========================================== */
   .page-container {
     @apply max-w-6xl mx-auto px-6 md:px-10 lg:px-14 py-8 md:py-10 pb-14;
@@ -312,7 +228,6 @@
     color: hsl(var(--muted-foreground));
   }
 
-  /* Section spacing */
   .section {
     @apply mb-10 md:mb-12;
   }
@@ -327,7 +242,6 @@
     letter-spacing: 0.05em;
   }
 
-  /* Content spacing */
   .content-stack {
     @apply space-y-6;
   }
@@ -337,82 +251,7 @@
   }
 
   /* ==========================================
-     NAVIGATION - Clean and Simple
-     ========================================== */
-  .nav-item {
-    @apply flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-150;
-    color: hsl(var(--sidebar-foreground));
-  }
-
-  .nav-item:hover {
-    background: hsl(var(--sidebar-accent));
-    color: hsl(var(--sidebar-accent-foreground));
-  }
-
-  .nav-item-active {
-    background: hsl(var(--primary) / 0.15);
-    color: hsl(var(--primary));
-  }
-
-  .nav-item-active:hover {
-    background: hsl(var(--primary) / 0.2);
-    color: hsl(var(--primary));
-  }
-
-  .nav-group-label {
-    @apply px-4 py-2 text-xs font-semibold uppercase tracking-wider;
-    color: hsl(var(--sidebar-foreground) / 0.5);
-    letter-spacing: 0.08em;
-  }
-
-  .nav-divider {
-    @apply my-4 mx-4 h-px;
-    background: hsl(var(--sidebar-border) / 0.5);
-  }
-
-  /* ==========================================
-     BUTTONS - Premium Feel
-     ========================================== */
-  .btn-premium {
-    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150;
-    box-shadow: 0 1px 2px hsl(0 0% 0% / 0.1);
-  }
-
-  .btn-premium:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px hsl(0 0% 0% / 0.15);
-  }
-
-  .btn-premium:active {
-    transform: translateY(0);
-    box-shadow: 0 1px 2px hsl(0 0% 0% / 0.1);
-  }
-
-  /* ==========================================
-     FORM ELEMENTS - Clean and Spacious
-     ========================================== */
-  .input-premium {
-    @apply w-full px-4 py-3 rounded-lg text-sm transition-all duration-150;
-    background: hsl(var(--input));
-    border: 1px solid hsl(var(--border) / 0.5);
-  }
-
-  .input-premium:focus {
-    border-color: hsl(var(--primary) / 0.5);
-    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
-  }
-
-  .input-premium::placeholder {
-    color: hsl(var(--muted-foreground) / 0.6);
-  }
-
-  .label-premium {
-    @apply block text-sm font-medium mb-2;
-    color: hsl(var(--foreground) / 0.9);
-  }
-
-  /* ==========================================
-     STATUS INDICATORS - Clear and Semantic
+     STATUS INDICATORS
      ========================================== */
   .status-badge {
     @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium;
@@ -443,7 +282,6 @@
     color: hsl(var(--muted-foreground));
   }
 
-  /* Live indicator dot */
   .status-dot {
     @apply relative inline-block h-2 w-2 rounded-full;
   }
@@ -465,12 +303,12 @@
   }
 
   /* ==========================================
-     STAT CARDS - Dashboard Metrics
+     STAT CARDS
      ========================================== */
   .stat-card {
-    @apply p-7 rounded-xl;
+    @apply p-5 rounded-xl;
     background: hsl(var(--card));
-    border: 1px solid hsl(var(--border) / 0.5);
+    border: 1px solid hsl(var(--border));
   }
 
   .stat-label {
@@ -496,12 +334,6 @@
     color: hsl(var(--destructive));
   }
 
-  .stat-icon {
-    @apply flex items-center justify-center h-10 w-10 rounded-lg;
-    background: hsl(var(--primary) / 0.1);
-    color: hsl(var(--primary));
-  }
-
   /* ==========================================
      EMPTY STATES
      ========================================== */
@@ -525,7 +357,7 @@
   }
 
   /* ==========================================
-     ANIMATIONS - Smooth and Subtle
+     ANIMATIONS
      ========================================== */
   @keyframes fade-in {
     from { opacity: 0; }
@@ -554,7 +386,6 @@
     animation: scale-in 0.3s ease-out;
   }
 
-  /* Stagger animations */
   .stagger-1 { animation-delay: 50ms; }
   .stagger-2 { animation-delay: 100ms; }
   .stagger-3 { animation-delay: 150ms; }
@@ -574,7 +405,7 @@
   }
 
   /* ==========================================
-     SCROLLBAR - Minimal
+     SCROLLBAR
      ========================================== */
   .scrollbar-thin {
     scrollbar-width: thin;
@@ -619,14 +450,13 @@
     animation: shimmer 1.5s infinite;
   }
 
-
   /* ==========================================
      TOOLTIPS
      ========================================== */
   .tooltip {
     @apply px-3 py-1.5 rounded-lg text-xs font-medium;
     background: hsl(var(--popover));
-    border: 1px solid hsl(var(--border) / 0.5);
+    border: 1px solid hsl(var(--border));
     box-shadow: 0 4px 12px hsl(0 0% 0% / 0.2);
   }
 
@@ -636,7 +466,7 @@
   .mobile-nav {
     @apply fixed bottom-0 left-0 right-0 z-50;
     background: hsl(var(--background));
-    border-top: 1px solid hsl(var(--border) / 0.5);
+    border-top: 1px solid hsl(var(--border));
     padding-bottom: env(safe-area-inset-bottom);
   }
 
@@ -650,123 +480,121 @@
   }
 
   /* ==========================================
-     LEGACY UTILITY CLASSES
-     (kept for backward compatibility)
+     UTILITY ALIASES (backward compat)
      ========================================== */
-  .editorial-header {
-    @apply page-header;
-  }
-
-  .editorial-title {
-    @apply page-title;
-  }
-
-  .editorial-subtitle {
-    @apply page-subtitle;
-  }
-
-  .section-label {
-    @apply section-title;
-  }
-
-  .work-area {
-    @apply card-premium p-6;
-  }
-
-  .surface-1 {
-    @apply card-premium;
-  }
-
-  .surface-2 {
-    @apply surface-subtle;
-  }
-
-  .entry-zone {
-    @apply section;
-  }
-
-  .focus-zone {
-    @apply section;
-  }
-
-  .supporting-zone {
-    @apply section pt-8 border-t border-border/30;
-  }
-
-  .section-divider {
-    @apply divider my-8;
-  }
-
-  .status-soft-success {
-    @apply status-success;
-  }
-
-  .status-soft-warning {
-    @apply status-warning;
-  }
-
-  .status-soft-destructive {
-    @apply status-error;
-  }
-
-  .status-soft-primary {
-    @apply status-info;
-  }
-
-  .accent-emphasis {
-    background: hsl(var(--accent-signature) / 0.1);
-    border: 1px solid hsl(var(--accent-signature) / 0.2);
-  }
-
-  .stat-icon-container {
-    @apply stat-icon;
-  }
-
   .safe-area-pb {
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
 
-
-  .hover-lift {
-    @apply transition-transform duration-200;
-  }
-
-  .hover-lift:hover {
-    transform: translateY(-2px);
-  }
-
-  /* Gradient utilities */
   .gradient-primary {
     background: hsl(var(--primary));
   }
 
-  .gradient-subtle {
-    background: linear-gradient(
-      to bottom,
-      hsl(var(--background)),
-      hsl(var(--card) / 0.5)
-    );
-  }
-
-  /* Brand gradient utilities */
   .gradient-brand {
     background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent-signature)));
   }
 
-  .gradient-brand-subtle {
-    background: linear-gradient(135deg, hsl(var(--primary) / 0.1), hsl(var(--accent-signature) / 0.08));
+  /* Card aliases for backward compat */
+  .card-premium {
+    @apply rounded-xl;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
   }
 
-  .text-gradient-brand {
-    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent-signature)));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+  .card-premium-hover {
+    @apply card-premium transition-colors duration-200;
   }
+
+  .card-premium-hover:hover {
+    border-color: hsl(var(--border));
+  }
+
+  .card-interactive {
+    @apply transition-colors duration-200 cursor-pointer;
+  }
+
+  .card-interactive:hover {
+    background: hsl(var(--card) / 0.8);
+  }
+
+  .surface-elevated {
+    @apply rounded-xl;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+  }
+
+  .surface-subtle {
+    @apply rounded-lg;
+    background: hsl(var(--secondary) / 0.5);
+    border: 1px solid hsl(var(--border));
+  }
+
+  /* Nav items */
+  .nav-item {
+    @apply flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors;
+    color: hsl(var(--sidebar-foreground));
+  }
+
+  .nav-item:hover {
+    background: hsl(var(--sidebar-accent));
+    color: hsl(var(--sidebar-accent-foreground));
+  }
+
+  .nav-item-active {
+    background: hsl(var(--primary) / 0.15);
+    color: hsl(var(--primary));
+  }
+
+  /* Form elements */
+  .input-premium {
+    @apply w-full px-4 py-3 rounded-lg text-sm transition-colors;
+    background: hsl(var(--input));
+    border: 1px solid hsl(var(--border));
+  }
+
+  .input-premium:focus {
+    border-color: hsl(var(--primary) / 0.5);
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
+  }
+
+  .label-premium {
+    @apply block text-sm font-medium mb-2;
+    color: hsl(var(--foreground) / 0.9);
+  }
+
+  /* Button */
+  .btn-premium {
+    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-medium transition-colors;
+  }
+
+  /* Legacy aliases — minimal stubs */
+  .editorial-header { @apply page-header; }
+  .editorial-title { @apply page-title; }
+  .editorial-subtitle { @apply page-subtitle; }
+  .section-label { @apply section-title; }
+  .work-area { @apply card-premium p-6; }
+  .surface-1 { @apply card-premium; }
+  .surface-2 { @apply surface-subtle; }
+  .entry-zone { @apply section; }
+  .focus-zone { @apply section; }
+  .supporting-zone { @apply section pt-8 border-t border-border; }
+  .section-divider { @apply divider my-8; }
+  .status-soft-success { @apply status-success; }
+  .status-soft-warning { @apply status-warning; }
+  .status-soft-destructive { @apply status-error; }
+  .status-soft-primary { @apply status-info; }
+  .stat-icon { @apply flex items-center justify-center h-10 w-10 rounded-lg; background: hsl(var(--primary) / 0.1); color: hsl(var(--primary)); }
+  .stat-icon-container { @apply stat-icon; }
+  .accent-emphasis { background: hsl(var(--accent-signature) / 0.1); border: 1px solid hsl(var(--accent-signature) / 0.2); }
+  .gradient-brand-subtle { background: hsl(var(--primary) / 0.05); }
+  .hover-lift { @apply transition-colors duration-200; }
+  .gradient-subtle { background: hsl(var(--background)); }
+  .text-gradient-brand { color: hsl(var(--primary)); }
+  .nav-group-label { @apply px-4 py-2 text-xs font-semibold uppercase tracking-wider; color: hsl(var(--sidebar-foreground) / 0.5); }
+  .nav-divider { @apply my-4 mx-4 h-px; background: hsl(var(--sidebar-border)); }
 
   /* ==========================================
      SMOOTH THEME TRANSITIONS
-     Elegant color mode switching
      ========================================== */
   html {
     transition-property: background-color;
@@ -774,7 +602,6 @@
     transition-timing-function: ease-out;
   }
 
-  /* Enable smooth transitions on theme change */
   .theme-transition,
   .theme-transition *,
   .theme-transition *::before,
@@ -784,7 +611,6 @@
     transition-timing-function: ease-out;
   }
 
-  /* Disable transitions on initial load to prevent flash */
   .no-transitions,
   .no-transitions *,
   .no-transitions *::before,
@@ -792,7 +618,6 @@
     transition: none !important;
   }
 
-  /* Slide-in animations (kept for transitions) */
   @keyframes slide-in-right {
     from { opacity: 0; transform: translateX(20px); }
     to { opacity: 1; transform: translateX(0); }

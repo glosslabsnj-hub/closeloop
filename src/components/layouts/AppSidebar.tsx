@@ -37,7 +37,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { BRAND } from "@/config/brand";
 import { cn } from "@/lib/utils";
@@ -49,7 +48,6 @@ interface NavItem {
   badge?: number;
 }
 
-// Routes that are always accessible (even without subscription)
 const alwaysAccessibleRoutes = ["/app/settings", "/app/go-live"];
 
 interface AppSidebarProps {
@@ -161,8 +159,8 @@ export function AppSidebar({
   };
 
   return (
-    <Sidebar collapsible="offcanvas" className="border-r border-sidebar-border/50 w-[220px]">
-      {/* Header: Logo + tenant name */}
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border/50">
+      {/* Header */}
       <SidebarHeader className="p-3">
         <SidebarMenu>
           <SidebarMenuItem>
@@ -181,16 +179,13 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
 
-      {/* Scrollable nav content — flat list with thin separators */}
       <SidebarContent>
         <SidebarGroup>
           <SidebarMenu>
-            {/* Core nav */}
             {renderItem({ href: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard })}
             {renderItem({ href: "/app/inbox", label: (terms.inboxPageTitle as string) || "Leads", icon: caps.isDispatchBusiness ? Phone : Users })}
             {renderItem({ href: "/app/customers", label: (terms.customers ? String(terms.customers).charAt(0).toUpperCase() + String(terms.customers).slice(1) : "Customers"), icon: UserCircle })}
 
-            {/* Workspace (module-gated) */}
             {workspaceItems.length > 0 && (
               <>
                 <div className="h-2" />
@@ -198,7 +193,6 @@ export function AppSidebar({
               </>
             )}
 
-            {/* Configure */}
             <div className="h-2" />
             {renderItem({ href: "/app/business-brain", label: "Business Brain", icon: Bot, badge: conflictsCount || undefined })}
             {renderItem({ href: "/app/partner", label: "Business Partner", icon: Sparkles })}
@@ -209,7 +203,6 @@ export function AppSidebar({
         </SidebarGroup>
       </SidebarContent>
 
-      {/* Footer: Settings + Help */}
       <SidebarFooter>
         <SidebarMenu>
           {renderItem({ href: "/app/settings", label: "Settings", icon: Settings })}

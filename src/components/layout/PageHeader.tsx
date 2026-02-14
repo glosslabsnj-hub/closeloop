@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
-import { type LucideIcon, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
-import React, { type ReactNode } from "react";
+import { type ReactNode } from "react";
 
 interface PageHeaderProps {
   title: string;
@@ -9,10 +9,9 @@ interface PageHeaderProps {
   action?: ReactNode;
   className?: string;
   badge?: ReactNode;
-  /** Back navigation link */
   backHref?: string;
-  /** Lucide icon component (preferred) or ReactNode (legacy) */
-  icon?: LucideIcon | ReactNode;
+  /** @deprecated Icons removed for minimalistic design — prop kept for backward compat */
+  icon?: unknown;
 }
 
 export function PageHeader({
@@ -22,28 +21,11 @@ export function PageHeader({
   className,
   badge,
   backHref,
-  icon,
 }: PageHeaderProps) {
-  // Support both LucideIcon components and ReactNode (backward compat)
-  const renderIcon = () => {
-    if (!icon) return null;
-    if (React.isValidElement(icon)) return icon;
-    const Icon = icon as LucideIcon;
-    return <Icon className="h-5 w-5" />;
-  };
-
   return (
-    <header
-      className={cn(
-        "relative pt-8 pb-6",
-        className
-      )}
-    >
+    <header className={cn("relative pt-6 pb-4", className)}>
       <div className="flex items-end justify-between gap-4">
         <div className="flex-1 min-w-0">
-          {/* Description below title */}
-
-          {/* Title row */}
           <div className="flex items-center gap-2.5">
             {backHref && (
               <Link
@@ -53,9 +35,9 @@ export function PageHeader({
                 <ArrowLeft className="h-5 w-5" />
               </Link>
             )}
-            <h1 className="text-2xl font-bold tracking-tight text-foreground truncate">
+            <h2 className="text-xl font-semibold tracking-tight text-foreground truncate">
               {title}
-            </h1>
+            </h2>
             {badge && <div className="flex-shrink-0">{badge}</div>}
           </div>
           {description && (
@@ -64,8 +46,6 @@ export function PageHeader({
             </p>
           )}
         </div>
-
-        {/* Action */}
         {action && (
           <div className="flex-shrink-0">
             {action}
