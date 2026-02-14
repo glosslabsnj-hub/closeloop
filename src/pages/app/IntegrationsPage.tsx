@@ -340,7 +340,6 @@ export default function IntegrationsPage() {
   return (
     <PageContainer maxWidth="xl">
       <PageHeader
-        icon={<Link2 className="h-5 w-5" />}
         title="Integrations"
         description="Connect your tools and automate what happens when calls, bookings, and orders come in"
         action={

@@ -287,7 +287,6 @@ export default function CallsPage() {
   return (
     <PageContainer maxWidth="xl">
       <PageHeader
-        icon={<Phone className="h-5 w-5" />}
         title="Calls"
         description="All AI-handled calls with extracted information"
         badge={

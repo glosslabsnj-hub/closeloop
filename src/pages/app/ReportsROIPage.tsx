@@ -455,7 +455,6 @@ export default function ReportsROIPage() {
     <TooltipProvider>
       <PageContainer maxWidth="xl">
         <PageHeader
-          icon={<HeroIcon className="h-5 w-5" />}
           title="Revenue Report"
           description={hasData ? storyHeadline : "Track your AI-generated revenue and ROI"}
           action={

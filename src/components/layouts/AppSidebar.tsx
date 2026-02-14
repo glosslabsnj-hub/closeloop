@@ -195,9 +195,12 @@ export function AppSidebar({
 
             <div className="h-2" />
             {renderItem({ href: "/app/business-brain", label: "Business Brain", icon: Bot, badge: conflictsCount || undefined })}
-            {renderItem({ href: "/app/partner", label: "Business Partner", icon: Sparkles })}
+            {renderItem({ href: "/app/simulator", label: "Test Your AI", icon: FlaskConical })}
+            {renderItem({ href: "/app/settings", label: "Settings", icon: Settings })}
+
+            <div className="h-2" />
+            {renderItem({ href: "/app/partner", label: "AI Insights", icon: Sparkles })}
             {renderItem({ href: "/app/integrations", label: "Integrations", icon: Route })}
-            {renderItem({ href: "/app/simulator", label: "Test Calls", icon: FlaskConical })}
             {renderItem({ href: "/app/reports/roi", label: "Reports", icon: BarChart3 })}
           </SidebarMenu>
         </SidebarGroup>
@@ -205,7 +208,6 @@ export function AppSidebar({
 
       <SidebarFooter>
         <SidebarMenu>
-          {renderItem({ href: "/app/settings", label: "Settings", icon: Settings })}
           {renderItem({ href: "/app/help", label: "Help", icon: HelpCircle })}
         </SidebarMenu>
       </SidebarFooter>

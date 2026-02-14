@@ -162,7 +162,6 @@ export default function InventoryPage() {
     <>
       <PageContainer maxWidth="xl">
         <PageHeader
-          icon={<Package className="h-5 w-5" />}
           title="Inventory Management"
           description="Track parts, materials, and stock levels"
           action={
