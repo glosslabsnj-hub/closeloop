@@ -27,6 +27,8 @@ export default defineConfig(({ mode }) => ({
           supabase: ["@supabase/supabase-js"],
           query: ["@tanstack/react-query"],
           ui: ["@radix-ui/react-dialog", "@radix-ui/react-popover", "@radix-ui/react-select", "@radix-ui/react-tabs", "@radix-ui/react-tooltip"],
+          motion: ["framer-motion"],
+          charts: ["recharts"],
         },
       },
     },
