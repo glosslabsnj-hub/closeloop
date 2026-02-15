@@ -172,25 +172,6 @@ export function AppSidebar({
     <AnimatedSidebar open={open} setOpen={setOpen}>
       <SidebarBody className="justify-between gap-6">
         <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
-          {/* Logo */}
-          <Link to="/app/dashboard" className="flex items-center gap-3 py-1 mb-4">
-            <div className="h-8 w-8 shrink-0 rounded-lg bg-primary flex items-center justify-center">
-              <AudioWaveform className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <motion.div
-              animate={{ display: open ? "flex" : "none", opacity: open ? 1 : 0 }}
-              transition={{ duration: 0.2 }}
-              className="flex-col gap-0.5 leading-none"
-            >
-              <span className="font-semibold text-sm text-sidebar-accent-foreground">
-                {displayTenant?.name || BRAND.name}
-              </span>
-              <span className="text-[11px] text-sidebar-foreground/50">
-                {subtitle || "AI Receptionist"}
-              </span>
-            </motion.div>
-          </Link>
-
           {/* Core nav */}
           <div className="flex flex-col gap-0.5">
             {coreItems.map(renderLink)}
