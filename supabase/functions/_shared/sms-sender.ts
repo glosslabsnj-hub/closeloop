@@ -42,30 +42,47 @@ export async function sendTenantSms(req: SendSmsRequest): Promise<SendSmsResult>
   // Fetch A2P registration for this tenant
   const { data: a2p } = await supabase
     .from("a2p_registrations")
-    .select("status, messaging_service_sid, toll_free_verified, toll_free_messaging_service_sid")
+    .select("status, messaging_service_sid, toll_free_verified, toll_free_messaging_service_sid, toll_free_phone_e164")
     .eq("tenant_id", tenantId)
     .maybeSingle();
 
   // Determine which Messaging Service to use
   let messagingServiceSid: string | null = null;
+  let fromNumber: string | null = null;
   let channel: "10dlc" | "toll_free" | null = null;
 
   if (a2p?.status === "approved" && a2p.messaging_service_sid) {
     messagingServiceSid = a2p.messaging_service_sid;
     channel = "10dlc";
-  } else if (a2p?.toll_free_verified && a2p.toll_free_messaging_service_sid) {
-    messagingServiceSid = a2p.toll_free_messaging_service_sid;
+  } else if (a2p?.toll_free_messaging_service_sid) {
+    // Try messaging service first if toll-free is verified, otherwise fall back to direct From
+    if (a2p.toll_free_verified) {
+      messagingServiceSid = a2p.toll_free_messaging_service_sid;
+    }
+    // Always have the direct number as fallback
+    fromNumber = a2p.toll_free_phone_e164 || null;
+    channel = "toll_free";
+  } else if (a2p?.toll_free_phone_e164) {
+    // No messaging service but we have a toll-free number — send direct
+    fromNumber = a2p.toll_free_phone_e164;
     channel = "toll_free";
   }
 
-  if (!messagingServiceSid || !channel) {
+  if (!messagingServiceSid && !fromNumber) {
     console.log(`[sms-sender] No verified SMS channel for tenant ${tenantId}`);
     return { success: false, skipped: true, reason: "no_verified_channel" };
   }
 
-  // Send via Messaging Service (not raw From number)
+  // Send via Messaging Service or direct From number
   const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`;
   const twilioAuth = btoa(`${twilioAccountSid}:${twilioAuthToken}`);
+
+  const smsParams: Record<string, string> = { To: to, Body: body };
+  if (messagingServiceSid) {
+    smsParams.MessagingServiceSid = messagingServiceSid;
+  } else if (fromNumber) {
+    smsParams.From = fromNumber;
+  }
 
   const smsResponse = await fetch(twilioUrl, {
     method: "POST",
@@ -73,12 +90,31 @@ export async function sendTenantSms(req: SendSmsRequest): Promise<SendSmsResult>
       Authorization: `Basic ${twilioAuth}`,
       "Content-Type": "application/x-www-form-urlencoded",
     },
-    body: new URLSearchParams({
-      To: to,
-      MessagingServiceSid: messagingServiceSid,
-      Body: body,
-    }),
+    body: new URLSearchParams(smsParams),
   });
+
+  // If Messaging Service failed, retry with direct From number
+  if (!smsResponse.ok && messagingServiceSid && fromNumber) {
+    console.log(`[sms-sender] Messaging Service failed, falling back to direct From for tenant ${tenantId}`);
+    const retryResponse = await fetch(twilioUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${twilioAuth}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({ To: to, From: fromNumber, Body: body }),
+    });
+
+    if (!retryResponse.ok) {
+      const errText = await retryResponse.text();
+      console.error(`[sms-sender] Twilio fallback error for tenant ${tenantId}:`, errText);
+      return { success: false, error: errText, channel };
+    }
+
+    const retryResult = await retryResponse.json();
+    console.log(`[sms-sender] SMS sent via ${channel} (direct) for tenant ${tenantId}: ${retryResult.sid}`);
+    return { success: true, twilioSid: retryResult.sid, channel };
+  }
 
   if (!smsResponse.ok) {
     const errText = await smsResponse.text();
