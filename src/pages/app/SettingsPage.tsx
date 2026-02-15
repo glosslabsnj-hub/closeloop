@@ -19,6 +19,7 @@ import { NotificationPreferencesPanel } from "@/components/settings/Notification
 import { SettingsCard } from "@/components/settings/SettingsSection";
 import { RevenueSettingsSection } from "@/components/settings/RevenueSettingsSection";
 import { RecoverySettingsSection } from "@/components/settings/recovery/RecoverySettingsSection";
+import { SmsSettingsSection } from "@/components/settings/SmsSettingsSection";
 import { useFoodMode } from "@/hooks/useFoodMode";
 import { useModuleEnabled, useTenantConfig } from "@/hooks/useTenantConfig";
 
@@ -85,6 +86,10 @@ export default function SettingsPage() {
     recovery: {
       title: "Lead Recovery",
       description: "Configure automatic follow-up for leads who don't book.",
+    },
+    sms: {
+      title: "SMS Messaging",
+      description: "Configure automated text messages for confirmations, reminders, and reviews.",
     },
   };
 
@@ -157,6 +162,9 @@ export default function SettingsPage() {
 
       case "recovery":
         return <RecoverySettingsSection />;
+
+      case "sms":
+        return <SmsSettingsSection />;
 
       default:
         return null;
