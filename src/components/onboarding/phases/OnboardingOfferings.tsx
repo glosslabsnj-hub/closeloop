@@ -92,7 +92,7 @@ export function OnboardingOfferings({
                   <p className="font-medium text-sm">24/7 Operations</p>
                   <p className="text-xs text-muted-foreground">Available around the clock</p>
                 </div>
-                <Switch checked={is24x7} onCheckedChange={handle24x7Toggle} onClick={(e) => e.stopPropagation()} />
+                <Switch checked={is24x7} onCheckedChange={handle24x7Toggle} />
               </div>
             </CardContent>
           </Card>
