@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,13 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { SmsRegistrationStatus } from "@/components/dashboard/SmsRegistrationStatus";
 import {
-  CheckCircle2,
-  Clock,
   AlertCircle,
-  MessageSquare,
   CalendarCheck,
   Bell,
   Star,
@@ -44,13 +40,13 @@ const DEFAULT_SETTINGS: SmsSettings = {
     enabled: true,
     message:
       "Reminder: You have an appointment with {{business_name}} tomorrow at {{appointment_time}}. See you soon! Reply STOP to unsubscribe.",
-    delayMinutes: 1440, // 24 hours before
+    delayMinutes: 1440,
   },
   review_request: {
     enabled: false,
     message:
       "Thank you for visiting {{business_name}}! We'd love your feedback — please leave us a review: {{review_link}}. Reply STOP to opt out.",
-    delayMinutes: 60, // 1 hour after
+    delayMinutes: 60,
   },
 };
 
@@ -115,36 +111,70 @@ export function SmsSettingsSection() {
     enabled: !!tenant?.id,
   });
 
+  // Fetch review link from tenants table
+  const { data: tenantData } = useQuery({
+    queryKey: ["tenant-review-link", tenant?.id],
+    queryFn: async () => {
+      if (!tenant?.id) return null;
+      const { data, error } = await supabase
+        .from("tenants")
+        .select("review_link")
+        .eq("id", tenant.id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!tenant?.id,
+  });
+
   const savedSmsSettings = (assistantSettings?.settings_json as any)?.sms_templates as SmsSettings | undefined;
-  const [settings, setSettings] = useState<SmsSettings>(savedSmsSettings || DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<SmsSettings>(DEFAULT_SETTINGS);
+  const [reviewLink, setReviewLink] = useState("");
   const [isDirty, setIsDirty] = useState(false);
 
   // Sync from server when data loads
-  const serverSettings = savedSmsSettings;
-  useState(() => {
-    if (serverSettings) {
-      setSettings(serverSettings);
+  useEffect(() => {
+    if (savedSmsSettings) {
+      setSettings(savedSmsSettings);
     }
-  });
+  }, [savedSmsSettings]);
+
+  useEffect(() => {
+    if (tenantData?.review_link) {
+      setReviewLink(tenantData.review_link);
+    }
+  }, [tenantData?.review_link]);
 
   const saveMutation = useMutation({
     mutationFn: async (newSettings: SmsSettings) => {
       if (!tenant?.id) throw new Error("No tenant");
+
+      // Save SMS templates to assistant_settings
       const existingJson = (assistantSettings?.settings_json as Record<string, unknown>) || {};
       const updatedJson = JSON.parse(JSON.stringify({ ...existingJson, sms_templates: newSettings }));
-      const { error } = await supabase
+      const { error: settingsError } = await supabase
         .from("assistant_settings")
         .update({
           settings_json: updatedJson,
           updated_at: new Date().toISOString(),
         })
         .eq("tenant_id", tenant.id);
-      if (error) throw error;
+      if (settingsError) throw settingsError;
+
+      // Save review link to tenants table
+      if (reviewLink !== (tenantData?.review_link || "")) {
+        const { error: tenantError } = await supabase
+          .from("tenants")
+          .update({ review_link: reviewLink || null })
+          .eq("id", tenant.id);
+        if (tenantError) throw tenantError;
+      }
     },
     onSuccess: () => {
       toast.success("SMS settings saved");
       setIsDirty(false);
       queryClient.invalidateQueries({ queryKey: ["assistant-settings-sms"] });
+      queryClient.invalidateQueries({ queryKey: ["tenant-review-link"] });
     },
     onError: () => toast.error("Failed to save SMS settings"),
   });
@@ -352,11 +382,12 @@ export function SmsSettingsSection() {
               <div className="space-y-2">
                 <Label className="text-sm text-muted-foreground">Review link URL</Label>
                 <Input
-                  placeholder="https://g.page/your-business/review"
+                  value={reviewLink}
                   onChange={(e) => {
-                    // Update the review_link in the template
+                    setReviewLink(e.target.value);
                     setIsDirty(true);
                   }}
+                  placeholder="https://g.page/your-business/review"
                 />
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <Info className="h-3 w-3" />

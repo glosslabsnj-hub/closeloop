@@ -1312,6 +1312,7 @@ export type Database = {
       }
       bookings: {
         Row: {
+          confirmation_sent: boolean | null
           created_at: string
           deposit_paid: boolean
           deposit_required: boolean
@@ -1323,6 +1324,9 @@ export type Database = {
           notes: string | null
           price_breakdown: Json | null
           price_cents: number | null
+          reminder_sent_1h: boolean | null
+          reminder_sent_24h: boolean | null
+          review_sent: boolean | null
           service_id: string | null
           session_id: string | null
           staff_member_id: string | null
@@ -1332,6 +1336,7 @@ export type Database = {
           tenant_id: string
         }
         Insert: {
+          confirmation_sent?: boolean | null
           created_at?: string
           deposit_paid?: boolean
           deposit_required?: boolean
@@ -1343,6 +1348,9 @@ export type Database = {
           notes?: string | null
           price_breakdown?: Json | null
           price_cents?: number | null
+          reminder_sent_1h?: boolean | null
+          reminder_sent_24h?: boolean | null
+          review_sent?: boolean | null
           service_id?: string | null
           session_id?: string | null
           staff_member_id?: string | null
@@ -1352,6 +1360,7 @@ export type Database = {
           tenant_id: string
         }
         Update: {
+          confirmation_sent?: boolean | null
           created_at?: string
           deposit_paid?: boolean
           deposit_required?: boolean
@@ -1363,6 +1372,9 @@ export type Database = {
           notes?: string | null
           price_breakdown?: Json | null
           price_cents?: number | null
+          reminder_sent_1h?: boolean | null
+          reminder_sent_24h?: boolean | null
+          review_sent?: boolean | null
           service_id?: string | null
           session_id?: string | null
           staff_member_id?: string | null
@@ -9033,6 +9045,7 @@ export type Database = {
           refund_policy: string | null
           review_channel: string | null
           review_delay_hours: number | null
+          review_link: string | null
           service_area_json: Json | null
           tagline: string | null
           timezone: string
@@ -9079,6 +9092,7 @@ export type Database = {
           refund_policy?: string | null
           review_channel?: string | null
           review_delay_hours?: number | null
+          review_link?: string | null
           service_area_json?: Json | null
           tagline?: string | null
           timezone?: string
@@ -9125,6 +9139,7 @@ export type Database = {
           refund_policy?: string | null
           review_channel?: string | null
           review_delay_hours?: number | null
+          review_link?: string | null
           service_area_json?: Json | null
           tagline?: string | null
           timezone?: string
