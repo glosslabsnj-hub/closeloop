@@ -14,6 +14,95 @@ export type Database = {
   }
   public: {
     Tables: {
+      a2p_registrations: {
+        Row: {
+          brand_score: number | null
+          brand_sid: string | null
+          campaign_sid: string | null
+          city: string | null
+          contact_email: string | null
+          contact_first_name: string | null
+          contact_last_name: string | null
+          contact_phone: string | null
+          created_at: string
+          customer_profile_sid: string | null
+          ein: string | null
+          entity_type: string | null
+          failure_reason: string | null
+          id: string
+          legal_business_name: string | null
+          messaging_service_sid: string | null
+          registration_state: string | null
+          state: string | null
+          status: string
+          street_address: string | null
+          tenant_id: string
+          updated_at: string
+          website_url: string | null
+          zip_code: string | null
+        }
+        Insert: {
+          brand_score?: number | null
+          brand_sid?: string | null
+          campaign_sid?: string | null
+          city?: string | null
+          contact_email?: string | null
+          contact_first_name?: string | null
+          contact_last_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          customer_profile_sid?: string | null
+          ein?: string | null
+          entity_type?: string | null
+          failure_reason?: string | null
+          id?: string
+          legal_business_name?: string | null
+          messaging_service_sid?: string | null
+          registration_state?: string | null
+          state?: string | null
+          status?: string
+          street_address?: string | null
+          tenant_id: string
+          updated_at?: string
+          website_url?: string | null
+          zip_code?: string | null
+        }
+        Update: {
+          brand_score?: number | null
+          brand_sid?: string | null
+          campaign_sid?: string | null
+          city?: string | null
+          contact_email?: string | null
+          contact_first_name?: string | null
+          contact_last_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          customer_profile_sid?: string | null
+          ein?: string | null
+          entity_type?: string | null
+          failure_reason?: string | null
+          id?: string
+          legal_business_name?: string | null
+          messaging_service_sid?: string | null
+          registration_state?: string | null
+          state?: string | null
+          status?: string
+          street_address?: string | null
+          tenant_id?: string
+          updated_at?: string
+          website_url?: string | null
+          zip_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "a2p_registrations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       active_jobs: {
         Row: {
           actual_completion: string | null

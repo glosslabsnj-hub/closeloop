@@ -21,6 +21,7 @@ import { ScenarioDiscovery } from "@/components/onboarding/ScenarioDiscovery";
 import { CommunicationPreferences, getDefaultCommunicationPrefs, type CommunicationPrefs } from "@/components/onboarding/CommunicationPreferences";
 import { ConfirmationSummary } from "@/components/onboarding/ConfirmationSummary";
 import { BusinessDetailsForm, getDefaultBusinessDetails, type BusinessDetails } from "@/components/onboarding/BusinessDetailsForm";
+import { A2PBusinessFields, getDefaultA2PData, type A2PBusinessData } from "@/components/onboarding/A2PBusinessFields";
 import { SchedulingSetup, getDefaultSchedulingPrefs, getDefaultHoursForMode, type SchedulingPrefs } from "@/components/onboarding/SchedulingSetup";
 import { TeamSetupStep, type TeamMember } from "@/components/onboarding/TeamSetupStep";
 import { formatErrorForToast } from "@/lib/errorMessages";
@@ -69,6 +70,7 @@ interface OnboardingState {
   businessHours: BusinessHours;
   teamMembers: TeamMember[];
   isSoloOperator: boolean;
+  a2pData: A2PBusinessData;
 }
 
 function saveOnboardingProgress(state: OnboardingState) {
@@ -125,6 +127,7 @@ export default function OnboardingPage() {
   // Team setup
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(saved.current?.teamMembers ?? []);
   const [isSoloOperator, setIsSoloOperator] = useState(saved.current?.isSoloOperator ?? true);
+  const [a2pData, setA2pData] = useState<A2PBusinessData>(saved.current?.a2pData ?? getDefaultA2PData());
 
   // Step 5: Scheduling & Hours
   const [businessHours, setBusinessHours] = useState<BusinessHours>(saved.current?.businessHours ?? DEFAULT_BUSINESS_HOURS);
@@ -153,11 +156,11 @@ export default function OnboardingPage() {
         scenarioAnswers, scenarioDetails, schedulingPrefs, communicationPrefs,
         templateServices, templateFAQs, templatePolicies,
         serviceArea, businessDetails, businessHours,
-        teamMembers, isSoloOperator,
+        teamMembers, isSoloOperator, a2pData,
       });
     }, 500); // debounce
     return () => clearTimeout(timer);
-  }, [step, businessName, businessMode, industrySlug, scenarioAnswers, scenarioDetails, schedulingPrefs, communicationPrefs, templateServices, templateFAQs, templatePolicies, serviceArea, businessDetails, businessHours, teamMembers, isSoloOperator, isComplete]);
+  }, [step, businessName, businessMode, industrySlug, scenarioAnswers, scenarioDetails, schedulingPrefs, communicationPrefs, templateServices, templateFAQs, templatePolicies, serviceArea, businessDetails, businessHours, teamMembers, isSoloOperator, a2pData, isComplete]);
 
   const { user, tenant, loading: authLoading, refreshTenant, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
@@ -723,7 +726,35 @@ export default function OnboardingPage() {
         }
       }
 
-      // 8. Twilio provisioning
+      // 8. Save A2P registration data (for SMS compliance)
+      if (a2pData.legalBusinessName || a2pData.ein || a2pData.entityType) {
+        const { error: a2pError } = await supabase
+          .from("a2p_registrations")
+          .upsert({
+            tenant_id: tenantId,
+            status: "pending_data",
+            legal_business_name: a2pData.legalBusinessName || businessName,
+            ein: a2pData.ein || null,
+            entity_type: a2pData.entityType || null,
+            street_address: a2pData.streetAddress || null,
+            city: a2pData.city || null,
+            state: a2pData.state || null,
+            zip_code: a2pData.zipCode || null,
+            contact_first_name: a2pData.contactFirstName || null,
+            contact_last_name: a2pData.contactLastName || null,
+            contact_email: a2pData.contactEmail || user?.email || null,
+            contact_phone: null, // Will be set after provisioning
+            website_url: a2pData.websiteUrl || null,
+          }, { onConflict: "tenant_id" });
+
+        if (a2pError) {
+          console.error("A2P registration data save error:", a2pError);
+        } else {
+          console.log("A2P registration data saved for tenant:", tenantId.substring(0, 8));
+        }
+      }
+
+      // 9. Twilio provisioning
       const shouldProvision = planCode.startsWith("voice") || planCode.startsWith("both");
 
       if (shouldProvision && !isSuperAdmin) {
@@ -746,6 +777,30 @@ export default function OnboardingPage() {
               phone_e164: provisionData.phone_number,
               twilio_sid: provisionData.phone_sid,
             });
+
+            // Trigger A2P 10DLC registration automatically after number provisioning
+            if (a2pData.legalBusinessName || a2pData.entityType) {
+              try {
+                console.log("A2P Registration: triggering...");
+                const { data: a2pResult, error: a2pRegError } = await supabase.functions.invoke(
+                  "register-a2p-10dlc",
+                  {
+                    body: {
+                      tenant_id: tenantId,
+                      phone_number_sid: provisionData.phone_sid,
+                      phone_e164: provisionData.phone_number,
+                    },
+                  }
+                );
+                if (a2pRegError) {
+                  console.error("A2P Registration: error", { message: a2pRegError.message });
+                } else {
+                  console.log("A2P Registration: initiated", { status: a2pResult?.status });
+                }
+              } catch (a2pErr: unknown) {
+                console.error("A2P Registration: exception", { message: a2pErr instanceof Error ? a2pErr.message : String(a2pErr) });
+              }
+            }
           } else {
             console.error("TwilioProvision: failed", { error: provisionData?.error });
           }
@@ -756,7 +811,7 @@ export default function OnboardingPage() {
         console.log("TwilioProvision: skipped", { reason: isSuperAdmin ? "admin-test-tenant" : "no-voice-feature", planCode });
       }
 
-      // 9. Auto-create default workflows
+      // 10. Auto-create default workflows
       try {
         const workflowBusinessMode = industryEntry?.businessMode || "service";
         console.log("WorkflowsAutoCreate: start", { tenantId, businessMode: workflowBusinessMode });
@@ -775,7 +830,7 @@ export default function OnboardingPage() {
         console.error("WorkflowsAutoCreate: exception", { message: wfErr instanceof Error ? wfErr.message : String(wfErr) });
       }
 
-      // 10. Mark onboarding as complete
+      // 11. Mark onboarding as complete
       await supabase
         .from("tenants")
         .update({ onboarding_completed_at: new Date().toISOString() })
@@ -950,6 +1005,17 @@ export default function OnboardingPage() {
                             value={businessDetails}
                             onChange={setBusinessDetails}
                           />
+
+                          {/* A2P Business Identity for SMS compliance */}
+                          <div className="pt-4 border-t">
+                            <A2PBusinessFields
+                              value={a2pData}
+                              onChange={setA2pData}
+                              businessName={businessName}
+                              userEmail={user?.email || undefined}
+                              userDisplayName={user?.user_metadata?.full_name || undefined}
+                            />
+                          </div>
                         </div>
                       )}
                     </div>
