@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AgentControlPanel } from "./AgentControlPanel";
 import { NeedsAttentionBanner } from "./NeedsAttentionBanner";
+import { CompleteProfileBanner } from "./CompleteProfileBanner";
 import { LiveActivityFeed } from "./LiveActivityFeed";
 import { UnifiedAlertBanner } from "./UnifiedAlertBanner";
 import { ModeContentArea } from "./ModeContentArea";
@@ -20,6 +21,7 @@ export function LiveDashboard() {
 
       {/* Alerts (only when present) */}
       <UnifiedAlertBanner />
+      <CompleteProfileBanner />
       <NeedsAttentionBanner />
 
       {/* Key Metrics */}
