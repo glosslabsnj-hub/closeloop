@@ -318,7 +318,6 @@ function QuestionCard({
               checked={checked}
               onCheckedChange={onToggle}
               disabled={isBlocking}
-              onClick={(e) => e.stopPropagation()}
             />
           </div>
 
