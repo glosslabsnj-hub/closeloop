@@ -4,113 +4,115 @@
 
 /* =====================================================
    CloseLoop Design System — 2026
-   Theme: "Calm Software" — Neutral + Teal accent
+   Theme: Purple primary + Gold accent
    ===================================================== */
 
 @layer base {
   /* =====================================================
-     DARK MODE (Default)
-     Neutral dark grays with calm teal accent
+     LIGHT MODE (Default)
+     Clean white with purple primary + gold accent
      ===================================================== */
   :root,
-  .dark {
-    --background: 220 10% 10%;
-    --foreground: 210 10% 93%;
+  .light {
+    --background: 0 0% 100%;
+    --foreground: 240 16% 8%;
 
-    --card: 220 10% 13%;
-    --card-foreground: 210 8% 90%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 16% 8%;
 
-    --popover: 220 10% 14%;
-    --popover-foreground: 210 10% 93%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 16% 8%;
 
-    --primary: 168 55% 45%;
+    --primary: 258 76% 52%;
     --primary-foreground: 0 0% 100%;
+    --primary-glow: 258 76% 62%;
 
-    --secondary: 220 8% 15%;
-    --secondary-foreground: 210 6% 65%;
+    --secondary: 240 11% 97%;
+    --secondary-foreground: 240 12% 48%;
 
-    --muted: 220 7% 17%;
-    --muted-foreground: 210 5% 50%;
+    --muted: 240 11% 97%;
+    --muted-foreground: 240 12% 48%;
 
-    --accent: 25 45% 18%;
-    --accent-foreground: 25 50% 80%;
-    --accent-signature: 25 65% 55%;
+    --accent: 42 100% 60%;
+    --accent-foreground: 240 16% 8%;
+    --accent-signature: 42 100% 60%;
 
-    --destructive: 0 65% 50%;
+    --destructive: 345 90% 60%;
     --destructive-foreground: 0 0% 100%;
 
     --success: 158 60% 40%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 35 90% 50%;
-    --warning-foreground: 35 95% 10%;
+    --warning: 42 100% 60%;
+    --warning-foreground: 42 100% 15%;
 
-    --border: 220 10% 18%;
-    --input: 220 8% 14%;
-    --ring: 168 55% 45%;
+    --border: 240 10% 84%;
+    --input: 240 10% 84%;
+    --ring: 258 76% 52%;
 
-    --radius: 0.625rem;
+    --radius: 0.5rem;
 
-    --sidebar-background: 220 10% 8%;
-    --sidebar-foreground: 210 5% 55%;
-    --sidebar-primary: 168 55% 45%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 240 12% 48%;
+    --sidebar-primary: 258 76% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 8% 13%;
-    --sidebar-accent-foreground: 210 6% 78%;
-    --sidebar-border: 220 8% 15%;
-    --sidebar-ring: 168 55% 45%;
+    --sidebar-accent: 240 11% 97%;
+    --sidebar-accent-foreground: 240 16% 8%;
+    --sidebar-border: 240 10% 90%;
+    --sidebar-ring: 258 76% 52%;
   }
 
   /* =====================================================
-     LIGHT MODE
-     Warm stone whites with teal accent
+     DARK MODE
+     Deep charcoal with purple primary + gold accent
      ===================================================== */
-  .light {
-    --background: 40 15% 97%;
-    --foreground: 200 15% 10%;
+  .dark {
+    --background: 240 16% 8%;
+    --foreground: 240 14% 92%;
 
-    --card: 40 20% 99%;
-    --card-foreground: 200 15% 10%;
+    --card: 0 0% 10%;
+    --card-foreground: 240 14% 92%;
 
-    --popover: 40 20% 99%;
-    --popover-foreground: 200 15% 10%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 240 14% 92%;
 
-    --primary: 168 55% 36%;
+    --primary: 258 78% 60%;
     --primary-foreground: 0 0% 100%;
+    --primary-glow: 258 78% 70%;
 
-    --secondary: 40 10% 92%;
-    --secondary-foreground: 200 10% 38%;
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 0 0% 100% / 0.6;
 
-    --muted: 40 10% 94%;
-    --muted-foreground: 200 8% 42%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 240 12% 48%;
 
-    --accent: 25 70% 95%;
-    --accent-foreground: 25 55% 28%;
-    --accent-signature: 25 65% 48%;
+    --accent: 42 100% 60%;
+    --accent-foreground: 240 16% 8%;
+    --accent-signature: 42 100% 60%;
 
-    --destructive: 0 65% 48%;
+    --destructive: 345 90% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 158 55% 34%;
+    --success: 158 60% 40%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 35 90% 42%;
-    --warning-foreground: 35 95% 14%;
+    --warning: 42 100% 60%;
+    --warning-foreground: 42 100% 15%;
 
-    --border: 40 12% 87%;
-    --input: 40 10% 96%;
-    --ring: 168 55% 36%;
+    --border: 240 12% 28%;
+    --input: 240 12% 28%;
+    --ring: 42 100% 60%;
 
-    --radius: 0.625rem;
+    --radius: 0.5rem;
 
-    --sidebar-background: 40 15% 98%;
-    --sidebar-foreground: 200 8% 42%;
-    --sidebar-primary: 168 55% 36%;
+    --sidebar-background: 240 16% 6%;
+    --sidebar-foreground: 240 12% 48%;
+    --sidebar-primary: 258 78% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 40 10% 94%;
-    --sidebar-accent-foreground: 200 10% 22%;
-    --sidebar-border: 40 10% 90%;
-    --sidebar-ring: 168 55% 36%;
+    --sidebar-accent: 0 0% 10%;
+    --sidebar-accent-foreground: 240 14% 92%;
+    --sidebar-border: 240 12% 20%;
+    --sidebar-ring: 42 100% 60%;
   }
 }
 
