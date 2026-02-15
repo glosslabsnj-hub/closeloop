@@ -1,173 +1,154 @@
 
 
-# Automated A2P 10DLC SMS Registration Flow
+# Toll-Free SMS Fallback + Server-Side A2P Automation
 
-## The Problem
+## Problem Summary
 
-Right now, when a business signs up and gets a Twilio number provisioned, that number can only handle **voice calls**. To send SMS (appointment confirmations, follow-ups, review requests), the number needs to be registered through Twilio's A2P 10DLC compliance system. This involves:
+Two issues need solving:
 
-1. **Customer Profile** -- A trust bundle with the business's legal info
-2. **Brand Registration** -- Registering the business as a "brand" with The Campaign Registry (TCR)  
-3. **Campaign Registration** -- Declaring the SMS use case (e.g., "appointment reminders")
-4. **Messaging Service** -- A Twilio container that links the number + campaign together
+1. **SMS is blocked during 10DLC approval** (1-3 business days). Tenants with pending A2P registration cannot send any SMS -- no confirmations, no reminders, no review requests.
+2. **A2P registration is triggered from the client** (OnboardingPage.tsx line 782-803), which is fragile. If the browser closes or the request fails silently, the tenant never gets registered.
 
-Currently none of these steps exist in the codebase, and `hasSmsFeature()` is hardcoded to `false`.
+Additionally, all current SMS-sending paths (`send-sms`, `booking-handoff`, `cron-appointment-reminders`, `cron-review-requests`) send directly via the Twilio account rather than through the tenant's Messaging Service -- which will cause delivery failures once 10DLC campaigns are active (carriers require messages to route through the registered Messaging Service).
 
-## What Data Is Needed (That We Don't Collect Yet)
-
-Twilio's A2P 10DLC registration requires business identity data that the current onboarding does **not** capture:
-
-| Required Field | Currently Collected? |
-|---|---|
-| Legal business name | No (we only have "business name") |
-| EIN / Tax ID | No |
-| Business entity type (LLC, Corp, etc.) | No |
-| Business registration state | No |
-| Business street address (structured) | Partial (free-text address field) |
-| Contact person name | No (available via auth profile) |
-| Contact email | No (available via auth email) |
-| Contact phone | Yes (business phone) |
-| Website URL | Yes (in BusinessIdentityForm, not always collected in onboarding) |
-| Business vertical/industry | Yes (industry slug) |
-
-## Architecture: The "ISV" Model
-
-Since CloseLoop owns the Twilio account and provisions numbers on behalf of tenants, this follows Twilio's **ISV (Independent Software Vendor)** pattern. This means:
-
-- CloseLoop has a **Primary Business Profile** (one-time, done in Twilio Console)
-- Each tenant gets a **Secondary Customer Profile** created via API
-- Each tenant gets a **Brand Registration** + **Campaign** created via API
-- The provisioned number is added to a **Messaging Service** linked to the campaign
-
-## Implementation Plan
-
-### Phase 1: Collect Required Business Data
-
-**Add fields to onboarding** -- Extend the "Your Business" step (Step 1) or the "Tell us a bit more" sub-section (`BusinessDetailsForm`) to capture:
-
-- **Legal business name** (if different from display name)
-- **EIN / Tax ID** (9-digit federal number)
-- **Entity type** selector: Sole Proprietorship, LLC, Corporation, Partnership, Non-Profit
-- **Registration state** (US state dropdown)
-- **Structured address** fields: Street, City, State, ZIP (replace or supplement the free-text address)
-- **Contact first/last name** (pre-fill from auth profile if available)
-
-These fields will be stored in a new `sms_registration` JSON column on the `tenants` table (or a dedicated `a2p_registrations` table).
-
-### Phase 2: Database Schema
-
-Create an `a2p_registrations` table to track the multi-step registration status:
+## Solution Architecture
 
 ```text
-a2p_registrations
------------------
-id                    UUID PK
-tenant_id             UUID FK -> tenants
-status                TEXT (pending_profile, pending_brand, pending_campaign, approved, failed)
-customer_profile_sid  TEXT  -- Twilio CustomerProfile SID
-brand_sid             TEXT  -- Twilio BrandRegistration SID  
-campaign_sid          TEXT  -- Twilio Campaign SID
-messaging_service_sid TEXT  -- Twilio MessagingService SID
-legal_business_name   TEXT
-ein                   TEXT (encrypted)
-entity_type           TEXT
-registration_state    TEXT
-street_address        TEXT
-city                  TEXT
-state                 TEXT
-zip_code              TEXT
-contact_first_name    TEXT
-contact_last_name     TEXT
-contact_email         TEXT
-contact_phone         TEXT
-failure_reason        TEXT
-created_at            TIMESTAMPTZ
-updated_at            TIMESTAMPTZ
+Number Provisioning Flow (Updated)
+===================================
+
+provision-twilio-number
+  |
+  +-- Purchase LOCAL number (voice + future 10DLC SMS)
+  +-- Purchase TOLL-FREE number (immediate SMS fallback)
+  +-- Call register-a2p-10dlc (server-side, not client)
+  +-- Start toll-free verification
+  |
+  v
+a2p_registrations table
+  |-- toll_free_phone_e164    (new)
+  |-- toll_free_phone_sid     (new)
+  |-- toll_free_verified      (new)
+  |-- toll_free_messaging_sid (new)
+  |
+  v
+SMS Sending (Updated)
+  |-- If A2P approved -> send via 10DLC Messaging Service
+  |-- Else if toll-free verified -> send via toll-free Messaging Service
+  |-- Else -> skip SMS (not yet ready)
 ```
 
-RLS: tenant-scoped read/write.
+## Changes
 
-### Phase 3: Edge Function -- `register-a2p-10dlc`
+### 1. Database Migration
 
-A single edge function that orchestrates the full Twilio A2P registration pipeline. Called automatically after number provisioning succeeds.
+Add toll-free tracking columns to `a2p_registrations`:
 
-**Step-by-step API flow:**
+- `toll_free_phone_e164` TEXT -- The toll-free number
+- `toll_free_phone_sid` TEXT -- Twilio SID for the toll-free number
+- `toll_free_verified` BOOLEAN DEFAULT false
+- `toll_free_messaging_service_sid` TEXT -- Messaging Service for toll-free
+- `toll_free_verification_sid` TEXT -- Twilio TF verification SID
 
-1. **Create Secondary Customer Profile** (TrustHub API)
-   - POST to `/v1/CustomerProfiles` with policy SID for A2P
-   - Attach business info (name, EIN, address) as EndUserResources
-   - Submit for evaluation
+### 2. Update `provision-twilio-number/index.ts`
 
-2. **Create Brand Registration**
-   - POST to `/v1/a2p/BrandRegistrations` with the CustomerProfile SID
-   - Poll/webhook for approval (takes minutes to hours)
+After purchasing the local number (existing logic), add:
 
-3. **Create Messaging Service**
-   - POST to `/v1/Services` (Messaging)
-   - Add the provisioned phone number to the Messaging Service
+- Purchase a toll-free number for the same tenant
+- Create a Messaging Service for the toll-free number
+- Submit toll-free verification (Twilio's TF verification is typically approved in minutes, not days)
+- Store toll-free SIDs in `a2p_registrations`
+- Call `register-a2p-10dlc` server-side (removing the need for client-side trigger)
 
-4. **Create Campaign**
-   - POST to `/v1/Services/{sid}/UsAppToPerson` with:
-     - Brand SID
-     - Use case: "MIXED" or "CUSTOMER_CARE" 
-     - Sample messages (appointment confirmations, reminders)
-     - Opt-in/opt-out description
-   - Poll/webhook for approval (takes days)
+This makes the entire flow atomic -- one function call provisions voice + SMS.
 
-5. **Update `a2p_registrations`** status at each step
+### 3. Update `cron-a2p-status-check/index.ts`
 
-### Phase 4: Integration Into Provisioning Flow
+Add toll-free verification status polling:
 
-Modify `provision-twilio-number/index.ts`:
-- After successful number purchase, automatically call `register-a2p-10dlc`
-- Pass tenant business data from the `a2p_registrations` table
+- Check `TollfreeVerifications` API for tenants with `toll_free_verified = false`
+- When verified, set `toll_free_verified = true`
+- Continue checking 10DLC status as before
 
-Modify `OnboardingPage.tsx`:
-- After Twilio provisioning succeeds (line ~726), trigger A2P registration with the collected business data
+### 4. Create shared SMS sending helper
 
-### Phase 5: Status Tracking and Cron
+Create `supabase/functions/_shared/sms-sender.ts` with a `sendTenantSms()` function that:
 
-**New edge function: `cron-a2p-status-check`**
-- Runs every 30 minutes
-- Polls Twilio for brand/campaign approval status
-- Updates `a2p_registrations.status`
-- When campaign is approved, enables SMS sending for that tenant
+1. Checks `a2p_registrations` for the tenant
+2. If `status = 'approved'` -- sends via the 10DLC Messaging Service SID
+3. Else if `toll_free_verified = true` -- sends via toll-free Messaging Service SID
+4. Else -- returns `{ skipped: true, reason: "no_verified_channel" }`
 
-**Dashboard indicator:**
-- Show SMS registration status on the dashboard/settings page
-- States: "Registering...", "Pending Approval", "Approved -- SMS Active", "Failed (reason)"
+This replaces the raw Twilio API calls scattered across 4+ edge functions.
 
-### Phase 6: Enable SMS Feature Gate
+### 5. Update all SMS-sending functions
 
-Update `src/config/pricing.ts`:
-- Change `hasSmsFeature()` to return `true` for tenants with approved A2P registration
-- This unlocks SMS UI components (settings, templates, send controls)
+Refactor these to use the shared `sendTenantSms()` helper:
 
-## User Experience (What Businesses See)
+- `send-sms/index.ts`
+- `booking-handoff/index.ts` (customer confirmation section)
+- `cron-appointment-reminders/index.ts`
+- `cron-review-requests/index.ts`
 
-1. **Onboarding Step 1**: They fill in business name, industry, and now also legal name, EIN, entity type, and address (presented as "we need this to activate your texting capabilities")
-2. **Onboarding completes**: Phone number provisioned + A2P registration kicks off automatically in background
-3. **Dashboard**: Shows "SMS: Setting up..." badge that updates to "SMS: Active" once approved (typically 1-3 business days)
-4. **No manual Twilio interaction required** -- fully invisible to the business owner
+This ensures every SMS path automatically uses the correct channel (toll-free or 10DLC).
 
-## Technical Considerations
+### 6. Remove client-side A2P trigger from OnboardingPage
 
-- **EIN sensitivity**: Store encrypted or in Twilio only (never log it). Consider using Twilio's TrustHub as the canonical store rather than keeping EIN in our database.
-- **Sole Proprietors**: Businesses without an EIN use the Sole Proprietor registration path (lower throughput limits but simpler -- no EIN needed, uses phone OTP verification instead).
-- **Fallback**: If A2P registration fails or is pending, SMS features remain disabled gracefully with a clear status message.
-- **Pre-requisite**: CloseLoop must have an approved **Primary ISV Business Profile** in the Twilio Console before any of this works. This is a one-time manual step.
+Remove lines 781-803 in `OnboardingPage.tsx` (the `register-a2p-10dlc` invocation). The server now handles this inside `provision-twilio-number`.
+
+### 7. Update `SmsRegistrationStatus.tsx`
+
+Add a new status state for toll-free:
+
+- `toll_free_active`: "SMS: Active (Toll-Free)" -- shows when toll-free is verified but 10DLC is still pending
+- Update tooltip to explain: "Sending via toll-free while full registration completes"
+
+### 8. Update `SmsSettingsSection.tsx`
+
+Show which channel is currently active:
+
+- Badge showing "Sending via Toll-Free" or "Sending via 10DLC" based on registration state
+- Info callout explaining that toll-free is temporary and 10DLC will take over once approved
+
+## Technical Details
+
+### Toll-Free Verification API (Twilio)
+
+Toll-free verification is simpler than 10DLC:
+- POST to `/v2/RegulatoryCompliance/TollfreeVerifications`
+- Requires: business name, address, use case description, sample messages, opt-in description
+- Approval is typically minutes to hours (vs days for 10DLC)
+- Lower throughput than 10DLC but sufficient for appointment SMS
+
+### Messaging Service routing
+
+When sending via a Messaging Service, the `From` parameter changes:
+- Instead of `From: +1234567890`
+- Use `MessagingServiceSid: MGxxxxxxxx`
+- Twilio automatically selects the right number from the service
+
+### Cost consideration
+
+Each tenant gets 2 numbers during the transition period:
+- Local number: voice calls + future 10DLC SMS
+- Toll-free number: immediate SMS until 10DLC approved
+
+Once 10DLC is approved, the toll-free number can optionally be released (future optimization).
 
 ## File Changes Summary
 
-| Action | File/Path |
-|--------|-----------|
-| Create | `supabase/functions/register-a2p-10dlc/index.ts` |
-| Create | `supabase/functions/cron-a2p-status-check/index.ts` |
-| Modify | `supabase/functions/provision-twilio-number/index.ts` -- trigger A2P after purchase |
-| Modify | `supabase/config.toml` -- add new function configs |
-| Create | DB migration for `a2p_registrations` table |
-| Modify | `src/components/onboarding/BusinessDetailsForm.tsx` -- add legal/EIN/entity fields |
-| Modify | `src/pages/app/OnboardingPage.tsx` -- pass new fields, trigger A2P |
-| Modify | `src/config/pricing.ts` -- update `hasSmsFeature()` logic |
-| Create | `src/components/dashboard/SmsRegistrationStatus.tsx` -- status indicator |
+| Action | File |
+|--------|------|
+| Migrate | Add toll-free columns to `a2p_registrations` |
+| Create | `supabase/functions/_shared/sms-sender.ts` |
+| Modify | `supabase/functions/provision-twilio-number/index.ts` |
+| Modify | `supabase/functions/register-a2p-10dlc/index.ts` (minor) |
+| Modify | `supabase/functions/cron-a2p-status-check/index.ts` |
+| Modify | `supabase/functions/send-sms/index.ts` |
+| Modify | `supabase/functions/booking-handoff/index.ts` |
+| Modify | `supabase/functions/cron-appointment-reminders/index.ts` |
+| Modify | `supabase/functions/cron-review-requests/index.ts` |
+| Modify | `src/pages/app/OnboardingPage.tsx` (remove client A2P trigger) |
+| Modify | `src/components/dashboard/SmsRegistrationStatus.tsx` |
+| Modify | `src/components/settings/SmsSettingsSection.tsx` |
 
