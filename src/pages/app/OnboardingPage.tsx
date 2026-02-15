@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,8 +11,11 @@ import {
   Building2, CheckCircle2, Loader2,
   ChevronRight, ChevronLeft, Sliders,
   HelpCircle, ExternalLink, Clock,
-  UtensilsCrossed, Users
+  UtensilsCrossed, Users, RefreshCw
 } from "lucide-react";
+import { useOnboardingValidation } from "@/hooks/useOnboardingValidation";
+import { FieldErrorMessage } from "@/components/onboarding/FieldErrorMessage";
+import { cn } from "@/lib/utils";
 import { createDefaultWorkflowsForMode } from "@/lib/createDefaultWorkflows";
 import { getIndustryBySlug } from "@/data/industryCatalog";
 import { resolveIndustryTemplate } from "@/lib/templateResolver";
@@ -101,6 +104,12 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [provisionedPhone, setProvisionedPhone] = useState<string | undefined>();
+  const [retryCount, setRetryCount] = useState(0);
+  const [showRetry, setShowRetry] = useState(false);
+  const [completionError, setCompletionError] = useState<string | null>(null);
+  const MAX_RETRIES = 3;
+
+  const { validateStep, getFieldError, clearErrors, hasAttemptedSubmit } = useOnboardingValidation();
 
   // Track if industry template has been initialized
   const initializedIndustryRef = useRef<string | null>(saved.current?.industrySlug || null);
@@ -807,12 +816,29 @@ export default function OnboardingPage() {
         title: errorInfo.title,
         description: errorInfo.description,
       });
+      if (retryCount < MAX_RETRIES) {
+        setShowRetry(true);
+        setCompletionError(null);
+      } else {
+        setShowRetry(false);
+        setCompletionError("We're having trouble saving. Please refresh and try again, or contact support.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const goNext = () => {
+    const stepId = steps[step - 1]?.id || "";
+    const isValid = validateStep(stepId, {
+      businessName,
+      industrySlug,
+      businessDetails,
+      templateServices,
+    });
+    if (!isValid) return;
+    clearErrors();
+
     if (step < totalSteps) {
       setStep(step + 1);
     } else {
@@ -821,9 +847,23 @@ export default function OnboardingPage() {
   };
 
   const goBack = () => {
+    clearErrors();
     if (step > 1) {
       setStep(step - 1);
     }
+  };
+
+  const handleRetry = async () => {
+    if (retryCount >= MAX_RETRIES) {
+      setCompletionError("We're having trouble saving. Please refresh and try again, or contact support.");
+      return;
+    }
+    const backoffMs = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+    setLoading(true);
+    setCompletionError(null);
+    await new Promise(r => setTimeout(r, backoffMs));
+    setRetryCount(prev => prev + 1);
+    handleComplete();
   };
 
   const currentStepInfo = steps[step - 1] || steps[0];
@@ -913,7 +953,7 @@ export default function OnboardingPage() {
                           This is how your AI will introduce itself on calls.
                         </p>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-1">
                         <Label htmlFor="business-name">Business Name</Label>
                         <Input
                           id="business-name"
@@ -921,15 +961,20 @@ export default function OnboardingPage() {
                           value={businessName}
                           onChange={(e) => setBusinessName(e.target.value)}
                           autoFocus
+                          className={cn(getFieldError("business-name") && "border-destructive ring-destructive/30 ring-2")}
                         />
+                        <FieldErrorMessage message={getFieldError("business-name")} />
                       </div>
-                      <IndustrySelectorGrid
-                        value={industrySlug}
-                        onChange={(slug) => {
-                          setIndustrySlug(slug);
-                          setShowModeFallback(false);
-                        }}
-                      />
+                      <div data-field="industry-selector">
+                        <IndustrySelectorGrid
+                          value={industrySlug}
+                          onChange={(slug) => {
+                            setIndustrySlug(slug);
+                            setShowModeFallback(false);
+                          }}
+                        />
+                        <FieldErrorMessage message={getFieldError("industry-selector")} />
+                      </div>
                       {!showModeFallback ? (
                         <button
                           type="button"
@@ -1057,35 +1102,57 @@ export default function OnboardingPage() {
         {/* Footer Navigation */}
         {!isComplete && (
           <div className="border-t bg-card p-6">
-            <div className="max-w-2xl mx-auto flex justify-between gap-4">
-              <Button
-                variant="ghost"
-                onClick={goBack}
-                disabled={step === 1}
-                className="gap-2"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                Back
-              </Button>
-              <Button
-                onClick={step === totalSteps ? handleComplete : goNext}
-                disabled={!canProceed(step) || loading}
-                className="gap-2 min-w-[140px]"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Setting up...
-                  </>
-                ) : step === totalSteps ? (
-                  "Complete Setup"
-                ) : (
-                  <>
-                    Continue
-                    <ChevronRight className="w-4 h-4" />
-                  </>
-                )}
-              </Button>
+            <div className="max-w-2xl mx-auto space-y-3">
+              {/* Completion error banner */}
+              {completionError && (
+                <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm text-center">
+                  {completionError}
+                </div>
+              )}
+
+              <div className="flex justify-between gap-4">
+                <Button
+                  variant="ghost"
+                  onClick={goBack}
+                  disabled={step === 1}
+                  className="gap-2"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Back
+                </Button>
+
+                <div className="flex gap-2">
+                  {showRetry && !loading && (
+                    <Button
+                      variant="outline"
+                      onClick={handleRetry}
+                      className="gap-2"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      Retry ({MAX_RETRIES - retryCount} left)
+                    </Button>
+                  )}
+                  <Button
+                    onClick={step === totalSteps ? handleComplete : goNext}
+                    disabled={!canProceed(step) || loading}
+                    className="gap-2 min-w-[140px]"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Setting up...
+                      </>
+                    ) : step === totalSteps ? (
+                      "Complete Setup"
+                    ) : (
+                      <>
+                        Continue
+                        <ChevronRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         )}
