@@ -502,6 +502,96 @@ serve(async (req) => {
       }
     }
 
+    // ─── CUSTOMER CONFIRMATION SMS ───────────────────────────────────
+    // Send confirmation SMS to the CUSTOMER (not the owner) if enabled
+    try {
+      const customerPhone = booking.lead?.phone;
+      if (customerPhone) {
+        // Check if SMS confirmation is enabled in sms_templates
+        const { data: assistSettings } = await supabase
+          .from("assistant_settings")
+          .select("settings_json")
+          .eq("tenant_id", tenantId)
+          .maybeSingle();
+
+        const smsTemplates = (assistSettings?.settings_json as any)?.sms_templates;
+        const confirmationConfig = smsTemplates?.appointment_confirmation;
+
+        if (confirmationConfig?.enabled) {
+          // Check A2P approval
+          const { data: a2pReg } = await supabase
+            .from("a2p_registrations")
+            .select("status")
+            .eq("tenant_id", tenantId)
+            .maybeSingle();
+
+          if (a2pReg?.status === "approved") {
+            const { data: fromPhone } = await supabase
+              .from("phone_numbers")
+              .select("phone_e164")
+              .eq("tenant_id", tenantId)
+              .in("purpose", ["forwarding", "primary"])
+              .limit(1)
+              .single();
+
+            if (fromPhone?.phone_e164 && twilioSid && twilioAuth) {
+              const startTime = new Date(booking.start_at).toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+              });
+              const startDate = new Date(booking.start_at).toLocaleDateString("en-US", {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+              });
+
+              const template = confirmationConfig.message ||
+                "Hi {{customer_name}}! Your appointment with {{business_name}} is confirmed for {{appointment_date}} at {{appointment_time}}. Reply STOP to opt out.";
+
+              const message = template
+                .replace(/\{\{customer_name\}\}/g, booking.lead?.full_name || "there")
+                .replace(/\{\{business_name\}\}/g, tenantData?.name || "")
+                .replace(/\{\{service_name\}\}/g, booking.service?.name || "your appointment")
+                .replace(/\{\{appointment_time\}\}/g, startTime)
+                .replace(/\{\{appointment_date\}\}/g, startDate);
+
+              const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;
+              const smsResponse = await fetch(twilioUrl, {
+                method: "POST",
+                headers: {
+                  Authorization: `Basic ${btoa(`${twilioSid}:${twilioAuth}`)}`,
+                  "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: new URLSearchParams({
+                  To: customerPhone,
+                  From: fromPhone.phone_e164,
+                  Body: message,
+                }),
+              });
+
+              if (smsResponse.ok) {
+                await supabase
+                  .from("bookings")
+                  .update({ confirmation_sent: true })
+                  .eq("id", booking_id);
+                results.customer_confirmation = { success: true };
+                console.log(`[booking-handoff] Confirmation SMS sent to customer for ${booking_id}`);
+              } else {
+                const errText = await smsResponse.text();
+                console.error(`[booking-handoff] Customer confirmation SMS failed:`, errText);
+                results.customer_confirmation = { success: false, error: errText };
+              }
+            }
+          } else {
+            console.log(`[booking-handoff] Skipping customer SMS: A2P not approved for ${tenantId}`);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("[booking-handoff] Customer confirmation SMS error:", e);
+      results.customer_confirmation = { success: false, error: String(e) };
+    }
+
     return new Response(JSON.stringify({ success: true, results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
