@@ -25,7 +25,41 @@ serve(async (req) => {
   const twilioAuth = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
 
   try {
-    // Fetch all registrations that are in-progress (not approved/failed)
+    // ========== TOLL-FREE VERIFICATION CHECK ==========
+    const { data: pendingTF } = await supabase
+      .from("a2p_registrations")
+      .select("id, tenant_id, toll_free_verification_sid")
+      .eq("toll_free_verified", false)
+      .not("toll_free_verification_sid", "is", null);
+
+    let tfUpdated = 0;
+    if (pendingTF?.length) {
+      console.log(`[cron-a2p] Checking ${pendingTF.length} pending toll-free verifications`);
+      for (const reg of pendingTF) {
+        try {
+          const tfRes = await fetch(
+            `https://messaging.twilio.com/v1/Tollfree/Verifications/${reg.toll_free_verification_sid}`,
+            { headers: { Authorization: `Basic ${twilioAuth}` } }
+          );
+          if (tfRes.ok) {
+            const tfData = await tfRes.json();
+            console.log(`[cron-a2p] TF verification ${reg.toll_free_verification_sid} status: ${tfData.status}`);
+            if (tfData.status === "TWILIO_APPROVED" || tfData.status === "APPROVED") {
+              await supabase
+                .from("a2p_registrations")
+                .update({ toll_free_verified: true })
+                .eq("id", reg.id);
+              console.log(`[cron-a2p] ✅ Toll-free verified for tenant ${reg.tenant_id}`);
+              tfUpdated++;
+            }
+          }
+        } catch (e) {
+          console.error(`[cron-a2p] Error checking TF verification ${reg.id}:`, e);
+        }
+      }
+    }
+
+    // ========== 10DLC STATUS CHECK (existing logic) ==========
     const { data: pendingRegs, error: fetchError } = await supabase
       .from("a2p_registrations")
       .select("*")
@@ -38,7 +72,7 @@ serve(async (req) => {
 
     if (!pendingRegs || pendingRegs.length === 0) {
       console.log("[cron-a2p] No pending A2P registrations to check");
-      return jsonResponse({ checked: 0 });
+      return jsonResponse({ checked: 0, tf_updated: tfUpdated });
     }
 
     console.log(`[cron-a2p] Checking ${pendingRegs.length} pending A2P registrations`);
@@ -59,13 +93,11 @@ serve(async (req) => {
             console.log(`[cron-a2p] Brand ${reg.brand_sid} status: ${brandData.status}, score: ${brandData.brand_score}`);
 
             if (brandData.status === "APPROVED") {
-              // Brand approved — try to proceed to campaign
               await supabase.from("a2p_registrations").update({
                 brand_score: brandData.brand_score,
                 status: reg.campaign_sid ? "pending_campaign" : "pending_brand",
               }).eq("id", reg.id);
 
-              // Trigger next step if messaging service + campaign not yet created
               if (!reg.messaging_service_sid || !reg.campaign_sid) {
                 console.log(`[cron-a2p] Brand approved for tenant ${reg.tenant_id}, triggering next registration steps`);
                 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -130,7 +162,6 @@ serve(async (req) => {
             console.log(`[cron-a2p] Profile ${reg.customer_profile_sid} status: ${profileData.status}`);
 
             if (profileData.status === "twilio-approved") {
-              // Profile approved, proceed to brand registration
               const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
               await fetch(`${SUPABASE_URL}/functions/v1/register-a2p-10dlc`, {
                 method: "POST",
@@ -155,8 +186,8 @@ serve(async (req) => {
       }
     }
 
-    console.log(`[cron-a2p] Checked ${pendingRegs.length} registrations, updated ${updated}`);
-    return jsonResponse({ checked: pendingRegs.length, updated });
+    console.log(`[cron-a2p] Checked ${pendingRegs.length} registrations, updated ${updated}, TF updated ${tfUpdated}`);
+    return jsonResponse({ checked: pendingRegs.length, updated, tf_updated: tfUpdated });
   } catch (error) {
     console.error("[cron-a2p] Error:", error);
     return errorResponse(error instanceof Error ? error.message : "Unknown error", 500);

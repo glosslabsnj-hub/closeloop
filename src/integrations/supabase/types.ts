@@ -37,6 +37,11 @@ export type Database = {
           status: string
           street_address: string | null
           tenant_id: string
+          toll_free_messaging_service_sid: string | null
+          toll_free_phone_e164: string | null
+          toll_free_phone_sid: string | null
+          toll_free_verification_sid: string | null
+          toll_free_verified: boolean
           updated_at: string
           website_url: string | null
           zip_code: string | null
@@ -63,6 +68,11 @@ export type Database = {
           status?: string
           street_address?: string | null
           tenant_id: string
+          toll_free_messaging_service_sid?: string | null
+          toll_free_phone_e164?: string | null
+          toll_free_phone_sid?: string | null
+          toll_free_verification_sid?: string | null
+          toll_free_verified?: boolean
           updated_at?: string
           website_url?: string | null
           zip_code?: string | null
@@ -89,6 +99,11 @@ export type Database = {
           status?: string
           street_address?: string | null
           tenant_id?: string
+          toll_free_messaging_service_sid?: string | null
+          toll_free_phone_e164?: string | null
+          toll_free_phone_sid?: string | null
+          toll_free_verification_sid?: string | null
+          toll_free_verified?: boolean
           updated_at?: string
           website_url?: string | null
           zip_code?: string | null

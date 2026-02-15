@@ -1,0 +1,92 @@
+/**
+ * Shared SMS sender with intelligent routing.
+ *
+ * Routing priority:
+ *   1. 10DLC approved → send via 10DLC Messaging Service
+ *   2. Toll-free verified → send via toll-free Messaging Service
+ *   3. Neither → skip (no verified channel)
+ *
+ * All SMS-sending edge functions should use this helper instead of
+ * calling the Twilio Messages API directly.
+ */
+
+import { serviceClient } from "./tenant.ts";
+
+export interface SendSmsRequest {
+  tenantId: string;
+  to: string;
+  body: string;
+}
+
+export interface SendSmsResult {
+  success: boolean;
+  skipped?: boolean;
+  reason?: string;
+  twilioSid?: string;
+  channel?: "10dlc" | "toll_free";
+  error?: string;
+}
+
+export async function sendTenantSms(req: SendSmsRequest): Promise<SendSmsResult> {
+  const { tenantId, to, body } = req;
+
+  const twilioAccountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
+  const twilioAuthToken = Deno.env.get("TWILIO_AUTH_TOKEN");
+
+  if (!twilioAccountSid || !twilioAuthToken) {
+    return { success: false, error: "Twilio credentials not configured" };
+  }
+
+  const supabase = serviceClient();
+
+  // Fetch A2P registration for this tenant
+  const { data: a2p } = await supabase
+    .from("a2p_registrations")
+    .select("status, messaging_service_sid, toll_free_verified, toll_free_messaging_service_sid")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+
+  // Determine which Messaging Service to use
+  let messagingServiceSid: string | null = null;
+  let channel: "10dlc" | "toll_free" | null = null;
+
+  if (a2p?.status === "approved" && a2p.messaging_service_sid) {
+    messagingServiceSid = a2p.messaging_service_sid;
+    channel = "10dlc";
+  } else if (a2p?.toll_free_verified && a2p.toll_free_messaging_service_sid) {
+    messagingServiceSid = a2p.toll_free_messaging_service_sid;
+    channel = "toll_free";
+  }
+
+  if (!messagingServiceSid || !channel) {
+    console.log(`[sms-sender] No verified SMS channel for tenant ${tenantId}`);
+    return { success: false, skipped: true, reason: "no_verified_channel" };
+  }
+
+  // Send via Messaging Service (not raw From number)
+  const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`;
+  const twilioAuth = btoa(`${twilioAccountSid}:${twilioAuthToken}`);
+
+  const smsResponse = await fetch(twilioUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${twilioAuth}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      To: to,
+      MessagingServiceSid: messagingServiceSid,
+      Body: body,
+    }),
+  });
+
+  if (!smsResponse.ok) {
+    const errText = await smsResponse.text();
+    console.error(`[sms-sender] Twilio error for tenant ${tenantId}:`, errText);
+    return { success: false, error: errText, channel };
+  }
+
+  const result = await smsResponse.json();
+  console.log(`[sms-sender] SMS sent via ${channel} for tenant ${tenantId}: ${result.sid}`);
+  return { success: true, twilioSid: result.sid, channel };
+}

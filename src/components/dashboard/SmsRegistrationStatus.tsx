@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { MessageSquare, Loader2, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, Clock, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -34,7 +34,7 @@ const STATUS_CONFIG: Record<string, { label: string; icon: typeof Clock; variant
     label: "SMS: Active",
     icon: CheckCircle2,
     variant: "default",
-    description: "SMS messaging is fully active on your number",
+    description: "SMS messaging is fully active via 10DLC",
   },
   failed: {
     label: "SMS: Failed",
@@ -53,41 +53,71 @@ export function SmsRegistrationStatus() {
       if (!tenant?.id) return null;
       const { data, error } = await supabase
         .from("a2p_registrations")
-        .select("status, failure_reason, brand_score")
+        .select("status, failure_reason, brand_score, toll_free_verified")
         .eq("tenant_id", tenant.id)
         .maybeSingle();
       if (error) throw error;
       return data;
     },
     enabled: !!tenant?.id,
-    refetchInterval: 60_000, // Poll every minute
+    refetchInterval: 60_000,
   });
 
   if (!a2pStatus) return null;
 
+  // Determine if toll-free is active as fallback
+  const isTollFreeActive = a2pStatus.toll_free_verified && a2pStatus.status !== "approved";
+  const is10DLCApproved = a2pStatus.status === "approved";
+
   const config = STATUS_CONFIG[a2pStatus.status] || STATUS_CONFIG.pending_data;
-  const Icon = config.icon;
   const isAnimating = ["pending_profile", "pending_brand", "pending_campaign"].includes(a2pStatus.status);
 
   return (
     <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Badge variant={config.variant} className="gap-1.5 cursor-help">
-            <Icon className={`h-3 w-3 ${isAnimating ? "animate-spin" : ""}`} />
-            {config.label}
-          </Badge>
-        </TooltipTrigger>
-        <TooltipContent className="max-w-xs">
-          <p>{config.description}</p>
-          {a2pStatus.failure_reason && (
-            <p className="mt-1 text-xs text-destructive">{a2pStatus.failure_reason}</p>
-          )}
-          {a2pStatus.brand_score && (
-            <p className="mt-1 text-xs">Brand trust score: {a2pStatus.brand_score}</p>
-          )}
-        </TooltipContent>
-      </Tooltip>
+      <div className="flex items-center gap-2">
+        {/* Toll-free active badge (shown when TF verified but 10DLC still pending) */}
+        {isTollFreeActive && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge variant="default" className="gap-1.5 cursor-help">
+                <Zap className="h-3 w-3" />
+                SMS: Active (Toll-Free)
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p>SMS is active via your toll-free number while full 10DLC registration completes.</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Once 10DLC is approved, messages will automatically route through your local number for higher throughput.
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        )}
+
+        {/* Main 10DLC status badge */}
+        {(!isTollFreeActive || !is10DLCApproved) && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge variant={is10DLCApproved ? "default" : isTollFreeActive ? "secondary" : config.variant} className="gap-1.5 cursor-help">
+                {is10DLCApproved ? (
+                  <CheckCircle2 className="h-3 w-3" />
+                ) : (
+                  <config.icon className={`h-3 w-3 ${isAnimating ? "animate-spin" : ""}`} />
+                )}
+                {is10DLCApproved ? "10DLC: Active" : isTollFreeActive ? `10DLC: ${config.label.replace("SMS: ", "")}` : config.label}
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p>{config.description}</p>
+              {a2pStatus.failure_reason && (
+                <p className="mt-1 text-xs text-destructive">{a2pStatus.failure_reason}</p>
+              )}
+              {a2pStatus.brand_score && (
+                <p className="mt-1 text-xs">Brand trust score: {a2pStatus.brand_score}</p>
+              )}
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </div>
     </TooltipProvider>
   );
 }
