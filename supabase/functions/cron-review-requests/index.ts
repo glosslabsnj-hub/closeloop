@@ -1,13 +1,12 @@
 /**
  * cron-review-requests: Send review request SMS after completed appointments.
  *
- * Called by pg_cron every 15 minutes. Sends review request based on tenant's
- * configured delay in assistant_settings.settings_json.sms_templates.review_request.
- *
- * Checks A2P registration status before sending.
+ * Called by pg_cron every 15 minutes. Uses shared sms-sender for
+ * intelligent 10DLC/toll-free routing.
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendTenantSms } from "../_shared/sms-sender.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -26,9 +25,8 @@ serve(async (_req: Request) => {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const now = new Date();
-    const results = { checked: 0, sent: 0, errors: 0, skipped_a2p: 0, skipped_no_link: 0 };
+    const results = { checked: 0, sent: 0, errors: 0, skipped_sms: 0, skipped_no_link: 0 };
 
-    // Get all tenants with review request enabled
     const { data: allSettings, error: settingsErr } = await supabase
       .from("assistant_settings")
       .select("tenant_id, settings_json");
@@ -49,19 +47,6 @@ serve(async (_req: Request) => {
 
     const tenantIds = enabledTenants.map((s: any) => s.tenant_id);
 
-    // Check A2P status
-    const { data: a2pStatuses } = await supabase
-      .from("a2p_registrations")
-      .select("tenant_id, status")
-      .in("tenant_id", tenantIds);
-
-    const a2pApproved = new Set(
-      (a2pStatuses || [])
-        .filter((a: any) => a.status === "approved")
-        .map((a: any) => a.tenant_id)
-    );
-
-    // Get tenant info (name + review_link)
     const { data: tenants } = await supabase
       .from("tenants")
       .select("id, name, review_link")
@@ -69,28 +54,13 @@ serve(async (_req: Request) => {
 
     const tenantMap = new Map((tenants || []).map((t: any) => [t.id, t]));
 
-    const twilioSid = Deno.env.get("TWILIO_ACCOUNT_SID");
-    const twilioAuth = Deno.env.get("TWILIO_AUTH_TOKEN");
-
-    if (!twilioSid || !twilioAuth) {
-      console.error("[cron-review-requests] Twilio not configured");
-      return new Response(JSON.stringify({ error: "Twilio not configured" }), { status: 500 });
-    }
-
     for (const setting of enabledTenants) {
       const tenantId = setting.tenant_id;
-
-      if (!a2pApproved.has(tenantId)) {
-        results.skipped_a2p++;
-        continue;
-      }
-
       const tenant = tenantMap.get(tenantId);
       const reviewLink = tenant?.review_link;
 
       if (!reviewLink) {
         results.skipped_no_link++;
-        console.log(`[cron-review-requests] Skipping ${tenantId}: no review_link configured`);
         continue;
       }
 
@@ -99,7 +69,6 @@ serve(async (_req: Request) => {
       const delayMinutes = reviewConfig.delayMinutes || 60;
       const template = reviewConfig.message || DEFAULT_REVIEW_TEMPLATE;
 
-      // Find completed bookings where end_at was delayMinutes ago (±15min window)
       const targetTime = new Date(now.getTime() - delayMinutes * 60 * 1000);
       const windowStart = new Date(targetTime.getTime() - 15 * 60 * 1000).toISOString();
       const windowEnd = new Date(targetTime.getTime() + 15 * 60 * 1000).toISOString();
@@ -116,17 +85,6 @@ serve(async (_req: Request) => {
       if (!bookings?.length) continue;
       results.checked += bookings.length;
 
-      // Get From number
-      const { data: phoneNum } = await supabase
-        .from("phone_numbers")
-        .select("phone_e164")
-        .eq("tenant_id", tenantId)
-        .in("purpose", ["forwarding", "primary"])
-        .limit(1)
-        .single();
-
-      if (!phoneNum?.phone_e164) continue;
-
       for (const booking of bookings) {
         try {
           const lead = booking.leads as any;
@@ -140,30 +98,22 @@ serve(async (_req: Request) => {
             review_link: reviewLink,
           });
 
-          const smsResponse = await fetch(
-            `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`,
-            {
-              method: "POST",
-              headers: {
-                Authorization: `Basic ${btoa(`${twilioSid}:${twilioAuth}`)}`,
-                "Content-Type": "application/x-www-form-urlencoded",
-              },
-              body: new URLSearchParams({
-                To: phone,
-                From: phoneNum.phone_e164,
-                Body: message,
-              }),
-            },
-          );
+          const smsResult = await sendTenantSms({
+            tenantId,
+            to: phone,
+            body: message,
+          });
 
-          if (smsResponse.ok) {
+          if (smsResult.success) {
             await supabase
               .from("bookings")
               .update({ review_sent: true })
               .eq("id", booking.id);
             results.sent++;
+          } else if (smsResult.skipped) {
+            results.skipped_sms++;
           } else {
-            console.error(`[cron-review-requests] SMS failed for ${booking.id}:`, await smsResponse.text());
+            console.error(`[cron-review-requests] SMS failed for ${booking.id}:`, smsResult.error);
             results.errors++;
           }
         } catch (err) {

@@ -85,7 +85,7 @@ export function SmsSettingsSection() {
       if (!tenant?.id) return null;
       const { data, error } = await supabase
         .from("a2p_registrations")
-        .select("status, failure_reason")
+        .select("status, failure_reason, toll_free_verified")
         .eq("tenant_id", tenant.id)
         .maybeSingle();
       if (error) throw error;
@@ -192,7 +192,9 @@ export function SmsSettingsSection() {
   };
 
   const isApproved = a2pStatus?.status === "approved";
-  const isPending = a2pStatus && !["approved", "failed"].includes(a2pStatus.status);
+  const isTollFreeActive = a2pStatus?.toll_free_verified && !isApproved;
+  const canSend = isApproved || isTollFreeActive;
+  const isPending = a2pStatus && !["approved", "failed"].includes(a2pStatus.status) && !isTollFreeActive;
   const noRegistration = !a2pStatus;
 
   return (
@@ -202,16 +204,25 @@ export function SmsSettingsSection() {
         title="SMS Registration Status"
         description="Your number must be registered for A2P 10DLC compliance before sending SMS."
       >
-        <div className="flex items-center gap-3">
-          <SmsRegistrationStatus />
-          {isApproved && (
-            <p className="text-sm text-muted-foreground">
-              Your number is fully registered. SMS messaging is active.
-            </p>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <SmsRegistrationStatus />
+          </div>
+          {canSend && (
+            <div className="flex items-center gap-2 text-sm">
+              <Badge variant={isApproved ? "default" : "secondary"} className="text-xs">
+                {isApproved ? "Sending via 10DLC" : "Sending via Toll-Free"}
+              </Badge>
+              {isTollFreeActive && (
+                <span className="text-muted-foreground text-xs">
+                  Messages route via toll-free while 10DLC registration completes
+                </span>
+              )}
+            </div>
           )}
           {isPending && (
             <p className="text-sm text-muted-foreground">
-              Registration is in progress. You can configure templates now — they'll activate once approved.
+              Registration is in progress. You can configure templates now — they'll activate once a channel is verified.
             </p>
           )}
           {noRegistration && (

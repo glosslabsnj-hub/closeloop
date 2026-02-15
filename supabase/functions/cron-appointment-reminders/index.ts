@@ -4,10 +4,11 @@
  * Called by pg_cron every 15 minutes. Sends reminders based on tenant's
  * configured timing in assistant_settings.settings_json.sms_templates.
  *
- * Checks A2P registration status before sending.
+ * Uses shared sms-sender for intelligent 10DLC/toll-free routing.
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendTenantSms } from "../_shared/sms-sender.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -26,7 +27,7 @@ serve(async (_req: Request) => {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const now = new Date();
-    const results = { checked: 0, sent_reminders: 0, errors: 0, skipped_a2p: 0 };
+    const results = { checked: 0, sent_reminders: 0, errors: 0, skipped_sms: 0 };
 
     // Get all tenants with SMS templates configured
     const { data: allSettings, error: settingsErr } = await supabase
@@ -38,11 +39,9 @@ serve(async (_req: Request) => {
       return new Response(JSON.stringify({ error: settingsErr.message }), { status: 500 });
     }
 
-    // Filter to tenants with reminder enabled via sms_templates
     const enabledTenants = (allSettings || []).filter((s: any) => {
       const json = s.settings_json as Record<string, any> | null;
-      const smsTemplates = json?.sms_templates;
-      return smsTemplates?.appointment_reminder?.enabled === true;
+      return json?.sms_templates?.appointment_reminder?.enabled === true;
     });
 
     if (enabledTenants.length === 0) {
@@ -50,26 +49,6 @@ serve(async (_req: Request) => {
     }
 
     const tenantIds = enabledTenants.map((s: any) => s.tenant_id);
-
-    // Check A2P status for each tenant
-    const { data: a2pStatuses } = await supabase
-      .from("a2p_registrations")
-      .select("tenant_id, status")
-      .in("tenant_id", tenantIds);
-
-    const a2pApproved = new Set(
-      (a2pStatuses || [])
-        .filter((a: any) => a.status === "approved")
-        .map((a: any) => a.tenant_id)
-    );
-
-    const twilioSid = Deno.env.get("TWILIO_ACCOUNT_SID");
-    const twilioAuth = Deno.env.get("TWILIO_AUTH_TOKEN");
-
-    if (!twilioSid || !twilioAuth) {
-      console.error("[cron-appointment-reminders] Twilio not configured");
-      return new Response(JSON.stringify({ error: "Twilio not configured" }), { status: 500 });
-    }
 
     // Build tenant settings map
     const settingsMap = new Map<string, any>();
@@ -86,17 +65,10 @@ serve(async (_req: Request) => {
 
     // Process each tenant
     for (const tenantId of tenantIds) {
-      // Skip tenants without approved A2P
-      if (!a2pApproved.has(tenantId)) {
-        results.skipped_a2p++;
-        console.log(`[cron-appointment-reminders] Skipping ${tenantId}: A2P not approved`);
-        continue;
-      }
-
       const tenantSettings = settingsMap.get(tenantId) || {};
       const smsTemplates = tenantSettings.sms_templates || {};
       const reminderConfig = smsTemplates.appointment_reminder || {};
-      const delayMinutes = reminderConfig.delayMinutes || 1440; // default 24h
+      const delayMinutes = reminderConfig.delayMinutes || 1440;
       const template = reminderConfig.message || DEFAULT_REMINDER_TEMPLATE;
 
       // Window: target time ± 15 min (cron frequency)
@@ -104,8 +76,7 @@ serve(async (_req: Request) => {
       const windowStart = new Date(now.getTime() + targetMs - 15 * 60 * 1000).toISOString();
       const windowEnd = new Date(now.getTime() + targetMs + 15 * 60 * 1000).toISOString();
 
-      // Determine which reminder flag to check based on delay
-      const isShortReminder = delayMinutes <= 120; // 2h or less = "1h" flag
+      const isShortReminder = delayMinutes <= 120;
       const flagColumn = isShortReminder ? "reminder_sent_1h" : "reminder_sent_24h";
 
       const { data: bookings } = await supabase
@@ -119,20 +90,6 @@ serve(async (_req: Request) => {
 
       if (!bookings?.length) continue;
       results.checked += bookings.length;
-
-      // Get From number
-      const { data: phoneNum } = await supabase
-        .from("phone_numbers")
-        .select("phone_e164")
-        .eq("tenant_id", tenantId)
-        .in("purpose", ["forwarding", "primary"])
-        .limit(1)
-        .single();
-
-      if (!phoneNum?.phone_e164) {
-        console.error(`[cron-appointment-reminders] No phone for tenant ${tenantId}`);
-        continue;
-      }
 
       const businessName = tenantNameMap.get(tenantId) || "";
 
@@ -160,30 +117,22 @@ serve(async (_req: Request) => {
             appointment_date: startDate,
           });
 
-          const smsResponse = await fetch(
-            `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`,
-            {
-              method: "POST",
-              headers: {
-                Authorization: `Basic ${btoa(`${twilioSid}:${twilioAuth}`)}`,
-                "Content-Type": "application/x-www-form-urlencoded",
-              },
-              body: new URLSearchParams({
-                To: phone,
-                From: phoneNum.phone_e164,
-                Body: message,
-              }),
-            },
-          );
+          const smsResult = await sendTenantSms({
+            tenantId,
+            to: phone,
+            body: message,
+          });
 
-          if (smsResponse.ok) {
+          if (smsResult.success) {
             await supabase
               .from("bookings")
               .update({ [flagColumn]: true })
               .eq("id", booking.id);
             results.sent_reminders++;
+          } else if (smsResult.skipped) {
+            results.skipped_sms++;
           } else {
-            console.error(`[cron-appointment-reminders] SMS failed for ${booking.id}:`, await smsResponse.text());
+            console.error(`[cron-appointment-reminders] SMS failed for ${booking.id}:`, smsResult.error);
             results.errors++;
           }
         } catch (err) {

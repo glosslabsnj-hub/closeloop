@@ -778,29 +778,8 @@ export default function OnboardingPage() {
               twilio_sid: provisionData.phone_sid,
             });
 
-            // Trigger A2P 10DLC registration automatically after number provisioning
-            if (a2pData.legalBusinessName || a2pData.entityType) {
-              try {
-                console.log("A2P Registration: triggering...");
-                const { data: a2pResult, error: a2pRegError } = await supabase.functions.invoke(
-                  "register-a2p-10dlc",
-                  {
-                    body: {
-                      tenant_id: tenantId,
-                      phone_number_sid: provisionData.phone_sid,
-                      phone_e164: provisionData.phone_number,
-                    },
-                  }
-                );
-                if (a2pRegError) {
-                  console.error("A2P Registration: error", { message: a2pRegError.message });
-                } else {
-                  console.log("A2P Registration: initiated", { status: a2pResult?.status });
-                }
-              } catch (a2pErr: unknown) {
-                console.error("A2P Registration: exception", { message: a2pErr instanceof Error ? a2pErr.message : String(a2pErr) });
-              }
-            }
+            // A2P 10DLC registration is now handled server-side inside provision-twilio-number
+            console.log("A2P Registration: handled server-side during provisioning");
           } else {
             console.error("TwilioProvision: failed", { error: provisionData?.error });
           }
