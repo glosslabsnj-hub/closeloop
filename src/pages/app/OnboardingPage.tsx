@@ -32,6 +32,8 @@ import { OnboardingProgress, OnboardingProgressMobile, type OnboardingStep } fro
 import { OnboardingComplete } from "@/components/onboarding/OnboardingComplete";
 import { IndustrySelectorGrid } from "@/components/onboarding/IndustrySelectorGrid";
 import { updateCapabilityFlags } from "@/hooks/useBusinessCapabilities";
+import { ResumeOnboardingModal } from "@/components/onboarding/ResumeOnboardingModal";
+import { AutoSaveIndicator } from "@/components/onboarding/AutoSaveIndicator";
 import { getQuestionsForMode, getDefaultAnswers, deriveModulesFromScenario } from "@/lib/scenarioQuestions";
 import { DEFAULT_BUSINESS_HOURS } from "@/lib/hoursUtils";
 import { applyScenarioSeeds } from "@/lib/scenarioSeeding";
@@ -54,7 +56,9 @@ const ALL_STEPS: OnboardingStep[] = [
   { id: "confirm", icon: CheckCircle2, title: "Review", description: "Confirm and launch" },
 ];
 
-const ONBOARDING_STORAGE_KEY = "closeloop_onboarding_progress";
+function getStorageKey(userId?: string) {
+  return `voxly_onboarding_progress_${userId || "anon"}`;
+}
 
 interface OnboardingState {
   step: number;
@@ -74,17 +78,18 @@ interface OnboardingState {
   teamMembers: TeamMember[];
   isSoloOperator: boolean;
   a2pData: A2PBusinessData;
+  savedAt?: string;
 }
 
-function saveOnboardingProgress(state: OnboardingState) {
+function saveOnboardingProgress(state: OnboardingState, userId?: string) {
   try {
-    localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(getStorageKey(userId), JSON.stringify({ ...state, savedAt: new Date().toISOString() }));
   } catch { /* ignore quota errors */ }
 }
 
-function loadOnboardingProgress(): OnboardingState | null {
+function loadOnboardingProgress(userId?: string): OnboardingState | null {
   try {
-    const raw = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+    const raw = localStorage.getItem(getStorageKey(userId));
     if (!raw) return null;
     return JSON.parse(raw) as OnboardingState;
   } catch {
@@ -92,13 +97,21 @@ function loadOnboardingProgress(): OnboardingState | null {
   }
 }
 
-function clearOnboardingProgress() {
-  localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+function clearOnboardingProgress(userId?: string) {
+  localStorage.removeItem(getStorageKey(userId));
 }
 
 export default function OnboardingPage() {
-  // Restore saved progress
-  const saved = useRef(loadOnboardingProgress());
+  const { user, tenant, loading: authLoading, refreshTenant, isSuperAdmin } = useAuth();
+
+  // User-scoped localStorage
+  const userId = user?.id;
+  const saved = useRef(loadOnboardingProgress(userId));
+
+  // Pre-fill business name: saved progress → signup sessionStorage → empty
+  const initialBusinessName = saved.current?.businessName
+    || sessionStorage.getItem("businessName")
+    || "";
 
   const [step, setStep] = useState(saved.current?.step ?? 1);
   const [loading, setLoading] = useState(false);
@@ -109,13 +122,23 @@ export default function OnboardingPage() {
   const [completionError, setCompletionError] = useState<string | null>(null);
   const MAX_RETRIES = 3;
 
+  // Resume modal state
+  const [showResumeModal, setShowResumeModal] = useState(
+    () => !!(saved.current && saved.current.step > 1)
+  );
+  const [resumeDecided, setResumeDecided] = useState(!showResumeModal);
+
+  // Auto-save indicator
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
   const { validateStep, getFieldError, clearErrors, hasAttemptedSubmit } = useOnboardingValidation();
 
   // Track if industry template has been initialized
   const initializedIndustryRef = useRef<string | null>(saved.current?.industrySlug || null);
 
   // Step 1: Identity
-  const [businessName, setBusinessName] = useState(saved.current?.businessName ?? "");
+  const [businessName, setBusinessName] = useState(initialBusinessName);
   const [businessMode, setBusinessMode] = useState<BusinessMode>(saved.current?.businessMode ?? "service");
 
   // Step 2: Industry
@@ -156,9 +179,36 @@ export default function OnboardingPage() {
   // "Can't find your industry?" fallback toggle
   const [showModeFallback, setShowModeFallback] = useState(false);
 
-  // Auto-save progress on state changes
+  // Clear signup sessionStorage after reading
   useEffect(() => {
-    if (isComplete) return;
+    sessionStorage.removeItem("businessName");
+  }, []);
+
+  // Resume modal handlers
+  const handleResume = () => {
+    setShowResumeModal(false);
+    setResumeDecided(true);
+  };
+
+  const handleStartFresh = () => {
+    setShowResumeModal(false);
+    setResumeDecided(true);
+    clearOnboardingProgress(userId);
+    setStep(1);
+    setBusinessName(sessionStorage.getItem("businessName") || "");
+    setIndustrySlug("");
+    setScenarioAnswers({});
+    setScenarioDetails({});
+    setTemplateServices([]);
+    setTemplateFAQs([]);
+    setTemplatePolicies({ cancellation: "", deposit: "", refund: "" });
+    initializedIndustryRef.current = null;
+  };
+
+  // Auto-save progress every 5 seconds (debounced)
+  useEffect(() => {
+    if (isComplete || !resumeDecided) return;
+    setSaveStatus("saving");
     const timer = setTimeout(() => {
       saveOnboardingProgress({
         step, businessName, businessMode, industrySlug,
@@ -166,12 +216,15 @@ export default function OnboardingPage() {
         templateServices, templateFAQs, templatePolicies,
         serviceArea, businessDetails, businessHours,
         teamMembers, isSoloOperator, a2pData,
-      });
-    }, 500); // debounce
+      }, userId);
+      setSaveStatus("saved");
+      // Reset to idle after 2s
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => setSaveStatus("idle"), 2000);
+    }, 5000);
     return () => clearTimeout(timer);
-  }, [step, businessName, businessMode, industrySlug, scenarioAnswers, scenarioDetails, schedulingPrefs, communicationPrefs, templateServices, templateFAQs, templatePolicies, serviceArea, businessDetails, businessHours, teamMembers, isSoloOperator, a2pData, isComplete]);
+  }, [step, businessName, businessMode, industrySlug, scenarioAnswers, scenarioDetails, schedulingPrefs, communicationPrefs, templateServices, templateFAQs, templatePolicies, serviceArea, businessDetails, businessHours, teamMembers, isSoloOperator, a2pData, isComplete, resumeDecided, userId]);
 
-  const { user, tenant, loading: authLoading, refreshTenant, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -806,7 +859,7 @@ export default function OnboardingPage() {
       await refreshTenant();
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      clearOnboardingProgress();
+      clearOnboardingProgress(userId);
       setIsComplete(true);
     } catch (error: unknown) {
       console.error("Onboarding error:", error);
@@ -1103,6 +1156,10 @@ export default function OnboardingPage() {
         {!isComplete && (
           <div className="border-t bg-card p-6">
             <div className="max-w-2xl mx-auto space-y-3">
+              {/* Auto-save indicator */}
+              <div className="flex justify-end">
+                <AutoSaveIndicator status={saveStatus} />
+              </div>
               {/* Completion error banner */}
               {completionError && (
                 <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm text-center">
@@ -1157,6 +1214,14 @@ export default function OnboardingPage() {
           </div>
         )}
       </main>
+
+      {/* Resume modal */}
+      <ResumeOnboardingModal
+        open={showResumeModal}
+        savedAt={saved.current?.savedAt}
+        onResume={handleResume}
+        onStartFresh={handleStartFresh}
+      />
     </div>
   );
 }
