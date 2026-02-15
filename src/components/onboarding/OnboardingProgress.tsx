@@ -1,5 +1,11 @@
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export interface OnboardingStep {
   id: string;
@@ -16,66 +22,82 @@ interface OnboardingProgressProps {
 
 export function OnboardingProgress({ steps, currentStep, onStepClick }: OnboardingProgressProps) {
   return (
-    <nav className="space-y-1">
-      {steps.map((step, index) => {
-        const stepNumber = index + 1;
-        const isActive = stepNumber === currentStep;
-        const isComplete = stepNumber < currentStep;
-        const isClickable = isComplete && onStepClick;
+    <TooltipProvider delayDuration={300}>
+      <nav className="space-y-1">
+        {steps.map((step, index) => {
+          const stepNumber = index + 1;
+          const isActive = stepNumber === currentStep;
+          const isComplete = stepNumber < currentStep;
+          const isClickable = stepNumber <= currentStep && !!onStepClick;
+          const isFuture = stepNumber > currentStep;
 
-        return (
-          <button
-            key={step.id}
-            type="button"
-            onClick={() => isClickable && onStepClick(stepNumber)}
-            disabled={!isClickable}
-            className={cn(
-              "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all",
-              isActive && "bg-primary/10",
-              isComplete && "hover:bg-muted/50 cursor-pointer",
-              !isComplete && !isActive && "opacity-50 cursor-default"
-            )}
-          >
-            {/* Step indicator */}
-            <div className="relative flex shrink-0 items-center justify-center">
-              {/* Pulse ring for current step */}
-              {isActive && (
-                <span className="absolute inset-0 h-8 w-8 rounded-full bg-primary/20 animate-ping" />
+          const button = (
+            <button
+              key={step.id}
+              type="button"
+              onClick={() => isClickable && onStepClick(stepNumber)}
+              disabled={!isClickable}
+              className={cn(
+                "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all relative",
+                isActive && "bg-primary/10",
+                isClickable && !isActive && "hover:bg-muted/50 cursor-pointer",
+                isFuture && "opacity-50 cursor-not-allowed",
+                isActive && "border-l-2 border-primary"
               )}
-              <div
-                className={cn(
-                  "relative flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-colors",
-                  isActive && "bg-primary text-primary-foreground",
-                  isComplete && "bg-primary text-primary-foreground",
-                  !isActive && !isComplete && "bg-muted text-muted-foreground"
+            >
+              {/* Step indicator */}
+              <div className="relative flex shrink-0 items-center justify-center">
+                {isActive && (
+                  <span className="absolute inset-0 h-8 w-8 rounded-full bg-primary/20 animate-ping" />
                 )}
-              >
-                {isComplete ? <Check className="h-4 w-4" /> : stepNumber}
+                <div
+                  className={cn(
+                    "relative flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-colors",
+                    isActive && "bg-primary text-primary-foreground",
+                    isComplete && "bg-primary text-primary-foreground",
+                    isFuture && "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {isComplete ? <Check className="h-4 w-4" /> : stepNumber}
+                </div>
               </div>
-            </div>
 
-            {/* Step text */}
-            <div className="min-w-0">
-              <p
-                className={cn(
-                  "text-sm font-medium truncate",
-                  isActive && "text-foreground",
-                  isComplete && "text-muted-foreground",
-                  !isActive && !isComplete && "text-muted-foreground"
-                )}
-              >
-                {step.title}
-              </p>
-              {isActive && (
-                <p className="text-[13px] text-muted-foreground truncate">
-                  {step.description}
+              {/* Step text */}
+              <div className="min-w-0">
+                <p
+                  className={cn(
+                    "text-sm font-medium truncate",
+                    isActive && "text-foreground",
+                    isComplete && "text-muted-foreground",
+                    isFuture && "text-muted-foreground"
+                  )}
+                >
+                  {step.title}
                 </p>
-              )}
-            </div>
-          </button>
-        );
-      })}
-    </nav>
+                {(isActive || isComplete) && (
+                  <p className="text-[13px] text-muted-foreground truncate">
+                    {isComplete ? "Click to edit" : step.description}
+                  </p>
+                )}
+              </div>
+            </button>
+          );
+
+          if (isFuture) {
+            return (
+              <Tooltip key={step.id}>
+                <TooltipTrigger asChild>{button}</TooltipTrigger>
+                <TooltipContent side="right">
+                  Complete previous steps first
+                </TooltipContent>
+              </Tooltip>
+            );
+          }
+
+          return button;
+        })}
+      </nav>
+    </TooltipProvider>
   );
 }
 
