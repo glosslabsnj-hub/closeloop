@@ -1,154 +1,80 @@
 
 
-# Toll-Free SMS Fallback + Server-Side A2P Automation
+# Instant SMS via Platform Shared Sender
 
-## Problem Summary
+## Problem
 
-Two issues need solving:
+Every new business that signs up has to wait for toll-free verification (minutes to days) before any SMS can be sent. This means no booking confirmations, no reminders, no follow-ups during the most critical onboarding window.
 
-1. **SMS is blocked during 10DLC approval** (1-3 business days). Tenants with pending A2P registration cannot send any SMS -- no confirmations, no reminders, no review requests.
-2. **A2P registration is triggered from the client** (OnboardingPage.tsx line 782-803), which is fragile. If the browser closes or the request fails silently, the tenant never gets registered.
+## Solution: Platform-Level Pre-Verified Number
 
-Additionally, all current SMS-sending paths (`send-sms`, `booking-handoff`, `cron-appointment-reminders`, `cron-review-requests`) send directly via the Twilio account rather than through the tenant's Messaging Service -- which will cause delivery failures once 10DLC campaigns are active (carriers require messages to route through the registered Messaging Service).
+CloseLoop owns **one pre-verified toll-free number** that is already verified and ready to send. All new tenants send through this shared number until their own dedicated number is verified. The business name is prepended to every message so recipients know who it's from.
 
-## Solution Architecture
+Example message a customer would receive:
+
+> "Blue Boxer Plumbing: Your appointment is confirmed for tomorrow at 2:00 PM. Reply STOP to opt out."
+
+Once the tenant's own toll-free number passes verification, the system automatically switches to it -- no action needed from the business owner.
 
 ```text
-Number Provisioning Flow (Updated)
-===================================
+SMS Routing Priority (Updated)
+===============================
 
-provision-twilio-number
-  |
-  +-- Purchase LOCAL number (voice + future 10DLC SMS)
-  +-- Purchase TOLL-FREE number (immediate SMS fallback)
-  +-- Call register-a2p-10dlc (server-side, not client)
-  +-- Start toll-free verification
-  |
-  v
-a2p_registrations table
-  |-- toll_free_phone_e164    (new)
-  |-- toll_free_phone_sid     (new)
-  |-- toll_free_verified      (new)
-  |-- toll_free_messaging_sid (new)
-  |
-  v
-SMS Sending (Updated)
-  |-- If A2P approved -> send via 10DLC Messaging Service
-  |-- Else if toll-free verified -> send via toll-free Messaging Service
-  |-- Else -> skip SMS (not yet ready)
+1. Tenant has approved 10DLC        --> Send via 10DLC Messaging Service
+2. Tenant has verified toll-free    --> Send via tenant's toll-free number
+3. Tenant pending verification      --> Send via PLATFORM shared number (NEW)
+4. Nothing available                --> Skip (should never happen now)
 ```
 
-## Changes
+## What You Need To Do (One-Time Setup)
 
-### 1. Database Migration
+Before I implement the code, you'll need to provide:
 
-Add toll-free tracking columns to `a2p_registrations`:
+- A **pre-verified toll-free number** from your Twilio account (the one you already have, or I can help you pick/verify one)
+- Two environment secrets to store:
+  - `PLATFORM_TF_PHONE_E164` -- the shared toll-free number (e.g. `+18886185650`)
+  - `PLATFORM_TF_MESSAGING_SERVICE_SID` -- its Messaging Service SID
 
-- `toll_free_phone_e164` TEXT -- The toll-free number
-- `toll_free_phone_sid` TEXT -- Twilio SID for the toll-free number
-- `toll_free_verified` BOOLEAN DEFAULT false
-- `toll_free_messaging_service_sid` TEXT -- Messaging Service for toll-free
-- `toll_free_verification_sid` TEXT -- Twilio TF verification SID
+If the number `+18886185650` (already purchased) gets its verification approved, we can use that one as the platform number.
 
-### 2. Update `provision-twilio-number/index.ts`
+## Technical Changes
 
-After purchasing the local number (existing logic), add:
+### 1. `supabase/functions/_shared/sms-sender.ts`
 
-- Purchase a toll-free number for the same tenant
-- Create a Messaging Service for the toll-free number
-- Submit toll-free verification (Twilio's TF verification is typically approved in minutes, not days)
-- Store toll-free SIDs in `a2p_registrations`
-- Call `register-a2p-10dlc` server-side (removing the need for client-side trigger)
+Add a third fallback tier to `sendTenantSms()`:
 
-This makes the entire flow atomic -- one function call provisions voice + SMS.
+- After checking tenant's 10DLC and toll-free, check for `PLATFORM_TF_PHONE_E164` / `PLATFORM_TF_MESSAGING_SERVICE_SID` env vars
+- When using the platform number, automatically prepend the tenant's business name to the message body (fetched from `tenants.name`)
+- Return `channel: "platform_shared"` so callers know which path was used
 
-### 3. Update `cron-a2p-status-check/index.ts`
+### 2. `supabase/functions/send-sms/index.ts`
 
-Add toll-free verification status polling:
+- Update the `skipped` handling -- with the platform fallback, messages should almost never be skipped
+- Add `"platform_shared"` to the channel type in the response
 
-- Check `TollfreeVerifications` API for tenants with `toll_free_verified = false`
-- When verified, set `toll_free_verified = true`
-- Continue checking 10DLC status as before
+### 3. `supabase/functions/booking-handoff/index.ts`, `cron-appointment-reminders/index.ts`, `cron-review-requests/index.ts`
 
-### 4. Create shared SMS sending helper
+- No changes needed -- they already use `sendTenantSms()`, so they inherit the platform fallback automatically
 
-Create `supabase/functions/_shared/sms-sender.ts` with a `sendTenantSms()` function that:
+### 4. `src/components/dashboard/SmsRegistrationStatus.tsx`
 
-1. Checks `a2p_registrations` for the tenant
-2. If `status = 'approved'` -- sends via the 10DLC Messaging Service SID
-3. Else if `toll_free_verified = true` -- sends via toll-free Messaging Service SID
-4. Else -- returns `{ skipped: true, reason: "no_verified_channel" }`
+- Add a status for "platform_shared": show "SMS: Active (Shared)" with a tooltip explaining messages are sending via the platform number while the dedicated number is being verified
 
-This replaces the raw Twilio API calls scattered across 4+ edge functions.
+### 5. `src/components/settings/SmsSettingsSection.tsx`
 
-### 5. Update all SMS-sending functions
+- Show an info banner when using the platform sender: "Your messages are being sent while your dedicated number is verified. Your business name is included in each message."
 
-Refactor these to use the shared `sendTenantSms()` helper:
+### 6. Environment Secrets
 
-- `send-sms/index.ts`
-- `booking-handoff/index.ts` (customer confirmation section)
-- `cron-appointment-reminders/index.ts`
-- `cron-review-requests/index.ts`
+Two new secrets need to be configured:
+- `PLATFORM_TF_PHONE_E164`
+- `PLATFORM_TF_MESSAGING_SERVICE_SID`
 
-This ensures every SMS path automatically uses the correct channel (toll-free or 10DLC).
+### No Database Changes Needed
 
-### 6. Remove client-side A2P trigger from OnboardingPage
+Everything fits within the existing `a2p_registrations` table and environment variables. No migrations required.
 
-Remove lines 781-803 in `OnboardingPage.tsx` (the `register-a2p-10dlc` invocation). The server now handles this inside `provision-twilio-number`.
+## Result
 
-### 7. Update `SmsRegistrationStatus.tsx`
-
-Add a new status state for toll-free:
-
-- `toll_free_active`: "SMS: Active (Toll-Free)" -- shows when toll-free is verified but 10DLC is still pending
-- Update tooltip to explain: "Sending via toll-free while full registration completes"
-
-### 8. Update `SmsSettingsSection.tsx`
-
-Show which channel is currently active:
-
-- Badge showing "Sending via Toll-Free" or "Sending via 10DLC" based on registration state
-- Info callout explaining that toll-free is temporary and 10DLC will take over once approved
-
-## Technical Details
-
-### Toll-Free Verification API (Twilio)
-
-Toll-free verification is simpler than 10DLC:
-- POST to `/v2/RegulatoryCompliance/TollfreeVerifications`
-- Requires: business name, address, use case description, sample messages, opt-in description
-- Approval is typically minutes to hours (vs days for 10DLC)
-- Lower throughput than 10DLC but sufficient for appointment SMS
-
-### Messaging Service routing
-
-When sending via a Messaging Service, the `From` parameter changes:
-- Instead of `From: +1234567890`
-- Use `MessagingServiceSid: MGxxxxxxxx`
-- Twilio automatically selects the right number from the service
-
-### Cost consideration
-
-Each tenant gets 2 numbers during the transition period:
-- Local number: voice calls + future 10DLC SMS
-- Toll-free number: immediate SMS until 10DLC approved
-
-Once 10DLC is approved, the toll-free number can optionally be released (future optimization).
-
-## File Changes Summary
-
-| Action | File |
-|--------|------|
-| Migrate | Add toll-free columns to `a2p_registrations` |
-| Create | `supabase/functions/_shared/sms-sender.ts` |
-| Modify | `supabase/functions/provision-twilio-number/index.ts` |
-| Modify | `supabase/functions/register-a2p-10dlc/index.ts` (minor) |
-| Modify | `supabase/functions/cron-a2p-status-check/index.ts` |
-| Modify | `supabase/functions/send-sms/index.ts` |
-| Modify | `supabase/functions/booking-handoff/index.ts` |
-| Modify | `supabase/functions/cron-appointment-reminders/index.ts` |
-| Modify | `supabase/functions/cron-review-requests/index.ts` |
-| Modify | `src/pages/app/OnboardingPage.tsx` (remove client A2P trigger) |
-| Modify | `src/components/dashboard/SmsRegistrationStatus.tsx` |
-| Modify | `src/components/settings/SmsSettingsSection.tsx` |
+Every business can send SMS **immediately** after signing up. The transition from shared number to dedicated number is automatic and invisible to the business owner.
 
