@@ -1,3 +1,4 @@
+import React from "react";
 /**
  * Phase 2: WHAT You Do — Services, hours, service area (industry-specific)
  */
@@ -30,7 +31,7 @@ interface OnboardingOfferingsProps {
   workStyle: WorkStyle;
 }
 
-export function OnboardingOfferings({
+export const OnboardingOfferings = React.memo(function OnboardingOfferings({
   businessMode,
   industrySlug,
   services,
@@ -118,4 +119,4 @@ export function OnboardingOfferings({
       )}
     </div>
   );
-}
+});

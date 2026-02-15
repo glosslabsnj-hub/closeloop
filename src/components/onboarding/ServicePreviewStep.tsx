@@ -5,7 +5,7 @@
  * edit, add, remove, or toggle services before they're saved to DB.
  */
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -32,7 +32,7 @@ interface ServicePreviewStepProps {
   onChange: (services: EditableService[]) => void;
 }
 
-export function ServicePreviewStep({
+export const ServicePreviewStep = React.memo(function ServicePreviewStep({
   businessMode,
   industrySlug,
   services,
@@ -219,4 +219,4 @@ export function ServicePreviewStep({
       </p>
     </div>
   );
-}
+});

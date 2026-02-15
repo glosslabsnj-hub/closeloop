@@ -1,3 +1,4 @@
+import React from "react";
 import { CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
@@ -17,7 +18,7 @@ interface StepNavigatorProps {
   totalMinutes: number;
 }
 
-export function StepNavigator({ steps, icons, currentStep, onStepClick, totalMinutes }: StepNavigatorProps) {
+export const StepNavigator = React.memo(function StepNavigator({ steps, icons, currentStep, onStepClick, totalMinutes }: StepNavigatorProps) {
   return (
     <aside className="hidden lg:flex w-80 border-r bg-card flex-col">
       <div className="p-6 border-b">
@@ -102,4 +103,4 @@ export function StepNavigator({ steps, icons, currentStep, onStepClick, totalMin
       </div>
     </aside>
   );
-}
+});

@@ -1,3 +1,4 @@
+import React from "react";
 /**
  * BrainSectionDetail - Sidebar + Content split layout for section detail views
  *
@@ -54,7 +55,7 @@ function getAdjacentCategories(section: string, categories?: CategoryConfig[]) {
   };
 }
 
-export function BrainSectionDetail({
+export const BrainSectionDetail = React.memo(function BrainSectionDetail({
   category,
   orderedCategories,
   resolvedTitle,
@@ -173,4 +174,4 @@ export function BrainSectionDetail({
       </div>
     </div>
   );
-}
+});

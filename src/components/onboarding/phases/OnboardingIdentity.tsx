@@ -1,3 +1,4 @@
+import React from "react";
 /**
  * Phase 1: WHO You Are — Business name, industry, work style
  */
@@ -33,7 +34,7 @@ interface OnboardingIdentityProps {
   getFieldError: (field: string) => string | undefined;
 }
 
-export function OnboardingIdentity({
+export const OnboardingIdentity = React.memo(function OnboardingIdentity({
   businessName,
   onBusinessNameChange,
   industrySlug,
@@ -154,4 +155,4 @@ export function OnboardingIdentity({
       )}
     </div>
   );
-}
+});
