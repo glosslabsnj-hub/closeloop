@@ -189,6 +189,7 @@ export default function BusinessHoursEditor({ hours, onChange }: BusinessHoursEd
                 <Switch
                   checked={!isClosed}
                   onCheckedChange={(checked) => toggleClosed(key, checked)}
+                  onClick={(e) => e.stopPropagation()}
                 />
               </div>
               
