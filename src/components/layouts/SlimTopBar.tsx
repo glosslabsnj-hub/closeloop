@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { Search, Settings, HelpCircle, LogOut } from "lucide-react";
+import { Search, Settings, HelpCircle, LogOut, Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +22,7 @@ interface SlimTopBarProps {
 
 export function SlimTopBar({ userEmail, tenantName, onSignOut }: SlimTopBarProps) {
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
 
   return (
     <header className="hidden md:flex h-12 sticky top-0 z-30 items-center gap-2 bg-background border-b border-border px-4">
@@ -40,6 +42,17 @@ export function SlimTopBar({ userEmail, tenantName, onSignOut }: SlimTopBarProps
         >
           <Search className="h-4 w-4" />
           <span className="sr-only">Search</span>
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-muted-foreground/60 hover:text-muted-foreground"
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        >
+          <Sun className="h-4 w-4 rotate-0 scale-100 transition-transform dark:-rotate-90 dark:scale-0" />
+          <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-transform dark:rotate-0 dark:scale-100" />
+          <span className="sr-only">Toggle theme</span>
         </Button>
 
         <NotificationBell />
