@@ -1,158 +1,173 @@
 
 
-# Business Brain Editor Cleanup: Clean, Professional Layout
+# Automated A2P 10DLC SMS Registration Flow
 
 ## The Problem
 
-When you click into any tab and select an item, you're hit with 3-5 colored callout boxes stacked vertically BEFORE you ever reach the actual form:
+Right now, when a business signs up and gets a Twilio number provisioned, that number can only handle **voice calls**. To send SMS (appointment confirmations, follow-ups, review requests), the number needs to be registered through Twilio's A2P 10DLC compliance system. This involves:
 
-1. "What is this?" box (teal border, Info icon)
-2. "Import your service list" banner (teal dashed border, prominent)
-3. "Your service catalog IS your pricing config" guidance box (teal border)
-4. "What the AI tells customers" preview box (teal/green tinted)
-5. Then finally the actual catalog/form
+1. **Customer Profile** -- A trust bundle with the business's legal info
+2. **Brand Registration** -- Registering the business as a "brand" with The Campaign Registry (TCR)  
+3. **Campaign Registration** -- Declaring the SMS use case (e.g., "appointment reminders")
+4. **Messaging Service** -- A Twilio container that links the number + campaign together
 
-This happens across almost every editor. The Service Area page has a similar problem: ServiceAreaPreview card + ServiceAreaGuidance card + "How your AI uses this" callout + the actual form fields.
+Currently none of these steps exist in the codebase, and `hasSmsFeature()` is hardcoded to `false`.
 
-The result: you scroll through walls of instructional boxes to find the thing you actually need to fill out.
+## What Data Is Needed (That We Don't Collect Yet)
 
-## The Fix: Form-First, Help-Second
+Twilio's A2P 10DLC registration requires business identity data that the current onboarding does **not** capture:
 
-Every editor should follow one pattern:
-- **Form fields first** -- the thing the owner came to fill out
-- **Contextual help inline** -- small helper text beneath fields, not big callout boxes above
-- **Import/upload tools** -- compact buttons in the header row, not banners
-- **AI preview** -- collapsed by default at the bottom, expandable
+| Required Field | Currently Collected? |
+|---|---|
+| Legal business name | No (we only have "business name") |
+| EIN / Tax ID | No |
+| Business entity type (LLC, Corp, etc.) | No |
+| Business registration state | No |
+| Business street address (structured) | Partial (free-text address field) |
+| Contact person name | No (available via auth profile) |
+| Contact email | No (available via auth email) |
+| Contact phone | Yes (business phone) |
+| Website URL | Yes (in BusinessIdentityForm, not always collected in onboarding) |
+| Business vertical/industry | Yes (industry slug) |
 
-## Phase 1: Create a Unified Editor Header Pattern
+## Architecture: The "ISV" Model
 
-Create a small `EditorHeader` component that replaces the per-editor "What is this?" boxes. It renders:
-- A one-line description (plain text, not a box)
-- Action buttons inline (Import, CSV, Paste from POS)
+Since CloseLoop owns the Twilio account and provisions numbers on behalf of tenants, this follows Twilio's **ISV (Independent Software Vendor)** pattern. This means:
 
-This replaces the current pattern where each editor builds its own explanation card with `<Info>` icon, bold "What is this?", paragraph, tip.
+- CloseLoop has a **Primary Business Profile** (one-time, done in Twilio Console)
+- Each tenant gets a **Secondary Customer Profile** created via API
+- Each tenant gets a **Brand Registration** + **Campaign** created via API
+- The provisioned number is added to a **Messaging Service** linked to the campaign
 
-**New file:** `src/components/brain/shared/EditorHeader.tsx`
+## Implementation Plan
 
-## Phase 2: Clean Up ServiceCatalogEditor
+### Phase 1: Collect Required Business Data
 
-The biggest editor. Current layout has 4 boxes before the catalog list.
+**Add fields to onboarding** -- Extend the "Your Business" step (Step 1) or the "Tell us a bit more" sub-section (`BusinessDetailsForm`) to capture:
 
-**Changes:**
-- Remove the "What is this?" callout box (lines 587-606) -- replace with a one-line description under the catalog header
-- Remove the `QuotingBehaviorGuidance` callout (line 616-618) -- this info is already implied by the price type dropdown
-- Move `InlineUploadButton` from a prominent banner to a compact button in the header row next to "Paste from POS" and "CSV Import"
-- Move the "What the AI tells customers" preview to a collapsible section at the bottom, default collapsed
-- Keep all form fields, service list, expand/collapse behavior exactly as-is
+- **Legal business name** (if different from display name)
+- **EIN / Tax ID** (9-digit federal number)
+- **Entity type** selector: Sole Proprietorship, LLC, Corporation, Partnership, Non-Profit
+- **Registration state** (US state dropdown)
+- **Structured address** fields: Street, City, State, ZIP (replace or supplement the free-text address)
+- **Contact first/last name** (pre-fill from auth profile if available)
 
-**File:** `src/components/brain/ServiceCatalogEditor.tsx`
+These fields will be stored in a new `sms_registration` JSON column on the `tenants` table (or a dedicated `a2p_registrations` table).
 
-## Phase 3: Clean Up ServiceAreaManager
+### Phase 2: Database Schema
 
-Current layout: ServiceAreaPreview card + ServiceAreaGuidance card (with "How your AI uses this" sub-box) + form fields.
+Create an `a2p_registrations` table to track the multi-step registration status:
 
-**Changes:**
-- Remove `ServiceAreaGuidance` import and rendering -- the form labels are self-explanatory
-- Keep `ServiceAreaPreview` but make it a compact inline summary (1 line, not a full Card with CardHeader)
-- Remove the `FieldHelper` callout under the out-of-area message textarea -- use a simple `placeholder` instead
-- Keep all form inputs, chip inputs, coverage mode selector exactly as-is
-
-**File:** `src/components/brain/ServiceAreaManager.tsx`
-
-## Phase 4: Clean Up BusinessHoursManager
-
-Review and remove any "What is this?" or guidance boxes. Hours setup is self-explanatory.
-
-**File:** `src/components/brain/BusinessHoursManager.tsx`
-
-## Phase 5: Clean Up AIScriptsEditor (Greeting Script)
-
-Remove "What is this?" box. The title "Greeting Script" and the textarea label are enough context.
-
-**File:** `src/components/brain/AIScriptsEditor.tsx`
-
-## Phase 6: Clean Up BusinessPoliciesEditor (Policies)
-
-Remove the `PoliciesGuidance` card with its "How your AI uses this" sub-box. Keep the actual policy form fields.
-
-**File:** `src/components/brain/BusinessPoliciesEditor.tsx`
-
-## Phase 7: Clean Up AINeverPromiseEditor (Guardrails)
-
-Remove explanation box. "Things your AI should never promise" is self-explanatory.
-
-**File:** `src/components/brain/AINeverPromiseEditor.tsx`
-
-## Phase 8: Clean Up RequiredQuestionsEditor
-
-Remove guidance box. "Questions to ask on every call" is clear from the title.
-
-**File:** `src/components/settings/RequiredQuestionsEditor.tsx`
-
-## Phase 9: Clean Up FAQEditor and ObjectionEditor
-
-Both have explanation boxes. Remove them -- "Common Questions and Answers" and "When Customers Push Back" are self-descriptive.
-
-**Files:** `src/components/brain/BusinessFAQEditor.tsx`, `src/components/brain/BusinessObjectionEditor.tsx`
-
-## Phase 10: Clean Up MenuCatalogEditor and DispatchServiceCatalog
-
-Same pattern as ServiceCatalogEditor -- remove "What is this?" boxes, move import tools to header row.
-
-**Files:** `src/components/brain/MenuCatalogEditor.tsx`, `src/components/brain/dispatch/DispatchServiceCatalog.tsx`
-
-## Phase 11: Clean Up Remaining Editors
-
-Apply the same form-first pattern to all remaining editors that have guidance boxes:
-- `DispatchPricingEditor` -- remove "What is this?" box
-- `DailySpecialsEditor` -- remove explanation box  
-- `PriceModifiersEditor` -- remove guidance box
-- `CustomKnowledgeEditor` -- remove explanation box
-- `CustomPoliciesEditor` -- remove explanation box
-
-## Phase 12: Simplify QuoteReadinessCard Banner
-
-The `QuoteReadinessCard` at the top of the Services tab is useful but should be more compact:
-- When ready (100%): single line green text, no card border
-- When not ready: compact amber bar with issue count, expandable
-
-**File:** `src/components/brain/QuoteReadinessCard.tsx`
-
-## Phase 13: Simplify ServiceAreaPreview
-
-Currently a full Card with CardHeader. Convert to a simple inline summary line: "Service Area: Within 100 miles of Wrightstown, NJ" -- no card wrapper.
-
-**File:** `src/components/debug/ServiceAreaPreview.tsx`
-
----
-
-## Design Principle Applied
-
-Before (per editor):
-```
-[What is this? -- callout box]
-[Import banner -- dashed border]  
-[Pricing guidance -- callout box]
-[AI preview -- tinted box]
-[Actual form/catalog]
+```text
+a2p_registrations
+-----------------
+id                    UUID PK
+tenant_id             UUID FK -> tenants
+status                TEXT (pending_profile, pending_brand, pending_campaign, approved, failed)
+customer_profile_sid  TEXT  -- Twilio CustomerProfile SID
+brand_sid             TEXT  -- Twilio BrandRegistration SID  
+campaign_sid          TEXT  -- Twilio Campaign SID
+messaging_service_sid TEXT  -- Twilio MessagingService SID
+legal_business_name   TEXT
+ein                   TEXT (encrypted)
+entity_type           TEXT
+registration_state    TEXT
+street_address        TEXT
+city                  TEXT
+state                 TEXT
+zip_code              TEXT
+contact_first_name    TEXT
+contact_last_name     TEXT
+contact_email         TEXT
+contact_phone         TEXT
+failure_reason        TEXT
+created_at            TIMESTAMPTZ
+updated_at            TIMESTAMPTZ
 ```
 
-After (per editor):
-```
-Header: "Services Catalog" + [Import] [CSV] [+ Add] buttons
-Subtitle: "13 services -- click to expand and edit"
-[Actual form/catalog]
-[Collapsed: "Preview what AI says" toggle]
-```
+RLS: tenant-scoped read/write.
 
-## What Will NOT Change
+### Phase 3: Edge Function -- `register-a2p-10dlc`
 
-- All form fields, inputs, dropdowns, and their behavior
-- All save/create/delete logic and hooks
-- All data sent to ElevenLabs
-- Database schema
-- Edge functions
-- The sidebar navigation structure (already cleaned up)
-- Mode-awareness and visibility rules
-- The `BrainEditorRenderer` switch statement
+A single edge function that orchestrates the full Twilio A2P registration pipeline. Called automatically after number provisioning succeeds.
+
+**Step-by-step API flow:**
+
+1. **Create Secondary Customer Profile** (TrustHub API)
+   - POST to `/v1/CustomerProfiles` with policy SID for A2P
+   - Attach business info (name, EIN, address) as EndUserResources
+   - Submit for evaluation
+
+2. **Create Brand Registration**
+   - POST to `/v1/a2p/BrandRegistrations` with the CustomerProfile SID
+   - Poll/webhook for approval (takes minutes to hours)
+
+3. **Create Messaging Service**
+   - POST to `/v1/Services` (Messaging)
+   - Add the provisioned phone number to the Messaging Service
+
+4. **Create Campaign**
+   - POST to `/v1/Services/{sid}/UsAppToPerson` with:
+     - Brand SID
+     - Use case: "MIXED" or "CUSTOMER_CARE" 
+     - Sample messages (appointment confirmations, reminders)
+     - Opt-in/opt-out description
+   - Poll/webhook for approval (takes days)
+
+5. **Update `a2p_registrations`** status at each step
+
+### Phase 4: Integration Into Provisioning Flow
+
+Modify `provision-twilio-number/index.ts`:
+- After successful number purchase, automatically call `register-a2p-10dlc`
+- Pass tenant business data from the `a2p_registrations` table
+
+Modify `OnboardingPage.tsx`:
+- After Twilio provisioning succeeds (line ~726), trigger A2P registration with the collected business data
+
+### Phase 5: Status Tracking and Cron
+
+**New edge function: `cron-a2p-status-check`**
+- Runs every 30 minutes
+- Polls Twilio for brand/campaign approval status
+- Updates `a2p_registrations.status`
+- When campaign is approved, enables SMS sending for that tenant
+
+**Dashboard indicator:**
+- Show SMS registration status on the dashboard/settings page
+- States: "Registering...", "Pending Approval", "Approved -- SMS Active", "Failed (reason)"
+
+### Phase 6: Enable SMS Feature Gate
+
+Update `src/config/pricing.ts`:
+- Change `hasSmsFeature()` to return `true` for tenants with approved A2P registration
+- This unlocks SMS UI components (settings, templates, send controls)
+
+## User Experience (What Businesses See)
+
+1. **Onboarding Step 1**: They fill in business name, industry, and now also legal name, EIN, entity type, and address (presented as "we need this to activate your texting capabilities")
+2. **Onboarding completes**: Phone number provisioned + A2P registration kicks off automatically in background
+3. **Dashboard**: Shows "SMS: Setting up..." badge that updates to "SMS: Active" once approved (typically 1-3 business days)
+4. **No manual Twilio interaction required** -- fully invisible to the business owner
+
+## Technical Considerations
+
+- **EIN sensitivity**: Store encrypted or in Twilio only (never log it). Consider using Twilio's TrustHub as the canonical store rather than keeping EIN in our database.
+- **Sole Proprietors**: Businesses without an EIN use the Sole Proprietor registration path (lower throughput limits but simpler -- no EIN needed, uses phone OTP verification instead).
+- **Fallback**: If A2P registration fails or is pending, SMS features remain disabled gracefully with a clear status message.
+- **Pre-requisite**: CloseLoop must have an approved **Primary ISV Business Profile** in the Twilio Console before any of this works. This is a one-time manual step.
+
+## File Changes Summary
+
+| Action | File/Path |
+|--------|-----------|
+| Create | `supabase/functions/register-a2p-10dlc/index.ts` |
+| Create | `supabase/functions/cron-a2p-status-check/index.ts` |
+| Modify | `supabase/functions/provision-twilio-number/index.ts` -- trigger A2P after purchase |
+| Modify | `supabase/config.toml` -- add new function configs |
+| Create | DB migration for `a2p_registrations` table |
+| Modify | `src/components/onboarding/BusinessDetailsForm.tsx` -- add legal/EIN/entity fields |
+| Modify | `src/pages/app/OnboardingPage.tsx` -- pass new fields, trigger A2P |
+| Modify | `src/config/pricing.ts` -- update `hasSmsFeature()` logic |
+| Create | `src/components/dashboard/SmsRegistrationStatus.tsx` -- status indicator |
 
