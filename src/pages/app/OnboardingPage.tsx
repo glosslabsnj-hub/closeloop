@@ -1059,17 +1059,6 @@ export default function OnboardingPage() {
                             value={businessDetails}
                             onChange={setBusinessDetails}
                           />
-
-                          {/* A2P Business Identity for SMS compliance */}
-                          <div className="pt-4 border-t">
-                            <A2PBusinessFields
-                              value={a2pData}
-                              onChange={setA2pData}
-                              businessName={businessName}
-                              userEmail={user?.email || undefined}
-                              userDisplayName={user?.user_metadata?.full_name || undefined}
-                            />
-                          </div>
                         </div>
                       )}
                     </div>
