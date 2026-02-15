@@ -123,6 +123,7 @@ export function ServicePreviewStep({
             <Switch
               checked={service.enabled}
               onCheckedChange={() => toggleService(idx)}
+              onClick={(e) => e.stopPropagation()}
             />
 
             <div className="flex-1 min-w-0">
