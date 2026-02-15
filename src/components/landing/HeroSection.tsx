@@ -22,17 +22,17 @@ export function HeroSection() {
           
           {/* Headline */}
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl mb-8 leading-[1.08]">
-            <span className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Every call answered.</span>
+            <span className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Your AI Receptionist</span>
             <br />
             <span className="bg-gradient-to-r from-primary to-accent-signature bg-clip-text text-transparent">
-              Every lead captured.
+              Works 24/7.
             </span>
           </h1>
           
           {/* Subheadline */}
           <p className="text-lg md:text-xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed">
-            AI receptionist that answers calls 24/7, captures customer info, 
-            and sends it straight to your booking or dispatch system.
+            Never miss a call. Never lose a lead. Voxly answers, qualifies, 
+            and books appointments while you focus on your business.
           </p>
           
           {/* Trust bullets */}
@@ -52,7 +52,7 @@ export function HeroSection() {
                 size="lg"
                 className="w-full sm:w-auto gap-2 h-14 px-8 text-base font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:scale-[1.02] transition-all"
               >
-                Start Free Trial
+                Start Your Free Trial
                 <ArrowRight className="h-5 w-5" />
               </Button>
             </Link>
@@ -70,7 +70,7 @@ export function HeroSection() {
           
           {/* Micro-copy */}
           <p className="text-sm text-muted-foreground mt-10">
-            Setup in 10 min • Plans from ${TIERS[0].startingPrice}/mo
+            14-day free trial • No credit card required • Setup in 10 minutes
           </p>
         </div>
       </div>
