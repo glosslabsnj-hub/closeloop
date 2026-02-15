@@ -650,7 +650,10 @@ export default function OnboardingPage() {
                   )}
                   <button
                     type="button"
-                    onClick={() => phaseNum <= phase && goToPhase(phaseNum)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (phaseNum <= phase) goToPhase(phaseNum);
+                    }}
                     disabled={isFuture}
                     className={cn(
                       "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-all relative z-10",
