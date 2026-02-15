@@ -847,7 +847,7 @@ export default function OnboardingPage() {
           <OnboardingProgress
             steps={steps}
             currentStep={step}
-            onStepClick={(s) => s < step && setStep(s)}
+            onStepClick={(s) => setStep(s)}
           />
         </nav>
 
