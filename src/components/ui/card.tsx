@@ -9,6 +9,8 @@ const cardVariants = cva(
       variant: {
         default: "bg-card shadow-sm",
         elevated: "bg-card shadow-lg",
+        hoverable:
+          "bg-card shadow-sm hover:shadow-md hover:-translate-y-0.5 cursor-pointer",
         interactive:
           "bg-card shadow-sm border-l-2 border-l-transparent hover:border-l-primary hover:shadow-md transition-all duration-200 cursor-pointer",
         selected: "bg-primary/5 border-l-[3px] border-l-primary",
