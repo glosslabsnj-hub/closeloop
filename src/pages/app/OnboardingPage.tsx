@@ -391,7 +391,10 @@ export default function OnboardingPage() {
         ? (await import("@/lib/hoursUtils")).HOURS_24_7
         : businessHours;
 
-      // 1. Create tenant via edge function
+      // 1. Create tenant via edge function (also creates subscription + assistant settings)
+      const selectedPlan = sessionStorage.getItem("selectedPlan") as PlanCode | null;
+      const planCode: PlanCode = selectedPlan || "voice";
+
       const { data: createResult, error: createError } = await supabase.functions.invoke(
         "create-tenant",
         {
@@ -406,6 +409,7 @@ export default function OnboardingPage() {
             hipaa_mode: businessMode === "medical",
             location: businessDetails.location || undefined,
             default_capacity: defaultCapacity,
+            plan_code: planCode,
           },
         }
       );
@@ -573,34 +577,7 @@ export default function OnboardingPage() {
         console.error("Automations creation error:", autoError);
       }
 
-      // 6. Subscription
-      const selectedPlan = sessionStorage.getItem("selectedPlan") as PlanCode | null;
-      const planCode: PlanCode = selectedPlan || "voice";
-
-      const { error: subError } = await supabase
-        .from("subscriptions")
-        .insert({
-          tenant_id: tenantId,
-          plan_code: planCode,
-          status: "trialing",
-          current_period_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        });
-
-      if (subError) {
-        console.error("Subscription creation error:", subError);
-        throw new Error("Failed to activate trial");
-      }
-
-      // 7. Initialize assistant settings, then save communication prefs
-      const { error: settingsError } = await supabase.rpc("initialize_assistant_settings", {
-        _tenant_id: tenantId,
-        _plan_code: planCode,
-      });
-
-      if (settingsError) {
-        console.error("Assistant settings error:", settingsError);
-      }
-
+      // 6. Subscription + assistant settings already created by create-tenant edge function
       // Save communication preferences (including new fields)
       const commUpdate: Record<string, unknown> = {
         ai_booking_mode: communicationPrefs.aiBookingMode,
