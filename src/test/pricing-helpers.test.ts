@@ -26,10 +26,13 @@ describe("SKU Feature Gating Helpers", () => {
   });
 
   describe("hasSmsFeature", () => {
-    // SMS is disabled / coming soon - always returns false
-    it("returns false for all SKUs (SMS coming soon)", () => {
-      expect(hasSmsFeature("voice-200")).toBe(false);
-      expect(hasSmsFeature("voice")).toBe(false);
+    // SMS is enabled for all paid plans (A2P approval checked separately)
+    it("returns true for voice SKUs (SMS enabled with voice plan)", () => {
+      expect(hasSmsFeature("voice-200")).toBe(true);
+      expect(hasSmsFeature("voice")).toBe(true);
+    });
+
+    it("returns false for null/undefined", () => {
       expect(hasSmsFeature(null)).toBe(false);
       expect(hasSmsFeature(undefined)).toBe(false);
     });

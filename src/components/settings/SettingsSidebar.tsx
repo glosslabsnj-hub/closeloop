@@ -12,6 +12,7 @@ import {
   ChevronRight,
   DollarSign,
   RefreshCw,
+  MessageSquare,
 } from "lucide-react";
 import { SettingsNavItem } from "./SettingsNavItem";
 import { cn } from "@/lib/utils";
@@ -88,6 +89,7 @@ export function SettingsSidebar({ activeSection, onSectionChange, config, comple
       label: "AI Features",
       colorClass: "text-emerald-500",
       items: [
+        { id: "sms", label: "SMS Messaging", icon: MessageSquare },
         { id: "recovery", label: "Lead Recovery", icon: RefreshCw, visible: config.showRecovery },
       ],
     },
