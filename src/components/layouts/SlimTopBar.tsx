@@ -1,5 +1,5 @@
-import { useNavigate } from "react-router-dom";
-import { Search, Settings, HelpCircle, LogOut, Sun, Moon } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { Search, Settings, HelpCircle, LogOut, Sun, Moon, AudioWaveform } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
-import { Separator } from "@/components/ui/separator";
+import { BRAND } from "@/config/brand";
 
 interface SlimTopBarProps {
   userEmail: string;
@@ -26,8 +26,15 @@ export function SlimTopBar({ userEmail, tenantName, onSignOut }: SlimTopBarProps
   return (
     <header className="hidden md:flex h-12 sticky top-0 z-30 items-center gap-2 bg-background border-b border-border px-4">
 
-      <div className="-ml-1 w-4" />
-      <Separator orientation="vertical" className="mr-2 h-4" />
+      {/* Branding */}
+      <Link to="/app/dashboard" className="flex items-center gap-2.5">
+        <div className="h-7 w-7 shrink-0 rounded-lg bg-primary flex items-center justify-center">
+          <AudioWaveform className="h-3.5 w-3.5 text-primary-foreground" />
+        </div>
+        <span className="font-semibold text-sm text-foreground">
+          {tenantName || BRAND.name}
+        </span>
+      </Link>
 
       {/* Spacer */}
       <div className="flex-1" />
