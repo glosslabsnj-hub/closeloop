@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { StepNavigator } from "@/components/onboarding/StepNavigator";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
@@ -619,89 +620,13 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-80 border-r bg-card flex-col">
-        <div className="p-6 border-b">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">CL</span>
-            </div>
-            <span className="font-semibold text-lg">CloseLoop</span>
-          </div>
-        </div>
-
-        <nav className="flex-1 p-4 overflow-y-auto">
-          <div className="space-y-1">
-            {ONBOARDING_PHASES.map((p, idx) => {
-              const phaseNum = idx + 1;
-              const isActive = phaseNum === phase;
-              const isCompleted = phaseNum < phase;
-              const isFuture = phaseNum > phase;
-              const Icon = PHASE_ICONS[idx];
-              const isLast = idx === ONBOARDING_PHASES.length - 1;
-
-              return (
-                <div key={p.id} className="relative">
-                  {/* Connector */}
-                  {!isLast && (
-                    <div className={cn(
-                      "absolute left-4 top-12 w-0.5 h-6",
-                      isCompleted ? "bg-primary/30" : "bg-border"
-                    )} />
-                  )}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (phaseNum <= phase) goToPhase(phaseNum);
-                    }}
-                    disabled={isFuture}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-all relative z-10",
-                      isActive && "bg-primary/10",
-                      isCompleted && "hover:bg-muted/50 cursor-pointer",
-                      isFuture && "opacity-50 cursor-not-allowed"
-                    )}
-                  >
-                    <div className={cn(
-                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
-                      isActive && "bg-primary text-primary-foreground border-primary",
-                      isCompleted && "bg-primary/15 text-primary border-primary/40",
-                      isFuture && "bg-background text-muted-foreground border-border"
-                    )}>
-                      {isCompleted ? (
-                        <CheckCircle2 className="h-4 w-4" />
-                      ) : (
-                        <Icon className="h-4 w-4" />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className={cn(
-                        "text-sm font-medium truncate",
-                        isActive && "text-foreground",
-                        (isCompleted || isFuture) && "text-muted-foreground"
-                      )}>
-                        {p.title}
-                      </p>
-                      {isActive && (
-                        <p className="text-xs text-muted-foreground truncate">{p.subtitle} · ~{p.estimatedMinutes} min</p>
-                      )}
-                      {isCompleted && (
-                        <p className="text-xs text-primary/70 truncate">Click to edit</p>
-                      )}
-                    </div>
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </nav>
-
-        <div className="p-6 border-t">
-          <p className="text-sm text-muted-foreground">
-            About {totalMinutes} minutes total
-          </p>
-        </div>
-      </aside>
+      <StepNavigator
+        steps={ONBOARDING_PHASES}
+        icons={PHASE_ICONS}
+        currentStep={phase}
+        onStepClick={goToPhase}
+        totalMinutes={totalMinutes}
+      />
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-h-screen">
