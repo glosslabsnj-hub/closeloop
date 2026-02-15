@@ -471,6 +471,33 @@ serve(async (req) => {
             let tfVerifSid: string | null = null;
             const bizName = a2pInfo?.legal_business_name || tenantInfo?.name || "Business";
             const bizWebsite = a2pInfo?.website_url || tenantInfo?.website_url || "https://example.com";
+            const contactFirstName = a2pInfo?.contact_first_name || "Owner";
+            const contactLastName = a2pInfo?.contact_last_name || "Contact";
+            const contactEmail = a2pInfo?.contact_email || "support@closeloop.ai";
+            const contactPhone = a2pInfo?.contact_phone || "";
+
+            const tfVerifBody = [
+              `TollfreePhoneNumberSid=${encodeURIComponent(tollFreeSid!)}`,
+              `BusinessName=${encodeURIComponent(bizName)}`,
+              `BusinessWebsite=${encodeURIComponent(bizWebsite)}`,
+              `BusinessStreetAddress=${encodeURIComponent(a2pInfo?.street_address || "123 Main St")}`,
+              `BusinessCity=${encodeURIComponent(a2pInfo?.city || "New York")}`,
+              `BusinessStateProvinceRegion=${encodeURIComponent(a2pInfo?.state || "NY")}`,
+              `BusinessPostalCode=${encodeURIComponent(a2pInfo?.zip_code || "10001")}`,
+              `BusinessCountry=US`,
+              `BusinessContactFirstName=${encodeURIComponent(contactFirstName)}`,
+              `BusinessContactLastName=${encodeURIComponent(contactLastName)}`,
+              `BusinessContactEmail=${encodeURIComponent(contactEmail)}`,
+              contactPhone ? `BusinessContactPhone=${encodeURIComponent(contactPhone)}` : "",
+              `NotificationEmail=${encodeURIComponent(contactEmail)}`,
+              `UseCaseCategories=${encodeURIComponent("CUSTOMER_CARE")}`,
+              `UseCaseSummary=${encodeURIComponent(`${bizName} sends appointment confirmations, reminders, and follow-up messages to customers who have booked services.`)}`,
+              `ProductionMessageSample=${encodeURIComponent(`Hi! Your appointment with ${bizName} is confirmed for tomorrow at 2:00 PM. Reply STOP to opt out.`)}`,
+              `OptInType=VERBAL`,
+              `OptInImageUrls=${encodeURIComponent(bizWebsite)}`,
+              `MessageVolume=100`,
+            ].filter(Boolean).join("&");
+
             const tfVerifRes = await fetch(
               `https://messaging.twilio.com/v1/Tollfree/Verifications`,
               {
@@ -479,23 +506,7 @@ serve(async (req) => {
                   Authorization: `Basic ${twilioAuth}`,
                   "Content-Type": "application/x-www-form-urlencoded",
                 },
-                body: new URLSearchParams({
-                  TollfreePhoneNumberSid: tollFreeSid!,
-                  BusinessName: bizName,
-                  BusinessWebsite: bizWebsite,
-                  BusinessStreetAddress: a2pInfo?.street_address || "123 Main St",
-                  BusinessCity: a2pInfo?.city || "New York",
-                  BusinessStateProvinceRegion: a2pInfo?.state || "NJ",
-                  BusinessPostalCode: a2pInfo?.zip_code || "07032",
-                  BusinessCountry: "US",
-                  NotificationEmail: a2pInfo?.contact_email || "support@closeloop.ai",
-                  UseCaseCategories: '["APPOINTMENTS"]',
-                  UseCaseSummary: `${bizName} sends appointment confirmations, reminders, and follow-up messages to customers who have booked services.`,
-                  ProductionMessageSample: `Hi! Your appointment with ${bizName} is confirmed for tomorrow at 2:00 PM. Reply STOP to opt out.`,
-                  OptInType: "VERBAL",
-                  OptInImageUrls: "[]",
-                  MessageVolume: "100",
-                }).toString(),
+                body: tfVerifBody,
               }
             );
 

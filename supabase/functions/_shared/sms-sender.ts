@@ -54,18 +54,18 @@ export async function sendTenantSms(req: SendSmsRequest): Promise<SendSmsResult>
   if (a2p?.status === "approved" && a2p.messaging_service_sid) {
     messagingServiceSid = a2p.messaging_service_sid;
     channel = "10dlc";
-  } else if (a2p?.toll_free_messaging_service_sid) {
-    // Try messaging service first if toll-free is verified, otherwise fall back to direct From
-    if (a2p.toll_free_verified) {
-      messagingServiceSid = a2p.toll_free_messaging_service_sid;
-    }
-    // Always have the direct number as fallback
-    fromNumber = a2p.toll_free_phone_e164 || null;
+  } else if (a2p?.toll_free_verified && a2p.toll_free_messaging_service_sid) {
+    messagingServiceSid = a2p.toll_free_messaging_service_sid;
     channel = "toll_free";
-  } else if (a2p?.toll_free_phone_e164) {
-    // No messaging service but we have a toll-free number — send direct
+  } else if (a2p?.toll_free_verified && a2p.toll_free_phone_e164) {
     fromNumber = a2p.toll_free_phone_e164;
     channel = "toll_free";
+  } else if (a2p?.toll_free_phone_e164 && a2p.toll_free_verification_sid) {
+    // Verification submitted but not yet approved — try sending direct from number
+    // Some carriers allow it during pending verification
+    fromNumber = a2p.toll_free_phone_e164;
+    channel = "toll_free";
+    console.log(`[sms-sender] TF verification pending for tenant ${tenantId}, attempting direct send`);
   }
 
   if (!messagingServiceSid && !fromNumber) {
