@@ -247,7 +247,7 @@ export function AgentControlPanel() {
                       onClick={() => navigate("/app/business-brain")}
                     >
                       <AlertCircle className="h-3 w-3" />
-                      Incomplete
+                      Complete Setup
                     </Button>
                   )}
                 </div>

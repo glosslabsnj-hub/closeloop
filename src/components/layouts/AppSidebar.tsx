@@ -139,16 +139,16 @@ export function AppSidebar({
     { href: "/app/customers", label: (terms.customers ? String(terms.customers).charAt(0).toUpperCase() + String(terms.customers).slice(1) : "Customers"), icon: <UserCircle className={iconClass} /> },
   ];
 
-  const toolItems: NavItem[] = [
+  const aiCenterItems: NavItem[] = [
     { href: "/app/business-brain", label: "Business Brain", icon: <Bot className={iconClass} />, badge: conflictsCount || undefined },
     { href: "/app/simulator", label: "Test Your AI", icon: <FlaskConical className={iconClass} /> },
-    { href: "/app/settings", label: "Settings", icon: <Settings className={iconClass} /> },
+    { href: "/app/partner", label: "AI Insights", icon: <Sparkles className={iconClass} /> },
   ];
 
-  const secondaryItems: NavItem[] = [
-    { href: "/app/partner", label: "AI Insights", icon: <Sparkles className={iconClass} /> },
+  const manageItems: NavItem[] = [
     { href: "/app/integrations", label: "Integrations", icon: <Route className={iconClass} /> },
     { href: "/app/reports/roi", label: "Reports", icon: <BarChart3 className={iconClass} /> },
+    { href: "/app/settings", label: "Settings", icon: <Settings className={iconClass} /> },
   ];
 
   const bottomItems: NavItem[] = [
@@ -172,26 +172,29 @@ export function AppSidebar({
     <AnimatedSidebar open={open} setOpen={setOpen}>
       <SidebarBody className="justify-between gap-6">
         <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
-          {/* Core nav */}
+          {/* MAIN */}
+          {open && <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-3 pt-1 pb-1">Main</p>}
           <div className="flex flex-col gap-0.5">
             {coreItems.map(renderLink)}
           </div>
 
           {/* Workspace items */}
           {workspaceItems.length > 0 && (
-            <div className="flex flex-col gap-0.5 mt-4">
+            <div className="flex flex-col gap-0.5 mt-3">
               {workspaceItems.map(renderLink)}
             </div>
           )}
 
-          {/* Tools */}
-          <div className="flex flex-col gap-0.5 mt-4">
-            {toolItems.map(renderLink)}
+          {/* AI CENTER */}
+          {open && <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-3 pt-4 pb-1">AI Center</p>}
+          <div className={cn("flex flex-col gap-0.5", !open && "mt-4")}>
+            {aiCenterItems.map(renderLink)}
           </div>
 
-          {/* Secondary */}
-          <div className="flex flex-col gap-0.5 mt-4">
-            {secondaryItems.map(renderLink)}
+          {/* MANAGE */}
+          {open && <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-3 pt-4 pb-1">Manage</p>}
+          <div className={cn("flex flex-col gap-0.5", !open && "mt-4")}>
+            {manageItems.map(renderLink)}
           </div>
         </div>
 

@@ -1,4 +1,5 @@
 import { HeroSection } from "@/components/landing/HeroSection";
+import { TrustSignalsBar } from "@/components/landing/TrustSignalsBar";
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 import { WhoItsForSection } from "@/components/landing/WhoItsForSection";
 import { IndustryDemoPlayer } from "@/components/landing/IndustryDemoPlayer";
@@ -21,6 +22,9 @@ export default function LandingPage() {
 
       {/* Hero */}
       <HeroSection />
+
+      {/* Trust Signals */}
+      <TrustSignalsBar />
 
       {/* Industry Demo Section */}
       <section id="demo">
