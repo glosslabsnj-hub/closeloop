@@ -45,6 +45,7 @@ import DispatchMapPage from "@/pages/app/DispatchMapPage";
 import InventoryPage from "@/pages/app/InventoryPage";
 import KitchenDisplayPage from "@/pages/app/KitchenDisplayPage";
 import LoyaltyPage from "@/pages/app/LoyaltyPage";
+import TestAIPage from "@/pages/app/TestAIPage";
 
 // Module-specific pages
 import OrdersPage from "@/pages/app/OrdersPage";
@@ -140,6 +141,7 @@ const App = () => (
               {/* Legacy routes - redirect to integrations */}
               <Route path="/app/automations" element={<IntegrationsPage />} />
               <Route path="/app/simulator" element={<SimulatorPage />} />
+              <Route path="/app/test-ai" element={<TestAIPage />} />
               <Route path="/app/business-brain" element={<BusinessBrainPage />} />
               <Route path="/app/business-brain/gaps" element={<BusinessBrainGapsPage />} />
               <Route path="/app/readiness" element={<ReadinessFixCenterPage />} />
