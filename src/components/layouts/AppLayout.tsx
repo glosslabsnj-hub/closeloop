@@ -36,13 +36,13 @@ import {
   Phone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AdminModeSwitcher } from "@/components/admin/AdminModeSwitcher";
 import { AdminTenantSwitcher } from "@/components/admin/AdminTenantSwitcher";
 import { AdminModeSelector } from "@/components/admin/AdminModeSelector";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { DispatchJobListener } from "@/components/notifications/DispatchJobListener";
-import { SidebarProvider, SidebarInset, useSidebar } from "@/components/ui/sidebar";
+
 import { AppSidebar } from "@/components/layouts/AppSidebar";
 import { SlimTopBar } from "@/components/layouts/SlimTopBar";
 import { BRAND } from "@/config/brand";
@@ -66,7 +66,7 @@ function AppLayoutContent() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const { setOpen } = useSidebar();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const effectiveHasSubscription = isSuperAdmin || hasActiveSubscription;
   const displayTenant = isSuperAdmin ? (effectiveTenant ?? tenant) : tenant;
 
@@ -162,10 +162,12 @@ function AppLayoutContent() {
           effectiveHasSubscription={effectiveHasSubscription}
           displayTenant={displayTenant}
           subtitle={sidebarSubtitle}
+          open={sidebarOpen}
+          setOpen={setSidebarOpen}
         />
 
         {/* Content area */}
-        <SidebarInset>
+        <div className="flex-1 min-w-0">
           {/* Slim top bar — desktop only */}
           <SlimTopBar
             userEmail={user.email || ""}
@@ -173,11 +175,11 @@ function AppLayoutContent() {
             onSignOut={handleSignOut}
           />
 
-          {/* Mobile Header */}
           <MobileHeader
             displayTenant={displayTenant}
             userEmail={user.email || ""}
             onSignOut={handleSignOut}
+            onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
           />
 
           {/* Page content */}
@@ -219,7 +221,7 @@ function AppLayoutContent() {
               </div>
             )}
           </div>
-        </SidebarInset>
+        </div>
       </div>
 
       {/* Mobile Bottom Nav — unchanged */}
@@ -248,17 +250,18 @@ function AppLayoutContent() {
   );
 }
 
-/** Mobile header — uses sidebar toggle for hamburger menu */
+/** Mobile header */
 function MobileHeader({
   displayTenant,
   userEmail,
   onSignOut,
+  onToggleSidebar,
 }: {
   displayTenant: { name?: string } | null;
   userEmail: string;
   onSignOut: () => void;
+  onToggleSidebar: () => void;
 }) {
-  const { toggleSidebar } = useSidebar();
   const navigate = useNavigate();
 
   return (
@@ -267,7 +270,7 @@ function MobileHeader({
         <Button
           variant="ghost"
           size="icon"
-          onClick={toggleSidebar}
+          onClick={onToggleSidebar}
           className="h-9 w-9"
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -315,9 +318,7 @@ export function AppLayout() {
   return (
     <AdminModeProvider>
       <DispatchJobListener />
-      <SidebarProvider defaultOpen={false}>
-        <AppLayoutContent />
-      </SidebarProvider>
+      <AppLayoutContent />
     </AdminModeProvider>
   );
 }
