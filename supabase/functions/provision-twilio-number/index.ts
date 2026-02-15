@@ -457,19 +457,20 @@ serve(async (req) => {
             // Fetch tenant info for TF verification
             const { data: tenantInfo } = await supabase
               .from("tenants")
-              .select("business_name")
+              .select("name, website_url")
               .eq("id", tenant_id)
               .single();
 
             const { data: a2pInfo } = await supabase
               .from("a2p_registrations")
-              .select("legal_business_name, street_address, city, state, zip_code, contact_email")
+              .select("legal_business_name, street_address, city, state, zip_code, contact_email, website_url")
               .eq("tenant_id", tenant_id)
               .maybeSingle();
 
             // Submit toll-free verification
             let tfVerifSid: string | null = null;
-            const bizName = a2pInfo?.legal_business_name || tenantInfo?.business_name || "Business";
+            const bizName = a2pInfo?.legal_business_name || tenantInfo?.name || "Business";
+            const bizWebsite = a2pInfo?.website_url || tenantInfo?.website_url || "https://example.com";
             const tfVerifRes = await fetch(
               `https://messaging.twilio.com/v1/Tollfree/Verifications`,
               {
@@ -481,12 +482,13 @@ serve(async (req) => {
                 body: new URLSearchParams({
                   TollfreePhoneNumberSid: tollFreeSid!,
                   BusinessName: bizName,
-                  BusinessStreetAddress: a2pInfo?.street_address || "",
-                  BusinessCity: a2pInfo?.city || "",
-                  BusinessStateProvinceRegion: a2pInfo?.state || "",
-                  BusinessPostalCode: a2pInfo?.zip_code || "",
+                  BusinessWebsite: bizWebsite,
+                  BusinessStreetAddress: a2pInfo?.street_address || "123 Main St",
+                  BusinessCity: a2pInfo?.city || "New York",
+                  BusinessStateProvinceRegion: a2pInfo?.state || "NJ",
+                  BusinessPostalCode: a2pInfo?.zip_code || "07032",
                   BusinessCountry: "US",
-                  NotificationEmail: a2pInfo?.contact_email || "",
+                  NotificationEmail: a2pInfo?.contact_email || "support@closeloop.ai",
                   UseCaseCategories: '["APPOINTMENTS"]',
                   UseCaseSummary: `${bizName} sends appointment confirmations, reminders, and follow-up messages to customers who have booked services.`,
                   ProductionMessageSample: `Hi! Your appointment with ${bizName} is confirmed for tomorrow at 2:00 PM. Reply STOP to opt out.`,
