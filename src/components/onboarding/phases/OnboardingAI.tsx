@@ -1,3 +1,4 @@
+import React from "react";
 /**
  * Phase 3: HOW AI Works — Tone, booking mode, after-hours behavior
  */
@@ -44,7 +45,7 @@ const afterHoursOptions: { value: AfterHoursBehavior; label: string; description
   { value: "text_back", label: "Text back with hours", description: "Auto-text callers your business hours" },
 ];
 
-export function OnboardingAI({
+export const OnboardingAI = React.memo(function OnboardingAI({
   businessMode,
   aiTone,
   onAiToneChange,
@@ -217,4 +218,4 @@ export function OnboardingAI({
       </div>
     </div>
   );
-}
+});

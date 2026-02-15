@@ -1,3 +1,4 @@
+import React from "react";
 /**
  * Phase 5: GO LIVE — Review setup + launch
  */
@@ -59,7 +60,7 @@ interface OnboardingReviewProps {
   loading: boolean;
 }
 
-export function OnboardingReview({
+export const OnboardingReview = React.memo(function OnboardingReview({
   businessName,
   businessMode,
   industrySlug,
@@ -219,4 +220,4 @@ export function OnboardingReview({
       </p>
     </div>
   );
-}
+});

@@ -1,3 +1,4 @@
+import React from "react";
 /**
  * Phase 4: CONNECT Tools — Calendar, phone, notifications (optional)
  */
@@ -17,7 +18,7 @@ interface OnboardingConnectProps {
   onConnectCalendar: () => void;
 }
 
-export function OnboardingConnect({
+export const OnboardingConnect = React.memo(function OnboardingConnect({
   notificationPhone,
   onNotificationPhoneChange,
   calendarConnected,
@@ -135,4 +136,4 @@ export function OnboardingConnect({
       </Card>
     </div>
   );
-}
+});
