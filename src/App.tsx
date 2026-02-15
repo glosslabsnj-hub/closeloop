@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,7 +24,7 @@ import EstimateViewPage from "@/pages/public/EstimateViewPage";
 import CustomerPortalPage from "@/pages/public/CustomerPortalPage";
 
 // App Pages
-import OnboardingPage from "@/pages/app/OnboardingPage";
+const OnboardingPage = lazy(() => import("@/pages/app/OnboardingPage"));
 import DashboardPage from "@/pages/app/DashboardPage";
 import UnifiedInboxPage from "@/pages/app/UnifiedInboxPage";
 import BookingsPage from "@/pages/app/BookingsPage";
@@ -33,7 +34,7 @@ import AIAssistantPage from "@/pages/app/AIAssistantPage";
 import SettingsPage from "@/pages/app/SettingsPage";
 import SimulatorPage from "@/pages/app/SimulatorPage";
 import GoLivePage from "@/pages/app/GoLivePage";
-import BusinessBrainPage from "@/pages/app/BusinessBrainPage";
+const BusinessBrainPage = lazy(() => import("@/pages/app/BusinessBrainPage"));
 import BusinessBrainGapsPage from "@/pages/app/BusinessBrainGapsPage";
 import ReadinessFixCenterPage from "@/pages/app/ReadinessFixCenterPage";
 import UsagePage from "@/pages/app/UsagePage";
@@ -122,7 +123,7 @@ const App = () => (
             <Route path="/portal/:tenantId" element={<CustomerPortalPage />} />
 
             {/* Onboarding and Go-Live (no layout) */}
-            <Route path="/app/onboarding" element={<OnboardingPage />} />
+            <Route path="/app/onboarding" element={<Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>}><OnboardingPage /></Suspense>} />
             <Route path="/app/go-live" element={<GoLivePage />} />
 
             {/* App Routes */}
@@ -142,7 +143,7 @@ const App = () => (
               <Route path="/app/automations" element={<IntegrationsPage />} />
               <Route path="/app/simulator" element={<SimulatorPage />} />
               <Route path="/app/test-ai" element={<TestAIPage />} />
-              <Route path="/app/business-brain" element={<BusinessBrainPage />} />
+              <Route path="/app/business-brain" element={<Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>}><BusinessBrainPage /></Suspense>} />
               <Route path="/app/business-brain/gaps" element={<BusinessBrainGapsPage />} />
               <Route path="/app/readiness" element={<ReadinessFixCenterPage />} />
               <Route path="/app/usage" element={<UsagePage />} />
