@@ -24,7 +24,7 @@ export function SlimTopBar({ userEmail, tenantName, onSignOut }: SlimTopBarProps
   const { theme, setTheme } = useTheme();
 
   return (
-    <header className="hidden md:flex h-12 sticky top-0 z-30 items-center gap-2 bg-background border-b border-border px-4">
+    <header className="hidden md:flex h-[72px] sticky top-0 z-30 items-center gap-2 bg-background border-b border-border px-6">
 
       {/* Branding */}
       <Link to="/app/dashboard" className="flex items-center gap-2.5">
