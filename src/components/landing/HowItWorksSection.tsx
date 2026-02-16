@@ -4,23 +4,23 @@ const steps = [
   {
     number: "1",
     icon: Settings,
-    title: "Set up your business",
-    description: "Add your services, hours, and preferences",
-    detail: "10-minute guided setup",
+    title: "Sign up",
+    description: "Create your account and tell us about your business",
+    detail: "5 minutes",
   },
   {
     number: "2",
     icon: Bot,
-    title: "AI answers every call",
-    description: "Greets callers and captures their info",
-    detail: "24/7, unlimited calls",
+    title: "Configure",
+    description: "Add your services, hours, and preferences",
+    detail: "10 minutes",
   },
   {
     number: "3",
     icon: BarChart3,
-    title: "Jobs appear instantly",
-    description: "Bookings flow to Voxly or your system",
-    detail: "Real-time delivery",
+    title: "Go Live",
+    description: "Start answering calls and capturing every lead",
+    detail: "Instant",
   },
 ];
 

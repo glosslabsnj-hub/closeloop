@@ -1,5 +1,6 @@
 import { HeroSection } from "@/components/landing/HeroSection";
 import { TrustSignalsBar } from "@/components/landing/TrustSignalsBar";
+import { FeaturesGridSection } from "@/components/landing/FeaturesGridSection";
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 import { WhoItsForSection } from "@/components/landing/WhoItsForSection";
 import { IndustryDemoPlayer } from "@/components/landing/IndustryDemoPlayer";
@@ -14,42 +15,20 @@ import { SalesAIAgent } from "@/components/landing/SalesAIAgent";
 export default function LandingPage() {
   return (
     <div className="pb-24 md:pb-0">
-      {/* Sales AI Agent */}
       <SalesAIAgent />
-      
-      {/* Mobile Sticky Bar */}
       <MobileStickyBar />
-
-      {/* Hero */}
       <HeroSection />
-
-      {/* Trust Signals */}
       <TrustSignalsBar />
-
-      {/* Industry Demo Section */}
+      <FeaturesGridSection />
       <section id="demo">
         <IndustryDemoPlayer />
       </section>
-
-      {/* How It Works */}
       <HowItWorksSection />
-
-      {/* Who It's For */}
       <WhoItsForSection />
-
-      {/* Integrations */}
       <IntegrationsSection />
-
-      {/* Testimonials & Trust */}
       <TestimonialsSection />
-
-      {/* Pricing */}
       <PricingSection />
-
-      {/* FAQ */}
       <FAQSection />
-
-      {/* Final CTA */}
       <FinalCTASection />
     </div>
   );
