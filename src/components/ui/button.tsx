@@ -6,42 +6,43 @@ import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition-all duration-150 focus-visible:outline-none focus-visible:shadow-focus focus-visible:border-primary/50 disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         default: [
-          "bg-primary text-primary-foreground shadow-sm",
-          "hover:bg-primary/90 hover:shadow-md",
-          "active:scale-[0.98]",
+          "bg-primary text-primary-foreground",
+          "hover:bg-[hsl(239,84%,60%)] hover:-translate-y-0.5 hover:shadow-md",
+          "active:bg-[hsl(239,84%,53%)] active:translate-y-0 active:shadow-sm",
         ].join(" "),
         destructive: [
-          "bg-destructive/80 text-destructive-foreground shadow-sm",
-          "hover:bg-destructive/70 hover:shadow-md",
+          "bg-destructive text-destructive-foreground",
+          "hover:bg-destructive/90 hover:shadow-md",
         ].join(" "),
         outline: [
-          "border border-border/40 bg-transparent",
-          "text-foreground/80",
-          "hover:bg-muted/40 hover:border-border/60",
+          "border border-[hsl(215,20%,35%)] bg-transparent",
+          "text-muted-foreground",
+          "hover:bg-[hsl(217,33%,27%)] hover:text-foreground",
         ].join(" "),
         secondary: [
-          "bg-muted/50 text-muted-foreground",
-          "hover:bg-muted/70 hover:text-foreground/80",
+          "border border-[hsl(215,20%,35%)] bg-transparent",
+          "text-muted-foreground",
+          "hover:bg-[hsl(217,33%,27%)] hover:text-foreground",
         ].join(" "),
-        ghost: "text-muted-foreground hover:bg-muted/40 hover:text-foreground/80",
+        ghost: "text-[hsl(215,20%,65%)] hover:text-muted-foreground hover:bg-transparent",
         accent: [
           "bg-accent-signature/10 text-accent-signature",
           "border border-accent-signature/20",
           "hover:bg-accent-signature/15 hover:border-accent-signature/30",
         ].join(" "),
-        link: "text-foreground/70 underline-offset-4 hover:underline hover:text-foreground",
+        link: "text-muted-foreground underline-offset-4 hover:underline hover:text-foreground",
       },
       size: {
-        sm: "h-8 px-3 text-[13px] [&_svg]:size-3.5",
-        default: "h-10 px-4 text-sm [&_svg]:size-4",
+        sm: "h-9 px-3 text-sm [&_svg]:size-4",
+        default: "h-10 px-4 py-2.5 text-sm [&_svg]:size-4",
         lg: "h-12 px-6 text-[15px] [&_svg]:size-5",
-        icon: "h-10 w-10 [&_svg]:size-4",
-        "icon-sm": "h-8 w-8 [&_svg]:size-3.5",
+        icon: "h-10 w-10 rounded-lg bg-[hsl(217,33%,27%)] text-muted-foreground [&_svg]:size-5",
+        "icon-sm": "h-8 w-8 rounded-lg [&_svg]:size-4",
       },
     },
     defaultVariants: {
