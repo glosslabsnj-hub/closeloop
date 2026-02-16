@@ -272,15 +272,15 @@
      PAGE LAYOUT
      ========================================== */
   .page-container {
-    @apply max-w-6xl mx-auto px-6 md:px-10 lg:px-14 py-8 md:py-10 pb-14;
+    @apply max-w-6xl mx-auto p-6;
   }
 
   .page-container-narrow {
-    @apply max-w-4xl mx-auto px-6 md:px-8 py-8 md:py-10;
+    @apply max-w-4xl mx-auto p-6;
   }
 
   .page-header {
-    @apply mb-8 md:mb-10 relative;
+    @apply mb-6 relative;
   }
 
   .page-title {
@@ -295,11 +295,11 @@
   }
 
   .section {
-    @apply mb-10 md:mb-12;
+    @apply mb-6;
   }
 
   .section-header {
-    @apply mb-6;
+    @apply mb-3;
   }
 
   .section-title {
@@ -313,7 +313,7 @@
   }
 
   .content-stack-lg {
-    @apply space-y-8;
+    @apply space-y-6;
   }
 
   /* ==========================================
