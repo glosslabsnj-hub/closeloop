@@ -3,7 +3,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const cardVariants = cva(
-  "rounded-lg border border-border text-card-foreground transition-all duration-200",
+  "rounded-md border border-border text-card-foreground shadow-sm transition-all duration-200 hover:border-[hsl(217,20%,35%)]",
   {
     variants: {
       variant: {
@@ -12,9 +12,9 @@ const cardVariants = cva(
         hoverable:
           "bg-card hover:shadow-md hover:-translate-y-0.5 cursor-pointer",
         interactive:
-          "bg-card border-l-2 border-l-transparent hover:border-l-primary hover:shadow-md transition-all duration-200 cursor-pointer",
+          "bg-card border-l-2 border-l-transparent hover:border-l-primary hover:shadow-md cursor-pointer",
         selected: "bg-primary/5 border-l-[3px] border-l-primary",
-        subtle: "bg-muted/30 border-0",
+        subtle: "bg-muted/30 border-0 shadow-none hover:border-transparent",
       },
       status: {
         none: "",
