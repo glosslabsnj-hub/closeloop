@@ -118,89 +118,90 @@ export const ServicePreviewStep = React.memo(function ServicePreviewStep({
         {services.map((service, idx) => (
           <div
             key={idx}
-            className="flex items-center gap-3 rounded-lg border p-3 bg-card"
+            className={cn(
+              "rounded-lg border p-4 bg-card transition-colors",
+              service.enabled && "border-primary/30 bg-primary/5"
+            )}
           >
-            <Switch
-              checked={service.enabled}
-              onCheckedChange={() => toggleService(idx)}
-            />
+            <div className="flex items-start gap-3">
+              <Switch
+                checked={service.enabled}
+                onCheckedChange={() => toggleService(idx)}
+                className="mt-0.5"
+              />
 
-            <div className="flex-1 min-w-0">
-              {editingIdx === idx ? (
-                <div className="space-y-2">
-                  <Input
-                    value={service.name}
-                    onChange={(e) => updateService(idx, "name", e.target.value)}
-                    placeholder={terms.itemNamePlaceholder}
-                    autoFocus
-                    onBlur={() => setEditingIdx(null)}
-                    onKeyDown={(e) => e.key === "Enter" && setEditingIdx(null)}
-                  />
-                  <div className="flex gap-2">
+              <div className="flex-1 min-w-0">
+                {editingIdx === idx ? (
+                  <div className="space-y-2">
                     <Input
-                      type="number"
-                      value={service.duration}
-                      onChange={(e) => updateService(idx, "duration", parseInt(e.target.value) || 0)}
-                      className="w-24"
-                      placeholder="Min"
+                      value={service.name}
+                      onChange={(e) => updateService(idx, "name", e.target.value)}
+                      placeholder={terms.itemNamePlaceholder}
+                      autoFocus
+                      onBlur={() => setEditingIdx(null)}
+                      onKeyDown={(e) => e.key === "Enter" && setEditingIdx(null)}
                     />
-                    <Input
-                      type="number"
-                      value={service.price}
-                      onChange={(e) => updateService(idx, "price", parseFloat(e.target.value) || 0)}
-                      className="w-24"
-                      placeholder="Price"
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        value={service.price}
+                        onChange={(e) => updateService(idx, "price", parseFloat(e.target.value) || 0)}
+                        className="w-28"
+                        placeholder="Price"
+                      />
+                      <Input
+                        type="number"
+                        value={service.duration}
+                        onChange={(e) => updateService(idx, "duration", parseInt(e.target.value) || 0)}
+                        className="w-28"
+                        placeholder="Duration (min)"
+                      />
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  className="text-left w-full"
-                  onClick={() => setEditingIdx(idx)}
-                >
-                  <p className={`text-sm font-medium ${!service.enabled ? "text-muted-foreground line-through" : ""}`}>
-                    {service.name || `New ${terms.serviceItemLabel}`}
-                  </p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <p className="text-xs text-muted-foreground">
-                      {service.duration} min
-                      {service.price > 0 && ` · ${service.priceType === "starting_at" ? "from " : ""}$${service.price}`}
-                      {service.priceType === "quote_only" && " · Quote only"}
+                ) : (
+                  <div>
+                    <p className={cn(
+                      "text-sm font-medium",
+                      !service.enabled && "text-muted-foreground line-through"
+                    )}>
+                      {service.name || `New ${terms.serviceItemLabel}`}
                     </p>
-                    <button
-                      type="button"
-                      className={cn(
-                        "text-[10px] px-1.5 py-0.5 rounded border transition-colors",
-                        service.priceType === "starting_at"
-                          ? "border-primary/40 text-primary bg-primary/5"
-                          : service.priceType === "quote_only"
-                          ? "border-amber-500/40 text-amber-600 bg-amber-500/5"
-                          : "border-muted-foreground/20 text-muted-foreground hover:border-muted-foreground/40"
-                      )}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const types: Array<"fixed" | "starting_at" | "quote_only"> = ["fixed", "starting_at", "quote_only"];
-                        const currentIdx = types.indexOf(service.priceType);
-                        const nextType = types[(currentIdx + 1) % types.length];
-                        updateService(idx, "priceType", nextType);
-                      }}
-                    >
-                      {service.priceType === "starting_at" ? "Starting at" : service.priceType === "quote_only" ? "Quote" : "Fixed"}
-                    </button>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {service.price > 0
+                        ? `$${service.price}`
+                        : service.priceType === "quote_only"
+                        ? "Quote only"
+                        : "No price set"}
+                      {" · "}
+                      {service.duration >= 60
+                        ? `${Math.floor(service.duration / 60)} hour${service.duration >= 120 ? "s" : ""}${service.duration % 60 ? ` ${service.duration % 60} min` : ""}`
+                        : `${service.duration} min`}
+                    </p>
                   </div>
-                </button>
+                )}
+              </div>
+
+              {editingIdx !== idx && (
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-muted-foreground hover:text-foreground h-7 px-2"
+                    onClick={() => setEditingIdx(idx)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-muted-foreground hover:text-destructive h-7 px-2"
+                    onClick={() => removeService(idx)}
+                  >
+                    Remove
+                  </Button>
+                </div>
               )}
             </div>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
-              onClick={() => removeService(idx)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </div>
         ))}
       </div>

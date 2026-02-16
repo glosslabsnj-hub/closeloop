@@ -166,11 +166,11 @@ export default function BusinessHoursEditor({ hours, onChange }: BusinessHoursEd
   };
 
   return (
-    <div className="space-y-3">
-      <div className="flex justify-end">
-        <Button variant="outline" size="sm" onClick={copyToWeekdays}>
-          <Copy className="mr-2 h-4 w-4" />
-          Copy Mon to Weekdays
+    <div className="space-y-2">
+      <div className="flex justify-end mb-1">
+        <Button variant="ghost" size="sm" onClick={copyToWeekdays} className="text-xs text-muted-foreground">
+          <Copy className="mr-1.5 h-3.5 w-3.5" />
+          Copy Mon → Fri
         </Button>
       </div>
       
@@ -178,95 +178,58 @@ export default function BusinessHoursEditor({ hours, onChange }: BusinessHoursEd
         const dayHours = normalizedHours[key];
         const isClosed = dayHours?.closed ?? true;
         const windows = dayHours?.windows ?? [];
+        const firstWindow = windows[0];
 
         return (
-          <div key={key} className="p-3 rounded-lg border bg-card">
-            <div className="flex items-center gap-3">
-              <div className="w-24 font-medium text-sm">{label}</div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Open</span>
-                <Switch
-                  checked={!isClosed}
-                  onCheckedChange={(checked) => toggleClosed(key, checked)}
-                />
-              </div>
-              
-              {isClosed && (
-                <span className="text-sm text-muted-foreground ml-4">Closed</span>
-              )}
+          <div key={key} className="flex items-center gap-3 py-2 border-b border-border/50 last:border-0">
+            <div className="w-24 shrink-0">
+              <span className="text-sm font-medium">{label}</span>
             </div>
-
-            {/* Time windows */}
-            {!isClosed && (
-              <div className="mt-3 space-y-2 pl-28">
-                {windows.map((window, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    {windows.length > 1 && (
-                      <span className="text-xs text-muted-foreground w-16">
-                        {index === 0 ? 'Morning' : index === 1 ? 'Evening' : `Shift ${index + 1}`}
-                      </span>
-                    )}
-                    
-                    <Select
-                      value={window.open}
-                      onValueChange={(value) => updateWindow(key, index, 'open', value)}
-                    >
-                      <SelectTrigger className="w-[130px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {timeOptions.map((time) => (
-                          <SelectItem key={time} value={time}>
-                            {formatTime(time)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    
-                    <span className="text-muted-foreground">–</span>
-                    
-                    <Select
-                      value={window.close}
-                      onValueChange={(value) => updateWindow(key, index, 'close', value)}
-                    >
-                      <SelectTrigger className="w-[130px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {timeOptions.map((time) => (
-                          <SelectItem key={time} value={time}>
-                            {formatTime(time)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    {windows.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        onClick={() => removeWindow(key, index)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-
-                {/* Add window button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => addWindow(key)}
+            
+            {isClosed ? (
+              <span className="flex-1 text-sm text-muted-foreground">Closed</span>
+            ) : (
+              <div className="flex-1 flex items-center gap-2">
+                <Select
+                  value={firstWindow?.open || '09:00'}
+                  onValueChange={(value) => updateWindow(key, 0, 'open', value)}
                 >
-                  <Plus className="h-3 w-3 mr-1" />
-                  Add break / split shift
-                </Button>
+                  <SelectTrigger className="w-[120px] h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timeOptions.map((time) => (
+                      <SelectItem key={time} value={time}>
+                        {formatTime(time)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <span className="text-sm text-muted-foreground">to</span>
+                
+                <Select
+                  value={firstWindow?.close || '17:00'}
+                  onValueChange={(value) => updateWindow(key, 0, 'close', value)}
+                >
+                  <SelectTrigger className="w-[120px] h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timeOptions.map((time) => (
+                      <SelectItem key={time} value={time}>
+                        {formatTime(time)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
+
+            <Switch
+              checked={!isClosed}
+              onCheckedChange={(checked) => toggleClosed(key, checked)}
+            />
           </div>
         );
       })}

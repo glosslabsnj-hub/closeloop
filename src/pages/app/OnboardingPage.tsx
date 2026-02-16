@@ -173,9 +173,9 @@ export default function OnboardingPage() {
         <div className="lg:hidden p-4 border-b bg-card">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-medium">
-              Step {phase} of {totalPhases}
+              Step {phase} of {totalPhases} — {currentPhase.title}
             </p>
-            <p className="text-sm text-muted-foreground">{currentPhase.title}</p>
+            <span className="text-sm font-medium text-muted-foreground">{progressPercent}%</span>
           </div>
           <Progress value={progressPercent} className="h-1.5" />
         </div>
@@ -185,9 +185,12 @@ export default function OnboardingPage() {
           <div className="max-w-2xl mx-auto">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-muted-foreground">
-                Step {phase} of {totalPhases} — About {totalMinutes} minutes total
+                Step {phase} of {totalPhases} — {currentPhase.title}
               </p>
-              <AutoSaveIndicator status={form.saveStatus} />
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-muted-foreground">{progressPercent}%</span>
+                <AutoSaveIndicator status={form.saveStatus} />
+              </div>
             </div>
             <Progress value={progressPercent} className="h-2" />
           </div>
@@ -316,6 +319,15 @@ export default function OnboardingPage() {
                       Skip for now
                     </Button>
                   )}
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      toast({ title: "Progress saved", description: "You can resume anytime." });
+                      navigate("/");
+                    }}
+                  >
+                    Save & Exit
+                  </Button>
                   <Button
                     onClick={goNext}
                     disabled={!canProceed(phase)}
