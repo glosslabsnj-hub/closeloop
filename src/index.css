@@ -372,7 +372,7 @@
      STAT CARDS
      ========================================== */
   .stat-card {
-    @apply p-5 rounded-xl;
+    @apply p-4 rounded-md;
     background: hsl(var(--card));
     border: 1px solid hsl(var(--border));
   }
@@ -383,13 +383,13 @@
   }
 
   .stat-value {
-    @apply text-3xl font-extrabold mt-1;
+    @apply text-[32px] font-bold mt-1;
     color: hsl(var(--foreground));
     letter-spacing: -0.02em;
   }
 
   .stat-trend {
-    @apply flex items-center gap-1 mt-2 text-sm font-medium;
+    @apply flex items-center gap-1 mt-2 text-xs font-medium;
   }
 
   .stat-trend-up {
