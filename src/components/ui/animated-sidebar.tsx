@@ -156,10 +156,10 @@ export const SidebarLink = ({
     <Link
       to={isLocked ? "/app/go-live" : link.href}
       className={cn(
-        "flex items-center gap-3 group/sidebar rounded-lg px-2 py-2 transition-colors",
+        "flex items-center gap-3 group/sidebar rounded-lg px-4 py-3 h-11 transition-colors",
         isActive
-          ? "bg-primary/10 text-primary"
-          : "text-sidebar-foreground hover:bg-sidebar-accent",
+          ? "bg-primary text-white font-medium"
+          : "text-muted-foreground hover:bg-[hsl(217,33%,27%)]",
         isLocked && "opacity-40 pointer-events-none",
         className
       )}
