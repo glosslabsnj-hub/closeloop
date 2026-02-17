@@ -6,6 +6,7 @@ import {
   Truck, 
   UtensilsCrossed, 
   Stethoscope, 
+  DollarSign,
   ArrowRight,
   Check
 } from "lucide-react";
@@ -55,6 +56,17 @@ const modes = [
     mode: "medical",
     industry: "medical",
   },
+  {
+    icon: DollarSign,
+    title: "Sales & Lead Capture",
+    description: "Dealerships, real estate, agencies",
+    bullets: [
+      "Qualifies leads instantly",
+      "Books test drives & demos",
+    ],
+    mode: "sales",
+    industry: "sales",
+  },
 ];
 
 export function WhoItsForSection() {
@@ -73,7 +85,7 @@ export function WhoItsForSection() {
           </p>
         </div>
         
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 max-w-7xl mx-auto">
           {modes.map((mode) => (
             <Card 
               key={mode.mode} 
