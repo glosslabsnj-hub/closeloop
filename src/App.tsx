@@ -23,6 +23,7 @@ import SignupPage from "@/pages/public/SignupPage";
 import EstimateViewPage from "@/pages/public/EstimateViewPage";
 import CustomerPortalPage from "@/pages/public/CustomerPortalPage";
 import PublicROIReportPage from "@/pages/public/PublicROIReportPage";
+import AgenciesPage from "@/pages/public/AgenciesPage";
 
 // App Pages
 const OnboardingPage = lazy(() => import("@/pages/app/OnboardingPage"));
@@ -87,6 +88,7 @@ import AdminDemoLibraryPage from "@/pages/admin/AdminDemoLibraryPage";
 import AdminGoldenPathPage from "@/pages/admin/AdminGoldenPathPage";
 import AdminSetupRequestsPage from "@/pages/admin/AdminSetupRequestsPage";
 import AdminAuditReportPage from "@/pages/admin/AdminAuditReportPage";
+import AdminAgencyApplicationsPage from "@/pages/admin/AdminAgencyApplicationsPage";
 import AdminTestOnboardingPage from "@/pages/admin/AdminTestOnboardingPage";
 
 // Debug Pages
@@ -116,6 +118,7 @@ const App = () => (
               <Route path="/pricing" element={<PricingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
+              <Route path="/agencies" element={<AgenciesPage />} />
             </Route>
 
             {/* Public Estimate View (no layout - clean customer experience) */}
@@ -198,6 +201,7 @@ const App = () => (
               <Route path="/admin/setup-requests" element={<AdminSetupRequestsPage />} />
               <Route path="/admin/audit-report" element={<AdminAuditReportPage />} />
               <Route path="/admin/test-onboarding" element={<AdminTestOnboardingPage />} />
+              <Route path="/admin/agency-applications" element={<AdminAgencyApplicationsPage />} />
             </Route>
 
             {/* Driver Portal Routes */}
