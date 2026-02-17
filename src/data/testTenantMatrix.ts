@@ -1,12 +1,37 @@
 /**
  * Test Tenant Matrix
  *
- * 19 pre-defined tenant configurations spanning all 5 business modes.
+ * 21 pre-defined tenant configurations spanning all 5 business modes.
  * Used by the TestTenantManager to seed test tenants with realistic data.
  * Each config references an industry slug from industryCatalog.ts.
+ *
+ * Custom seed data: Tenants may provide customServices, customFaqs, and
+ * customObjections arrays to seed real business data instead of generic placeholders.
  */
 
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
+
+export interface CustomService {
+  name: string;
+  description?: string;
+  duration_minutes: number;
+  price_amount: number;
+  price_type?: "fixed" | "quote_only" | "deposit_based";
+  service_category?: string;
+  display_order?: number;
+}
+
+export interface CustomFaq {
+  question: string;
+  answer: string;
+  priority_weight?: number;
+}
+
+export interface CustomObjection {
+  objection: string;
+  response: string;
+  priority_weight?: number;
+}
 
 export interface TestTenantConfig {
   slug: string;
@@ -20,6 +45,16 @@ export interface TestTenantConfig {
   hipaa_mode: boolean;
   scenario: string;
   scenarioTags: string[];
+  // Optional standalone login credentials (creates a real auth user for the tenant)
+  owner_email?: string;
+  owner_password?: string;
+  // Optional business details
+  hours_json?: Record<string, unknown>;
+  phone_public?: string;
+  website_url?: string;
+  tagline?: string;
+  cancellation_policy?: string;
+  service_area_json?: Record<string, unknown>;
   communicationPrefs: {
     aiBookingMode: string;
     missedCallBehavior: string;
@@ -33,11 +68,14 @@ export interface TestTenantConfig {
     orderCount?: number;
     dispatchJobCount?: number;
     intakeCount?: number;
+    customServices?: CustomService[];
+    customFaqs?: CustomFaq[];
+    customObjections?: CustomObjection[];
   };
 }
 
 // ---------------------------------------------------------------------------
-// SERVICE MODE (6 tenants)
+// SERVICE MODE (7 tenants)
 // ---------------------------------------------------------------------------
 
 const serviceTenants: TestTenantConfig[] = [
@@ -216,6 +254,92 @@ const serviceTenants: TestTenantConfig[] = [
       unknownQuestionBehavior: "offer_callback",
     },
     seedData: { callCount: 5, faqCount: 8, serviceCount: 4, bookingCount: 2 },
+  },
+  {
+    slug: "test-lawncare-yurgins",
+    name: "Yurgin's Lawn Care LLC",
+    address: "449 Bridgeton Pike, Monroeville, NJ 08343",
+    timezone: "America/New_York",
+    business_mode: "service",
+    industry: "landscaping",
+    enabled_modules: ["ai_voice", "instant_text_back", "booking", "estimates", "lead_follow_up"],
+    capabilities_json: {
+      ai_voice: true,
+      instant_text_back: true,
+      booking: true,
+      estimates: true,
+      lead_follow_up: true,
+      offersMobileService: true,
+      offersSameDayEmergency: false,
+      requiresDeposits: false,
+      offersWalkIns: false,
+      offersPackages: true,
+      hasMultipleStaff: false,
+    },
+    hipaa_mode: false,
+    scenario: "Lawn care & landscaping, residential + commercial, seasonal services",
+    scenarioTags: ["lawn-care", "landscaping", "seasonal", "estimates", "residential", "commercial"],
+    owner_email: "brett@test.com",
+    owner_password: "test1234",
+    phone_public: "+18565381755",
+    website_url: "https://www.yurginslawncare.com/",
+    tagline: "Reliable, personalized lawn care for South Jersey homeowners and businesses",
+    cancellation_policy: "Please cancel or reschedule at least 24 hours in advance. Same-day cancellations may be subject to a trip fee.",
+    hours_json: {
+      monday: { closed: false, windows: [{ open: "08:30", close: "17:00" }] },
+      tuesday: { closed: false, windows: [{ open: "08:30", close: "17:00" }] },
+      wednesday: { closed: false, windows: [{ open: "08:30", close: "17:00" }] },
+      thursday: { closed: false, windows: [{ open: "08:30", close: "17:00" }] },
+      friday: { closed: false, windows: [{ open: "08:30", close: "17:00" }] },
+      saturday: { closed: false, windows: [{ open: "08:30", close: "14:00" }] },
+      sunday: { closed: true, windows: [] },
+    },
+    service_area_json: {
+      type: "radius",
+      center_address: "449 Bridgeton Pike, Monroeville, NJ 08343",
+      radius_miles: 20,
+      counties: ["Salem County", "Gloucester County"],
+      cities: ["Monroeville", "Clayton", "Pilesgrove", "Woodstown", "Pittsgrove", "Franklinville", "Elmer", "Glassboro", "Swedesboro", "Mullica Hill"],
+    },
+    communicationPrefs: {
+      aiBookingMode: "auto_book",
+      missedCallBehavior: "both",
+      unknownQuestionBehavior: "offer_callback",
+    },
+    seedData: {
+      callCount: 8,
+      faqCount: 10,
+      serviceCount: 7,
+      bookingCount: 5,
+      customServices: [
+        { name: "Residential Lawn Mowing", description: "Weekly or bi-weekly mowing for residential properties including edging and blowing", duration_minutes: 45, price_amount: 45, price_type: "fixed", service_category: "lawn_maintenance", display_order: 1 },
+        { name: "Commercial Property Mowing", description: "Professional mowing for commercial lots, office parks, and HOA common areas", duration_minutes: 120, price_amount: 150, price_type: "quote_only", service_category: "lawn_maintenance", display_order: 2 },
+        { name: "Hedge & Shrub Trimming", description: "Shaping and trimming of hedges, shrubs, and ornamental bushes", duration_minutes: 60, price_amount: 75, price_type: "fixed", service_category: "landscaping", display_order: 3 },
+        { name: "Mulch Installation", description: "Delivery and installation of premium mulch for beds and landscaped areas", duration_minutes: 90, price_amount: 85, price_type: "quote_only", service_category: "landscaping", display_order: 4 },
+        { name: "Spring Cleanup", description: "Comprehensive spring yard cleanup: debris removal, bed edging, and first mow", duration_minutes: 120, price_amount: 175, price_type: "fixed", service_category: "seasonal", display_order: 5 },
+        { name: "Fall Cleanup & Leaf Removal", description: "Full leaf removal, gutter clearing, and winterization prep for your yard", duration_minutes: 120, price_amount: 200, price_type: "fixed", service_category: "seasonal", display_order: 6 },
+        { name: "Lawn Fertilization", description: "Professional-grade fertilizer application to promote healthy, green growth", duration_minutes: 30, price_amount: 55, price_type: "fixed", service_category: "lawn_maintenance", display_order: 7 },
+      ],
+      customFaqs: [
+        { question: "What areas do you service?", answer: "We serve a 20-mile radius from Monroeville, NJ, covering Salem County and Gloucester County — including Clayton, Pilesgrove, Woodstown, Pittsgrove, Franklinville, Elmer, Glassboro, Swedesboro, and Mullica Hill.", priority_weight: 10 },
+        { question: "What are your hours?", answer: "We're available Monday through Friday from 8:30 AM to 5:00 PM and Saturdays from 8:30 AM to 2:00 PM. We're closed on Sundays.", priority_weight: 9 },
+        { question: "Do you offer free estimates?", answer: "Yes! We offer free on-site estimates for all of our services. Just give us a call or book online and we'll come out to assess your property.", priority_weight: 8 },
+        { question: "Do you service both residential and commercial properties?", answer: "Absolutely. We handle residential lawns of all sizes as well as commercial properties, office parks, and HOA common areas.", priority_weight: 7 },
+        { question: "How often should I have my lawn mowed?", answer: "During the growing season, we recommend weekly mowing. We also offer bi-weekly plans for customers who prefer less frequent service.", priority_weight: 6 },
+        { question: "What forms of payment do you accept?", answer: "We accept cash, checks, and all major credit cards. We can also set up recurring billing for regular service customers.", priority_weight: 5 },
+        { question: "Are you licensed and insured?", answer: "Yes, Yurgin's Lawn Care is fully licensed and insured for your peace of mind.", priority_weight: 4 },
+        { question: "What happens if it rains on my scheduled day?", answer: "If rain prevents us from completing your service, we'll reschedule for the next available day at no extra charge.", priority_weight: 3 },
+        { question: "Do you offer seasonal packages?", answer: "Yes! We offer spring cleanup, fall cleanup, and recurring maintenance packages. Ask us about bundling services for a discount.", priority_weight: 2 },
+        { question: "What is your cancellation policy?", answer: "Please cancel or reschedule at least 24 hours in advance. Same-day cancellations may be subject to a trip fee.", priority_weight: 1 },
+      ],
+      customObjections: [
+        { objection: "That's too expensive", response: "I understand budget is important. Our pricing reflects the quality of work and reliability we bring. We also offer package deals — for example, bundling mowing with seasonal cleanups saves most customers 10-15%. Can I put together a custom quote for your property?", priority_weight: 5 },
+        { objection: "I need to think about it", response: "Of course, take your time. I can send you a written estimate so you have all the details. Our schedule does fill up, especially heading into spring, so I'd recommend locking in a spot soon to get your preferred day.", priority_weight: 4 },
+        { objection: "I already have a lawn care company", response: "That's great that you're already keeping up with your property. A lot of our customers switched to us because we show up on time, every time, and we're a local South Jersey company — not a big franchise. Would you be open to a free estimate just to compare?", priority_weight: 3 },
+        { objection: "I can just do it myself", response: "Totally understand — and some folks enjoy yard work. But between the time, equipment costs, and the summer heat, a lot of homeowners find it's worth having us handle it so they can enjoy their weekends. We can start with just mowing and see how it goes.", priority_weight: 2 },
+        { objection: "Can you give me a discount?", response: "We keep our prices fair for the quality we deliver, but we do offer multi-service discounts. If you bundle regular mowing with seasonal cleanups, I can usually save you 10-15%. Want me to put together a package price?", priority_weight: 1 },
+      ],
+    },
   },
 ];
 
