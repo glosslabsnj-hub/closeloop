@@ -25,6 +25,7 @@ import {
   Sparkles,
   ClipboardCheck,
   Phone,
+  Building2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -205,6 +206,7 @@ export function AppSidebar({
             {renderItem({ href: "/app/integrations", label: "Integrations", icon: Route })}
             {renderItem({ href: "/app/simulator", label: "Test Calls", icon: FlaskConical })}
             {renderItem({ href: "/app/reports/roi", label: "Reports", icon: BarChart3 })}
+            {renderItem({ href: "/app/agency", label: "Agency", icon: Building2 })}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -42,6 +42,8 @@ import {
   Building,
   RefreshCw,
   ArrowRight,
+  Share2,
+  Check,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
@@ -72,6 +74,9 @@ import {
   getHoursSavedEstimate,
 } from "@/lib/revenueUtils";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const DATE_RANGE_OPTIONS: { value: DateRangeOption; label: string }[] = [
   { value: "this_month", label: "This Month" },
@@ -433,9 +438,36 @@ function ReportEmpty({
 
 export default function ReportsROIPage() {
   const navigate = useNavigate();
+  const { tenant } = useAuth();
   const [dateRange, setDateRange] = useState<DateRangeOption>("this_month");
   const [chartsOpen, setChartsOpen] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const { data, isLoading } = useROIReport(dateRange);
+
+  const handleShareReport = useCallback(async () => {
+    if (!tenant?.id) return;
+    try {
+      const { data: settings, error } = await supabase
+        .from("tenant_revenue_settings" as any)
+        .select("share_token")
+        .eq("tenant_id", tenant.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      const token = (settings as any)?.share_token;
+      if (!token) {
+        toast.error("Share token not available. Try again later.");
+        return;
+      }
+      const url = `${window.location.origin}/roi/${tenant.id}/${token}`;
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      toast.success("Share link copied to clipboard");
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to generate share link");
+    }
+  }, [tenant?.id]);
 
   const HeroIcon = data ? HERO_ICONS[data.heroIcon] : BarChart3;
 
@@ -459,21 +491,32 @@ export default function ReportsROIPage() {
           title="Revenue Report"
           description={hasData ? storyHeadline : "Track your AI-generated revenue and ROI"}
           action={
-            <Select
-              value={dateRange}
-              onValueChange={(v) => setDateRange(v as DateRangeOption)}
-            >
-              <SelectTrigger className="w-[160px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {DATE_RANGE_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleShareReport}
+                disabled={!hasData}
+              >
+                {shareCopied ? <Check className="h-4 w-4 mr-1" /> : <Share2 className="h-4 w-4 mr-1" />}
+                {shareCopied ? "Copied!" : "Share Report"}
+              </Button>
+              <Select
+                value={dateRange}
+                onValueChange={(v) => setDateRange(v as DateRangeOption)}
+              >
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DATE_RANGE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           }
         />
 

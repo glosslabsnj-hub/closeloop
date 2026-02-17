@@ -148,6 +148,8 @@ export async function createService(
     prerequisite_note?: string;
     duration_min_minutes?: number | null;
     duration_max_minutes?: number | null;
+    payment_timing?: "at_booking" | "at_service" | "deposit_then_balance" | "quote_first";
+    required_booking_fields?: string[];
   }
 ) {
   const { data, error } = await supabase
@@ -174,6 +176,8 @@ export async function createService(
       prerequisite_note: service.prerequisite_note || null,
       duration_min_minutes: service.duration_min_minutes ?? null,
       duration_max_minutes: service.duration_max_minutes ?? null,
+      payment_timing: service.payment_timing || "at_service",
+      required_booking_fields: service.required_booking_fields || [],
     })
     .select()
     .single();
@@ -218,6 +222,9 @@ export async function updateService(
     prerequisite_note?: string;
     duration_min_minutes?: number | null;
     duration_max_minutes?: number | null;
+    payment_timing?: "at_booking" | "at_service" | "deposit_then_balance" | "quote_first";
+    required_booking_fields?: string[];
+    required_intake_fields?: string[];
   }
 ) {
   // Transform pricing_config_json to Json type if present

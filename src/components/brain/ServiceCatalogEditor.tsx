@@ -47,6 +47,8 @@ type PriceType = "fixed" | "starting_at" | "quote_only";
 
 type BookingType = "direct_book" | "estimate_first" | "consultation";
 
+type PaymentTiming = "at_booking" | "at_service" | "deposit_then_balance" | "quote_first";
+
 interface ServiceFormData {
   name: string;
   description: string;
@@ -62,6 +64,7 @@ interface ServiceFormData {
   duration_min_minutes: number | null;
   duration_max_minutes: number | null;
   required_intake_fields: string[];
+  payment_timing: PaymentTiming;
 }
 
 const COMMON_INTAKE_FIELDS = [
@@ -92,6 +95,7 @@ const defaultFormData: ServiceFormData = {
   duration_min_minutes: null,
   duration_max_minutes: null,
   required_intake_fields: [],
+  payment_timing: "at_service",
 };
 
 // Extracted outside ServiceCatalogEditor to prevent focus loss on re-render
@@ -357,6 +361,33 @@ function ServiceForm({
         )}
       </div>
 
+      {/* Payment Timing — hidden for food mode */}
+      {businessMode !== "food" && (
+        <div className="space-y-2">
+          <Label className="text-xs">When is payment collected?</Label>
+          <Select
+            value={formData.payment_timing}
+            onValueChange={(v) => onChange("payment_timing", v)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="at_service">At time of service</SelectItem>
+              <SelectItem value="at_booking">At booking (prepay)</SelectItem>
+              <SelectItem value="deposit_then_balance">Deposit now, balance at service</SelectItem>
+              <SelectItem value="quote_first">After quote approval</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            {formData.payment_timing === "at_service" && "AI says: \"Payment is collected when we complete the service.\""}
+            {formData.payment_timing === "at_booking" && "AI says: \"Payment is required to confirm your booking.\""}
+            {formData.payment_timing === "deposit_then_balance" && "AI says: \"A deposit holds your spot, and the balance is due at service.\""}
+            {formData.payment_timing === "quote_first" && "AI says: \"We'll provide a quote first, and payment is due after you approve it.\""}
+          </p>
+        </div>
+      )}
+
       <div className="flex items-center justify-end gap-2 pt-2">
         <Button variant="outline" size="sm" onClick={onCancel} disabled={isSaving}>
           <X className="h-4 w-4 mr-1" />
@@ -435,6 +466,7 @@ export function ServiceCatalogEditor() {
             duration_min_minutes: service.duration_min_minutes ?? null,
             duration_max_minutes: service.duration_max_minutes ?? null,
             required_intake_fields: Array.isArray((service as any).required_intake_fields) ? (service as any).required_intake_fields : [],
+            payment_timing: (service as any).payment_timing || "at_service",
           }
         }));
       }
@@ -475,6 +507,7 @@ export function ServiceCatalogEditor() {
         duration_min_minutes: formData.duration_min_minutes,
         duration_max_minutes: formData.duration_max_minutes,
         required_intake_fields: formData.required_intake_fields.length > 0 ? formData.required_intake_fields : undefined,
+        payment_timing: formData.payment_timing,
       });
       toast.success("Service updated");
       queryClient.invalidateQueries({ queryKey: ["services"] });
@@ -507,6 +540,7 @@ export function ServiceCatalogEditor() {
         duration_min_minutes: newServiceData.duration_min_minutes,
         duration_max_minutes: newServiceData.duration_max_minutes,
         required_intake_fields: newServiceData.required_intake_fields.length > 0 ? newServiceData.required_intake_fields : undefined,
+        payment_timing: newServiceData.payment_timing,
       });
       toast.success("Service created");
       queryClient.invalidateQueries({ queryKey: ["services"] });

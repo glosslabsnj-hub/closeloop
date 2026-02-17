@@ -2,7 +2,9 @@ import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Phone, Brain, Power, Check, ChevronDown, ChevronRight, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Phone, Brain, Power, Check, ChevronDown, ChevronRight, CheckCircle2, Zap, Globe, Search } from "lucide-react";
 import { PhoneConnectionStep } from "./PhoneConnectionStep";
 import { ConfigureAIStep } from "./ConfigureAIStep";
 import { GoLiveStep } from "./GoLiveStep";
@@ -11,6 +13,9 @@ import { ReadinessRing } from "./ReadinessRing";
 import { TestCallCard } from "./TestCallCard";
 import { SmartChecklist } from "./SmartChecklist";
 import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { searchIndustries, getPopularIndustries, type IndustryCatalogEntry } from "@/data/industryCatalog";
+import { WebsiteImportWizard } from "@/components/brain/WebsiteImportWizard";
 
 interface SetupWizardProps {
   onSetupComplete: () => void;
@@ -27,6 +32,10 @@ type SetupStep = {
 export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
   const { tenant, assistantSettings } = useAuth();
   const { score, p0Flags, canGoLive: aiReady, stepProgress } = useAIReadinessV2();
+  const { businessMode } = useTenantConfig();
+  const [quickStartQuery, setQuickStartQuery] = useState("");
+  const [websiteImportOpen, setWebsiteImportOpen] = useState(false);
+  const [quickStartDismissed, setQuickStartDismissed] = useState(false);
 
   // Determine completion status from assistant_settings
   const phoneComplete = assistantSettings?.setup_step_phone || assistantSettings?.phone_connected || false;
@@ -110,6 +119,56 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
     <div className="max-w-2xl mx-auto space-y-6 p-4 md:p-6">
       {/* Welcome Banner — replaces generic header */}
       <WelcomeBanner />
+
+      {/* Quick Start — shown when AI knowledge is low */}
+      {score < 50 && !quickStartDismissed && (
+        <div className="rounded-xl border-2 border-primary/20 bg-primary/5 p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <Zap className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-sm">Quick Start</h3>
+              <p className="text-xs text-muted-foreground">Import your business data in seconds</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Website Import */}
+            <button
+              onClick={() => setWebsiteImportOpen(true)}
+              className="flex items-center gap-3 rounded-lg border bg-card p-3 text-left hover:border-primary/40 transition-colors"
+            >
+              <Globe className="h-5 w-5 text-primary shrink-0" />
+              <div>
+                <p className="text-sm font-medium">Import from Website</p>
+                <p className="text-xs text-muted-foreground">Scan your site for services & FAQs</p>
+              </div>
+            </button>
+
+            {/* Industry Template */}
+            <a
+              href="/app/business-brain?section=about"
+              className="flex items-center gap-3 rounded-lg border bg-card p-3 text-left hover:border-primary/40 transition-colors"
+            >
+              <Search className="h-5 w-5 text-primary shrink-0" />
+              <div>
+                <p className="text-sm font-medium">Pick Your Industry</p>
+                <p className="text-xs text-muted-foreground">Auto-fill from 100+ templates</p>
+              </div>
+            </a>
+          </div>
+
+          <button
+            onClick={() => setQuickStartDismissed(true)}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Skip — I'll set up manually
+          </button>
+        </div>
+      )}
+
+      <WebsiteImportWizard open={websiteImportOpen} onOpenChange={setWebsiteImportOpen} />
 
       {/* Readiness Ring + Progress */}
       <div className="flex items-center gap-6 justify-center">

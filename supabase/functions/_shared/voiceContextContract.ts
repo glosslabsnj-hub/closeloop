@@ -977,6 +977,40 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     category: "offerings",
     includeInCompactJson: false, // Keep compact JSON small
   },
+  {
+    key: "service_booking_rules_summary",
+    description: "Per-service booking rules: booking type, required fields, payment timing (e.g., 'AC Repair: direct book, needs address + urgency, pay at service')",
+    type: "string",
+    source: (ctx) => {
+      const services = ctx.offerings?.services || [];
+      if (services.length === 0) return "";
+      return services
+        .filter((s: any) => s.booking_type || s.payment_timing || (s.required_booking_fields && s.required_booking_fields.length > 0))
+        .slice(0, 10)
+        .map((s: any) => {
+          const parts = [s.name];
+          if (s.booking_type && s.booking_type !== "direct_book") {
+            const typeLabel: Record<string, string> = { estimate_first: "estimate visit first", consultation: "callback for consultation" };
+            parts.push(typeLabel[s.booking_type] || s.booking_type);
+          } else {
+            parts.push("direct book");
+          }
+          if (s.required_booking_fields && s.required_booking_fields.length > 0) {
+            parts.push("needs " + s.required_booking_fields.join(" + "));
+          }
+          if (s.payment_timing && s.payment_timing !== "at_service") {
+            const timingLabel: Record<string, string> = { at_booking: "prepay", deposit_then_balance: "deposit required", quote_first: "quote first" };
+            parts.push(timingLabel[s.payment_timing] || s.payment_timing);
+          }
+          return parts.join(", ");
+        })
+        .join(" | ");
+    },
+    defaultValue: "",
+    category: "offerings",
+    includeInCompactJson: true,
+    speechReady: true,
+  },
 
   // ===== SALES =====
   {

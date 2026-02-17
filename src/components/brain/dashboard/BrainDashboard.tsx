@@ -8,8 +8,10 @@
  * - Intelligence card appended separately (not part of the 5-tab structure)
  */
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BRAIN_CATEGORIES, type CategoryConfig } from "@/components/brain/layout/businessBrainNavConfig";
 import { getModeCategories } from "@/config/brainModeLayout";
@@ -20,6 +22,7 @@ import { useAllCategoriesCompletion } from "@/hooks/useCategoryCompletion";
 import { useBrainSummaries } from "@/hooks/useBrainSummaries";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { resolveCardTitle } from "@/data/industryTerminology";
+import { WebsiteImportWizard } from "@/components/brain/WebsiteImportWizard";
 
 interface BrainDashboardProps {
   onNavigate: (section: string) => void;
@@ -53,6 +56,7 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
   const completions = useAllCategoriesCompletion();
   const summaries = useBrainSummaries();
   const { businessMode } = useTenantConfig();
+  const [websiteImportOpen, setWebsiteImportOpen] = useState(false);
 
   // Mode-specific categories (5 tabs)
   const modeCategories = useMemo(() => getModeCategories(businessMode), [businessMode]);
@@ -83,13 +87,21 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
             <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Knowledge Base</p>
             <h1 className="text-2xl font-bold tracking-tight">Business Brain</h1>
           </div>
-          <div className="text-right">
-            <span className="text-sm font-medium">{overallPercent}%</span>
-            <span className="text-xs text-muted-foreground ml-1">complete</span>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" onClick={() => setWebsiteImportOpen(true)}>
+              <Globe className="h-4 w-4 mr-1.5" />
+              Import from Website
+            </Button>
+            <div className="text-right">
+              <span className="text-sm font-medium">{overallPercent}%</span>
+              <span className="text-xs text-muted-foreground ml-1">complete</span>
+            </div>
           </div>
         </div>
         <Progress value={overallPercent} className="h-1" />
       </div>
+
+      <WebsiteImportWizard open={websiteImportOpen} onOpenChange={setWebsiteImportOpen} />
 
       {/* Priority next steps engine */}
       <BrainNextStepsBar

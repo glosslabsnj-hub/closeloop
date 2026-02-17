@@ -40,6 +40,8 @@ interface CreateTenantRequest {
   hipaa_mode?: boolean;
   capabilities_json?: Record<string, boolean>;
   default_capacity?: number;
+  // Agency provisioning
+  agency_id?: string | null;
 }
 
 serve(async (req) => {
@@ -187,11 +189,43 @@ serve(async (req) => {
       console.log(`[create-tenant] Membership created: user ${userId.substring(0, 8)}... -> tenant ${tenantId.substring(0, 8)}...`);
     }
 
-    // 9. Return success with tenant_id
+    // 9. Agency linkage (if provisioned by an agency)
+    let agencyLinked = false;
+    if (body.agency_id) {
+      // Verify agency exists and belongs to this user
+      const { data: agency } = await serviceClient
+        .from("agency_accounts")
+        .select("id, user_id")
+        .eq("id", body.agency_id)
+        .single();
+
+      if (agency && agency.user_id === userId) {
+        // Link tenant to agency
+        const { error: linkError } = await serviceClient
+          .from("agency_tenants")
+          .insert({
+            agency_id: body.agency_id,
+            tenant_id: tenantId,
+            status: "active",
+          });
+
+        if (linkError) {
+          console.error("[create-tenant] Agency link error:", linkError.message);
+        } else {
+          agencyLinked = true;
+          console.log(`[create-tenant] Agency linked: ${body.agency_id.substring(0, 8)}... -> tenant ${tenantId.substring(0, 8)}...`);
+        }
+      } else {
+        console.warn("[create-tenant] Agency ID provided but not owned by user, skipping link");
+      }
+    }
+
+    // 10. Return success with tenant_id
     return new Response(
       JSON.stringify({
         tenant_id: tenantId,
         membership_created: !membershipError,
+        agency_linked: agencyLinked,
       }),
       {
         status: 200,

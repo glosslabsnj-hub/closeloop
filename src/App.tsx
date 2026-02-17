@@ -20,6 +20,7 @@ import LoginPage from "@/pages/public/LoginPage";
 import SignupPage from "@/pages/public/SignupPage";
 import EstimateViewPage from "@/pages/public/EstimateViewPage";
 import CustomerPortalPage from "@/pages/public/CustomerPortalPage";
+import PublicROIReportPage from "@/pages/public/PublicROIReportPage";
 
 // App Pages
 import OnboardingPage from "@/pages/app/OnboardingPage";
@@ -67,6 +68,7 @@ import WorkflowRunsPage from "@/pages/app/WorkflowRunsPage";
 import WorkflowRunDetailPage from "@/pages/app/WorkflowRunDetailPage";
 import LeadRecoveryPage from "@/pages/app/LeadRecoveryPage";
 import JobsPage from "@/pages/app/JobsPage";
+import AgencyDashboardPage from "@/pages/app/AgencyDashboardPage";
 
 // Driver Portal Pages
 import DriverLoginPage from "@/pages/driver/DriverLoginPage";
@@ -118,6 +120,9 @@ const App = () => (
             {/* Customer Portal (no layout - clean customer experience) */}
             <Route path="/portal/:tenantId" element={<CustomerPortalPage />} />
 
+            {/* Public ROI Report (no layout - shareable) */}
+            <Route path="/roi/:tenantId/:shareToken" element={<PublicROIReportPage />} />
+
             {/* Onboarding and Go-Live (no layout) */}
             <Route path="/app/onboarding" element={<OnboardingPage />} />
             <Route path="/app/go-live" element={<GoLivePage />} />
@@ -166,6 +171,7 @@ const App = () => (
               <Route path="/app/reports/roi" element={<ReportsROIPage />} />
               <Route path="/app/leads/recovery" element={<LeadRecoveryPage />} />
               <Route path="/app/partner" element={<BusinessPartnerPage />} />
+              <Route path="/app/agency" element={<AgencyDashboardPage />} />
               <Route path="/app/help" element={<HelpCenterPage />} />
               {/* Legacy: Menu Center now lives in Business Brain */}
               <Route path="/app/menu-center" element={<Navigate to="/app/business-brain" replace />} />

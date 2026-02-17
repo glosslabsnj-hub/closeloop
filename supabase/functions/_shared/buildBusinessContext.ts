@@ -66,6 +66,10 @@ export interface NormalizedService {
   duration_min_minutes: number | null;
   /** Maximum duration in minutes (for variable-duration services) */
   duration_max_minutes: number | null;
+  /** When payment is collected for this service */
+  payment_timing: "at_booking" | "at_service" | "deposit_then_balance" | "quote_first";
+  /** Required info fields before booking this service */
+  required_booking_fields: string[];
 }
 
 export interface NormalizedMenuItem {
@@ -1111,6 +1115,8 @@ function normalizeServices(services: Array<{
   prerequisite_note?: string | null;
   duration_min_minutes?: number | null;
   duration_max_minutes?: number | null;
+  payment_timing?: string | null;
+  required_booking_fields?: string[] | null;
 }> | null): NormalizedService[] {
   if (!services || services.length === 0) return [];
   
@@ -1188,6 +1194,10 @@ function normalizeServices(services: Array<{
       prerequisite_note: s.prerequisite_note || "",
       duration_min_minutes: s.duration_min_minutes ?? null,
       duration_max_minutes: s.duration_max_minutes ?? null,
+      payment_timing: (["at_booking", "at_service", "deposit_then_balance", "quote_first"].includes(s.payment_timing || "")
+        ? s.payment_timing as "at_booking" | "at_service" | "deposit_then_balance" | "quote_first"
+        : "at_service"),
+      required_booking_fields: Array.isArray(s.required_booking_fields) ? s.required_booking_fields : [],
     };
   });
 }
