@@ -14,6 +14,28 @@ function getBearerToken(req: Request): string | null {
   return m?.[1] ?? null;
 }
 
+/**
+ * Lightweight auth: validates JWT without requiring tenant membership.
+ * Use during onboarding when the user has a JWT but no tenant yet.
+ */
+export async function requireAuthedUser(req: Request): Promise<{ userId: string }> {
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+  const token = getBearerToken(req);
+  if (!token) throw new Error("Missing Authorization bearer token");
+
+  const anon = createClient(SUPABASE_URL, ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false },
+  });
+
+  const { data, error } = await anon.auth.getUser();
+  if (error || !data?.user?.id) throw new Error("Unauthorized");
+
+  return { userId: data.user.id };
+}
+
 export async function requireAuthedTenant(req: Request, requestedTenantId?: string | null): Promise<AuthedContext> {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;

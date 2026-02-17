@@ -2,7 +2,8 @@
  * useOnboardingFormState — All onboarding form state, initialization effects, and auto-save.
  * Extracted from OnboardingPage.tsx for maintainability.
  */
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import type { MappedOnboardingData } from "@/lib/mapWebsiteImportToOnboarding";
 import { type BusinessMode, getDefaultModulesForMode } from "@/components/onboarding/BusinessModeSelector";
 import { getDefaultCommunicationPrefs, type CommunicationPrefs, type AITone, type AIBookingMode } from "@/components/onboarding/CommunicationPreferences";
 import { getDefaultBusinessDetails, type BusinessDetails } from "@/components/onboarding/BusinessDetailsForm";
@@ -84,6 +85,7 @@ export function clearOnboardingData(userId?: string) {
 export function useOnboardingFormState(userId?: string) {
   const saved = useRef(loadOnboardingData(userId));
   const initializedIndustryRef = useRef<string | null>(saved.current?.industrySlug || null);
+  const websiteImportActiveRef = useRef(false);
 
   // Auto-save indicator
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
@@ -141,12 +143,11 @@ export function useOnboardingFormState(userId?: string) {
     if (!industrySlug) return;
     if (initializedIndustryRef.current === industrySlug) return;
     const industryEntry = getIndustryBySlug(industrySlug);
+    const newMode = industryEntry?.businessMode || businessMode;
     if (industryEntry?.businessMode) {
-      const newMode = industryEntry.businessMode;
       setBusinessMode(newMode);
       setCommunicationPrefs(getDefaultCommunicationPrefs(newMode));
       setSchedulingPrefs(getDefaultSchedulingPrefs(newMode, undefined, industrySlug));
-      setBusinessHours(getDefaultHoursForMode(newMode));
       const ctx = { slug: industrySlug, category: industryEntry.category };
       const defaults = getDefaultAnswers(newMode, ctx);
       const onboardingConfig = getIndustryOnboardingConfig(newMode, industryEntry.category, industrySlug);
@@ -158,19 +159,23 @@ export function useOnboardingFormState(userId?: string) {
     const modules = industryEntry?.enabledModules ?? getDefaultModulesForMode(businessMode);
     setEnabledModules(modules);
     baseModulesRef.current = modules;
-    const config = resolveIndustryTemplate(industrySlug);
-    setTemplateServices(config.services.map(s => ({
-      name: s.name, duration: s.duration, price: s.price,
-      priceType: s.priceType || "fixed", description: s.description, enabled: true,
-    })));
-    setTemplateFAQs(config.faqs.map(f => ({ question: f.question, answer: f.answer, enabled: true })));
-    setTemplatePolicies({
-      cancellation: config.defaultPolicies?.cancellation || "",
-      deposit: config.defaultPolicies?.deposit || "",
-      refund: config.defaultPolicies?.refund || "",
-    });
-    const newMode = industryEntry?.businessMode || businessMode;
-    setServiceArea(getDefaultServiceArea(newMode as BusinessMode));
+
+    // GUARD: If website import is active, skip overwriting services/FAQs/hours
+    if (!websiteImportActiveRef.current) {
+      const config = resolveIndustryTemplate(industrySlug);
+      setTemplateServices(config.services.map(s => ({
+        name: s.name, duration: s.duration, price: s.price,
+        priceType: s.priceType || "fixed", description: s.description, enabled: true,
+      })));
+      setTemplateFAQs(config.faqs.map(f => ({ question: f.question, answer: f.answer, enabled: true })));
+      setTemplatePolicies({
+        cancellation: config.defaultPolicies?.cancellation || "",
+        deposit: config.defaultPolicies?.deposit || "",
+        refund: config.defaultPolicies?.refund || "",
+      });
+      setBusinessHours(getDefaultHoursForMode(newMode));
+      setServiceArea(getDefaultServiceArea(newMode as BusinessMode));
+    }
     if (newMode === "dispatch") setWorkStyle("go_to_customer");
     else if (newMode === "food") setWorkStyle("customer_comes");
     initializedIndustryRef.current = industrySlug;
@@ -220,6 +225,29 @@ export function useOnboardingFormState(userId?: string) {
     return () => clearTimeout(timer);
   }, [businessName, businessMode, industrySlug, workStyle, scenarioAnswers, scenarioDetails, schedulingPrefs, communicationPrefs, templateServices, templateFAQs, templatePolicies, serviceArea, businessDetails, businessHours, teamMembers, isSoloOperator, a2pData, aiTone, bookingMode, afterHours, customGreeting, notificationPhone, userId]);
 
+  // --- Website import support ---
+  const applyWebsiteImport = useCallback((mapped: MappedOnboardingData) => {
+    websiteImportActiveRef.current = true;
+
+    if (mapped.businessName) setBusinessName(mapped.businessName);
+    if (mapped.suggestedIndustrySlug) setIndustrySlug(mapped.suggestedIndustrySlug);
+    if (mapped.address) setBusinessDetails(prev => ({ ...prev, location: mapped.address! }));
+
+    // Direct-set imported data (protected from template override by the guard)
+    if (mapped.services.length > 0) setTemplateServices(mapped.services);
+    if (mapped.faqs.length > 0) setTemplateFAQs(mapped.faqs);
+    if (mapped.hours) setBusinessHours(mapped.hours);
+  }, []);
+
+  const clearWebsiteImport = useCallback(() => {
+    websiteImportActiveRef.current = false;
+  }, []);
+
+  const websiteImportActive = useMemo(() => websiteImportActiveRef.current, [
+    // Re-derive when industry changes (the ref is set in applyWebsiteImport/clearWebsiteImport)
+    industrySlug,
+  ]);
+
   const resetFormState = useCallback(() => {
     setBusinessName(sessionStorage.getItem("businessName") || "");
     setIndustrySlug("");
@@ -229,6 +257,7 @@ export function useOnboardingFormState(userId?: string) {
     setTemplateFAQs([]);
     setTemplatePolicies({ cancellation: "", deposit: "", refund: "" });
     initializedIndustryRef.current = null;
+    websiteImportActiveRef.current = false;
   }, []);
 
   return {
@@ -261,6 +290,10 @@ export function useOnboardingFormState(userId?: string) {
     handleBusinessModeChange,
     triggerAutoSave,
     resetFormState,
+    // Website import
+    applyWebsiteImport,
+    clearWebsiteImport,
+    websiteImportActive,
     // Auto-save
     saveStatus,
     saved,

@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders, corsResponse, jsonResponse, errorResponse } from "../_shared/cors.ts";
-import { requireAuthedTenant } from "../_shared/tenant.ts";
+import { requireAuthedTenant, requireAuthedUser } from "../_shared/tenant.ts";
 
 /**
  * import-business-website
@@ -49,6 +49,8 @@ interface ExtractionResult {
   services: ExtractedService[];
   faqs: ExtractedFAQ[];
   description: string;
+  suggested_industry: string;
+  suggested_business_mode: string;
 }
 
 /** Basic URL validation — must start with http(s):// and have a domain. */
@@ -114,7 +116,9 @@ Return a single JSON object with these fields:
   "faqs": [
     { "question": "string", "answer": "string" }
   ],
-  "description": "string — a 1-3 sentence summary of what this business does"
+  "description": "string — a 1-3 sentence summary of what this business does",
+  "suggested_industry": "string — closest slug from: plumbing, hvac, electrical, roofing, painting, flooring, cleaning, landscaping, pest_control, pool_service, auto_detailing, tire_shop, auto_repair, towing, salon, barbershop, spa, massage, medspa, dental, chiropractor, optometry, physical_therapy, restaurant, pizza, bakery, coffee_shop, catering, personal_training, photography, accounting, law_firm, real_estate, veterinary, pet_grooming, car_wash, locksmith, moving, gym, yoga_studio, martial_arts, tattoo, other",
+  "suggested_business_mode": "string — one of: service, dispatch, food, medical, general"
 }
 
 Rules:
@@ -124,6 +128,8 @@ Rules:
 - For services, extract every distinct service or offering you can identify. Set price_amount to a number (dollars, not cents) if listed, otherwise null. Set duration_minutes if listed, otherwise null.
 - For FAQs, generate useful Q&A pairs from the website content — things a caller might ask. Include at least 3 if there is enough information.
 - For phone and address, extract if clearly present; otherwise null.
+- For "suggested_industry", pick the closest slug from the list. Use "other" if nothing fits.
+- For "suggested_business_mode": "service" for appointment/booking businesses, "dispatch" for delivery/towing/logistics, "food" for restaurants/cafes/bakeries, "medical" for healthcare, "general" otherwise.
 - Return ONLY the JSON object, no markdown fences, no extra text.`;
 
 serve(async (req) => {
@@ -140,15 +146,16 @@ serve(async (req) => {
     if (!url || typeof url !== "string") {
       return errorResponse("Missing required field: url");
     }
-    if (!tenant_id || typeof tenant_id !== "string") {
-      return errorResponse("Missing required field: tenant_id");
-    }
     if (!isValidUrl(url)) {
       return errorResponse("Invalid URL — must start with http:// or https://");
     }
 
-    // Authenticate caller
-    await requireAuthedTenant(req, tenant_id);
+    // Authenticate caller — tenant_id optional (onboarding flow has no tenant yet)
+    if (tenant_id) {
+      await requireAuthedTenant(req, tenant_id);
+    } else {
+      await requireAuthedUser(req);
+    }
 
     // ---- Step 1: Fetch the website ----
     const controller = new AbortController();
@@ -275,6 +282,8 @@ serve(async (req) => {
       services: Array.isArray(extracted.services) ? extracted.services : [],
       faqs: Array.isArray(extracted.faqs) ? extracted.faqs : [],
       description: extracted.description || "",
+      suggested_industry: extracted.suggested_industry || "other",
+      suggested_business_mode: extracted.suggested_business_mode || "service",
     };
 
     return jsonResponse({
