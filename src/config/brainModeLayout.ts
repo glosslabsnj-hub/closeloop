@@ -17,6 +17,7 @@ import {
   MapPin,
   Truck,
   UtensilsCrossed,
+  Settings,
   type LucideIcon,
 } from "lucide-react";
 import type { BusinessMode } from "@/hooks/useTenantConfig";
@@ -118,6 +119,15 @@ const SERVICE_LAYOUT: ModeLayout = {
       groups: [],
       completionSections: [],
     },
+    {
+      section: "workflow",
+      label: "Workflow Config",
+      description: "AI behavior customization",
+      icon: Settings,
+      order: 6,
+      groups: [],
+      completionSections: [],
+    },
   ],
 };
 
@@ -187,6 +197,15 @@ const DISPATCH_LAYOUT: ModeLayout = {
       description: "Memory & learning",
       icon: Sparkles,
       order: 5,
+      groups: [],
+      completionSections: [],
+    },
+    {
+      section: "workflow",
+      label: "Workflow Config",
+      description: "Dispatch behavior customization",
+      icon: Settings,
+      order: 6,
       groups: [],
       completionSections: [],
     },
@@ -263,6 +282,15 @@ const FOOD_LAYOUT: ModeLayout = {
       groups: [],
       completionSections: [],
     },
+    {
+      section: "workflow",
+      label: "Workflow Config",
+      description: "Order workflow customization",
+      icon: Settings,
+      order: 6,
+      groups: [],
+      completionSections: [],
+    },
   ],
 };
 
@@ -331,6 +359,15 @@ const MEDICAL_LAYOUT: ModeLayout = {
       description: "Memory & learning",
       icon: Sparkles,
       order: 5,
+      groups: [],
+      completionSections: [],
+    },
+    {
+      section: "workflow",
+      label: "Workflow Config",
+      description: "HIPAA & intake customization",
+      icon: Settings,
+      order: 6,
       groups: [],
       completionSections: [],
     },
@@ -405,6 +442,15 @@ const GENERAL_LAYOUT: ModeLayout = {
       groups: [],
       completionSections: [],
     },
+    {
+      section: "workflow",
+      label: "Workflow Config",
+      description: "Callback & lead customization",
+      icon: Settings,
+      order: 6,
+      groups: [],
+      completionSections: [],
+    },
   ],
 };
 
@@ -473,6 +519,15 @@ const SALES_LAYOUT: ModeLayout = {
       description: "Memory & learning",
       icon: Sparkles,
       order: 5,
+      groups: [],
+      completionSections: [],
+    },
+    {
+      section: "workflow",
+      label: "Workflow Config",
+      description: "Sales workflow customization",
+      icon: Settings,
+      order: 6,
       groups: [],
       completionSections: [],
     },
