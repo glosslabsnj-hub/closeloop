@@ -7,7 +7,8 @@
  */
 
 import { corsHeaders, corsResponse, jsonResponse, errorResponse } from "../_shared/cors.ts";
-import { requireAuthedTenant, serviceClient } from "../_shared/tenant.ts";
+import { serviceClient } from "../_shared/tenant.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -15,14 +16,27 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const auth = await requireAuthedTenant(req);
+    // Auth: only need user identity, not tenant membership
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return errorResponse("Unauthorized", 401);
+
+    const anonClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } }, auth: { persistSession: false } }
+    );
+    const { data: userRes, error: userErr } = await anonClient.auth.getUser();
+    if (userErr || !userRes?.user?.id) return errorResponse("Unauthorized", 401);
+
+    const userId = userRes.user.id;
+
     const svc = serviceClient();
 
     // Look up agency_accounts where user_id matches the authed user
     const { data: agency, error: agencyErr } = await svc
       .from("agency_accounts")
       .select("id, agency_name")
-      .eq("user_id", auth.userId)
+      .eq("user_id", userId)
       .maybeSingle();
 
     if (agencyErr) {
