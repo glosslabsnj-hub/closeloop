@@ -22,6 +22,13 @@ import { useOnboardingSubmit } from "@/hooks/useOnboardingSubmit";
 import { OnboardingComplete } from "@/components/onboarding/OnboardingComplete";
 import { ResumeOnboardingModal } from "@/components/onboarding/ResumeOnboardingModal";
 import { AutoSaveIndicator } from "@/components/onboarding/AutoSaveIndicator";
+import { WebsiteQuickStart } from "@/components/onboarding/WebsiteQuickStart";
+import { mapWebsiteImportToOnboarding } from "@/lib/mapWebsiteImportToOnboarding";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Phase sub-components
 import { OnboardingIdentity } from "@/components/onboarding/phases/OnboardingIdentity";
@@ -54,6 +61,10 @@ export default function OnboardingPage() {
   const [showResumeModal, setShowResumeModal] = useState(() => hasSavedProgress);
   const [resumeDecided, setResumeDecided] = useState(!hasSavedProgress);
 
+  // Import conflict dialog
+  const [showImportConflictDialog, setShowImportConflictDialog] = useState(false);
+  const [pendingIndustrySlug, setPendingIndustrySlug] = useState("");
+
   const handleResume = () => { setShowResumeModal(false); setResumeDecided(true); };
   const handleStartFresh = () => {
     setShowResumeModal(false);
@@ -61,6 +72,16 @@ export default function OnboardingPage() {
     clearOnboardingData(userId);
     resetProgress();
     form.resetFormState();
+  };
+
+  // Industry change handler that checks for import conflict
+  const handleIndustryChange = (slug: string) => {
+    if (form.websiteImportActive) {
+      setPendingIndustrySlug(slug);
+      setShowImportConflictDialog(true);
+    } else {
+      form.setIndustrySlug(slug);
+    }
   };
 
   // Auto-save debounced
@@ -158,49 +179,72 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Desktop Sidebar */}
-      <StepNavigator
-        steps={ONBOARDING_PHASES}
-        icons={PHASE_ICONS}
-        currentStep={phase}
-        onStepClick={goToPhase}
-        totalMinutes={totalMinutes}
-      />
+      {/* Desktop Sidebar — hidden during quick start */}
+      {phase >= 1 && (
+        <StepNavigator
+          steps={ONBOARDING_PHASES}
+          icons={PHASE_ICONS}
+          currentStep={phase}
+          onStepClick={goToPhase}
+          totalMinutes={totalMinutes}
+        />
+      )}
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-h-screen">
-        {/* Mobile Progress */}
-        <div className="lg:hidden p-4 border-b bg-card">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium">
-              Step {phase} of {totalPhases} — {currentPhase.title}
-            </p>
-            <span className="text-sm font-medium text-muted-foreground">{progressPercent}%</span>
-          </div>
-          <Progress value={progressPercent} className="h-1.5" />
-        </div>
-
-        {/* Desktop Progress Bar */}
-        <div className="hidden lg:block px-6 pt-6">
-          <div className="max-w-2xl mx-auto">
+        {/* Mobile Progress — hidden during quick start */}
+        {phase >= 1 && (
+          <div className="lg:hidden p-4 border-b bg-card">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm font-medium">
                 Step {phase} of {totalPhases} — {currentPhase.title}
               </p>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-muted-foreground">{progressPercent}%</span>
-                <AutoSaveIndicator status={form.saveStatus} />
-              </div>
+              <span className="text-sm font-medium text-muted-foreground">{progressPercent}%</span>
             </div>
-            <Progress value={progressPercent} className="h-2" />
+            <Progress value={progressPercent} className="h-1.5" />
           </div>
-        </div>
+        )}
+
+        {/* Desktop Progress Bar — hidden during quick start */}
+        {phase >= 1 && (
+          <div className="hidden lg:block px-6 pt-6">
+            <div className="max-w-2xl mx-auto">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm text-muted-foreground">
+                  Step {phase} of {totalPhases} — {currentPhase.title}
+                </p>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-muted-foreground">{progressPercent}%</span>
+                  <AutoSaveIndicator status={form.saveStatus} />
+                </div>
+              </div>
+              <Progress value={progressPercent} className="h-2" />
+            </div>
+          </div>
+        )}
 
         {/* Step Content */}
-        <div className="flex-1 flex items-start justify-center p-6 overflow-y-auto">
+        <div className={`flex-1 flex justify-center p-6 overflow-y-auto ${phase === 0 ? "items-center" : "items-start"}`}>
           <div className="w-full max-w-2xl">
             <AnimatePresence mode="wait">
-              {submit.isComplete ? (
+              {phase === 0 ? (
+                <motion.div
+                  key="quickstart"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <WebsiteQuickStart
+                    onImportComplete={(result) => {
+                      const mapped = mapWebsiteImportToOnboarding(result);
+                      form.applyWebsiteImport(mapped);
+                      progressGoNext(); // advance to Phase 1
+                    }}
+                    onSkip={() => progressGoNext()}
+                  />
+                </motion.div>
+              ) : submit.isComplete ? (
                 <motion.div
                   key="complete"
                   initial={{ opacity: 0, y: 10 }}
@@ -229,7 +273,7 @@ export default function OnboardingPage() {
                       businessName={form.businessName}
                       onBusinessNameChange={form.setBusinessName}
                       industrySlug={form.industrySlug}
-                      onIndustryChange={form.setIndustrySlug}
+                      onIndustryChange={handleIndustryChange}
                       businessMode={form.businessMode}
                       onBusinessModeChange={form.handleBusinessModeChange}
                       workStyle={form.workStyle}
@@ -299,8 +343,8 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        {/* Footer Navigation */}
-        {!submit.isComplete && phase < 5 && (
+        {/* Footer Navigation — hidden during quick start */}
+        {!submit.isComplete && phase >= 1 && phase < 5 && (
           <div className="border-t bg-card p-6">
             <div className="max-w-2xl mx-auto space-y-3">
               {submit.completionError && (
@@ -366,6 +410,38 @@ export default function OnboardingPage() {
         onResume={handleResume}
         onStartFresh={handleStartFresh}
       />
+
+      {/* Import Conflict Dialog */}
+      <AlertDialog open={showImportConflictDialog} onOpenChange={setShowImportConflictDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Replace imported data?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You imported services, FAQs, and hours from your website. Changing your industry will replace them with default templates.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                // Keep imported data, just change industry for mode/modules
+                form.setIndustrySlug(pendingIndustrySlug);
+                setShowImportConflictDialog(false);
+              }}
+            >
+              Keep my imported data
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                form.clearWebsiteImport();
+                form.setIndustrySlug(pendingIndustrySlug);
+                setShowImportConflictDialog(false);
+              }}
+            >
+              Use industry defaults
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
