@@ -756,7 +756,7 @@ export const DISPATCH_AGENT_CONFIG: AgentToolsConfig = {
   mode: "dispatch",
   agentName: "Dispatch Agent",
   industries: ["Towing", "roadside assistance", "courier/delivery", "mobile mechanics", "locksmith"],
-  toolCount: 7,
+  toolCount: 10,
   tools: [
     createCheckAvailabilityTool(
       `Check availability for SCHEDULED (non-emergency) jobs. Use when customer wants to schedule a future tow, planned vehicle transport, or non-urgent service. Example: "Can I schedule a tow for tomorrow morning?"`
@@ -1375,6 +1375,177 @@ export function getElevenLabsToolsForMode(mode: BusinessMode): ReturnType<typeof
   return config.tools.map(toElevenLabsToolFormat);
 }
 
+// ============= REFERRAL NETWORK TOOLS =============
+
+/**
+ * search_referral_network — Search for a business on the referral network
+ * that can help the caller when this business can't (out of area, wrong service, fully booked).
+ *
+ * IMPORTANT behavioral rules for the AI:
+ * - ONLY call AFTER confirming you can't help (e.g., after check_service_area returns out-of-area,
+ *   or the caller needs a service this business doesn't offer).
+ * - Ask the caller's permission BEFORE searching: "I might know someone who can help. Mind if I check?"
+ * - NEVER say "CloseLoop" or "same platform" — say "I work with" or "I know a great..."
+ */
+function createSearchReferralNetworkTool(): AgentTool {
+  return {
+    name: "search_referral_network",
+    description: `Search for a nearby business that can help the caller when you cannot. Use this ONLY after you've confirmed you can't help — for example, the caller is outside your service area, needs a service you don't offer, or you're fully booked. IMPORTANT: Always ask the caller's permission before searching: "I might know someone who can help. Mind if I check?" Never mention any platform, network, or system — just say you might know someone nearby.`,
+    url: `${BASE_URL}/elevenlabs-search-referral-network`,
+    method: "POST",
+    parameters: [
+      {
+        name: "caller_location",
+        type: "string",
+        required: true,
+        description: "The caller's location — city/town, ZIP code, or address. Ask if not already known.",
+      },
+      {
+        name: "service_needed",
+        type: "string",
+        required: true,
+        description: "The service the caller needs, in plain English (e.g., 'auto detailing', 'emergency towing', 'haircut').",
+      },
+      {
+        name: "reason",
+        type: "string",
+        required: true,
+        description: "Why you can't help: 'out_of_area', 'service_not_offered', 'fully_booked', or 'closed'.",
+      },
+      {
+        name: "urgency",
+        type: "string",
+        required: false,
+        description: "How urgent the request is: 'low', 'normal', 'high', or 'urgent'.",
+      },
+      {
+        name: "caller_name",
+        type: "string",
+        required: false,
+        description: "The caller's name if they've provided it.",
+      },
+      {
+        name: "caller_phone",
+        type: "string",
+        required: false,
+        description: "The caller's phone number.",
+        dynamicValue: "{{caller_phone}}",
+      },
+      {
+        name: "tenant_id",
+        type: "string",
+        required: true,
+        description: "The current tenant ID.",
+        dynamicValue: "{{tenant_id}}",
+      },
+      {
+        name: "conversation_id",
+        type: "string",
+        required: false,
+        description: "The ElevenLabs conversation ID.",
+        dynamicValue: "{{conversation_id}}",
+      },
+    ],
+  };
+}
+
+/**
+ * initiate_referral_transfer — Transfer the live call to a matched business's AI agent.
+ *
+ * ONLY call this after:
+ * 1. search_referral_network found a match
+ * 2. The caller explicitly agreed to the transfer
+ *
+ * Before calling: "Let me connect you now. I've let them know what you need."
+ * If the caller declines: use create_callback instead.
+ */
+function createInitiateReferralTransferTool(): AgentTool {
+  return {
+    name: "initiate_referral_transfer",
+    description: `Transfer the caller to a matched business's AI assistant. ONLY call this after search_referral_network returned a match AND the caller explicitly agreed to be transferred. Before calling, say something like "Let me connect you now, I've let them know what you need." If the caller declines the transfer, use create_callback instead to take their info.`,
+    url: `${BASE_URL}/elevenlabs-initiate-referral-transfer`,
+    method: "POST",
+    parameters: [
+      {
+        name: "target_tenant_id",
+        type: "string",
+        required: true,
+        description: "The tenant ID of the matched business (from search_referral_network results).",
+      },
+      {
+        name: "transfer_id",
+        type: "string",
+        required: true,
+        description: "The referral transfer ID (from search_referral_network results).",
+      },
+      {
+        name: "service_needed",
+        type: "string",
+        required: true,
+        description: "The service the caller needs.",
+      },
+      {
+        name: "caller_name",
+        type: "string",
+        required: false,
+        description: "The caller's name.",
+      },
+      {
+        name: "caller_phone",
+        type: "string",
+        required: false,
+        description: "The caller's phone number.",
+        dynamicValue: "{{caller_phone}}",
+      },
+      {
+        name: "caller_location",
+        type: "string",
+        required: false,
+        description: "The caller's location.",
+      },
+      {
+        name: "urgency",
+        type: "string",
+        required: false,
+        description: "Urgency level: 'low', 'normal', 'high', or 'urgent'.",
+      },
+      {
+        name: "referral_reason",
+        type: "string",
+        required: false,
+        description: "Why the referral was needed.",
+      },
+      {
+        name: "notes",
+        type: "string",
+        required: false,
+        description: "Any additional context about the caller's needs.",
+      },
+      {
+        name: "tenant_id",
+        type: "string",
+        required: true,
+        description: "The current tenant ID.",
+        dynamicValue: "{{tenant_id}}",
+      },
+      {
+        name: "twilio_call_sid",
+        type: "string",
+        required: false,
+        description: "The Twilio call SID for the live call.",
+        dynamicValue: "{{twilio_call_sid}}",
+      },
+      {
+        name: "conversation_id",
+        type: "string",
+        required: false,
+        description: "The ElevenLabs conversation ID.",
+        dynamicValue: "{{conversation_id}}",
+      },
+    ],
+  };
+}
+
 // ============= CAPABILITY-BASED TOOL BUILDING =============
 
 /**
@@ -1414,6 +1585,8 @@ export function buildToolsForCapabilities(
     lookup_dispatch_status: () => createLookupDispatchStatusTool(),
     lookup_active_job: () => createLookupActiveJobTool(),
     transfer_to_owner: () => createTransferToOwnerTool(),
+    search_referral_network: () => createSearchReferralNetworkTool(),
+    initiate_referral_transfer: () => createInitiateReferralTransferTool(),
   };
   
   // Inject bonus tools that aren't already in the base set

@@ -47,6 +47,7 @@ export interface Capabilities {
   hasTestDrives: boolean;
   hasSalesInventory: boolean;
   hasJobTracking: boolean;
+  hasReferralNetwork: boolean;
 
   // ── Computed helpers (convenience) ──
   isFoodBusiness: boolean;
@@ -99,6 +100,7 @@ const MODULE_TO_CAP: Record<string, keyof Capabilities> = {
   test_drives: "hasTestDrives",
   sales_inventory: "hasSalesInventory",
   job_tracking: "hasJobTracking",
+  referral_network: "hasReferralNetwork",
 };
 
 /** Default modules per business mode (mirrors useTenantConfig defaults) */
@@ -175,6 +177,7 @@ export function resolveCapabilitiesFromTenant(
   const hasTestDrives = cap("test_drives");
   const hasSalesInventory = cap("sales_inventory");
   const hasJobTracking = cap("job_tracking");
+  const hasReferralNetwork = cap("referral_network");
 
   // Computed helpers
   const isFoodBusiness = hasFoodOrders || hasMenuKnowledge || hasReservations || hasCatering;
@@ -235,6 +238,7 @@ export function resolveCapabilitiesFromTenant(
     hasTestDrives,
     hasSalesInventory,
     hasJobTracking,
+    hasReferralNetwork,
     isFoodBusiness,
     isDispatchBusiness,
     isMedicalBusiness,

@@ -63,6 +63,18 @@ export const TOOL_CAPABILITY_MAP: ToolCapabilityMapping[] = [
     priority: 85,
   },
 
+  // ===== REFERRAL NETWORK TOOLS =====
+  {
+    toolName: "search_referral_network",
+    requiredCapabilities: ["referral_network"],
+    priority: 40,
+  },
+  {
+    toolName: "initiate_referral_transfer",
+    requiredCapabilities: ["referral_network"],
+    priority: 35,
+  },
+
   // ===== UNIVERSAL TOOLS =====
   {
     toolName: "create_callback",

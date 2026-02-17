@@ -12,6 +12,7 @@ import {
   RefreshCw,
   DollarSign,
   MessageSquare,
+  Network,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -48,6 +49,7 @@ const sectionLabels: Record<string, string> = {
   automation: "Automation",
   sms: "SMS Messaging",
   recovery: "Lead Recovery",
+  "referral-network": "Referral Network",
   developer: "Developer Tools",
   danger: "Danger Zone",
 };
@@ -91,6 +93,7 @@ export function MobileSettingsNav({ activeSection, onSectionChange, config }: Mo
       items: [
         { id: "sms", label: "SMS Messaging", icon: MessageSquare },
         { id: "recovery", label: "Lead Recovery", icon: RefreshCw, visible: config.showRecovery },
+        { id: "referral-network", label: "Referral Network", icon: Network, visible: config.showReferralNetwork },
       ],
     },
     {

@@ -13,6 +13,7 @@ import {
   DollarSign,
   RefreshCw,
   MessageSquare,
+  Network,
 } from "lucide-react";
 import { SettingsNavItem } from "./SettingsNavItem";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ export interface SettingsNavConfig {
   showDispatchDelivery: boolean;
   showFoodSettings: boolean;
   showRecovery: boolean;
+  showReferralNetwork: boolean;
 }
 
 interface SettingsSidebarProps {
@@ -91,6 +93,7 @@ export function SettingsSidebar({ activeSection, onSectionChange, config, comple
       items: [
         { id: "sms", label: "SMS Messaging", icon: MessageSquare },
         { id: "recovery", label: "Lead Recovery", icon: RefreshCw, visible: config.showRecovery },
+        { id: "referral-network", label: "Referral Network", icon: Network, visible: config.showReferralNetwork },
       ],
     },
   ];

@@ -53,3 +53,15 @@ verify_jwt = false
 
 [functions.cron-tekmetric-sync]
 verify_jwt = false
+
+[functions.search-referral-network]
+verify_jwt = false
+
+[functions.elevenlabs-search-referral-network]
+verify_jwt = false
+
+[functions.elevenlabs-initiate-referral-transfer]
+verify_jwt = false
+
+[functions.compute-referral-quality-scores]
+verify_jwt = false

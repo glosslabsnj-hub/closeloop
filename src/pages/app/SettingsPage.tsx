@@ -20,8 +20,11 @@ import { SettingsCard } from "@/components/settings/SettingsSection";
 import { RevenueSettingsSection } from "@/components/settings/RevenueSettingsSection";
 import { RecoverySettingsSection } from "@/components/settings/recovery/RecoverySettingsSection";
 import { SmsSettingsSection } from "@/components/settings/SmsSettingsSection";
+import { ReferralNetworkSettings } from "@/components/settings/ReferralNetworkSettings";
+import { ReferralTransferLog } from "@/components/settings/ReferralTransferLog";
 import { useFoodMode } from "@/hooks/useFoodMode";
 import { useModuleEnabled, useTenantConfig } from "@/hooks/useTenantConfig";
+import { useCapabilities } from "@/hooks/useCapabilities";
 
 export default function SettingsPage() {
   const { user, signOut, tenant } = useAuth();
@@ -31,6 +34,7 @@ export default function SettingsPage() {
   const isBookingEnabled = useModuleEnabled("booking");
   const isDispatchEnabled = useModuleEnabled("dispatch_queue");
   const isMedicalMode = useModuleEnabled("medical_intake");
+  const { hasReferralNetwork } = useCapabilities();
 
   // Default to first available section
   const [activeSection, setActiveSection] = useState("team");
@@ -43,6 +47,7 @@ export default function SettingsPage() {
     showDispatchDelivery: isDispatchEnabled,
     showFoodSettings: isFoodMode,
     showRecovery: !isDispatchMode, // Lead Recovery not relevant for dispatch businesses
+    showReferralNetwork: hasReferralNetwork,
   };
 
   // Simplified section metadata
@@ -90,6 +95,10 @@ export default function SettingsPage() {
     sms: {
       title: "SMS Messaging",
       description: "Configure automated text messages for confirmations, reminders, and reviews.",
+    },
+    "referral-network": {
+      title: "Referral Network",
+      description: "Connect callers with other businesses when you can't help them directly.",
     },
   };
 
@@ -165,6 +174,14 @@ export default function SettingsPage() {
 
       case "sms":
         return <SmsSettingsSection />;
+
+      case "referral-network":
+        return (
+          <>
+            <ReferralNetworkSettings />
+            <ReferralTransferLog />
+          </>
+        );
 
       default:
         return null;
