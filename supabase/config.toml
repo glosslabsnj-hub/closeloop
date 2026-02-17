@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.compute-referral-quality-scores]
 verify_jwt = false
+
+[functions.agency-lead-search]
+verify_jwt = false
