@@ -38,16 +38,19 @@ export function useOnboardingProgress(userId?: string) {
       if (raw) {
         const parsed = JSON.parse(raw) as OnboardingProgressState;
         loaded.current = !!parsed.savedAt;
-        return parsed.phase ?? 1;
+        return parsed.phase ?? 0;
       }
     } catch { /* ignore */ }
-    return 1;
+    return 0;
   });
 
-  const hasSavedProgress = loaded.current && phase > 1;
+  const hasSavedProgress = loaded.current && phase >= 1;
 
-  const progressPercent = Math.round((phase / TOTAL_PHASES) * 100);
-  const currentPhase = ONBOARDING_PHASES[phase - 1] ?? ONBOARDING_PHASES[0];
+  // Phase 0 is the quick-start splash — progress starts counting from phase 1
+  const progressPercent = phase <= 0 ? 0 : Math.round((phase / TOTAL_PHASES) * 100);
+  const currentPhase = phase >= 1
+    ? (ONBOARDING_PHASES[phase - 1] ?? ONBOARDING_PHASES[0])
+    : ONBOARDING_PHASES[0];
   const totalMinutes = ONBOARDING_PHASES.reduce((sum, p) => sum + p.estimatedMinutes, 0);
 
   const saveProgress = useCallback((currentPhase: number) => {
@@ -73,6 +76,7 @@ export function useOnboardingProgress(userId?: string) {
 
   const goBack = useCallback(() => {
     setPhase((p) => {
+      // Don't go back to phase 0 (quick start splash is one-time)
       const prev = Math.max(p - 1, 1);
       saveProgress(prev);
       return prev;
@@ -80,14 +84,14 @@ export function useOnboardingProgress(userId?: string) {
   }, [saveProgress]);
 
   const goToPhase = useCallback((target: number) => {
-    if (target >= 1 && target <= TOTAL_PHASES) {
+    if (target >= 0 && target <= TOTAL_PHASES) {
       setPhase(target);
-      saveProgress(target);
+      if (target >= 1) saveProgress(target);
     }
   }, [saveProgress]);
 
   const resetProgress = useCallback(() => {
-    setPhase(1);
+    setPhase(0);
     clearProgress();
     loaded.current = false;
   }, [clearProgress]);
