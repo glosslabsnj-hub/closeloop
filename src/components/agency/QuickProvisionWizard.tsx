@@ -141,7 +141,7 @@ export function QuickProvisionWizard({ open, onOpenChange, agencyId }: QuickProv
                     key={ind.slug}
                     onClick={() => {
                       setSelectedIndustry(ind);
-                      setIndustryQuery(ind.label);
+                      setIndustryQuery(ind.name);
                     }}
                     className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs transition-colors ${
                       selectedIndustry?.slug === ind.slug
@@ -149,7 +149,7 @@ export function QuickProvisionWizard({ open, onOpenChange, agencyId }: QuickProv
                         : "bg-muted hover:bg-muted/80"
                     }`}
                   >
-                    {ind.label}
+                    {ind.name}
                   </button>
                 ))}
               </div>

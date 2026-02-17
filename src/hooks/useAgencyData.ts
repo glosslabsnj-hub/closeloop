@@ -47,7 +47,7 @@ export function useAgencyAccount() {
     queryFn: async () => {
       if (!user?.id) return null;
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("agency_accounts")
         .select("*")
         .eq("user_id", user.id)
@@ -66,7 +66,7 @@ export function useAgencyTenants(agencyId: string | null | undefined) {
     queryFn: async () => {
       if (!agencyId) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("agency_tenants")
         .select("*")
         .eq("agency_id", agencyId)
