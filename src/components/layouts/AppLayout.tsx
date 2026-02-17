@@ -56,7 +56,7 @@ interface NavItem {
 }
 
 // Routes that are always accessible (even without subscription)
-const alwaysAccessibleRoutes = ["/app/settings", "/app/go-live"];
+const alwaysAccessibleRoutes = ["/app/settings", "/app/go-live", "/app/agency"];
 
 function AppLayoutContent() {
   const { user, tenant, effectiveTenant, signOut, loading, hasActiveSubscription, isSuperAdmin, assistantSettings } = useAuth();

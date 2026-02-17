@@ -67,7 +67,7 @@ export function useReferralNetworkSettings() {
         .maybeSingle();
 
       if (error) throw error;
-      return data as ReferralNetworkSettings | null;
+      return data as unknown as ReferralNetworkSettings | null;
     },
     enabled: !!tenantId,
   });
@@ -129,7 +129,7 @@ export function useReferralTransfers() {
         .limit(50);
 
       if (error) throw error;
-      return (data || []) as ReferralTransfer[];
+      return (data || []) as unknown as ReferralTransfer[];
     },
     enabled: !!tenantId,
   });
