@@ -98,13 +98,14 @@ Deno.serve(async (req) => {
     // Check super_admin role
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { data: profile } = await serviceClient
-      .from("profiles")
+    const { data: roleRow } = await serviceClient
+      .from("user_roles")
       .select("role")
-      .eq("id", user.id)
-      .single();
+      .eq("user_id", user.id)
+      .eq("role", "super_admin")
+      .maybeSingle();
 
-    if (profile?.role !== "super_admin") {
+    if (!roleRow) {
       return new Response(JSON.stringify({ error: "Forbidden: super_admin required" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
