@@ -18,6 +18,7 @@ import {
   Shield,
   Music,
   ClipboardCheck,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
@@ -30,6 +31,7 @@ const navItems = [
   { href: "/admin/demo-library", label: "Demo Library", icon: Music },
   { href: "/admin/golden-path", label: "Golden Path QA", icon: ClipboardCheck },
   { href: "/admin/support", label: "Support", icon: HeadphonesIcon },
+  { href: "/admin/agency-applications", label: "Applications", icon: FileText },
 ];
 
 export function AdminLayout() {
@@ -136,7 +138,7 @@ export function AdminLayout() {
 
           {/* Mobile Nav */}
           <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t bg-background">
-            <div className="grid grid-cols-5 h-16">
+            <div className="grid grid-cols-6 h-16">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.href;

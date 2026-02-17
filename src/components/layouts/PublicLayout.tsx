@@ -29,6 +29,12 @@ export function PublicLayout() {
             >
               Pricing
             </Link>
+            <Link
+              to="/agencies"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Partners
+            </Link>
             <Link to="/login">
               <Button variant="ghost" size="sm" className="text-sm">
                 Log in
@@ -81,6 +87,7 @@ export function PublicLayout() {
                 <li><a href="#" className="hover:text-foreground transition-colors">About</a></li>
                 <li><a href="#" className="hover:text-foreground transition-colors">Blog</a></li>
                 <li><a href="#" className="hover:text-foreground transition-colors">Careers</a></li>
+                <li><Link to="/agencies" className="hover:text-foreground transition-colors">Partner Program</Link></li>
               </ul>
             </div>
             {/* Resources */}

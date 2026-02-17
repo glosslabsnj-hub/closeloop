@@ -1,0 +1,27 @@
+{
+  "auditDate": "2026-02-17T07:54:39.615Z",
+  "totalAgents": 2,
+  "totalIssues": 0,
+  "totalWarnings": 5,
+  "results": [
+    {
+      "agentName": "DISPATCH Agent",
+      "agentId": "agent_2601kghfpmckez3t2n6p7bmcpac4",
+      "issues": [],
+      "warnings": [
+        "⚠️  suggest_availability: Has unexpected parameters: start_date, end_date, preferred_times"
+      ]
+    },
+    {
+      "agentName": "SERVICE Agent",
+      "agentId": "agent_4701kg1vwhzqfxmvzh032nhvx434",
+      "issues": [],
+      "warnings": [
+        "⚠️  check_availability: Has unexpected parameters: service_name",
+        "⚠️  create_booking: Has unexpected parameters: service_name",
+        "⚠️  create_callback: Has unexpected parameters: preferred_time",
+        "⚠️  lookup_active_job: Has unexpected parameters: customer_name"
+      ]
+    }
+  ]
+}

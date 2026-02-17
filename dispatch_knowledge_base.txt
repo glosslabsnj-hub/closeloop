@@ -1,0 +1,212 @@
+# DISPATCH INDUSTRY EXPERTISE KNOWLEDGE BASE
+
+## TAXI & RIDESHARE TERMINOLOGY
+
+### Basic Terms
+- Flag drop/meter drop: Initial fare when ride begins (before distance charges)
+- Per mile/per minute rate: Charges based on distance traveled and time
+- Wait time: Charges while vehicle is stopped or moving slowly in traffic
+- Surge pricing/dynamic pricing: Higher rates during busy periods
+- Flat rate: Fixed price regardless of actual distance/time (common for airports)
+- Deadhead: Driving without a passenger (driver cost, not charged to customer)
+
+### Service Types
+- Standard/economy: Regular sedan service
+- Premium/luxury: Higher-end vehicles
+- XL/SUV: Larger vehicles for groups or luggage
+- Wheelchair accessible: Vehicles with ramps or lifts
+- Shared ride: Split fare with other passengers going same direction
+
+### Pickup Terms
+- Curbside: Pick up at curb outside
+- Airport queue: Designated taxi/rideshare pickup area
+- Ride-along: Second pickup on the way
+- Meet and greet: Driver meets passenger inside (airports, hotels)
+
+### Common Scenarios
+- "How long until the car arrives?": Give realistic ETA, pad by a few minutes
+- "Can I request a specific driver?": Depends on company policy
+- "Can I make a stop?": Usually yes, wait time charges apply
+- "How much will it cost?": Give estimate based on typical fare or use fare calculator
+
+---
+
+## TOWING & ROADSIDE TERMINOLOGY
+
+### Tow Types
+- Flatbed: Vehicle loaded entirely onto truck bed (best for AWD, luxury, damaged vehicles)
+- Wheel-lift: Two wheels lifted, two roll on ground (common for standard tows)
+- Dolly: Small trailer to lift additional wheels when needed
+- Heavy-duty: For trucks, RVs, commercial vehicles
+- Motorcycle tow: Specialized equipment for bikes
+
+### Service Types
+- Breakdown tow: Vehicle won't run, needs transport
+- Accident/collision tow: Post-accident removal (may need police release)
+- Winch-out: Vehicle stuck (ditch, mud, snow) needs pulling out
+- Lockout: Keys locked inside vehicle
+- Jump start: Dead battery, needs boost
+- Tire change: Flat tire, spare install
+- Fuel delivery: Ran out of gas
+
+### Pricing Terms
+- Hook-up fee: Base charge just to connect vehicle
+- Mileage rate: Per-mile charge for distance towed
+- After-hours rate: Higher rates for nights/weekends/holidays
+- Winching fee: Additional charge for difficult extractions
+- Storage fee: Daily charge if vehicle stored at lot
+- Release fee: Charge to retrieve vehicle from storage
+
+### Common Scenarios
+- "How long until you arrive?": Give honest ETA based on current jobs and distance
+- "How much will it cost?": Hook-up fee + (mileage × rate), give estimate range
+- "Do I need to be there?": Yes, need keys and to sign paperwork usually
+- "Where will my car go?": Customer's choice of destination (shop, home, etc.)
+- "Insurance claim?": Get their claim number, tow company will bill insurance if applicable
+
+---
+
+## COURIER & DELIVERY TERMINOLOGY
+
+### Service Types
+- Standard delivery: Regular timeframe (same-day or next-day)
+- Rush/hot shot: Urgent delivery, immediate dispatch
+- Scheduled delivery: Pre-arranged specific time window
+- White glove: Premium handling with setup/installation
+- Last mile: Final delivery leg to end customer
+
+### Package Terms
+- Envelope: Documents only, lightweight
+- Parcel: Standard package, typically under 50 lbs
+- Freight: Large/heavy items, over 50 lbs
+- Pallet: Goods on shipping pallet, commercial
+- Fragile: Requires careful handling
+- Temperature-controlled: Climate-sensitive items
+
+### Delivery Confirmation
+- Proof of delivery (POD): Signature or photo confirmation
+- Signature required: Must be signed by recipient
+- No signature required: Leave at door
+- Photo confirmation: Picture of delivered package at location
+- Real-time tracking: Live location updates
+
+### Common Scenarios
+- "When will it arrive?": Give ETA based on driver location
+- "Can I change the delivery address?": Depends on how far out driver is
+- "Can someone else sign?": Usually yes, unless signature-specific
+- "What if I'm not home?": Leave at door, reschedule, or hold at facility
+
+---
+
+## LOCKSMITH TERMINOLOGY
+
+### Service Types
+- Lockout: Opening locked door without key
+- Rekey: Changing lock pins so old keys won't work, new keys issued
+- Lock change: Replacing entire lock hardware
+- Key duplication: Making copy of existing key
+- Lock repair: Fixing damaged lock mechanism
+- Master key system: Multiple locks, one master key opens all
+
+### Lock Types
+- Deadbolt: Heavy-duty bolt lock, most secure
+- Knob lock: Basic door knob with lock (less secure alone)
+- Smart lock: Electronic, keypad, or app-controlled
+- Mortise lock: Commercial-style lock in door cavity
+- Padlock: Portable, removable lock
+
+### Automotive
+- Car lockout: Locked out of vehicle
+- Transponder key: Key with chip that communicates with car
+- Key fob: Remote for keyless entry
+- Ignition repair: Fix or replace ignition cylinder
+- Key programming: Programming new key to work with car computer
+
+### Common Scenarios
+- "How long until you arrive?": Give realistic ETA
+- "How much to unlock my door?": Give range, exact quote on-site
+- "Do I need new locks?": Rekey is usually sufficient unless lock is damaged
+- "Can you make keys without the original?": Yes, locksmith can decode lock or use VIN for auto
+
+---
+
+## MOBILE SERVICES (General)
+
+### Common Mobile Service Types
+- Mobile mechanic: Car repair at your location
+- Mobile pet grooming: Grooming van comes to you
+- Mobile car wash/detailing: Cleaning at your location
+- Mobile notary: Document signing at your location
+- Mobile tire service: Tire change/repair at your location
+
+### Pricing Terms
+- Service call fee: Minimum charge for coming to location
+- Trip charge: Fee for travel time/distance
+- On-site vs in-shop: Mobile repair vs bringing item to shop
+- Convenience fee: Premium for mobile service
+
+### Common Scenarios
+- "Do you come to my location?": Yes, that's what mobile service means
+- "Is there an extra charge?": Usually service call fee plus regular service price
+- "How long will it take?": Depends on service, estimate on phone
+- "What if you can't fix it there?": May need to tow/transport to shop
+
+---
+
+## ETA COMMUNICATION GUIDE
+
+### Under 15 Minutes
+- "They should be there in about 10 to 15 minutes"
+- "Driver's pretty close, probably 10 minutes or so"
+- "Not too long, looking at maybe 10-15"
+
+### 15-30 Minutes
+- "Looking at about 20 to 30 minutes"
+- "Should be maybe 20-25 minutes"
+- "Probably around half an hour or a little less"
+
+### 30-60 Minutes
+- "About 30 to 45 minutes"
+- "Probably around 45 minutes"
+- "Looking at about 45 minutes to an hour"
+
+### Over 1 Hour
+- "It's going to be about an hour"
+- "Probably an hour, maybe a little more"
+- "Looking at about an hour to an hour and a half"
+
+### When Uncertain
+- "Let me get you an exact ETA from dispatch"
+- "Hard to say exactly, but I'll have the driver call when they're on their way"
+- "Depends on traffic, but I'd estimate..."
+
+### Setting Expectations
+- Always pad estimates slightly (underpromise, overdeliver)
+- Mention factors that could affect timing (traffic, weather, current jobs)
+- Offer to have driver call when they're en route
+- Provide tracking link if available
+
+---
+
+## DISPATCH PRIORITIES
+
+### Emergency Priority
+1. Stranded in unsafe location
+2. Medical situation nearby
+3. Extreme weather conditions
+4. Children or elderly involved
+
+### High Priority
+1. Accident scene (after emergency services cleared)
+2. Blocking traffic
+3. Time-sensitive appointment
+
+### Standard Priority
+1. Breakdown in safe location
+2. General transport
+3. Non-urgent tow
+
+### Communication During Delays
+- "I apologize for the wait, we're dealing with some emergency calls right now"
+- "Our next available driver is about [time] out"
+- "Would you like me to call you back with an update in 15 minutes?"
