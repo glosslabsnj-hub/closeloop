@@ -665,6 +665,16 @@ Deno.serve(async (req) => {
       ai_behavior_mode: settings.ai_behavior_mode || "full_service",
     };
 
+    // 2.4: Greeting A/B testing — randomly assign variant if test is enabled
+    let greetingVariant: string | null = null;
+    if (settings.greeting_test_enabled && settings.greeting_variant_b) {
+      greetingVariant = Math.random() < 0.5 ? "A" : "B";
+      if (greetingVariant === "B") {
+        dynamicVariables.greeting_script = settings.greeting_variant_b;
+      }
+      console.log(`[twilio-inbound] Greeting A/B test: assigned variant ${greetingVariant}`);
+    }
+
     // Step 8: Register call with ElevenLabs (timeout to avoid Twilio hanging)
     // Callback-only behavior is driven by the ai_behavior_mode dynamic variable (line 589)
     // which the ElevenLabs agent prompt reads to decide whether to book or just collect info.
@@ -774,6 +784,7 @@ Deno.serve(async (req) => {
             caller_phone: callerPhoneE164,
             call_direction: "inbound",
             started_at: new Date().toISOString(),
+            ...(greetingVariant ? { greeting_variant: greetingVariant } : {}),
           }),
         },
         Math.min(2500, timeLeft())
