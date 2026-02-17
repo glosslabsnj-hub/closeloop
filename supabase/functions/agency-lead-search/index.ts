@@ -7,13 +7,106 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const ALL_INDUSTRIES = [
+  "towing", "plumber", "hvac", "electrician", "locksmith",
+  "auto repair", "dental", "med spa", "salon", "pest control",
+  "landscaping", "roofing", "mobile detailing", "cleaning service",
+  "restaurant", "veterinary", "real estate", "insurance agency",
+  "law firm", "fitness studio",
+];
+
+/**
+ * Search a single industry+location via Perplexity.
+ * Returns parsed leads array.
+ */
+async function searchBatch(
+  apiKey: string,
+  industry: string,
+  location: string,
+  count: number
+): Promise<any[]> {
+  const prompt = `Find exactly ${count} real ${industry} businesses in ${location} that would benefit from an AI phone receptionist service.
+
+For each business, provide:
+- Business name (real, verifiable)
+- Phone number in format +1XXXXXXXXXX (if findable)
+- Website URL (if findable)
+- Physical address (if findable)
+- Google rating (number) and review count (if findable)
+- Estimated employee count or team size description
+- Business hours summary (if findable)
+- A specific 2-3 sentence explanation of why they need an AI receptionist, based on observable evidence like review complaints, no online booking, small staff, etc.
+- Friction signals from this list: no_online_booking, small_team, high_volume, after_hours_demand, growth_signals, poor_responsiveness
+
+Focus on businesses showing:
+1. Owner-operated or small team (1-15 employees)
+2. Good reviews but complaints about phone responsiveness or wait times
+3. No online booking or scheduling visible on website
+4. High call-volume niche
+5. Growth signals (expanding, new services, recent positive reviews)
+
+Return ONLY real businesses you can verify. Do not fabricate.`;
+
+  const body = {
+    model: "sonar-pro",
+    messages: [
+      {
+        role: "system",
+        content: `You are a B2B lead researcher. Find real local businesses matching the criteria. Return valid JSON array only, no markdown. Each object:
+{
+  "name": "string",
+  "phone": "+1XXXXXXXXXX or null",
+  "website": "https://... or null",
+  "address": "Full address or null",
+  "rating": 4.5,
+  "review_count": 123,
+  "employee_estimate": "2-5 employees" or null,
+  "hours": "Mon-Fri 8am-5pm" or null,
+  "reason": "2-3 sentence specific reason",
+  "friction_signals": ["no_online_booking","small_team"],
+  "confidence": "high"|"medium"|"low",
+  "industry": "${industry}"
+}`,
+      },
+      { role: "user", content: prompt },
+    ],
+    temperature: 0.1,
+  };
+
+  const res = await fetch("https://api.perplexity.ai/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const txt = await res.text();
+    console.error(`[agency-lead-search] Perplexity ${res.status}:`, txt);
+    if (res.status === 429) throw new Error("RATE_LIMITED");
+    return [];
+  }
+
+  const data = await res.json();
+  const content = data.choices?.[0]?.message?.content || "[]";
+
+  try {
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    if (jsonMatch) return JSON.parse(jsonMatch[0]);
+  } catch (e) {
+    console.error("[agency-lead-search] Parse error:", e);
+  }
+  return [];
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -26,7 +119,6 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Verify user has agency account
     const anonClient = createClient(
       supabaseUrl,
       Deno.env.get("SUPABASE_ANON_KEY")!,
@@ -53,7 +145,7 @@ serve(async (req) => {
       });
     }
 
-    const { industry, location, count = 5 } = await req.json();
+    const { industry, location, count = 50 } = await req.json();
 
     if (!industry || !location) {
       return new Response(JSON.stringify({ error: "industry and location are required" }), {
@@ -70,106 +162,60 @@ serve(async (req) => {
       });
     }
 
-    const prompt = `Find ${count} real ${industry} businesses in ${location} that would benefit from an AI phone receptionist service. 
+    let allLeads: any[] = [];
 
-For each business, I need:
-- Business name
-- Phone number (if available)
-- Website (if available)  
-- Google rating and review count (if available)
-- Why they specifically need an AI receptionist (focus on friction signals like: small team likely missing calls, no online booking system, high call volume industry, after-hours demand, rapid growth signs from reviews)
+    if (industry === "all") {
+      // Search top 10 high-value industries in parallel, ~5 leads each
+      const topIndustries = ALL_INDUSTRIES.slice(0, 10);
+      const perIndustry = Math.max(3, Math.ceil(count / topIndustries.length));
+      const results = await Promise.allSettled(
+        topIndustries.map((ind) => searchBatch(PERPLEXITY_API_KEY, ind, location, perIndustry))
+      );
+      for (const r of results) {
+        if (r.status === "fulfilled") allLeads.push(...r.value);
+      }
+    } else {
+      // Single industry — do 3 parallel batches to maximize results
+      const perBatch = Math.ceil(count / 3);
+      const batchPrompts = [
+        searchBatch(PERPLEXITY_API_KEY, industry, location, perBatch),
+        searchBatch(PERPLEXITY_API_KEY, `${industry} service`, location, perBatch),
+        searchBatch(PERPLEXITY_API_KEY, `local ${industry}`, location, perBatch),
+      ];
+      const results = await Promise.allSettled(batchPrompts);
+      for (const r of results) {
+        if (r.status === "fulfilled") allLeads.push(...r.value);
+      }
+    }
 
-Focus on businesses that show signs of:
-1. Being owner-operated or having a small team (1-15 employees)
-2. Getting good reviews but complaints about responsiveness or availability
-3. No online booking or scheduling system visible on their website
-4. Operating in a high-call-volume niche
-5. Recent growth signals (new reviews, expanding services)
-
-Return ONLY real businesses you can verify exist. Do not fabricate any business names or details.`;
-
-    const perplexityResponse = await fetch("https://api.perplexity.ai/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${PERPLEXITY_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "sonar-pro",
-        messages: [
-          {
-            role: "system",
-            content: `You are a B2B lead researcher for an AI receptionist company. You find real local businesses that are likely missing calls and losing revenue because they lack proper phone handling. Return results as a JSON array with this exact structure:
-[{
-  "name": "Business Name",
-  "phone": "+1XXXXXXXXXX or null",
-  "website": "https://... or null",
-  "rating": 4.5,
-  "review_count": 123,
-  "reason": "Specific 1-2 sentence reason why they need an AI receptionist based on observable evidence",
-  "friction_signals": ["no_online_booking", "small_team", "high_volume", "after_hours_demand", "growth_signals"],
-  "confidence": "high" | "medium" | "low"
-}]
-Only include businesses you are confident actually exist. Return valid JSON only, no markdown fences.`,
-          },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.1,
-      }),
+    // Deduplicate by name (case-insensitive)
+    const seen = new Set<string>();
+    const uniqueLeads = allLeads.filter((lead) => {
+      const key = lead.name?.toLowerCase()?.trim();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
     });
 
-    if (!perplexityResponse.ok) {
-      const errorText = await perplexityResponse.text();
-      console.error("[agency-lead-search] Perplexity error:", perplexityResponse.status, errorText);
+    console.log(`[agency-lead-search] Found ${uniqueLeads.length} unique leads for ${industry} in ${location}`);
 
-      if (perplexityResponse.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limited. Please try again in a moment." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    return new Response(
+      JSON.stringify({ leads: uniqueLeads, query: { industry, location } }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error("[agency-lead-search] Error:", error);
 
-      return new Response(JSON.stringify({ error: "Search failed" }), {
-        status: 500,
+    if (error instanceof Error && error.message === "RATE_LIMITED") {
+      return new Response(JSON.stringify({ error: "Rate limited. Please try again in a moment." }), {
+        status: 429,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const result = await perplexityResponse.json();
-    const content = result.choices?.[0]?.message?.content || "[]";
-    const citations = result.citations || [];
-
-    // Parse the JSON from the response
-    let leads = [];
-    try {
-      // Try to extract JSON from the response (handle markdown fences if present)
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        leads = JSON.parse(jsonMatch[0]);
-      }
-    } catch (parseError) {
-      console.error("[agency-lead-search] Failed to parse leads:", parseError);
-      console.error("[agency-lead-search] Raw content:", content);
-    }
-
-    return new Response(
-      JSON.stringify({
-        leads,
-        citations,
-        query: { industry, location },
-      }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
-  } catch (error) {
-    console.error("[agency-lead-search] Error:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

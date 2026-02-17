@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,22 +11,15 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Globe, Phone, Star, Sparkles, ExternalLink, Loader2 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Search, Globe, Phone, Star, ExternalLink, Loader2, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-interface Lead {
-  name: string;
-  phone: string | null;
-  website: string | null;
-  rating: number | null;
-  review_count: number | null;
-  reason: string;
-  friction_signals: string[];
-  confidence: "high" | "medium" | "low";
-}
+import { scoreAgencyLead, getTemperatureColor, getTemperatureIcon, type LeadTemperature } from "./lead-finder/leadScoring";
+import { LeadDetailPanel, type AgencyLead } from "./lead-finder/LeadDetailPanel";
 
 const INDUSTRY_OPTIONS = [
+  { value: "all", label: "All Industries" },
   { value: "towing", label: "Towing" },
   { value: "plumber", label: "Plumber" },
   { value: "hvac", label: "HVAC" },
@@ -53,23 +46,19 @@ const SIGNAL_LABELS: Record<string, string> = {
   no_online_booking: "No Online Booking",
   small_team: "Small Team",
   high_volume: "High Call Volume",
-  after_hours_demand: "After-Hours Demand",
-  growth_signals: "Growing Fast",
-};
-
-const CONFIDENCE_COLORS: Record<string, string> = {
-  high: "bg-green-500/10 text-green-700 border-green-500/20",
-  medium: "bg-amber-500/10 text-amber-700 border-amber-500/20",
-  low: "bg-muted text-muted-foreground",
+  after_hours_demand: "After-Hours",
+  growth_signals: "Growing",
 };
 
 export function AgencyLeadFinder() {
   const [industry, setIndustry] = useState("");
   const [location, setLocation] = useState("");
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [citations, setCitations] = useState<string[]>([]);
+  const [leads, setLeads] = useState<AgencyLead[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<AgencyLead | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [tempFilter, setTempFilter] = useState<"all" | LeadTemperature>("all");
 
   const handleSearch = async () => {
     if (!industry || !location) {
@@ -79,21 +68,38 @@ export function AgencyLeadFinder() {
 
     setIsSearching(true);
     setLeads([]);
-    setCitations([]);
+    setTempFilter("all");
 
     try {
       const { data, error } = await supabase.functions.invoke("agency-lead-search", {
-        body: { industry, location, count: 5 },
+        body: { industry, location, count: 50 },
       });
 
       if (error) throw error;
 
-      setLeads(data.leads || []);
-      setCitations(data.citations || []);
+      const rawLeads: AgencyLead[] = (data.leads || []).map((l: any) => ({
+        ...l,
+        industry: l.industry || (industry !== "all" ? industry : undefined),
+        score: scoreAgencyLead({
+          friction_signals: l.friction_signals,
+          rating: l.rating,
+          review_count: l.review_count,
+          phone: l.phone,
+          website: l.website,
+          industry: l.industry || (industry !== "all" ? industry : undefined),
+        }),
+      }));
+
+      // Sort by score descending
+      rawLeads.sort((a, b) => (b.score?.score ?? 0) - (a.score?.score ?? 0));
+
+      setLeads(rawLeads);
       setHasSearched(true);
 
-      if (data.leads?.length === 0) {
+      if (rawLeads.length === 0) {
         toast.info("No leads found. Try a different location or industry.");
+      } else {
+        toast.success(`Found ${rawLeads.length} leads`);
       }
     } catch (err) {
       console.error("Lead search failed:", err);
@@ -103,15 +109,32 @@ export function AgencyLeadFinder() {
     }
   };
 
+  const filteredLeads = useMemo(() => {
+    if (tempFilter === "all") return leads;
+    return leads.filter((l) => l.score?.temperature === tempFilter);
+  }, [leads, tempFilter]);
+
+  const tempCounts = useMemo(() => {
+    const counts = { hot: 0, warm: 0, cold: 0 };
+    leads.forEach((l) => {
+      if (l.score?.temperature) counts[l.score.temperature]++;
+    });
+    return counts;
+  }, [leads]);
+
+  const openDetail = (lead: AgencyLead) => {
+    setSelectedLead(lead);
+    setDetailOpen(true);
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Sparkles className="h-5 w-5 text-primary" />
-        <h2 className="text-lg font-semibold">AI Lead Finder</h2>
+      <div>
+        <h2 className="text-lg font-semibold">Lead Finder</h2>
+        <p className="text-sm text-muted-foreground">
+          Find local businesses that are missing calls and need an AI receptionist.
+        </p>
       </div>
-      <p className="text-sm text-muted-foreground">
-        Find local businesses that are likely missing calls and could benefit from CloseLoop.
-      </p>
 
       {/* Search Controls */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -151,92 +174,119 @@ export function AgencyLeadFinder() {
         </div>
       </div>
 
-      {/* Results */}
+      {/* Loading */}
       {isSearching && (
-        <div className="text-center py-8 text-muted-foreground text-sm">
-          <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-          Searching for {industry} businesses in {location}…
+        <div className="text-center py-12 text-muted-foreground text-sm">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3" />
+          <p>Searching for {industry === "all" ? "all" : industry} businesses in {location}…</p>
+          <p className="text-xs mt-1">This may take a moment as we search multiple sources.</p>
         </div>
       )}
 
+      {/* Results */}
       {!isSearching && leads.length > 0 && (
         <div className="space-y-3">
-          {leads.map((lead, i) => (
-            <Card key={i} className="overflow-hidden">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold text-sm">{lead.name}</h3>
-                      <Badge variant="outline" className={CONFIDENCE_COLORS[lead.confidence]}>
-                        {lead.confidence}
-                      </Badge>
+          {/* Filter tabs */}
+          <div className="flex items-center justify-between">
+            <Tabs value={tempFilter} onValueChange={(v) => setTempFilter(v as any)}>
+              <TabsList className="h-8">
+                <TabsTrigger value="all" className="text-xs px-3 h-6">
+                  All ({leads.length})
+                </TabsTrigger>
+                <TabsTrigger value="hot" className="text-xs px-3 h-6">
+                  🔥 Hot ({tempCounts.hot})
+                </TabsTrigger>
+                <TabsTrigger value="warm" className="text-xs px-3 h-6">
+                  🌤 Warm ({tempCounts.warm})
+                </TabsTrigger>
+                <TabsTrigger value="cold" className="text-xs px-3 h-6">
+                  ❄️ Cold ({tempCounts.cold})
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <span className="text-xs text-muted-foreground">
+              {filteredLeads.length} {filteredLeads.length === 1 ? "lead" : "leads"}
+            </span>
+          </div>
+
+          {/* Lead cards */}
+          <div className="grid gap-2">
+            {filteredLeads.map((lead, i) => (
+              <Card
+                key={i}
+                className="cursor-pointer hover:border-primary/40 transition-colors"
+                onClick={() => openDetail(lead)}
+              >
+                <CardContent className="p-3">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-medium text-sm truncate">{lead.name}</h3>
+                        {lead.score && (
+                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${getTemperatureColor(lead.score.temperature)}`}>
+                            {getTemperatureIcon(lead.score.temperature)} {lead.score.temperature} {lead.score.score}
+                          </Badge>
+                        )}
+                        {lead.industry && (
+                          <span className="text-[10px] text-muted-foreground capitalize">{lead.industry}</span>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{lead.reason}</p>
+
+                      <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground">
+                        {lead.rating != null && (
+                          <span className="flex items-center gap-0.5">
+                            <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                            {lead.rating}
+                            {lead.review_count != null && <span>({lead.review_count})</span>}
+                          </span>
+                        )}
+                        {lead.phone && (
+                          <span className="flex items-center gap-0.5">
+                            <Phone className="h-3 w-3" />
+                            {lead.phone}
+                          </span>
+                        )}
+                        {lead.address && (
+                          <span className="flex items-center gap-0.5 truncate">
+                            <MapPin className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{lead.address}</span>
+                          </span>
+                        )}
+                        {lead.website && (
+                          <span className="flex items-center gap-0.5">
+                            <Globe className="h-3 w-3" />
+                            <ExternalLink className="h-2.5 w-2.5" />
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    <p className="text-sm text-muted-foreground mt-1">{lead.reason}</p>
-
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {lead.friction_signals?.map((signal) => (
-                        <Badge key={signal} variant="secondary" className="text-[10px] px-1.5 py-0">
+                    {/* Friction signal pills */}
+                    <div className="hidden sm:flex flex-wrap gap-1 max-w-[180px] justify-end">
+                      {lead.friction_signals?.slice(0, 3).map((signal) => (
+                        <Badge key={signal} variant="secondary" className="text-[9px] px-1 py-0 whitespace-nowrap">
                           {SIGNAL_LABELS[signal] || signal}
                         </Badge>
                       ))}
                     </div>
-
-                    <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                      {lead.rating && (
-                        <span className="flex items-center gap-1">
-                          <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                          {lead.rating} ({lead.review_count})
-                        </span>
-                      )}
-                      {lead.phone && (
-                        <a href={`tel:${lead.phone}`} className="flex items-center gap-1 hover:text-foreground">
-                          <Phone className="h-3 w-3" />
-                          {lead.phone}
-                        </a>
-                      )}
-                      {lead.website && (
-                        <a
-                          href={lead.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 hover:text-foreground"
-                        >
-                          <Globe className="h-3 w-3" />
-                          Website
-                          <ExternalLink className="h-2.5 w-2.5" />
-                        </a>
-                      )}
-                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-
-          {citations.length > 0 && (
-            <details className="text-xs text-muted-foreground">
-              <summary className="cursor-pointer hover:text-foreground">Sources ({citations.length})</summary>
-              <ul className="mt-1 space-y-0.5 pl-4 list-disc">
-                {citations.map((url, i) => (
-                  <li key={i}>
-                    <a href={url} target="_blank" rel="noopener noreferrer" className="hover:underline break-all">
-                      {url}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </details>
-          )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       )}
 
       {!isSearching && hasSearched && leads.length === 0 && (
-        <div className="text-center py-6 text-sm text-muted-foreground">
+        <div className="text-center py-8 text-sm text-muted-foreground">
           No leads found. Try adjusting the industry or location.
         </div>
       )}
+
+      {/* Detail Panel */}
+      <LeadDetailPanel lead={selectedLead} open={detailOpen} onOpenChange={setDetailOpen} />
     </div>
   );
 }

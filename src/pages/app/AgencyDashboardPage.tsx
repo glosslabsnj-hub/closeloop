@@ -83,7 +83,7 @@ export default function AgencyDashboardPage() {
         />
       </div>
 
-      {/* AI Lead Finder */}
+      {/* Lead Finder */}
       <AgencyLeadFinder />
 
       {/* Commission History */}
