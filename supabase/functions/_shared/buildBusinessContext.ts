@@ -359,6 +359,15 @@ export interface BusinessContext {
     accepted_payment_methods: string[];
     accepted_payment_summary: string;
   } | null;
+  // Referral Network settings (null if not enabled)
+  referral_network: {
+    enabled: boolean;
+    send_referrals: boolean;
+    accept_referrals: boolean;
+    intro_style: string;
+    network_services: string[];
+    preferred_partners: string[];
+  } | null;
   // Metadata
   _meta: {
     channel: string;
@@ -368,6 +377,8 @@ export interface BusinessContext {
     built_at: string;
     missing_sections: string[];
     capabilities: Record<string, boolean>;
+    is_referral_transfer?: string;
+    referral_context?: string;
   };
 }
 
@@ -2147,6 +2158,7 @@ export async function buildBusinessContext(
     servicePackagesResult,
     seasonalKnowledgeResult,
     staffMembersResult,
+    referralNetworkResult,
   ] = await Promise.all([
     supabase.from("tenants").select("*, pricing_rules_jsonb, busyness_rules_jsonb").eq("id", tenantId).single(),
     supabase.from("services").select("*").eq("tenant_id", tenantId).eq("is_active", true).limit(20),
@@ -2167,6 +2179,8 @@ export async function buildBusinessContext(
     supabase.from("seasonal_knowledge").select("event_name, ai_announcement, special_pricing_notes, start_date, end_date").eq("tenant_id", tenantId).limit(10),
     // Fetch staff members for multi-resource awareness
     supabase.from("staff_members").select("id, full_name, role, is_active, service_ids").eq("tenant_id", tenantId).eq("is_active", true).order("sort_order").limit(50),
+    // Fetch referral network settings
+    supabase.from("referral_network_settings").select("enabled, accept_referrals, send_referrals, intro_style, network_services, preferred_partners").eq("tenant_id", tenantId).maybeSingle(),
   ]);
   
   // ===== CONDITIONAL FETCH: IMPOUND LOT DATA =====
@@ -2221,7 +2235,8 @@ export async function buildBusinessContext(
   const distanceSettings = distanceSettingsResult.data as TenantDistanceSettings | null;
   const servicePackages = servicePackagesResult.data || [];
   const seasonalKnowledge = seasonalKnowledgeResult.data || [];
-  
+  const referralNetworkSettings = referralNetworkResult?.data || null;
+
   // ===== DERIVE CAPABILITIES =====
   const caps = resolveCapabilities(
     tenant.business_mode,
@@ -2254,6 +2269,7 @@ export async function buildBusinessContext(
     sales_inventory: caps.hasSalesInventory,
     mobile_service: caps.hasDispatchQueue || caps.isDispatchBusiness,
     emergency_dispatch: caps.hasDispatchQueue,
+    referral_network: caps.hasReferralNetwork,
   };
   
   // Track missing sections
@@ -2599,6 +2615,14 @@ export async function buildBusinessContext(
       trade_in_accepted: false,
       sales_rep_names: "",
     },
+    referral_network: referralNetworkSettings?.enabled ? {
+      enabled: true,
+      send_referrals: referralNetworkSettings.send_referrals ?? true,
+      accept_referrals: referralNetworkSettings.accept_referrals ?? true,
+      intro_style: referralNetworkSettings.intro_style || "enthusiastic",
+      network_services: referralNetworkSettings.network_services || [],
+      preferred_partners: (referralNetworkSettings.preferred_partners || []).map(String),
+    } : null,
     _meta: {
       channel,
       session_id: sessionId,

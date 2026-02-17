@@ -1086,7 +1086,18 @@ async function processCallData(
   }
 
   // ===== PERSIST DERIVED ENTITY =====
-  await persistDerivedEntity(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, tenantBusinessMode, enabledModules, validatedPayload, validatedPayload.customer.name, customerId, callerPhoneE164, payload, leadId);
+  // Skip entity creation for referral transfers — the referring agent's call
+  // was terminated by the TwiML switch, so there's no booking/dispatch to create.
+  // The RECEIVING agent's session will go through normal processing when it ends.
+  if (outcome === "referral_transfer") {
+    console.log(`[elevenlabs-webhook] Skipping entity creation for referral_transfer session ${sessionId.substring(0, 8)}...`);
+    await logEventStage(supabase, tenantId, sessionId, session.twilio_call_sid, payload.conversation_id, "derived_entity_skipped", {
+      reason: "referral_transfer",
+      intent: validatedPayload.intent,
+    });
+  } else {
+    await persistDerivedEntity(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, tenantBusinessMode, enabledModules, validatedPayload, validatedPayload.customer.name, customerId, callerPhoneE164, payload, leadId);
+  }
 }
 
 // ===== ENSURE LEAD RECORD =====

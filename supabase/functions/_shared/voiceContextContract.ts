@@ -1937,6 +1937,88 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     category: "policies",
   },
 
+  // ===== REFERRAL NETWORK =====
+  {
+    key: "referral_network_enabled",
+    description: "Whether the referral network is enabled for this tenant",
+    type: "string",
+    source: (ctx) => ctx.referral_network?.enabled ? "true" : "false",
+    defaultValue: "false",
+    category: "core",
+  },
+  {
+    key: "referral_network_mode",
+    description: "Referral mode: send_only, receive_only, both, or disabled",
+    type: "string",
+    source: (ctx) => {
+      const rn = ctx.referral_network;
+      if (!rn?.enabled) return "disabled";
+      if (rn.send_referrals && rn.accept_referrals) return "both";
+      if (rn.send_referrals) return "send_only";
+      if (rn.accept_referrals) return "receive_only";
+      return "disabled";
+    },
+    defaultValue: "disabled",
+    category: "core",
+  },
+  {
+    key: "referral_network_intro_style",
+    description: "How the AI should introduce referral businesses: enthusiastic, neutral, or minimal",
+    type: "string",
+    source: (ctx) => ctx.referral_network?.intro_style || "enthusiastic",
+    defaultValue: "enthusiastic",
+    category: "core",
+  },
+  {
+    key: "is_referral_transfer",
+    description: "Whether this call was received via a referral transfer from another business",
+    type: "string",
+    source: "_meta.is_referral_transfer",
+    defaultValue: "",
+    category: "caller",
+  },
+  {
+    key: "referral_context",
+    description: "Speech-ready context about a referred caller (name, need, source business)",
+    type: "string",
+    source: "_meta.referral_context",
+    defaultValue: "",
+    category: "caller",
+  },
+  {
+    key: "referral_caller_name",
+    description: "Name of caller from referral transfer",
+    type: "string",
+    source: "_meta.referral_caller_name",
+    defaultValue: "",
+    category: "caller",
+  },
+  {
+    key: "referral_caller_need",
+    description: "Service the referred caller needs",
+    type: "string",
+    source: "_meta.referral_caller_need",
+    defaultValue: "",
+    category: "caller",
+  },
+  {
+    key: "referral_caller_phone",
+    description: "Phone of referred caller (HIPAA-redacted for medical)",
+    type: "string",
+    source: "_meta.referral_caller_phone",
+    defaultValue: "",
+    isPhi: true,
+    category: "caller",
+  },
+  {
+    key: "referral_source_business",
+    description: "Name of business that referred this caller",
+    type: "string",
+    source: "_meta.referral_source_business",
+    defaultValue: "",
+    category: "caller",
+  },
+
   // ===== BUSINESS BRAIN SNAPSHOT =====
   {
     key: "business_brain_summary",

@@ -37,6 +37,7 @@ export interface Capabilities {
   hasTestDrives: boolean;
   hasSalesInventory: boolean;
   hasJobTracking: boolean;
+  hasReferralNetwork: boolean;
 
   isFoodBusiness: boolean;
   isDispatchBusiness: boolean;
@@ -140,6 +141,7 @@ export function resolveCapabilities(
   const hasTestDrives = cap("test_drives");
   const hasSalesInventory = cap("sales_inventory");
   const hasJobTracking = cap("job_tracking");
+  const hasReferralNetwork = cap("referral_network");
 
   const isFoodBusiness = hasFoodOrders || hasMenuKnowledge || hasReservations || hasCatering;
   const isDispatchBusiness = hasDispatchQueue;
@@ -184,6 +186,7 @@ export function resolveCapabilities(
     hasTestDrives,
     hasSalesInventory,
     hasJobTracking,
+    hasReferralNetwork,
     isFoodBusiness,
     isDispatchBusiness,
     isMedicalBusiness,
