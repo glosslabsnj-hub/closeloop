@@ -322,6 +322,138 @@ export type Database = {
           },
         ]
       }
+      agency_accounts: {
+        Row: {
+          agency_name: string
+          agency_slug: string
+          billing_config_json: Json
+          branding_json: Json
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          agency_name: string
+          agency_slug: string
+          billing_config_json?: Json
+          branding_json?: Json
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          agency_name?: string
+          agency_slug?: string
+          billing_config_json?: Json
+          branding_json?: Json
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      agency_commissions: {
+        Row: {
+          agency_id: string
+          commission_cents: number
+          commission_rate: number
+          created_at: string
+          id: string
+          invoice_amount_cents: number
+          paid_at: string | null
+          period_end: string | null
+          period_start: string | null
+          status: string
+          stripe_invoice_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          agency_id: string
+          commission_cents?: number
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          invoice_amount_cents?: number
+          paid_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          status?: string
+          stripe_invoice_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          agency_id?: string
+          commission_cents?: number
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          invoice_amount_cents?: number
+          paid_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          status?: string
+          stripe_invoice_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_commissions_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_commissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_tenants: {
+        Row: {
+          agency_id: string
+          id: string
+          notes: string | null
+          provisioned_at: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          agency_id: string
+          id?: string
+          notes?: string | null
+          provisioned_at?: string
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          agency_id?: string
+          id?: string
+          notes?: string | null
+          provisioned_at?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_tenants_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_tenants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_assistants: {
         Row: {
           created_at: string
