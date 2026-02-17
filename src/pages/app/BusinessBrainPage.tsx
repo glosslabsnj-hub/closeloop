@@ -61,6 +61,9 @@ import { BrainSectionDetail } from "@/components/brain/dashboard/BrainSectionDet
 // Intelligence components
 import { IntelligenceDashboard } from "@/components/intelligence";
 
+// Workflow configuration
+import WorkflowConfigEditor from "@/components/brain/WorkflowConfigEditor";
+
 // Guided setup
 import { GuidedSetupFlow } from "@/components/brain/guided/GuidedSetupFlow";
 
@@ -71,8 +74,8 @@ import { QuoteReadinessCard } from "@/components/brain/QuoteReadinessCard";
 // ─── Section IDs ────────────────────────────────────────────────────────────
 
 /** Mode-shaped tab sections (replaces the old 6-tab fixed structure) */
-type ModeSectionId = "about" | "services" | "operations" | "training" | "intelligence";
-const NEW_VALID_SECTIONS = ["about", "services", "operations", "training", "intelligence"] as const;
+type ModeSectionId = "about" | "services" | "operations" | "training" | "intelligence" | "workflow";
+const NEW_VALID_SECTIONS = ["about", "services", "operations", "training", "intelligence", "workflow"] as const;
 
 /** All old section params still work — resolve to the new tab */
 const LEGACY_SECTION_ALIASES: Record<string, ModeSectionId> = {
@@ -229,7 +232,7 @@ export default function BusinessBrainPage() {
 
   // Resolve active item ID
   const activeItemId = useMemo(() => {
-    if (!activeSection || activeSection === "intelligence") return null;
+    if (!activeSection || activeSection === "intelligence" || activeSection === "workflow") return null;
 
     // 1. Explicit ?item= param
     if (itemParamRaw) {
@@ -516,6 +519,19 @@ export default function BusinessBrainPage() {
                 exit="exit"
               >
                 <IntelligenceDashboard businessMode={businessMode} />
+              </motion.div>
+            )}
+
+            {/* ═══ WORKFLOW CONFIGURATION (bypasses sidebar layout) ═══ */}
+            {activeSection === "workflow" && (
+              <motion.div
+                key="section-workflow"
+                variants={pageVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+              >
+                <WorkflowConfigEditor />
               </motion.div>
             )}
 

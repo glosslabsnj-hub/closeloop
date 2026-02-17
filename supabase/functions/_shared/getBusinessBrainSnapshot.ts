@@ -147,6 +147,85 @@ export interface IntelligenceSettingsSnapshot {
   share_memory_across_locations: boolean;
 }
 
+// ============= WORKFLOW CONFIG SNAPSHOTS =============
+
+export interface DispatchWorkflowConfigSnapshot {
+  vehicle_info_timing: string;
+  vehicle_affects_pricing: boolean;
+  required_vehicle_fields: string[];
+  luxury_flatbed_recommendation: boolean;
+  luxury_brands: string[];
+  awd_detection_enabled: boolean;
+  motorcycle_special_handling: boolean;
+  ask_payment_method: boolean;
+  payment_timing: string;
+  require_payment_confirmation: boolean;
+  accepted_methods: string[];
+  payment_due_message: string;
+  confirm_geocoded_address: boolean;
+  require_zip_code: boolean;
+  address_confirmation_script: string;
+  driver_callback_script: string;
+  include_direct_contact_info: boolean;
+  escalation_number: string;
+  service_dropoff_rules: Record<string, any>;
+}
+
+export interface ServiceWorkflowConfigSnapshot {
+  collect_service_duration: boolean;
+  collect_deposit_upfront: boolean;
+  deposit_timing: string;
+  deposit_amount_behavior: string;
+  default_deposit_percentage: number;
+  required_intake_questions: Array<{ service_id: string; questions: string[] }>;
+  suggest_alternatives_when_unavailable: boolean;
+  max_alternatives_to_suggest: number;
+  alternative_suggestion_window_days: number;
+  booking_confirmation_script: string;
+  send_sms_confirmation: boolean;
+  ask_for_email_confirmation: boolean;
+  allow_ai_rescheduling: boolean;
+  allow_ai_cancellation: boolean;
+  cancellation_requires_manager: boolean;
+}
+
+export interface FoodWorkflowConfigSnapshot {
+  ask_pickup_vs_delivery: string;
+  default_order_type: string;
+  allow_menu_customizations: boolean;
+  require_allergy_check: boolean;
+  ask_special_instructions: boolean;
+  ask_asap_vs_scheduled: boolean;
+  min_advance_order_minutes: number;
+  default_prep_time_minutes: number;
+  collect_delivery_instructions: boolean;
+  require_buzzer_code: boolean;
+  order_confirmation_script: string;
+  repeat_order_back: boolean;
+  confirm_total_before_submit: boolean;
+}
+
+export interface MedicalWorkflowConfigSnapshot {
+  consent_timing: string;
+  consent_script: string;
+  require_explicit_consent: boolean;
+  collect_symptom_details: boolean;
+  symptom_severity_scale: boolean;
+  ask_duration_of_symptoms: boolean;
+  required_intake_questions: Array<{ service_id: string; questions: string[] }>;
+  detect_emergency_keywords: boolean;
+  emergency_escalation_script: string;
+}
+
+export interface GeneralWorkflowConfigSnapshot {
+  qualification_questions: Array<{ question: string; required: boolean }>;
+  callback_confirmation_script: string;
+  ask_best_time_to_call: boolean;
+  ask_callback_reason: boolean;
+  escalate_unknown_questions: boolean;
+  unknown_question_script: string;
+}
+
 export interface IntentRuleSnapshot {
   id: string;
   name: string;
@@ -348,6 +427,14 @@ export interface BusinessBrainSnapshot {
     competitors: CompetitorKnowledgeSnapshot[];
     seasonal: SeasonalKnowledgeSnapshot[];
   };
+  // Workflow configurations (mode-specific)
+  workflow_config: {
+    dispatch: DispatchWorkflowConfigSnapshot | null;
+    service: ServiceWorkflowConfigSnapshot | null;
+    food: FoodWorkflowConfigSnapshot | null;
+    medical: MedicalWorkflowConfigSnapshot | null;
+    general: GeneralWorkflowConfigSnapshot | null;
+  };
   _meta: {
     fetched_at: string;
     tenant_id: string;
@@ -478,6 +565,93 @@ function getDefaultFoodOrderSettings(): FoodOrderSettingsSnapshot {
     catering_min_guests: null,
     catering_lead_days: null,
     order_confirmation_mode: "auto_confirm",
+  };
+}
+
+function getDefaultDispatchWorkflowConfig(): DispatchWorkflowConfigSnapshot {
+  return {
+    vehicle_info_timing: "before_pricing",
+    vehicle_affects_pricing: true,
+    required_vehicle_fields: ["color", "make"],
+    luxury_flatbed_recommendation: false,
+    luxury_brands: ["BMW", "Mercedes", "Audi", "Porsche", "Tesla", "Lexus", "Maserati", "Bentley", "Rolls-Royce", "Ferrari", "Lamborghini"],
+    awd_detection_enabled: false,
+    motorcycle_special_handling: false,
+    ask_payment_method: true,
+    payment_timing: "on_arrival",
+    require_payment_confirmation: false,
+    accepted_methods: ["cash", "card"],
+    payment_due_message: "Driver will collect {{price}} when they arrive",
+    confirm_geocoded_address: true,
+    require_zip_code: false,
+    address_confirmation_script: "Got it, {{geocoded_address}} - is that correct?",
+    driver_callback_script: "Our driver will call you when they're about 10 minutes away",
+    include_direct_contact_info: false,
+    escalation_number: "",
+    service_dropoff_rules: {},
+  };
+}
+
+function getDefaultServiceWorkflowConfig(): ServiceWorkflowConfigSnapshot {
+  return {
+    collect_service_duration: true,
+    collect_deposit_upfront: false,
+    deposit_timing: "at_confirmation",
+    deposit_amount_behavior: "percentage",
+    default_deposit_percentage: 50,
+    required_intake_questions: [],
+    suggest_alternatives_when_unavailable: true,
+    max_alternatives_to_suggest: 3,
+    alternative_suggestion_window_days: 7,
+    booking_confirmation_script: "Perfect! You're all set for {{date}} at {{time}}",
+    send_sms_confirmation: true,
+    ask_for_email_confirmation: false,
+    allow_ai_rescheduling: true,
+    allow_ai_cancellation: false,
+    cancellation_requires_manager: false,
+  };
+}
+
+function getDefaultFoodWorkflowConfig(): FoodWorkflowConfigSnapshot {
+  return {
+    ask_pickup_vs_delivery: "if_both_enabled",
+    default_order_type: "ask",
+    allow_menu_customizations: true,
+    require_allergy_check: false,
+    ask_special_instructions: true,
+    ask_asap_vs_scheduled: true,
+    min_advance_order_minutes: 30,
+    default_prep_time_minutes: 20,
+    collect_delivery_instructions: true,
+    require_buzzer_code: false,
+    order_confirmation_script: "Great! Your order will be ready {{ready_time}}",
+    repeat_order_back: true,
+    confirm_total_before_submit: true,
+  };
+}
+
+function getDefaultMedicalWorkflowConfig(): MedicalWorkflowConfigSnapshot {
+  return {
+    consent_timing: "before_intake",
+    consent_script: "Before we continue, I need your verbal consent to collect your health information. Do I have your permission to proceed?",
+    require_explicit_consent: true,
+    collect_symptom_details: true,
+    symptom_severity_scale: true,
+    ask_duration_of_symptoms: true,
+    required_intake_questions: [],
+    detect_emergency_keywords: true,
+    emergency_escalation_script: "This sounds like it may need immediate attention. I recommend calling 911 or going to the ER. Can I help you with anything else?",
+  };
+}
+
+function getDefaultGeneralWorkflowConfig(): GeneralWorkflowConfigSnapshot {
+  return {
+    qualification_questions: [],
+    callback_confirmation_script: "I'll have someone call you back at {{callback_time}}",
+    ask_best_time_to_call: true,
+    ask_callback_reason: true,
+    escalate_unknown_questions: true,
+    unknown_question_script: "That's a great question - let me have someone who can give you the details call you back",
   };
 }
 
@@ -647,6 +821,37 @@ export async function getBusinessBrainSnapshot(
     .eq("tenant_id", tenantId)
     .limit(20);
 
+  // Workflow config queries
+  const dispatchWorkflowQuery = supabase
+    .from("dispatch_workflow_config")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+
+  const serviceWorkflowQuery = supabase
+    .from("service_workflow_config")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+
+  const foodWorkflowQuery = supabase
+    .from("food_workflow_config")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+
+  const medicalWorkflowQuery = supabase
+    .from("medical_workflow_config")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+
+  const generalWorkflowQuery = supabase
+    .from("general_workflow_config")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+
   // Execute core queries in parallel
   const [
     servicesResult,
@@ -668,6 +873,12 @@ export async function getBusinessBrainSnapshot(
     aftercareResult,
     competitorResult,
     seasonalResult,
+    // Workflow configs
+    dispatchWorkflowResult,
+    serviceWorkflowResult,
+    foodWorkflowResult,
+    medicalWorkflowResult,
+    generalWorkflowResult,
   ] = await Promise.all([
     servicesQuery,
     faqsQuery,
@@ -688,6 +899,12 @@ export async function getBusinessBrainSnapshot(
     aftercareQuery,
     competitorQuery,
     seasonalQuery,
+    // Workflow configs
+    dispatchWorkflowQuery,
+    serviceWorkflowQuery,
+    foodWorkflowQuery,
+    medicalWorkflowQuery,
+    generalWorkflowQuery,
   ]);
 
   // Conditionally fetch food-specific data
@@ -1004,11 +1221,104 @@ export async function getBusinessBrainSnapshot(
     ai_announcement: safeString(s.ai_announcement),
   }));
 
+  // Transform workflow configs with safe defaults
+  const dispatchWorkflowRaw = dispatchWorkflowResult?.data;
+  const dispatch_workflow: DispatchWorkflowConfigSnapshot | null = dispatchWorkflowRaw
+    ? {
+        vehicle_info_timing: safeString(dispatchWorkflowRaw.vehicle_info_timing) || "before_pricing",
+        vehicle_affects_pricing: safeBoolean(dispatchWorkflowRaw.vehicle_affects_pricing, true),
+        required_vehicle_fields: safeArray(dispatchWorkflowRaw.required_vehicle_fields),
+        luxury_flatbed_recommendation: safeBoolean(dispatchWorkflowRaw.luxury_flatbed_recommendation),
+        luxury_brands: safeArray(dispatchWorkflowRaw.luxury_brands),
+        awd_detection_enabled: safeBoolean(dispatchWorkflowRaw.awd_detection_enabled),
+        motorcycle_special_handling: safeBoolean(dispatchWorkflowRaw.motorcycle_special_handling),
+        ask_payment_method: safeBoolean(dispatchWorkflowRaw.ask_payment_method, true),
+        payment_timing: safeString(dispatchWorkflowRaw.payment_timing) || "on_arrival",
+        require_payment_confirmation: safeBoolean(dispatchWorkflowRaw.require_payment_confirmation),
+        accepted_methods: safeArray(dispatchWorkflowRaw.accepted_methods),
+        payment_due_message: safeString(dispatchWorkflowRaw.payment_due_message),
+        confirm_geocoded_address: safeBoolean(dispatchWorkflowRaw.confirm_geocoded_address, true),
+        require_zip_code: safeBoolean(dispatchWorkflowRaw.require_zip_code),
+        address_confirmation_script: safeString(dispatchWorkflowRaw.address_confirmation_script),
+        driver_callback_script: safeString(dispatchWorkflowRaw.driver_callback_script),
+        include_direct_contact_info: safeBoolean(dispatchWorkflowRaw.include_direct_contact_info),
+        escalation_number: safeString(dispatchWorkflowRaw.escalation_number),
+        service_dropoff_rules: safeObject(dispatchWorkflowRaw.service_dropoff_rules),
+      }
+    : null;
+
+  const serviceWorkflowRaw = serviceWorkflowResult?.data;
+  const service_workflow: ServiceWorkflowConfigSnapshot | null = serviceWorkflowRaw
+    ? {
+        collect_service_duration: safeBoolean(serviceWorkflowRaw.collect_service_duration, true),
+        collect_deposit_upfront: safeBoolean(serviceWorkflowRaw.collect_deposit_upfront),
+        deposit_timing: safeString(serviceWorkflowRaw.deposit_timing) || "at_confirmation",
+        deposit_amount_behavior: safeString(serviceWorkflowRaw.deposit_amount_behavior) || "percentage",
+        default_deposit_percentage: safeNumber(serviceWorkflowRaw.default_deposit_percentage, 50),
+        required_intake_questions: safeArray(serviceWorkflowRaw.required_intake_questions),
+        suggest_alternatives_when_unavailable: safeBoolean(serviceWorkflowRaw.suggest_alternatives_when_unavailable, true),
+        max_alternatives_to_suggest: safeNumber(serviceWorkflowRaw.max_alternatives_to_suggest, 3),
+        alternative_suggestion_window_days: safeNumber(serviceWorkflowRaw.alternative_suggestion_window_days, 7),
+        booking_confirmation_script: safeString(serviceWorkflowRaw.booking_confirmation_script),
+        send_sms_confirmation: safeBoolean(serviceWorkflowRaw.send_sms_confirmation, true),
+        ask_for_email_confirmation: safeBoolean(serviceWorkflowRaw.ask_for_email_confirmation),
+        allow_ai_rescheduling: safeBoolean(serviceWorkflowRaw.allow_ai_rescheduling, true),
+        allow_ai_cancellation: safeBoolean(serviceWorkflowRaw.allow_ai_cancellation),
+        cancellation_requires_manager: safeBoolean(serviceWorkflowRaw.cancellation_requires_manager),
+      }
+    : null;
+
+  const foodWorkflowRaw = foodWorkflowResult?.data;
+  const food_workflow: FoodWorkflowConfigSnapshot | null = foodWorkflowRaw
+    ? {
+        ask_pickup_vs_delivery: safeString(foodWorkflowRaw.ask_pickup_vs_delivery) || "if_both_enabled",
+        default_order_type: safeString(foodWorkflowRaw.default_order_type) || "ask",
+        allow_menu_customizations: safeBoolean(foodWorkflowRaw.allow_menu_customizations, true),
+        require_allergy_check: safeBoolean(foodWorkflowRaw.require_allergy_check),
+        ask_special_instructions: safeBoolean(foodWorkflowRaw.ask_special_instructions, true),
+        ask_asap_vs_scheduled: safeBoolean(foodWorkflowRaw.ask_asap_vs_scheduled, true),
+        min_advance_order_minutes: safeNumber(foodWorkflowRaw.min_advance_order_minutes, 30),
+        default_prep_time_minutes: safeNumber(foodWorkflowRaw.default_prep_time_minutes, 20),
+        collect_delivery_instructions: safeBoolean(foodWorkflowRaw.collect_delivery_instructions, true),
+        require_buzzer_code: safeBoolean(foodWorkflowRaw.require_buzzer_code),
+        order_confirmation_script: safeString(foodWorkflowRaw.order_confirmation_script),
+        repeat_order_back: safeBoolean(foodWorkflowRaw.repeat_order_back, true),
+        confirm_total_before_submit: safeBoolean(foodWorkflowRaw.confirm_total_before_submit, true),
+      }
+    : null;
+
+  const medicalWorkflowRaw = medicalWorkflowResult?.data;
+  const medical_workflow: MedicalWorkflowConfigSnapshot | null = medicalWorkflowRaw
+    ? {
+        consent_timing: safeString(medicalWorkflowRaw.consent_timing) || "before_intake",
+        consent_script: safeString(medicalWorkflowRaw.consent_script),
+        require_explicit_consent: safeBoolean(medicalWorkflowRaw.require_explicit_consent, true),
+        collect_symptom_details: safeBoolean(medicalWorkflowRaw.collect_symptom_details, true),
+        symptom_severity_scale: safeBoolean(medicalWorkflowRaw.symptom_severity_scale, true),
+        ask_duration_of_symptoms: safeBoolean(medicalWorkflowRaw.ask_duration_of_symptoms, true),
+        required_intake_questions: safeArray(medicalWorkflowRaw.required_intake_questions),
+        detect_emergency_keywords: safeBoolean(medicalWorkflowRaw.detect_emergency_keywords, true),
+        emergency_escalation_script: safeString(medicalWorkflowRaw.emergency_escalation_script),
+      }
+    : null;
+
+  const generalWorkflowRaw = generalWorkflowResult?.data;
+  const general_workflow: GeneralWorkflowConfigSnapshot | null = generalWorkflowRaw
+    ? {
+        qualification_questions: safeArray(generalWorkflowRaw.qualification_questions),
+        callback_confirmation_script: safeString(generalWorkflowRaw.callback_confirmation_script),
+        ask_best_time_to_call: safeBoolean(generalWorkflowRaw.ask_best_time_to_call, true),
+        ask_callback_reason: safeBoolean(generalWorkflowRaw.ask_callback_reason, true),
+        escalate_unknown_questions: safeBoolean(generalWorkflowRaw.escalate_unknown_questions, true),
+        unknown_question_script: safeString(generalWorkflowRaw.unknown_question_script),
+      }
+    : null;
+
   // Count total mode-specific knowledge items
-  const modeKnowledgeCount = menu_knowledge.length + catering_knowledge.length + 
-    vehicle_knowledge.length + roadside_knowledge.length + 
-    symptom_triage.length + insurance_knowledge.length + 
-    product_knowledge.length + aftercare.length + 
+  const modeKnowledgeCount = menu_knowledge.length + catering_knowledge.length +
+    vehicle_knowledge.length + roadside_knowledge.length +
+    symptom_triage.length + insurance_knowledge.length +
+    product_knowledge.length + aftercare.length +
     competitors.length + seasonal.length;
 
   // Build section counts for logging
@@ -1054,6 +1364,13 @@ export async function getBusinessBrainSnapshot(
       aftercare,
       competitors,
       seasonal,
+    },
+    workflow_config: {
+      dispatch: dispatch_workflow,
+      service: service_workflow,
+      food: food_workflow,
+      medical: medical_workflow,
+      general: general_workflow,
     },
     _meta: {
       fetched_at: new Date().toISOString(),
