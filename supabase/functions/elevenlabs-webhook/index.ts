@@ -1030,9 +1030,99 @@ async function processCallData(
     }
   }
 
+  // ===== INTELLIGENCE FEEDBACK LOOPS =====
+  // 1.3: Detect knowledge gaps from transcript uncertainty signals
+  if (payload.transcript && payload.transcript.length >= 2) {
+    try {
+      const gapsDetected = await detectKnowledgeGapsFromTranscript(supabase, tenantId, payload.transcript);
+      if (gapsDetected > 0) {
+        console.log(`[intelligence] Detected ${gapsDetected} knowledge gaps from transcript`);
+      }
+    } catch (e) {
+      console.warn("[intelligence] Knowledge gap detection failed:", e);
+    }
+  }
+
+  // 1.2: Detect objection usage in transcript
+  if (payload.transcript && payload.transcript.length >= 2) {
+    try {
+      const objections = await detectObjectionUsageFromTranscript(supabase, tenantId, sessionId, payload.transcript, outcome);
+      if (objections > 0) {
+        console.log(`[intelligence] Tracked ${objections} objection usages`);
+      }
+    } catch (e) {
+      console.warn("[intelligence] Objection tracking failed:", e);
+    }
+  }
+
+  // 1.5: Score call quality
+  let qualityScore: number | null = null;
+  try {
+    // Fetch assistant_settings for greeting script
+    const { data: assistSettings } = await supabase
+      .from("assistant_settings")
+      .select("greeting_script")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+
+    // Fetch ai_never_promise from tenants table (stored on tenants, not assistant_settings)
+    const { data: tenantForQuality } = await supabase
+      .from("tenants")
+      .select("ai_never_promise")
+      .eq("id", tenantId)
+      .single();
+
+    // Fetch required questions from intent rules
+    const { data: reqRules } = await supabase
+      .from("business_intent_rules")
+      .select("action_json")
+      .eq("tenant_id", tenantId)
+      .eq("rule_type", "required_inputs")
+      .eq("is_enabled", true)
+      .limit(5);
+
+    const requiredQuestions: string[] = [];
+    if (reqRules) {
+      for (const rule of reqRules) {
+        const action = rule.action_json as Record<string, unknown>;
+        if (Array.isArray(action?.required_inputs)) {
+          for (const input of action.required_inputs as Array<Record<string, string>>) {
+            if (input.ai_prompt_hint) requiredQuestions.push(input.ai_prompt_hint);
+          }
+        }
+      }
+    }
+
+    const neverPromise: string[] = Array.isArray(tenantForQuality?.ai_never_promise)
+      ? tenantForQuality.ai_never_promise
+      : [];
+
+    const qualityResult = scoreCallQuality(
+      payload.transcript || null,
+      assistSettings?.greeting_script || null,
+      requiredQuestions,
+      neverPromise,
+      payload.analysis?.customer_satisfaction || null,
+      outcome
+    );
+
+    qualityScore = qualityResult.score;
+
+    // Update session with quality score
+    await supabase
+      .from("ai_call_sessions")
+      .update({ quality_score: qualityResult.score, quality_details: qualityResult.details })
+      .eq("id", sessionId);
+
+    console.log(`[intelligence] Quality score: ${qualityResult.score}/100`);
+  } catch (e) {
+    console.warn("[intelligence] Quality scoring failed:", e);
+  }
+
   await logEventStage(supabase, tenantId, sessionId, session.twilio_call_sid, payload.conversation_id, "extraction_saved", {
     business_mode: tenantBusinessMode,
     intent: validatedPayload.intent,
+    quality_score: qualityScore,
   });
 
   // Get enabled_modules from tenant for routing decisions
@@ -1097,6 +1187,19 @@ async function processCallData(
     });
   } else {
     await persistDerivedEntity(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, tenantBusinessMode, enabledModules, validatedPayload, validatedPayload.customer.name, customerId, callerPhoneE164, payload, leadId);
+  }
+
+  // 3.3: Queue warm lead follow-up for outbound calling
+  if (callerPhoneE164 && outcome !== "referral_transfer") {
+    try {
+      await queueWarmLeadFollowup(
+        supabase, tenantId, customerId, callerPhoneE164,
+        validatedPayload, outcome, temperatureResult.score,
+        effectiveTimezone
+      );
+    } catch (e) {
+      console.warn("[intelligence] Follow-up queueing failed:", e);
+    }
   }
 }
 
@@ -2181,7 +2284,16 @@ async function persistDerivedEntity(
     errorMsg = e instanceof Error ? e.message : String(e);
     console.error(`[persistDerivedEntity] Failed to persist ${routingDecision.target}:`, e);
   }
-  
+
+  // 1.4: Update revenue attribution with actual entity price
+  if (success && entityType && entityId) {
+    try {
+      await updateRevenueWithActualPrice(supabase, tenantId, sessionId, entityType, entityId);
+    } catch (e) {
+      console.warn("[persistDerivedEntity] Revenue update failed:", e);
+    }
+  }
+
   // Always log routing result
   const logStage = success ? "entity_routed_" + routingDecision.target.replace("_", "") : 
                    errorMsg ? "entity_insert_failed" : "derived_entity_skipped";
@@ -3514,4 +3626,421 @@ async function persistSalesLead(
   }
 
   return salesLead;
+}
+
+// =============================================================================
+// INTELLIGENCE FEEDBACK LOOP FUNCTIONS
+// Phase 1: Self-improving AI — every call teaches the AI something
+// =============================================================================
+
+// 1.3 — Transcript-level knowledge gap detection
+// Scans AI turns for uncertainty signals and auto-creates knowledge_gap records
+const UNCERTAINTY_PATTERNS = [
+  /i(?:'m| am) not sure (?:about|if|whether|how)/i,
+  /i don(?:'t| not) have (?:that |specific )?information/i,
+  /let me (?:check|verify|confirm) (?:on |about )?that/i,
+  /i(?:'d| would) recommend speaking with/i,
+  /someone will (?:get back|call you back|follow up)/i,
+  /i(?:'m| am) not able to (?:confirm|answer|provide)/i,
+  /i don(?:'t| not) have pricing (?:for|on)/i,
+  /that(?:'s| is) a (?:great|good) question.*(?:let me|i'll)/i,
+  /i(?:'ll| will) have (?:someone|the team|the owner) (?:call|reach|get back)/i,
+  /unfortunately,? i (?:can(?:'t| not)|don(?:'t| not))/i,
+  /i (?:don(?:'t| not)|can(?:'t| not)) (?:give|provide) (?:you )?(?:an? )?(?:exact|specific)/i,
+];
+
+const GAP_TYPE_CLASSIFIERS: Record<string, RegExp[]> = {
+  pricing: [/pric/i, /cost/i, /how much/i, /fee/i, /rate/i, /charg/i, /discount/i, /quote/i],
+  service_info: [/service/i, /offer/i, /provide/i, /do you/i, /can you/i, /available/i],
+  policy: [/cancel/i, /refund/i, /warranty/i, /guarante/i, /insur/i, /policy/i, /return/i],
+  availability: [/when/i, /open/i, /hours/i, /schedul/i, /appoint/i, /book/i, /avail/i],
+  general: [/.*/],
+};
+
+// deno-lint-ignore no-explicit-any
+async function detectKnowledgeGapsFromTranscript(
+  supabase: any,
+  tenantId: string,
+  transcript: ElevenLabsWebhookPayload["transcript"]
+): Promise<number> {
+  if (!transcript || transcript.length < 2) return 0;
+
+  let gapsDetected = 0;
+
+  for (let i = 1; i < transcript.length; i++) {
+    const turn = transcript[i];
+    if (turn.role !== "agent") continue;
+
+    const aiMessage = turn.message;
+    const isUncertain = UNCERTAINTY_PATTERNS.some(p => p.test(aiMessage));
+    if (!isUncertain) continue;
+
+    // Get the customer's preceding question
+    const prevCustomerTurn = [...transcript.slice(0, i)].reverse().find(t => t.role === "user");
+    if (!prevCustomerTurn) continue;
+
+    const customerQuestion = prevCustomerTurn.message.trim();
+    if (customerQuestion.length < 5) continue;
+
+    // Classify gap type
+    let gapType = "general";
+    for (const [type, patterns] of Object.entries(GAP_TYPE_CLASSIFIERS)) {
+      if (type === "general") continue;
+      if (patterns.some(p => p.test(customerQuestion))) {
+        gapType = type;
+        break;
+      }
+    }
+
+    // Derive a theme from the question (first 80 chars, normalized)
+    const questionTheme = customerQuestion.length > 80
+      ? customerQuestion.substring(0, 77) + "..."
+      : customerQuestion;
+
+    try {
+      // Map our gap types to the existing CHECK constraint values
+      const gapTypeMap: Record<string, string> = {
+        pricing: "missing_pricing",
+        service_info: "unanswered_question",
+        policy: "missing_policy",
+        availability: "missing_hours",
+        general: "other",
+      };
+      const dbGapType = gapTypeMap[gapType] || "unanswered_question";
+
+      // Try to find existing gap with similar description
+      const { data: existingGaps } = await supabase
+        .from("knowledge_gaps")
+        .select("id, occurrence_count")
+        .eq("tenant_id", tenantId)
+        .eq("resolved", false)
+        .ilike("description", `%${questionTheme.substring(0, 30)}%`)
+        .limit(1);
+
+      if (existingGaps && existingGaps.length > 0) {
+        // Increment existing gap
+        const existing = existingGaps[0];
+        await supabase
+          .from("knowledge_gaps")
+          .update({
+            occurrence_count: (existing.occurrence_count || 1) + 1,
+            customer_question: customerQuestion,
+          })
+          .eq("id", existing.id);
+      } else {
+        // Create new gap
+        await supabase
+          .from("knowledge_gaps")
+          .insert({
+            tenant_id: tenantId,
+            gap_type: dbGapType,
+            description: questionTheme,
+            customer_question: customerQuestion,
+            occurrence_count: 1,
+            resolved: false,
+          });
+      }
+      gapsDetected++;
+    } catch (e) {
+      console.warn("[detectKnowledgeGaps] Failed to record gap:", e);
+    }
+  }
+
+  return gapsDetected;
+}
+
+// 1.2 — Objection detection in transcripts
+// deno-lint-ignore no-explicit-any
+async function detectObjectionUsageFromTranscript(
+  supabase: any,
+  tenantId: string,
+  sessionId: string,
+  transcript: ElevenLabsWebhookPayload["transcript"],
+  callOutcome: string
+): Promise<number> {
+  if (!transcript || transcript.length < 2) return 0;
+
+  // Fetch tenant's objection responses
+  const { data: objectionResponses } = await supabase
+    .from("objection_responses")
+    .select("id, objection, response")
+    .eq("tenant_id", tenantId);
+
+  if (!objectionResponses || objectionResponses.length === 0) return 0;
+
+  let usagesDetected = 0;
+  const customerMessages = transcript.filter(t => t.role === "user").map(t => t.message.toLowerCase());
+
+  for (const obj of objectionResponses) {
+    const objectionText = (obj.objection || "").toLowerCase();
+    if (objectionText.length < 5) continue;
+
+    // Extract key phrases from the objection (3+ word sequences)
+    const objectionWords = objectionText.split(/\s+/).filter((w: string) => w.length > 2);
+    if (objectionWords.length < 2) continue;
+
+    // Check if any customer message contains the objection pattern
+    const objectionDetected = customerMessages.some(msg => {
+      // Simple keyword overlap: if 60%+ of objection keywords appear in customer message
+      const matchCount = objectionWords.filter((w: string) => msg.includes(w)).length;
+      return matchCount >= Math.max(2, Math.ceil(objectionWords.length * 0.6));
+    });
+
+    if (objectionDetected) {
+      try {
+        await supabase.from("objection_usage").insert({
+          tenant_id: tenantId,
+          objection_response_id: obj.id,
+          session_id: sessionId,
+          call_outcome: callOutcome,
+        });
+        usagesDetected++;
+      } catch (e) {
+        console.warn("[detectObjectionUsage] Failed to record:", e);
+      }
+    }
+  }
+
+  return usagesDetected;
+}
+
+// 1.4 — Look up real entity price and update call_outcomes
+// deno-lint-ignore no-explicit-any
+async function updateRevenueWithActualPrice(
+  supabase: any,
+  tenantId: string,
+  sessionId: string,
+  entityType: string | null,
+  entityId: string | null
+): Promise<void> {
+  if (!entityType || !entityId) return;
+
+  let actualCents: number | null = null;
+
+  try {
+    switch (entityType) {
+      case "booking": {
+        // Look up the booked service price
+        const { data: booking } = await supabase
+          .from("bookings")
+          .select("service_id")
+          .eq("id", entityId)
+          .single();
+        if (booking?.service_id) {
+          const { data: service } = await supabase
+            .from("services")
+            .select("price_amount")
+            .eq("id", booking.service_id)
+            .single();
+          if (service?.price_amount) {
+            actualCents = Math.round(service.price_amount * 100);
+          }
+        }
+        break;
+      }
+      case "dispatch_job": {
+        const { data: job } = await supabase
+          .from("dispatch_jobs")
+          .select("price_cents")
+          .eq("id", entityId)
+          .single();
+        if (job?.price_cents) {
+          actualCents = job.price_cents;
+        }
+        break;
+      }
+      case "order": {
+        const { data: order } = await supabase
+          .from("food_orders")
+          .select("total_cents")
+          .eq("id", entityId)
+          .single();
+        if (order?.total_cents) {
+          actualCents = order.total_cents;
+        }
+        break;
+      }
+    }
+
+    if (actualCents !== null && actualCents > 0) {
+      // Update call_outcomes with real revenue
+      await supabase
+        .from("call_outcomes")
+        .update({ conversion_value_cents: actualCents })
+        .eq("session_id", sessionId)
+        .eq("tenant_id", tenantId);
+
+      // Also update revenue_attributions if it exists
+      await supabase
+        .from("revenue_attributions")
+        .update({ revenue_cents: actualCents })
+        .eq("session_id", sessionId)
+        .eq("entity_type", entityType)
+        .eq("entity_id", entityId);
+
+      console.log(`[updateRevenue] Updated ${entityType} ${entityId.substring(0, 8)} with actual price: ${actualCents} cents`);
+    }
+  } catch (e) {
+    console.warn("[updateRevenue] Non-critical failure:", e);
+  }
+}
+
+// 1.5 — Per-business conversation quality scoring
+function scoreCallQuality(
+  transcript: ElevenLabsWebhookPayload["transcript"],
+  greetingScript: string | null,
+  requiredQuestionsList: string[],
+  neverPromiseList: string[],
+  customerSatisfaction: string | null,
+  outcome: string
+): { score: number; details: Record<string, number> } {
+  const details: Record<string, number> = {};
+
+  // 1. Greeting compliance (0-100)
+  let greetingScore = 50; // Neutral default
+  if (greetingScript && transcript && transcript.length > 0) {
+    const firstAiTurn = transcript.find(t => t.role === "agent");
+    if (firstAiTurn) {
+      const greetingWords = greetingScript.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+      const aiFirstWords = firstAiTurn.message.toLowerCase();
+      const matchCount = greetingWords.filter(w => aiFirstWords.includes(w)).length;
+      greetingScore = greetingWords.length > 0
+        ? Math.round((matchCount / greetingWords.length) * 100)
+        : 50;
+    }
+  }
+  details.greeting_compliance = greetingScore;
+
+  // 2. Required questions asked (0-100)
+  let requiredQScore = 100; // Perfect if no required questions
+  if (requiredQuestionsList.length > 0 && transcript) {
+    const aiMessages = transcript.filter(t => t.role === "agent").map(t => t.message.toLowerCase()).join(" ");
+    let questionsAsked = 0;
+    for (const q of requiredQuestionsList) {
+      const keywords = q.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+      const matched = keywords.filter(w => aiMessages.includes(w)).length;
+      if (matched >= Math.max(1, Math.ceil(keywords.length * 0.5))) {
+        questionsAsked++;
+      }
+    }
+    requiredQScore = Math.round((questionsAsked / requiredQuestionsList.length) * 100);
+  }
+  details.required_questions = requiredQScore;
+
+  // 3. Forbidden phrase avoidance (0-100)
+  let forbiddenScore = 100;
+  if (neverPromiseList.length > 0 && transcript) {
+    const aiMessages = transcript.filter(t => t.role === "agent").map(t => t.message.toLowerCase()).join(" ");
+    let violations = 0;
+    for (const phrase of neverPromiseList) {
+      if (aiMessages.includes(phrase.toLowerCase())) {
+        violations++;
+      }
+    }
+    forbiddenScore = violations === 0 ? 100 : Math.max(0, 100 - (violations * 25));
+  }
+  details.forbidden_avoidance = forbiddenScore;
+
+  // 4. Customer satisfaction from ElevenLabs (0-100)
+  let satisfactionScore = 50;
+  if (customerSatisfaction) {
+    const satLower = customerSatisfaction.toLowerCase();
+    if (satLower.includes("positive") || satLower.includes("satisfied") || satLower.includes("happy")) {
+      satisfactionScore = 90;
+    } else if (satLower.includes("neutral")) {
+      satisfactionScore = 60;
+    } else if (satLower.includes("negative") || satLower.includes("frustrated") || satLower.includes("angry")) {
+      satisfactionScore = 20;
+    }
+  }
+  details.customer_satisfaction = satisfactionScore;
+
+  // 5. Outcome quality (0-100)
+  const outcomeScores: Record<string, number> = {
+    booked: 100, order: 100, dispatch_created: 100,
+    lead_captured: 70, followup: 70,
+    escalated: 50, faq_answered: 60,
+    lost: 20, hangup: 0, referral_transfer: 60,
+  };
+  details.outcome_quality = outcomeScores[outcome] ?? 40;
+
+  // Weighted average
+  const weights = {
+    greeting_compliance: 0.15,
+    required_questions: 0.25,
+    forbidden_avoidance: 0.20,
+    customer_satisfaction: 0.20,
+    outcome_quality: 0.20,
+  };
+
+  const score = Math.round(
+    details.greeting_compliance * weights.greeting_compliance +
+    details.required_questions * weights.required_questions +
+    details.forbidden_avoidance * weights.forbidden_avoidance +
+    details.customer_satisfaction * weights.customer_satisfaction +
+    details.outcome_quality * weights.outcome_quality
+  );
+
+  return { score: Math.max(0, Math.min(100, score)), details };
+}
+
+// 3.3 — Queue warm lead follow-up for outbound calling
+// deno-lint-ignore no-explicit-any
+async function queueWarmLeadFollowup(
+  supabase: any,
+  tenantId: string,
+  customerId: string | null,
+  callerPhone: string,
+  payload: CanonicalPayload,
+  outcome: string,
+  leadScore: number,
+  tenantTimezone: string
+): Promise<void> {
+  // Only queue for warm/hot leads that didn't convert
+  if (outcome === "booked" || outcome === "order" || outcome === "dispatch_created") return;
+  if (leadScore < 40) return; // cold leads don't get callbacks
+
+  try {
+    // Check if customer has opted out
+    const { data: optOut } = await supabase
+      .from("outbound_opt_outs")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("customer_phone", callerPhone)
+      .maybeSingle();
+    if (optOut) return;
+
+    // Check rate limit: max 2 attempts per customer per day
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const { data: recentAttempts } = await supabase
+      .from("outbound_call_queue")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("customer_phone", callerPhone)
+      .gte("created_at", todayStart.toISOString())
+      .limit(2);
+    if (recentAttempts && recentAttempts.length >= 2) return;
+
+    // Schedule 2 hours from now (or next business hour)
+    const scheduledAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
+
+    await supabase.from("outbound_call_queue").insert({
+      tenant_id: tenantId,
+      customer_id: customerId,
+      customer_phone: callerPhone,
+      call_purpose: "followup",
+      scheduled_at: scheduledAt.toISOString(),
+      context_json: {
+        service_requested: payload.booking.service_requested || payload.dispatch.vehicle_type || null,
+        intent: payload.intent,
+        original_outcome: outcome,
+        lead_score: leadScore,
+      },
+    });
+
+    console.log(`[queueFollowup] Queued warm lead follow-up for ${callerPhone.slice(-4)} in 2h`);
+  } catch (e) {
+    console.warn("[queueFollowup] Non-critical failure:", e);
+  }
 }

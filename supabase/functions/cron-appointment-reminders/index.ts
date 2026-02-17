@@ -129,6 +129,26 @@ serve(async (_req: Request) => {
               .update({ [flagColumn]: true })
               .eq("id", booking.id);
             results.sent_reminders++;
+
+            // 3.2: Also queue an outbound AI voice reminder call
+            try {
+              await supabase.from("outbound_call_queue").insert({
+                tenant_id: tenantId,
+                customer_phone: phone,
+                call_purpose: "reminder",
+                scheduled_at: new Date(new Date(booking.start_at).getTime() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours before appointment
+                context_json: {
+                  customer_name: lead?.full_name || "",
+                  service_name: (booking.services as any)?.name || "your appointment",
+                  appointment_time: startTime,
+                  appointment_date: startDate,
+                  booking_id: booking.id,
+                },
+                max_attempts: 2,
+              });
+            } catch (queueErr) {
+              console.warn(`[cron-appointment-reminders] Failed to queue voice reminder:`, queueErr);
+            }
           } else if (smsResult.skipped) {
             results.skipped_sms++;
           } else {

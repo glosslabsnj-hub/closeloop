@@ -290,6 +290,15 @@ export interface BusinessContext {
     customer_name_from_lookup: string;
     /** Speech-ready summary of customer's active jobs (vehicles in shop, etc.) */
     active_job_summary: string;
+    /** 2.1: Summary of repeat caller's last 3 call sessions */
+    caller_history_summary: string;
+    /** 2.2: Predicted intent based on time-of-day patterns */
+    predicted_intent_hint: string;
+    /** 2.3: Caller priority tier (vip/regular/new) + behavioral instructions */
+    caller_priority_tier: string;
+    caller_priority_instructions: string;
+    /** 2.5: Behavioral hints from high-confidence business patterns */
+    behavioral_hints_summary: string;
   };
   safety: {
     hipaa_mode: boolean;
@@ -2552,6 +2561,12 @@ export async function buildBusinessContext(
       customer_order_count: null, // Set by caller resolution during inbound call
       customer_name_from_lookup: "", // Set by caller resolution during inbound call
       active_job_summary: "", // Set by active job lookup during inbound call
+      // Phase 2: Predictive context (populated below)
+      caller_history_summary: "",
+      predicted_intent_hint: "",
+      caller_priority_tier: "new",
+      caller_priority_instructions: "This is a new caller. Introduce the business warmly, explain key services, and capture their name and contact info.",
+      behavioral_hints_summary: "",
     },
     safety: {
       hipaa_mode: hipaaMode,
@@ -2850,6 +2865,155 @@ export async function buildBusinessContext(
       console.error(`[buildBusinessContext] Failed to fetch active jobs:`, jobError);
       // Non-fatal: active_job_summary stays empty string
     }
+  }
+
+  // ===== PHASE 2: PREDICTIVE CONTEXT INJECTION =====
+  // These enrich the AI's context with per-caller and per-business intelligence
+
+  // 2.1: Repeat caller history (last 3 sessions)
+  if (callerPhone && callerPhone.length >= 10) {
+    try {
+      const { data: callerCustomer } = await supabase
+        .from("customers")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .eq("phone_e164", callerPhone)
+        .maybeSingle();
+
+      if (callerCustomer) {
+        const { data: recentSessions } = await supabase
+          .from("ai_call_sessions")
+          .select("summary, outcome, started_at, extracted_payload")
+          .eq("tenant_id", tenantId)
+          .eq("customer_id", callerCustomer.id)
+          .not("ended_at", "is", null)
+          .order("started_at", { ascending: false })
+          .limit(3);
+
+        if (recentSessions && recentSessions.length > 0) {
+          const historyParts: string[] = [];
+          for (const sess of recentSessions) {
+            const date = new Date(sess.started_at);
+            const dateStr = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+            const summary = sess.summary || sess.outcome || "called";
+            historyParts.push(`${dateStr}: ${summary}`);
+          }
+          context.intelligence.caller_history_summary = historyParts.join(". ");
+        }
+
+        // 2.3: Caller priority scoring
+        // Get interaction count and recent session IDs
+        const { data: customerSessions, count: interactionCount } = await supabase
+          .from("ai_call_sessions")
+          .select("id", { count: "exact" })
+          .eq("tenant_id", tenantId)
+          .eq("customer_id", callerCustomer.id)
+          .limit(50);
+
+        // Get total revenue from sessions linked to this customer
+        let totalRevenue = 0;
+        if (customerSessions && customerSessions.length > 0) {
+          const sessionIds = customerSessions.map((s: { id: string }) => s.id);
+          const { data: revenueData } = await supabase
+            .from("revenue_attributions")
+            .select("revenue_cents")
+            .eq("tenant_id", tenantId)
+            .in("session_id", sessionIds);
+          totalRevenue = revenueData?.reduce(
+            (sum: number, r: { revenue_cents: number }) => sum + (r.revenue_cents || 0), 0
+          ) || 0;
+        }
+        const interactions = interactionCount || 0;
+
+        if (interactions >= 5 || totalRevenue >= 50000) {
+          context.intelligence.caller_priority_tier = "vip";
+          context.intelligence.caller_priority_instructions =
+            "This is a valued repeat customer. Greet them warmly by name, acknowledge their loyalty, and proactively suggest services they might need based on their history.";
+        } else if (interactions >= 2) {
+          context.intelligence.caller_priority_tier = "regular";
+          context.intelligence.caller_priority_instructions =
+            "This is a returning customer. Greet them by name and reference their previous interactions if available.";
+        }
+        // "new" tier is the default set in initialization
+      }
+    } catch (e) {
+      console.warn("[buildBusinessContext] Predictive caller context failed:", e);
+    }
+  }
+
+  // 2.2: Time-based intent prediction
+  try {
+    const now = new Date();
+    const tenantTz = context.tenant.timezone || "America/New_York";
+    const currentHour = parseInt(now.toLocaleString("en-US", { timeZone: tenantTz, hour: "numeric", hour12: false }));
+
+    const { data: timePatterns } = await supabase
+      .from("business_patterns")
+      .select("pattern_key, description, confidence_score, data_json")
+      .eq("tenant_id", tenantId)
+      .eq("pattern_type", "time_pattern")
+      .gte("confidence_score", 0.7)
+      .limit(5);
+
+    if (timePatterns && timePatterns.length > 0) {
+      // Check if we have hour-specific patterns
+      for (const pattern of timePatterns) {
+        const data = pattern.data_json as Record<string, unknown>;
+        const peakHours = data?.peakHours as number[] | undefined;
+        if (peakHours && peakHours.includes(currentHour)) {
+          // We're in a peak hour — predict based on business mode
+          const mode = context.tenant.business_mode;
+          const hints: string[] = [];
+          if (mode === "food" && currentHour >= 11 && currentHour <= 13) {
+            hints.push("Most callers at this time are placing lunch orders. Lead with the menu.");
+          } else if (mode === "food" && currentHour >= 17 && currentHour <= 20) {
+            hints.push("Most callers at this time are placing dinner orders. Lead with specials.");
+          } else if (mode === "dispatch" && (currentHour < 7 || currentHour > 20)) {
+            hints.push("After-hours callers often have emergencies. Assess urgency quickly.");
+          } else {
+            hints.push("This is a peak call time. Callers are likely ready to book — be efficient.");
+          }
+          context.intelligence.predicted_intent_hint = hints.join(" ");
+          break;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("[buildBusinessContext] Time prediction failed:", e);
+  }
+
+  // 2.5: Feed business patterns into agent behavior
+  try {
+    const { data: actionablePatterns } = await supabase
+      .from("business_patterns")
+      .select("pattern_type, pattern_key, description, suggested_action, confidence_score, data_json")
+      .eq("tenant_id", tenantId)
+      .eq("is_actionable", true)
+      .eq("is_dismissed", false)
+      .gte("confidence_score", 0.7)
+      .order("confidence_score", { ascending: false })
+      .limit(5);
+
+    if (actionablePatterns && actionablePatterns.length > 0) {
+      const hints: string[] = [];
+      for (const p of actionablePatterns) {
+        if (p.pattern_key.startsWith("low_conv_")) {
+          const svc = (p.data_json as Record<string, unknown>)?.service as string || "this service";
+          hints.push(`When callers ask about ${svc}, emphasize value — it has lower-than-average booking rates.`);
+        } else if (p.pattern_key === "high_hangup_rate") {
+          hints.push("Hangup rate is high. Get to the point quickly and address the caller's need early in the conversation.");
+        } else if (p.pattern_key === "high_escalation_rate") {
+          hints.push("Many calls need human help. Try harder to resolve questions yourself using available knowledge.");
+        } else if (p.suggested_action) {
+          hints.push(p.suggested_action);
+        }
+      }
+      if (hints.length > 0) {
+        context.intelligence.behavioral_hints_summary = hints.join(" ");
+      }
+    }
+  } catch (e) {
+    console.warn("[buildBusinessContext] Behavioral hints failed:", e);
   }
 
   // ===== RESOLVE EFFECTIVE BOOKING BEHAVIOR =====

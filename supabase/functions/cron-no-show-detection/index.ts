@@ -113,6 +113,32 @@ serve(async (_req: Request) => {
           }),
         }).catch((err) => console.error(`[cron-no-show-detection] Workflow trigger error:`, err));
 
+        // 3.5: Queue outbound AI call for no-show re-engagement
+        if (booking.lead_id) {
+          try {
+            const { data: lead } = await supabase
+              .from("leads")
+              .select("phone, full_name")
+              .eq("id", booking.lead_id)
+              .single();
+            if (lead?.phone) {
+              await supabase.from("outbound_call_queue").insert({
+                tenant_id: booking.tenant_id,
+                customer_phone: lead.phone,
+                call_purpose: "no_show_recovery",
+                scheduled_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour after missed
+                context_json: {
+                  customer_name: lead.full_name || "",
+                  booking_id: booking.id,
+                },
+                max_attempts: 2,
+              });
+            }
+          } catch (queueErr) {
+            console.warn(`[cron-no-show-detection] Failed to queue recovery call:`, queueErr);
+          }
+        }
+
         results.marked_no_show++;
       } catch (err) {
         console.error(`[cron-no-show-detection] Error processing ${booking.id}:`, err);

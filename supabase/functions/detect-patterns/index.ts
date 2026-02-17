@@ -248,6 +248,243 @@ function detectConversionPatterns(outcomes: CallOutcome[]): PatternResult[] {
   return patterns;
 }
 
+// ─── Objection Effectiveness Detection (1.2) ───────────────────────────────
+
+// deno-lint-ignore no-explicit-any
+async function detectObjectionPatterns(supabase: any, tenantId: string, lookbackDate: string): Promise<PatternResult[]> {
+  const patterns: PatternResult[] = [];
+
+  // Fetch objection usage with outcomes
+  const { data: usages } = await supabase
+    .from("objection_usage")
+    .select("objection_response_id, call_outcome")
+    .eq("tenant_id", tenantId)
+    .gte("created_at", lookbackDate);
+
+  if (!usages || usages.length < 3) return patterns;
+
+  // Group by objection_response_id
+  const byResponse: Record<string, { total: number; converted: number }> = {};
+  for (const u of usages) {
+    if (!byResponse[u.objection_response_id]) {
+      byResponse[u.objection_response_id] = { total: 0, converted: 0 };
+    }
+    byResponse[u.objection_response_id].total++;
+    if (["booked", "order_placed", "dispatch_created", "lead_captured"].includes(u.call_outcome)) {
+      byResponse[u.objection_response_id].converted++;
+    }
+  }
+
+  // Compute overall average conversion rate
+  const totalUsages = usages.length;
+  const totalConverted = usages.filter((u: { call_outcome: string }) =>
+    ["booked", "order_placed", "dispatch_created", "lead_captured"].includes(u.call_outcome)
+  ).length;
+  const avgConversion = totalUsages > 0 ? totalConverted / totalUsages : 0;
+
+  // Adjust priority_weight for each response and generate patterns
+  for (const [responseId, data] of Object.entries(byResponse)) {
+    if (data.total < 2) continue;
+    const rate = data.converted / data.total;
+
+    // Auto-adjust priority_weight
+    if (rate > avgConversion && rate > 0.3) {
+      // Effective response — boost weight
+      const { data: resp } = await supabase
+        .from("objection_responses")
+        .select("priority_weight, objection")
+        .eq("id", responseId)
+        .single();
+      if (resp) {
+        const newWeight = Math.min(10, (resp.priority_weight || 5) + 0.5);
+        await supabase.from("objection_responses").update({ priority_weight: newWeight }).eq("id", responseId);
+
+        patterns.push({
+          pattern_type: "objection_pattern",
+          pattern_key: `effective_objection_${responseId.substring(0, 8)}`,
+          description: `Response to "${(resp.objection || "").substring(0, 40)}" converts at ${Math.round(rate * 100)}% (${data.converted}/${data.total}), above average.`,
+          confidence_score: Math.min(0.9, 0.5 + data.total / 20),
+          data_json: { responseId, rate, total: data.total, converted: data.converted, avgConversion },
+          is_actionable: false,
+          suggested_action: null,
+        });
+      }
+    } else if (rate < avgConversion * 0.5 && data.total >= 3) {
+      // Ineffective response — decrease weight
+      const { data: resp } = await supabase
+        .from("objection_responses")
+        .select("priority_weight, objection")
+        .eq("id", responseId)
+        .single();
+      if (resp) {
+        const newWeight = Math.max(1, (resp.priority_weight || 5) - 0.5);
+        await supabase.from("objection_responses").update({ priority_weight: newWeight }).eq("id", responseId);
+
+        patterns.push({
+          pattern_type: "objection_pattern",
+          pattern_key: `weak_objection_${responseId.substring(0, 8)}`,
+          description: `Response to "${(resp.objection || "").substring(0, 40)}" only converts at ${Math.round(rate * 100)}% — well below average (${Math.round(avgConversion * 100)}%).`,
+          confidence_score: Math.min(0.85, 0.5 + data.total / 20),
+          data_json: { responseId, rate, total: data.total, converted: data.converted, avgConversion },
+          is_actionable: true,
+          suggested_action: `Revise this objection response — it's underperforming`,
+        });
+      }
+    }
+  }
+
+  return patterns;
+}
+
+// ─── Quality Pattern Detection (1.5) ────────────────────────────────────────
+
+// deno-lint-ignore no-explicit-any
+async function detectQualityPatterns(supabase: any, tenantId: string, lookbackDate: string): Promise<PatternResult[]> {
+  const patterns: PatternResult[] = [];
+
+  const { data: sessions } = await supabase
+    .from("ai_call_sessions")
+    .select("quality_score, quality_details")
+    .eq("tenant_id", tenantId)
+    .not("quality_score", "is", null)
+    .gte("started_at", lookbackDate)
+    .limit(200);
+
+  if (!sessions || sessions.length < 5) return patterns;
+
+  const scores = sessions.map((s: { quality_score: number }) => s.quality_score);
+  const avgScore = Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length);
+
+  patterns.push({
+    pattern_type: "quality_pattern",
+    pattern_key: "avg_quality_score",
+    description: `Average call quality score: ${avgScore}/100 across ${sessions.length} calls.`,
+    confidence_score: Math.min(0.95, 0.6 + sessions.length / 100),
+    data_json: { avgScore, totalCalls: sessions.length },
+    is_actionable: avgScore < 60,
+    suggested_action: avgScore < 60
+      ? "Call quality is below 60% — review your greeting script, FAQ coverage, and required questions"
+      : null,
+  });
+
+  // Find weakest quality dimension
+  const dimensionSums: Record<string, { total: number; count: number }> = {};
+  for (const s of sessions) {
+    const details = s.quality_details as Record<string, number> | null;
+    if (!details) continue;
+    for (const [key, value] of Object.entries(details)) {
+      if (typeof value !== "number") continue;
+      if (!dimensionSums[key]) dimensionSums[key] = { total: 0, count: 0 };
+      dimensionSums[key].total += value;
+      dimensionSums[key].count++;
+    }
+  }
+
+  const dimensionAvgs = Object.entries(dimensionSums)
+    .map(([key, data]) => ({ key, avg: Math.round(data.total / data.count) }))
+    .sort((a, b) => a.avg - b.avg);
+
+  if (dimensionAvgs.length > 0 && dimensionAvgs[0].avg < 50) {
+    const weakest = dimensionAvgs[0];
+    const labelMap: Record<string, string> = {
+      greeting_compliance: "greeting script compliance",
+      required_questions: "asking required intake questions",
+      forbidden_avoidance: "avoiding forbidden phrases",
+      customer_satisfaction: "customer satisfaction",
+      outcome_quality: "call outcome success",
+    };
+    patterns.push({
+      pattern_type: "quality_pattern",
+      pattern_key: `weak_dimension_${weakest.key}`,
+      description: `Weakest quality area: ${labelMap[weakest.key] || weakest.key} at ${weakest.avg}%.`,
+      confidence_score: 0.8,
+      data_json: { dimension: weakest.key, avgScore: weakest.avg, allDimensions: dimensionAvgs },
+      is_actionable: true,
+      suggested_action: `Improve ${labelMap[weakest.key] || weakest.key} — currently averaging only ${weakest.avg}%`,
+    });
+  }
+
+  return patterns;
+}
+
+// ─── Greeting A/B Test Detection (2.4) ──────────────────────────────────────
+
+// deno-lint-ignore no-explicit-any
+async function detectGreetingPatterns(supabase: any, tenantId: string, lookbackDate: string): Promise<PatternResult[]> {
+  const patterns: PatternResult[] = [];
+
+  // Check if A/B test is enabled
+  const { data: settings } = await supabase
+    .from("assistant_settings")
+    .select("greeting_test_enabled, greeting_script, greeting_variant_b")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+
+  if (!settings?.greeting_test_enabled) return patterns;
+
+  // Get sessions with greeting variants
+  const { data: sessions } = await supabase
+    .from("ai_call_sessions")
+    .select("greeting_variant, outcome")
+    .eq("tenant_id", tenantId)
+    .not("greeting_variant", "is", null)
+    .gte("started_at", lookbackDate);
+
+  if (!sessions || sessions.length < 20) return patterns;
+
+  const variantA = sessions.filter((s: { greeting_variant: string }) => s.greeting_variant === "A");
+  const variantB = sessions.filter((s: { greeting_variant: string }) => s.greeting_variant === "B");
+
+  if (variantA.length < 10 || variantB.length < 10) return patterns;
+
+  const convertedOutcomes = ["booked", "order", "dispatch_created"];
+  const rateA = variantA.filter((s: { outcome: string }) => convertedOutcomes.includes(s.outcome)).length / variantA.length;
+  const rateB = variantB.filter((s: { outcome: string }) => convertedOutcomes.includes(s.outcome)).length / variantB.length;
+
+  patterns.push({
+    pattern_type: "greeting_test",
+    pattern_key: "greeting_ab_test",
+    description: `Greeting A converts at ${Math.round(rateA * 100)}% (${variantA.length} calls) vs. B at ${Math.round(rateB * 100)}% (${variantB.length} calls).`,
+    confidence_score: Math.min(0.9, 0.5 + (variantA.length + variantB.length) / 100),
+    data_json: {
+      variantA: { count: variantA.length, conversionRate: rateA },
+      variantB: { count: variantB.length, conversionRate: rateB },
+    },
+    is_actionable: Math.abs(rateA - rateB) > 0.1 && variantA.length >= 25 && variantB.length >= 25,
+    suggested_action: null,
+  });
+
+  // Auto-promote winner if statistically significant (50+ each, >10% delta)
+  if (variantA.length >= 50 && variantB.length >= 50 && Math.abs(rateA - rateB) > 0.1) {
+    const winner = rateB > rateA ? "B" : "A";
+    const winnerScript = winner === "B" ? settings.greeting_variant_b : settings.greeting_script;
+    const winnerRate = winner === "B" ? rateB : rateA;
+    const loserRate = winner === "B" ? rateA : rateB;
+
+    // Auto-promote: make winner the default, disable test
+    await supabase
+      .from("assistant_settings")
+      .update({
+        greeting_script: winnerScript,
+        greeting_variant_b: null,
+        greeting_test_enabled: false,
+      })
+      .eq("tenant_id", tenantId);
+
+    patterns.push({
+      pattern_type: "greeting_test",
+      pattern_key: "greeting_winner_promoted",
+      description: `Greeting ${winner} wins! ${Math.round(winnerRate * 100)}% conversion vs. ${Math.round(loserRate * 100)}%. Promoted to default.`,
+      confidence_score: 0.9,
+      data_json: { winner, winnerRate, loserRate, winnerScript },
+      is_actionable: false,
+      suggested_action: null,
+    });
+  }
+
+  return patterns;
+}
+
 // ─── Insight Generation ─────────────────────────────────────────────────────
 
 function generateInsights(patterns: PatternResult[], outcomes: CallOutcome[]): InsightResult[] {
@@ -329,6 +566,69 @@ function generateInsights(patterns: PatternResult[], outcomes: CallOutcome[]): I
         impact_estimate: null,
       });
     }
+
+    // Objection effectiveness insights
+    if (p.pattern_key.startsWith("weak_objection_")) {
+      insights.push({
+        insight_type: "knowledge_gap",
+        severity: "warning",
+        title: "Underperforming objection response",
+        description: p.description,
+        recommended_action: p.suggested_action,
+        action_link: "/app/business-brain?section=training#objections",
+        impact_estimate: null,
+      });
+    }
+
+    if (p.pattern_key.startsWith("effective_objection_")) {
+      insights.push({
+        insight_type: "service_recommendation",
+        severity: "info",
+        title: "Effective objection response identified",
+        description: p.description,
+        recommended_action: "Keep using this response — it's working well",
+        action_link: "/app/business-brain?section=training#objections",
+        impact_estimate: null,
+      });
+    }
+
+    // Quality insights
+    if (p.pattern_key === "avg_quality_score" && p.is_actionable) {
+      insights.push({
+        insight_type: "conversion_drop",
+        severity: "warning",
+        title: "Call quality needs attention",
+        description: p.description,
+        recommended_action: p.suggested_action,
+        action_link: "/app/business-brain?section=training",
+        impact_estimate: null,
+      });
+    }
+
+    if (p.pattern_key.startsWith("weak_dimension_")) {
+      insights.push({
+        insight_type: "knowledge_gap",
+        severity: "info",
+        title: "AI quality improvement area found",
+        description: p.description,
+        recommended_action: p.suggested_action,
+        action_link: "/app/business-brain?section=training",
+        impact_estimate: null,
+      });
+    }
+
+    // Greeting test insights
+    if (p.pattern_key === "greeting_winner_promoted") {
+      insights.push({
+        insight_type: "conversion_drop",
+        severity: "info",
+        title: "Greeting test winner found!",
+        description: p.description,
+        recommended_action: "The winning greeting has been automatically promoted to your default.",
+        action_link: "/app/ai-assistant",
+        impact_estimate: null,
+      });
+    }
   }
 
   return insights;
@@ -381,6 +681,9 @@ serve(async (req) => {
       ...detectTimePatterns(outcomes),
       ...detectServiceTrends(outcomes),
       ...detectConversionPatterns(outcomes),
+      ...await detectObjectionPatterns(supabase, payload.tenant_id, lookbackDate),
+      ...await detectQualityPatterns(supabase, payload.tenant_id, lookbackDate),
+      ...await detectGreetingPatterns(supabase, payload.tenant_id, lookbackDate),
     ];
 
     // Upsert patterns (using the unique index on tenant_id, pattern_type, pattern_key)

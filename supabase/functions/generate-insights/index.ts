@@ -58,9 +58,9 @@ Deno.serve(async (req) => {
       // Get unresolved knowledge gaps with high occurrence
       const { data: gaps } = await supabase
         .from("knowledge_gaps")
-        .select("id, question_theme, sample_questions, occurrence_count")
+        .select("id, description, customer_question, occurrence_count")
         .eq("tenant_id", tenant.id)
-        .eq("is_resolved", false)
+        .eq("resolved", false)
         .gte("occurrence_count", 3)
         .order("occurrence_count", { ascending: false })
         .limit(5);
@@ -154,6 +154,107 @@ Return a JSON array of insights.`;
             action_link: "/app/business-brain?section=training#gaps",
             impact_estimate: topGap.occurrence_count >= 5 ? "high" : "medium",
           });
+        }
+      }
+
+      // ===== 1.1: Auto-generate FAQ drafts from knowledge gaps =====
+      if (gaps && gaps.length > 0 && lovableApiKey) {
+        try {
+          // Get tenant context for better FAQ generation
+          const { data: tenantDetail } = await supabase
+            .from("tenants")
+            .select("business_name, business_mode, industry")
+            .eq("id", tenant.id)
+            .single();
+
+          const { data: existingServices } = await supabase
+            .from("services")
+            .select("name")
+            .eq("tenant_id", tenant.id)
+            .eq("is_active", true)
+            .limit(10);
+
+          const serviceNames = existingServices?.map((s: { name: string }) => s.name).join(", ") || "various services";
+
+          for (const gap of gaps) {
+            // Check if we already have a pending FAQ for this gap
+            const { data: existingFaq } = await supabase
+              .from("business_faqs")
+              .select("id")
+              .eq("tenant_id", tenant.id)
+              .eq("auto_suggested", true)
+              .eq("suggestion_status", "pending_review")
+              .contains("source_gap_ids", [gap.id])
+              .maybeSingle();
+
+            if (existingFaq) continue;
+
+            // Generate FAQ answer using LLM
+            const faqPrompt = `You are writing an FAQ answer for a ${tenantDetail?.business_mode || "service"} business called "${tenantDetail?.business_name || tenant.name}".
+${tenantDetail?.industry ? `Industry: ${tenantDetail.industry}` : ""}
+Services offered: ${serviceNames}
+
+Customers have asked this question ${gap.occurrence_count} times and the AI couldn't answer:
+Topic: "${gap.description}"
+${gap.customer_question ? `Example question: "${gap.customer_question}"` : ""}
+
+Write a helpful, accurate FAQ entry. Return JSON: {"question": "...", "answer": "..."}
+- The question should be the clearest phrasing of what customers are asking
+- The answer should be 1-3 sentences, professional, and helpful
+- If you're unsure about specifics (pricing, exact hours), use language like "Please contact us for..." or "Typically..."
+- The answer should be something the AI can confidently speak aloud on a phone call`;
+
+            const faqResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${lovableApiKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash",
+                messages: [
+                  { role: "system", content: "Return only valid JSON objects. No markdown, no explanations." },
+                  { role: "user", content: faqPrompt },
+                ],
+                temperature: 0.5,
+              }),
+            });
+
+            if (faqResponse.ok) {
+              const faqData = await faqResponse.json();
+              const faqContent = faqData.choices?.[0]?.message?.content || "";
+              const jsonMatch = faqContent.match(/\{[\s\S]*\}/);
+              if (jsonMatch) {
+                const parsed = JSON.parse(jsonMatch[0]);
+                if (parsed.question && parsed.answer) {
+                  // Insert as pending_review FAQ
+                  await supabase.from("business_faqs").insert({
+                    tenant_id: tenant.id,
+                    question: parsed.question,
+                    answer: parsed.answer,
+                    priority_weight: 5, // Mid-range default
+                    auto_suggested: true,
+                    suggestion_status: "pending_review",
+                    source_gap_ids: [gap.id],
+                  });
+
+                  // Mark the gap as resolved
+                  await supabase
+                    .from("knowledge_gaps")
+                    .update({
+                      resolved: true,
+                      resolved_at: new Date().toISOString(),
+                      resolution_notes: "Auto-resolved by FAQ draft generation",
+                    })
+                    .eq("id", gap.id);
+
+                  console.log(`[generate-insights] Auto-drafted FAQ for gap "${gap.description}" (tenant ${tenant.id.substring(0, 8)})`);
+                }
+              }
+            }
+          }
+        } catch (faqErr) {
+          console.error(`[generate-insights] FAQ generation error for ${tenant.id}:`, faqErr);
         }
       }
 

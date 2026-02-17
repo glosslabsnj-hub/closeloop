@@ -110,6 +110,25 @@ serve(async (_req: Request) => {
               .update({ review_sent: true })
               .eq("id", booking.id);
             results.sent++;
+
+            // 3.4: Also queue an outbound AI voice review request
+            try {
+              await supabase.from("outbound_call_queue").insert({
+                tenant_id: tenantId,
+                customer_phone: phone,
+                call_purpose: "review",
+                scheduled_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
+                context_json: {
+                  customer_name: lead?.full_name || "",
+                  service_name: (booking.services as any)?.name || "your visit",
+                  review_link: reviewLink,
+                  booking_id: booking.id,
+                },
+                max_attempts: 1, // Only one attempt for review requests
+              });
+            } catch (queueErr) {
+              console.warn(`[cron-review-requests] Failed to queue voice review request:`, queueErr);
+            }
           } else if (smsResult.skipped) {
             results.skipped_sms++;
           } else {
