@@ -4,6 +4,7 @@ import { Plus, Building2 } from "lucide-react";
 import { AgencyOverview } from "@/components/agency/AgencyOverview";
 import { AgencyTenantList } from "@/components/agency/AgencyTenantList";
 import { AgencyCommissionHistory } from "@/components/agency/AgencyCommissionHistory";
+import { AgencyLeadFinder } from "@/components/agency/AgencyLeadFinder";
 import { QuickProvisionWizard } from "@/components/agency/QuickProvisionWizard";
 import { useAgencyAccount, useAgencyTenants, useAgencyMetrics, useAgencyCommissions } from "@/hooks/useAgencyData";
 
@@ -81,6 +82,9 @@ export default function AgencyDashboardPage() {
           isLoading={tenantsLoading}
         />
       </div>
+
+      {/* AI Lead Finder */}
+      <AgencyLeadFinder />
 
       {/* Commission History */}
       <AgencyCommissionHistory
