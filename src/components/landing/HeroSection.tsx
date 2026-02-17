@@ -70,7 +70,7 @@ export function HeroSection() {
           
           {/* Micro-copy */}
           <p className="text-sm text-muted-foreground mt-10">
-            14-day free trial • No credit card required • Setup in 10 minutes
+            7-day free trial • 30 minutes included • Setup in 10 minutes
           </p>
         </div>
       </div>

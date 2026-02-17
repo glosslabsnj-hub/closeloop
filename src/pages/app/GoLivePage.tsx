@@ -15,8 +15,10 @@ import {
   MessageSquare, Phone, Sparkles, Check, ArrowRight, Loader2, 
   Zap, Clock, Bot, Shield, ChevronRight, ChevronLeft, AlertTriangle
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   TIERS,
+  TRIAL_CONFIG,
   getLadderStepsForTier,
   getDefaultStepForTier,
   formatPrice,
@@ -65,7 +67,7 @@ export default function GoLivePage() {
 
   const handleConfirm = async () => {
     if (!selectedSku || processing) return;
-    
+
     // Block if readiness requirements not met
     if (goLiveBlocked) {
       toast({
@@ -75,27 +77,27 @@ export default function GoLivePage() {
       });
       return;
     }
-    
+
     setProcessing(true);
 
     try {
-      await createSubscription(selectedSku);
-      await refreshTenant();
-      
-      toast({
-        title: "You're Live! 🎉",
-        description: "Your AI assistant is ready. Complete the setup checklist to get started.",
+      // Create Stripe Checkout Session via edge function
+      const { data, error } = await supabase.functions.invoke("create-checkout-session", {
+        body: { plan_sku: selectedSku },
       });
 
-      navigate("/app/dashboard");
+      if (error) throw new Error(error.message || "Failed to create checkout session");
+      if (!data?.checkout_url) throw new Error("No checkout URL returned");
+
+      // Redirect to Stripe Checkout
+      window.location.href = data.checkout_url;
     } catch (error: any) {
-      console.error("Subscription error:", error);
+      console.error("Checkout error:", error);
       toast({
         variant: "destructive",
-        title: "Failed to activate plan",
+        title: "Failed to start checkout",
         description: error.message || "Please try again.",
       });
-    } finally {
       setProcessing(false);
     }
   };
@@ -317,14 +319,14 @@ export default function GoLivePage() {
                     </>
                   ) : (
                     <>
-                      Activate Plan
+                      Start {TRIAL_CONFIG.duration_days}-Day Free Trial
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </>
                   )}
                 </Button>
                 {selectedStep && !goLiveBlocked && (
                   <p className="text-xs text-center text-muted-foreground">
-                    {formatPrice(selectedStep.price)}/month
+                    {TRIAL_CONFIG.duration_days}-day free trial, then {formatPrice(selectedStep.price)}/month
                   </p>
                 )}
                 {goLiveBlocked && (
@@ -339,9 +341,9 @@ export default function GoLivePage() {
 
         {/* Footer note */}
         <p className="text-center text-sm text-muted-foreground mt-8">
-          Your payment will be processed securely. Cancel anytime.
+          {TRIAL_CONFIG.duration_days}-day free trial with {TRIAL_CONFIG.included_minutes} minutes included. Cancel anytime.
           <br />
-          By continuing, you agree to our Terms of Service.
+          Your card will be charged after the trial ends. By continuing, you agree to our Terms of Service.
         </p>
       </div>
     </div>

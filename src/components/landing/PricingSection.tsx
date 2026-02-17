@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check, ArrowRight } from "lucide-react";
-import { LADDER_STEPS, INCLUDED_IN_ALL_PLANS, formatPrice } from "@/config/pricing";
+import { LADDER_STEPS, INCLUDED_IN_ALL_PLANS, TRIAL_CONFIG, formatPrice } from "@/config/pricing";
 
 const displayPlans = LADDER_STEPS.filter((s) => !s.isEnterprise);
 
@@ -59,6 +59,9 @@ export function PricingSection() {
                       <ArrowRight className="h-4 w-4" />
                     </Button>
                   </Link>
+                  <p className="text-xs text-center text-muted-foreground mt-2">
+                    {TRIAL_CONFIG.duration_days}-day free trial, then {formatPrice(plan.price)}/mo
+                  </p>
 
                   <div className="mt-5 pt-5 border-t space-y-2.5">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">

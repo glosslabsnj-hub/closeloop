@@ -1,13 +1,15 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, Phone, DollarSign, TrendingUp } from "lucide-react";
+import { Users, Phone, DollarSign, TrendingUp, Percent, Wallet } from "lucide-react";
 import type { AgencyMetrics } from "@/hooks/useAgencyData";
 
 interface AgencyOverviewProps {
   metrics: AgencyMetrics | null | undefined;
   isLoading: boolean;
+  commissionThisMonthCents?: number;
+  commissionRate?: number;
 }
 
-export function AgencyOverview({ metrics, isLoading }: AgencyOverviewProps) {
+export function AgencyOverview({ metrics, isLoading, commissionThisMonthCents = 0, commissionRate }: AgencyOverviewProps) {
   const cards = [
     {
       label: "Active Clients",
@@ -34,6 +36,22 @@ export function AgencyOverview({ metrics, isLoading }: AgencyOverviewProps) {
       bg: "bg-amber-100 dark:bg-amber-900/30",
     },
     {
+      label: "Commission (This Month)",
+      value: commissionThisMonthCents,
+      format: "currency" as const,
+      icon: Wallet,
+      color: "text-teal-600",
+      bg: "bg-teal-100 dark:bg-teal-900/30",
+    },
+    {
+      label: "Commission Rate",
+      value: commissionRate ?? 0.20,
+      format: "percent" as const,
+      icon: Percent,
+      color: "text-indigo-600",
+      bg: "bg-indigo-100 dark:bg-indigo-900/30",
+    },
+    {
       label: "Conversion Rate",
       value: metrics?.conversion_rate ?? 0,
       format: "percent" as const,
@@ -50,7 +68,7 @@ export function AgencyOverview({ metrics, isLoading }: AgencyOverviewProps) {
   };
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
       {cards.map((card) => {
         const Icon = card.icon;
         return (

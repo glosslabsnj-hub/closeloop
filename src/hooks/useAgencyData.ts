@@ -119,6 +119,76 @@ export function useAgencyMetrics(agencyId: string | null | undefined) {
   });
 }
 
+export interface AgencyCommission {
+  id: string;
+  agency_id: string;
+  tenant_id: string;
+  stripe_invoice_id: string;
+  invoice_amount_cents: number;
+  commission_rate: number;
+  commission_cents: number;
+  status: "pending" | "paid" | "failed";
+  period_start: string | null;
+  period_end: string | null;
+  created_at: string;
+  paid_at: string | null;
+  // Joined
+  tenant_name?: string;
+}
+
+export function useAgencyCommissions(agencyId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["agency-commissions", agencyId],
+    queryFn: async () => {
+      if (!agencyId) return { commissions: [], thisMonthCents: 0, totalPendingCents: 0 };
+
+      const { data, error } = await (supabase as any)
+        .from("agency_commissions")
+        .select("*")
+        .eq("agency_id", agencyId)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      const commissions: AgencyCommission[] = data || [];
+
+      // Fetch tenant names
+      const tenantIds = [...new Set(commissions.map((c) => c.tenant_id))];
+      const tenantMap = new Map<string, string>();
+
+      if (tenantIds.length > 0) {
+        const { data: tenants } = await supabase
+          .from("tenants")
+          .select("id, name")
+          .in("id", tenantIds);
+
+        for (const t of tenants || []) {
+          tenantMap.set(t.id, (t as any).name || "Unknown");
+        }
+      }
+
+      const enriched = commissions.map((c) => ({
+        ...c,
+        tenant_name: tenantMap.get(c.tenant_id) || "Unknown",
+      }));
+
+      // Calculate this month's total
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const thisMonthCents = enriched
+        .filter((c) => new Date(c.created_at) >= monthStart)
+        .reduce((sum, c) => sum + c.commission_cents, 0);
+
+      const totalPendingCents = enriched
+        .filter((c) => c.status === "pending")
+        .reduce((sum, c) => sum + c.commission_cents, 0);
+
+      return { commissions: enriched, thisMonthCents, totalPendingCents };
+    },
+    enabled: !!agencyId,
+  });
+}
+
 export function useIsAgencyUser() {
   const { data: account, isLoading } = useAgencyAccount();
   return { isAgency: !!account, isLoading, agencyId: account?.id };

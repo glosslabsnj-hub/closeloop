@@ -410,6 +410,44 @@ Deno.serve(async (req) => {
     });
     const settings = settingsRecords[0] || {};
 
+    // ===== TRIAL MINUTE CAP ENFORCEMENT =====
+    // Check if tenant is on trial and has exceeded their minute limit
+    const subscriptionRecords = await querySupabase(
+      SUPABASE_URL,
+      SUPABASE_SERVICE_ROLE_KEY,
+      "subscriptions",
+      { tenant_id: tenantId },
+      Math.min(2000, timeLeft())
+    );
+    const subscription = subscriptionRecords[0];
+
+    if (subscription?.status === "trialing" && subscription?.trial_minutes_limit) {
+      const usageRecords = await querySupabase(
+        SUPABASE_URL,
+        SUPABASE_SERVICE_ROLE_KEY,
+        "subscription_usage",
+        { tenant_id: tenantId },
+        Math.min(2000, timeLeft())
+      );
+      const usage = usageRecords[0];
+
+      if (usage && usage.voice_minutes_used >= subscription.trial_minutes_limit) {
+        console.log(`[twilio-inbound] Trial minutes exhausted for tenant ${tenantId}: ${usage.voice_minutes_used}/${subscription.trial_minutes_limit}`);
+
+        void logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+          tenant_id: tenantId,
+          twilio_call_sid: callSidSafe,
+          to_number: toPhoneE164,
+          from_number: callerPhoneE164,
+          stage: "trial_minutes_exhausted",
+        });
+
+        return twimlResponse(hangupTwiml(
+          "Thank you for calling. This business is currently setting up their AI assistant. Please call back later or visit their website."
+        ));
+      }
+    }
+
     // ===== VOICE MODE ROUTING =====
     // Determines WHEN AI answers: always, after hours only, etc.
     // And WHAT happens when AI doesn't answer: forward, voicemail, callback capture

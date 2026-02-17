@@ -3,14 +3,18 @@ import { Button } from "@/components/ui/button";
 import { Plus, Building2 } from "lucide-react";
 import { AgencyOverview } from "@/components/agency/AgencyOverview";
 import { AgencyTenantList } from "@/components/agency/AgencyTenantList";
+import { AgencyCommissionHistory } from "@/components/agency/AgencyCommissionHistory";
 import { QuickProvisionWizard } from "@/components/agency/QuickProvisionWizard";
-import { useAgencyAccount, useAgencyTenants, useAgencyMetrics } from "@/hooks/useAgencyData";
+import { useAgencyAccount, useAgencyTenants, useAgencyMetrics, useAgencyCommissions } from "@/hooks/useAgencyData";
 
 export default function AgencyDashboardPage() {
   const { data: agency, isLoading: agencyLoading } = useAgencyAccount();
   const { data: tenants, isLoading: tenantsLoading } = useAgencyTenants(agency?.id);
   const { data: metrics, isLoading: metricsLoading } = useAgencyMetrics(agency?.id);
+  const { data: commissionData, isLoading: commissionsLoading } = useAgencyCommissions(agency?.id);
   const [provisionOpen, setProvisionOpen] = useState(false);
+
+  const commissionRate = (agency?.billing_config_json as Record<string, unknown>)?.commission_rate as number | undefined;
 
   if (agencyLoading) {
     return (
@@ -56,7 +60,17 @@ export default function AgencyDashboardPage() {
       </div>
 
       {/* KPI Cards */}
-      <AgencyOverview metrics={metrics} isLoading={metricsLoading} />
+      <AgencyOverview
+        metrics={metrics}
+        isLoading={metricsLoading}
+        commissionThisMonthCents={commissionData?.thisMonthCents ?? 0}
+        commissionRate={commissionRate}
+      />
+
+      {/* Commission rate info */}
+      <div className="text-xs text-muted-foreground px-1">
+        Your commission rate: {Math.round((commissionRate ?? 0.20) * 100)}%. Contact us to discuss changes.
+      </div>
 
       {/* Tenants Table */}
       <div className="space-y-3">
@@ -67,6 +81,12 @@ export default function AgencyDashboardPage() {
           isLoading={tenantsLoading}
         />
       </div>
+
+      {/* Commission History */}
+      <AgencyCommissionHistory
+        commissions={commissionData?.commissions ?? []}
+        isLoading={commissionsLoading}
+      />
 
       {/* Quick Provision Wizard */}
       <QuickProvisionWizard

@@ -72,7 +72,7 @@ export function useSubscription(tenantId: string | null, isSuperAdmin: boolean =
     fetchData();
   }, [fetchData]);
 
-  const hasActiveSubscription = subscription?.status === "active";
+  const hasActiveSubscription = subscription?.status === "active" || subscription?.status === "trialing";
   
   // Users can access app if they have active subscription
   const canAccessApp = hasActiveSubscription;

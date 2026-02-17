@@ -291,6 +291,13 @@ export function requiresSalesContact(sku: PlanSku): boolean {
   return step?.isEnterprise || false;
 }
 
+// Trial configuration
+export const TRIAL_CONFIG = {
+  duration_days: 7,
+  included_minutes: 30,
+  card_required: true,
+} as const;
+
 // Export the complete pricing config object
 export const PRICING_CONFIG = {
   tiers: TIERS,

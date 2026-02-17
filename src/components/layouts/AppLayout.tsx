@@ -45,6 +45,7 @@ import { DispatchJobListener } from "@/components/notifications/DispatchJobListe
 
 import { AppSidebar } from "@/components/layouts/AppSidebar";
 import { SlimTopBar } from "@/components/layouts/SlimTopBar";
+import { TrialBanner } from "@/components/dashboard/TrialBanner";
 import { BRAND } from "@/config/brand";
 
 interface NavItem {
@@ -174,6 +175,9 @@ function AppLayoutContent() {
             tenantName={displayTenant?.name}
             onSignOut={handleSignOut}
           />
+
+          {/* Trial banner — shown when subscription is trialing */}
+          <TrialBanner />
 
           <MobileHeader
             displayTenant={displayTenant}

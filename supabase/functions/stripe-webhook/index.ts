@@ -211,10 +211,63 @@ serve(async (req) => {
       }
     }
 
+    // Handle invoice payment for agency commissions
+    if (event.type === "invoice.payment_succeeded") {
+      const invoice = event.data.object;
+      const tenantId = invoice.subscription_details?.metadata?.tenant_id
+        || invoice.lines?.data?.[0]?.metadata?.tenant_id;
+      const amountCents = invoice.amount_paid;
+      const stripeInvoiceId = invoice.id;
+      const periodStart = invoice.lines?.data?.[0]?.period?.start;
+      const periodEnd = invoice.lines?.data?.[0]?.period?.end;
+
+      if (tenantId && amountCents > 0) {
+        // Check if this tenant is managed by an agency
+        const { data: agencyLink } = await supabase
+          .from("agency_tenants")
+          .select("agency_id")
+          .eq("tenant_id", tenantId)
+          .eq("status", "active")
+          .maybeSingle();
+
+        if (agencyLink) {
+          // Get agency commission rate
+          const { data: agency } = await supabase
+            .from("agency_accounts")
+            .select("billing_config_json")
+            .eq("id", agencyLink.agency_id)
+            .single();
+
+          const commissionRate = (agency?.billing_config_json as Record<string, unknown>)?.commission_rate as number || 0.20;
+          const commissionCents = Math.round(amountCents * commissionRate);
+
+          // Insert commission record (idempotent via UNIQUE constraint)
+          const { error: commErr } = await supabase.from("agency_commissions").upsert({
+            agency_id: agencyLink.agency_id,
+            tenant_id: tenantId,
+            stripe_invoice_id: stripeInvoiceId,
+            invoice_amount_cents: amountCents,
+            commission_rate: commissionRate,
+            commission_cents: commissionCents,
+            status: "pending",
+            period_start: periodStart ? new Date(periodStart * 1000).toISOString() : null,
+            period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+          }, { onConflict: "agency_id,stripe_invoice_id" });
+
+          if (commErr) {
+            console.error(`Commission insert error for agency ${agencyLink.agency_id}:`, commErr);
+          } else {
+            console.log(`Commission recorded: agency=${agencyLink.agency_id} tenant=${tenantId} amount=${commissionCents}c`);
+          }
+        }
+      }
+    }
+
     // Handle subscription-related events
     if (event.type === "checkout.session.completed" ||
         event.type === "customer.subscription.created" ||
-        event.type === "customer.subscription.updated") {
+        event.type === "customer.subscription.updated" ||
+        event.type === "invoice.payment_succeeded") {
 
       let tenantId: string | null = null;
       let planCode: string | null = null;
@@ -228,7 +281,30 @@ serve(async (req) => {
         // Get subscription status if this was a subscription checkout
         if (session.subscription) {
           subscriptionStatus = "active"; // checkout.session.completed means payment succeeded
+
+          // Store Stripe IDs on subscription record
+          if (tenantId) {
+            await supabase
+              .from("subscriptions")
+              .upsert({
+                tenant_id: tenantId,
+                stripe_customer_id: session.customer,
+                stripe_subscription_id: session.subscription,
+                plan_code: planCode || undefined,
+                status: "trialing", // Will be trialing if trial_period_days was set
+                trial_started_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              }, { onConflict: "tenant_id" });
+          }
         }
+      } else if (event.type === "invoice.payment_succeeded") {
+        // For invoice events, extract tenant from subscription metadata
+        const invoice = event.data.object;
+        tenantId = invoice.subscription_details?.metadata?.tenant_id
+          || invoice.lines?.data?.[0]?.metadata?.tenant_id;
+        planCode = invoice.subscription_details?.metadata?.plan_code
+          || invoice.lines?.data?.[0]?.metadata?.plan_code;
+        subscriptionStatus = "active";
       } else {
         // customer.subscription.* events
         const subscription = event.data.object;
@@ -276,6 +352,50 @@ serve(async (req) => {
         }
       } else if (tenantId && !shouldProvision) {
         console.log(`TwilioProvision: skipped tenant=${tenantId} reason=no-voice-feature plan=${planCode}`);
+      }
+    }
+
+    // Handle subscription status transitions (trial → active, past_due, etc.)
+    if (event.type === "customer.subscription.updated") {
+      const subscription = event.data.object;
+      const tenantId = subscription.metadata?.tenant_id;
+      const newStatus = subscription.status;
+
+      if (tenantId && newStatus) {
+        // Map Stripe status to our status
+        const statusMap: Record<string, string> = {
+          active: "active",
+          trialing: "trialing",
+          past_due: "past_due",
+          canceled: "canceled",
+          unpaid: "past_due",
+        };
+
+        const mappedStatus = statusMap[newStatus];
+        if (mappedStatus) {
+          console.log(`Subscription status update: tenant=${tenantId} status=${newStatus} -> ${mappedStatus}`);
+
+          const updateFields: Record<string, unknown> = {
+            status: mappedStatus,
+            stripe_subscription_id: subscription.id,
+            updated_at: new Date().toISOString(),
+          };
+
+          // On trial start, record trial_started_at
+          if (newStatus === "trialing" && subscription.trial_start) {
+            updateFields.trial_started_at = new Date(subscription.trial_start * 1000).toISOString();
+          }
+
+          // On conversion from trial to active, update period end
+          if (newStatus === "active" && subscription.current_period_end) {
+            updateFields.current_period_end = new Date(subscription.current_period_end * 1000).toISOString();
+          }
+
+          await supabase
+            .from("subscriptions")
+            .update(updateFields)
+            .eq("tenant_id", tenantId);
+        }
       }
     }
 
