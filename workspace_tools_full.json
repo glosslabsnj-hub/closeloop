@@ -1,0 +1,4493 @@
+[
+  {
+    "id": "tool_5101khn4h4sjf3vsdts1dtw782d3",
+    "tool_config": {
+      "type": "webhook",
+      "name": "create_callback",
+      "description": "Create a callback request. Use when: complex quote needed, manager requested, unclear pricing, or any human follow-up.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-create-callback",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "customer_name"
+          ],
+          "description": "",
+          "properties": {
+            "customer_name": {
+              "type": "string",
+              "description": "Customer's name",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "The caller's phone number from caller_phone in your system prompt context.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "reason": {
+              "type": "string",
+              "description": "Why callback is needed",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "preferred_time": {
+              "type": "string",
+              "description": "When customer wants callback",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "The tenant_id from your system prompt context. Always include this.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking ID if available",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_9501khn4h446etqamqbt88q561rz",
+    "tool_config": {
+      "type": "webhook",
+      "name": "create_booking",
+      "description": "Book a SCHEDULED tow or service for a future date/time. Only for non-emergency planned services.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-create-booking",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "customer_name",
+            "date",
+            "time"
+          ],
+          "description": "",
+          "properties": {
+            "customer_name": {
+              "type": "string",
+              "description": "Customer's full name. Ask if not provided.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "date": {
+              "type": "string",
+              "description": "Confirmed appointment date",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "time": {
+              "type": "string",
+              "description": "Confirmed appointment time",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "service_name": {
+              "type": "string",
+              "description": "Service being booked",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "The caller's phone number from caller_phone in your system prompt context.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "notes": {
+              "type": "string",
+              "description": "Special requests, address, vehicle info, and ALL answers to required questions.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "The tenant_id from your system prompt context. Always include this.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking ID if available",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_6601khn4h3bcev8t2yamsfsprt0r",
+    "tool_config": {
+      "type": "webhook",
+      "name": "suggest_availability",
+      "description": "Get available times for scheduled (non-emergency) jobs. Use when customer asks 'When can you come pick up my car?'",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-suggest-availability",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [],
+          "description": "",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "Date to check. Accept 'tomorrow', 'next week', 'Saturday'. Defaults to next available.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "service_name": {
+              "type": "string",
+              "description": "Service name to determine duration needed",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "preference": {
+              "type": "string",
+              "description": "Time preference: 'morning', 'afternoon', 'evening', or 'earliest'",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "The tenant_id from your system prompt context. Always include this.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking ID if available",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_5901khn4h2k8e6vsq32sps6e0t5s",
+    "tool_config": {
+      "type": "webhook",
+      "name": "check_availability",
+      "description": "Check availability for SCHEDULED (non-emergency) jobs. Use when customer wants to schedule a future tow or planned service.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-check-availability",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "date",
+            "time"
+          ],
+          "description": "",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "Appointment date. Accept 'tomorrow', 'next Monday', 'Friday', or YYYY-MM-DD format.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "time": {
+              "type": "string",
+              "description": "Appointment time. Accept '2pm', '10:30am', 'noon', or HH:MM format.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "service_name": {
+              "type": "string",
+              "description": "Service being booked (e.g., 'towing', 'scheduled pickup').",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "The tenant_id from your system prompt context. Always include this.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking ID if available",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_4501khn4h055e1vbd3m12gf854yt",
+    "tool_config": {
+      "type": "webhook",
+      "name": "lookup_dispatch_status",
+      "description": "Check status of an existing dispatch job. Use when caller asks: 'Where's my driver?', 'Any update?', 'How much longer?'",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-lookup-dispatch-status",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "tenant_id"
+          ],
+          "description": "",
+          "properties": {
+            "tenant_id": {
+              "type": "string",
+              "description": "The tenant_id from your system prompt context. Always include this.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_name": {
+              "type": "string",
+              "description": "Customer's name to match against job records",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "The caller's phone number from caller_phone in your system prompt context.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "pickup_address": {
+              "type": "string",
+              "description": "Pickup address to match against job records",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "job_number": {
+              "type": "string",
+              "description": "If caller has reference number",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking ID if available",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_1801khn4gxyhfjkbv4r1rmp8w6h4",
+    "tool_config": {
+      "type": "webhook",
+      "name": "check_service_area",
+      "description": "CRITICAL TOOL - Use for every dispatch call. Check if location is in service area and get real-time ETA and pricing. Call immediately when customer provides their location.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-check-service-area",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "address"
+          ],
+          "description": "",
+          "properties": {
+            "address": {
+              "type": "string",
+              "description": "Customer's address where service is needed. Accept street address, intersection, highway exits, landmarks.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "vehicle_type": {
+              "type": "string",
+              "description": "Vehicle type: 'car', 'truck', 'suv', 'motorcycle', 'rv'. Helps with pricing.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "dropoff_address": {
+              "type": "string",
+              "description": "Where to tow the vehicle. Get this for accurate pricing.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "service_type": {
+              "type": "string",
+              "description": "Type of service: 'towing', 'jumpstart', 'lockout', 'tire_change', 'fuel_delivery', 'winch_out'.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "The tenant_id from your system prompt context. Always include this.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking ID if available",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_9601khn4gyn6f7na8zbmqvhx1zm4",
+    "tool_config": {
+      "type": "webhook",
+      "name": "create_dispatch_job",
+      "description": "MAIN DISPATCH TOOL - Send a driver/technician NOW. CRITICAL: customer_name is REQUIRED - always ask for it before dispatching.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-create-dispatch-job",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "pickup_address",
+            "vehicle_info",
+            "service_type",
+            "customer_name"
+          ],
+          "description": "",
+          "properties": {
+            "pickup_address": {
+              "type": "string",
+              "description": "Where to send the driver - customer's current location",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "vehicle_info": {
+              "type": "string",
+              "description": "Vehicle year, make, model, and color as one string. Example: 'Blue 2019 Honda Accord'.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "service_type": {
+              "type": "string",
+              "description": "Service needed: 'tow', 'flatbed', 'roadside', 'jumpstart', 'lockout', 'tire_change', 'fuel_delivery', 'winch'",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "dropoff_address": {
+              "type": "string",
+              "description": "Where to take the vehicle/item. REQUIRED for towing services.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_name": {
+              "type": "string",
+              "description": "Customer's name. ALWAYS ask for this before dispatching. This is MANDATORY.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "The caller's phone number from caller_phone in your system prompt context.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "urgency": {
+              "type": "string",
+              "description": "'emergency' (blocking traffic, unsafe), 'urgent' (stranded), 'standard'",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "notes": {
+              "type": "string",
+              "description": "Special instructions: vehicle details, access notes, ALL extra details",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "The tenant_id from your system prompt context. Always include this.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking ID if available",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_2501khn4fb4tfwtrz69mtve0ky7k",
+    "tool_config": {
+      "type": "webhook",
+      "name": "create_callback",
+      "description": "Create a callback request. Use when: complex quote needed, manager requested, unclear pricing, or any human follow-up.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-create-callback",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "customer_name"
+          ],
+          "description": "",
+          "properties": {
+            "customer_name": {
+              "type": "string",
+              "description": "Customer's name",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "The caller's phone number from caller_phone in your system prompt context.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "reason": {
+              "type": "string",
+              "description": "Why callback is needed",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "preferred_time": {
+              "type": "string",
+              "description": "When customer wants callback",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "The tenant_id from your system prompt context. Always include this.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking ID if available",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_0201khn4f8d8f9dbhd3xbe7ghvkj",
+    "tool_config": {
+      "type": "webhook",
+      "name": "create_booking",
+      "description": "Book a SCHEDULED tow or service for a future date/time. Only for non-emergency planned services.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-create-booking",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "customer_name",
+            "date",
+            "time"
+          ],
+          "description": "",
+          "properties": {
+            "customer_name": {
+              "type": "string",
+              "description": "Customer's full name. Ask if not provided.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "date": {
+              "type": "string",
+              "description": "Confirmed appointment date",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "time": {
+              "type": "string",
+              "description": "Confirmed appointment time",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "service_name": {
+              "type": "string",
+              "description": "Service being booked",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "The caller's phone number from caller_phone in your system prompt context.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "notes": {
+              "type": "string",
+              "description": "Special requests, address, vehicle info, and ALL answers to required questions.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "The tenant_id from your system prompt context. Always include this.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking ID if available",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_9401khn4f52af1aa4np4kxy1fcgg",
+    "tool_config": {
+      "type": "webhook",
+      "name": "suggest_availability",
+      "description": "Get available times for scheduled (non-emergency) jobs. Use when customer asks 'When can you come pick up my car?'",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-suggest-availability",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [],
+          "description": "",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "Date to check. Accept 'tomorrow', 'next week', 'Saturday'. Defaults to next available.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "service_name": {
+              "type": "string",
+              "description": "Service name to determine duration needed",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "preference": {
+              "type": "string",
+              "description": "Time preference: 'morning', 'afternoon', 'evening', or 'earliest'",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "The tenant_id from your system prompt context. Always include this.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking ID if available",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_0101khn4f258fn3b6p2jdpjyfs4f",
+    "tool_config": {
+      "type": "webhook",
+      "name": "check_availability",
+      "description": "Check availability for SCHEDULED (non-emergency) jobs. Use when customer wants to schedule a future tow or planned service.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-check-availability",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "date",
+            "time"
+          ],
+          "description": "",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "Appointment date. Accept 'tomorrow', 'next Monday', 'Friday', or YYYY-MM-DD format.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "time": {
+              "type": "string",
+              "description": "Appointment time. Accept '2pm', '10:30am', 'noon', or HH:MM format.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "service_name": {
+              "type": "string",
+              "description": "Service being booked (e.g., 'towing', 'scheduled pickup').",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "The tenant_id from your system prompt context. Always include this.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking ID if available",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_2401khn4f0kje26actpfs33cv6e4",
+    "tool_config": {
+      "type": "webhook",
+      "name": "create_dispatch_job",
+      "description": "MAIN DISPATCH TOOL - Send a driver/technician NOW. CRITICAL: customer_name is REQUIRED - always ask for it before dispatching.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-create-dispatch-job",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "pickup_address",
+            "vehicle_info",
+            "service_type",
+            "customer_name"
+          ],
+          "description": "",
+          "properties": {
+            "pickup_address": {
+              "type": "string",
+              "description": "Where to send the driver - customer's current location",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "vehicle_info": {
+              "type": "string",
+              "description": "Vehicle year, make, model, and color as one string. Example: 'Blue 2019 Honda Accord'.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "service_type": {
+              "type": "string",
+              "description": "Service needed: 'tow', 'flatbed', 'roadside', 'jumpstart', 'lockout', 'tire_change', 'fuel_delivery', 'winch'",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "dropoff_address": {
+              "type": "string",
+              "description": "Where to take the vehicle/item. REQUIRED for towing services.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_name": {
+              "type": "string",
+              "description": "Customer's name. ALWAYS ask for this before dispatching. This is MANDATORY.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "The caller's phone number from caller_phone in your system prompt context.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "urgency": {
+              "type": "string",
+              "description": "'emergency' (blocking traffic, unsafe), 'urgent' (stranded), 'standard'",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "notes": {
+              "type": "string",
+              "description": "Special instructions: vehicle details, access notes, ALL extra details",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "The tenant_id from your system prompt context. Always include this.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking ID if available",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_3401khn4f193fc89304q58tzz4qr",
+    "tool_config": {
+      "type": "webhook",
+      "name": "lookup_dispatch_status",
+      "description": "Check status of an existing dispatch job. Use when caller asks: 'Where's my driver?', 'Any update?', 'How much longer?'",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-lookup-dispatch-status",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "tenant_id"
+          ],
+          "description": "",
+          "properties": {
+            "tenant_id": {
+              "type": "string",
+              "description": "The tenant_id from your system prompt context. Always include this.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_name": {
+              "type": "string",
+              "description": "Customer's name to match against job records",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "The caller's phone number from caller_phone in your system prompt context.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "pickup_address": {
+              "type": "string",
+              "description": "Pickup address to match against job records",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "job_number": {
+              "type": "string",
+              "description": "If caller has reference number",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking ID if available",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_7201khn4eycgeqq8679a3t6kdbsz",
+    "tool_config": {
+      "type": "webhook",
+      "name": "check_service_area",
+      "description": "CRITICAL TOOL - Use for every dispatch call. Check if location is in service area and get real-time ETA and pricing. Call immediately when customer provides their location.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-check-service-area",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "address"
+          ],
+          "description": "",
+          "properties": {
+            "address": {
+              "type": "string",
+              "description": "Customer's address where service is needed. Accept street address, intersection, highway exits, landmarks.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "vehicle_type": {
+              "type": "string",
+              "description": "Vehicle type: 'car', 'truck', 'suv', 'motorcycle', 'rv'. Helps with pricing.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "dropoff_address": {
+              "type": "string",
+              "description": "Where to tow the vehicle. Get this for accurate pricing.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "service_type": {
+              "type": "string",
+              "description": "Type of service: 'towing', 'jumpstart', 'lockout', 'tire_change', 'fuel_delivery', 'winch_out'.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "The tenant_id from your system prompt context. Always include this.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking ID if available",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_3701khba2dgve3mrsn7sqx5bcmrs",
+    "tool_config": {
+      "type": "webhook",
+      "name": "transfer_to_owner",
+      "description": "Transfer the call to the business owner/manager. Use IMMEDIATELY when caller asks to speak to a person.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-transfer-call",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "tenant_id"
+          ],
+          "description": "",
+          "properties": {
+            "reason": {
+              "type": "string",
+              "description": "Why the caller wants to transfer",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "The tenant_id from your system prompt context. Always include this.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "twilio_call_sid": {
+              "type": "string",
+              "description": "The twilio_call_sid from your system prompt context. Always include this.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking ID if available",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_0301khba2bj6ferbnthhrdw6k0pa",
+    "tool_config": {
+      "type": "webhook",
+      "name": "lookup_active_job",
+      "description": "Look up status of an active job or appointment. Try active_job_summary first before calling.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-lookup-dispatch-status",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "tenant_id"
+          ],
+          "description": "",
+          "properties": {
+            "customer_name": {
+              "type": "string",
+              "description": "Customer's name to look up",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "The caller's phone number from caller_phone in your system prompt context.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "job_number": {
+              "type": "string",
+              "description": "Job or reference number if provided",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "The tenant_id from your system prompt context. Always include this.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking ID if available",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_9301khba2968eadb3h29rmqdbg3h",
+    "tool_config": {
+      "type": "webhook",
+      "name": "add_to_waitlist",
+      "description": "Add customer to waitlist when requested time is fully booked. Only use when waitlist_enabled is true.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-add-to-waitlist",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "customer_name",
+            "preferred_date"
+          ],
+          "description": "",
+          "properties": {
+            "customer_name": {
+              "type": "string",
+              "description": "Customer's name",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "The caller's phone number from caller_phone in your system prompt context.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "preferred_date": {
+              "type": "string",
+              "description": "Date they want",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "preferred_time": {
+              "type": "string",
+              "description": "Time they want",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "service_name": {
+              "type": "string",
+              "description": "Service requested",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "The tenant_id from your system prompt context. Always include this.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking ID if available",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_3301khba280bemxt1fvpdt644vjf",
+    "tool_config": {
+      "type": "webhook",
+      "name": "cancel_booking",
+      "description": "Cancel an existing booking. Ask for name to look it up.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-cancel-booking",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "customer_name"
+          ],
+          "description": "",
+          "properties": {
+            "customer_name": {
+              "type": "string",
+              "description": "Name on the booking",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "The caller's phone number from caller_phone in your system prompt context.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "reason": {
+              "type": "string",
+              "description": "Reason for cancellation",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "The tenant_id from your system prompt context. Always include this.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking ID if available",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_2201khba270vervaczdn76rasyrz",
+    "tool_config": {
+      "type": "webhook",
+      "name": "create_callback",
+      "description": "Create a callback request. Use when: complex quote needed, manager requested, unclear pricing, or any human follow-up.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-create-callback",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "customer_name"
+          ],
+          "description": "",
+          "properties": {
+            "customer_name": {
+              "type": "string",
+              "description": "Customer's name",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "The caller's phone number from caller_phone in your system prompt context.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "reason": {
+              "type": "string",
+              "description": "Why callback is needed",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "preferred_time": {
+              "type": "string",
+              "description": "When customer wants callback",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "The tenant_id from your system prompt context. Always include this.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking ID if available",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_1901khba251cev39xpksedxqg7pj",
+    "tool_config": {
+      "type": "webhook",
+      "name": "create_dispatch_job",
+      "description": "Send a technician out NOW for emergency service calls. Use for true emergencies only.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-create-dispatch-job",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "pickup_address",
+            "service_type",
+            "customer_name"
+          ],
+          "description": "",
+          "properties": {
+            "pickup_address": {
+              "type": "string",
+              "description": "Customer's address where technician should go",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "service_type": {
+              "type": "string",
+              "description": "Type of emergency: 'emergency_repair', 'ac_repair', 'plumbing', 'electrical', 'lockout'",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_name": {
+              "type": "string",
+              "description": "Customer's name. ALWAYS ask for this before dispatching.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "The caller's phone number from caller_phone in your system prompt context.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "urgency": {
+              "type": "string",
+              "description": "'emergency', 'urgent', or 'standard'",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "notes": {
+              "type": "string",
+              "description": "Problem description and special instructions",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "The tenant_id from your system prompt context. Always include this.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking ID if available",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_2401khba23w3f17agnawxtzdjzjs",
+    "tool_config": {
+      "type": "webhook",
+      "name": "check_service_area",
+      "description": "Check if we can come to the customer's location. For mobile services (HVAC, plumber, detailing, cleaning).",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-check-service-area",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "address"
+          ],
+          "description": "",
+          "properties": {
+            "address": {
+              "type": "string",
+              "description": "Customer's address where service is needed",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "The tenant_id from your system prompt context. Always include this.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking ID if available",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 6,
+      "avg_latency_secs": 0.98
+    }
+  },
+  {
+    "id": "tool_6401khba21wwf49thjpw2h883ckc",
+    "tool_config": {
+      "type": "webhook",
+      "name": "create_booking",
+      "description": "Book the appointment after customer confirms. Only call AFTER checking availability AND getting explicit confirmation.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-create-booking",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "customer_name",
+            "date",
+            "time"
+          ],
+          "description": "",
+          "properties": {
+            "customer_name": {
+              "type": "string",
+              "description": "Customer's full name. Ask if not provided.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "date": {
+              "type": "string",
+              "description": "Confirmed appointment date",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "time": {
+              "type": "string",
+              "description": "Confirmed appointment time",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "service_name": {
+              "type": "string",
+              "description": "Service being booked",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "The caller's phone number from caller_phone in your system prompt context.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "notes": {
+              "type": "string",
+              "description": "Special requests, address, vehicle info, urgency, email, and ALL answers to required questions. This is the only way details reach the business owner.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "The tenant_id from your system prompt context. Always include this.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking ID if available",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 3,
+      "avg_latency_secs": 2.39
+    }
+  },
+  {
+    "id": "tool_6001khba20qgf1vrnqffay24155g",
+    "tool_config": {
+      "type": "webhook",
+      "name": "check_availability",
+      "description": "Check if a specific appointment time is available. Call this BEFORE confirming any appointment.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-check-availability",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "date",
+            "time"
+          ],
+          "description": "",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "Appointment date. Accept 'tomorrow', 'next Monday', 'Friday', or YYYY-MM-DD format.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "time": {
+              "type": "string",
+              "description": "Appointment time. Accept '2pm', '10:30am', 'noon', or HH:MM format.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "service_name": {
+              "type": "string",
+              "description": "Service being booked (e.g., 'haircut', 'AC repair'). Helps determine duration.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "The tenant_id from your system prompt context. Always include this.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking ID if available",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 4,
+      "avg_latency_secs": 0.86
+    }
+  },
+  {
+    "id": "tool_7701khba1zj2fkra7wfqergfkd1c",
+    "tool_config": {
+      "type": "webhook",
+      "name": "suggest_availability",
+      "description": "Get available appointment times. Call when customer asks \"What times do you have?\" Returns up to 5 open slots.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-suggest-availability",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [],
+          "description": "",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "Date to check. Accept 'tomorrow', 'next week', 'Saturday'. Defaults to next available.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "service_name": {
+              "type": "string",
+              "description": "Service name to determine duration needed",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "preference": {
+              "type": "string",
+              "description": "Time preference: 'morning', 'afternoon', 'evening', or 'earliest'",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "The tenant_id from your system prompt context. Always include this.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking ID if available",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 8,
+      "avg_latency_secs": 1.62
+    }
+  },
+  {
+    "id": "tool_0501khb98nx6fc3vyzxjmghs9p1q",
+    "tool_config": {
+      "type": "webhook",
+      "name": "suggest_availability",
+      "description": "Get available appointment times. Call when customer asks \"What times do you have?\" Returns up to 5 open slots.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {
+          "tenant_id": "pending"
+        }
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-suggest-availability",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [],
+          "description": "",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "Date to check. Accept 'tomorrow', 'next week', 'Saturday'. Defaults to next available.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "service_name": {
+              "type": "string",
+              "description": "Service name to determine duration needed",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "preference": {
+              "type": "string",
+              "description": "Time preference: 'morning', 'afternoon', 'evening', or 'earliest'",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{tenant_id}}",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_0901khb98nxafphs13y23mjmss4e",
+    "tool_config": {
+      "type": "webhook",
+      "name": "create_dispatch_job",
+      "description": "Send a technician out NOW for emergency service calls. Use for true emergencies only.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {
+          "caller_phone": "unknown",
+          "tenant_id": "pending"
+        }
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-create-dispatch-job",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "pickup_address",
+            "service_type",
+            "customer_name"
+          ],
+          "description": "",
+          "properties": {
+            "pickup_address": {
+              "type": "string",
+              "description": "Customer's address where technician should go",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "service_type": {
+              "type": "string",
+              "description": "Type of emergency: 'emergency_repair', 'ac_repair', 'plumbing', 'electrical', 'lockout'",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_name": {
+              "type": "string",
+              "description": "Customer's name. ALWAYS ask for this before dispatching.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{caller_phone}}",
+              "constant_value": ""
+            },
+            "urgency": {
+              "type": "string",
+              "description": "'emergency', 'urgent', or 'standard'",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "notes": {
+              "type": "string",
+              "description": "Problem description and special instructions",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{tenant_id}}",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_1601khb98nx8fcp8gxbz84tqqtj6",
+    "tool_config": {
+      "type": "webhook",
+      "name": "create_booking",
+      "description": "Book the appointment after customer confirms. Only call AFTER checking availability AND getting explicit confirmation.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {
+          "caller_phone": "unknown",
+          "tenant_id": "pending"
+        }
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-create-booking",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "customer_name",
+            "date",
+            "time"
+          ],
+          "description": "",
+          "properties": {
+            "customer_name": {
+              "type": "string",
+              "description": "Customer's full name. Ask if not provided.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "date": {
+              "type": "string",
+              "description": "Confirmed appointment date",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "time": {
+              "type": "string",
+              "description": "Confirmed appointment time",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "service_name": {
+              "type": "string",
+              "description": "Service being booked",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{caller_phone}}",
+              "constant_value": ""
+            },
+            "notes": {
+              "type": "string",
+              "description": "Special requests or instructions",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{tenant_id}}",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_4401khb98nxbegp9m5m0s1hwts95",
+    "tool_config": {
+      "type": "webhook",
+      "name": "create_callback",
+      "description": "Create a callback request. Use when: complex quote needed, manager requested, unclear pricing, or any human follow-up.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {
+          "caller_phone": "unknown",
+          "tenant_id": "pending"
+        }
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-create-callback",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "customer_name"
+          ],
+          "description": "",
+          "properties": {
+            "customer_name": {
+              "type": "string",
+              "description": "Customer's name",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{caller_phone}}",
+              "constant_value": ""
+            },
+            "reason": {
+              "type": "string",
+              "description": "Why callback is needed",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "preferred_time": {
+              "type": "string",
+              "description": "When customer wants callback",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{tenant_id}}",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_4601khb98nx9f5k87qa49vxddf35",
+    "tool_config": {
+      "type": "webhook",
+      "name": "check_service_area",
+      "description": "Check if we can come to the customer's location. For mobile services (HVAC, plumber, detailing, cleaning).",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {
+          "tenant_id": "pending"
+        }
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-check-service-area",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "address"
+          ],
+          "description": "",
+          "properties": {
+            "address": {
+              "type": "string",
+              "description": "Customer's address where service is needed",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{tenant_id}}",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_5501khb98nxfenv8py55v24sp4mm",
+    "tool_config": {
+      "type": "webhook",
+      "name": "transfer_to_owner",
+      "description": "Transfer the call to the business owner/manager. Use IMMEDIATELY when caller asks to speak to a person.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {
+          "tenant_id": "pending",
+          "twilio_call_sid": "pending"
+        }
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-transfer-call",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "tenant_id"
+          ],
+          "description": "",
+          "properties": {
+            "reason": {
+              "type": "string",
+              "description": "Why the caller wants to transfer",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{tenant_id}}",
+              "constant_value": ""
+            },
+            "twilio_call_sid": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{twilio_call_sid}}",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_6501khb98nxef558ypzw21zqjc34",
+    "tool_config": {
+      "type": "webhook",
+      "name": "lookup_active_job",
+      "description": "Look up status of an active job or appointment. Try active_job_summary first before calling.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {
+          "caller_phone": "unknown",
+          "tenant_id": "pending"
+        }
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-lookup-dispatch-status",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "tenant_id"
+          ],
+          "description": "",
+          "properties": {
+            "customer_name": {
+              "type": "string",
+              "description": "Customer's name to look up",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{caller_phone}}",
+              "constant_value": ""
+            },
+            "job_number": {
+              "type": "string",
+              "description": "Job or reference number if provided",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{tenant_id}}",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_7101khb98nxcfbbbar830eyhbfp9",
+    "tool_config": {
+      "type": "webhook",
+      "name": "cancel_booking",
+      "description": "Cancel an existing booking. Ask for name to look it up.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {
+          "caller_phone": "unknown",
+          "tenant_id": "pending"
+        }
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-cancel-booking",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "customer_name"
+          ],
+          "description": "",
+          "properties": {
+            "customer_name": {
+              "type": "string",
+              "description": "Name on the booking",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{caller_phone}}",
+              "constant_value": ""
+            },
+            "reason": {
+              "type": "string",
+              "description": "Reason for cancellation",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{tenant_id}}",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_8301khb98nxderxrqh0bs2kf9vzz",
+    "tool_config": {
+      "type": "webhook",
+      "name": "add_to_waitlist",
+      "description": "Add customer to waitlist when requested time is fully booked. Only use when waitlist_enabled is true.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {
+          "caller_phone": "unknown",
+          "tenant_id": "pending"
+        }
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-add-to-waitlist",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "customer_name",
+            "preferred_date"
+          ],
+          "description": "",
+          "properties": {
+            "customer_name": {
+              "type": "string",
+              "description": "Customer's name",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{caller_phone}}",
+              "constant_value": ""
+            },
+            "preferred_date": {
+              "type": "string",
+              "description": "Date they want",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "preferred_time": {
+              "type": "string",
+              "description": "Time they want",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "service_name": {
+              "type": "string",
+              "description": "Service requested",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{tenant_id}}",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_9701khb98nx7e2a8k69smh8s24f0",
+    "tool_config": {
+      "type": "webhook",
+      "name": "check_availability",
+      "description": "Check if a specific appointment time is available. Call this BEFORE confirming any appointment.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {
+          "tenant_id": "pending"
+        }
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-check-availability",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "date",
+            "time"
+          ],
+          "description": "",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "Appointment date. Accept 'tomorrow', 'next Monday', 'Friday', or YYYY-MM-DD format.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "time": {
+              "type": "string",
+              "description": "Appointment time. Accept '2pm', '10:30am', 'noon', or HH:MM format.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "service_name": {
+              "type": "string",
+              "description": "Service being booked (e.g., 'haircut', 'AC repair'). Helps determine duration.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{tenant_id}}",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_0201khb928ckev780eq80btvb7an",
+    "tool_config": {
+      "type": "webhook",
+      "name": "add_to_waitlist",
+      "description": "Add caller to waitlist when their preferred time is unavailable. Use when waitlist_enabled is \"true\" AND time is fully booked.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {
+          "tenant_id": "pending",
+          "caller_phone": "unknown"
+        }
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-add-to-waitlist",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "tenant_id",
+            "customer_name",
+            "preferred_date"
+          ],
+          "description": "",
+          "properties": {
+            "tenant_id": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{tenant_id}}",
+              "constant_value": ""
+            },
+            "customer_name": {
+              "type": "string",
+              "description": "Customer's name",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{caller_phone}}",
+              "constant_value": ""
+            },
+            "preferred_date": {
+              "type": "string",
+              "description": "Date they wanted",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "preferred_time": {
+              "type": "string",
+              "description": "Time they wanted",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "service_name": {
+              "type": "string",
+              "description": "Service they're waiting for",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "notes": {
+              "type": "string",
+              "description": "Additional notes",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_0801khb928cdeq4sczeyms5hw283",
+    "tool_config": {
+      "type": "webhook",
+      "name": "suggest_availability",
+      "description": "Get available appointment times. Call when customer asks \"What times do you have?\" Returns up to 5 open slots.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {
+          "tenant_id": "pending"
+        }
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-suggest-availability",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [],
+          "description": "",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "Date to check. Accept 'tomorrow', 'next week', 'Saturday'. Defaults to next available.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "service_name": {
+              "type": "string",
+              "description": "Service name to determine duration needed",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "preference": {
+              "type": "string",
+              "description": "Time preference: 'morning', 'afternoon', 'evening', or 'earliest'",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{tenant_id}}",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_0801khb928cjfm0bvt5rs8ncpy8m",
+    "tool_config": {
+      "type": "webhook",
+      "name": "cancel_booking",
+      "description": "Cancel an existing appointment. Use when caller says: \"I need to cancel\", \"Cancel my appointment\", \"I can't make it\".",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {
+          "tenant_id": "pending",
+          "caller_phone": "unknown"
+        }
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-cancel-booking",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "tenant_id"
+          ],
+          "description": "",
+          "properties": {
+            "tenant_id": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{tenant_id}}",
+              "constant_value": ""
+            },
+            "customer_name": {
+              "type": "string",
+              "description": "Customer's name to find the booking",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{caller_phone}}",
+              "constant_value": ""
+            },
+            "booking_id": {
+              "type": "string",
+              "description": "Direct booking ID if known",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "reason": {
+              "type": "string",
+              "description": "Reason for cancellation",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_4501khb928cmfdwv701kmmxkhkkn",
+    "tool_config": {
+      "type": "webhook",
+      "name": "lookup_active_job",
+      "description": "Look up the status of a customer's active job or vehicle in the shop. Use when caller asks: \"How's my car?\", \"Is my car ready?\", \"What's the status of my repair?\", \"When will it be done?\", or provides a job number.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {
+          "tenant_id": "pending",
+          "caller_phone": "unknown"
+        }
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-lookup-active-job",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "tenant_id"
+          ],
+          "description": "",
+          "properties": {
+            "tenant_id": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{tenant_id}}",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{caller_phone}}",
+              "constant_value": ""
+            },
+            "customer_name": {
+              "type": "string",
+              "description": "Customer's name to match against job records",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "job_number": {
+              "type": "string",
+              "description": "Job number if the customer provides one (e.g., 'JOB-1234')",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "vehicle_description": {
+              "type": "string",
+              "description": "Vehicle year/make/model if mentioned (e.g., '2019 Honda Civic')",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_5301khb928cee0g8k074zm9be03a",
+    "tool_config": {
+      "type": "webhook",
+      "name": "create_booking",
+      "description": "Book the appointment after customer confirms. Only call AFTER checking availability AND getting explicit confirmation.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {
+          "caller_phone": "unknown",
+          "tenant_id": "pending"
+        }
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-create-booking",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "customer_name",
+            "date",
+            "time"
+          ],
+          "description": "",
+          "properties": {
+            "customer_name": {
+              "type": "string",
+              "description": "Customer's full name. Ask if not provided.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "date": {
+              "type": "string",
+              "description": "Confirmed appointment date",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "time": {
+              "type": "string",
+              "description": "Confirmed appointment time",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "service_name": {
+              "type": "string",
+              "description": "Service being booked",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{caller_phone}}",
+              "constant_value": ""
+            },
+            "notes": {
+              "type": "string",
+              "description": "Special requests or instructions",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{tenant_id}}",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_6001khb928ccf2hbasvw4fbdfxdf",
+    "tool_config": {
+      "type": "webhook",
+      "name": "check_availability",
+      "description": "Check if a specific appointment time is available. Call this BEFORE confirming any appointment.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {
+          "tenant_id": "pending"
+        }
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-check-availability",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "date",
+            "time"
+          ],
+          "description": "",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "Appointment date. Accept 'tomorrow', 'next Monday', 'Friday', or YYYY-MM-DD format.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "time": {
+              "type": "string",
+              "description": "Appointment time. Accept '2pm', '10:30am', 'noon', or HH:MM format.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "service_name": {
+              "type": "string",
+              "description": "Service being booked (e.g., 'haircut', 'AC repair'). Helps determine duration.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{tenant_id}}",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_6701khb928cfexrb7x3p5g9gp2gv",
+    "tool_config": {
+      "type": "webhook",
+      "name": "check_service_area",
+      "description": "Check if we can come to the customer's location. For mobile services (HVAC, plumber, detailing, cleaning).",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {
+          "tenant_id": "pending"
+        }
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-check-service-area",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "address"
+          ],
+          "description": "",
+          "properties": {
+            "address": {
+              "type": "string",
+              "description": "Customer's address where service is needed",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{tenant_id}}",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_6901khb928cnevm8xs6g2fg425e2",
+    "tool_config": {
+      "type": "webhook",
+      "name": "transfer_to_owner",
+      "description": "Transfer the caller to the business owner or manager. Use IMMEDIATELY when caller asks to speak to someone. Do NOT try to talk them out of it.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {
+          "tenant_id": "pending",
+          "twilio_call_sid": "pending"
+        }
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-transfer-call",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "tenant_id"
+          ],
+          "description": "",
+          "properties": {
+            "tenant_id": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{tenant_id}}",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "twilio_call_sid": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{twilio_call_sid}}",
+              "constant_value": ""
+            },
+            "customer_name": {
+              "type": "string",
+              "description": "Customer's name if collected",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "reason": {
+              "type": "string",
+              "description": "Why the caller wants to be transferred",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_8101khb928cge5avcdr33d6vfkhm",
+    "tool_config": {
+      "type": "webhook",
+      "name": "create_dispatch_job",
+      "description": "Send a technician out NOW for emergency service calls. Use for true emergencies only.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {
+          "caller_phone": "unknown",
+          "tenant_id": "pending"
+        }
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-create-dispatch-job",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "pickup_address",
+            "service_type",
+            "customer_name"
+          ],
+          "description": "",
+          "properties": {
+            "pickup_address": {
+              "type": "string",
+              "description": "Customer's address where technician should go",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "service_type": {
+              "type": "string",
+              "description": "Type of emergency: 'emergency_repair', 'ac_repair', 'plumbing', 'electrical', 'lockout'",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_name": {
+              "type": "string",
+              "description": "Customer's name. ALWAYS ask for this before dispatching.",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{caller_phone}}",
+              "constant_value": ""
+            },
+            "urgency": {
+              "type": "string",
+              "description": "'emergency', 'urgent', or 'standard'",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "notes": {
+              "type": "string",
+              "description": "Problem description and special instructions",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{tenant_id}}",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  },
+  {
+    "id": "tool_8201khb928che4vb1yjv35jvact0",
+    "tool_config": {
+      "type": "webhook",
+      "name": "create_callback",
+      "description": "Schedule a callback when customer needs a quote, wants to discuss a complex job, or asks to speak with someone.",
+      "response_timeout_secs": 20,
+      "disable_interruptions": false,
+      "force_pre_tool_speech": false,
+      "assignments": [],
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {
+          "caller_phone": "unknown",
+          "tenant_id": "pending"
+        }
+      },
+      "execution_mode": "immediate",
+      "api_schema": {
+        "request_headers": {
+          "content-type": "application/json",
+          "X-CL-Secret": {
+            "secret_id": "9G30VIglbkIoULRKR7xD"
+          }
+        },
+        "url": "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1/elevenlabs-create-callback",
+        "method": "POST",
+        "path_params_schema": {},
+        "query_params_schema": null,
+        "request_body_schema": {
+          "type": "object",
+          "required": [
+            "reason"
+          ],
+          "description": "",
+          "properties": {
+            "reason": {
+              "type": "string",
+              "description": "Why they want a callback",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_name": {
+              "type": "string",
+              "description": "Customer's name",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "customer_phone": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{caller_phone}}",
+              "constant_value": ""
+            },
+            "department": {
+              "type": "string",
+              "description": "Who should call: 'sales', 'owner', 'manager', 'technician'",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "preferred_time": {
+              "type": "string",
+              "description": "When to call: 'morning', 'afternoon', 'ASAP'",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "notes": {
+              "type": "string",
+              "description": "What they want to discuss",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            },
+            "tenant_id": {
+              "type": "string",
+              "description": "",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "{{tenant_id}}",
+              "constant_value": ""
+            },
+            "conversation_id": {
+              "type": "string",
+              "description": "Conversation tracking",
+              "enum": null,
+              "is_system_provided": false,
+              "dynamic_variable": "",
+              "constant_value": ""
+            }
+          }
+        },
+        "content_type": "application/json",
+        "auth_connection": null
+      }
+    },
+    "access_info": {
+      "is_creator": true,
+      "creator_name": "John",
+      "creator_email": "glosslabsnj@gmail.com",
+      "role": "admin"
+    },
+    "usage_stats": {
+      "total_calls": 0,
+      "avg_latency_secs": 0
+    }
+  }
+]

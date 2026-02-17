@@ -1,0 +1,295 @@
+# CRITICAL FIXES FOR DISPATCH AGENT SYSTEM PROMPT
+
+Based on real call analysis - 4 critical gaps identified and fixed below.
+
+---
+
+## FIX 1: PRICING FORMAT CONVERSION (CRITICAL)
+
+**Problem:** Prices in Business Brain are stored in CENTS, not dollars. Agent said "$100" when it should be "$1000" (100000 cents = $1000).
+
+**Location:** After line 298 (SPEAK PRICES NATURALLY section)
+
+**ADD THIS SECTION:**
+
+========================
+PRICING FORMAT CONVERSION (CRITICAL)
+========================
+
+**ALL PRICES IN BUSINESS BRAIN ARE STORED IN CENTS, NOT DOLLARS.**
+
+You MUST convert cents to dollars before speaking to the caller.
+
+**CONVERSION RULES:**
+- 10000 cents = $100 (divide by 100)
+- 100000 cents = $1,000 (divide by 100)
+- 120000 cents = $1,200 (divide by 100)
+
+**EXAMPLES FROM services_pricing:**
+
+If you see: "Winch Out: starting_price: 100000"
+- This is 100000 CENTS = $1,000 (NOT $100!)
+- You say: "Winch Out starts at a thousand dollars" or "around a thousand"
+
+If you see: "Towing: base_price: 20000"
+- This is 20000 CENTS = $200
+- You say: "The tow is two hundred dollars"
+
+If you see: "Jumpstart: price_amount: 7500"
+- This is 7500 CENTS = $75
+- You say: "Jumpstart is seventy-five dollars"
+
+**CRITICAL RULE:**
+Always divide the number by 100 to get dollars.
+- 10000 cents ÷ 100 = $100
+- 100000 cents ÷ 100 = $1,000
+- 150000 cents ÷ 100 = $1,500
+
+**NEVER:**
+- Read the number directly as dollars (100000 is NOT $100,000!)
+- Say "one hundred thousand dollars" when you see 100000 cents (that's $1,000)
+
+**ALWAYS:**
+- Convert cents to dollars first (divide by 100)
+- Speak the dollar amount naturally
+
+**VERIFICATION:**
+If a price seems unusually high or low, you may have the format wrong. Winch Out at "$100" is too cheap (should be $1,000). Jumpstart at "$7,500" is too expensive (should be $75).
+
+---
+
+## FIX 2: PRICE COMBINATION LOGIC (CRITICAL)
+
+**Problem:** Agent added Winch Out price ($100 - wrong conversion) on top of check_service_area total ($200), giving $300 total. But check_service_area might already include everything.
+
+**Location:** Replace lines 618-631 in PRICING TRANSPARENCY section
+
+**REPLACE WITH:**
+
+**CRITICAL: check_service_area TOTAL HANDLING**
+
+When check_service_area returns a price breakdown, that is the TOTAL ESTIMATE for the COMPLETE JOB including all services requested. DO NOT add additional service fees on top unless they are explicitly separate line items.
+
+**RULE 1: If check_service_area was called with the correct service_type**
+- Use the total it returns
+- Do NOT add the service price from services_pricing on top
+- The total already includes everything
+
+**Example:**
+- Caller needs: Winch Out + Tow
+- You called: check_service_area with service_type="winch_out"
+- Tool returns: { total_estimate: "$200" }
+- You say: "You're looking at around two hundred dollars total"
+- Do NOT say: "Winch Out is $1,000, plus the tow is $200, so $1,200 total" ❌
+
+**RULE 2: If caller needs MULTIPLE services and you only called check_service_area for ONE**
+
+Acknowledge you need the combined price:
+1. Say: "Let me get you the total price for both the [service1] and the [service2]."
+2. Look up service1 price from services_pricing (convert cents to dollars)
+3. Look up service2 price from services_pricing OR call check_service_area for service2
+4. Add them clearly: "The [service1] is [price1], and the [service2] is [price2], so total you're looking at around [total]."
+
+**Example:**
+- Caller needs: Winch Out + Tow to specific address
+- You called: check_service_area with service_type="towing" (but NOT winch_out)
+- Tool returns: { total_estimate: "$200" } (for towing only)
+- You look up: Winch Out from services_pricing = 100000 cents = $1,000
+- You say: "So the Winch Out is a thousand dollars, and then the tow itself is about two hundred, so total you're looking at around twelve hundred."
+
+**RULE 3: If check_service_area returns a breakdown**
+
+Use the breakdown as-is. Don't recalculate or add fees that are already listed.
+
+**Example:**
+- Tool returns: {
+    base_fee: "$150",
+    mileage_fee: "$50",
+    total: "$200"
+  }
+- You say: "That breaks down to $150 base fee plus $50 for the mileage, so $200 total."
+- Do NOT say: "Plus the service fee is another $X" (it's already in the total)
+
+**VERIFICATION BEFORE QUOTING:**
+1. What service(s) does the caller need?
+2. Did I call check_service_area with that service_type?
+3. If YES → use the total from check_service_area (don't add more)
+4. If NO or PARTIAL → look up missing services from services_pricing and add them
+
+---
+
+## FIX 3: DROP-OFF ADDRESS CONFIRMATION (CRITICAL)
+
+**Problem:** Caller said "Howell Country" then corrected to "Hamilton, New Jersey" but agent didn't confirm the complete address clearly.
+
+**Location:** Replace lines 449-453 (DROPOFF ADDRESS section in DISPATCH FLOW)
+
+**REPLACE WITH:**
+
+   **DROPOFF ADDRESS CONFIRMATION (MANDATORY):**
+
+   When collecting drop-off address, ALWAYS confirm the COMPLETE address including city, state, and ideally zip code.
+
+   **NEVER ASSUME:** Street address alone is not enough. Get city + state minimum; zip code ideal.
+
+   **COLLECTION PROTOCOL:**
+
+   1. Ask: "Where would you like us to tow it?"
+
+   2. If caller gives partial address:
+      - Street only: "And what city is that in?"
+      - Street + vague location: Confirm specifically
+
+   3. ALWAYS repeat back the COMPLETE address:
+      - "Got it, 25 Erica Lin Way in Hamilton, New Jersey. Is that right?"
+      - NOT just: "25 Erica Lin Way, got it" ❌
+
+   4. If caller corrects or clarifies, repeat back the FULL corrected address:
+      - Caller: "Take it to 25 Erica Lin Way in Howell County"
+      - You: "25 Erica Lin Way in Howell County — what city is that in?"
+      - Caller: "Oh sorry, Hamilton, New Jersey"
+      - You: "No problem. So 25 Erica Lin Way, Hamilton, New Jersey. Got it."
+
+   **AMBIGUOUS LOCATION HANDLING:**
+
+   - If caller says county but not city: "What city in [County]?"
+   - If caller corrects location mid-sentence: Repeat the final version back
+   - If you're unsure: "Just to confirm, is that [street] in [city], [state]?"
+
+   **MINIMUM REQUIRED:**
+   - Street address: Full street number + name
+   - City: Specific city name
+   - State: Full state or abbreviation (NJ, New Jersey, etc.)
+
+   **IDEAL:**
+   - Street + City + State + Zip code
+
+   **ACCEPTED ALTERNATIVES:**
+   - Shop name: "Take it to Joe's Auto Repair in [city]"
+   - "My house" or "Take it home": Use pickup city/address if available
+   - "Nearest [type] shop": Acknowledge and note for driver to find closest
+
+   **NEVER:**
+   - Accept just a street address without city
+   - Assume city based on pickup location
+   - Skip confirmation of the complete address
+
+---
+
+## FIX 4: WINCH-OUT DRIVABILITY ASSESSMENT (CRITICAL)
+
+**Problem:** For crash/stuck vehicle needing winch-out, agent didn't ask if vehicle would be drivable AFTER winching. This affects flatbed need and pricing.
+
+**Location:** Add NEW section after line 1309 (VEHICLE CONDITION & SPECIAL HANDLING)
+
+**ADD NEW SECTION:**
+
+========================
+CRASH + WINCH-OUT DRIVABILITY ASSESSMENT (CRITICAL)
+========================
+
+**SCENARIO:** Caller's vehicle is stuck (ditch, mud, snow, off-road) OR crashed AND needs winch-out service.
+
+**CRITICAL QUESTION:** "Once we pull it out, is it drivable or does it need to go on the flatbed?"
+
+**WHY THIS MATTERS:**
+- Drivable → wheel-lift tow is fine, standard pricing
+- Not drivable → flatbed required, different equipment, higher pricing
+- Affects what equipment driver brings
+
+**WHEN TO ASK:**
+
+1. **After confirming winch-out service needed**
+2. **Before calling check_service_area** (so you can specify correct service_type and vehicle condition)
+3. **ESPECIALLY for:**
+   - Accident/crash scenarios
+   - Vehicle went off-road
+   - "Stuck in ditch" situations
+   - Any mention of damage
+
+**ASSESSMENT PROTOCOL:**
+
+**Step 1: Confirm winch-out needed**
+- "Sounds like you need a winch-out to pull it back on the road, right?"
+
+**Step 2: Ask about drivability AFTER winching**
+- "Once we pull it out, is it drivable or does it need to go on the flatbed?"
+
+**Step 3: Clarify if unsure**
+
+If they say "I don't know" or "Maybe":
+- "Is there any damage to the wheels, frame, or suspension?"
+- "Can you start it and drive it a few feet, or is it not moving at all?"
+
+If they say "I think it'll drive":
+- "Okay, we'll plan for a wheel-lift tow. If the driver gets there and it's not drivable, we can switch to the flatbed."
+
+If they say "No, it's totaled" or "Frame is bent" or "Won't start":
+- "Got it, we'll bring the flatbed to load it up."
+
+**DEFAULT ASSUMPTION FOR CRASHES:**
+- Accident + airbags deployed = assume flatbed needed
+- Accident + "hit hard" = assume flatbed needed
+- Off-road rollover = assume flatbed needed
+- Minor fender bender + drives fine = wheel-lift okay
+
+**WHAT TO SAY:**
+
+**If drivable after winch-out:**
+- "Alright, so we'll winch it out and then tow it with the wheel-lift. Total is around [price]."
+
+**If NOT drivable (needs flatbed):**
+- "Okay, we'll bring the flatbed to load it up safely. For the winch-out plus flatbed tow, you're looking at around [price]."
+
+**If unsure:**
+- "No problem. We'll have the driver assess it when they get there. They'll bring equipment for either scenario, and we'll go with whatever's safest."
+- Note in dispatch: "Assess drivability after winch-out — may need flatbed"
+
+**PRICING IMPACT:**
+
+- Winch-out + wheel-lift tow = [winch price] + [standard tow price]
+- Winch-out + flatbed tow = [winch price] + [flatbed tow price] (usually higher)
+
+Call check_service_area with correct service_type:
+- If drivable → service_type="winch_out" or "towing"
+- If not drivable → service_type="flatbed_tow"
+
+**DISPATCH NOTES:**
+
+Always include in notes field:
+- "Winch-out required - [location of vehicle: ditch/mud/embankment]"
+- "Vehicle is [drivable/not drivable/TBD] after winching"
+- "Flatbed [required/not required/assess on-site]"
+
+---
+
+## SUMMARY OF FIXES
+
+| Issue | Impact | Fix Location | Severity |
+|-------|--------|--------------|----------|
+| Pricing format (cents vs dollars) | Agent quoted $100 instead of $1,000 | After line 298 | CRITICAL |
+| Price combination logic | Agent added fees already in total | Lines 618-631 | CRITICAL |
+| Drop-off address incomplete | Missing city/state confirmation | Lines 449-453 | CRITICAL |
+| Winch-out drivability not asked | Wrong equipment/pricing | After line 1309 | CRITICAL |
+
+---
+
+## NEXT STEPS
+
+1. Update dispatch_agent_system_prompt_FINAL.txt with these 4 sections
+2. Upload updated prompt to ElevenLabs UI
+3. Test with real calls focusing on:
+   - Multi-thousand dollar services (verify cents→dollars conversion)
+   - Combined services (winch + tow, verify no double-charging)
+   - Out-of-area addresses (verify city/state confirmation)
+   - Crash scenarios (verify drivability question asked)
+
+---
+
+## VERIFICATION CHECKLIST
+
+After updating prompt:
+- [ ] Pricing: Agent converts 100000 cents to "$1,000" (not "$100")
+- [ ] Price combo: Agent doesn't add service fee to check_service_area total
+- [ ] Address: Agent confirms "street + city + state" for drop-off
+- [ ] Winch-out: Agent asks "is it drivable after winching?" for crash/stuck calls

@@ -1303,7 +1303,7 @@ function buildServicesForPrompt(services: NormalizedService[]): string {
     // Trip fee prefix
     const tripFee = s.pricing_config?.trip_fee;
     const tripFeeText = tripFee?.enabled
-      ? `$${tripFee.amount} ${tripFee.label}${tripFee.waived_with_service ? " (waived if you book)" : ""} + `
+      ? `$${(tripFee.amount / 100).toFixed(2)} ${tripFee.label}${tripFee.waived_with_service ? " (waived if you book)" : ""} + `
       : "";
 
     // AI quote behavior
@@ -1319,37 +1319,37 @@ function buildServicesForPrompt(services: NormalizedService[]): string {
           : `Over ${tier.min_miles} miles`;
 
         if (tier.per_mile_price) {
-          return `${rangeText}: $${tier.base_price} base + $${tier.per_mile_price}/mile`;
+          return `${rangeText}: $${(tier.base_price / 100).toFixed(2)} base + $${(tier.per_mile_price / 100).toFixed(2)}/mile`;
         }
-        return `${rangeText}: $${tier.base_price}`;
+        return `${rangeText}: $${(tier.base_price / 100).toFixed(2)}`;
       });
       priceText = `${tripFeeText}Distance-tiered:\n    - ${tierDescriptions.join("\n    - ")}`;
     } else if (model === "per_unit" && s.pricing_config?.per_unit_price) {
       const unitLabel = s.pricing_config.unit_label || "unit";
       const perUnit = s.pricing_config.per_unit_price;
       const minUnits = s.pricing_config.min_units;
-      priceText = `${tripFeeText}$${perUnit} per ${unitLabel}`;
+      priceText = `${tripFeeText}$${(perUnit / 100).toFixed(2)} per ${unitLabel}`;
       if (minUnits && minUnits > 1) {
-        priceText += ` (${minUnits}-${unitLabel} minimum, starting at $${perUnit * minUnits})`;
+        priceText += ` (${minUnits}-${unitLabel} minimum, starting at $${((perUnit * minUnits) / 100).toFixed(2)})`;
       }
       if (quoteBehavior === "quote_rate_only") {
         priceText += " [QUOTE RATE ONLY — do NOT compute total]";
       }
     } else if (model === "package" && s.pricing_config?.packages?.length) {
       const pkgs = s.pricing_config.packages;
-      const pkgList = pkgs.map(p => `${p.name}: $${p.price}${p.description ? ` (${p.description})` : ""}`);
+      const pkgList = pkgs.map(p => `${p.name}: $${(p.price / 100).toFixed(2)}${p.description ? ` (${p.description})` : ""}`);
       priceText = `${tripFeeText}Packages:\n    - ${pkgList.join("\n    - ")}`;
     } else if (model === "flat" && s.price_amount) {
-      priceText = `${tripFeeText}$${s.price_amount} flat rate`;
+      priceText = `${tripFeeText}$${(s.price_amount / 100).toFixed(2)} flat rate`;
       if (s.pricing_config?.included_miles && s.pricing_config?.overage_per_mile) {
-        priceText += ` (${s.pricing_config.included_miles} mi included, +$${s.pricing_config.overage_per_mile}/mi beyond)`;
+        priceText += ` (${s.pricing_config.included_miles} mi included, +$${(s.pricing_config.overage_per_mile / 100).toFixed(2)}/mi beyond)`;
       }
     } else if (model === "variable") {
-      priceText = s.price_amount ? `${tripFeeText}Starting at $${s.price_amount} (varies by job)` : `${tripFeeText}Price varies by job`;
+      priceText = s.price_amount ? `${tripFeeText}Starting at $${(s.price_amount / 100).toFixed(2)} (varies by job)` : `${tripFeeText}Price varies by job`;
     } else if (s.price_type === "fixed" && s.price_amount) {
-      priceText = `${tripFeeText}$${s.price_amount} (exact price)`;
+      priceText = `${tripFeeText}$${(s.price_amount / 100).toFixed(2)} (exact price)`;
     } else if (s.price_type === "starting_at" && s.price_amount) {
-      priceText = `${tripFeeText}Starting at $${s.price_amount} (final price varies)`;
+      priceText = `${tripFeeText}Starting at $${(s.price_amount / 100).toFixed(2)} (final price varies)`;
     } else {
       priceText = `${tripFeeText}Quote required`;
     }
