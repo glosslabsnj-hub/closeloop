@@ -174,6 +174,46 @@ Deno.serve(async (req) => {
       await serviceClient.from("business_faqs").delete().eq("tenant_id", tenantId);
       await serviceClient.from("objection_responses").delete().eq("tenant_id", tenantId);
 
+      // Ensure standalone owner login exists if credentials provided
+      if (config.owner_email && config.owner_password) {
+        let ownerId: string | null = null;
+
+        const { data: newUser, error: createErr } =
+          await serviceClient.auth.admin.createUser({
+            email: config.owner_email,
+            password: config.owner_password,
+            email_confirm: true,
+          });
+
+        if (newUser?.user) {
+          ownerId = newUser.user.id;
+        } else if (
+          createErr &&
+          (createErr.message?.includes("already been registered") ||
+            createErr.message?.includes("already exists"))
+        ) {
+          const { data: listData } =
+            await serviceClient.auth.admin.listUsers();
+          const existing = listData?.users?.find(
+            (u: { email?: string }) => u.email === config.owner_email
+          );
+          if (existing) ownerId = existing.id;
+        } else if (createErr) {
+          console.error("Failed to create owner auth user:", createErr.message);
+        }
+
+        if (ownerId) {
+          await serviceClient
+            .from("profiles")
+            .upsert({ id: ownerId, role: "user" }, { onConflict: "id" });
+
+          await serviceClient.from("tenant_memberships").upsert(
+            { tenant_id: tenantId, user_id: ownerId, role: "owner" },
+            { onConflict: "tenant_id,user_id" }
+          );
+        }
+      }
+
       // Re-seed
       await seedTenantData(serviceClient, tenantId, config);
 
