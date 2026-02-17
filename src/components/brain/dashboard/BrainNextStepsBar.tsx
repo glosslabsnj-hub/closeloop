@@ -163,7 +163,7 @@ export function BrainNextStepsBar({ completions, categories, onNavigate }: Brain
         <Target className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold">What to do next</h3>
         <span className="text-xs text-muted-foreground ml-auto">
-          {steps.length} item{steps.length !== 1 ? "s" : ""}
+          Step 1 of {steps.length}
         </span>
       </div>
 
@@ -176,6 +176,9 @@ export function BrainNextStepsBar({ completions, categories, onNavigate }: Brain
             onClick={() => onNavigate(step.section)}
             className="flex items-center gap-3 w-full p-2.5 rounded-lg hover:bg-muted/50 transition-colors text-left group"
           >
+            <span className="text-xs font-bold text-muted-foreground tabular-nums shrink-0 w-5">
+              {i + 1}.
+            </span>
             <span className={cn(
               "text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 uppercase tracking-wider",
               PRIORITY_COLORS[step.priority],
@@ -184,7 +187,10 @@ export function BrainNextStepsBar({ completions, categories, onNavigate }: Brain
             </span>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{step.label}</p>
-              <p className="text-xs text-muted-foreground truncate">{step.reason}</p>
+              <p className="text-xs text-muted-foreground truncate">
+                {step.reason}
+                {step.priority === "critical" ? " · ~2 min" : step.priority === "important" ? " · ~3 min" : " · ~1 min"}
+              </p>
             </div>
             <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
           </button>

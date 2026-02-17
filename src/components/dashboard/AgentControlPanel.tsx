@@ -10,24 +10,16 @@ import { useQuery } from "@tanstack/react-query";
 import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
 import {
   Phone,
-  Settings2,
-  FlaskConical,
-  Brain,
   Copy,
   Check,
   AlertCircle,
   Shield,
   Activity,
-  Zap,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { AgentOffBehaviorModal } from "./AgentOffBehaviorModal";
 
-/**
- * AgentControlPanel - Stripe-inspired hero card for AI agent status
- * The single most important element on the dashboard
- */
 export function AgentControlPanel() {
   const { tenant, assistantSettings, refreshTenant, subscription, isSuperAdmin } = useAuth();
   const { toast } = useToast();
@@ -38,7 +30,6 @@ export function AgentControlPanel() {
   const hasVoice = hasVoiceFeature(planCode);
   const hasSms = hasSmsFeature(planCode);
 
-  // Fetch phone number
   const { data: phoneNumberData } = useQuery({
     queryKey: ["tenant-phone-number", tenant?.id, isSuperAdmin],
     queryFn: async () => {
@@ -137,29 +128,19 @@ export function AgentControlPanel() {
 
   const businessName = tenant?.name || "Your Business";
 
-  function getGreeting(): string {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 17) return "Good afternoon";
-    return "Good evening";
-  }
-
-  // No subscription — prompt to start
+  // No subscription
   if (!planCode && !isSuperAdmin) {
     return (
-      <Card className="overflow-hidden">
-        <CardContent className="p-8">
-          <div className="flex items-center gap-6">
-            <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center shrink-0">
-              <Phone className="h-7 w-7 text-muted-foreground" />
-            </div>
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center gap-4">
             <div className="flex-1 min-w-0">
-              <h3 className="text-xl font-semibold mb-1">Get your AI receptionist</h3>
+              <h3 className="text-lg font-semibold mb-1">Get your AI receptionist</h3>
               <p className="text-sm text-muted-foreground">
                 Complete setup to start answering calls with AI.
               </p>
             </div>
-            <Button asChild size="lg">
+            <Button asChild>
               <Link to="/app/go-live">Get Started</Link>
             </Button>
           </div>
@@ -170,167 +151,106 @@ export function AgentControlPanel() {
 
   return (
     <>
-      <Card className={cn(
-        "overflow-hidden transition-all duration-300",
-        isActive && "ring-1 ring-success/20"
-      )}>
+      <Card>
         <CardContent className="p-0">
-          {/* Hero Section */}
-          <div className={cn(
-            "relative p-6 pb-5",
-            isActive
-              ? "bg-gradient-to-br from-success/8 via-success/4 to-transparent"
-              : "bg-gradient-to-br from-muted/60 via-muted/30 to-transparent"
-          )}>
-            {/* Greeting + Status Row */}
-            <div className="flex items-start justify-between gap-4 mb-5">
-              <div className="min-w-0">
-                <p className="text-sm text-muted-foreground mb-0.5">{getGreeting()}</p>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                  {businessName}
-                </h1>
-              </div>
+          <div className="px-5 py-4">
+            {/* Status Row */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                {/* Power Toggle */}
+                <button
+                  onClick={() => handleToggle(!isActive)}
+                  disabled={toggling || (!hasPhoneConnected && !isActive)}
+                  className={cn(
+                    "relative shrink-0 h-7 w-12 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    isActive ? "bg-success" : "bg-muted-foreground/25",
+                    (toggling || (!hasPhoneConnected && !isActive)) && "opacity-40 cursor-not-allowed"
+                  )}
+                >
+                  <span className={cn(
+                    "absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow-sm transition-transform duration-200",
+                    isActive && "translate-x-5"
+                  )} />
+                </button>
 
-              {/* Status Indicator */}
-              <div className="flex items-center gap-3 shrink-0">
-                {isSuperAdmin && (
-                  <Badge variant="outline" className="gap-1 text-xs border-primary/30">
-                    <Shield className="h-3 w-3" />
-                    Admin
-                  </Badge>
-                )}
+                <h2 className="text-base font-semibold truncate">{businessName}</h2>
+
                 <div className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
+                  "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium shrink-0",
                   isActive
                     ? "bg-success/15 text-success"
                     : "bg-muted text-muted-foreground"
                 )}>
                   <span className={cn(
-                    "w-2 h-2 rounded-full shrink-0",
-                    isActive ? "bg-success animate-pulse" : "bg-muted-foreground/40"
+                    "w-1.5 h-1.5 rounded-full",
+                    isActive ? "bg-success" : "bg-muted-foreground/40"
                   )} />
                   {isActive ? "Live" : "Paused"}
                 </div>
-              </div>
-            </div>
 
-            {/* Control Strip */}
-            <div className="flex items-center gap-3 flex-wrap">
-              {/* Power Toggle */}
-              <button
-                onClick={() => handleToggle(!isActive)}
-                disabled={toggling || (!hasPhoneConnected && !isActive)}
-                className={cn(
-                  "relative shrink-0 h-8 w-14 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  isActive ? "bg-success" : "bg-muted-foreground/25",
-                  (toggling || (!hasPhoneConnected && !isActive)) && "opacity-40 cursor-not-allowed"
+                {isSuperAdmin && (
+                  <Badge variant="outline" className="gap-1 text-xs border-primary/30 shrink-0">
+                    <Shield className="h-3 w-3" />
+                    Admin
+                  </Badge>
                 )}
-              >
-                <span className={cn(
-                  "absolute top-1 left-1 h-6 w-6 rounded-full bg-white shadow-sm transition-transform duration-200",
-                  isActive && "translate-x-6"
-                )} />
-              </button>
+              </div>
 
-              {/* Divider */}
-              <div className="w-px h-6 bg-border/50" />
-
-              {/* Phone Number */}
-              {hasPhoneConnected ? (
-                <button
-                  onClick={copyPhoneNumber}
-                  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
-                >
-                  <Phone className="h-3.5 w-3.5" />
-                  <span className="font-mono text-[13px]">{formatPhone(closeloopNumber)}</span>
-                  {copied ? (
-                    <Check className="h-3 w-3 text-success" />
-                  ) : (
-                    <Copy className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  )}
-                </button>
-              ) : (
-                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" asChild>
-                  <Link to="/app/go-live">
-                    <Phone className="h-3.5 w-3.5" />
-                    Connect Phone
-                  </Link>
-                </Button>
-              )}
-
-              {/* Divider */}
-              <div className="w-px h-6 bg-border/50 hidden sm:block" />
-
-              {/* Readiness */}
-              <div className="hidden sm:flex items-center gap-2">
-                <div className="flex items-center gap-1.5">
-                  <Activity className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">Readiness</span>
-                </div>
-                <div className="relative w-20 h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className="absolute left-0 top-0 bottom-0 w-px bg-foreground/20 z-10"
-                    style={{ left: '85%' }}
-                  />
-                  <div
-                    className={cn(
-                      "h-full rounded-full transition-all duration-500",
-                      readinessPercent >= 85 ? "bg-success" : "bg-warning"
-                    )}
-                    style={{ width: `${Math.min(readinessPercent, 100)}%` }}
-                  />
-                </div>
-                <span className={cn(
-                  "text-xs font-medium tabular-nums",
-                  readinessPercent >= 85 ? "text-success" : "text-warning"
-                )}>
-                  {readinessPercent}%
-                </span>
-                {!canGoLive && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-[11px] text-warning hover:text-warning gap-1"
-                    onClick={() => navigate("/app/business-brain")}
+              <div className="flex items-center gap-3 shrink-0">
+                {/* Phone Number */}
+                {hasPhoneConnected ? (
+                  <button
+                    onClick={copyPhoneNumber}
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
                   >
-                    <AlertCircle className="h-3 w-3" />
-                    Setup incomplete
+                    <Phone className="h-3.5 w-3.5" />
+                    <span className="font-mono text-xs">{formatPhone(closeloopNumber)}</span>
+                    {copied ? (
+                      <Check className="h-3 w-3 text-success" />
+                    ) : (
+                      <Copy className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </button>
+                ) : (
+                  <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs" asChild>
+                    <Link to="/app/go-live">
+                      <Phone className="h-3.5 w-3.5" />
+                      Connect Phone
+                    </Link>
                   </Button>
                 )}
-              </div>
 
-              {/* Spacer */}
-              <div className="flex-1" />
-
-              {/* Quick Actions */}
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => navigate("/app/simulator")}
-                >
-                  <FlaskConical className="h-3.5 w-3.5" />
-                  <span className="hidden md:inline">Test</span>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => navigate("/app/business-brain")}
-                >
-                  <Brain className="h-3.5 w-3.5" />
-                  <span className="hidden md:inline">Knowledge</span>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => navigate("/app/settings")}
-                >
-                  <Settings2 className="h-3.5 w-3.5" />
-                  <span className="hidden md:inline">Settings</span>
-                </Button>
+                {/* Readiness (desktop) */}
+                <div className="hidden sm:flex items-center gap-2">
+                  <div className="w-px h-5 bg-border" />
+                  <Activity className="h-3.5 w-3.5 text-muted-foreground" />
+                  <div className="relative w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all duration-500",
+                        readinessPercent >= 85 ? "bg-success" : "bg-warning"
+                      )}
+                      style={{ width: `${Math.min(readinessPercent, 100)}%` }}
+                    />
+                  </div>
+                  <span className={cn(
+                    "text-xs font-medium tabular-nums",
+                    readinessPercent >= 85 ? "text-success" : "text-warning"
+                  )}>
+                    {readinessPercent}%
+                  </span>
+                  {!canGoLive && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-[11px] text-warning hover:text-warning gap-1"
+                      onClick={() => navigate("/app/business-brain")}
+                    >
+                      <AlertCircle className="h-3 w-3" />
+                      Complete Setup
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

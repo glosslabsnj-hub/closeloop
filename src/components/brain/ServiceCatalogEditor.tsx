@@ -41,7 +41,7 @@ import { toast } from "sonner";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { getServiceExamples, getSlugServiceExamples, COMPLEXITY_HINTS, PRICE_FACTOR_HINTS } from "@/lib/industryExamples";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
-import { QuotingBehaviorGuidance } from "@/components/brain/guidance/QuotingBehaviorGuidance";
+
 
 type PriceType = "fixed" | "starting_at" | "quote_only";
 
@@ -508,7 +508,7 @@ export function ServiceCatalogEditor() {
         duration_max_minutes: formData.duration_max_minutes,
         required_intake_fields: formData.required_intake_fields.length > 0 ? formData.required_intake_fields : undefined,
         payment_timing: formData.payment_timing,
-      });
+      } as any);
       toast.success("Service updated");
       queryClient.invalidateQueries({ queryKey: ["services"] });
       invalidateBrainQueries(queryClient, tenant?.id);
@@ -541,7 +541,7 @@ export function ServiceCatalogEditor() {
         duration_max_minutes: newServiceData.duration_max_minutes,
         required_intake_fields: newServiceData.required_intake_fields.length > 0 ? newServiceData.required_intake_fields : undefined,
         payment_timing: newServiceData.payment_timing,
-      });
+      } as any);
       toast.success("Service created");
       queryClient.invalidateQueries({ queryKey: ["services"] });
       invalidateBrainQueries(queryClient, tenant?.id);
@@ -620,54 +620,12 @@ export function ServiceCatalogEditor() {
 
   return (
     <div className="space-y-6">
-      {/* Explanation Card */}
-      <div className="rounded-lg border bg-muted/30 p-4">
-        <div className="flex items-start gap-3">
-          <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-          <div className="space-y-2">
-            <p className="text-sm font-medium">What is this?</p>
-            <p className="text-sm text-muted-foreground">
-              Your {terms.services} are what your AI assistant uses to answer pricing questions and book {terms.bookings}. 
-              Each {serviceExamples.serviceName} needs a <strong>name</strong>, <strong>duration</strong>, and <strong>price</strong>. 
-              The AI will use this to help {terms.customers} understand what you offer.
-            </p>
-            <div className="flex items-center gap-2 pt-1">
-              <Lightbulb className="h-4 w-4 text-amber-500" />
-              <p className="text-xs text-muted-foreground">
-                <strong>Tip:</strong> {serviceExamples.priceExamples}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Prominent Upload Banner - Always visible */}
+      {/* Compact upload action */}
       <InlineUploadButton
         contentType="services"
         variant="prominent"
         onUploadComplete={() => queryClient.invalidateQueries({ queryKey: ["services"] })}
       />
-
-      {/* Quoting Behavior Guidance (non-dispatch modes) */}
-      {config.pricing.showQuotingBehaviorGuidance && (
-        <QuotingBehaviorGuidance pricingModel={config.pricing.pricingModel} />
-      )}
-
-      {/* AI Preview */}
-      {services && services.length > 0 && (
-        <div className="rounded-lg border bg-primary/5 border-primary/20 p-4">
-          <div className="flex items-start gap-3">
-            <DollarSign className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-primary mb-1">What the AI tells {terms.customers}</p>
-              <p className="text-sm italic">"{aiQuotePreview}"</p>
-              <p className="text-xs text-muted-foreground mt-2">
-                The AI uses your {terms.services} catalog to provide accurate pricing and duration info
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

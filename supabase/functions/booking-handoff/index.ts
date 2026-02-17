@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { requireAuthedTenant, requireInternalSecret, serviceClient } from "../_shared/tenant.ts";
 import { captureException } from "../_shared/sentry.ts";
 import { sendEmail } from "../_shared/sendEmail.ts";
+import { sendTenantSms } from "../_shared/sms-sender.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -142,44 +143,17 @@ serve(async (req) => {
       }
 
       if (method === "sms" && notify_phone) {
-        const twilioSid = Deno.env.get("TWILIO_ACCOUNT_SID");
-        const twilioAuth = Deno.env.get("TWILIO_AUTH_TOKEN");
+        const smsResult = await sendTenantSms({
+          tenantId,
+          to: notify_phone,
+          body: `[TEST] New booking: Test Customer for Test Service. This is a test.`,
+        });
 
-        if (twilioSid && twilioAuth) {
-          // SECURITY: phone_numbers scoped to validated tenantId
-          const { data: phoneNumber } = await supabase
-            .from("phone_numbers")
-            .select("phone_e164")
-            .eq("tenant_id", tenantId)
-            .eq("purpose", "forwarding")
-            .single();
-
-          const fromNumber = phoneNumber?.phone_e164 || Deno.env.get("DEFAULT_TWILIO_NUMBER");
-
-          if (fromNumber) {
-            const smsBody = `[TEST] New booking: Test Customer for Test Service. This is a test.`;
-
-            const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;
-            const smsResponse = await fetch(twilioUrl, {
-              method: "POST",
-              headers: {
-                "Authorization": `Basic ${btoa(`${twilioSid}:${twilioAuth}`)}`,
-                "Content-Type": "application/x-www-form-urlencoded",
-              },
-              body: new URLSearchParams({
-                To: notify_phone,
-                From: fromNumber,
-                Body: smsBody,
-              }),
-            });
-
-            if (!smsResponse.ok) {
-              throw new Error(`SMS failed: ${await smsResponse.text()}`);
-            }
-          }
+        if (!smsResult.success && !smsResult.skipped) {
+          throw new Error(`SMS failed: ${smsResult.error}`);
         }
 
-        return new Response(JSON.stringify({ success: true, method: "sms" }), {
+        return new Response(JSON.stringify({ success: true, method: "sms", skipped: smsResult.skipped }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -380,55 +354,28 @@ serve(async (req) => {
         }
 
         if (handoffMethod === "sms" && settings.notify_phone) {
-          const twilioSid = Deno.env.get("TWILIO_ACCOUNT_SID");
-          const twilioAuth = Deno.env.get("TWILIO_AUTH_TOKEN");
+          const customerName = booking.lead?.full_name || "Customer";
+          const serviceName = booking.service?.name || "Service";
+          const startTime = new Date(booking.start_at).toLocaleString();
+          const smsBody = `New booking: ${customerName} for ${serviceName} at ${startTime}`;
 
-          if (twilioSid && twilioAuth) {
-            // SECURITY: phone_numbers scoped to validated tenantId
-            const { data: phoneNumber } = await supabase
-              .from("phone_numbers")
-              .select("phone_e164")
-              .eq("tenant_id", tenantId)
-              .eq("purpose", "forwarding")
-              .single();
+          const smsResult = await sendTenantSms({
+            tenantId,
+            to: settings.notify_phone,
+            body: smsBody,
+          });
 
-            const fromNumber = phoneNumber?.phone_e164;
-
-            if (fromNumber) {
-              const customerName = booking.lead?.full_name || "Customer";
-              const serviceName = booking.service?.name || "Service";
-              const startTime = new Date(booking.start_at).toLocaleString();
-
-              const smsBody = `New booking: ${customerName} for ${serviceName} at ${startTime}`;
-
-              const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;
-              const smsResponse = await fetch(twilioUrl, {
-                method: "POST",
-                headers: {
-                  "Authorization": `Basic ${btoa(`${twilioSid}:${twilioAuth}`)}`,
-                  "Content-Type": "application/x-www-form-urlencoded",
-                },
-                body: new URLSearchParams({
-                  To: settings.notify_phone,
-                  From: fromNumber,
-                  Body: smsBody,
-                }),
-              });
-
-              if (!smsResponse.ok) {
-                throw new Error(`SMS failed: ${await smsResponse.text()}`);
-              }
-
-              results.sms = { success: true };
-
-              await supabase.from("handoff_attempts").insert({
-                tenant_id: tenantId,
-                entity_type: "booking",
-                entity_id: booking_id,
-                method: "sms",
-                status: "success",
-              });
-            }
+          if (smsResult.success) {
+            results.sms = { success: true };
+            await supabase.from("handoff_attempts").insert({
+              tenant_id: tenantId,
+              entity_type: "booking",
+              entity_id: booking_id,
+              method: "sms",
+              status: "success",
+            });
+          } else if (!smsResult.skipped) {
+            throw new Error(`SMS failed: ${smsResult.error}`);
           }
         }
       } catch (error) {
@@ -500,6 +447,67 @@ serve(async (req) => {
         console.error("Failed to create Google Calendar event:", e);
         results.google_calendar = { success: false, error: String(e) };
       }
+    }
+
+    // ─── CUSTOMER CONFIRMATION SMS ───────────────────────────────────
+    // Send confirmation SMS to the CUSTOMER (not the owner) if enabled
+    try {
+      const customerPhone = booking.lead?.phone;
+      if (customerPhone) {
+        const { data: assistSettings } = await supabase
+          .from("assistant_settings")
+          .select("settings_json")
+          .eq("tenant_id", tenantId)
+          .maybeSingle();
+
+        const smsTemplates = (assistSettings?.settings_json as any)?.sms_templates;
+        const confirmationConfig = smsTemplates?.appointment_confirmation;
+
+        if (confirmationConfig?.enabled) {
+          const startTime = new Date(booking.start_at).toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+          });
+          const startDate = new Date(booking.start_at).toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+          });
+
+          const template = confirmationConfig.message ||
+            "Hi {{customer_name}}! Your appointment with {{business_name}} is confirmed for {{appointment_date}} at {{appointment_time}}. Reply STOP to opt out.";
+
+          const message = template
+            .replace(/\{\{customer_name\}\}/g, booking.lead?.full_name || "there")
+            .replace(/\{\{business_name\}\}/g, tenantData?.name || "")
+            .replace(/\{\{service_name\}\}/g, booking.service?.name || "your appointment")
+            .replace(/\{\{appointment_time\}\}/g, startTime)
+            .replace(/\{\{appointment_date\}\}/g, startDate);
+
+          const smsResult = await sendTenantSms({
+            tenantId,
+            to: customerPhone,
+            body: message,
+          });
+
+          if (smsResult.success) {
+            await supabase
+              .from("bookings")
+              .update({ confirmation_sent: true })
+              .eq("id", booking_id);
+            results.customer_confirmation = { success: true };
+            console.log(`[booking-handoff] Confirmation SMS sent via ${smsResult.channel} for ${booking_id}`);
+          } else if (smsResult.skipped) {
+            console.log(`[booking-handoff] Skipping customer SMS: no verified channel for ${tenantId}`);
+          } else {
+            console.error(`[booking-handoff] Customer confirmation SMS failed:`, smsResult.error);
+            results.customer_confirmation = { success: false, error: smsResult.error };
+          }
+        }
+      }
+    } catch (e) {
+      console.error("[booking-handoff] Customer confirmation SMS error:", e);
+      results.customer_confirmation = { success: false, error: String(e) };
     }
 
     return new Response(JSON.stringify({ success: true, results }), {

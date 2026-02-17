@@ -496,32 +496,6 @@ export function DailySpecialsEditor() {
 
   return (
     <div className="space-y-6">
-      {/* Explanation */}
-      <div className="rounded-lg border bg-muted/30 p-4">
-        <div className="flex items-start gap-3">
-          <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-          <div className="space-y-2">
-            <p className="text-sm font-medium">What is this?</p>
-            <p className="text-sm text-muted-foreground">
-              Create special offers that run on specific days or times. 
-              The AI will mention active specials to customers and explain what's included.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* AI Preview */}
-      {activeSpecials.length > 0 && (
-        <div className="rounded-lg border bg-primary/5 border-primary/20 p-4">
-          <div className="flex items-start gap-3">
-            <Star className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-primary mb-1">What the AI tells customers</p>
-              <p className="text-sm italic">"{aiPreview}"</p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Header */}
       <div className="flex items-center justify-between">

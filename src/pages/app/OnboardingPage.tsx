@@ -1,298 +1,96 @@
-import { useState, useEffect, useRef } from "react";
+/**
+ * OnboardingPage — 5-phase industry-aware onboarding flow.
+ * Form state extracted to useOnboardingFormState, submission to useOnboardingSubmit.
+ */
+import { useState, useEffect } from "react";
+import { StepNavigator } from "@/components/onboarding/StepNavigator";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import {
   Building2, CheckCircle2, Loader2,
-  ChevronRight, ChevronLeft, Sliders,
-  HelpCircle, ExternalLink, Clock,
-  UtensilsCrossed, Users
+  ChevronRight, ChevronLeft,
+  RefreshCw, Briefcase, Sparkles, Link2, Rocket,
 } from "lucide-react";
-import { createDefaultWorkflowsForMode } from "@/lib/createDefaultWorkflows";
-import { getIndustryBySlug } from "@/data/industryCatalog";
-import { resolveIndustryTemplate } from "@/lib/templateResolver";
-import { BusinessModeSelector, type BusinessMode, getDefaultModulesForMode } from "@/components/onboarding/BusinessModeSelector";
-import { ScenarioDiscovery } from "@/components/onboarding/ScenarioDiscovery";
-import { CommunicationPreferences, getDefaultCommunicationPrefs, type CommunicationPrefs } from "@/components/onboarding/CommunicationPreferences";
-import { ConfirmationSummary } from "@/components/onboarding/ConfirmationSummary";
-import { BusinessDetailsForm, getDefaultBusinessDetails, type BusinessDetails } from "@/components/onboarding/BusinessDetailsForm";
-import { SchedulingSetup, getDefaultSchedulingPrefs, getDefaultHoursForMode, type SchedulingPrefs } from "@/components/onboarding/SchedulingSetup";
-import { TeamSetupStep, type TeamMember } from "@/components/onboarding/TeamSetupStep";
-import { formatErrorForToast } from "@/lib/errorMessages";
-import { OnboardingProgress, OnboardingProgressMobile, type OnboardingStep } from "@/components/onboarding/OnboardingProgress";
+import { useOnboardingValidation } from "@/hooks/useOnboardingValidation";
+import { useOnboardingProgress, ONBOARDING_PHASES } from "@/hooks/useOnboardingProgress";
+import { useOnboardingFormState, clearOnboardingData } from "@/hooks/useOnboardingFormState";
+import { useOnboardingSubmit } from "@/hooks/useOnboardingSubmit";
 import { OnboardingComplete } from "@/components/onboarding/OnboardingComplete";
-import { IndustrySelectorGrid } from "@/components/onboarding/IndustrySelectorGrid";
-import { updateCapabilityFlags } from "@/hooks/useBusinessCapabilities";
-import { getQuestionsForMode, getDefaultAnswers, deriveModulesFromScenario } from "@/lib/scenarioQuestions";
-import { DEFAULT_BUSINESS_HOURS } from "@/lib/hoursUtils";
-import { applyScenarioSeeds } from "@/lib/scenarioSeeding";
-import { ServicePreviewStep, type EditableService } from "@/components/onboarding/ServicePreviewStep";
-import { getDefaultServiceArea, type ServiceAreaConfig } from "@/components/onboarding/ServiceAreaStep";
-import type { EditablePolicies } from "@/components/onboarding/PolicyPreviewStep";
-import type { EditableFAQ } from "@/components/onboarding/FAQPreviewStep";
-import { getIndustryOnboardingConfig } from "@/config/industryOnboardingConfig";
-import type { BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
-import type { PlanCode } from "@/types/database";
+import { ResumeOnboardingModal } from "@/components/onboarding/ResumeOnboardingModal";
+import { AutoSaveIndicator } from "@/components/onboarding/AutoSaveIndicator";
 
-/** 7-step onboarding — deeper, business-aware setup */
-const ALL_STEPS: OnboardingStep[] = [
-  { id: "identity", icon: Building2, title: "Your Business", description: "Name, industry & profile" },
-  { id: "scenarios", icon: HelpCircle, title: "Discovery", description: "How you operate" },
-  { id: "services-preview", icon: UtensilsCrossed, title: "Your Offerings", description: "Review services" },
-  { id: "scheduling", icon: Clock, title: "Scheduling", description: "Hours & availability" },
-  { id: "team", icon: Users, title: "Your Team", description: "Staff & scheduling" },
-  { id: "communication", icon: Sliders, title: "AI Behavior", description: "Tone & booking mode" },
-  { id: "confirm", icon: CheckCircle2, title: "Review", description: "Confirm and launch" },
-];
+// Phase sub-components
+import { OnboardingIdentity } from "@/components/onboarding/phases/OnboardingIdentity";
+import { OnboardingOfferings } from "@/components/onboarding/phases/OnboardingOfferings";
+import { OnboardingAI } from "@/components/onboarding/phases/OnboardingAI";
+import { OnboardingConnect } from "@/components/onboarding/phases/OnboardingConnect";
+import { OnboardingReview } from "@/components/onboarding/phases/OnboardingReview";
 
-const ONBOARDING_STORAGE_KEY = "closeloop_onboarding_progress";
-
-interface OnboardingState {
-  step: number;
-  businessName: string;
-  businessMode: BusinessMode;
-  industrySlug: string;
-  scenarioAnswers: Record<string, boolean>;
-  scenarioDetails: Record<string, string>;
-  schedulingPrefs: SchedulingPrefs;
-  communicationPrefs: CommunicationPrefs;
-  templateServices: EditableService[];
-  templateFAQs: EditableFAQ[];
-  templatePolicies: EditablePolicies;
-  serviceArea: ServiceAreaConfig;
-  businessDetails: BusinessDetails;
-  businessHours: BusinessHours;
-  teamMembers: TeamMember[];
-  isSoloOperator: boolean;
-}
-
-function saveOnboardingProgress(state: OnboardingState) {
-  try {
-    localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(state));
-  } catch { /* ignore quota errors */ }
-}
-
-function loadOnboardingProgress(): OnboardingState | null {
-  try {
-    const raw = localStorage.getItem(ONBOARDING_STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as OnboardingState;
-  } catch {
-    return null;
-  }
-}
-
-function clearOnboardingProgress() {
-  localStorage.removeItem(ONBOARDING_STORAGE_KEY);
-}
+/** Phase icons for sidebar */
+const PHASE_ICONS = [Building2, Briefcase, Sparkles, Link2, Rocket];
 
 export default function OnboardingPage() {
-  // Restore saved progress
-  const saved = useRef(loadOnboardingProgress());
-
-  const [step, setStep] = useState(saved.current?.step ?? 1);
-  const [loading, setLoading] = useState(false);
-  const [isComplete, setIsComplete] = useState(false);
-  const [provisionedPhone, setProvisionedPhone] = useState<string | undefined>();
-
-  // Track if industry template has been initialized
-  const initializedIndustryRef = useRef<string | null>(saved.current?.industrySlug || null);
-
-  // Step 1: Identity
-  const [businessName, setBusinessName] = useState(saved.current?.businessName ?? "");
-  const [businessMode, setBusinessMode] = useState<BusinessMode>(saved.current?.businessMode ?? "service");
-
-  // Step 2: Industry
-  const [industrySlug, setIndustrySlug] = useState(saved.current?.industrySlug ?? "");
-
-  // Modules (derived from industry + scenario answers)
-  const [enabledModules, setEnabledModules] = useState<string[]>([]);
-  // Keep a ref to the "base" modules from industry so scenario derivation can diff
-  const baseModulesRef = useRef<string[]>([]);
-
-  // Step 3: Business Details
-  const [businessDetails, setBusinessDetails] = useState<BusinessDetails>(saved.current?.businessDetails ?? getDefaultBusinessDetails());
-
-  // Step 4: Scenario Discovery
-  const [scenarioAnswers, setScenarioAnswers] = useState<Record<string, boolean>>(saved.current?.scenarioAnswers ?? {});
-  const [scenarioDetails, setScenarioDetails] = useState<Record<string, string>>(saved.current?.scenarioDetails ?? {});
-
-  // Team setup
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(saved.current?.teamMembers ?? []);
-  const [isSoloOperator, setIsSoloOperator] = useState(saved.current?.isSoloOperator ?? true);
-
-  // Step 5: Scheduling & Hours
-  const [businessHours, setBusinessHours] = useState<BusinessHours>(saved.current?.businessHours ?? DEFAULT_BUSINESS_HOURS);
-  const [schedulingPrefs, setSchedulingPrefs] = useState<SchedulingPrefs>(saved.current?.schedulingPrefs ?? getDefaultSchedulingPrefs("service"));
-
-  // Step 6: Communication Preferences
-  const [communicationPrefs, setCommunicationPrefs] = useState<CommunicationPrefs>(
-    saved.current?.communicationPrefs ?? getDefaultCommunicationPrefs("service")
-  );
-
-  // New preview steps state (populated from template when industry changes)
-  const [templateServices, setTemplateServices] = useState<EditableService[]>(saved.current?.templateServices ?? []);
-  const [templateFAQs, setTemplateFAQs] = useState<EditableFAQ[]>(saved.current?.templateFAQs ?? []);
-  const [templatePolicies, setTemplatePolicies] = useState<EditablePolicies>(saved.current?.templatePolicies ?? { cancellation: "", deposit: "", refund: "" });
-  const [serviceArea, setServiceArea] = useState<ServiceAreaConfig>(saved.current?.serviceArea ?? getDefaultServiceArea("service"));
-
-  // "Can't find your industry?" fallback toggle
-  const [showModeFallback, setShowModeFallback] = useState(false);
-
-  // Auto-save progress on state changes
-  useEffect(() => {
-    if (isComplete) return;
-    const timer = setTimeout(() => {
-      saveOnboardingProgress({
-        step, businessName, businessMode, industrySlug,
-        scenarioAnswers, scenarioDetails, schedulingPrefs, communicationPrefs,
-        templateServices, templateFAQs, templatePolicies,
-        serviceArea, businessDetails, businessHours,
-        teamMembers, isSoloOperator,
-      });
-    }, 500); // debounce
-    return () => clearTimeout(timer);
-  }, [step, businessName, businessMode, industrySlug, scenarioAnswers, scenarioDetails, schedulingPrefs, communicationPrefs, templateServices, templateFAQs, templatePolicies, serviceArea, businessDetails, businessHours, teamMembers, isSoloOperator, isComplete]);
-
-  const { user, tenant, loading: authLoading, refreshTenant, isSuperAdmin } = useAuth();
+  const { user, tenant, loading: authLoading } = useAuth();
+  const userId = user?.id;
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const steps = ALL_STEPS;
-  const totalSteps = steps.length;
-  const progress = (step / totalSteps) * 100;
+  const {
+    phase, currentPhase, progressPercent, totalPhases, totalMinutes,
+    hasSavedProgress, goNext: progressGoNext, goBack: progressGoBack,
+    goToPhase, resetProgress, clearProgress,
+  } = useOnboardingProgress(userId);
 
-  // Load industry from sessionStorage (set from demo player or signup flow)
-  useEffect(() => {
-    const storedIndustry = sessionStorage.getItem("selectedIndustry");
-    if (storedIndustry && storedIndustry !== industrySlug) {
-      const isValidIndustry = getIndustryBySlug(storedIndustry);
-      if (isValidIndustry) {
-        console.log(`[Onboarding] Loading stored industry from sessionStorage: ${storedIndustry}`);
-        setIndustrySlug(storedIndustry);
-      }
-      sessionStorage.removeItem("selectedIndustry");
-    }
-  }, []); // Only on mount
+  const form = useOnboardingFormState(userId);
+  const submit = useOnboardingSubmit(userId);
 
-  // Redirect if user already has a tenant (onboarding completed)
-  useEffect(() => {
-    if (!authLoading && tenant) {
-      navigate("/app/dashboard", { replace: true });
-    }
-  }, [authLoading, tenant, navigate]);
+  const { validateStep, getFieldError, clearErrors } = useOnboardingValidation();
 
-  // Initialize data when industry changes
-  useEffect(() => {
-    if (!industrySlug) return;
-    if (initializedIndustryRef.current === industrySlug) return;
+  // Resume modal
+  const [showResumeModal, setShowResumeModal] = useState(() => hasSavedProgress);
+  const [resumeDecided, setResumeDecided] = useState(!hasSavedProgress);
 
-    const industryEntry = getIndustryBySlug(industrySlug);
-
-    // Auto-update business_mode from industry
-    if (industryEntry?.businessMode) {
-      const newMode = industryEntry.businessMode;
-      setBusinessMode(newMode);
-      // Reset communication prefs to match new mode
-      setCommunicationPrefs(getDefaultCommunicationPrefs(newMode));
-      // Reset scheduling prefs to match new mode
-      setSchedulingPrefs(getDefaultSchedulingPrefs(newMode, undefined, industrySlug));
-      setBusinessHours(getDefaultHoursForMode(newMode));
-      // Reset scenario answers to match new mode (with industry context for filtering)
-      const ctx = { slug: industrySlug, category: industryEntry.category };
-      const defaults = getDefaultAnswers(newMode, ctx);
-      // Merge in industry pre-answers (user can still override in Discovery step)
-      const onboardingConfig = getIndustryOnboardingConfig(newMode, industryEntry.category, industrySlug);
-      setScenarioAnswers({ ...defaults, ...onboardingConfig.preAnswers });
-    }
-
-    // Auto-update enabled_modules from industry
-    const modules = industryEntry?.enabledModules ?? getDefaultModulesForMode(businessMode);
-    setEnabledModules(modules);
-    baseModulesRef.current = modules;
-
-    // Populate template preview state
-    const config = resolveIndustryTemplate(industrySlug);
-    setTemplateServices(
-      config.services.map(s => ({
-        name: s.name,
-        duration: s.duration,
-        price: s.price,
-        priceType: s.priceType || "fixed",
-        description: s.description,
-        enabled: true,
-      }))
-    );
-    setTemplateFAQs(
-      config.faqs.map(f => ({
-        question: f.question,
-        answer: f.answer,
-        enabled: true,
-      }))
-    );
-    setTemplatePolicies({
-      cancellation: config.defaultPolicies?.cancellation || "",
-      deposit: config.defaultPolicies?.deposit || "",
-      refund: config.defaultPolicies?.refund || "",
-    });
-    const newMode = industryEntry?.businessMode || businessMode;
-    setServiceArea(getDefaultServiceArea(newMode as BusinessMode));
-
-    console.log(`[Onboarding] Loading template for industry: ${industrySlug}`);
-
-    // Mark this industry as initialized
-    initializedIndustryRef.current = industrySlug;
-  }, [industrySlug, businessMode]);
-
-  // When scenario answers change, derive modules
-  useEffect(() => {
-    if (Object.keys(scenarioAnswers).length === 0) return;
-    const industryEntry = industrySlug ? getIndustryBySlug(industrySlug) : undefined;
-    const ctx = industryEntry ? { slug: industrySlug, category: industryEntry.category } : undefined;
-    const questions = getQuestionsForMode(businessMode, ctx);
-    const derived = deriveModulesFromScenario(baseModulesRef.current, scenarioAnswers, questions);
-    setEnabledModules(derived);
-  }, [scenarioAnswers, businessMode, industrySlug]);
-
-  // When business mode changes (from Step 1 manual selection), reset scenario + comm prefs
-  const handleBusinessModeChange = (mode: BusinessMode) => {
-    setBusinessMode(mode);
-    const industryEntry = industrySlug ? getIndustryBySlug(industrySlug) : undefined;
-    const ctx = industryEntry ? { slug: industrySlug, category: industryEntry.category } : undefined;
-    setScenarioAnswers(getDefaultAnswers(mode, ctx));
-    setCommunicationPrefs(getDefaultCommunicationPrefs(mode));
-    setSchedulingPrefs(getDefaultSchedulingPrefs(mode, undefined, industrySlug));
-    setBusinessHours(getDefaultHoursForMode(mode));
-    setServiceArea(getDefaultServiceArea(mode));
+  const handleResume = () => { setShowResumeModal(false); setResumeDecided(true); };
+  const handleStartFresh = () => {
+    setShowResumeModal(false);
+    setResumeDecided(true);
+    clearOnboardingData(userId);
+    resetProgress();
+    form.resetFormState();
   };
 
-  // Current step ID based on numeric position
-  const currentStepId = steps[step - 1]?.id || "";
+  // Auto-save debounced
+  useEffect(() => {
+    return form.triggerAutoSave(submit.isComplete, resumeDecided);
+  }, [phase, form.businessName, form.businessMode, form.industrySlug, form.workStyle,
+    form.scenarioAnswers, form.scenarioDetails, form.schedulingPrefs, form.communicationPrefs,
+    form.templateServices, form.templateFAQs, form.templatePolicies, form.serviceArea,
+    form.businessDetails, form.businessHours, form.teamMembers, form.isSoloOperator,
+    form.a2pData, form.aiTone, form.bookingMode, form.afterHours, form.customGreeting,
+    form.notificationPhone, submit.isComplete, resumeDecided, userId]);
 
-  // Step validation
-  const canProceed = (stepNum: number) => {
-    const stepId = steps[stepNum - 1]?.id;
-    switch (stepId) {
-      case "identity": return businessName.trim().length > 0 && industrySlug.length > 0;
-      case "scenarios": {
-        if (businessMode === "medical") return scenarioAnswers.requiresHIPAA === true;
-        return true;
-      }
-      case "services-preview": return templateServices.some(s => s.enabled && s.name.trim().length > 0);
-      case "scheduling": return true;
-      case "team": return true; // Solo toggle or team members — always valid
-      case "communication": return true;
-      case "confirm": return true;
+  // Redirect if already has tenant
+  useEffect(() => {
+    if (!authLoading && tenant) navigate("/app/dashboard", { replace: true });
+  }, [authLoading, tenant, navigate]);
+
+  // Phase validation
+  const canProceed = (phaseNum: number) => {
+    switch (phaseNum) {
+      case 1: return form.businessName.trim().length > 0 && form.industrySlug.length > 0;
+      case 2: return form.templateServices.some(s => s.enabled && s.name.trim().length > 0);
+      case 3: return true;
+      case 4: return true;
+      case 5: return true;
       default: return false;
     }
   };
 
-  // Show loading while checking auth state
+  // Loading state
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -304,575 +102,105 @@ export default function OnboardingPage() {
     );
   }
 
-  // If tenant already exists, show redirect message (fallback while navigating)
   if (tenant) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
-          <CheckCircle2 className="h-8 w-8 mx-auto text-success" />
-          <p className="text-muted-foreground">You already have a business set up. Redirecting to dashboard...</p>
+          <CheckCircle2 className="h-8 w-8 mx-auto text-primary" />
+          <p className="text-muted-foreground">Redirecting to dashboard...</p>
         </div>
       </div>
     );
   }
 
-  const handleComplete = async () => {
-    if (!user) {
-      toast({
-        variant: "destructive",
-        title: "Not logged in",
-        description: "Please log in to complete setup.",
-      });
-      navigate("/login?redirect=/app/onboarding");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const isFoodMode = businessMode === "food" || enabledModules.includes("food_orders");
-      const industryEntry = getIndustryBySlug(industrySlug);
-      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-      console.log("Onboarding: business mode determined", {
-        industry: industrySlug,
-        businessMode,
-        enabledModules,
-        isFoodMode,
-      });
-
-      // Build capabilities_json from modules + scenario answers + details + business profile
-      const capabilitiesJson: Record<string, boolean | string> = {};
-      for (const mod of enabledModules) {
-        capabilitiesJson[mod] = true;
-      }
-      for (const [key, val] of Object.entries(scenarioAnswers)) {
-        capabilitiesJson[key] = val;
-      }
-      // Merge follow-up detail values (e.g. depositAmount, serviceRadiusMiles)
-      for (const [key, val] of Object.entries(scenarioDetails)) {
-        if (val) capabilitiesJson[`_${key}`] = val;
-      }
-      // Store business details as capability metadata
-      capabilitiesJson._teamSize = businessDetails.teamSize;
-      capabilitiesJson._locationType = businessDetails.locationType;
-      capabilitiesJson._pricingPosition = businessDetails.pricingPosition;
-      capabilitiesJson._customerType = businessDetails.customerType;
-      capabilitiesJson._expectedCallVolume = businessDetails.expectedCallVolume;
-      capabilitiesJson._yearsInBusiness = businessDetails.yearsInBusiness;
-      capabilitiesJson._isSoloOperator = isSoloOperator;
-
-      // Derive team/fleet capabilities from team size (prefer discovery follow-up over businessDetails)
-      const discoveryTeamSize = (scenarioAnswers as Record<string, any>)._teamSize as string | undefined;
-      const effectiveTeamSize = discoveryTeamSize || businessDetails.teamSize;
-      const hasTeam = effectiveTeamSize === "small" || effectiveTeamSize === "medium" || effectiveTeamSize === "large";
-      if (hasTeam) {
-        capabilitiesJson.hasMultipleStaff = true;
-        capabilitiesJson.fleet_management = true;
-        if (!enabledModules.includes("fleet_management")) {
-          enabledModules.push("fleet_management");
-        }
-      }
-
-      // Derive default_capacity from team size
-      const teamCapacityMap: Record<string, number> = {
-        solo: 1,
-        small: 3,
-        medium: 9,
-        large: 20,
-      };
-      const defaultCapacity = teamCapacityMap[effectiveTeamSize] || 1;
-
-      // Use the hours from scheduling step (not default)
-      const hoursToSave = schedulingPrefs.is24x7
-        ? (await import("@/lib/hoursUtils")).HOURS_24_7
-        : businessHours;
-
-      // 1. Create tenant via edge function
-      const { data: createResult, error: createError } = await supabase.functions.invoke(
-        "create-tenant",
-        {
-            body: {
-            name: businessName.trim(),
-            business_mode: businessMode,
-            timezone,
-            hours_json: hoursToSave,
-            industry: industrySlug,
-            enabled_modules: enabledModules,
-            capabilities_json: capabilitiesJson,
-            hipaa_mode: businessMode === "medical",
-            location: businessDetails.location || undefined,
-            default_capacity: defaultCapacity,
-          },
-        }
-      );
-
-      if (createError) {
-        console.error("Tenant creation transport error:", createError);
-        throw new Error(createError.message || "Failed to create business profile");
-      }
-
-      if (createResult?.error) {
-        console.error("Tenant creation app error:", createResult.error);
-        throw new Error(createResult.error);
-      }
-
-      const tenantId = createResult.tenant_id;
-      if (!tenantId) {
-        throw new Error("No tenant ID returned from server");
-      }
-
-      console.log("Tenant created via edge function:", tenantId.substring(0, 8) + "...");
-
-      // 2. Apply user-validated template data (services, FAQs, objections, policies, coverage)
-      const config = resolveIndustryTemplate(industrySlug);
-
-      // Insert services from user-edited preview (only enabled ones)
-      const servicesToInsert = templateServices
-        .filter(s => s.enabled && s.name.trim().length > 0)
-        .map(s => ({
-          tenant_id: tenantId,
-          name: s.name,
-          description: s.description || null,
-          duration_minutes: s.duration,
-          price_amount: s.price,
-          price_type: (s.priceType || "fixed") as "fixed" | "starting_at" | "quote_only",
-          is_active: true,
-        }));
-
-      if (servicesToInsert.length > 0) {
-        const { error: servicesError } = await supabase
-          .from("services")
-          .insert(servicesToInsert);
-        if (servicesError) {
-          console.error("Services creation error:", servicesError);
-        }
-      }
-
-      // Insert FAQs from user-edited preview (only enabled ones)
-      const faqsToInsert = templateFAQs
-        .filter(f => f.enabled && f.question.trim().length > 0 && f.answer.trim().length > 0)
-        .map((faq, index) => ({
-          tenant_id: tenantId,
-          question: faq.question,
-          answer: faq.answer,
-          priority_weight: index,
-        }));
-
-      if (faqsToInsert.length > 0) {
-        const { error: faqsError } = await supabase
-          .from("business_faqs")
-          .insert(faqsToInsert);
-        if (faqsError) {
-          console.error("FAQs creation error:", faqsError);
-        }
-      }
-
-      // Insert objections from template (not user-edited, kept as-is)
-      const objectionsToInsert = config.objections
-        .filter(o => o.objection.trim().length > 0 && o.response.trim().length > 0)
-        .map((obj, index) => ({
-          tenant_id: tenantId,
-          objection: obj.objection,
-          response: obj.response,
-          priority_weight: index,
-        }));
-
-      if (objectionsToInsert.length > 0) {
-        const { error: objectionsError } = await supabase
-          .from("objection_responses")
-          .insert(objectionsToInsert);
-        if (objectionsError) {
-          console.error("Objections creation error:", objectionsError);
-        }
-      }
-
-      // Apply user-edited policies
-      const { error: policyError } = await supabase
-        .from("tenants")
-        .update({
-          cancellation_policy: templatePolicies.cancellation || null,
-          deposit_policy: templatePolicies.deposit || null,
-          refund_policy: templatePolicies.refund || null,
-        })
-        .eq("id", tenantId);
-      if (policyError) {
-        console.error("Policies update error:", policyError);
-      }
-
-      // Apply service area settings (if coverage step was shown)
-      const showsCoverage = ["dispatch", "service", "food"].includes(businessMode);
-      if (showsCoverage) {
-        const { error: areaError } = await supabase
-          .from("tenants")
-          .update({
-            service_area_json: {
-              radius_miles: serviceArea.radiusMiles,
-              zip_codes: serviceArea.zipCodes ? serviceArea.zipCodes.split(",").map(z => z.trim()).filter(Boolean) : [],
-              out_of_area_message: serviceArea.outOfAreaMessage,
-            },
-          })
-          .eq("id", tenantId);
-        if (areaError) {
-          console.error("Service area update error:", areaError);
-        }
-      }
-
-      // 3. Save scenario flags
-      await updateCapabilityFlags(tenantId, scenarioAnswers);
-
-      // 3b. Seed high-confidence content from scenario answers
-      await applyScenarioSeeds(tenantId, scenarioAnswers, businessMode);
-
-      // 4. Create food order settings for food mode (with defaults from scenario)
-      if (isFoodMode) {
-        const { error: foodSettingsError } = await supabase
-          .from("food_order_settings")
-          .insert({
-            tenant_id: tenantId,
-            accepts_pickup: true,
-            accepts_delivery: scenarioAnswers.offersDelivery ?? false,
-            accepts_dine_in: true,
-            accepts_catering: scenarioAnswers.offersCatering ?? false,
-            order_confirmation_mode: "auto_confirm",
-          });
-        if (foodSettingsError) {
-          console.error("Food order settings creation error:", foodSettingsError);
-        }
-      }
-
-      // 5. Create default automations
-      const automationsToInsert = [
-        {
-          tenant_id: tenantId,
-          name: "Missed Call Follow-up",
-          trigger: "missed_call" as const,
-          is_enabled: true,
-          steps_json: [
-            { type: "send_message", body: "Hi! We noticed we missed your call. How can we help you today?" },
-          ],
-        },
-        {
-          tenant_id: tenantId,
-          name: "Booking Confirmation",
-          trigger: "booking_created" as const,
-          is_enabled: true,
-          steps_json: [
-            { type: "send_message", body: "Your appointment is confirmed! We'll see you soon." },
-          ],
-        },
-      ];
-
-      const { error: autoError } = await supabase
-        .from("automations")
-        .insert(automationsToInsert);
-      if (autoError) {
-        console.error("Automations creation error:", autoError);
-      }
-
-      // 6. Subscription
-      const selectedPlan = sessionStorage.getItem("selectedPlan") as PlanCode | null;
-      const planCode: PlanCode = selectedPlan || "voice";
-
-      const { error: subError } = await supabase
-        .from("subscriptions")
-        .insert({
-          tenant_id: tenantId,
-          plan_code: planCode,
-          status: "trialing",
-          current_period_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        });
-
-      if (subError) {
-        console.error("Subscription creation error:", subError);
-        throw new Error("Failed to activate trial");
-      }
-
-      // 7. Initialize assistant settings, then save communication prefs
-      const { error: settingsError } = await supabase.rpc("initialize_assistant_settings", {
-        _tenant_id: tenantId,
-        _plan_code: planCode,
-      });
-
-      if (settingsError) {
-        console.error("Assistant settings error:", settingsError);
-      }
-
-      // Save communication preferences (including new fields)
-      const commUpdate: Record<string, unknown> = {
-        ai_booking_mode: communicationPrefs.aiBookingMode,
-        missed_call_behavior: communicationPrefs.missedCallBehavior,
-        unknown_question_behavior: communicationPrefs.unknownQuestionBehavior,
-      };
-
-      // Store all enriched settings in settings_json
-      const settingsJson: Record<string, unknown> = {};
-      if (communicationPrefs.aiTone) settingsJson.ai_tone = communicationPrefs.aiTone;
-      if (communicationPrefs.followUpCadence) settingsJson.followup_cadence = communicationPrefs.followUpCadence;
-      if (communicationPrefs.customGreeting) settingsJson.custom_greeting = communicationPrefs.customGreeting;
-      if (communicationPrefs.aiGuardrails) settingsJson.ai_guardrails = communicationPrefs.aiGuardrails;
-      if (communicationPrefs.requiredIntakeFields?.length) settingsJson.required_intake_fields = communicationPrefs.requiredIntakeFields;
-      if (communicationPrefs.escalationRules) settingsJson.escalation_rules = communicationPrefs.escalationRules;
-
-      if (Object.keys(settingsJson).length > 0) {
-        commUpdate.settings_json = settingsJson;
-      }
-
-      const { error: commPrefsError } = await supabase
-        .from("assistant_settings")
-        .update(commUpdate)
-        .eq("tenant_id", tenantId);
-
-      if (commPrefsError) {
-        console.error("Communication prefs save error:", commPrefsError);
-      }
-
-      // Save greeting and tone to ai_assistants (canonical source for AI behavior)
-      const assistantUpsertData: Record<string, unknown> = {};
-      if (communicationPrefs.aiTone) assistantUpsertData.tone = communicationPrefs.aiTone;
-      if (communicationPrefs.customGreeting) assistantUpsertData.greeting_script = communicationPrefs.customGreeting;
-
-      if (Object.keys(assistantUpsertData).length > 0) {
-        const { data: existingAssistant } = await supabase
-          .from("ai_assistants").select("id").eq("tenant_id", tenantId).maybeSingle();
-        if (existingAssistant) {
-          await supabase.from("ai_assistants").update(assistantUpsertData).eq("tenant_id", tenantId);
-        } else {
-          await supabase.from("ai_assistants").insert({ tenant_id: tenantId, ...assistantUpsertData });
-        }
-      }
-
-      // 7b. Save team members (stored in capabilities_json for now; Phase 3 creates staff_members table)
-      if (!isSoloOperator && teamMembers.length > 0) {
-        const teamData = teamMembers
-          .filter((m) => m.name.trim().length > 0)
-          .map((m) => ({
-            name: m.name.trim(),
-            role: m.role,
-            phone: m.phone || null,
-            email: m.email || null,
-            canPerformAllServices: m.canPerformAllServices,
-            serviceNames: m.serviceNames,
-          }));
-
-        if (teamData.length > 0) {
-          const { error: teamError } = await supabase
-            .from("tenants")
-            .update({
-              context_fields_json: supabase.rpc ? undefined : undefined, // handled below
-            })
-            .eq("id", tenantId);
-
-          // Store team data in capabilities_json (alongside other capabilities)
-          // This will be migrated to staff_members table in Phase 3
-          const { error: teamCapError } = await supabase
-            .from("tenants")
-            .update({
-              capabilities_json: {
-                ...(capabilitiesJson as Record<string, unknown> || {}),
-                _team_members: teamData,
-              } as unknown as import("@/integrations/supabase/types").Json,
-            })
-            .eq("id", tenantId);
-
-          if (teamCapError) {
-            console.error("Team members save error:", teamCapError);
-          }
-        }
-      }
-
-      // 7c. Save scenario details (pricing data from follow-ups) to pricing_rules_jsonb
-      const pricingFromDetails: Record<string, unknown> = {};
-      if (scenarioDetails.depositType) pricingFromDetails.deposit_type = scenarioDetails.depositType;
-      if (scenarioDetails.depositAmount) pricingFromDetails.deposit_amount = Number(scenarioDetails.depositAmount);
-      if (scenarioDetails.tripFeeAmount) pricingFromDetails.trip_fee = Number(scenarioDetails.tripFeeAmount);
-      if (scenarioDetails.minimumChargeAmount) pricingFromDetails.minimum_charge = Number(scenarioDetails.minimumChargeAmount);
-      if (scenarioDetails.afterHoursSurcharge) pricingFromDetails.after_hours_surcharge = Number(scenarioDetails.afterHoursSurcharge);
-      if (scenarioDetails.baseRate) pricingFromDetails.base_rate = Number(scenarioDetails.baseRate);
-      if (scenarioDetails.perMileRate) pricingFromDetails.per_mile_rate = Number(scenarioDetails.perMileRate);
-      if (scenarioDetails.cancellationNoticeHours) pricingFromDetails.cancellation_notice_hours = Number(scenarioDetails.cancellationNoticeHours);
-      if (scenarioDetails.cancellationFee) pricingFromDetails.cancellation_fee = Number(scenarioDetails.cancellationFee);
-
-      if (Object.keys(pricingFromDetails).length > 0) {
-        const { error: pricingError } = await supabase
-          .from("tenants")
-          .update({ pricing_rules_jsonb: pricingFromDetails as unknown as import("@/integrations/supabase/types").Json })
-          .eq("id", tenantId);
-        if (pricingError) {
-          console.error("Pricing rules save error:", pricingError);
-        }
-      }
-
-      // 7d. Save service area details from follow-ups
-      if (scenarioDetails.serviceRadiusMiles || scenarioDetails.deliveryRadiusMiles) {
-        const currentRadius = Number(scenarioDetails.serviceRadiusMiles || scenarioDetails.deliveryRadiusMiles);
-        if (currentRadius > 0) {
-          const { error: areaUpdateError } = await supabase
-            .from("tenants")
-            .update({
-              service_area_json: {
-                radius_miles: currentRadius,
-                zip_codes: serviceArea.zipCodes ? serviceArea.zipCodes.split(",").map(z => z.trim()).filter(Boolean) : [],
-                out_of_area_message: serviceArea.outOfAreaMessage,
-              },
-            })
-            .eq("id", tenantId);
-          if (areaUpdateError) {
-            console.error("Service area update from details error:", areaUpdateError);
-          }
-        }
-      }
-
-      // 8. Twilio provisioning
-      const shouldProvision = planCode.startsWith("voice") || planCode.startsWith("both");
-
-      if (shouldProvision && !isSuperAdmin) {
-        try {
-          console.log("TwilioProvision: start", { tenantId, planCode });
-          const { data: provisionData, error: provisionError } = await supabase.functions.invoke(
-            "provision-twilio-number",
-            {
-              body: { tenant_id: tenantId, number_type: "local" },
-            }
-          );
-
-          if (provisionError) {
-            console.error("TwilioProvision: error", { message: provisionError.message });
-          } else if (provisionData?.success) {
-            if (provisionData.phone_number) {
-              setProvisionedPhone(provisionData.phone_number);
-            }
-            console.log("TwilioProvision: success", {
-              phone_e164: provisionData.phone_number,
-              twilio_sid: provisionData.phone_sid,
-            });
-          } else {
-            console.error("TwilioProvision: failed", { error: provisionData?.error });
-          }
-        } catch (provErr: unknown) {
-          console.error("TwilioProvision: exception", { message: provErr instanceof Error ? provErr.message : String(provErr) });
-        }
-      } else {
-        console.log("TwilioProvision: skipped", { reason: isSuperAdmin ? "admin-test-tenant" : "no-voice-feature", planCode });
-      }
-
-      // 9. Auto-create default workflows
-      try {
-        const workflowBusinessMode = industryEntry?.businessMode || "service";
-        console.log("WorkflowsAutoCreate: start", { tenantId, businessMode: workflowBusinessMode });
-
-        const { success, workflowIds, error: workflowError } = await createDefaultWorkflowsForMode(
-          tenantId,
-          workflowBusinessMode as BusinessMode
-        );
-
-        if (success) {
-          console.log("WorkflowsAutoCreate: success", { workflowCount: workflowIds.length });
-        } else {
-          console.error("WorkflowsAutoCreate: failed", { error: workflowError });
-        }
-      } catch (wfErr: unknown) {
-        console.error("WorkflowsAutoCreate: exception", { message: wfErr instanceof Error ? wfErr.message : String(wfErr) });
-      }
-
-      // 10. Mark onboarding as complete
-      await supabase
-        .from("tenants")
-        .update({ onboarding_completed_at: new Date().toISOString() })
-        .eq("id", tenantId);
-
-      sessionStorage.removeItem("selectedPlan");
-
-      await refreshTenant();
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      clearOnboardingProgress();
-      setIsComplete(true);
-    } catch (error: unknown) {
-      console.error("Onboarding error:", error);
-      const errorInfo = formatErrorForToast(error);
-      toast({
-        variant: "destructive",
-        title: errorInfo.title,
-        description: errorInfo.description,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const buildSubmitParams = () => ({
+    businessName: form.businessName,
+    businessMode: form.businessMode,
+    industrySlug: form.industrySlug,
+    workStyle: form.workStyle,
+    enabledModules: form.enabledModules,
+    scenarioAnswers: form.scenarioAnswers,
+    scenarioDetails: form.scenarioDetails,
+    schedulingPrefs: form.schedulingPrefs,
+    communicationPrefs: form.communicationPrefs,
+    templateServices: form.templateServices,
+    templateFAQs: form.templateFAQs,
+    templatePolicies: form.templatePolicies,
+    serviceArea: form.serviceArea,
+    businessDetails: form.businessDetails,
+    businessHours: form.businessHours as Record<string, unknown>,
+    teamMembers: form.teamMembers,
+    isSoloOperator: form.isSoloOperator,
+    a2pData: form.a2pData,
+    aiTone: form.aiTone,
+    bookingMode: form.bookingMode,
+    afterHours: form.afterHours,
+    customGreeting: form.customGreeting,
+    notificationPhone: form.notificationPhone,
+  });
 
   const goNext = () => {
-    if (step < totalSteps) {
-      setStep(step + 1);
-    } else {
-      handleComplete();
+    if (phase === 1) {
+      const isValid = validateStep("identity", { businessName: form.businessName, industrySlug: form.industrySlug, businessDetails: form.businessDetails });
+      if (!isValid) return;
+    } else if (phase === 2) {
+      const isValid = validateStep("services-preview", { templateServices: form.templateServices });
+      if (!isValid) return;
     }
+    clearErrors();
+    if (phase < totalPhases) progressGoNext();
   };
 
   const goBack = () => {
-    if (step > 1) {
-      setStep(step - 1);
-    }
+    clearErrors();
+    if (phase > 1) progressGoBack();
   };
-
-  const currentStepInfo = steps[step - 1] || steps[0];
 
   return (
     <div className="min-h-screen bg-background flex">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-80 border-r bg-card flex-col">
-        {/* Logo */}
-        <div className="p-6 border-b">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">CL</span>
-            </div>
-            <span className="font-semibold text-lg">Voxly</span>
-          </div>
-        </div>
-
-        {/* Progress Nav */}
-        <nav className="flex-1 p-4 overflow-y-auto">
-          <OnboardingProgress
-            steps={steps}
-            currentStep={step}
-            onStepClick={(s) => s < step && setStep(s)}
-          />
-        </nav>
-
-        {/* Help Footer */}
-        <div className="p-6 border-t">
-          <p className="text-sm text-muted-foreground">
-            Need help?{" "}
-            <a
-              href="https://docs.lovable.dev"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline inline-flex items-center gap-1"
-            >
-              Contact support
-              <ExternalLink className="h-3 w-3" />
-            </a>
-          </p>
-        </div>
-      </aside>
+      <StepNavigator
+        steps={ONBOARDING_PHASES}
+        icons={PHASE_ICONS}
+        currentStep={phase}
+        onStepClick={goToPhase}
+        totalMinutes={totalMinutes}
+      />
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-h-screen">
-        {/* Mobile Progress Bar */}
-        <div className="lg:hidden">
-          <OnboardingProgressMobile
-            currentStep={step}
-            totalSteps={totalSteps}
-            stepTitle={currentStepInfo?.title || ""}
-          />
+        {/* Mobile Progress */}
+        <div className="lg:hidden p-4 border-b bg-card">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium">
+              Step {phase} of {totalPhases} — {currentPhase.title}
+            </p>
+            <span className="text-sm font-medium text-muted-foreground">{progressPercent}%</span>
+          </div>
+          <Progress value={progressPercent} className="h-1.5" />
         </div>
 
-        {/* Step Content - Centered */}
-        <div className="flex-1 flex items-center justify-center p-6">
+        {/* Desktop Progress Bar */}
+        <div className="hidden lg:block px-6 pt-6">
+          <div className="max-w-2xl mx-auto">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-muted-foreground">
+                Step {phase} of {totalPhases} — {currentPhase.title}
+              </p>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-muted-foreground">{progressPercent}%</span>
+                <AutoSaveIndicator status={form.saveStatus} />
+              </div>
+            </div>
+            <Progress value={progressPercent} className="h-2" />
+          </div>
+        </div>
+
+        {/* Step Content */}
+        <div className="flex-1 flex items-start justify-center p-6 overflow-y-auto">
           <div className="w-full max-w-2xl">
             <AnimatePresence mode="wait">
-              {isComplete ? (
+              {submit.isComplete ? (
                 <motion.div
                   key="complete"
                   initial={{ opacity: 0, y: 10 }}
@@ -880,150 +208,89 @@ export default function OnboardingPage() {
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <OnboardingComplete businessName={businessName} phoneNumber={provisionedPhone} businessMode={businessMode} scenarioAnswers={scenarioAnswers} industrySlug={industrySlug} />
+                  <OnboardingComplete
+                    businessName={form.businessName}
+                    phoneNumber={submit.provisionedPhone}
+                    businessMode={form.businessMode}
+                    scenarioAnswers={form.scenarioAnswers}
+                    industrySlug={form.industrySlug}
+                  />
                 </motion.div>
               ) : (
                 <motion.div
-                  key={step}
+                  key={phase}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
-                  className="space-y-6"
                 >
-                  {/* Identity + Industry + Business Profile (combined step) */}
-                  {currentStepId === "identity" && (
-                    <div className="space-y-6">
-                      <div>
-                        <h2 className="text-2xl font-semibold tracking-tight">
-                          What's your business called?
-                        </h2>
-                        <p className="mt-2 text-muted-foreground">
-                          This is how your AI will introduce itself on calls.
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="business-name">Business Name</Label>
-                        <Input
-                          id="business-name"
-                          placeholder="e.g. Mike's Auto Detailing"
-                          value={businessName}
-                          onChange={(e) => setBusinessName(e.target.value)}
-                          autoFocus
-                        />
-                      </div>
-                      <IndustrySelectorGrid
-                        value={industrySlug}
-                        onChange={(slug) => {
-                          setIndustrySlug(slug);
-                          setShowModeFallback(false);
-                        }}
-                      />
-                      {!showModeFallback ? (
-                        <button
-                          type="button"
-                          className="text-sm text-muted-foreground hover:text-primary underline"
-                          onClick={() => setShowModeFallback(true)}
-                        >
-                          Can't find your industry?
-                        </button>
-                      ) : (
-                        <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground">Choose your business type instead:</p>
-                          <BusinessModeSelector value={businessMode} onChange={handleBusinessModeChange} />
-                        </div>
-                      )}
-
-                      {/* Business Profile — shown after industry is selected */}
-                      {industrySlug && (
-                        <div className="pt-4 border-t space-y-6">
-                          <div>
-                            <h3 className="text-lg font-semibold tracking-tight">
-                              Tell us a bit more
-                            </h3>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              These details help us customize your AI and dashboard.
-                            </p>
-                          </div>
-                          <BusinessDetailsForm
-                            businessMode={businessMode}
-                            value={businessDetails}
-                            onChange={setBusinessDetails}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Scenario Discovery — with inline follow-up fields */}
-                  {currentStepId === "scenarios" && (
-                    <ScenarioDiscovery
-                      businessMode={businessMode}
-                      answers={scenarioAnswers}
-                      onChange={setScenarioAnswers}
-                      details={scenarioDetails}
-                      onDetailsChange={setScenarioDetails}
-                      industrySlug={industrySlug}
-                      industryCategory={getIndustryBySlug(industrySlug)?.category}
+                  {phase === 1 && (
+                    <OnboardingIdentity
+                      businessName={form.businessName}
+                      onBusinessNameChange={form.setBusinessName}
+                      industrySlug={form.industrySlug}
+                      onIndustryChange={form.setIndustrySlug}
+                      businessMode={form.businessMode}
+                      onBusinessModeChange={form.handleBusinessModeChange}
+                      workStyle={form.workStyle}
+                      onWorkStyleChange={form.setWorkStyle}
+                      getFieldError={getFieldError}
                     />
                   )}
-
-                  {/* Services Preview (NEW) */}
-                  {currentStepId === "services-preview" && (
-                    <ServicePreviewStep
-                      businessMode={businessMode}
-                      industrySlug={industrySlug}
-                      services={templateServices}
-                      onChange={setTemplateServices}
+                  {phase === 2 && (
+                    <OnboardingOfferings
+                      businessMode={form.businessMode}
+                      industrySlug={form.industrySlug}
+                      services={form.templateServices}
+                      onServicesChange={form.setTemplateServices}
+                      hours={form.businessHours}
+                      onHoursChange={form.setBusinessHours}
+                      is24x7={form.schedulingPrefs.is24x7}
+                      onIs24x7Change={(v) => form.setSchedulingPrefs({ ...form.schedulingPrefs, is24x7: v })}
+                      serviceArea={form.serviceArea}
+                      onServiceAreaChange={form.setServiceArea}
+                      workStyle={form.workStyle}
                     />
                   )}
-
-                  {/* Scheduling & Hours */}
-                  {currentStepId === "scheduling" && (
-                    <SchedulingSetup
-                      businessMode={businessMode}
-                      hours={businessHours}
-                      onHoursChange={setBusinessHours}
-                      prefs={schedulingPrefs}
-                      onPrefsChange={setSchedulingPrefs}
-                      scenarioAnswers={scenarioAnswers}
+                  {phase === 3 && (
+                    <OnboardingAI
+                      businessMode={form.businessMode}
+                      aiTone={form.aiTone}
+                      onAiToneChange={form.setAiTone}
+                      bookingMode={form.bookingMode}
+                      onBookingModeChange={form.setBookingMode}
+                      afterHours={form.afterHours}
+                      onAfterHoursChange={form.setAfterHours}
+                      customGreeting={form.customGreeting}
+                      onCustomGreetingChange={form.setCustomGreeting}
                     />
                   )}
-
-                  {/* Team Setup */}
-                  {currentStepId === "team" && (
-                    <TeamSetupStep
-                      isSolo={isSoloOperator}
-                      onSoloChange={setIsSoloOperator}
-                      members={teamMembers}
-                      onChange={setTeamMembers}
-                      services={templateServices}
+                  {phase === 4 && (
+                    <OnboardingConnect
+                      notificationPhone={form.notificationPhone}
+                      onNotificationPhoneChange={form.setNotificationPhone}
+                      calendarConnected={form.calendarConnected}
+                      onConnectCalendar={() => {
+                        toast({ title: "Calendar", description: "Calendar connection will be available after setup." });
+                      }}
                     />
                   )}
-
-                  {/* Communication Preferences */}
-                  {currentStepId === "communication" && (
-                    <CommunicationPreferences
-                      businessMode={businessMode}
-                      value={communicationPrefs}
-                      onChange={setCommunicationPrefs}
-                      scenarioAnswers={scenarioAnswers}
-                    />
-                  )}
-
-                  {/* Confirmation */}
-                  {currentStepId === "confirm" && (
-                    <ConfirmationSummary
-                      businessName={businessName}
-                      businessMode={businessMode}
-                      industrySlug={industrySlug}
-                      scenarioAnswers={scenarioAnswers}
-                      communicationPrefs={communicationPrefs}
-                      schedulingPrefs={schedulingPrefs}
-                      templateServices={templateServices}
-                      teamMembers={teamMembers}
-                      isSoloOperator={isSoloOperator}
-                      onEditStep={(stepNum) => setStep(stepNum)}
+                  {phase === 5 && (
+                    <OnboardingReview
+                      businessName={form.businessName}
+                      businessMode={form.businessMode}
+                      industrySlug={form.industrySlug}
+                      services={form.templateServices}
+                      aiTone={form.aiTone}
+                      bookingMode={form.bookingMode}
+                      afterHours={form.afterHours}
+                      is24x7={form.schedulingPrefs.is24x7}
+                      workStyle={form.workStyle}
+                      serviceAreaRadius={form.serviceArea.radiusMiles}
+                      onEditPhase={goToPhase}
+                      onTestAI={() => toast({ title: "Test AI", description: "AI testing will be available after setup." })}
+                      onGoLive={() => submit.handleComplete(buildSubmitParams(), clearProgress)}
+                      loading={submit.loading}
                     />
                   )}
                 </motion.div>
@@ -1033,41 +300,72 @@ export default function OnboardingPage() {
         </div>
 
         {/* Footer Navigation */}
-        {!isComplete && (
+        {!submit.isComplete && phase < 5 && (
           <div className="border-t bg-card p-6">
-            <div className="max-w-2xl mx-auto flex justify-between gap-4">
-              <Button
-                variant="ghost"
-                onClick={goBack}
-                disabled={step === 1}
-                className="gap-2"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                Back
-              </Button>
-              <Button
-                onClick={step === totalSteps ? handleComplete : goNext}
-                disabled={!canProceed(step) || loading}
-                className="gap-2 min-w-[140px]"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Setting up...
-                  </>
-                ) : step === totalSteps ? (
-                  "Complete Setup"
-                ) : (
-                  <>
+            <div className="max-w-2xl mx-auto space-y-3">
+              {submit.completionError && (
+                <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm text-center">
+                  {submit.completionError}
+                </div>
+              )}
+              <div className="flex justify-between gap-4">
+                <Button variant="ghost" onClick={goBack} disabled={phase === 1} className="gap-2">
+                  <ChevronLeft className="w-4 h-4" />
+                  Back
+                </Button>
+                <div className="flex gap-2">
+                  {phase === 4 && (
+                    <Button variant="ghost" onClick={goNext} className="text-muted-foreground">
+                      Skip for now
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      toast({ title: "Progress saved", description: "You can resume anytime." });
+                      navigate("/");
+                    }}
+                  >
+                    Save & Exit
+                  </Button>
+                  <Button
+                    onClick={goNext}
+                    disabled={!canProceed(phase)}
+                    className="gap-2 min-w-[140px]"
+                  >
                     Continue
                     <ChevronRight className="w-4 h-4" />
-                  </>
-                )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Phase 5 retry buttons */}
+        {!submit.isComplete && phase === 5 && submit.showRetry && !submit.loading && (
+          <div className="border-t bg-card p-6">
+            <div className="max-w-2xl mx-auto flex justify-center gap-3">
+              <Button variant="ghost" onClick={() => goToPhase(1)} className="gap-2">
+                <ChevronLeft className="w-4 h-4" />
+                Go back and edit
+              </Button>
+              <Button variant="outline" onClick={() => submit.handleRetry(buildSubmitParams(), clearProgress)} className="gap-2">
+                <RefreshCw className="w-4 h-4" />
+                Retry ({submit.MAX_RETRIES - submit.retryCount} left)
               </Button>
             </div>
           </div>
         )}
       </main>
+
+      {/* Resume Modal */}
+      <ResumeOnboardingModal
+        open={showResumeModal}
+        savedAt={form.saved.current?.savedAt}
+        onResume={handleResume}
+        onStartFresh={handleStartFresh}
+      />
     </div>
   );
 }

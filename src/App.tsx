@@ -1,9 +1,11 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "next-themes";
 import { SessionExpirationHandler } from "@/components/auth/SessionExpirationHandler";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
@@ -23,7 +25,7 @@ import CustomerPortalPage from "@/pages/public/CustomerPortalPage";
 import PublicROIReportPage from "@/pages/public/PublicROIReportPage";
 
 // App Pages
-import OnboardingPage from "@/pages/app/OnboardingPage";
+const OnboardingPage = lazy(() => import("@/pages/app/OnboardingPage"));
 import DashboardPage from "@/pages/app/DashboardPage";
 import UnifiedInboxPage from "@/pages/app/UnifiedInboxPage";
 import BookingsPage from "@/pages/app/BookingsPage";
@@ -33,7 +35,7 @@ import AIAssistantPage from "@/pages/app/AIAssistantPage";
 import SettingsPage from "@/pages/app/SettingsPage";
 import SimulatorPage from "@/pages/app/SimulatorPage";
 import GoLivePage from "@/pages/app/GoLivePage";
-import BusinessBrainPage from "@/pages/app/BusinessBrainPage";
+const BusinessBrainPage = lazy(() => import("@/pages/app/BusinessBrainPage"));
 import BusinessBrainGapsPage from "@/pages/app/BusinessBrainGapsPage";
 import ReadinessFixCenterPage from "@/pages/app/ReadinessFixCenterPage";
 import UsagePage from "@/pages/app/UsagePage";
@@ -45,6 +47,7 @@ import DispatchMapPage from "@/pages/app/DispatchMapPage";
 import InventoryPage from "@/pages/app/InventoryPage";
 import KitchenDisplayPage from "@/pages/app/KitchenDisplayPage";
 import LoyaltyPage from "@/pages/app/LoyaltyPage";
+import TestAIPage from "@/pages/app/TestAIPage";
 
 // Module-specific pages
 import OrdersPage from "@/pages/app/OrdersPage";
@@ -98,6 +101,7 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
     <AuthProvider>
         <TooltipProvider>
           <Toaster />
@@ -124,7 +128,7 @@ const App = () => (
             <Route path="/roi/:tenantId/:shareToken" element={<PublicROIReportPage />} />
 
             {/* Onboarding and Go-Live (no layout) */}
-            <Route path="/app/onboarding" element={<OnboardingPage />} />
+            <Route path="/app/onboarding" element={<Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>}><OnboardingPage /></Suspense>} />
             <Route path="/app/go-live" element={<GoLivePage />} />
 
             {/* App Routes */}
@@ -143,7 +147,8 @@ const App = () => (
               {/* Legacy routes - redirect to integrations */}
               <Route path="/app/automations" element={<IntegrationsPage />} />
               <Route path="/app/simulator" element={<SimulatorPage />} />
-              <Route path="/app/business-brain" element={<BusinessBrainPage />} />
+              <Route path="/app/test-ai" element={<TestAIPage />} />
+              <Route path="/app/business-brain" element={<Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>}><BusinessBrainPage /></Suspense>} />
               <Route path="/app/business-brain/gaps" element={<BusinessBrainGapsPage />} />
               <Route path="/app/readiness" element={<ReadinessFixCenterPage />} />
               <Route path="/app/usage" element={<UsagePage />} />
@@ -216,6 +221,7 @@ const App = () => (
         </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

@@ -69,7 +69,6 @@ export default function DispatchMapPage() {
   return (
     <PageContainer maxWidth="xl">
       <PageHeader
-        icon={<MapPin className="h-5 w-5" />}
         title="Dispatch Map"
         description="Real-time technician locations and tracking"
         action={

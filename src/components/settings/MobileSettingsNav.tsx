@@ -11,6 +11,7 @@ import {
   ChevronDown,
   RefreshCw,
   DollarSign,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -45,6 +46,7 @@ const sectionLabels: Record<string, string> = {
   alerts: "Alerts",
   integrations: "Integrations",
   automation: "Automation",
+  sms: "SMS Messaging",
   recovery: "Lead Recovery",
   developer: "Developer Tools",
   danger: "Danger Zone",
@@ -87,6 +89,7 @@ export function MobileSettingsNav({ activeSection, onSectionChange, config }: Mo
       label: "AI Features",
       colorClass: "text-emerald-500",
       items: [
+        { id: "sms", label: "SMS Messaging", icon: MessageSquare },
         { id: "recovery", label: "Lead Recovery", icon: RefreshCw, visible: config.showRecovery },
       ],
     },

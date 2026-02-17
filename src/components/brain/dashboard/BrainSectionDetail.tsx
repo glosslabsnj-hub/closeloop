@@ -1,3 +1,4 @@
+import React from "react";
 /**
  * BrainSectionDetail - Sidebar + Content split layout for section detail views
  *
@@ -54,7 +55,7 @@ function getAdjacentCategories(section: string, categories?: CategoryConfig[]) {
   };
 }
 
-export function BrainSectionDetail({
+export const BrainSectionDetail = React.memo(function BrainSectionDetail({
   category,
   orderedCategories,
   resolvedTitle,
@@ -86,8 +87,8 @@ export function BrainSectionDetail({
     <div className="space-y-5">
       {/* Breadcrumb + editorial header */}
       <div className="space-y-3">
-        {/* Back button + breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm">
+        {/* Back button + breadcrumb + progress */}
+        <div className="flex items-center gap-2 text-sm">
           <button
             type="button"
             onClick={onBack}
@@ -97,30 +98,10 @@ export function BrainSectionDetail({
             Business Brain
           </button>
           <span className="text-muted-foreground/50">/</span>
-          <span className="flex items-center gap-1.5 text-foreground font-medium">
-            <Icon className="h-4 w-4" />
-            {displayTitle}
+          <span className="text-foreground font-medium flex-1">{displayTitle}</span>
+          <span className="text-xs font-medium tabular-nums text-muted-foreground">
+            {completion.percentage}%
           </span>
-        </nav>
-
-        {/* Title + progress */}
-        <div>
-          <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">{category.description}</p>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight flex-1">{displayTitle}</h1>
-            <div className="flex items-center gap-2 shrink-0">
-              {completion.percentage === 100 ? (
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-full">
-                  <CheckCircle2 className="h-3 w-3" />
-                  Complete
-                </span>
-              ) : (
-                <span className="text-sm font-medium tabular-nums">
-                  {completion.percentage}%
-                </span>
-              )}
-            </div>
-          </div>
         </div>
 
         <Progress value={completion.percentage} className="h-1" />
@@ -193,4 +174,4 @@ export function BrainSectionDetail({
       </div>
     </div>
   );
-}
+});

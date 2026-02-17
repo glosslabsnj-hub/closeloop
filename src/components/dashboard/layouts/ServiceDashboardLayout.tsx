@@ -2,8 +2,6 @@ import { CalendarPlus } from "lucide-react";
 import { TodayCalendarStrip } from "../widgets/TodayCalendarStrip";
 import { QuickActionButton } from "../widgets/QuickActionButton";
 import UpcomingAppointmentsWidget from "../widgets/UpcomingAppointmentsWidget";
-import { ROIPerformanceWidget } from "../ROIPerformanceWidget";
-import { LeadRecoveryWidget } from "../LeadRecoveryWidget";
 
 interface ServiceDashboardLayoutProps {
   quickBookLabel?: string;
@@ -22,11 +20,7 @@ export function ServiceDashboardLayout({ quickBookLabel }: ServiceDashboardLayou
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <UpcomingAppointmentsWidget />
-        <ROIPerformanceWidget />
-      </div>
-      <LeadRecoveryWidget />
+      <UpcomingAppointmentsWidget />
     </div>
   );
 }

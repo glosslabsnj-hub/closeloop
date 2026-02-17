@@ -374,12 +374,198 @@ serve(async (req) => {
 
     await logProvision({ 
       tenant_id, 
-      action: "completed",
+      action: "local_completed",
       phone_e164: purchaseData.phone_number,
       twilio_sid: purchaseData.sid,
     });
 
-    console.log(`[provision] COMPLETE: Provisioned ${purchaseData.phone_number} for tenant ${tenant_id}`);
+    // ========== TOLL-FREE FALLBACK: Purchase + Verify ==========
+    let tollFreeNumber: string | null = null;
+    let tollFreeSid: string | null = null;
+    try {
+      console.log(`[provision] Purchasing toll-free number for SMS fallback...`);
+
+      // Search for toll-free number
+      const tfSearchUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/AvailablePhoneNumbers/US/TollFree.json?Limit=1`;
+      const tfSearchRes = await fetch(tfSearchUrl, {
+        headers: { Authorization: `Basic ${twilioAuth}` },
+      });
+
+      if (tfSearchRes.ok) {
+        const tfSearchData = await tfSearchRes.json();
+        if (tfSearchData.available_phone_numbers?.length > 0) {
+          const tfSelected = tfSearchData.available_phone_numbers[0];
+
+          // Purchase toll-free number (no voice URL needed — SMS only)
+          const tfPurchaseRes = await fetch(
+            `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/IncomingPhoneNumbers.json`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Basic ${twilioAuth}`,
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+              body: new URLSearchParams({
+                PhoneNumber: tfSelected.phone_number,
+                FriendlyName: `CloseLoop TF - ${tenant_id.substring(0, 8)}`,
+              }).toString(),
+            }
+          );
+
+          if (tfPurchaseRes.ok) {
+            const tfData = await tfPurchaseRes.json();
+            tollFreeNumber = tfData.phone_number;
+            tollFreeSid = tfData.sid;
+            console.log(`[provision] Toll-free purchased: ${tollFreeNumber}`);
+
+            // Create Messaging Service for toll-free
+            const tfMsgSvcRes = await fetch(
+              `https://messaging.twilio.com/v1/Services`,
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Basic ${twilioAuth}`,
+                  "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: new URLSearchParams({
+                  FriendlyName: `CloseLoop TF - ${tenant_id.substring(0, 8)}`,
+                  FallbackToLongCode: "false",
+                  StickySender: "true",
+                }).toString(),
+              }
+            );
+
+            let tfMsgSvcSid: string | null = null;
+            if (tfMsgSvcRes.ok) {
+              const tfMsgSvcData = await tfMsgSvcRes.json();
+              tfMsgSvcSid = tfMsgSvcData.sid;
+
+              // Add toll-free number to messaging service
+              await fetch(
+                `https://messaging.twilio.com/v1/Services/${tfMsgSvcSid}/PhoneNumbers`,
+                {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Basic ${twilioAuth}`,
+                    "Content-Type": "application/x-www-form-urlencoded",
+                  },
+                  body: new URLSearchParams({ PhoneNumberSid: tollFreeSid! }).toString(),
+                }
+              );
+            }
+
+            // Fetch tenant info for TF verification
+            const { data: tenantInfo } = await supabase
+              .from("tenants")
+              .select("name, website_url")
+              .eq("id", tenant_id)
+              .single();
+
+            const { data: a2pInfo } = await supabase
+              .from("a2p_registrations")
+              .select("legal_business_name, street_address, city, state, zip_code, contact_email, website_url")
+              .eq("tenant_id", tenant_id)
+              .maybeSingle();
+
+            // Submit toll-free verification
+            let tfVerifSid: string | null = null;
+            const bizName = a2pInfo?.legal_business_name || tenantInfo?.name || "Business";
+            const bizWebsite = a2pInfo?.website_url || tenantInfo?.website_url || "https://example.com";
+            const contactFirstName = a2pInfo?.contact_first_name || "Owner";
+            const contactLastName = a2pInfo?.contact_last_name || "Contact";
+            const contactEmail = a2pInfo?.contact_email || "support@closeloop.ai";
+            const contactPhone = a2pInfo?.contact_phone || "";
+
+            const tfVerifBody = [
+              `TollfreePhoneNumberSid=${encodeURIComponent(tollFreeSid!)}`,
+              `BusinessName=${encodeURIComponent(bizName)}`,
+              `BusinessWebsite=${encodeURIComponent(bizWebsite)}`,
+              `BusinessStreetAddress=${encodeURIComponent(a2pInfo?.street_address || "123 Main St")}`,
+              `BusinessCity=${encodeURIComponent(a2pInfo?.city || "New York")}`,
+              `BusinessStateProvinceRegion=${encodeURIComponent(a2pInfo?.state || "NY")}`,
+              `BusinessPostalCode=${encodeURIComponent(a2pInfo?.zip_code || "10001")}`,
+              `BusinessCountry=US`,
+              `BusinessContactFirstName=${encodeURIComponent(contactFirstName)}`,
+              `BusinessContactLastName=${encodeURIComponent(contactLastName)}`,
+              `BusinessContactEmail=${encodeURIComponent(contactEmail)}`,
+              contactPhone ? `BusinessContactPhone=${encodeURIComponent(contactPhone)}` : "",
+              `NotificationEmail=${encodeURIComponent(contactEmail)}`,
+              `UseCaseCategories=${encodeURIComponent("CUSTOMER_CARE")}`,
+              `UseCaseSummary=${encodeURIComponent(`${bizName} sends appointment confirmations, reminders, and follow-up messages to customers who have booked services.`)}`,
+              `ProductionMessageSample=${encodeURIComponent(`Hi! Your appointment with ${bizName} is confirmed for tomorrow at 2:00 PM. Reply STOP to opt out.`)}`,
+              `OptInType=VERBAL`,
+              `OptInImageUrls=${encodeURIComponent(bizWebsite)}`,
+              `MessageVolume=100`,
+            ].filter(Boolean).join("&");
+
+            const tfVerifRes = await fetch(
+              `https://messaging.twilio.com/v1/Tollfree/Verifications`,
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Basic ${twilioAuth}`,
+                  "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: tfVerifBody,
+              }
+            );
+
+            if (tfVerifRes.ok) {
+              const tfVerifData = await tfVerifRes.json();
+              tfVerifSid = tfVerifData.sid;
+              console.log(`[provision] Toll-free verification submitted: ${tfVerifSid}`);
+            } else {
+              console.error(`[provision] TF verification failed:`, await tfVerifRes.text());
+            }
+
+            // Save toll-free data to a2p_registrations
+            await supabase
+              .from("a2p_registrations")
+              .update({
+                toll_free_phone_e164: tollFreeNumber,
+                toll_free_phone_sid: tollFreeSid,
+                toll_free_messaging_service_sid: tfMsgSvcSid,
+                toll_free_verification_sid: tfVerifSid,
+              })
+              .eq("tenant_id", tenant_id);
+
+            await logProvision({
+              tenant_id,
+              action: "toll_free_completed",
+              phone_e164: tollFreeNumber!,
+              twilio_sid: tollFreeSid!,
+              details: { messaging_service_sid: tfMsgSvcSid, verification_sid: tfVerifSid },
+            });
+          }
+        }
+      }
+    } catch (tfErr) {
+      console.error("[provision] Toll-free provisioning error (non-fatal):", tfErr);
+      await logProvision({ tenant_id, action: "toll_free_error", error: String(tfErr) });
+    }
+
+    // ========== SERVER-SIDE A2P REGISTRATION ==========
+    try {
+      console.log(`[provision] Triggering server-side A2P registration for tenant ${tenant_id}...`);
+      await fetch(`${SUPABASE_URL}/functions/v1/register-a2p-10dlc`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+        body: JSON.stringify({
+          tenant_id,
+          phone_number_sid: purchaseData.sid,
+          phone_e164: purchaseData.phone_number,
+        }),
+      });
+      console.log(`[provision] A2P registration triggered for tenant ${tenant_id}`);
+    } catch (a2pErr) {
+      console.error("[provision] A2P registration trigger error (non-fatal):", a2pErr);
+      await logProvision({ tenant_id, action: "a2p_trigger_error", error: String(a2pErr) });
+    }
+
+    console.log(`[provision] COMPLETE: Provisioned ${purchaseData.phone_number} + TF fallback for tenant ${tenant_id}`);
 
     return new Response(
       JSON.stringify({
@@ -387,6 +573,7 @@ serve(async (req) => {
         phone_number: purchaseData.phone_number,
         phone_sid: purchaseData.sid,
         friendly_name: friendlyNumber,
+        toll_free_number: tollFreeNumber,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

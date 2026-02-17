@@ -40,6 +40,9 @@ interface CreateTenantRequest {
   hipaa_mode?: boolean;
   capabilities_json?: Record<string, boolean>;
   default_capacity?: number;
+  // Subscription
+  plan_code?: string;
+  location?: string | null;
   // Agency provisioning
   agency_id?: string | null;
 }
@@ -189,10 +192,38 @@ serve(async (req) => {
       console.log(`[create-tenant] Membership created: user ${userId.substring(0, 8)}... -> tenant ${tenantId.substring(0, 8)}...`);
     }
 
-    // 9. Agency linkage (if provisioned by an agency)
+    // 9. Create subscription (service role to bypass RLS timing issues)
+    const planCode = body.plan_code || "voice";
+    const { error: subError } = await serviceClient
+      .from("subscriptions")
+      .insert({
+        tenant_id: tenantId,
+        plan_code: planCode,
+        status: "trialing",
+        current_period_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      });
+
+    if (subError) {
+      console.error("[create-tenant] Subscription insert error:", subError.message);
+    } else {
+      console.log(`[create-tenant] Subscription created: ${planCode} (trialing)`);
+    }
+
+    // 10. Initialize assistant settings via RPC (service role)
+    const { error: settingsError } = await serviceClient.rpc("initialize_assistant_settings", {
+      _tenant_id: tenantId,
+      _plan_code: planCode,
+    });
+
+    if (settingsError) {
+      console.error("[create-tenant] Assistant settings error:", settingsError.message);
+    } else {
+      console.log(`[create-tenant] Assistant settings initialized`);
+    }
+
+    // 11. Agency linkage (if provisioned by an agency)
     let agencyLinked = false;
     if (body.agency_id) {
-      // Verify agency exists and belongs to this user
       const { data: agency } = await serviceClient
         .from("agency_accounts")
         .select("id, user_id")
@@ -200,7 +231,6 @@ serve(async (req) => {
         .single();
 
       if (agency && agency.user_id === userId) {
-        // Link tenant to agency
         const { error: linkError } = await serviceClient
           .from("agency_tenants")
           .insert({
@@ -220,11 +250,13 @@ serve(async (req) => {
       }
     }
 
-    // 10. Return success with tenant_id
+    // 12. Return success with tenant_id
     return new Response(
       JSON.stringify({
         tenant_id: tenantId,
         membership_created: !membershipError,
+        subscription_created: !subError,
+        settings_initialized: !settingsError,
         agency_linked: agencyLinked,
       }),
       {

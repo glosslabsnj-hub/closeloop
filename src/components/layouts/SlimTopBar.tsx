@@ -1,5 +1,6 @@
-import { useNavigate } from "react-router-dom";
-import { Search, Settings, HelpCircle, LogOut } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { Search, Settings, HelpCircle, LogOut, Sun, Moon, AudioWaveform } from "lucide-react";
+import { useTheme } from "next-themes";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,9 +10,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { BRAND } from "@/config/brand";
 
 interface SlimTopBarProps {
   userEmail: string;
@@ -21,12 +21,20 @@ interface SlimTopBarProps {
 
 export function SlimTopBar({ userEmail, tenantName, onSignOut }: SlimTopBarProps) {
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
 
   return (
-    <header className="hidden md:flex h-12 sticky top-0 z-30 items-center gap-2 bg-background/80 backdrop-blur-lg border-b border-border/20 px-3">
-      {/* Left: sidebar toggle */}
-      <SidebarTrigger className="-ml-1" />
-      <Separator orientation="vertical" className="h-4 mx-1" />
+    <header className="hidden md:flex h-16 sticky top-0 z-30 items-center gap-2 bg-[hsl(222,47%,11%)] border-b border-[hsl(215,28%,17%)] px-6">
+
+      {/* Branding */}
+      <Link to="/app/dashboard" className="flex items-center gap-2.5">
+        <div className="h-7 w-7 shrink-0 rounded-lg bg-primary flex items-center justify-center">
+          <AudioWaveform className="h-3.5 w-3.5 text-primary-foreground" />
+        </div>
+        <span className="font-semibold text-sm text-foreground">
+          {tenantName || BRAND.name}
+        </span>
+      </Link>
 
       {/* Spacer */}
       <div className="flex-1" />
@@ -40,6 +48,17 @@ export function SlimTopBar({ userEmail, tenantName, onSignOut }: SlimTopBarProps
         >
           <Search className="h-4 w-4" />
           <span className="sr-only">Search</span>
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-muted-foreground/60 hover:text-muted-foreground"
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        >
+          <Sun className="h-4 w-4 rotate-0 scale-100 transition-transform dark:-rotate-90 dark:scale-0" />
+          <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-transform dark:rotate-0 dark:scale-100" />
+          <span className="sr-only">Toggle theme</span>
         </Button>
 
         <NotificationBell />

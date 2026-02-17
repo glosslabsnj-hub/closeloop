@@ -22,58 +22,58 @@ export function getModeTheme(mode: BusinessMode): ModeThemeColors {
   switch (mode) {
     case "dispatch":
       return {
-        accent: "text-amber-600 dark:text-amber-400",
-        accentForeground: "text-amber-700 dark:text-amber-300",
-        accentMuted: "text-amber-600/70 dark:text-amber-400/70",
-        border: "border-amber-200 dark:border-amber-900/50",
-        background: "bg-amber-50/50 dark:bg-amber-950/20",
-        ring: "ring-amber-500/30",
+        accent: "text-blue-400",
+        accentForeground: "text-blue-300",
+        accentMuted: "text-blue-400/70",
+        border: "border-blue-500/30",
+        background: "bg-blue-500/10",
+        ring: "ring-blue-500/30",
       };
     case "food":
       return {
-        accent: "text-orange-600 dark:text-orange-400",
-        accentForeground: "text-orange-700 dark:text-orange-300",
-        accentMuted: "text-orange-600/70 dark:text-orange-400/70",
-        border: "border-orange-200 dark:border-orange-900/50",
-        background: "bg-orange-50/50 dark:bg-orange-950/20",
-        ring: "ring-orange-500/30",
+        accent: "text-red-400",
+        accentForeground: "text-red-300",
+        accentMuted: "text-red-400/70",
+        border: "border-red-500/30",
+        background: "bg-red-500/10",
+        ring: "ring-red-500/30",
       };
     case "medical":
       return {
-        accent: "text-rose-600 dark:text-rose-400",
-        accentForeground: "text-rose-700 dark:text-rose-300",
-        accentMuted: "text-rose-600/70 dark:text-rose-400/70",
-        border: "border-rose-200 dark:border-rose-900/50",
-        background: "bg-rose-50/50 dark:bg-rose-950/20",
-        ring: "ring-rose-500/30",
+        accent: "text-emerald-400",
+        accentForeground: "text-emerald-300",
+        accentMuted: "text-emerald-400/70",
+        border: "border-emerald-500/30",
+        background: "bg-emerald-500/10",
+        ring: "ring-emerald-500/30",
       };
     case "service":
       return {
-        accent: "text-blue-600 dark:text-blue-400",
-        accentForeground: "text-blue-700 dark:text-blue-300",
-        accentMuted: "text-blue-600/70 dark:text-blue-400/70",
-        border: "border-blue-200 dark:border-blue-900/50",
-        background: "bg-blue-50/50 dark:bg-blue-950/20",
-        ring: "ring-blue-500/30",
+        accent: "text-amber-400",
+        accentForeground: "text-amber-300",
+        accentMuted: "text-amber-400/70",
+        border: "border-amber-500/30",
+        background: "bg-amber-500/10",
+        ring: "ring-amber-500/30",
       };
     case "sales":
       return {
-        accent: "text-indigo-600 dark:text-indigo-400",
-        accentForeground: "text-indigo-700 dark:text-indigo-300",
-        accentMuted: "text-indigo-600/70 dark:text-indigo-400/70",
-        border: "border-indigo-200 dark:border-indigo-900/50",
-        background: "bg-indigo-50/50 dark:bg-indigo-950/20",
-        ring: "ring-indigo-500/30",
+        accent: "text-violet-400",
+        accentForeground: "text-violet-300",
+        accentMuted: "text-violet-400/70",
+        border: "border-violet-500/30",
+        background: "bg-violet-500/10",
+        ring: "ring-violet-500/30",
       };
     case "general":
     default:
       return {
-        accent: "text-slate-600 dark:text-slate-400",
-        accentForeground: "text-slate-700 dark:text-slate-300",
-        accentMuted: "text-slate-600/70 dark:text-slate-400/70",
-        border: "border-slate-200 dark:border-slate-800",
-        background: "bg-slate-50/50 dark:bg-slate-950/20",
-        ring: "ring-slate-500/30",
+        accent: "text-indigo-400",
+        accentForeground: "text-indigo-300",
+        accentMuted: "text-indigo-400/70",
+        border: "border-indigo-500/30",
+        background: "bg-indigo-500/10",
+        ring: "ring-indigo-500/30",
       };
   }
 }
@@ -84,18 +84,18 @@ export function getModeTheme(mode: BusinessMode): ModeThemeColors {
 export function getModeGradient(mode: BusinessMode): string {
   switch (mode) {
     case "dispatch":
-      return "bg-gradient-to-br from-amber-50/50 via-background to-amber-50/30 dark:from-amber-950/20 dark:via-background dark:to-amber-950/10";
+      return "bg-gradient-to-br from-blue-950/30 via-background to-blue-950/10";
     case "food":
-      return "bg-gradient-to-br from-orange-50/50 via-background to-orange-50/30 dark:from-orange-950/20 dark:via-background dark:to-orange-950/10";
+      return "bg-gradient-to-br from-red-950/30 via-background to-red-950/10";
     case "medical":
-      return "bg-gradient-to-br from-rose-50/50 via-background to-rose-50/30 dark:from-rose-950/20 dark:via-background dark:to-rose-950/10";
+      return "bg-gradient-to-br from-emerald-950/30 via-background to-emerald-950/10";
     case "service":
-      return "bg-gradient-to-br from-blue-50/50 via-background to-blue-50/30 dark:from-blue-950/20 dark:via-background dark:to-blue-950/10";
+      return "bg-gradient-to-br from-amber-950/30 via-background to-amber-950/10";
     case "sales":
-      return "bg-gradient-to-br from-indigo-50/50 via-background to-indigo-50/30 dark:from-indigo-950/20 dark:via-background dark:to-indigo-950/10";
+      return "bg-gradient-to-br from-violet-950/30 via-background to-violet-950/10";
     case "general":
     default:
-      return "bg-gradient-to-br from-slate-50/50 via-background to-slate-50/30 dark:from-slate-950/20 dark:via-background dark:to-slate-950/10";
+      return "bg-gradient-to-br from-indigo-950/30 via-background to-indigo-950/10";
   }
 }
 

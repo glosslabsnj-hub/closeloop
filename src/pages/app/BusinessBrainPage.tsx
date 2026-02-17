@@ -40,7 +40,7 @@ import {
 } from "@/config/brainSectionRegistry";
 import { getItemsForModeTab, getModeCategories } from "@/config/brainModeLayout";
 import { SECTION_GUIDANCE } from "@/config/brainGuidance";
-import { BrainEditorRenderer } from "@/components/brain/layout/BrainEditorRenderer";
+import { BrainSectionDetailHost } from "@/components/brain/BrainSectionDetailHost";
 
 // Layout components
 import {
@@ -392,21 +392,6 @@ export default function BusinessBrainPage() {
                 dismissible
               />
             )}
-            {summaries.completionStats.percentage < 100 && (
-              <BrainProgressIndicator
-                completedSections={summaries.completionStats.completed}
-                totalSections={summaries.completionStats.total}
-                incompleteItems={summaries.completionStats.incompleteItems}
-                onNavigateToSection={handleSectionChange}
-              />
-            )}
-            {tenant?.name && summaries.hours !== "No hours set yet" && (summaries.catalog === "No services added yet") && (
-              <NextStepSuggestion
-                completedSection="about"
-                mode={businessMode}
-                onNavigate={handleSectionChange}
-              />
-            )}
           </>
         );
 
@@ -571,92 +556,5 @@ export default function BusinessBrainPage() {
       </main>
 
     </div>
-  );
-}
-
-// ─── Section Detail Host ─────────────────────────────────────────────────────
-// Thin wrapper that adds completion stats and renders the editor.
-
-interface SectionDetailHostProps {
-  activeSection: ModeSectionId;
-  currentCategory: CategoryConfig;
-  modeCategories: CategoryConfig[];
-  onBack: () => void;
-  onNavigate: (section: string) => void;
-  activeItemId: string | null;
-  onItemChange: (itemId: string) => void;
-  groups: ReturnType<typeof groupSectionItems>;
-  statuses: ReturnType<typeof useBrainItemStatuses>;
-  activeItem: BrainSectionItem | null;
-  usedByAI?: string[];
-  guidance?: { whyText?: string; whatText?: string; tipText?: string };
-  bannerContent?: React.ReactNode;
-  addOnContent?: React.ReactNode;
-  businessMode: ReturnType<typeof useTenantConfig>["businessMode"];
-  caps: ReturnType<typeof useCapabilities>;
-  isFoodMode: boolean;
-  isDispatchMode: boolean;
-}
-
-function BrainSectionDetailHost({
-  activeSection,
-  currentCategory,
-  modeCategories,
-  onBack,
-  onNavigate,
-  activeItemId,
-  onItemChange,
-  groups,
-  statuses,
-  activeItem,
-  usedByAI,
-  guidance,
-  bannerContent,
-  addOnContent,
-  businessMode,
-  caps,
-  isFoodMode,
-  isDispatchMode,
-}: SectionDetailHostProps) {
-  const completion = useCategoryCompletion(activeSection);
-  const ic = useIndustryContext();
-
-  const categoryTitle = resolveCardTitle(
-    currentCategory.titleKey,
-    currentCategory.title,
-    businessMode,
-    ic.category ?? undefined,
-    ic.slug ?? undefined,
-  );
-
-  return (
-    <BrainSectionDetail
-      category={currentCategory}
-      orderedCategories={modeCategories}
-      resolvedTitle={categoryTitle}
-      completion={completion}
-      onBack={onBack}
-      onNavigate={onNavigate}
-      activeItemId={activeItemId}
-      onItemChange={onItemChange}
-      groups={groups}
-      statuses={statuses}
-      activeItem={activeItem ?? null}
-      usedByAI={usedByAI}
-      guidance={guidance}
-      bannerContent={bannerContent}
-      addOnContent={addOnContent}
-      editorContent={
-        activeItemId ? (
-          <BrainEditorRenderer
-            itemId={activeItemId}
-            businessMode={businessMode}
-            caps={caps}
-            isFoodMode={isFoodMode}
-            isDispatchMode={isDispatchMode}
-          />
-        ) : null
-      }
-    />
   );
 }

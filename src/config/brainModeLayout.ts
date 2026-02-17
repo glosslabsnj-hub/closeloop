@@ -96,8 +96,8 @@ const SERVICE_LAYOUT: ModeLayout = {
     },
     {
       section: "training",
-      label: "Train Your AI",
-      description: "AI behavior, rules & knowledge",
+      label: "AI Behavior",
+      description: "Personality, rules & knowledge",
       icon: Sparkles,
       order: 4,
       groups: [
@@ -111,8 +111,8 @@ const SERVICE_LAYOUT: ModeLayout = {
     },
     {
       section: "intelligence",
-      label: "AI Learning",
-      description: "Memory & insights",
+      label: "AI Insights",
+      description: "Memory & learning",
       icon: Sparkles,
       order: 5,
       groups: [],
@@ -168,8 +168,8 @@ const DISPATCH_LAYOUT: ModeLayout = {
     },
     {
       section: "training",
-      label: "Train Your AI",
-      description: "AI behavior, rules & knowledge",
+      label: "AI Behavior",
+      description: "Personality, rules & knowledge",
       icon: Sparkles,
       order: 4,
       groups: [
@@ -183,8 +183,8 @@ const DISPATCH_LAYOUT: ModeLayout = {
     },
     {
       section: "intelligence",
-      label: "AI Learning",
-      description: "Memory & insights",
+      label: "AI Insights",
+      description: "Memory & learning",
       icon: Sparkles,
       order: 5,
       groups: [],
@@ -241,8 +241,8 @@ const FOOD_LAYOUT: ModeLayout = {
     },
     {
       section: "training",
-      label: "Train Your AI",
-      description: "AI behavior, rules & knowledge",
+      label: "AI Behavior",
+      description: "Personality, rules & knowledge",
       icon: Sparkles,
       order: 4,
       groups: [
@@ -256,8 +256,8 @@ const FOOD_LAYOUT: ModeLayout = {
     },
     {
       section: "intelligence",
-      label: "AI Learning",
-      description: "Memory & insights",
+      label: "AI Insights",
+      description: "Memory & learning",
       icon: Sparkles,
       order: 5,
       groups: [],
@@ -312,8 +312,8 @@ const MEDICAL_LAYOUT: ModeLayout = {
     },
     {
       section: "training",
-      label: "Train Your AI",
-      description: "AI behavior, rules & knowledge",
+      label: "AI Behavior",
+      description: "Personality, rules & knowledge",
       icon: Sparkles,
       order: 4,
       groups: [
@@ -327,8 +327,8 @@ const MEDICAL_LAYOUT: ModeLayout = {
     },
     {
       section: "intelligence",
-      label: "AI Learning",
-      description: "Memory & insights",
+      label: "AI Insights",
+      description: "Memory & learning",
       icon: Sparkles,
       order: 5,
       groups: [],
@@ -383,8 +383,8 @@ const GENERAL_LAYOUT: ModeLayout = {
     },
     {
       section: "training",
-      label: "Train Your AI",
-      description: "AI behavior, rules & knowledge",
+      label: "AI Behavior",
+      description: "Personality, rules & knowledge",
       icon: Sparkles,
       order: 4,
       groups: [
@@ -398,8 +398,8 @@ const GENERAL_LAYOUT: ModeLayout = {
     },
     {
       section: "intelligence",
-      label: "AI Learning",
-      description: "Memory & insights",
+      label: "AI Insights",
+      description: "Memory & learning",
       icon: Sparkles,
       order: 5,
       groups: [],
@@ -454,8 +454,8 @@ const SALES_LAYOUT: ModeLayout = {
     },
     {
       section: "training",
-      label: "Train Your AI",
-      description: "AI behavior, rules & knowledge",
+      label: "AI Behavior",
+      description: "Personality, rules & knowledge",
       icon: Sparkles,
       order: 4,
       groups: [
@@ -469,8 +469,8 @@ const SALES_LAYOUT: ModeLayout = {
     },
     {
       section: "intelligence",
-      label: "AI Learning",
-      description: "Memory & insights",
+      label: "AI Insights",
+      description: "Memory & learning",
       icon: Sparkles,
       order: 5,
       groups: [],

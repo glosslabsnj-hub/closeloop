@@ -39,9 +39,7 @@ export function BrainCategoryCard({
       onClick={() => onNavigate(category.section)}
       className={cn(
         "flex flex-col items-start gap-3 rounded-2xl bg-card p-5 text-left shadow-sm transition-all duration-200 w-full",
-        "border-l-2 border-l-transparent hover:border-l-primary hover:shadow-md",
-        hasWarning && "border-l-amber-400 dark:border-l-amber-600",
-        isComplete && "border-l-green-400 dark:border-l-green-600",
+        "hover:bg-muted/30 hover:shadow-md",
       )}
     >
       {/* Title row: icon + title + progress ring */}
@@ -63,12 +61,7 @@ export function BrainCategoryCard({
       {/* Description */}
       <p className="text-xs text-muted-foreground">{category.description}</p>
 
-      {/* Priority hint + summary */}
-      {!isComplete && essentialCount > 0 && (
-        <p className="text-xs font-medium text-primary">
-          {essentialCount} essential item{essentialCount !== 1 ? "s" : ""} to set up
-        </p>
-      )}
+      {/* Summary */}
       <p className="text-xs text-muted-foreground line-clamp-2">{summaryText}</p>
     </button>
   );

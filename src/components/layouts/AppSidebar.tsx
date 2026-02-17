@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   MessageSquare,
@@ -27,30 +27,24 @@ import {
   Phone,
   Building2,
 } from "lucide-react";
+import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuBadge,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarRail,
-  SidebarSeparator,
-} from "@/components/ui/sidebar";
+  AnimatedSidebar,
+  SidebarBody,
+  SidebarLink,
+  useAnimatedSidebar,
+} from "@/components/ui/animated-sidebar";
 import { BRAND } from "@/config/brand";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
   href: string;
   label: string;
-  icon: React.ElementType;
+  icon: React.ReactNode;
   badge?: number;
 }
 
-// Routes that are always accessible (even without subscription)
 const alwaysAccessibleRoutes = ["/app/settings", "/app/go-live"];
 
 interface AppSidebarProps {
@@ -79,6 +73,8 @@ interface AppSidebarProps {
   effectiveHasSubscription: boolean;
   displayTenant: { name?: string } | null;
   subtitle?: string;
+  open: boolean;
+  setOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export function AppSidebar({
@@ -89,137 +85,126 @@ export function AppSidebar({
   effectiveHasSubscription,
   displayTenant,
   subtitle,
+  open,
+  setOpen,
 }: AppSidebarProps) {
   const location = useLocation();
+
+  const iconClass = "h-5 w-5 shrink-0 text-sidebar-foreground";
 
   // Build workspace items (capability-gated)
   const workspaceItems: NavItem[] = [];
   if (caps.hasBooking) {
-    workspaceItems.push({ href: "/app/bookings", label: terms.bookingsPageTitle || "Bookings", icon: Calendar });
+    workspaceItems.push({ href: "/app/bookings", label: terms.bookingsPageTitle || "Bookings", icon: <Calendar className={iconClass} /> });
   }
   if (caps.hasDispatchQueue) {
-    workspaceItems.push({ href: "/app/dispatch", label: "Dispatch", icon: Truck });
+    workspaceItems.push({ href: "/app/dispatch", label: "Dispatch", icon: <Truck className={iconClass} /> });
   }
   if (caps.hasImpoundLot) {
-    workspaceItems.push({ href: "/app/impound-lot", label: "Impound Lot", icon: Warehouse });
+    workspaceItems.push({ href: "/app/impound-lot", label: "Impound Lot", icon: <Warehouse className={iconClass} /> });
   }
   if (caps.hasFleetManagement) {
-    workspaceItems.push({ href: "/app/fleet", label: caps.isDispatchBusiness ? "Fleet" : "Team", icon: Users });
+    workspaceItems.push({ href: "/app/fleet", label: caps.isDispatchBusiness ? "Fleet" : "Team", icon: <Users className={iconClass} /> });
   }
   if (caps.hasFoodOrders) {
-    workspaceItems.push({ href: "/app/orders", label: "Orders", icon: UtensilsCrossed });
+    workspaceItems.push({ href: "/app/orders", label: "Orders", icon: <UtensilsCrossed className={iconClass} /> });
   }
   if (caps.hasReservations) {
-    workspaceItems.push({ href: "/app/reservations", label: "Reservations", icon: Clock });
+    workspaceItems.push({ href: "/app/reservations", label: "Reservations", icon: <Clock className={iconClass} /> });
   }
   if (caps.hasCatering) {
-    workspaceItems.push({ href: "/app/catering", label: "Catering", icon: Cake });
+    workspaceItems.push({ href: "/app/catering", label: "Catering", icon: <Cake className={iconClass} /> });
   }
   if (caps.hasMedicalIntake) {
-    workspaceItems.push({ href: "/app/medical-intake", label: "Patients", icon: Stethoscope });
+    workspaceItems.push({ href: "/app/medical-intake", label: "Patients", icon: <Stethoscope className={iconClass} /> });
   }
   if (caps.hasSalesLeads) {
-    workspaceItems.push({ href: "/app/sales-pipeline", label: "Sales Pipeline", icon: DollarSign });
+    workspaceItems.push({ href: "/app/sales-pipeline", label: "Sales Pipeline", icon: <DollarSign className={iconClass} /> });
   }
   if (caps.hasTestDrives) {
-    workspaceItems.push({ href: "/app/test-drives", label: "Test Drives", icon: Car });
+    workspaceItems.push({ href: "/app/test-drives", label: "Test Drives", icon: <Car className={iconClass} /> });
   }
   if (caps.hasSalesInventory) {
-    workspaceItems.push({ href: "/app/sales-inventory", label: "Inventory", icon: Warehouse });
+    workspaceItems.push({ href: "/app/sales-inventory", label: "Inventory", icon: <Warehouse className={iconClass} /> });
   }
   if (caps.hasEstimates || caps.hasPhoneQuotes) {
-    workspaceItems.push({ href: "/app/estimates", label: "Estimates", icon: FileText });
+    workspaceItems.push({ href: "/app/estimates", label: "Estimates", icon: <FileText className={iconClass} /> });
   }
   if (caps.hasJobTracking) {
-    workspaceItems.push({ href: "/app/jobs", label: "Active Jobs", icon: ClipboardCheck });
+    workspaceItems.push({ href: "/app/jobs", label: "Active Jobs", icon: <ClipboardCheck className={iconClass} /> });
   }
 
-  const renderItem = (item: NavItem) => {
+  const coreItems: NavItem[] = [
+    { href: "/app/dashboard", label: "Dashboard", icon: <LayoutDashboard className={iconClass} /> },
+    { href: "/app/inbox", label: (terms.inboxPageTitle as string) || "Leads", icon: caps.isDispatchBusiness ? <Phone className={iconClass} /> : <Users className={iconClass} /> },
+    { href: "/app/customers", label: (terms.customers ? String(terms.customers).charAt(0).toUpperCase() + String(terms.customers).slice(1) : "Customers"), icon: <UserCircle className={iconClass} /> },
+  ];
+
+  const aiCenterItems: NavItem[] = [
+    { href: "/app/business-brain", label: "Business Brain", icon: <Bot className={iconClass} />, badge: conflictsCount || undefined },
+    { href: "/app/simulator", label: "Test Your AI", icon: <FlaskConical className={iconClass} /> },
+    { href: "/app/partner", label: "AI Insights", icon: <Sparkles className={iconClass} /> },
+  ];
+
+  const manageItems: NavItem[] = [
+    { href: "/app/integrations", label: "Integrations", icon: <Route className={iconClass} /> },
+    { href: "/app/reports/roi", label: "Reports", icon: <BarChart3 className={iconClass} /> },
+    { href: "/app/agency", label: "Agency", icon: <Building2 className={iconClass} /> },
+    { href: "/app/settings", label: "Settings", icon: <Settings className={iconClass} /> },
+  ];
+
+  const bottomItems: NavItem[] = [
+    { href: "/app/help", label: "Help", icon: <HelpCircle className={iconClass} /> },
+  ];
+
+  const renderLink = (item: NavItem) => {
     const isActive = location.pathname === item.href;
     const isLocked = !effectiveHasSubscription && !alwaysAccessibleRoutes.some(route => item.href.startsWith(route));
-
     return (
-      <SidebarMenuItem key={item.href}>
-        <SidebarMenuButton
-          asChild
-          isActive={isActive}
-          tooltip={item.label}
-          className={cn(isLocked && "opacity-40 pointer-events-none")}
-        >
-          <Link to={isLocked ? "/app/go-live" : item.href}>
-            <item.icon className="shrink-0" />
-            <span>{item.label}</span>
-            {isLocked && <Lock className="h-3 w-3 ml-auto opacity-60" />}
-          </Link>
-        </SidebarMenuButton>
-        {item.badge && item.badge > 0 && (
-          <SidebarMenuBadge className="bg-destructive text-destructive-foreground text-[9px] font-semibold rounded-full h-4 min-w-4 px-1">
-            {item.badge}
-          </SidebarMenuBadge>
-        )}
-      </SidebarMenuItem>
+      <SidebarLink
+        key={item.href}
+        link={{ label: item.label, href: item.href, icon: item.icon, badge: item.badge }}
+        isActive={isActive}
+        isLocked={isLocked}
+      />
     );
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border/50">
-      {/* Header: Logo + tenant name */}
-      <SidebarHeader className="p-3">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild tooltip={displayTenant?.name || BRAND.name}>
-              <Link to="/app/dashboard">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg gradient-brand">
-                  <AudioWaveform className="h-4 w-4 text-white" />
-                </div>
-                <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-semibold text-sm">{displayTenant?.name || BRAND.name}</span>
-                  <span className="text-[11px] text-sidebar-foreground/50">{subtitle || "AI Receptionist"}</span>
-                </div>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
+    <AnimatedSidebar open={open} setOpen={setOpen}>
+      <SidebarBody className="justify-between gap-6">
+        <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
+          {/* MAIN */}
+          {open && <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-3 pt-1 pb-1">Main</p>}
+          <div className="flex flex-col gap-0.5">
+            {coreItems.map(renderLink)}
+          </div>
 
-      {/* Scrollable nav content — flat list with thin separators */}
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarMenu>
-            {/* Core nav */}
-            {renderItem({ href: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard })}
-            {renderItem({ href: "/app/inbox", label: (terms.inboxPageTitle as string) || "Leads", icon: caps.isDispatchBusiness ? Phone : Users })}
-            {renderItem({ href: "/app/customers", label: (terms.customers ? String(terms.customers).charAt(0).toUpperCase() + String(terms.customers).slice(1) : "Customers"), icon: UserCircle })}
+          {/* Workspace items */}
+          {workspaceItems.length > 0 && (
+            <div className="flex flex-col gap-0.5 mt-3">
+              {workspaceItems.map(renderLink)}
+            </div>
+          )}
 
-            {/* Workspace (module-gated) */}
-            {workspaceItems.length > 0 && (
-              <>
-                <SidebarSeparator className="my-2" />
-                {workspaceItems.map(renderItem)}
-              </>
-            )}
+          {/* AI CENTER */}
+          {open && <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-3 pt-4 pb-1">AI Center</p>}
+          <div className={cn("flex flex-col gap-0.5", !open && "mt-4")}>
+            {aiCenterItems.map(renderLink)}
+          </div>
 
-            {/* Configure */}
-            <SidebarSeparator className="my-2" />
-            {renderItem({ href: "/app/business-brain", label: "Business Brain", icon: Bot, badge: conflictsCount || undefined })}
-            {renderItem({ href: "/app/partner", label: "Business Partner", icon: Sparkles })}
-            {renderItem({ href: "/app/integrations", label: "Integrations", icon: Route })}
-            {renderItem({ href: "/app/simulator", label: "Test Calls", icon: FlaskConical })}
-            {renderItem({ href: "/app/reports/roi", label: "Reports", icon: BarChart3 })}
-            {renderItem({ href: "/app/agency", label: "Agency", icon: Building2 })}
-          </SidebarMenu>
-        </SidebarGroup>
-      </SidebarContent>
+          {/* MANAGE */}
+          {open && <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-3 pt-4 pb-1">Manage</p>}
+          <div className={cn("flex flex-col gap-0.5", !open && "mt-4")}>
+            {manageItems.map(renderLink)}
+          </div>
+        </div>
 
-      {/* Footer: Settings + Help */}
-      <SidebarFooter>
-        <SidebarMenu>
-          {renderItem({ href: "/app/settings", label: "Settings", icon: Settings })}
-          {renderItem({ href: "/app/help", label: "Help", icon: HelpCircle })}
-        </SidebarMenu>
-      </SidebarFooter>
-
-      <SidebarRail />
-    </Sidebar>
+        {/* Bottom */}
+        <div className="flex flex-col gap-0.5">
+          {bottomItems.map(renderLink)}
+        </div>
+      </SidebarBody>
+    </AnimatedSidebar>
   );
 }

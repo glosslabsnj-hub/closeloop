@@ -138,7 +138,6 @@ export default function CustomersPage() {
   return (
     <PageContainer maxWidth="xl">
       <PageHeader
-        icon={Users}
         title={modeLabels.customersLabel === "Customer" ? "Customers" : modeLabels.customersLabel}
         description={`Your complete ${modeLabels.customersLabel.toLowerCase()} database`}
         action={
@@ -164,22 +163,6 @@ export default function CustomersPage() {
           </div>
         }
       />
-
-      {/* Stats */}
-      {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 w-full rounded-lg" />
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label={`Total ${modeLabels.customersLabel}`} value={totalCount} icon={Users} description="All time" />
-          <StatCard label="Active" value={activeCount} icon={CalendarCheck} description="With service history" variant="success" />
-          <StatCard label="New This Month" value={recentCount} icon={UserPlus} description="Last 30 days" variant="primary" />
-          <StatCard label="With Email" value={withEmail} icon={Users} description="Reachable" />
-        </div>
-      )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>

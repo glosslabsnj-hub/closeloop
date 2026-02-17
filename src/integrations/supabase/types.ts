@@ -14,6 +14,110 @@ export type Database = {
   }
   public: {
     Tables: {
+      a2p_registrations: {
+        Row: {
+          brand_score: number | null
+          brand_sid: string | null
+          campaign_sid: string | null
+          city: string | null
+          contact_email: string | null
+          contact_first_name: string | null
+          contact_last_name: string | null
+          contact_phone: string | null
+          created_at: string
+          customer_profile_sid: string | null
+          ein: string | null
+          entity_type: string | null
+          failure_reason: string | null
+          id: string
+          legal_business_name: string | null
+          messaging_service_sid: string | null
+          registration_state: string | null
+          state: string | null
+          status: string
+          street_address: string | null
+          tenant_id: string
+          toll_free_messaging_service_sid: string | null
+          toll_free_phone_e164: string | null
+          toll_free_phone_sid: string | null
+          toll_free_verification_sid: string | null
+          toll_free_verified: boolean
+          updated_at: string
+          website_url: string | null
+          zip_code: string | null
+        }
+        Insert: {
+          brand_score?: number | null
+          brand_sid?: string | null
+          campaign_sid?: string | null
+          city?: string | null
+          contact_email?: string | null
+          contact_first_name?: string | null
+          contact_last_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          customer_profile_sid?: string | null
+          ein?: string | null
+          entity_type?: string | null
+          failure_reason?: string | null
+          id?: string
+          legal_business_name?: string | null
+          messaging_service_sid?: string | null
+          registration_state?: string | null
+          state?: string | null
+          status?: string
+          street_address?: string | null
+          tenant_id: string
+          toll_free_messaging_service_sid?: string | null
+          toll_free_phone_e164?: string | null
+          toll_free_phone_sid?: string | null
+          toll_free_verification_sid?: string | null
+          toll_free_verified?: boolean
+          updated_at?: string
+          website_url?: string | null
+          zip_code?: string | null
+        }
+        Update: {
+          brand_score?: number | null
+          brand_sid?: string | null
+          campaign_sid?: string | null
+          city?: string | null
+          contact_email?: string | null
+          contact_first_name?: string | null
+          contact_last_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          customer_profile_sid?: string | null
+          ein?: string | null
+          entity_type?: string | null
+          failure_reason?: string | null
+          id?: string
+          legal_business_name?: string | null
+          messaging_service_sid?: string | null
+          registration_state?: string | null
+          state?: string | null
+          status?: string
+          street_address?: string | null
+          tenant_id?: string
+          toll_free_messaging_service_sid?: string | null
+          toll_free_phone_e164?: string | null
+          toll_free_phone_sid?: string | null
+          toll_free_verification_sid?: string | null
+          toll_free_verified?: boolean
+          updated_at?: string
+          website_url?: string | null
+          zip_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "a2p_registrations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       active_jobs: {
         Row: {
           actual_completion: string | null
@@ -1223,6 +1327,7 @@ export type Database = {
       }
       bookings: {
         Row: {
+          confirmation_sent: boolean | null
           created_at: string
           deposit_paid: boolean
           deposit_required: boolean
@@ -1234,6 +1339,9 @@ export type Database = {
           notes: string | null
           price_breakdown: Json | null
           price_cents: number | null
+          reminder_sent_1h: boolean | null
+          reminder_sent_24h: boolean | null
+          review_sent: boolean | null
           service_id: string | null
           session_id: string | null
           staff_member_id: string | null
@@ -1243,6 +1351,7 @@ export type Database = {
           tenant_id: string
         }
         Insert: {
+          confirmation_sent?: boolean | null
           created_at?: string
           deposit_paid?: boolean
           deposit_required?: boolean
@@ -1254,6 +1363,9 @@ export type Database = {
           notes?: string | null
           price_breakdown?: Json | null
           price_cents?: number | null
+          reminder_sent_1h?: boolean | null
+          reminder_sent_24h?: boolean | null
+          review_sent?: boolean | null
           service_id?: string | null
           session_id?: string | null
           staff_member_id?: string | null
@@ -1263,6 +1375,7 @@ export type Database = {
           tenant_id: string
         }
         Update: {
+          confirmation_sent?: boolean | null
           created_at?: string
           deposit_paid?: boolean
           deposit_required?: boolean
@@ -1274,6 +1387,9 @@ export type Database = {
           notes?: string | null
           price_breakdown?: Json | null
           price_cents?: number | null
+          reminder_sent_1h?: boolean | null
+          reminder_sent_24h?: boolean | null
+          review_sent?: boolean | null
           service_id?: string | null
           session_id?: string | null
           staff_member_id?: string | null
@@ -8944,6 +9060,7 @@ export type Database = {
           refund_policy: string | null
           review_channel: string | null
           review_delay_hours: number | null
+          review_link: string | null
           service_area_json: Json | null
           tagline: string | null
           timezone: string
@@ -8990,6 +9107,7 @@ export type Database = {
           refund_policy?: string | null
           review_channel?: string | null
           review_delay_hours?: number | null
+          review_link?: string | null
           service_area_json?: Json | null
           tagline?: string | null
           timezone?: string
@@ -9036,6 +9154,7 @@ export type Database = {
           refund_policy?: string | null
           review_channel?: string | null
           review_delay_hours?: number | null
+          review_link?: string | null
           service_area_json?: Json | null
           tagline?: string | null
           timezone?: string

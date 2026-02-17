@@ -293,7 +293,6 @@ export default function UnifiedInboxPage() {
   return (
     <PageContainer maxWidth="xl">
       <PageHeader
-        icon={terms.inboxPageTitle === "Call Log" ? <Phone className="h-5 w-5" /> : <Users className="h-5 w-5" />}
         title={terms.inboxPageTitle}
         description={terms.inboxPageSubtitle}
       />

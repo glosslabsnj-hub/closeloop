@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Trash2, Loader2, Building2 } from "lucide-react";
+import { TestTenantManager } from "@/components/admin/TestTenantManager";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -87,6 +88,8 @@ export default function AdminTenantsPage() {
         <h1 className="text-2xl font-bold">Tenants</h1>
         <Badge variant="secondary">{filtered.length} total</Badge>
       </div>
+
+      <TestTenantManager />
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

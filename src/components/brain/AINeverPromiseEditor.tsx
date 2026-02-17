@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Save, ShieldAlert, Info, Plus, X } from "lucide-react";
+import { Loader2, Save, ShieldAlert, Plus, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -92,20 +92,6 @@ export function AINeverPromiseEditor() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* AI Preview */}
-        <div className="rounded-lg border bg-primary/5 border-primary/20 p-4">
-          <div className="flex items-start gap-2">
-            <Info className="h-4 w-4 text-primary mt-0.5" />
-            <div>
-              <p className="text-sm font-medium">How this works</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                These rules are injected into the AI's instructions. If a caller asks for something on this list,
-                the AI will politely decline or redirect instead of making a promise.
-              </p>
-            </div>
-          </div>
-        </div>
-
         {/* Current Promises List */}
         {promises.length > 0 ? (
           <div className="space-y-2">

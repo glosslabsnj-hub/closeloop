@@ -17,6 +17,16 @@ interface SeedRequest {
     enabled_modules: string[];
     capabilities_json: Record<string, boolean>;
     hipaa_mode: boolean;
+    // Optional business details
+    hours_json?: Record<string, unknown>;
+    phone_public?: string;
+    website_url?: string;
+    tagline?: string;
+    cancellation_policy?: string;
+    service_area_json?: Record<string, unknown>;
+    // Optional standalone login credentials
+    owner_email?: string;
+    owner_password?: string;
     communicationPrefs: {
       aiBookingMode: string;
       missedCallBehavior: string;
@@ -30,6 +40,25 @@ interface SeedRequest {
       orderCount?: number;
       dispatchJobCount?: number;
       intakeCount?: number;
+      customServices?: {
+        name: string;
+        description?: string;
+        duration_minutes: number;
+        price_amount: number;
+        price_type?: string;
+        service_category?: string;
+        display_order?: number;
+      }[];
+      customFaqs?: {
+        question: string;
+        answer: string;
+        priority_weight?: number;
+      }[];
+      customObjections?: {
+        objection: string;
+        response: string;
+        priority_weight?: number;
+      }[];
     };
   };
 }
@@ -69,13 +98,14 @@ Deno.serve(async (req) => {
     // Check super_admin role
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { data: profile } = await serviceClient
-      .from("profiles")
+    const { data: roleRow } = await serviceClient
+      .from("user_roles")
       .select("role")
-      .eq("id", user.id)
-      .single();
+      .eq("user_id", user.id)
+      .eq("role", "super_admin")
+      .maybeSingle();
 
-    if (profile?.role !== "super_admin") {
+    if (!roleRow) {
       return new Response(JSON.stringify({ error: "Forbidden: super_admin required" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -145,6 +175,46 @@ Deno.serve(async (req) => {
       await serviceClient.from("business_faqs").delete().eq("tenant_id", tenantId);
       await serviceClient.from("objection_responses").delete().eq("tenant_id", tenantId);
 
+      // Ensure standalone owner login exists if credentials provided
+      if (config.owner_email && config.owner_password) {
+        let ownerId: string | null = null;
+
+        const { data: newUser, error: createErr } =
+          await serviceClient.auth.admin.createUser({
+            email: config.owner_email,
+            password: config.owner_password,
+            email_confirm: true,
+          });
+
+        if (newUser?.user) {
+          ownerId = newUser.user.id;
+        } else if (
+          createErr &&
+          (createErr.message?.includes("already been registered") ||
+            createErr.message?.includes("already exists"))
+        ) {
+          const { data: listData } =
+            await serviceClient.auth.admin.listUsers();
+          const existing = listData?.users?.find(
+            (u: { email?: string }) => u.email === config.owner_email
+          );
+          if (existing) ownerId = existing.id;
+        } else if (createErr) {
+          console.error("Failed to create owner auth user:", createErr.message);
+        }
+
+        if (ownerId) {
+          await serviceClient
+            .from("profiles")
+            .upsert({ id: ownerId, role: "user" }, { onConflict: "id" });
+
+          await serviceClient.from("tenant_memberships").upsert(
+            { tenant_id: tenantId, user_id: ownerId, role: "owner" },
+            { onConflict: "tenant_id,user_id" }
+          );
+        }
+      }
+
       // Re-seed
       await seedTenantData(serviceClient, tenantId, config);
 
@@ -163,28 +233,38 @@ Deno.serve(async (req) => {
       }
 
       // Create tenant
+      const defaultHours = {
+        monday: { closed: false, windows: [{ open: "09:00", close: "17:00" }] },
+        tuesday: { closed: false, windows: [{ open: "09:00", close: "17:00" }] },
+        wednesday: { closed: false, windows: [{ open: "09:00", close: "17:00" }] },
+        thursday: { closed: false, windows: [{ open: "09:00", close: "17:00" }] },
+        friday: { closed: false, windows: [{ open: "09:00", close: "17:00" }] },
+        saturday: { closed: false, windows: [{ open: "10:00", close: "15:00" }] },
+        sunday: { closed: true, windows: [] },
+      };
+
+      const tenantInsert: Record<string, unknown> = {
+        name: config.name,
+        address: config.address,
+        timezone: config.timezone,
+        business_mode: config.business_mode,
+        industry: config.industry,
+        enabled_modules: config.enabled_modules,
+        capabilities_json: config.capabilities_json,
+        hipaa_mode: config.hipaa_mode,
+        hours_json: config.hours_json ?? defaultHours,
+        onboarding_completed_at: new Date().toISOString(),
+      };
+
+      if (config.phone_public) tenantInsert.phone_public = config.phone_public;
+      if (config.website_url) tenantInsert.website_url = config.website_url;
+      if (config.tagline) tenantInsert.tagline = config.tagline;
+      if (config.cancellation_policy) tenantInsert.cancellation_policy = config.cancellation_policy;
+      if (config.service_area_json) tenantInsert.service_area_json = config.service_area_json;
+
       const { data: newTenant, error: tenantError } = await serviceClient
         .from("tenants")
-        .insert({
-          name: config.name,
-          address: config.address,
-          timezone: config.timezone,
-          business_mode: config.business_mode,
-          industry: config.industry,
-          enabled_modules: config.enabled_modules,
-          capabilities_json: config.capabilities_json,
-          hipaa_mode: config.hipaa_mode,
-          hours_json: {
-            monday: { closed: false, windows: [{ open: "09:00", close: "17:00" }] },
-            tuesday: { closed: false, windows: [{ open: "09:00", close: "17:00" }] },
-            wednesday: { closed: false, windows: [{ open: "09:00", close: "17:00" }] },
-            thursday: { closed: false, windows: [{ open: "09:00", close: "17:00" }] },
-            friday: { closed: false, windows: [{ open: "09:00", close: "17:00" }] },
-            saturday: { closed: false, windows: [{ open: "10:00", close: "15:00" }] },
-            sunday: { closed: true, windows: [] },
-          },
-          onboarding_completed_at: new Date().toISOString(),
-        })
+        .insert(tenantInsert)
         .select("id")
         .single();
 
@@ -194,12 +274,56 @@ Deno.serve(async (req) => {
 
       const tenantId = newTenant.id;
 
-      // Create membership
+      // Create membership for the admin user (so they can Switch to this tenant)
       await serviceClient.from("tenant_memberships").insert({
         tenant_id: tenantId,
         user_id: user.id,
         role: "owner",
       });
+
+      // Create standalone owner login if credentials provided
+      if (config.owner_email && config.owner_password) {
+        let ownerId: string | null = null;
+
+        // Try to create the auth user
+        const { data: newUser, error: createErr } =
+          await serviceClient.auth.admin.createUser({
+            email: config.owner_email,
+            password: config.owner_password,
+            email_confirm: true,
+          });
+
+        if (newUser?.user) {
+          ownerId = newUser.user.id;
+        } else if (
+          createErr &&
+          (createErr.message?.includes("already been registered") ||
+            createErr.message?.includes("already exists"))
+        ) {
+          // User already exists (re-seed scenario) — look them up
+          const { data: listData } =
+            await serviceClient.auth.admin.listUsers();
+          const existing = listData?.users?.find(
+            (u: { email?: string }) => u.email === config.owner_email
+          );
+          if (existing) ownerId = existing.id;
+        } else if (createErr) {
+          console.error("Failed to create owner auth user:", createErr.message);
+        }
+
+        if (ownerId) {
+          // Ensure a profile row exists so role checks work
+          await serviceClient
+            .from("profiles")
+            .upsert({ id: ownerId, role: "user" }, { onConflict: "id" });
+
+          // Add owner membership (ignore conflict if already exists)
+          await serviceClient.from("tenant_memberships").upsert(
+            { tenant_id: tenantId, user_id: ownerId, role: "owner" },
+            { onConflict: "tenant_id,user_id" }
+          );
+        }
+      }
 
       // Create subscription
       await serviceClient.from("subscriptions").insert({
@@ -260,7 +384,7 @@ Deno.serve(async (req) => {
   }
 });
 
-// Helper: seed services, FAQs, and sample data
+// Helper: seed services, FAQs, objections, and sample data
 // deno-lint-ignore no-explicit-any
 async function seedTenantData(
   client: any,
@@ -269,31 +393,65 @@ async function seedTenantData(
 ) {
   const { seedData } = config;
 
-  // Seed services
-  const services = Array.from({ length: seedData.serviceCount }, (_, i) => ({
-    tenant_id: tenantId,
-    name: `${config.name} Service ${i + 1}`,
-    description: `Sample service #${i + 1}`,
-    duration_minutes: [30, 45, 60, 90][i % 4],
-    price_amount: [50, 75, 100, 150, 200][i % 5],
-    price_type: "fixed" as const,
-    is_active: true,
-  }));
-
-  if (services.length > 0) {
+  // Seed services — use custom if provided, otherwise generate generic
+  if (seedData.customServices && seedData.customServices.length > 0) {
+    const services = seedData.customServices.map((s) => ({
+      tenant_id: tenantId,
+      name: s.name,
+      description: s.description ?? "",
+      duration_minutes: s.duration_minutes,
+      price_amount: s.price_amount,
+      price_type: s.price_type ?? "fixed",
+      service_category: s.service_category ?? null,
+      display_order: s.display_order ?? 0,
+      is_active: true,
+    }));
     await client.from("services").insert(services);
+  } else {
+    const services = Array.from({ length: seedData.serviceCount }, (_, i) => ({
+      tenant_id: tenantId,
+      name: `${config.name} Service ${i + 1}`,
+      description: `Sample service #${i + 1}`,
+      duration_minutes: [30, 45, 60, 90][i % 4],
+      price_amount: [50, 75, 100, 150, 200][i % 5],
+      price_type: "fixed" as const,
+      is_active: true,
+    }));
+    if (services.length > 0) {
+      await client.from("services").insert(services);
+    }
   }
 
-  // Seed FAQs
-  const faqs = Array.from({ length: seedData.faqCount }, (_, i) => ({
-    tenant_id: tenantId,
-    question: `Sample question ${i + 1} for ${config.name}?`,
-    answer: `This is the answer to sample question ${i + 1}.`,
-    priority_weight: i,
-  }));
-
-  if (faqs.length > 0) {
+  // Seed FAQs — use custom if provided, otherwise generate generic
+  if (seedData.customFaqs && seedData.customFaqs.length > 0) {
+    const faqs = seedData.customFaqs.map((f, i) => ({
+      tenant_id: tenantId,
+      question: f.question,
+      answer: f.answer,
+      priority_weight: f.priority_weight ?? i,
+    }));
     await client.from("business_faqs").insert(faqs);
+  } else {
+    const faqs = Array.from({ length: seedData.faqCount }, (_, i) => ({
+      tenant_id: tenantId,
+      question: `Sample question ${i + 1} for ${config.name}?`,
+      answer: `This is the answer to sample question ${i + 1}.`,
+      priority_weight: i,
+    }));
+    if (faqs.length > 0) {
+      await client.from("business_faqs").insert(faqs);
+    }
+  }
+
+  // Seed objection responses — only if custom data provided
+  if (seedData.customObjections && seedData.customObjections.length > 0) {
+    const objections = seedData.customObjections.map((o, i) => ({
+      tenant_id: tenantId,
+      objection: o.objection,
+      response: o.response,
+      priority_weight: o.priority_weight ?? i,
+    }));
+    await client.from("objection_responses").insert(objections);
   }
 
   // Seed sample call sessions

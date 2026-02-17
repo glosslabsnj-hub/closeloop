@@ -210,9 +210,12 @@ export function hasVoiceFeature(sku: string | null | undefined): boolean {
          sku.startsWith("voice") || sku.startsWith("both");
 }
 
-// SMS feature is disabled / coming soon - always returns false
-export function hasSmsFeature(_sku: string | null | undefined): boolean {
-  return false;
+// SMS feature is enabled when A2P registration is approved for the tenant.
+// This function checks the SKU — the actual A2P status check happens at query time
+// via the a2p_registrations table (status = 'approved').
+export function hasSmsFeature(sku: string | null | undefined): boolean {
+  // SMS requires a voice plan (all plans include SMS capability once A2P is approved)
+  return hasVoiceFeature(sku);
 }
 
 // Get plan family/tier from any SKU (new or legacy)

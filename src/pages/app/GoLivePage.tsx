@@ -105,18 +105,14 @@ export default function GoLivePage() {
   const tierInfo = selectedTier ? TIERS.find((t) => t.tier === selectedTier) : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20 py-12 px-4">
+    <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-primary text-sm font-medium mb-4">
-            <Zap className="h-4 w-4" />
-            Almost there!
-          </div>
-          <h1 className="text-4xl font-bold mb-3">
+          <h1 className="text-2xl font-semibold mb-2">
             {step === "tier" ? "Choose Your Plan" : "Select Usage Level"}
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
             {step === "tier"
               ? "Select your plan to get started."
               : `Choose how much usage you need for ${tierInfo?.displayName}.`}
@@ -152,13 +148,7 @@ export default function GoLivePage() {
           </Card>
         )}
 
-        {/* Trust badges */}
-        <div className="flex justify-center gap-6 mb-10 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            <span>Cancel anytime</span>
-          </div>
-        </div>
+        <div className="mb-6" />
 
         {/* Step 1: Tier Selection */}
         {step === "tier" && (

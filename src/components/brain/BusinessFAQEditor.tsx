@@ -135,17 +135,6 @@ export function BusinessFAQEditor() {
         </div>
       )}
 
-      {/* Prominent Upload Banner */}
-      <div className="mb-4">
-        <InlineUploadButton 
-          contentType="faqs" 
-          variant="prominent"
-          onUploadComplete={() => {
-            fetchFAQs();
-            invalidateBrainQueries(queryClient, tenant?.id);
-          }}
-        />
-      </div>
 
       <KnowledgeSection
         title="FAQs"

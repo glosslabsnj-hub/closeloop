@@ -58,7 +58,7 @@ export interface SectionGroup {
 const BUSINESS_ITEMS: BrainSectionItem[] = [
   {
     id: "business-info",
-    title: "About Your Business",
+    title: "Business Info",
     icon: Building2,
     group: "essentials",
     groupLabel: "Basics",
@@ -80,7 +80,7 @@ const BUSINESS_ITEMS: BrainSectionItem[] = [
   },
   {
     id: "calendar-sync",
-    title: "Calendar & Availability",
+    title: "Calendar",
     icon: Calendar,
     group: "essentials",
     groupLabel: "Basics",
@@ -101,7 +101,7 @@ const BUSINESS_ITEMS: BrainSectionItem[] = [
   },
   {
     id: "templates",
-    title: "Quick Setup Templates",
+    title: "Templates",
     icon: Palette,
     group: "optional",
     groupLabel: "Quick Start",
@@ -150,7 +150,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
   },
   {
     id: "price-modifiers",
-    title: "Extra Fees & Surcharges",
+    title: "Price Modifiers",
     icon: DollarSign,
     group: "pricing-options",
     groupLabel: "Pricing & Fees",
@@ -238,7 +238,7 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
   },
   {
     id: "additional-services",
-    title: "Other Things You Offer",
+    title: "Additional Services",
     icon: Tag,
     group: "other-offerings",
     groupLabel: "Additional Offerings",
@@ -254,7 +254,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
   // Service Area
   {
     id: "coverage",
-    title: "Your Service Area",
+    title: "Service Area",
     icon: MapPin,
     group: "where-you-work",
     groupLabel: "Service Area",
@@ -267,7 +267,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
   },
   {
     id: "travel-times",
-    title: "Arrival Estimates",
+    title: "ETAs",
     icon: Navigation,
     group: "where-you-work",
     groupLabel: "Service Area",
@@ -348,7 +348,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
   },
   {
     id: "workload",
-    title: "How Busy Are You Right Now?",
+    title: "Current Workload",
     icon: Gauge,
     group: "where-you-work",
     groupLabel: "Service Area",
@@ -361,7 +361,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
   // Notifications
   {
     id: "booking-delivery",
-    title: "Where to Send New Bookings",
+    title: "Booking Alerts",
     icon: Send,
     group: "delivery",
     groupLabel: "Notifications",
@@ -394,7 +394,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
   },
   {
     id: "distance-pricing",
-    title: "How You Charge for Distance",
+    title: "Distance Pricing",
     icon: Navigation,
     group: "delivery",
     groupLabel: "Notifications",
@@ -416,7 +416,7 @@ const OPERATIONS_ITEMS: BrainSectionItem[] = [
   },
   {
     id: "callback-delivery",
-    title: "Callback Request Alerts",
+    title: "Callback Alerts",
     icon: Phone,
     group: "delivery",
     groupLabel: "Notifications",
@@ -506,7 +506,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
   // How Your AI Acts
   {
     id: "ai-behavior-mode",
-    title: "AI Behavior Mode",
+    title: "AI Mode",
     icon: Settings2,
     group: "how-ai-acts",
     groupLabel: "How Your AI Acts",
@@ -535,7 +535,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
   },
   {
     id: "scripts",
-    title: "How Your AI Answers the Phone",
+    title: "Greeting Script",
     icon: Mic,
     group: "how-ai-acts",
     groupLabel: "How Your AI Acts",
@@ -547,7 +547,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
   // Business Rules
   {
     id: "policies",
-    title: "Cancellation, Deposits & Payments",
+    title: "Policies",
     icon: FileText,
     group: "business-rules",
     groupLabel: "Business Rules",
@@ -556,7 +556,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
   },
   {
     id: "never-promise",
-    title: "What Your AI Should Never Promise",
+    title: "Guardrails",
     icon: Shield,
     group: "business-rules",
     groupLabel: "Business Rules",
@@ -565,7 +565,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
   },
   {
     id: "required-questions",
-    title: "Info to Collect on Every Call",
+    title: "Required Info",
     icon: MessageSquareText,
     group: "business-rules",
     groupLabel: "Business Rules",
@@ -574,7 +574,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
   },
   {
     id: "custom-policies",
-    title: "Other Rules for Your AI",
+    title: "Custom Rules",
     icon: FileText,
     group: "business-rules",
     groupLabel: "Business Rules",
@@ -583,7 +583,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
   },
   {
     id: "guidelines",
-    title: "Special Instructions for Your AI",
+    title: "AI Guidelines",
     icon: BookOpen,
     group: "business-rules",
     groupLabel: "Business Rules",
@@ -594,7 +594,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
   // Knowledge Base
   {
     id: "review",
-    title: "Items Needing Your Approval",
+    title: "Review Queue",
     icon: AlertCircle,
     group: "knowledge-base",
     groupLabel: "Knowledge Base",
@@ -604,7 +604,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
   },
   {
     id: "faqs",
-    title: "Common Questions & Answers",
+    title: "FAQs",
     icon: HelpCircle,
     group: "knowledge-base",
     groupLabel: "Knowledge Base",
@@ -613,7 +613,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
   },
   {
     id: "objections",
-    title: "When Customers Push Back",
+    title: "Objections",
     icon: MessageCircle,
     group: "knowledge-base",
     groupLabel: "Knowledge Base",
@@ -684,7 +684,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
   },
   {
     id: "product-knowledge",
-    title: "Product & Material Knowledge",
+    title: "Product Knowledge",
     icon: Package,
     group: "industry-expertise",
     groupLabel: "Industry Expertise",
@@ -723,7 +723,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
   },
   {
     id: "custom",
-    title: "Extra Info for Your AI",
+    title: "Custom Knowledge",
     icon: Lightbulb,
     group: "additional-knowledge",
     groupLabel: "Additional Knowledge",
@@ -732,7 +732,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
   },
   {
     id: "documents",
-    title: "Reference Documents",
+    title: "Documents",
     icon: FileUp,
     group: "additional-knowledge",
     groupLabel: "Additional Knowledge",
