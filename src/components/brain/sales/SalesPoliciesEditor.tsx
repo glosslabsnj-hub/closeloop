@@ -66,7 +66,7 @@ export function SalesPoliciesEditor() {
     if (!tenant?.id) return;
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("general_workflow_config")
         .select("*")
         .eq("tenant_id", tenant.id)
@@ -100,7 +100,7 @@ export function SalesPoliciesEditor() {
     if (!tenant?.id || !formData) return;
     setIsSaving(true);
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("general_workflow_config")
         .upsert(
           {
