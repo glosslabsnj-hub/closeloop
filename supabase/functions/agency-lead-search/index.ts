@@ -154,6 +154,22 @@ serve(async (req) => {
       });
     }
 
+    // --- Server-side rate limit: 3 searches per day ---
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const { count: searchCount } = await supabase
+      .from("agency_lead_searches")
+      .select("*", { count: "exact", head: true })
+      .eq("agency_id", agency.id)
+      .gte("searched_at", todayStart.toISOString());
+
+    if ((searchCount ?? 0) >= 3) {
+      return new Response(JSON.stringify({ error: "Daily search limit reached (3/3). Try again tomorrow." }), {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     if (!PERPLEXITY_API_KEY) {
       return new Response(JSON.stringify({ error: "PERPLEXITY_API_KEY is not configured" }), {
@@ -198,6 +214,14 @@ serve(async (req) => {
     });
 
     console.log(`[agency-lead-search] Found ${uniqueLeads.length} unique leads for ${industry} in ${location}`);
+
+    // Log the search for rate limiting
+    await supabase.from("agency_lead_searches").insert({
+      agency_id: agency.id,
+      industry,
+      location,
+      result_count: uniqueLeads.length,
+    });
 
     return new Response(
       JSON.stringify({ leads: uniqueLeads, query: { industry, location } }),

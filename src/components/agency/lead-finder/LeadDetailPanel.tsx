@@ -1,10 +1,14 @@
+import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Phone, Globe, Star, MapPin, ExternalLink, Copy, Building2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Phone, Globe, Star, MapPin, ExternalLink, Copy, Building2, Bookmark, Check } from "lucide-react";
 import { toast } from "sonner";
 import { getTemperatureColor, getTemperatureIcon, type ScoredLead } from "./leadScoring";
+import { useUpdateSavedLead } from "@/hooks/useAgencyLeads";
 
 const SIGNAL_LABELS: Record<string, string> = {
   no_online_booking: "No Online Booking",
@@ -15,6 +19,15 @@ const SIGNAL_LABELS: Record<string, string> = {
   poor_responsiveness: "Poor Responsiveness",
   no_website: "No Website",
   outdated_website: "Outdated Website",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  new: "New",
+  contacted: "Contacted",
+  interested: "Interested",
+  not_interested: "Not Interested",
+  converted: "Converted",
+  skipped: "Skipped",
 };
 
 export interface AgencyLead {
@@ -37,14 +50,46 @@ interface LeadDetailPanelProps {
   lead: AgencyLead | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  // Save functionality
+  isSaved?: boolean;
+  onSave?: () => void;
+  savingInProgress?: boolean;
+  // Saved lead tracking
+  savedLeadId?: string | null;
+  agencyId?: string;
+  savedStatus?: string;
+  savedNotes?: string;
 }
 
-export function LeadDetailPanel({ lead, open, onOpenChange }: LeadDetailPanelProps) {
+export function LeadDetailPanel({
+  lead, open, onOpenChange,
+  isSaved, onSave, savingInProgress,
+  savedLeadId, agencyId, savedStatus, savedNotes,
+}: LeadDetailPanelProps) {
+  const [notes, setNotes] = useState(savedNotes || "");
+  const [notesChanged, setNotesChanged] = useState(false);
+  const updateLead = useUpdateSavedLead(agencyId);
+
   if (!lead) return null;
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast.success(`${label} copied`);
+  };
+
+  const handleStatusChange = (status: string) => {
+    if (savedLeadId) {
+      updateLead.mutate({ id: savedLeadId, status });
+      toast.success(`Status updated to ${STATUS_LABELS[status]}`);
+    }
+  };
+
+  const handleSaveNotes = () => {
+    if (savedLeadId) {
+      updateLead.mutate({ id: savedLeadId, notes });
+      setNotesChanged(false);
+      toast.success("Notes saved");
+    }
   };
 
   const temp = lead.score;
@@ -72,6 +117,33 @@ export function LeadDetailPanel({ lead, open, onOpenChange }: LeadDetailPanelPro
         </SheetHeader>
 
         <div className="space-y-5">
+          {/* Save / Status Controls */}
+          <div className="flex items-center gap-2">
+            {isSaved ? (
+              <Badge variant="outline" className="bg-green-500/10 text-green-700 border-green-500/20">
+                <Check className="h-3 w-3 mr-1" /> Saved
+              </Badge>
+            ) : onSave ? (
+              <Button size="sm" variant="outline" onClick={onSave} disabled={savingInProgress}>
+                <Bookmark className="h-3.5 w-3.5 mr-1.5" />
+                Save Lead
+              </Button>
+            ) : null}
+
+            {savedLeadId && (
+              <Select value={savedStatus || "new"} onValueChange={handleStatusChange}>
+                <SelectTrigger className="h-8 text-xs w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(STATUS_LABELS).map(([k, v]) => (
+                    <SelectItem key={k} value={k} className="text-xs">{v}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
           {/* Why They Need CloseLoop */}
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Why They Need CloseLoop</h4>
@@ -90,7 +162,6 @@ export function LeadDetailPanel({ lead, open, onOpenChange }: LeadDetailPanelPro
                   </div>
                 ))}
               </div>
-              {/* Score bar */}
               <div className="mt-3">
                 <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
                   <span>Score</span>
@@ -127,8 +198,7 @@ export function LeadDetailPanel({ lead, open, onOpenChange }: LeadDetailPanelPro
                 </div>
               ) : (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Phone className="h-4 w-4" />
-                  <span>No phone found</span>
+                  <Phone className="h-4 w-4" /><span>No phone found</span>
                 </div>
               )}
 
@@ -147,8 +217,7 @@ export function LeadDetailPanel({ lead, open, onOpenChange }: LeadDetailPanelPro
                 </div>
               ) : (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Globe className="h-4 w-4" />
-                  <span>No website found</span>
+                  <Globe className="h-4 w-4" /><span>No website found</span>
                 </div>
               )}
 
@@ -184,14 +253,12 @@ export function LeadDetailPanel({ lead, open, onOpenChange }: LeadDetailPanelPro
                   </div>
                 </div>
               )}
-
               {lead.employee_estimate && (
                 <div className="rounded-lg border p-3">
                   <div className="text-xs text-muted-foreground">Team Size</div>
                   <div className="font-semibold mt-1 text-sm">{lead.employee_estimate}</div>
                 </div>
               )}
-
               {lead.hours && (
                 <div className="rounded-lg border p-3 col-span-2">
                   <div className="text-xs text-muted-foreground">Hours</div>
@@ -215,6 +282,27 @@ export function LeadDetailPanel({ lead, open, onOpenChange }: LeadDetailPanelPro
             </div>
           )}
 
+          {/* Notes (saved leads only) */}
+          {savedLeadId && (
+            <>
+              <Separator />
+              <div>
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Notes</h4>
+                <Textarea
+                  placeholder="Add notes about this lead (what they said, follow-up date, etc.)"
+                  value={notes}
+                  onChange={(e) => { setNotes(e.target.value); setNotesChanged(true); }}
+                  className="min-h-[80px] text-sm"
+                />
+                {notesChanged && (
+                  <Button size="sm" className="mt-2" onClick={handleSaveNotes} disabled={updateLead.isPending}>
+                    Save Notes
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
+
           <Separator />
 
           {/* Actions */}
@@ -222,16 +310,14 @@ export function LeadDetailPanel({ lead, open, onOpenChange }: LeadDetailPanelPro
             {lead.phone && (
               <Button asChild className="flex-1">
                 <a href={`tel:${lead.phone}`}>
-                  <Phone className="h-4 w-4 mr-2" />
-                  Call
+                  <Phone className="h-4 w-4 mr-2" />Call
                 </a>
               </Button>
             )}
             {lead.website && (
               <Button variant="outline" asChild className="flex-1">
                 <a href={lead.website} target="_blank" rel="noopener noreferrer">
-                  <Globe className="h-4 w-4 mr-2" />
-                  Visit Website
+                  <Globe className="h-4 w-4 mr-2" />Visit Website
                 </a>
               </Button>
             )}
