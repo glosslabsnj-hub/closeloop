@@ -1237,15 +1237,109 @@ export const GENERAL_AGENT_CONFIG: AgentToolsConfig = {
 };
 
 /**
- * SALES AGENT (5 Tools)
+ * search_inventory - Search available inventory by criteria
+ * Used by: Sales (capability: sales_inventory)
+ */
+function createSearchInventoryTool(): AgentTool {
+  return {
+    name: "search_inventory",
+    description: `Search available inventory by criteria. Use when caller asks about specific vehicles, products, or items: "Do you have any SUVs under 25k?", "What Toyotas do you have?", "Any red trucks?". Supports filtering by make, model, year, price range, body style, color, and condition. Returns matching items with details.`,
+    url: `${BASE_URL}/elevenlabs-search-inventory`,
+    method: "POST",
+    parameters: [
+      {
+        name: "tenant_id",
+        type: "string",
+        required: true,
+        description: "Tenant identifier",
+        dynamicValue: "{{tenant_id}}",
+      },
+      {
+        name: "query",
+        type: "string",
+        required: false,
+        description: "Free text search query (e.g., 'red SUV under 20k', '3 bed house in Scottsdale')",
+      },
+      {
+        name: "make",
+        type: "string",
+        required: false,
+        description: "Vehicle/product make or brand (e.g., 'Toyota', 'Ford')",
+      },
+      {
+        name: "model",
+        type: "string",
+        required: false,
+        description: "Vehicle/product model (e.g., 'Camry', 'F-150')",
+      },
+      {
+        name: "year_min",
+        type: "string",
+        required: false,
+        description: "Minimum year (e.g., '2020')",
+      },
+      {
+        name: "year_max",
+        type: "string",
+        required: false,
+        description: "Maximum year (e.g., '2024')",
+      },
+      {
+        name: "price_min",
+        type: "string",
+        required: false,
+        description: "Minimum price in dollars (e.g., '15000')",
+      },
+      {
+        name: "price_max",
+        type: "string",
+        required: false,
+        description: "Maximum price in dollars (e.g., '30000')",
+      },
+      {
+        name: "condition",
+        type: "string",
+        required: false,
+        description: "Condition filter: 'new', 'used', or 'certified'",
+      },
+      {
+        name: "body_style",
+        type: "string",
+        required: false,
+        description: "Body style: 'SUV', 'Sedan', 'Truck', 'Coupe', 'Van', etc.",
+      },
+      {
+        name: "color",
+        type: "string",
+        required: false,
+        description: "Exterior color preference",
+      },
+      {
+        name: "max_results",
+        type: "string",
+        required: false,
+        description: "Maximum results to return (default 5, max 10)",
+      },
+      {
+        name: "conversation_id",
+        type: "string",
+        required: false,
+        description: "Conversation tracking",
+      },
+    ],
+  };
+}
+
+/**
+ * SALES AGENT (7 Tools)
  * Industries: Car dealerships, RV/boat dealers, real estate, solar, insurance, equipment sales
- * Note: Reuses scheduling tools + callback; no dispatch or food tools
+ * Note: Reuses scheduling tools + callback + inventory search; no dispatch or food tools
  */
 export const SALES_AGENT_CONFIG: AgentToolsConfig = {
   mode: "sales",
   agentName: "Sales Agent",
   industries: ["Car dealership", "RV dealer", "Real estate", "Solar", "Insurance", "Equipment sales", "Luxury retail"],
-  toolCount: 5,
+  toolCount: 7,
   tools: [
     createCheckAvailabilityTool(
       `Check if a specific test drive or appointment time is available. Use when customer says "Can I come in Tuesday at 2?" or "Is Saturday morning open?"`
@@ -1254,8 +1348,7 @@ export const SALES_AGENT_CONFIG: AgentToolsConfig = {
       `Get available times for test drives or showroom appointments. Use when customer asks "When can I come in?" or "What times do you have?"`
     ),
     createBookingTool(
-      `Book a test drive or sales appointment. Use after confirming a time. ALWAYS include vehicle interest, budget, and trade-in info in the notes field.`,
-      false // no party_size for sales
+      `Book a test drive or sales appointment. Use after confirming a time. ALWAYS include vehicle interest, budget, and trade-in info in the notes field.`
     ),
     createCheckServiceAreaTool(
       `Check if we serve the customer's area. Use for delivery, solar installation, real estate coverage, or service area questions.`
@@ -1263,6 +1356,8 @@ export const SALES_AGENT_CONFIG: AgentToolsConfig = {
     createCallbackTool(
       `Create a callback for financing questions, trade-in valuations, manager requests, or when customer won't schedule but wants info. Use department field to route: 'sales', 'finance', 'service', 'manager'.`
     ),
+    createTransferToOwnerTool(),
+    createSearchInventoryTool(),
   ],
 };
 
@@ -1587,6 +1682,7 @@ export function buildToolsForCapabilities(
     transfer_to_owner: () => createTransferToOwnerTool(),
     search_referral_network: () => createSearchReferralNetworkTool(),
     initiate_referral_transfer: () => createInitiateReferralTransferTool(),
+    search_inventory: () => createSearchInventoryTool(),
   };
   
   // Inject bonus tools that aren't already in the base set

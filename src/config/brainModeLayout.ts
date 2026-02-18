@@ -494,6 +494,7 @@ const SALES_LAYOUT: ModeLayout = {
       order: 3,
       groups: [
         { key: "where-you-work", label: "Service Area", itemIds: ["coverage"] },
+        { key: "sales-settings", label: "Sales Settings", itemIds: ["sales-policies"] },
         { key: "delivery", label: "Notifications", itemIds: ["booking-delivery", "callback-delivery"] },
       ],
       completionSections: ["coverage"],

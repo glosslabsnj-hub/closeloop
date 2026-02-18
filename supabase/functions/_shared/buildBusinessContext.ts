@@ -377,6 +377,27 @@ export interface BusinessContext {
     network_services: string[];
     preferred_partners: string[];
   } | null;
+  // Workflow configuration (mode-specific, fetched from workflow config tables)
+  workflow_config?: {
+    sales?: {
+      sales_pricing_strategy: string;
+      sales_ask_trade_in: boolean;
+      sales_ask_financing: boolean;
+      sales_ask_timeline: boolean;
+      sales_ask_budget: string;
+      sales_max_vehicles_to_mention: number;
+      sales_appointment_label: string;
+      sales_push_intensity: string;
+      sales_follow_up_script: string;
+      sales_lead_capture_minimum: string;
+      sales_inventory_presentation: string;
+    };
+    dispatch?: Record<string, unknown>;
+    service?: Record<string, unknown>;
+    food?: Record<string, unknown>;
+    medical?: Record<string, unknown>;
+    general?: Record<string, unknown>;
+  };
   // Metadata
   _meta: {
     channel: string;
@@ -2802,6 +2823,31 @@ export async function buildBusinessContext(
         context.sales.financing_available = ctxFields.financing_available === true;
         context.sales.trade_in_accepted = ctxFields.trade_in_accepted === true;
         context.sales.sales_rep_names = (ctxFields.sales_rep_names as string) || "";
+      }
+
+      // Fetch sales workflow configuration
+      const { data: salesWorkflow } = await supabase
+        .from("general_workflow_config")
+        .select("*")
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+
+      if (salesWorkflow) {
+        if (!context.workflow_config) context.workflow_config = {};
+        context.workflow_config.sales = {
+          sales_pricing_strategy: salesWorkflow.sales_pricing_strategy || "deflect_to_visit",
+          sales_ask_trade_in: salesWorkflow.sales_ask_trade_in !== false,
+          sales_ask_financing: salesWorkflow.sales_ask_financing !== false,
+          sales_ask_timeline: salesWorkflow.sales_ask_timeline !== false,
+          sales_ask_budget: salesWorkflow.sales_ask_budget || "careful",
+          sales_max_vehicles_to_mention: salesWorkflow.sales_max_vehicles_to_mention || 3,
+          sales_appointment_label: salesWorkflow.sales_appointment_label || "test drive",
+          sales_push_intensity: salesWorkflow.sales_push_intensity || "medium",
+          sales_follow_up_script: salesWorkflow.sales_follow_up_script || "",
+          sales_lead_capture_minimum: salesWorkflow.sales_lead_capture_minimum || "name_phone_interest",
+          sales_inventory_presentation: salesWorkflow.sales_inventory_presentation || "conversational",
+        };
+        console.log(`[buildBusinessContext] Sales workflow config loaded`);
       }
     } catch (salesError) {
       console.error(`[buildBusinessContext] Failed to build sales context:`, salesError);

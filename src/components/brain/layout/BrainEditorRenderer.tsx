@@ -76,6 +76,7 @@ import {
   SeasonalKnowledgeEditor,
 } from "@/components/brain/knowledge";
 import { TekmetricSetup } from "@/components/brain/integrations/TekmetricSetup";
+import { SalesPoliciesEditor } from "@/components/brain/sales/SalesPoliciesEditor";
 import AIBehaviorModeSelector from "@/components/ai/AIBehaviorModeSelector";
 import ServiceCallFlowSettings from "@/components/ai/ServiceCallFlowSettings";
 import BookingBehaviorSettings from "@/components/ai/BookingBehaviorSettings";
@@ -251,6 +252,10 @@ export function BrainEditorRenderer({
       return <CustomKnowledgeEditor />;
     case "documents":
       return <BrainAssetsManager />;
+
+    // ── Sales ──
+    case "sales-policies":
+      return <SalesPoliciesEditor />;
 
     // ── Integrations ──
     case "tekmetric":
