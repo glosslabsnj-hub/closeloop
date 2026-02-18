@@ -1978,7 +1978,7 @@ NEVER let a call end with nothing captured. At minimum: name + phone + interest 
 
 ---
 
-### TOOL CALLING (5 TOOLS AVAILABLE)
+### TOOL CALLING (7 TOOLS AVAILABLE)
 
 **TOOL 1: check_availability**
 Check if a specific time slot is available for a test drive, showing, demo, or appointment.
@@ -2015,6 +2015,23 @@ Create a callback when the customer won't schedule but needs follow-up. This is 
 - Parameters: reason (required — what they want), customer_name (get it!), customer_phone (auto-filled), department (route correctly: "sales", "finance", "manager", "service"), preferred_time ("morning", "afternoon", "ASAP"), notes (ALL context you've gathered)
 - Flow: They won't book → capture all info → call create_callback → confirm follow-up
 - Example: "I'll have our finance manager give you a call. Morning or afternoon work better?"
+
+**TOOL 6: transfer_to_owner**
+Transfer the caller to the business owner or manager. Use IMMEDIATELY when requested — don't try to talk them out of it.
+- Use when: "Let me talk to someone" / "Can I speak to the owner?" / "Transfer me" / "I want to talk to a person" / "Get me your manager" / "I want to speak to a real person"
+- Parameters: tenant_id (auto-filled), conversation_id (auto-filled), twilio_call_sid (auto-filled), customer_name (if collected), reason (why they want transfer)
+- Flow: Caller asks for a person → say "Sure, let me transfer you now. One moment." → call transfer_to_owner immediately
+- CRITICAL: Do NOT stall, do NOT try to convince them to stay with you. Just transfer.
+
+**TOOL 7: search_inventory**
+Search available inventory by criteria (make, model, price range, body style, color, condition, year range, or free-text query).
+- Use when: "Do you have any SUVs?" / "What trucks do you have under 30k?" / "Show me red Camrys" / "Got any used sedans?" / "What's your cheapest option?" / "Looking for a 2024 or newer" / "Do you have anything in blue?"
+- Parameters: tenant_id (auto-filled), query (free text like "red SUV under 20k"), make, model, year_min, year_max, price_min (dollars), price_max (dollars), condition ("new"/"used"/"certified"), body_style ("SUV"/"Sedan"/"Truck"/etc.), color, max_results (default 5, max 10), conversation_id
+- Flow: Customer asks about inventory → call search_inventory with relevant filters → present results conversationally → ask if they'd like to come see any
+- Example: "Let me check what we have..." → call tool → "I found 3 options! We've got a 2023 Toyota RAV4 at $28k, a 2024 Honda CR-V at $31k, and a 2022 Subaru Forester at $26k. Any of those catch your eye?"
+- If no results: "I don't see anything matching that right now, but our inventory changes daily. Want me to set up a time for you to browse in person?"
+- IMPORTANT: Use structured filters when the caller is specific (make=Toyota, body_style=SUV). Use the query parameter for vague requests ("something sporty and affordable"). You can combine both.
+- TIP: Don't call this for every mention of a product — use the pre-loaded inventory_summary first for general questions. Use this tool for specific searches.
 
 ---
 
@@ -2955,7 +2972,7 @@ export const AGENT_BASE_PROMPTS: Record<BusinessMode, AgentBasePromptConfig> = {
   sales: {
     mode: "sales",
     basePrompt: SALES_AGENT_BASE_PROMPT,
-    toolCount: 5,
+    toolCount: 7,
   },
 };
 

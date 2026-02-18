@@ -246,6 +246,16 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     tab: "services",
 
   },
+  {
+    id: "sales-policies",
+    title: "Sales Settings",
+    icon: DollarSign,
+    group: "sales-settings",
+    groupLabel: "Sales Settings",
+    order: 1,
+    tab: "services",
+    isVisible: (_mode, caps) => caps.isSalesBusiness,
+  },
 ];
 
 // ─── Operations Tab ─────────────────────────────────────────────────────────
