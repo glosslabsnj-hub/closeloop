@@ -134,6 +134,7 @@ const App = () => (
             {/* Onboarding and Go-Live (no layout) */}
             <Route path="/app/onboarding" element={<Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>}><OnboardingPage /></Suspense>} />
             <Route path="/app/go-live" element={<GoLivePage />} />
+            <Route path="/app/system-map" element={<SystemMapPage />} />
 
             {/* App Routes */}
             <Route element={<AppLayout />}>
@@ -190,7 +191,6 @@ const App = () => (
               <Route path="/app/workflows/:id" element={<WorkflowEditPage />} />
               <Route path="/app/workflows/:id/runs" element={<WorkflowRunsPage />} />
               <Route path="/app/workflows/:id/runs/:runId" element={<WorkflowRunDetailPage />} />
-              <Route path="/app/system-map" element={<SystemMapPage />} />
             </Route>
 
             {/* Admin Routes */}
