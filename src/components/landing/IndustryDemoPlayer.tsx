@@ -7,7 +7,7 @@ import { Slider } from "@/components/ui/slider";
 import { 
   Play, Pause, Volume2, 
   ArrowRight, Truck, Utensils, Stethoscope, Wrench,
-  Headphones
+  Headphones, Car
 } from "lucide-react";
 import { useIndustryDemos } from "@/hooks/useIndustryDemos";
 
@@ -16,6 +16,7 @@ const industryIcons: Record<string, React.ElementType> = {
   dispatch: Truck,
   food: Utensils,
   medical: Stethoscope,
+  sales: Car,
 };
 
 const industryModes: Record<string, string> = {
@@ -23,6 +24,7 @@ const industryModes: Record<string, string> = {
   dispatch: "dispatch",
   food: "food",
   medical: "medical",
+  sales: "sales",
 };
 
 export function IndustryDemoPlayer() {
