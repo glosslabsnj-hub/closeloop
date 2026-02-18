@@ -31,6 +31,7 @@ const MAX_RETRIES = 3;
 
 interface SubmitParams {
   businessName: string;
+  businessAddress: string;
   businessMode: BusinessMode;
   industrySlug: string;
   workStyle: WorkStyle;
@@ -76,7 +77,7 @@ export function useOnboardingSubmit(userId?: string) {
     setLoading(true);
     try {
       const {
-        businessName, businessMode, industrySlug, workStyle, enabledModules,
+        businessName, businessAddress, businessMode, industrySlug, workStyle, enabledModules,
         scenarioAnswers, scenarioDetails, schedulingPrefs, communicationPrefs,
         templateServices, templateFAQs, templatePolicies, serviceArea,
         businessDetails, businessHours, teamMembers, isSoloOperator, a2pData,
@@ -128,7 +129,7 @@ export function useOnboardingSubmit(userId?: string) {
           name: businessName.trim(), business_mode: businessMode, timezone,
           hours_json: hoursToSave, industry: industrySlug, enabled_modules: enabledModules,
           capabilities_json: capabilitiesJson, hipaa_mode: businessMode === "medical",
-          location: businessDetails.location || undefined, default_capacity: defaultCapacity,
+          address: businessAddress || businessDetails.location || undefined, default_capacity: defaultCapacity,
           plan_code: planCode,
         },
       });

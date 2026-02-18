@@ -5,12 +5,15 @@ import React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Check, HelpCircle } from "lucide-react";
 import { IndustrySelectorGrid } from "@/components/onboarding/IndustrySelectorGrid";
 import { BusinessModeSelector, type BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 import { FieldErrorMessage } from "@/components/onboarding/FieldErrorMessage";
+import { ModeAwareQuestions } from "@/components/onboarding/ModeAwareQuestions";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { getIndustryBySlug } from "@/data/industryCatalog";
 import { useState } from "react";
 
 export type WorkStyle = "go_to_customer" | "customer_comes" | "both" | "online_remote";
@@ -25,24 +28,36 @@ const workStyleOptions: { value: WorkStyle; label: string; description: string }
 interface OnboardingIdentityProps {
   businessName: string;
   onBusinessNameChange: (name: string) => void;
+  businessAddress: string;
+  onBusinessAddressChange: (address: string) => void;
   industrySlug: string;
   onIndustryChange: (slug: string) => void;
   businessMode: BusinessMode;
   onBusinessModeChange: (mode: BusinessMode) => void;
   workStyle: WorkStyle;
   onWorkStyleChange: (style: WorkStyle) => void;
+  scenarioAnswers: Record<string, boolean>;
+  onScenarioAnswersChange: (answers: Record<string, boolean>) => void;
+  scenarioDetails: Record<string, string>;
+  onScenarioDetailsChange: (details: Record<string, string>) => void;
   getFieldError: (field: string) => string | undefined;
 }
 
 export const OnboardingIdentity = React.memo(function OnboardingIdentity({
   businessName,
   onBusinessNameChange,
+  businessAddress,
+  onBusinessAddressChange,
   industrySlug,
   onIndustryChange,
   businessMode,
   onBusinessModeChange,
   workStyle,
   onWorkStyleChange,
+  scenarioAnswers,
+  onScenarioAnswersChange,
+  scenarioDetails,
+  onScenarioDetailsChange,
   getFieldError,
 }: OnboardingIdentityProps) {
   const [showModeFallback, setShowModeFallback] = useState(false);
@@ -84,6 +99,34 @@ export const OnboardingIdentity = React.memo(function OnboardingIdentity({
         <FieldErrorMessage message={getFieldError("business-name")} />
       </div>
 
+      {/* Business Address (optional) */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Label htmlFor="business-address">
+            {workStyle === "go_to_customer" || workStyle === "online_remote"
+              ? "Home base address"
+              : "Business address"}
+          </Label>
+          <Badge variant="outline" className="text-[10px] px-1.5 py-0">Optional</Badge>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs max-w-[200px]">Your AI uses this to give callers directions and confirm your location</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        <Input
+          id="business-address"
+          placeholder="e.g. 123 Main St, Anytown, USA"
+          value={businessAddress}
+          onChange={(e) => onBusinessAddressChange(e.target.value)}
+        />
+      </div>
+
       {/* Industry Selection */}
       <div data-field="industry-selector">
         <IndustrySelectorGrid
@@ -111,8 +154,8 @@ export const OnboardingIdentity = React.memo(function OnboardingIdentity({
         </div>
       )}
 
-      {/* Work Style — shown after industry is selected */}
-      {industrySlug && (
+      {/* Work Style — shown after industry is selected or fallback mode chosen */}
+      {(industrySlug || showModeFallback) && (
         <div className="pt-4 border-t space-y-3">
           <div className="flex items-center gap-2">
             <p className="text-sm font-medium">How do you work?</p>
@@ -152,6 +195,18 @@ export const OnboardingIdentity = React.memo(function OnboardingIdentity({
             ))}
           </div>
         </div>
+      )}
+
+      {/* Mode-Aware Scenario Questions — shown after industry is selected or fallback mode chosen */}
+      {(industrySlug || showModeFallback) && (
+        <ModeAwareQuestions
+          businessMode={businessMode}
+          industrySlug={industrySlug}
+          scenarioAnswers={scenarioAnswers}
+          onScenarioAnswersChange={onScenarioAnswersChange}
+          scenarioDetails={scenarioDetails}
+          onScenarioDetailsChange={onScenarioDetailsChange}
+        />
       )}
     </div>
   );

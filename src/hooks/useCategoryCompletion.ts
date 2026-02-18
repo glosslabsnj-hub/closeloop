@@ -14,6 +14,7 @@ import {
   getFieldsForMode,
   shouldShowField,
 } from "@/config/essentialFields";
+import { isFieldComplete } from "@/lib/brainFieldCompletion";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -39,111 +40,6 @@ const CATEGORY_SECTION_MAP: Record<string, string[]> = {
   rules:      ["policies"],
   training:   ["knowledge", "ai-behavior"],
 };
-
-// ── Field completion checker (mirrors useBrainCompletion) ──────────────────
-
-function isFieldComplete(
-  fieldId: string,
-  capabilities: ReturnType<typeof useBusinessCapabilities>,
-  tenant: Record<string, unknown> | null,
-): boolean {
-  if (!tenant) return false;
-
-  switch (fieldId) {
-    case "business_name":
-      return !!tenant.name && (tenant.name as string).length > 0;
-    case "hours":
-      return capabilities.hasHoursConfigured;
-    case "services":
-      return capabilities.hasServices;
-    case "greeting_script":
-      return capabilities.hasGreeting;
-    case "address":
-      return !!tenant.address && (tenant.address as string).length > 0;
-    case "cancellation_policy":
-      return !!tenant.cancellation_policy;
-    case "faqs":
-      return capabilities.hasFAQs;
-    case "tagline":
-      return !!tenant.tagline;
-    case "ai_guidelines": {
-      const policies = tenant.ai_policies_json;
-      return Array.isArray(policies) && policies.length > 0;
-    }
-    case "objection_responses":
-      return capabilities.hasKnowledge;
-    case "service_types": {
-      const { food } = capabilities;
-      return food.offersPickup || food.offersDelivery || food.offersDineIn || food.offersCatering;
-    }
-    case "prep_time":
-      return true;
-    case "delivery_zones": {
-      const serviceArea = tenant.service_area_json as Record<string, unknown> | null;
-      return !!serviceArea && Object.keys(serviceArea).length > 0;
-    }
-    case "catering_settings":
-      return true;
-    case "reservation_settings":
-      return capabilities.showReservationsSection;
-    case "daily_specials":
-      return true;
-    case "allergy_info":
-      return true;
-    case "service_area": {
-      const dispatchArea = tenant.service_area_json as Record<string, unknown> | null;
-      return !!dispatchArea && Object.keys(dispatchArea).length > 0;
-    }
-    case "vehicle_types":
-      return capabilities.hasServices;
-    case "distance_pricing": {
-      const pricingRules = tenant.pricing_rules_jsonb;
-      return !!pricingRules && Object.keys(pricingRules as object || {}).length > 0;
-    }
-    case "eta_settings":
-      return !!tenant.busyness_rules_jsonb;
-    case "after_hours_pricing":
-      return true;
-    case "impound_settings":
-      return capabilities.dispatch.hasImpoundLot;
-    case "motor_club_rates":
-      return true;
-    case "fleet_vehicles":
-      return capabilities.dispatch.hasFleet;
-    case "service_location": {
-      const { service } = capabilities;
-      return service.offersMobileService || service.offersInShopService;
-    }
-    case "calendar_connection":
-      return capabilities.hasCalendarConnected;
-    case "deposit_settings":
-      return !!tenant.deposit_policy;
-    case "appointment_buffer":
-      return (tenant.appointment_buffer_minutes as number) > 0;
-    case "service_packages":
-      return true;
-    case "aftercare_instructions":
-      return true;
-    case "hipaa_acknowledgment":
-      return capabilities.medical.requiresHIPAA;
-    case "appointment_types":
-      return capabilities.hasServices;
-    case "insurance_carriers":
-      return true;
-    case "new_patient_intake":
-      return capabilities.medical.hasNewPatientIntake;
-    case "symptom_triage":
-      return true;
-    case "telehealth_settings":
-      return !capabilities.medical.hasTelehealth || true;
-    case "self_pay_rates":
-      return true;
-    case "callback_settings":
-      return true;
-    default:
-      return true;
-  }
-}
 
 // ── Capability flags builder (shared) ──────────────────────────────────────
 

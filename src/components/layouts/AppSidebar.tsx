@@ -45,7 +45,7 @@ interface NavItem {
   badge?: number;
 }
 
-const alwaysAccessibleRoutes = ["/app/settings", "/app/go-live"];
+const alwaysAccessibleRoutes = ["/app/settings", "/app/go-live", "/app/agency"];
 
 interface AppSidebarProps {
   enabledModules: string[];
@@ -75,6 +75,7 @@ interface AppSidebarProps {
   subtitle?: string;
   open: boolean;
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  showAgency?: boolean;
 }
 
 export function AppSidebar({
@@ -87,6 +88,7 @@ export function AppSidebar({
   subtitle,
   open,
   setOpen,
+  showAgency,
 }: AppSidebarProps) {
   const location = useLocation();
 
@@ -149,7 +151,7 @@ export function AppSidebar({
   const manageItems: NavItem[] = [
     { href: "/app/integrations", label: "Integrations", icon: <Route className={iconClass} /> },
     { href: "/app/reports/roi", label: "Reports", icon: <BarChart3 className={iconClass} /> },
-    { href: "/app/agency", label: "Agency", icon: <Building2 className={iconClass} /> },
+    ...(showAgency ? [{ href: "/app/agency", label: "Agency", icon: <Building2 className={iconClass} /> }] : []),
     { href: "/app/settings", label: "Settings", icon: <Settings className={iconClass} /> },
   ];
 

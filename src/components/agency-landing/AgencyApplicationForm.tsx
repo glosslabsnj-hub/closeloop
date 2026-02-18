@@ -48,6 +48,8 @@ export function AgencyApplicationForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const toggleService = (service: string) => {
     setSelectedServices((prev) =>
@@ -58,34 +60,64 @@ export function AgencyApplicationForm() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+
+    // Honeypot check — hidden field should be empty
+    const formData = new FormData(e.currentTarget);
+    if (formData.get("website_url")) return;
+
+    // Password validation
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
     setLoading(true);
 
-    const formData = new FormData(e.currentTarget);
     const expectedClientsRaw = formData.get("expected_clients") as string;
-
-    const payload = {
-      full_name: formData.get("full_name") as string,
-      email: formData.get("email") as string,
-      phone: formData.get("phone") as string || undefined,
-      company_name: formData.get("company_name") as string,
-      company_website: formData.get("company_website") as string || undefined,
-      expected_clients: expectedClientsToNumber(expectedClientsRaw),
-      current_client_count: formData.get("current_client_count")
-        ? Number(formData.get("current_client_count"))
-        : undefined,
-      services_offered: selectedServices,
-      referral_source: formData.get("referral_source") as string || undefined,
-      message: formData.get("message") as string || undefined,
-    };
+    const email = (formData.get("email") as string).trim();
 
     try {
+      // 1. Create auth account
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (signUpError) {
+        setError(signUpError.message);
+        setLoading(false);
+        return;
+      }
+
+      const userId = signUpData.user?.id;
+
+      // 2. Submit application with user_id
+      const payload = {
+        full_name: formData.get("full_name") as string,
+        email,
+        phone: formData.get("phone") as string || undefined,
+        company_name: formData.get("company_name") as string,
+        company_website: formData.get("company_website") as string || undefined,
+        expected_clients: expectedClientsToNumber(expectedClientsRaw),
+        current_client_count: formData.get("current_client_count")
+          ? Number(formData.get("current_client_count"))
+          : undefined,
+        services_offered: selectedServices,
+        referral_source: formData.get("referral_source") as string || undefined,
+        message: formData.get("message") as string || undefined,
+        user_id: userId || undefined,
+      };
+
       const { error: fnError } = await supabase.functions.invoke(
         "submit-agency-application",
         { body: payload }
       );
 
       if (fnError) {
-        // Try to parse the error body for a user-friendly message
         try {
           const parsed = JSON.parse(fnError.message);
           setError(parsed.error || "Failed to submit. Please try again.");
@@ -114,6 +146,7 @@ export function AgencyApplicationForm() {
             </div>
             <h2 className="text-2xl font-bold mb-2">Application Received!</h2>
             <p className="text-muted-foreground">
+              Check your email to verify your account, then log in anytime to track your application status.
               We'll review your application and get back to you within 24 hours.
             </p>
           </div>
@@ -138,6 +171,11 @@ export function AgencyApplicationForm() {
           onSubmit={handleSubmit}
           className="mx-auto max-w-2xl rounded-2xl border bg-card p-6 md:p-10 shadow-lg space-y-6"
         >
+          {/* Honeypot */}
+          <div className="absolute -left-[9999px]" aria-hidden="true">
+            <input type="text" name="website_url" tabIndex={-1} autoComplete="off" />
+          </div>
+
           {/* Name + Email */}
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -147,6 +185,34 @@ export function AgencyApplicationForm() {
             <div className="space-y-2">
               <Label htmlFor="email">Email *</Label>
               <Input id="email" name="email" type="email" required placeholder="jane@agency.com" />
+            </div>
+          </div>
+
+          {/* Password fields */}
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="password">Password *</Label>
+              <Input
+                id="password"
+                type="password"
+                required
+                placeholder="Min. 8 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                minLength={8}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm_password">Confirm Password *</Label>
+              <Input
+                id="confirm_password"
+                type="password"
+                required
+                placeholder="Re-enter password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                minLength={8}
+              />
             </div>
           </div>
 

@@ -282,6 +282,32 @@ serve(async (req) => {
           precomputedSlots = slots.slice(0, 6).map((s: { slot_time_local: string }) => s.slot_time_local);
         }
         
+        // Create ai_call_sessions record for browser test calls
+        // The webhook's fallback (match by tenant_id + caller_phone where elevenlabs_conversation_id IS NULL)
+        // will find this record and link it when the call completes.
+        try {
+          const { error: sessionError } = await supabase
+            .from("ai_call_sessions")
+            .insert({
+              tenant_id: tenantId,
+              caller_phone: "browser_test",
+              call_direction: "inbound",
+              started_at: new Date().toISOString(),
+              context_json: {
+                channel: "browser_test",
+                session_id: sessionId,
+                business_mode: context.tenant.business_mode,
+              },
+            });
+          if (sessionError) {
+            console.warn("[elevenlabs-token] Failed to create browser test session (non-fatal):", sessionError.message);
+          } else {
+            console.log("[elevenlabs-token] Created ai_call_session for browser test");
+          }
+        } catch (sessionInsertError) {
+          console.warn("[elevenlabs-token] Session insert error (non-fatal):", sessionInsertError);
+        }
+
         // Log comprehensive context summary for debugging
         console.log("Browser test context built successfully:", {
           tenant_id: tenantId,

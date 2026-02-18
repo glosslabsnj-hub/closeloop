@@ -6,7 +6,7 @@
  */
 
 import { useMemo } from "react";
-import { X, Volume2, CheckCircle2, AlertCircle, Info, Building2, Clock, Package, MapPin, Shield, Sparkles, BookOpen } from "lucide-react";
+import { Volume2, CheckCircle2, AlertCircle, Info, Building2, Clock, Package, MapPin, Shield, Sparkles, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -21,6 +21,8 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useCapabilities } from "@/hooks/useCapabilities";
+import { useBrainSummaries } from "@/hooks/useBrainSummaries";
+import { useBusinessCapabilities } from "@/hooks/useBusinessCapabilities";
 import { cn } from "@/lib/utils";
 
 interface BrainPreviewPanelProps {
@@ -44,6 +46,19 @@ export function BrainPreviewPanel({ open, onOpenChange, activeSection }: BrainPr
   const { tenant } = useAuth();
   const { businessMode } = useTenantConfig();
   const caps = useCapabilities();
+  const summaries = useBrainSummaries();
+  const capabilities = useBusinessCapabilities();
+
+  // Parse hours for display
+  const hoursDisplay = useMemo(() => {
+    const hoursJson = tenant?.hours_json as Record<string, { closed?: boolean; windows?: { open: string; close: string }[] }> | null;
+    if (!hoursJson || typeof hoursJson !== "object") return null;
+    const openDays = Object.entries(hoursJson).filter(([, day]) => day && !day.closed && Array.isArray(day.windows) && day.windows.length > 0);
+    if (openDays.length === 0) return null;
+    if (openDays.length === 7) return "7 days configured";
+    if (openDays.length >= 5) return `${openDays.length} days configured`;
+    return `${openDays.length} day${openDays.length === 1 ? "" : "s"} configured`;
+  }, [tenant?.hours_json]);
 
   // Build preview data from tenant
   const sections = useMemo<PreviewSection[]>(() => {
@@ -84,8 +99,8 @@ export function BrainPreviewPanel({ open, onOpenChange, activeSection }: BrainPr
         items: [
           {
             label: "Hours Configured",
-            value: "Check hours tab for details",
-            status: "partial",
+            value: hoursDisplay || null,
+            status: hoursDisplay ? "complete" : "missing",
           },
         ],
       },
@@ -96,8 +111,8 @@ export function BrainPreviewPanel({ open, onOpenChange, activeSection }: BrainPr
         items: [
           {
             label: caps.isFoodBusiness ? "Menu Items" : "Services",
-            value: "Check services tab for details",
-            status: "partial",
+            value: summaries.catalog !== "No services added yet" ? summaries.catalog : null,
+            status: capabilities.hasServices ? "complete" : "missing",
           },
         ],
       },
@@ -108,10 +123,16 @@ export function BrainPreviewPanel({ open, onOpenChange, activeSection }: BrainPr
         items: [
           {
             label: "Coverage Mode",
-            value: (tenant as Record<string, unknown>).service_area_config_json 
-              ? "Configured" 
-              : null,
-            status: (tenant as Record<string, unknown>).service_area_config_json ? "complete" : "missing",
+            value: (() => {
+              const sa = (tenant as Record<string, unknown>).service_area_json as Record<string, unknown> | null;
+              if (!sa || Object.keys(sa).length === 0) return null;
+              const radius = (sa as { radius_miles?: number }).radius_miles;
+              return radius ? `${radius} mile radius` : "Configured";
+            })(),
+            status: (() => {
+              const sa = (tenant as Record<string, unknown>).service_area_json as Record<string, unknown> | null;
+              return sa && Object.keys(sa).length > 0 ? "complete" : "missing";
+            })(),
           },
           {
             label: "Base Address",
@@ -126,14 +147,14 @@ export function BrainPreviewPanel({ open, onOpenChange, activeSection }: BrainPr
         icon: Shield,
         items: [
           {
-            label: "Cancellation Policy",
-            value: tenant.cancellation_policy ? truncate(tenant.cancellation_policy, 50) : null,
-            status: tenant.cancellation_policy ? "complete" : "missing",
+            label: "Policies",
+            value: summaries.policies !== "No policies set yet" ? summaries.policies : null,
+            status: summaries.policies !== "No policies set yet" ? "complete" : "missing",
           },
           {
-            label: "Payment Methods",
-            value: "Check policies tab",
-            status: "partial",
+            label: "Guardrails",
+            value: summaries.guardrails !== "No limits set yet" ? summaries.guardrails : null,
+            status: summaries.guardrails !== "No limits set yet" ? "complete" : "missing",
           },
         ],
       },
@@ -143,9 +164,14 @@ export function BrainPreviewPanel({ open, onOpenChange, activeSection }: BrainPr
         icon: Sparkles,
         items: [
           {
-            label: "Custom Scripts",
-            value: "Check AI behavior tab",
-            status: "partial",
+            label: "Greeting",
+            value: summaries.scripts !== "Using the default — customize to match your style" ? summaries.scripts : null,
+            status: summaries.scripts !== "Using the default — customize to match your style" ? "complete" : "missing",
+          },
+          {
+            label: "Guidelines",
+            value: summaries.guidelines !== "No special instructions yet" ? summaries.guidelines : null,
+            status: summaries.guidelines !== "No special instructions yet" ? "complete" : "missing",
           },
         ],
       },
@@ -156,13 +182,18 @@ export function BrainPreviewPanel({ open, onOpenChange, activeSection }: BrainPr
         items: [
           {
             label: "FAQs",
-            value: "Check knowledge tab for count",
-            status: "partial",
+            value: summaries.faqs !== "No questions added yet — your AI says 'I'm not sure' to unknowns" ? summaries.faqs : null,
+            status: capabilities.hasFAQs ? "complete" : "missing",
+          },
+          {
+            label: "Objections",
+            value: summaries.objections !== "No responses set — your AI uses generic replies to pushback" ? summaries.objections : null,
+            status: capabilities.hasKnowledge ? "complete" : "missing",
           },
         ],
       },
     ];
-  }, [tenant, businessMode]);
+  }, [tenant, businessMode, hoursDisplay, summaries, capabilities, caps.isFoodBusiness]);
 
   // Summary stats
   const stats = useMemo(() => {
@@ -271,9 +302,4 @@ export function BrainPreviewPanel({ open, onOpenChange, activeSection }: BrainPr
       </SheetContent>
     </Sheet>
   );
-}
-
-function truncate(str: string, maxLen: number): string {
-  if (str.length <= maxLen) return str;
-  return str.slice(0, maxLen) + "...";
 }

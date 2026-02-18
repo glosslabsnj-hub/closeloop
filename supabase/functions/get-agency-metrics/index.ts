@@ -82,12 +82,12 @@ Deno.serve(async (req) => {
     // Fetch tenant names
     const { data: tenants } = await svc
       .from("tenants")
-      .select("id, business_name")
+      .select("id, name")
       .in("id", tenantIds);
 
     const tenantNameMap: Record<string, string> = {};
     for (const t of tenants ?? []) {
-      tenantNameMap[t.id] = t.business_name ?? "Unknown";
+      tenantNameMap[t.id] = t.name ?? "Unknown";
     }
 
     // Fetch call sessions (last 30d) for all managed tenants

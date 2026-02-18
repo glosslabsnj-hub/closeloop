@@ -133,14 +133,14 @@ export interface BusinessCapabilities {
   hasHoursConfigured: boolean;
   hasServices: boolean;
   hasGreeting: boolean;
-  
+
   // Mode-specific capabilities (only one will be populated based on mode)
   food: FoodCapabilities;
   dispatch: DispatchCapabilities;
   service: ServiceCapabilities;
   medical: MedicalCapabilities;
   general: GeneralCapabilities;
-  
+
   // Cross-cutting capabilities
   hasCalendarConnected: boolean;
   hasDeliverySettings: boolean;
@@ -148,7 +148,20 @@ export interface BusinessCapabilities {
   hasPoliciesConfigured: boolean;
   hasFAQs: boolean;
   hasKnowledge: boolean;
-  
+
+  // Knowledge-table counts (for accurate completion checks)
+  hasPriceModifiers: boolean;
+  hasServicePackages: boolean;
+  hasMenuItems: boolean;
+  hasCateringKnowledge: boolean;
+  hasVehicleKnowledge: boolean;
+  hasRoadsideKnowledge: boolean;
+  hasSymptomTriage: boolean;
+  hasInsuranceKnowledge: boolean;
+  hasAftercare: boolean;
+  hasProductKnowledge: boolean;
+  hasPrepTimeConfigured: boolean;
+
   // Derived visibility flags (what sections to show)
   showCoverageSection: boolean;
   showCalendarSection: boolean;
@@ -163,7 +176,7 @@ export interface BusinessCapabilities {
   showPoliceImpoundSection: boolean;
   showCurbsideSection: boolean;
   showNewPatientFormsSection: boolean;
-  
+
   // Loading state
   isLoading: boolean;
 }
@@ -294,6 +307,18 @@ export function useBusinessCapabilities(): BusinessCapabilities {
         faqsResult,
         knowledgeResult,
         fleetResult,
+        // Knowledge-table counts
+        priceModifiersResult,
+        servicePackagesResult,
+        menuItemsResult,
+        cateringKnowledgeResult,
+        vehicleKnowledgeResult,
+        roadsideKnowledgeResult,
+        symptomTriageResult,
+        insuranceKnowledgeResult,
+        aftercareResult,
+        productKnowledgeResult,
+        foodOrderSettingsResult,
       ] = await Promise.all([
         supabase
           .from("services")
@@ -333,6 +358,61 @@ export function useBusinessCapabilities(): BusinessCapabilities {
           .from("fleet_vehicles")
           .select("id", { count: "exact", head: true })
           .eq("tenant_id", tenant.id),
+        // Knowledge-table head counts
+        supabase
+          .from("price_modifiers")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", tenant.id),
+        supabase
+          .from("services")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", tenant.id)
+          .eq("is_active", true)
+          .not("category", "is", null),
+        supabase
+          .from("menu_items")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", tenant.id),
+        supabase
+          .from("ai_knowledge_base")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", tenant.id)
+          .eq("category" as any, "catering"),
+        supabase
+          .from("ai_knowledge_base")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", tenant.id)
+          .eq("category" as any, "vehicle"),
+        supabase
+          .from("ai_knowledge_base")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", tenant.id)
+          .eq("category" as any, "roadside"),
+        supabase
+          .from("ai_knowledge_base")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", tenant.id)
+          .eq("category" as any, "symptom_triage"),
+        supabase
+          .from("ai_knowledge_base")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", tenant.id)
+          .eq("category" as any, "insurance"),
+        supabase
+          .from("ai_knowledge_base")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", tenant.id)
+          .eq("category" as any, "aftercare"),
+        supabase
+          .from("ai_knowledge_base")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", tenant.id)
+          .eq("category" as any, "product"),
+        supabase
+          .from("food_order_settings")
+          .select("estimated_prep_minutes")
+          .eq("tenant_id", tenant.id)
+          .maybeSingle(),
       ]);
 
       // Parse context_fields_json for scenario answers (using existing JSONB column)
@@ -350,6 +430,18 @@ export function useBusinessCapabilities(): BusinessCapabilities {
         knowledgeCount: knowledgeResult.count || 0,
         fleetCount: fleetResult.count || 0,
         scenarioFlags: scenarioFlags || {},
+        // Knowledge-table counts
+        priceModifiersCount: priceModifiersResult.count || 0,
+        servicePackagesCount: servicePackagesResult.count || 0,
+        menuItemsCount: menuItemsResult.count || 0,
+        cateringKnowledgeCount: cateringKnowledgeResult.count || 0,
+        vehicleKnowledgeCount: vehicleKnowledgeResult.count || 0,
+        roadsideKnowledgeCount: roadsideKnowledgeResult.count || 0,
+        symptomTriageCount: symptomTriageResult.count || 0,
+        insuranceKnowledgeCount: insuranceKnowledgeResult.count || 0,
+        aftercareCount: aftercareResult.count || 0,
+        productKnowledgeCount: productKnowledgeResult.count || 0,
+        hasPrepTimeConfigured: !!(foodOrderSettingsResult.data as any)?.estimated_prep_minutes,
       };
     },
     enabled: !!tenant?.id,
@@ -547,6 +639,19 @@ export function useBusinessCapabilities(): BusinessCapabilities {
     hasPoliciesConfigured,
     hasFAQs: (additionalData?.faqCount ?? 0) > 0,
     hasKnowledge: (additionalData?.knowledgeCount ?? 0) > 0,
+
+    // Knowledge-table flags
+    hasPriceModifiers: (additionalData?.priceModifiersCount ?? 0) > 0,
+    hasServicePackages: (additionalData?.servicePackagesCount ?? 0) > 0,
+    hasMenuItems: (additionalData?.menuItemsCount ?? 0) > 0,
+    hasCateringKnowledge: (additionalData?.cateringKnowledgeCount ?? 0) > 0,
+    hasVehicleKnowledge: (additionalData?.vehicleKnowledgeCount ?? 0) > 0,
+    hasRoadsideKnowledge: (additionalData?.roadsideKnowledgeCount ?? 0) > 0,
+    hasSymptomTriage: (additionalData?.symptomTriageCount ?? 0) > 0,
+    hasInsuranceKnowledge: (additionalData?.insuranceKnowledgeCount ?? 0) > 0,
+    hasAftercare: (additionalData?.aftercareCount ?? 0) > 0,
+    hasProductKnowledge: (additionalData?.productKnowledgeCount ?? 0) > 0,
+    hasPrepTimeConfigured: additionalData?.hasPrepTimeConfigured ?? false,
     
     showCoverageSection,
     showCalendarSection,

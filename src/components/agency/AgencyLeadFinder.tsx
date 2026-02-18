@@ -14,14 +14,14 @@ import { toast } from "sonner";
 import { scoreAgencyLead, getTemperatureColor, getTemperatureIcon, type LeadTemperature } from "./lead-finder/leadScoring";
 import { LeadDetailPanel, type AgencyLead } from "./lead-finder/LeadDetailPanel";
 import { SavedLeadsTab } from "./lead-finder/SavedLeadsTab";
+import { SIGNAL_LABELS } from "./lead-finder/leadConstants";
 import { useIsAgencyUser } from "@/hooks/useAgencyData";
 import {
-  useAgencySearchLimit, useLogSearch,
+  useAgencySearchLimit,
   useSavedLeads, useSaveLead, useSaveLeadsBatch,
 } from "@/hooks/useAgencyLeads";
 
 const INDUSTRY_OPTIONS = [
-  { value: "all", label: "All Industries" },
   { value: "towing", label: "Towing" },
   { value: "plumber", label: "Plumber" },
   { value: "hvac", label: "HVAC" },
@@ -44,15 +44,11 @@ const INDUSTRY_OPTIONS = [
   { value: "fitness studio", label: "Fitness Studio" },
 ];
 
-const SIGNAL_LABELS: Record<string, string> = {
-  no_online_booking: "No Online Booking",
-  small_team: "Small Team",
-  high_volume: "High Call Volume",
-  after_hours_demand: "After-Hours",
-  growth_signals: "Growing",
-};
+interface AgencyLeadFinderProps {
+  onProvisionLead?: (lead: { name: string; industry?: string }) => void;
+}
 
-export function AgencyLeadFinder() {
+export function AgencyLeadFinder({ onProvisionLead }: AgencyLeadFinderProps = {}) {
   const { agencyId } = useIsAgencyUser();
   const [industry, setIndustry] = useState("");
   const [location, setLocation] = useState("");
@@ -65,7 +61,6 @@ export function AgencyLeadFinder() {
   const [mainTab, setMainTab] = useState("search");
 
   const searchLimit = useAgencySearchLimit(agencyId);
-  const logSearch = useLogSearch(agencyId);
   const savedLeads = useSavedLeads(agencyId);
   const saveLead = useSaveLead(agencyId);
   const saveLeadsBatch = useSaveLeadsBatch(agencyId);
@@ -102,14 +97,14 @@ export function AgencyLeadFinder() {
 
       const rawLeads: AgencyLead[] = (data.leads || []).map((l: any) => ({
         ...l,
-        industry: l.industry || (industry !== "all" ? industry : undefined),
+        industry: l.industry || industry,
         score: scoreAgencyLead({
           friction_signals: l.friction_signals,
           rating: l.rating,
           review_count: l.review_count,
           phone: l.phone,
           website: l.website,
-          industry: l.industry || (industry !== "all" ? industry : undefined),
+          industry: l.industry || industry,
         }),
       }));
 
@@ -117,8 +112,7 @@ export function AgencyLeadFinder() {
       setLeads(rawLeads);
       setHasSearched(true);
 
-      // Log the search
-      logSearch.mutate({ industry, location, result_count: rawLeads.length });
+      // Search is already logged server-side by the edge function — do NOT log again here
 
       if (rawLeads.length === 0) {
         toast.info("No leads found. Try a different location or industry.");
@@ -170,7 +164,7 @@ export function AgencyLeadFinder() {
   });
 
   const handleSaveAll = () => {
-    const unsaved = leads.filter((l) => !isLeadSaved(l.name));
+    const unsaved = filteredLeads.filter((l) => !isLeadSaved(l.name));
     if (unsaved.length === 0) {
       toast.info("All leads are already saved");
       return;
@@ -239,7 +233,7 @@ export function AgencyLeadFinder() {
                 ) : (
                   <Search className="h-4 w-4 mr-2" />
                 )}
-                {isSearching ? "Searching…" : remaining <= 0 ? "Limit Reached" : "Find Leads"}
+                {isSearching ? "Searching..." : remaining <= 0 ? "Limit Reached" : "Find Leads"}
               </Button>
             </div>
           </div>
@@ -255,7 +249,7 @@ export function AgencyLeadFinder() {
           {isSearching && (
             <div className="text-center py-12 text-muted-foreground text-sm">
               <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3" />
-              <p>Searching for {industry === "all" ? "all" : industry} businesses in {location}…</p>
+              <p>Searching for {industry} businesses in {location}...</p>
               <p className="text-xs mt-1">This may take a moment as we search multiple sources.</p>
             </div>
           )}
@@ -263,13 +257,13 @@ export function AgencyLeadFinder() {
           {/* Results */}
           {!isSearching && leads.length > 0 && (
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Tabs value={tempFilter} onValueChange={(v) => setTempFilter(v as any)}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <Tabs value={tempFilter} onValueChange={(v) => setTempFilter(v as "all" | LeadTemperature)}>
                   <TabsList className="h-8">
                     <TabsTrigger value="all" className="text-xs px-3 h-6">All ({leads.length})</TabsTrigger>
-                    <TabsTrigger value="hot" className="text-xs px-3 h-6">🔥 Hot ({tempCounts.hot})</TabsTrigger>
-                    <TabsTrigger value="warm" className="text-xs px-3 h-6">🌤 Warm ({tempCounts.warm})</TabsTrigger>
-                    <TabsTrigger value="cold" className="text-xs px-3 h-6">❄️ Cold ({tempCounts.cold})</TabsTrigger>
+                    <TabsTrigger value="hot" className="text-xs px-3 h-6">Hot ({tempCounts.hot})</TabsTrigger>
+                    <TabsTrigger value="warm" className="text-xs px-3 h-6">Warm ({tempCounts.warm})</TabsTrigger>
+                    <TabsTrigger value="cold" className="text-xs px-3 h-6">Cold ({tempCounts.cold})</TabsTrigger>
                   </TabsList>
                 </Tabs>
                 <div className="flex items-center gap-2">
@@ -282,11 +276,12 @@ export function AgencyLeadFinder() {
               </div>
 
               <div className="grid gap-2">
-                {filteredLeads.map((lead, i) => {
+                {filteredLeads.map((lead) => {
                   const saved = isLeadSaved(lead.name);
+                  const key = `${lead.name}-${lead.address || lead.phone || ""}`;
                   return (
                     <Card
-                      key={i}
+                      key={key}
                       className="cursor-pointer hover:border-primary/40 transition-colors"
                       onClick={() => openDetail(lead)}
                     >
@@ -373,11 +368,11 @@ export function AgencyLeadFinder() {
         </TabsContent>
 
         <TabsContent value="saved" className="mt-4">
-          {agencyId && <SavedLeadsTab leads={savedLeads.data ?? []} agencyId={agencyId} />}
+          {agencyId && <SavedLeadsTab leads={savedLeads.data ?? []} agencyId={agencyId} onProvisionLead={onProvisionLead} />}
         </TabsContent>
       </Tabs>
 
-      {/* Detail Panel */}
+      {/* Detail Panel — shared for search results */}
       <LeadDetailPanel
         lead={selectedLead}
         open={detailOpen}
@@ -385,6 +380,7 @@ export function AgencyLeadFinder() {
         isSaved={selectedLead ? isLeadSaved(selectedLead.name) : false}
         onSave={selectedLead && !isLeadSaved(selectedLead.name) ? () => handleSaveSingle(selectedLead) : undefined}
         savingInProgress={saveLead.isPending}
+        onProvisionLead={onProvisionLead}
       />
     </div>
   );

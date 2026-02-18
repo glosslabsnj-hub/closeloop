@@ -2,50 +2,58 @@ import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Phone, Trash2, Building2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Phone, Trash2, Building2, Search } from "lucide-react";
 import { type SavedLead, useUpdateSavedLead, useDeleteSavedLead } from "@/hooks/useAgencyLeads";
 import { getTemperatureColor, getTemperatureIcon, type LeadTemperature } from "./leadScoring";
 import { LeadDetailPanel, type AgencyLead } from "./LeadDetailPanel";
-
-const STATUS_LABELS: Record<string, string> = {
-  new: "New",
-  contacted: "Contacted",
-  interested: "Interested",
-  not_interested: "Not Interested",
-  converted: "Converted",
-  skipped: "Skipped",
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  new: "bg-sky-500/10 text-sky-700 border-sky-500/20",
-  contacted: "bg-amber-500/10 text-amber-700 border-amber-500/20",
-  interested: "bg-green-500/10 text-green-700 border-green-500/20",
-  not_interested: "bg-muted text-muted-foreground",
-  converted: "bg-primary/10 text-primary border-primary/20",
-  skipped: "bg-muted text-muted-foreground",
-};
+import { STATUS_LABELS } from "./leadConstants";
 
 const FILTER_TABS = ["all", "new", "contacted", "interested", "converted"] as const;
 
 interface SavedLeadsTabProps {
   leads: SavedLead[];
   agencyId: string;
+  onProvisionLead?: (lead: { name: string; industry?: string }) => void;
 }
 
-export function SavedLeadsTab({ leads, agencyId }: SavedLeadsTabProps) {
+export function SavedLeadsTab({ leads, agencyId, onProvisionLead }: SavedLeadsTabProps) {
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
   const [selectedLead, setSelectedLead] = useState<AgencyLead | null>(null);
   const [selectedSavedId, setSelectedSavedId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<SavedLead | null>(null);
   const updateLead = useUpdateSavedLead(agencyId);
   const deleteLead = useDeleteSavedLead(agencyId);
 
   const filtered = useMemo(() => {
-    if (statusFilter === "all") return leads;
-    return leads.filter((l) => l.status === statusFilter);
-  }, [leads, statusFilter]);
+    let result = leads;
+    if (statusFilter !== "all") {
+      result = result.filter((l) => l.status === statusFilter);
+    }
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter((l) =>
+        l.name.toLowerCase().includes(q) ||
+        (l.industry || "").toLowerCase().includes(q) ||
+        (l.address || "").toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [leads, statusFilter, search]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: leads.length };
@@ -63,7 +71,7 @@ export function SavedLeadsTab({ leads, agencyId }: SavedLeadsTabProps) {
       review_count: saved.review_count,
       reason: saved.reason || "",
       friction_signals: saved.friction_signals || [],
-      confidence: (saved.confidence as any) || "medium",
+      confidence: (saved.confidence as "high" | "medium" | "low") || "medium",
       industry: saved.industry || undefined,
       employee_estimate: saved.employee_estimate,
       hours: saved.hours,
@@ -78,6 +86,9 @@ export function SavedLeadsTab({ leads, agencyId }: SavedLeadsTabProps) {
     setDetailOpen(true);
   };
 
+  // Look up status/notes from the full leads array (not filtered) to avoid missing data when filter changes
+  const selectedSaved = leads.find((l) => l.id === selectedSavedId);
+
   if (leads.length === 0) {
     return (
       <div className="text-center py-12 text-sm text-muted-foreground">
@@ -90,75 +101,97 @@ export function SavedLeadsTab({ leads, agencyId }: SavedLeadsTabProps) {
 
   return (
     <div className="space-y-3">
-      {/* Filter tabs */}
-      <Tabs value={statusFilter} onValueChange={setStatusFilter}>
-        <TabsList className="h-8">
-          {FILTER_TABS.map((t) => (
-            <TabsTrigger key={t} value={t} className="text-xs px-3 h-6 capitalize">
-              {t === "all" ? "All" : STATUS_LABELS[t] || t} ({counts[t] || 0})
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+      {/* Filter tabs + search */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <Tabs value={statusFilter} onValueChange={setStatusFilter} className="flex-1">
+          <TabsList className="h-8">
+            {FILTER_TABS.map((t) => (
+              <TabsTrigger key={t} value={t} className="text-xs px-3 h-6 capitalize">
+                {t === "all" ? "All" : STATUS_LABELS[t] || t} ({counts[t] || 0})
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        {leads.length > 8 && (
+          <div className="relative max-w-[200px]">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Search saved..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-7 pl-7 text-xs"
+            />
+          </div>
+        )}
+      </div>
 
       <div className="text-xs text-muted-foreground">{filtered.length} lead{filtered.length !== 1 ? "s" : ""}</div>
 
       {/* Lead rows */}
       <div className="grid gap-2">
-        {filtered.map((lead) => (
-          <Card key={lead.id} className="cursor-pointer hover:border-primary/40 transition-colors" onClick={() => openDetail(lead)}>
-            <CardContent className="p-3">
-              <div className="flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-medium text-sm truncate">{lead.name}</h3>
-                    {lead.temperature && (
-                      <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${getTemperatureColor(lead.temperature as LeadTemperature)}`}>
-                        {getTemperatureIcon(lead.temperature as LeadTemperature)} {lead.score}
-                      </Badge>
-                    )}
-                    {lead.industry && (
-                      <span className="text-[10px] text-muted-foreground capitalize">{lead.industry}</span>
-                    )}
+        {filtered.length === 0 ? (
+          <div className="text-center py-8 text-sm text-muted-foreground">
+            {search ? "No leads match your search." : "No leads in this category."}
+          </div>
+        ) : (
+          filtered.map((lead) => (
+            <Card key={lead.id} className="cursor-pointer hover:border-primary/40 transition-colors" onClick={() => openDetail(lead)}>
+              <CardContent className="p-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-medium text-sm truncate">{lead.name}</h3>
+                      {lead.temperature && (
+                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${getTemperatureColor(lead.temperature as LeadTemperature)}`}>
+                          {getTemperatureIcon(lead.temperature as LeadTemperature)} {lead.score}
+                        </Badge>
+                      )}
+                      {lead.industry && (
+                        <span className="text-[10px] text-muted-foreground capitalize">{lead.industry}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
+                      {lead.phone && (
+                        <span className="flex items-center gap-0.5">
+                          <Phone className="h-3 w-3" /> {lead.phone}
+                        </span>
+                      )}
+                      {lead.address && (
+                        <span className="truncate">{lead.address}</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
-                    {lead.phone && (
-                      <span className="flex items-center gap-0.5">
-                        <Phone className="h-3 w-3" /> {lead.phone}
-                      </span>
-                    )}
-                  </div>
-                </div>
 
-                {/* Status dropdown */}
-                <div onClick={(e) => e.stopPropagation()}>
-                  <Select
-                    value={lead.status}
-                    onValueChange={(v) => updateLead.mutate({ id: lead.id, status: v })}
+                  {/* Status dropdown */}
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <Select
+                      value={lead.status}
+                      onValueChange={(v) => updateLead.mutate({ id: lead.id, status: v })}
+                    >
+                      <SelectTrigger className="h-7 text-xs w-[130px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(STATUS_LABELS).map(([k, v]) => (
+                          <SelectItem key={k} value={k} className="text-xs">{v}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0"
+                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(lead); }}
                   >
-                    <SelectTrigger className="h-7 text-xs w-[130px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(STATUS_LABELS).map(([k, v]) => (
-                        <SelectItem key={k} value={k} className="text-xs">{v}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                  </Button>
                 </div>
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 shrink-0"
-                  onClick={(e) => { e.stopPropagation(); deleteLead.mutate(lead.id); }}
-                >
-                  <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
       <LeadDetailPanel
@@ -167,7 +200,34 @@ export function SavedLeadsTab({ leads, agencyId }: SavedLeadsTabProps) {
         onOpenChange={setDetailOpen}
         savedLeadId={selectedSavedId}
         agencyId={agencyId}
+        savedStatus={selectedSaved?.status}
+        savedNotes={selectedSaved?.notes ?? undefined}
+        onProvisionLead={onProvisionLead}
       />
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove lead?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove "{deleteTarget?.name}" from your saved leads? This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deleteTarget) deleteLead.mutate(deleteTarget.id);
+                setDeleteTarget(null);
+              }}
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -27,6 +27,7 @@ import type { AfterHoursBehavior } from "@/components/onboarding/phases/Onboardi
 
 export interface OnboardingDataState {
   businessName: string;
+  businessAddress: string;
   businessMode: BusinessMode;
   industrySlug: string;
   workStyle: WorkStyle;
@@ -94,6 +95,7 @@ export function useOnboardingFormState(userId?: string) {
   // --- All form state ---
   const initialBusinessName = saved.current?.businessName || sessionStorage.getItem("businessName") || "";
   const [businessName, setBusinessName] = useState(initialBusinessName);
+  const [businessAddress, setBusinessAddress] = useState(saved.current?.businessAddress ?? "");
   const [businessMode, setBusinessMode] = useState<BusinessMode>(saved.current?.businessMode ?? "service");
   const [industrySlug, setIndustrySlug] = useState(saved.current?.industrySlug ?? "");
   const [workStyle, setWorkStyle] = useState<WorkStyle>(saved.current?.workStyle ?? "customer_comes");
@@ -211,7 +213,7 @@ export function useOnboardingFormState(userId?: string) {
     setSaveStatus("saving");
     const timer = setTimeout(() => {
       saveOnboardingData({
-        businessName, businessMode, industrySlug, workStyle,
+        businessName, businessAddress, businessMode, industrySlug, workStyle,
         scenarioAnswers, scenarioDetails, schedulingPrefs, communicationPrefs,
         templateServices, templateFAQs, templatePolicies,
         serviceArea, businessDetails, businessHours,
@@ -223,7 +225,7 @@ export function useOnboardingFormState(userId?: string) {
       saveTimerRef.current = setTimeout(() => setSaveStatus("idle"), 2000);
     }, 3000);
     return () => clearTimeout(timer);
-  }, [businessName, businessMode, industrySlug, workStyle, scenarioAnswers, scenarioDetails, schedulingPrefs, communicationPrefs, templateServices, templateFAQs, templatePolicies, serviceArea, businessDetails, businessHours, teamMembers, isSoloOperator, a2pData, aiTone, bookingMode, afterHours, customGreeting, notificationPhone, userId]);
+  }, [businessName, businessAddress, businessMode, industrySlug, workStyle, scenarioAnswers, scenarioDetails, schedulingPrefs, communicationPrefs, templateServices, templateFAQs, templatePolicies, serviceArea, businessDetails, businessHours, teamMembers, isSoloOperator, a2pData, aiTone, bookingMode, afterHours, customGreeting, notificationPhone, userId]);
 
   // --- Website import support ---
   const applyWebsiteImport = useCallback((mapped: MappedOnboardingData) => {
@@ -231,7 +233,10 @@ export function useOnboardingFormState(userId?: string) {
 
     if (mapped.businessName) setBusinessName(mapped.businessName);
     if (mapped.suggestedIndustrySlug) setIndustrySlug(mapped.suggestedIndustrySlug);
-    if (mapped.address) setBusinessDetails(prev => ({ ...prev, location: mapped.address! }));
+    if (mapped.address) {
+      setBusinessAddress(mapped.address);
+      setBusinessDetails(prev => ({ ...prev, location: mapped.address! }));
+    }
 
     // Direct-set imported data (protected from template override by the guard)
     if (mapped.services.length > 0) setTemplateServices(mapped.services);
@@ -250,6 +255,7 @@ export function useOnboardingFormState(userId?: string) {
 
   const resetFormState = useCallback(() => {
     setBusinessName(sessionStorage.getItem("businessName") || "");
+    setBusinessAddress("");
     setIndustrySlug("");
     setScenarioAnswers({});
     setScenarioDetails({});
@@ -263,6 +269,7 @@ export function useOnboardingFormState(userId?: string) {
   return {
     // Form state
     businessName, setBusinessName,
+    businessAddress, setBusinessAddress,
     businessMode, setBusinessMode,
     industrySlug, setIndustrySlug,
     workStyle, setWorkStyle,

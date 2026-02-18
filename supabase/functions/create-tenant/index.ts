@@ -45,6 +45,7 @@ interface CreateTenantRequest {
   location?: string | null;
   // Agency provisioning
   agency_id?: string | null;
+  owner_email?: string | null;
 }
 
 serve(async (req) => {
@@ -223,6 +224,7 @@ serve(async (req) => {
 
     // 11. Agency linkage (if provisioned by an agency)
     let agencyLinked = false;
+    let ownerInvited = false;
     if (body.agency_id) {
       const { data: agency } = await serviceClient
         .from("agency_accounts")
@@ -245,6 +247,38 @@ serve(async (req) => {
           agencyLinked = true;
           console.log(`[create-tenant] Agency linked: ${body.agency_id.substring(0, 8)}... -> tenant ${tenantId.substring(0, 8)}...`);
         }
+
+        // If owner_email provided, invite them and set agency user as manager
+        if (body.owner_email) {
+          // Update agency user's role from owner to manager
+          await serviceClient
+            .from("tenant_users")
+            .update({ role: "manager" })
+            .eq("tenant_id", tenantId)
+            .eq("user_id", userId);
+
+          // Send invite to the business owner
+          const { data: inviteData, error: inviteError } = await serviceClient.auth.admin.inviteUserByEmail(
+            body.owner_email
+          );
+
+          if (inviteError) {
+            console.error("[create-tenant] Owner invite error:", inviteError.message);
+          } else {
+            ownerInvited = true;
+            const invitedUserId = inviteData?.user?.id;
+            if (invitedUserId) {
+              // Create a pending owner membership
+              await serviceClient
+                .from("tenant_users")
+                .upsert(
+                  { tenant_id: tenantId, user_id: invitedUserId, role: "owner" },
+                  { onConflict: "tenant_id,user_id" }
+                );
+              console.log(`[create-tenant] Owner invited: ${body.owner_email} -> tenant ${tenantId.substring(0, 8)}...`);
+            }
+          }
+        }
       } else {
         console.warn("[create-tenant] Agency ID provided but not owned by user, skipping link");
       }
@@ -258,6 +292,7 @@ serve(async (req) => {
         subscription_created: !subError,
         settings_initialized: !settingsError,
         agency_linked: agencyLinked,
+        owner_invited: ownerInvited,
       }),
       {
         status: 200,

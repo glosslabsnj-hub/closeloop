@@ -87,7 +87,7 @@ export default function OnboardingPage() {
   // Auto-save debounced
   useEffect(() => {
     return form.triggerAutoSave(submit.isComplete, resumeDecided);
-  }, [phase, form.businessName, form.businessMode, form.industrySlug, form.workStyle,
+  }, [phase, form.businessName, form.businessAddress, form.businessMode, form.industrySlug, form.workStyle,
     form.scenarioAnswers, form.scenarioDetails, form.schedulingPrefs, form.communicationPrefs,
     form.templateServices, form.templateFAQs, form.templatePolicies, form.serviceArea,
     form.businessDetails, form.businessHours, form.teamMembers, form.isSoloOperator,
@@ -136,6 +136,7 @@ export default function OnboardingPage() {
 
   const buildSubmitParams = () => ({
     businessName: form.businessName,
+    businessAddress: form.businessAddress,
     businessMode: form.businessMode,
     industrySlug: form.industrySlug,
     workStyle: form.workStyle,
@@ -272,12 +273,18 @@ export default function OnboardingPage() {
                     <OnboardingIdentity
                       businessName={form.businessName}
                       onBusinessNameChange={form.setBusinessName}
+                      businessAddress={form.businessAddress}
+                      onBusinessAddressChange={form.setBusinessAddress}
                       industrySlug={form.industrySlug}
                       onIndustryChange={handleIndustryChange}
                       businessMode={form.businessMode}
                       onBusinessModeChange={form.handleBusinessModeChange}
                       workStyle={form.workStyle}
                       onWorkStyleChange={form.setWorkStyle}
+                      scenarioAnswers={form.scenarioAnswers}
+                      onScenarioAnswersChange={form.setScenarioAnswers}
+                      scenarioDetails={form.scenarioDetails}
+                      onScenarioDetailsChange={form.setScenarioDetails}
                       getFieldError={getFieldError}
                     />
                   )}
@@ -322,15 +329,21 @@ export default function OnboardingPage() {
                   {phase === 5 && (
                     <OnboardingReview
                       businessName={form.businessName}
+                      businessAddress={form.businessAddress}
                       businessMode={form.businessMode}
                       industrySlug={form.industrySlug}
                       services={form.templateServices}
+                      templateFAQs={form.templateFAQs}
+                      templatePolicies={form.templatePolicies}
+                      businessHours={form.businessHours}
                       aiTone={form.aiTone}
                       bookingMode={form.bookingMode}
                       afterHours={form.afterHours}
                       is24x7={form.schedulingPrefs.is24x7}
                       workStyle={form.workStyle}
                       serviceAreaRadius={form.serviceArea.radiusMiles}
+                      scenarioAnswers={form.scenarioAnswers}
+                      customGreeting={form.customGreeting}
                       onEditPhase={goToPhase}
                       onTestAI={() => toast({ title: "Test AI", description: "AI testing will be available after setup." })}
                       onGoLive={() => submit.handleComplete(buildSubmitParams(), clearProgress)}

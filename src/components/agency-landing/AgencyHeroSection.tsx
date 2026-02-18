@@ -59,11 +59,14 @@ export function AgencyHeroSection() {
           </div>
 
           {/* CTA */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+          <div className="flex flex-col items-center gap-3 pt-4">
             <Button size="lg" className="text-base px-8 shadow-lg" onClick={scrollToForm}>
               Apply Now
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
+            <p className="text-sm text-muted-foreground">
+              No cost to join. Get approved in 24 hours.
+            </p>
           </div>
         </div>
       </div>

@@ -237,6 +237,18 @@ export interface BusinessContext {
     catering_lead_days: number | null;
     order_confirmation_mode: string;
   } | null;
+  medical_settings: {
+    practice: any | null;
+    coverage: any | null;
+    policies: any | null;
+    accepted_carriers_summary: string;
+    in_network_insurers_summary: string;
+    medical_policies_summary: string;
+    new_patient_fee_display: string;
+    follow_up_fee_display: string;
+    no_show_fee_display: string;
+    cancellation_fee_display: string;
+  } | null;
   knowledge: {
     faqs: Array<{ question: string; answer: string }>;
     faqs_summary: string;
@@ -1633,6 +1645,135 @@ function determineUsage(memoryType: string): string {
 
 // Removed duplicate buildPricingRulesSummary function - consolidated above at line 678
 
+// ===== FOOD EXTENDED HELPERS =====
+
+function buildFoodServiceTypesSummary(foodSettings: any): string {
+  if (!foodSettings) return "";
+  const types: string[] = [];
+  if (foodSettings.accepts_pickup !== false) types.push("Pickup");
+  if (foodSettings.accepts_delivery === true) types.push("Delivery");
+  if (foodSettings.accepts_dine_in !== false) types.push("Dine-in");
+  return types.join(", ");
+}
+
+function buildDailySpecialsSummary(specials: any[] | null): string {
+  if (!specials || specials.length === 0) return "";
+  return specials.slice(0, 8).map(s => {
+    const parts: string[] = [s.name];
+    if (s.active_days && Array.isArray(s.active_days) && s.active_days.length > 0) {
+      parts.push(`(${s.active_days.join(", ")})`);
+    }
+    if (s.start_time && s.end_time) {
+      parts.push(`${s.start_time}-${s.end_time}`);
+    }
+    return parts.join(" ");
+  }).join("; ");
+}
+
+function buildDeliveryFeeSummary(zones: any[] | null): string {
+  if (!zones || zones.length === 0) return "";
+  return zones.slice(0, 5).map(z => {
+    const parts: string[] = [];
+    if (z.zone_name) parts.push(z.zone_name);
+    if (z.delivery_fee_cents != null) parts.push(`$${(z.delivery_fee_cents / 100).toFixed(2)} fee`);
+    if (z.minimum_order_cents != null) parts.push(`$${(z.minimum_order_cents / 100).toFixed(2)} min`);
+    if (z.estimated_delivery_min_minutes && z.estimated_delivery_max_minutes) {
+      parts.push(`${z.estimated_delivery_min_minutes}-${z.estimated_delivery_max_minutes} min`);
+    }
+    return parts.join(", ");
+  }).join(" | ");
+}
+
+function buildDietaryTagsSummary(menuItems: any[] | null): string {
+  if (!menuItems || menuItems.length === 0) return "";
+  const tagSet = new Set<string>();
+  for (const item of menuItems) {
+    if (item.dietary_tags && Array.isArray(item.dietary_tags)) {
+      for (const tag of item.dietary_tags) {
+        if (typeof tag === "string" && tag.trim()) tagSet.add(tag.trim());
+      }
+    }
+  }
+  return Array.from(tagSet).sort().join(", ");
+}
+
+function buildFoodPoliciesSummary(policies: any | null): string {
+  if (!policies) return "";
+  const parts: string[] = [];
+  if (policies.cancellation_policy) parts.push(`Cancellation: ${truncate(policies.cancellation_policy, 100)}`);
+  if (policies.allergy_disclaimer) parts.push(`Allergy: ${truncate(policies.allergy_disclaimer, 100)}`);
+  if (policies.modification_cutoff_minutes != null) parts.push(`Modifications: up to ${policies.modification_cutoff_minutes} min after order`);
+  if (policies.refund_policy) parts.push(`Refunds: ${truncate(policies.refund_policy, 80)}`);
+  return parts.join(" | ");
+}
+
+// ===== MEDICAL EXTENDED HELPERS =====
+
+function formatCentsToDisplay(cents: number | null | undefined): string {
+  if (cents == null || cents <= 0) return "";
+  return `$${(cents / 100).toFixed(0)}`;
+}
+
+function buildAcceptedCarriersSummary(practiceSettings: any | null): string {
+  if (!practiceSettings?.accepted_insurance_carriers) return "";
+  const carriers = practiceSettings.accepted_insurance_carriers;
+  if (!Array.isArray(carriers) || carriers.length === 0) return "";
+  return carriers.filter((c: any) => typeof c === "string" && c.trim()).join(", ");
+}
+
+function buildInNetworkInsurersSummary(coverageSettings: any | null): string {
+  if (!coverageSettings?.in_network_insurers) return "";
+  const insurers = coverageSettings.in_network_insurers;
+  if (!Array.isArray(insurers) || insurers.length === 0) return "";
+  return insurers.filter((i: any) => typeof i === "string" && i.trim()).join(", ");
+}
+
+function buildMedicalPoliciesSummary(policies: any | null): string {
+  if (!policies) return "";
+  const parts: string[] = [];
+  if (policies.cancellation_notice_hours != null) {
+    parts.push(`${policies.cancellation_notice_hours}-hour cancellation notice required`);
+  }
+  if (policies.appointment_no_show_fee_cents != null && policies.appointment_no_show_fee_cents > 0) {
+    parts.push(`$${(policies.appointment_no_show_fee_cents / 100).toFixed(0)} no-show fee`);
+  }
+  if (policies.new_patient_arrival_minutes != null) {
+    parts.push(`New patients arrive ${policies.new_patient_arrival_minutes} minutes early`);
+  }
+  if (policies.prescription_refill_notice_days != null) {
+    parts.push(`Prescription refills need ${policies.prescription_refill_notice_days} business days notice`);
+  }
+  if (policies.cancellation_fee_cents != null && policies.cancellation_fee_cents > 0) {
+    parts.push(`$${(policies.cancellation_fee_cents / 100).toFixed(0)} late cancellation fee`);
+  }
+  return parts.join(". ") + (parts.length > 0 ? "." : "");
+}
+
+function buildMedicalFeeSummary(practiceSettings: any | null, policies: any | null): string {
+  const parts: string[] = [];
+  if (practiceSettings?.new_patient_fee_cents) {
+    parts.push(`New patient visit: $${(practiceSettings.new_patient_fee_cents / 100).toFixed(0)}`);
+  }
+  if (practiceSettings?.follow_up_fee_cents) {
+    parts.push(`Follow-up: $${(practiceSettings.follow_up_fee_cents / 100).toFixed(0)}`);
+  }
+  if (policies?.appointment_no_show_fee_cents) {
+    parts.push(`No-show fee: $${(policies.appointment_no_show_fee_cents / 100).toFixed(0)}`);
+  }
+  return parts.join(". ") + (parts.length > 0 ? "." : "");
+}
+
+function buildMenuCategoriesSummary(menuItems: any[] | null): string {
+  if (!menuItems || menuItems.length === 0) return "";
+  const catSet = new Set<string>();
+  for (const item of menuItems) {
+    if (item.category && typeof item.category === "string" && item.category.trim()) {
+      catSet.add(item.category.trim());
+    }
+  }
+  return Array.from(catSet).sort().join(", ");
+}
+
 /**
  * Build 7-day capacity overview from upcoming bookings.
  * Output: "Mon: busy (8) | Tue: open | Wed: closed | Thu: light (2)"
@@ -2189,6 +2330,12 @@ export async function buildBusinessContext(
     seasonalKnowledgeResult,
     staffMembersResult,
     referralNetworkResult,
+    deliveryZonesResult,
+    foodPoliciesResult,
+    menuSpecialsResult,
+    medicalPracticeResult,
+    medicalCoverageResult,
+    medicalPoliciesResult,
   ] = await Promise.all([
     supabase.from("tenants").select("*, pricing_rules_jsonb, busyness_rules_jsonb").eq("id", tenantId).single(),
     supabase.from("services").select("*").eq("tenant_id", tenantId).eq("is_active", true).limit(20),
@@ -2211,6 +2358,14 @@ export async function buildBusinessContext(
     supabase.from("staff_members").select("id, full_name, role, is_active, service_ids").eq("tenant_id", tenantId).eq("is_active", true).order("sort_order").limit(50),
     // Fetch referral network settings
     supabase.from("referral_network_settings").select("enabled, accept_referrals, send_referrals, intro_style, network_services, preferred_partners").eq("tenant_id", tenantId).maybeSingle(),
+    // Fetch food extended data
+    supabase.from("delivery_zones").select("zone_name, zone_type, min_miles, max_miles, delivery_fee_cents, minimum_order_cents, estimated_delivery_min_minutes, estimated_delivery_max_minutes").eq("tenant_id", tenantId).eq("is_active", true).limit(10),
+    supabase.from("food_policies").select("*").eq("tenant_id", tenantId).maybeSingle(),
+    supabase.from("menu_specials").select("name, description, schedule_type, active_days, start_time, end_time, is_active").eq("tenant_id", tenantId).eq("is_active", true).limit(10),
+    // Fetch medical extended data
+    supabase.from("medical_practice_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
+    supabase.from("medical_coverage_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
+    supabase.from("medical_policies").select("*").eq("tenant_id", tenantId).maybeSingle(),
   ]);
   
   // ===== CONDITIONAL FETCH: IMPOUND LOT DATA =====
@@ -2266,6 +2421,12 @@ export async function buildBusinessContext(
   const servicePackages = servicePackagesResult.data || [];
   const seasonalKnowledge = seasonalKnowledgeResult.data || [];
   const referralNetworkSettings = referralNetworkResult?.data || null;
+  const deliveryZones = deliveryZonesResult?.data || [];
+  const foodPolicies = foodPoliciesResult?.data || null;
+  const menuSpecials = menuSpecialsResult?.data || [];
+  const medicalPractice = medicalPracticeResult?.data || null;
+  const medicalCoverage = medicalCoverageResult?.data || null;
+  const medicalPolicies = medicalPoliciesResult?.data || null;
 
   // ===== DERIVE CAPABILITIES =====
   const caps = resolveCapabilities(
@@ -2531,6 +2692,29 @@ export async function buildBusinessContext(
       catering_min_guests: foodSettings.catering_min_guests || null,
       catering_lead_days: foodSettings.catering_lead_days || null,
       order_confirmation_mode: foodSettings.order_confirmation_mode || "auto_confirm",
+      // Extended food data
+      delivery_zones: deliveryZones,
+      food_policies: foodPolicies,
+      menu_specials: menuSpecials,
+      // Computed summaries
+      food_service_types_summary: buildFoodServiceTypesSummary(foodSettings),
+      daily_specials_summary: buildDailySpecialsSummary(menuSpecials),
+      delivery_fee_summary: buildDeliveryFeeSummary(deliveryZones),
+      dietary_tags_available: buildDietaryTagsSummary(menuItems),
+      food_policies_summary: buildFoodPoliciesSummary(foodPolicies),
+      menu_categories_summary: buildMenuCategoriesSummary(menuItems),
+    } : null,
+    medical_settings: (medicalPractice || medicalCoverage || medicalPolicies) ? {
+      practice: medicalPractice,
+      coverage: medicalCoverage,
+      policies: medicalPolicies,
+      accepted_carriers_summary: buildAcceptedCarriersSummary(medicalPractice),
+      in_network_insurers_summary: buildInNetworkInsurersSummary(medicalCoverage),
+      medical_policies_summary: buildMedicalPoliciesSummary(medicalPolicies),
+      new_patient_fee_display: formatCentsToDisplay(medicalPractice?.new_patient_fee_cents),
+      follow_up_fee_display: formatCentsToDisplay(medicalPractice?.follow_up_fee_cents),
+      no_show_fee_display: formatCentsToDisplay(medicalPolicies?.appointment_no_show_fee_cents),
+      cancellation_fee_display: formatCentsToDisplay(medicalPolicies?.cancellation_fee_cents),
     } : null,
     knowledge: {
       faqs: faqs.map(f => ({ question: f.question, answer: f.answer })),

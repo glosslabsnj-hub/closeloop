@@ -887,7 +887,7 @@ export const FOOD_AGENT_CONFIG: AgentToolsConfig = {
   mode: "food",
   agentName: "Food Agent",
   industries: ["Restaurants", "pizza", "Chinese food", "catering", "bakeries", "food trucks"],
-  toolCount: 6,
+  toolCount: 8,
   tools: [
     createCheckAvailabilityTool(
       `Check if a reservation time is available. Use when customer asks for a specific time: "Do you have a table at 7pm Friday?" or "Is 6:30 available for Saturday?"`
@@ -1065,19 +1065,22 @@ export const FOOD_AGENT_CONFIG: AgentToolsConfig = {
         },
       ],
     },
+    createTransferToOwnerTool(),
+    createAddToWaitlistTool(),
   ],
 };
 
 /**
- * MEDICAL AGENT (5 Tools)
- * Industries: Doctor's offices, dental practices, clinics, physical therapy, veterinary, mental health
+ * MEDICAL AGENT (7 Tools)
+ * Industries: Doctor's offices, dental practices, clinics, physical therapy, chiropractic,
+ *   optometry, dermatology, mental health, pediatrics, orthodontics, med spas
  * Note: No create_dispatch_job - medical doesn't do emergency dispatch via AI
  */
 export const MEDICAL_AGENT_CONFIG: AgentToolsConfig = {
   mode: "medical",
   agentName: "Medical Agent",
-  industries: ["Doctor's offices", "dental practices", "clinics", "physical therapy", "veterinary", "mental health"],
-  toolCount: 5,
+  industries: ["Doctor's offices", "dental practices", "clinics", "physical therapy", "chiropractic", "optometry", "dermatology", "mental health", "pediatrics", "orthodontics", "med spas"],
+  toolCount: 7,
   tools: [
     createCheckAvailabilityTool(
       `Check if an appointment time is available. Use when patient requests a specific time: "Do you have anything at 2pm Tuesday?" or "Is Dr. Smith available Friday morning?"`
@@ -1086,7 +1089,7 @@ export const MEDICAL_AGENT_CONFIG: AgentToolsConfig = {
       `Get available appointment times. Use when patient asks "When is the soonest appointment?", "What do you have this week?", or "When can I see the doctor?"`
     ),
     createBookingTool(
-      `Book the appointment after patient confirms the time. Collect patient name. For new patients, note that in the notes field.`
+      `Book the appointment after patient confirms the time. Collect patient name. For new patients, note that in the notes field. HIPAA: Keep notes general — no symptoms, diagnoses, or medical details.`
     ),
     createCheckServiceAreaTool(
       `Check if home health visits or house calls are available to the patient's location. Use when patient asks "Do you do home visits?" or "Can the doctor come to my house?"`
@@ -1155,6 +1158,8 @@ export const MEDICAL_AGENT_CONFIG: AgentToolsConfig = {
         },
       ],
     },
+    createTransferToOwnerTool(),
+    createAddToWaitlistTool(),
   ],
 };
 

@@ -1,34 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Phone, Globe, Star, MapPin, ExternalLink, Copy, Building2, Bookmark, Check } from "lucide-react";
+import { Phone, Globe, Star, MapPin, ExternalLink, Copy, Building2, Bookmark, Check, Rocket } from "lucide-react";
 import { toast } from "sonner";
 import { getTemperatureColor, getTemperatureIcon, type ScoredLead } from "./leadScoring";
+import { SIGNAL_LABELS, STATUS_LABELS } from "./leadConstants";
 import { useUpdateSavedLead } from "@/hooks/useAgencyLeads";
-
-const SIGNAL_LABELS: Record<string, string> = {
-  no_online_booking: "No Online Booking",
-  small_team: "Small Team",
-  high_volume: "High Call Volume",
-  after_hours_demand: "After-Hours Demand",
-  growth_signals: "Growing Fast",
-  poor_responsiveness: "Poor Responsiveness",
-  no_website: "No Website",
-  outdated_website: "Outdated Website",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  new: "New",
-  contacted: "Contacted",
-  interested: "Interested",
-  not_interested: "Not Interested",
-  converted: "Converted",
-  skipped: "Skipped",
-};
 
 export interface AgencyLead {
   name: string;
@@ -59,22 +40,33 @@ interface LeadDetailPanelProps {
   agencyId?: string;
   savedStatus?: string;
   savedNotes?: string;
+  // Provision callback
+  onProvisionLead?: (lead: { name: string; industry?: string }) => void;
 }
 
 export function LeadDetailPanel({
   lead, open, onOpenChange,
   isSaved, onSave, savingInProgress,
   savedLeadId, agencyId, savedStatus, savedNotes,
+  onProvisionLead,
 }: LeadDetailPanelProps) {
   const [notes, setNotes] = useState(savedNotes || "");
   const [notesChanged, setNotesChanged] = useState(false);
   const updateLead = useUpdateSavedLead(agencyId);
 
+  // Reset state when lead/savedLeadId changes
+  useEffect(() => {
+    setNotes(savedNotes || "");
+    setNotesChanged(false);
+  }, [savedLeadId, savedNotes]);
+
   if (!lead) return null;
 
   const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success(`${label} copied`);
+    navigator.clipboard?.writeText(text).then(
+      () => toast.success(`${label} copied`),
+      () => toast.error(`Failed to copy ${label}`)
+    );
   };
 
   const handleStatusChange = (status: string) => {
@@ -92,7 +84,16 @@ export function LeadDetailPanel({
     }
   };
 
+  const handleProvision = () => {
+    if (onProvisionLead) {
+      onProvisionLead({ name: lead.name, industry: lead.industry });
+      onOpenChange(false);
+    }
+  };
+
   const temp = lead.score;
+  // Allow provisioning from any context — search results or saved leads
+  const canProvision = !!onProvisionLead;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -157,7 +158,7 @@ export function LeadDetailPanel({
               <div className="space-y-1.5">
                 {temp.reasons.map((r, i) => (
                   <div key={i} className="flex items-start gap-2 text-sm">
-                    <span className="text-primary mt-0.5">•</span>
+                    <span className="text-primary mt-0.5">+</span>
                     <span>{r}</span>
                   </div>
                 ))}
@@ -173,7 +174,7 @@ export function LeadDetailPanel({
                       temp.temperature === "hot" ? "bg-red-500" :
                       temp.temperature === "warm" ? "bg-amber-500" : "bg-sky-500"
                     }`}
-                    style={{ width: `${temp.score}%` }}
+                    style={{ width: `${Math.min(temp.score, 100)}%` }}
                   />
                 </div>
               </div>
@@ -306,21 +307,29 @@ export function LeadDetailPanel({
           <Separator />
 
           {/* Actions */}
-          <div className="flex gap-2">
-            {lead.phone && (
-              <Button asChild className="flex-1">
-                <a href={`tel:${lead.phone}`}>
-                  <Phone className="h-4 w-4 mr-2" />Call
-                </a>
+          <div className="flex flex-col gap-2">
+            {canProvision && (
+              <Button onClick={handleProvision}>
+                <Rocket className="h-4 w-4 mr-2" />
+                Set Up as Client
               </Button>
             )}
-            {lead.website && (
-              <Button variant="outline" asChild className="flex-1">
-                <a href={lead.website} target="_blank" rel="noopener noreferrer">
-                  <Globe className="h-4 w-4 mr-2" />Visit Website
-                </a>
-              </Button>
-            )}
+            <div className="flex gap-2">
+              {lead.phone && (
+                <Button asChild className="flex-1" variant={canProvision ? "outline" : "default"}>
+                  <a href={`tel:${lead.phone}`}>
+                    <Phone className="h-4 w-4 mr-2" />Call
+                  </a>
+                </Button>
+              )}
+              {lead.website && (
+                <Button variant="outline" asChild className="flex-1">
+                  <a href={lead.website} target="_blank" rel="noopener noreferrer">
+                    <Globe className="h-4 w-4 mr-2" />Visit Website
+                  </a>
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </SheetContent>

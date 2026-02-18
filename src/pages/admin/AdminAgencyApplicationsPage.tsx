@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   useAgencyApplications,
+  useApproveApplication,
   useUpdateApplicationStatus,
   type AgencyApplication,
 } from "@/hooks/useAgencyApplications";
@@ -23,15 +24,27 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FileText, Users } from "lucide-react";
 import { format } from "date-fns";
+import { useAuth } from "@/contexts/AuthContext";
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   new: "default",
@@ -40,12 +53,18 @@ const statusVariant: Record<string, "default" | "secondary" | "destructive" | "o
   rejected: "destructive",
 };
 
+const STATUS_FILTERS = ["all", "new", "reviewing", "approved", "rejected"] as const;
+
 export default function AdminAgencyApplicationsPage() {
+  const { user } = useAuth();
   const { data: applications, isLoading } = useAgencyApplications();
+  const approveApp = useApproveApplication();
   const updateStatus = useUpdateApplicationStatus();
   const [selected, setSelected] = useState<AgencyApplication | null>(null);
   const [editStatus, setEditStatus] = useState<AgencyApplication["status"]>("new");
   const [editNotes, setEditNotes] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [confirmAction, setConfirmAction] = useState<{ type: "approve" | "reject"; app: AgencyApplication } | null>(null);
 
   const openDetail = (app: AgencyApplication) => {
     setSelected(app);
@@ -55,18 +74,61 @@ export default function AdminAgencyApplicationsPage() {
 
   const handleSave = () => {
     if (!selected) return;
+
+    if (editStatus === "approved" && selected.status !== "approved") {
+      setConfirmAction({ type: "approve", app: selected });
+      return;
+    }
+
+    if (editStatus === "rejected" && selected.status !== "rejected") {
+      setConfirmAction({ type: "reject", app: selected });
+      return;
+    }
+
+    // For other status changes (new -> reviewing, etc.)
     updateStatus.mutate(
       { id: selected.id, status: editStatus, admin_notes: editNotes },
       { onSuccess: () => setSelected(null) }
     );
   };
 
+  const executeApprove = () => {
+    if (!confirmAction) return;
+    approveApp.mutate(
+      { application_id: confirmAction.app.id, admin_notes: editNotes },
+      {
+        onSuccess: () => {
+          setConfirmAction(null);
+          setSelected(null);
+        },
+      }
+    );
+  };
+
+  const executeReject = () => {
+    if (!confirmAction) return;
+    updateStatus.mutate(
+      { id: confirmAction.app.id, status: "rejected", admin_notes: editNotes },
+      {
+        onSuccess: () => {
+          setConfirmAction(null);
+          setSelected(null);
+        },
+      }
+    );
+  };
+
   const counts = {
-    total: applications?.length ?? 0,
+    all: applications?.length ?? 0,
     new: applications?.filter((a) => a.status === "new").length ?? 0,
     reviewing: applications?.filter((a) => a.status === "reviewing").length ?? 0,
     approved: applications?.filter((a) => a.status === "approved").length ?? 0,
+    rejected: applications?.filter((a) => a.status === "rejected").length ?? 0,
   };
+
+  const filteredApps = statusFilter === "all"
+    ? applications
+    : applications?.filter((a) => a.status === statusFilter);
 
   return (
     <div className="p-6 space-y-6">
@@ -82,7 +144,7 @@ export default function AdminAgencyApplicationsPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "Total", value: counts.total, color: "bg-blue-500/10 text-blue-500" },
+          { label: "Total", value: counts.all, color: "bg-blue-500/10 text-blue-500" },
           { label: "New", value: counts.new, color: "bg-amber-500/10 text-amber-500" },
           { label: "Reviewing", value: counts.reviewing, color: "bg-purple-500/10 text-purple-500" },
           { label: "Approved", value: counts.approved, color: "bg-green-500/10 text-green-500" },
@@ -106,7 +168,18 @@ export default function AdminAgencyApplicationsPage() {
       {/* Table */}
       <Card>
         <CardHeader>
-          <CardTitle>All Applications</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Applications</CardTitle>
+            <Tabs value={statusFilter} onValueChange={setStatusFilter}>
+              <TabsList className="h-8">
+                {STATUS_FILTERS.map((f) => (
+                  <TabsTrigger key={f} value={f} className="text-xs px-3 h-6 capitalize">
+                    {f === "all" ? "All" : f} ({counts[f as keyof typeof counts] ?? 0})
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -115,8 +188,8 @@ export default function AdminAgencyApplicationsPage() {
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
             </div>
-          ) : !applications?.length ? (
-            <p className="text-center text-muted-foreground py-10">No applications yet.</p>
+          ) : !filteredApps?.length ? (
+            <p className="text-center text-muted-foreground py-10">No applications found.</p>
           ) : (
             <Table>
               <TableHeader>
@@ -131,7 +204,7 @@ export default function AdminAgencyApplicationsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {applications.map((app) => (
+                {filteredApps.map((app) => (
                   <TableRow key={app.id}>
                     <TableCell className="font-medium">{app.full_name}</TableCell>
                     <TableCell>{app.company_name}</TableCell>
@@ -216,6 +289,10 @@ export default function AdminAgencyApplicationsPage() {
                     <p className="font-medium whitespace-pre-wrap">{selected.message}</p>
                   </div>
                 )}
+                <div>
+                  <p className="text-muted-foreground">Auth Account</p>
+                  <p className="font-medium">{selected.user_id ? "Linked" : "Not linked"}</p>
+                </div>
               </div>
 
               <hr />
@@ -254,8 +331,11 @@ export default function AdminAgencyApplicationsPage() {
                   <Button variant="outline" onClick={() => setSelected(null)}>
                     Cancel
                   </Button>
-                  <Button onClick={handleSave} disabled={updateStatus.isPending}>
-                    {updateStatus.isPending ? "Saving..." : "Save Changes"}
+                  <Button
+                    onClick={handleSave}
+                    disabled={updateStatus.isPending || approveApp.isPending}
+                  >
+                    {updateStatus.isPending || approveApp.isPending ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
               </div>
@@ -263,6 +343,31 @@ export default function AdminAgencyApplicationsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmAction?.type === "approve" ? "Approve Application?" : "Reject Application?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmAction?.type === "approve"
+                ? `This will create an agency account for "${confirmAction.app.company_name}" and grant them full dashboard access.`
+                : `This will reject the application from "${confirmAction?.app.company_name}". They will be notified.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmAction?.type === "approve" ? executeApprove : executeReject}
+              className={confirmAction?.type === "reject" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
+            >
+              {confirmAction?.type === "approve" ? "Approve" : "Reject"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -75,7 +75,7 @@ export function AgencyEarningsCalculator() {
                     <div className="text-lg font-bold text-primary">
                       ${p.price.toLocaleString()}/mo
                     </div>
-                    <div className="text-xs text-muted-foreground">{p.shortName}</div>
+                    <div className="text-xs text-muted-foreground">{p.shortName} included</div>
                   </button>
                 ))}
               </div>

@@ -51,17 +51,32 @@ Deno.test("getBasePromptForMode returns complete prompt for dispatch mode", () =
 Deno.test("getBasePromptForMode returns complete prompt for food mode", () => {
   const prompt = getBasePromptForMode("food");
 
-  assert(prompt.includes("FOOD AGENT"), "Missing FOOD AGENT header");
-  assert(prompt.includes("FOOD ORDERING FLOW"), "Missing FOOD ORDERING FLOW");
+  // Should include shared sections
+  assert(prompt.includes("HUMAN PHONE RULES"), "Missing HUMAN PHONE RULES");
+  assert(prompt.includes("TIME AND NUMBER SPEAKING RULES"), "Missing TIME AND NUMBER SPEAKING RULES");
+  assert(prompt.includes("DEBUG MODE"), "Missing DEBUG MODE");
+  assert(prompt.includes("BUSYNESS-AWARE BEHAVIOR"), "Missing BUSYNESS-AWARE BEHAVIOR");
+
+  // Should include food-specific content
+  assert(prompt.includes("phone order specialist"), "Missing food agent role identity");
+  assert(prompt.includes("FOOD ORDER FLOW"), "Missing FOOD ORDER FLOW section");
+  assert(prompt.includes("RESERVATION FLOW"), "Missing RESERVATION FLOW section");
   assert(prompt.includes("check_service_area"), "Missing check_service_area tool");
 });
 
 Deno.test("getBasePromptForMode returns complete prompt for medical mode", () => {
   const prompt = getBasePromptForMode("medical");
 
-  assert(prompt.includes("MEDICAL AGENT"), "Missing MEDICAL AGENT header");
-  assert(prompt.includes("HIPAA COMPLIANCE"), "Missing HIPAA COMPLIANCE");
-  assert(prompt.includes("5 TOOLS - NO DISPATCH"), "Missing tool count notice");
+  // Should include shared sections
+  assert(prompt.includes("HUMAN PHONE RULES"), "Missing HUMAN PHONE RULES");
+  assert(prompt.includes("TIME AND NUMBER SPEAKING RULES"), "Missing TIME AND NUMBER SPEAKING RULES");
+  assert(prompt.includes("DEBUG OVERRIDE"), "Missing DEBUG OVERRIDE");
+  assert(prompt.includes("BUSYNESS-AWARE BEHAVIOR"), "Missing BUSYNESS-AWARE BEHAVIOR");
+
+  // Should include medical-specific content
+  assert(prompt.includes("front-desk receptionist"), "Missing medical agent role identity");
+  assert(prompt.includes("7 TOOLS AVAILABLE"), "Missing tool count notice");
+  assert(prompt.includes("HIPAA"), "Missing HIPAA section");
 });
 
 Deno.test("getBasePromptForMode returns complete prompt for general mode", () => {
@@ -128,8 +143,8 @@ Deno.test("SERVICE_AGENT_BASE_PROMPT includes real-world situations", () => {
 Deno.test("AGENT_BASE_PROMPTS has correct tool counts", () => {
   assertEquals(AGENT_BASE_PROMPTS.service.toolCount, 6, "Service should have 6 tools");
   assertEquals(AGENT_BASE_PROMPTS.dispatch.toolCount, 6, "Dispatch should have 6 tools");
-  assertEquals(AGENT_BASE_PROMPTS.food.toolCount, 6, "Food should have 6 tools");
-  assertEquals(AGENT_BASE_PROMPTS.medical.toolCount, 5, "Medical should have 5 tools");
+  assertEquals(AGENT_BASE_PROMPTS.food.toolCount, 8, "Food should have 8 tools");
+  assertEquals(AGENT_BASE_PROMPTS.medical.toolCount, 7, "Medical should have 7 tools");
   assertEquals(AGENT_BASE_PROMPTS.general.toolCount, 3, "General should have 3 tools");
   assertEquals(AGENT_BASE_PROMPTS.sales.toolCount, 5, "Sales should have 5 tools");
 });
@@ -156,6 +171,259 @@ Deno.test("No placeholder text in prompts", () => {
   for (const prompt of allPrompts) {
     assert(!prompt.includes("TODO"), "Should not contain TODO");
     assert(!prompt.includes("FIXME"), "Should not contain FIXME");
-    assert(!prompt.includes("{{"), "Should not contain handlebars placeholders");
   }
+});
+
+// ===== FOOD AGENT SPECIFIC TESTS =====
+
+Deno.test("FOOD_AGENT_BASE_PROMPT has production-grade length", () => {
+  // The rewritten food prompt should be substantially longer than the old ~136-line skeleton
+  assert(FOOD_AGENT_BASE_PROMPT.length > 3000, `Food prompt too short: ${FOOD_AGENT_BASE_PROMPT.length} chars`);
+});
+
+Deno.test("FOOD_AGENT_BASE_PROMPT contains all 25 section headers", () => {
+  const requiredSections = [
+    "DEBUG OVERRIDE",
+    "SYSTEM CONTEXT",
+    "BEHAVIOR MODE OVERRIDE",
+    "BUSINESS IDENTITY & REPUTATION",
+    "BUSINESS BRAIN",
+    "MENU KNOWLEDGE",
+    "CALLER RECOGNITION & MEMORY",
+    "HUMAN PHONE RULES",
+    "TIME AND NUMBER SPEAKING RULES",
+    "OPENING (ALWAYS)",
+    "GOAL ORDER (ALWAYS)",
+    "INTENT DETECTION (FAST)",
+    "FOOD ORDER FLOW",
+    "RESERVATION FLOW",
+    "DELIVERY ZONE & FEE HANDLING",
+    "CATERING & LARGE ORDERS",
+    "SPECIALS & PROMOTIONS",
+    "DIETARY & ALLERGY HANDLING",
+    "COMPLAINTS & ISSUE RESOLUTION",
+    "NEGOTIATION & OBJECTION HANDLING",
+    "TOOL CALLING (8 TOOLS AVAILABLE)",
+    "BUSYNESS-AWARE BEHAVIOR",
+    "COMMON QUESTIONS",
+    "NON-NEGOTIABLE TRUTH RULES",
+    "ENDING (ALWAYS",
+    "GUARDRAILS & ESCALATION",
+  ];
+
+  for (const section of requiredSections) {
+    assert(FOOD_AGENT_BASE_PROMPT.includes(section), `Missing section: ${section}`);
+  }
+});
+
+Deno.test("FOOD_AGENT_BASE_PROMPT contains critical dynamic variables", () => {
+  const requiredVars = [
+    "{{tenant_id}}",
+    "{{business_name}}",
+    "{{business_mode}}",
+    "{{tone}}",
+    "{{timezone}}",
+    "{{food_ask_pickup_vs_delivery}}",
+    "{{food_require_allergy_check}}",
+    "{{food_default_order_type}}",
+    "{{food_repeat_order_back}}",
+    "{{food_confirm_total}}",
+    "{{food_confirmation_script}}",
+    "{{food_ask_asap_vs_scheduled}}",
+    "{{estimated_prep_minutes}}",
+    "{{daily_specials_summary}}",
+    "{{dietary_tags_available}}",
+    "{{menu_categories_summary}}",
+    "{{delivery_fee_summary}}",
+    "{{food_policies_summary}}",
+    "{{has_food_orders}}",
+    "{{has_reservations}}",
+    "{{has_catering}}",
+    "{{accepts_pickup}}",
+    "{{accepts_delivery}}",
+    "{{order_confirmation_mode}}",
+    "{{default_prep_time_minutes}}",
+    "{{delivery_radius_miles}}",
+    "{{caller_phone}}",
+    "{{customer_name_from_lookup}}",
+    "{{greeting_script}}",
+    "{{ai_behavior_mode}}",
+    "{{current_busyness_pct}}",
+    "{{ai_guardrails}}",
+  ];
+
+  for (const v of requiredVars) {
+    assert(FOOD_AGENT_BASE_PROMPT.includes(v), `Missing dynamic variable: ${v}`);
+  }
+});
+
+Deno.test("FOOD_AGENT_BASE_PROMPT contains all 8 tool names", () => {
+  const tools = [
+    "check_availability",
+    "suggest_availability",
+    "create_booking",
+    "check_service_area",
+    "create_dispatch_job",
+    "create_callback",
+    "transfer_to_owner",
+    "add_to_waitlist",
+  ];
+
+  for (const tool of tools) {
+    assert(FOOD_AGENT_BASE_PROMPT.includes(tool), `Missing tool: ${tool}`);
+  }
+});
+
+Deno.test("FOOD_AGENT_BASE_PROMPT does NOT contain banned phrases as instructions", () => {
+  // The prompt should list banned phrases (to tell the agent not to use them),
+  // but should not use them as actual instructions to the agent
+  const bannedAsInstructions = [
+    "I don't have access to",
+    "I'm just an AI",
+    "As your AI assistant",
+  ];
+
+  for (const phrase of bannedAsInstructions) {
+    assert(!FOOD_AGENT_BASE_PROMPT.includes(phrase), `Should not contain: ${phrase}`);
+  }
+});
+
+Deno.test("Food toolCount matches AGENT_BASE_PROMPTS", () => {
+  assertEquals(AGENT_BASE_PROMPTS.food.toolCount, 8, "Food should have 8 tools");
+});
+
+Deno.test("FOOD_AGENT_BASE_PROMPT uses section divider pattern", () => {
+  // Should use the same ======================== pattern as SERVICE agent
+  const dividerCount = (FOOD_AGENT_BASE_PROMPT.match(/========================/g) || []).length;
+  assert(dividerCount >= 40, `Expected at least 40 section dividers (pairs), found ${dividerCount}`);
+});
+
+// ===== MEDICAL AGENT SPECIFIC TESTS =====
+
+Deno.test("MEDICAL_AGENT_BASE_PROMPT has production-grade length", () => {
+  assert(MEDICAL_AGENT_BASE_PROMPT.length > 3000, `Medical prompt too short: ${MEDICAL_AGENT_BASE_PROMPT.length} chars`);
+});
+
+Deno.test("MEDICAL_AGENT_BASE_PROMPT contains all section headers", () => {
+  const requiredSections = [
+    "DEBUG OVERRIDE",
+    "SYSTEM CONTEXT",
+    "BEHAVIOR MODE OVERRIDE",
+    "BUSINESS IDENTITY & REPUTATION",
+    "BUSINESS BRAIN",
+    "PROVIDER & SERVICE KNOWLEDGE",
+    "CALLER RECOGNITION & MEMORY",
+    "HUMAN PHONE RULES",
+    "TIME AND NUMBER SPEAKING RULES",
+    "OPENING (ALWAYS)",
+    "GOAL ORDER (ALWAYS)",
+    "INTENT DETECTION (FAST)",
+    "HIPAA CONSENT FLOW",
+    "EMERGENCY DETECTION & ESCALATION",
+    "NEW PATIENT FLOW",
+    "RETURNING PATIENT FLOW",
+    "APPOINTMENT SCHEDULING FLOW",
+    "INSURANCE & BILLING HANDLING",
+    "PRESCRIPTION & REFILL HANDLING",
+    "TEST RESULTS & RECORDS REQUESTS",
+    "TELEHEALTH & HOME VISITS",
+    "COMPLAINTS & ISSUE RESOLUTION",
+    "TOOL CALLING (7 TOOLS AVAILABLE)",
+    "BUSYNESS-AWARE BEHAVIOR",
+    "COMMON QUESTIONS",
+    "NON-NEGOTIABLE TRUTH RULES",
+    "ENDING (SOFT CLOSE)",
+    "GUARDRAILS & ESCALATION",
+  ];
+
+  for (const section of requiredSections) {
+    assert(MEDICAL_AGENT_BASE_PROMPT.includes(section), `Missing section: ${section}`);
+  }
+});
+
+Deno.test("MEDICAL_AGENT_BASE_PROMPT contains critical dynamic variables", () => {
+  const requiredVars = [
+    "{{tenant_id}}",
+    "{{business_name}}",
+    "{{business_mode}}",
+    "{{tone}}",
+    "{{timezone}}",
+    "{{medical_consent_timing}}",
+    "{{medical_consent_script}}",
+    "{{medical_detect_emergency}}",
+    "{{medical_emergency_script}}",
+    "{{accepts_insurance}}",
+    "{{accepted_carriers_summary}}",
+    "{{in_network_insurers_summary}}",
+    "{{accepts_medicare}}",
+    "{{accepts_medicaid}}",
+    "{{offers_telehealth}}",
+    "{{offers_home_visits}}",
+    "{{home_visit_radius_miles}}",
+    "{{new_patient_arrival_minutes}}",
+    "{{medical_policies_summary}}",
+    "{{after_hours_contact_policy}}",
+    "{{medical_cancellation_notice_hours}}",
+    "{{prescription_refill_notice_days}}",
+    "{{reserves_urgent_slots}}",
+    "{{urgent_slots_per_day}}",
+    "{{hospital_affiliation}}",
+    "{{caller_phone}}",
+    "{{customer_name_from_lookup}}",
+    "{{greeting_script}}",
+    "{{ai_behavior_mode}}",
+    "{{current_busyness_pct}}",
+    "{{ai_guardrails}}",
+    "{{out_of_network_disclosure}}",
+    "{{insurance_verification_days_before}}",
+    "{{payment_plan_available}}",
+  ];
+
+  for (const v of requiredVars) {
+    assert(MEDICAL_AGENT_BASE_PROMPT.includes(v), `Missing dynamic variable: ${v}`);
+  }
+});
+
+Deno.test("MEDICAL_AGENT_BASE_PROMPT contains all 7 tool names", () => {
+  const tools = [
+    "check_availability",
+    "suggest_availability",
+    "create_booking",
+    "check_service_area",
+    "create_callback",
+    "transfer_to_owner",
+    "add_to_waitlist",
+  ];
+
+  for (const tool of tools) {
+    assert(MEDICAL_AGENT_BASE_PROMPT.includes(tool), `Missing tool: ${tool}`);
+  }
+});
+
+Deno.test("MEDICAL_AGENT_BASE_PROMPT does NOT contain banned phrases as instructions", () => {
+  const bannedAsInstructions = [
+    "I don't have access to",
+    "I'm just an AI",
+    "As your AI assistant",
+  ];
+
+  for (const phrase of bannedAsInstructions) {
+    assert(!MEDICAL_AGENT_BASE_PROMPT.includes(phrase), `Should not contain: ${phrase}`);
+  }
+});
+
+Deno.test("Medical toolCount matches AGENT_BASE_PROMPTS", () => {
+  assertEquals(AGENT_BASE_PROMPTS.medical.toolCount, 7, "Medical should have 7 tools");
+});
+
+Deno.test("MEDICAL_AGENT_BASE_PROMPT uses section divider pattern", () => {
+  const dividerCount = (MEDICAL_AGENT_BASE_PROMPT.match(/========================/g) || []).length;
+  assert(dividerCount >= 40, `Expected at least 40 section dividers (pairs), found ${dividerCount}`);
+});
+
+Deno.test("MEDICAL_AGENT_BASE_PROMPT has HIPAA compliance assertions", () => {
+  assert(MEDICAL_AGENT_BASE_PROMPT.includes("NEVER provide medical advice"), "Missing HIPAA rule: NEVER provide medical advice");
+  assert(MEDICAL_AGENT_BASE_PROMPT.includes("NEVER confirm or discuss specific health conditions"), "Missing HIPAA rule: NEVER confirm or discuss specific health conditions");
+  assert(MEDICAL_AGENT_BASE_PROMPT.includes("NEVER give test results over the phone"), "Missing HIPAA rule: NEVER give test results over the phone");
+  assert(MEDICAL_AGENT_BASE_PROMPT.includes("NEVER confirm what medications a patient takes"), "Missing HIPAA rule: NEVER confirm medications");
 });

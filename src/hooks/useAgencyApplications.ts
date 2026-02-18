@@ -19,6 +19,7 @@ export interface AgencyApplication {
   reviewed_by: string | null;
   reviewed_at: string | null;
   approved_agency_id: string | null;
+  user_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -27,7 +28,7 @@ export function useAgencyApplications() {
   return useQuery({
     queryKey: ["agency-applications"],
     queryFn: async () => {
-      // Uses the authenticated user's session - admin only via RLS or service role
+      // Uses the authenticated user's session - admin only via RLS
       const { data, error } = await supabase
         .from("agency_applications" as any)
         .select("*")
@@ -35,6 +36,41 @@ export function useAgencyApplications() {
 
       if (error) throw error;
       return (data ?? []) as unknown as AgencyApplication[];
+    },
+  });
+}
+
+export function useApproveApplication() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      application_id,
+      admin_notes,
+    }: {
+      application_id: string;
+      admin_notes?: string;
+    }) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      const { data, error } = await supabase.functions.invoke(
+        "approve-agency-application",
+        {
+          body: { application_id, admin_notes },
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        }
+      );
+
+      if (error) throw error;
+      return data as { success: boolean; agency_id: string };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["agency-applications"] });
+      toast.success("Application approved! Agency account created.");
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Failed to approve application");
     },
   });
 }
@@ -72,6 +108,24 @@ export function useUpdateApplicationStatus() {
     },
     onError: (err: Error) => {
       toast.error(err.message || "Failed to update application");
+    },
+  });
+}
+
+/** Hook for agency applicants to check their own application status */
+export function useMyAgencyApplication() {
+  return useQuery({
+    queryKey: ["my-agency-application"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("agency_applications" as any)
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (error) throw error;
+      const apps = (data ?? []) as unknown as AgencyApplication[];
+      return apps[0] ?? null;
     },
   });
 }

@@ -4,6 +4,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { BRAND } from "@/config/brand";
 
 const faqs = [
   {
@@ -19,7 +20,7 @@ const faqs = [
     a: "Commissions are paid out monthly. You can track your earnings in real-time through your agency dashboard.",
   },
   {
-    q: "Can I white-label Voxly?",
+    q: `Can I white-label ${BRAND.name}?`,
     a: "White-label options are coming soon. Contact us if you're interested in early access to our white-label program.",
   },
   {

@@ -47,6 +47,8 @@ import { AppSidebar } from "@/components/layouts/AppSidebar";
 import { SlimTopBar } from "@/components/layouts/SlimTopBar";
 import { TrialBanner } from "@/components/dashboard/TrialBanner";
 import { BRAND } from "@/config/brand";
+import { useIsAgencyUser } from "@/hooks/useAgencyData";
+import { useMyAgencyApplication } from "@/hooks/useAgencyApplications";
 
 interface NavItem {
   href: string;
@@ -68,6 +70,9 @@ function AppLayoutContent() {
   const navigate = useNavigate();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { isAgency } = useIsAgencyUser();
+  const { data: myAgencyApp } = useMyAgencyApplication();
+  const showAgency = isAgency || !!myAgencyApp;
   const effectiveHasSubscription = isSuperAdmin || hasActiveSubscription;
   const displayTenant = isSuperAdmin ? (effectiveTenant ?? tenant) : tenant;
 
@@ -165,6 +170,7 @@ function AppLayoutContent() {
           subtitle={sidebarSubtitle}
           open={sidebarOpen}
           setOpen={setSidebarOpen}
+          showAgency={showAgency}
         />
 
         {/* Content area */}

@@ -258,6 +258,21 @@ serve(async (req) => {
             console.error(`Commission insert error for agency ${agencyLink.agency_id}:`, commErr);
           } else {
             console.log(`Commission recorded: agency=${agencyLink.agency_id} tenant=${tenantId} amount=${commissionCents}c`);
+
+            // Log commission creation to audit_events
+            await supabase.from("audit_events").insert({
+              tenant_id: tenantId,
+              event_type: "commission_created",
+              entity_type: "agency_commission",
+              actor_type: "system",
+              payload: {
+                agency_id: agencyLink.agency_id,
+                stripe_invoice_id: stripeInvoiceId,
+                invoice_amount_cents: amountCents,
+                commission_rate: commissionRate,
+                commission_cents: commissionCents,
+              },
+            });
           }
         }
       }

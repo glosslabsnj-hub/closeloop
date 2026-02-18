@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 /**
  * Phase 5: GO LIVE — Review setup + launch
  */
@@ -6,11 +6,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Check, Pencil, Sparkles, TestTube2, Rocket } from "lucide-react";
+import { Check, Pencil, Sparkles, TestTube2, Rocket, AlertTriangle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getIndustryBySlug } from "@/data/industryCatalog";
+import { estimateOnboardingReadiness, type ReadinessFlag } from "@/lib/estimateOnboardingReadiness";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 import type { EditableService } from "@/components/onboarding/ServicePreviewStep";
+import type { EditableFAQ } from "@/components/onboarding/FAQPreviewStep";
+import type { EditablePolicies } from "@/components/onboarding/PolicyPreviewStep";
+import type { BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
 import type { AITone, AIBookingMode } from "@/components/onboarding/CommunicationPreferences";
 import type { AfterHoursBehavior } from "./OnboardingAI";
 import type { WorkStyle } from "./OnboardingIdentity";
@@ -45,15 +49,21 @@ const afterHoursLabels: Record<AfterHoursBehavior, string> = {
 
 interface OnboardingReviewProps {
   businessName: string;
+  businessAddress: string;
   businessMode: BusinessMode;
   industrySlug: string;
   services: EditableService[];
+  templateFAQs: EditableFAQ[];
+  templatePolicies: EditablePolicies;
+  businessHours: BusinessHours;
   aiTone: AITone;
   bookingMode: AIBookingMode;
   afterHours: AfterHoursBehavior;
   is24x7: boolean;
   workStyle: WorkStyle;
   serviceAreaRadius?: number;
+  scenarioAnswers: Record<string, boolean>;
+  customGreeting: string;
   onEditPhase: (phase: number) => void;
   onTestAI: () => void;
   onGoLive: () => void;
@@ -62,15 +72,21 @@ interface OnboardingReviewProps {
 
 export const OnboardingReview = React.memo(function OnboardingReview({
   businessName,
+  businessAddress,
   businessMode,
   industrySlug,
   services,
+  templateFAQs,
+  templatePolicies,
+  businessHours,
   aiTone,
   bookingMode,
   afterHours,
   is24x7,
   workStyle,
   serviceAreaRadius,
+  scenarioAnswers,
+  customGreeting,
   onEditPhase,
   onTestAI,
   onGoLive,
@@ -79,7 +95,29 @@ export const OnboardingReview = React.memo(function OnboardingReview({
   const industryEntry = getIndustryBySlug(industrySlug);
   const enabledServices = services.filter((s) => s.enabled);
 
-  // Calculate simple readiness
+  // Calculate real readiness score
+  const readinessResult = useMemo(
+    () =>
+      estimateOnboardingReadiness({
+        businessName,
+        businessAddress,
+        businessMode,
+        services,
+        templateFAQs,
+        templatePolicies,
+        businessHours,
+        is24x7,
+        scenarioAnswers,
+        customGreeting,
+        workStyle,
+        serviceAreaRadius,
+      }),
+    [businessName, businessAddress, businessMode, services, templateFAQs, templatePolicies, businessHours, is24x7, scenarioAnswers, customGreeting, workStyle, serviceAreaRadius]
+  );
+
+  const { score: readiness, p0Flags, p1Flags } = readinessResult;
+
+  // Summary items for the checklist
   const checks = [
     { label: `${enabledServices.length} services configured`, done: enabledServices.length > 0 },
     { label: is24x7 ? "24/7 answering" : "Business hours set", done: true },
@@ -92,13 +130,15 @@ export const OnboardingReview = React.memo(function OnboardingReview({
     checks.push({ label: `${serviceAreaRadius} mile service area`, done: true });
   }
 
-  const readiness = Math.round((checks.filter((c) => c.done).length / checks.length) * 100);
+  // Score color
+  const scoreColor = readiness >= 85 ? "text-emerald-600" : readiness >= 60 ? "text-amber-600" : "text-red-600";
+  const progressColor = readiness >= 85 ? "[&>div]:bg-emerald-500" : readiness >= 60 ? "[&>div]:bg-amber-500" : "[&>div]:bg-red-500";
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-semibold tracking-tight">
-          You're ready to go live! 🚀
+          {readiness >= 85 ? "You're ready to go live!" : "Almost there — a few items to finish"}
         </h2>
         <p className="mt-2 text-muted-foreground">
           Review your setup, then launch your AI receptionist.
@@ -165,6 +205,64 @@ export const OnboardingReview = React.memo(function OnboardingReview({
         </CardContent>
       </Card>
 
+      {/* P0 Flags — Fix before going live */}
+      {p0Flags.length > 0 && (
+        <Card className="border-red-200 dark:border-red-800">
+          <CardContent className="p-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-red-500" />
+              <p className="text-sm font-medium text-red-600 dark:text-red-400">Fix before going live</p>
+            </div>
+            <div className="space-y-2">
+              {p0Flags.map((flag) => (
+                <div key={flag.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <X className="h-3.5 w-3.5 text-red-500" />
+                    <span className="text-sm">{flag.label}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onEditPhase(flag.phase)}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Fix
+                  </button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* P1 Flags — Recommended */}
+      {p1Flags.length > 0 && (
+        <Card className="border-amber-200 dark:border-amber-800">
+          <CardContent className="p-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-amber-500" />
+              <p className="text-sm font-medium text-amber-600 dark:text-amber-400">Recommended</p>
+            </div>
+            <div className="space-y-2">
+              {p1Flags.map((flag) => (
+                <div key={flag.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+                    <span className="text-sm">{flag.label}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onEditPhase(flag.phase)}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Edit
+                  </button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Readiness Score */}
       <Card>
         <CardContent className="p-5 space-y-3">
@@ -173,11 +271,11 @@ export const OnboardingReview = React.memo(function OnboardingReview({
               <Sparkles className="h-4 w-4 text-primary" />
               <p className="text-sm font-medium">AI Readiness</p>
             </div>
-            <span className="text-sm font-semibold text-primary">{readiness}%</span>
+            <span className={cn("text-sm font-semibold", scoreColor)}>{readiness}%</span>
           </div>
-          <Progress value={readiness} className="h-2" />
+          <Progress value={readiness} className={cn("h-2", progressColor)} />
           <p className="text-xs text-muted-foreground">
-            You can continue to improve your setup from the dashboard after going live.
+            This matches the readiness score on your dashboard. You can continue to improve after going live.
           </p>
         </CardContent>
       </Card>
@@ -187,7 +285,7 @@ export const OnboardingReview = React.memo(function OnboardingReview({
         <Button
           size="lg"
           onClick={onGoLive}
-          disabled={loading}
+          disabled={loading || p0Flags.length > 0}
           className="w-full gap-2"
         >
           {loading ? (

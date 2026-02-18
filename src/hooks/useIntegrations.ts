@@ -324,26 +324,22 @@ export function useIntegrationMutations(tenantId: string | null) {
 
   const testIntegration = useMutation({
     mutationFn: async (id: string) => {
-      // For now, just update last_tested_at and set status to connected
-      // In production, this would call an edge function to validate credentials
-      const { data: integration, error } = await supabase
-        .from("integrations")
-        .update({
-          status: "connected",
-          last_tested_at: new Date().toISOString(),
-          error_message: null,
-        })
-        .eq("id", id)
-        .select()
-        .single();
+      const { data, error } = await supabase.functions.invoke("test-integration", {
+        body: { integration_id: id },
+      });
       if (error) throw error;
-      return integration as Integration;
+      return data as { success: boolean; error_message: string | null };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["integrations", tenantId] });
-      toast({ title: "Connection test successful" });
+      if (result?.success) {
+        toast({ title: "Connection test successful" });
+      } else {
+        toast({ title: "Connection test failed", description: result?.error_message || "Unknown error", variant: "destructive" });
+      }
     },
     onError: (error) => {
+      queryClient.invalidateQueries({ queryKey: ["integrations", tenantId] });
       toast({ title: "Connection test failed", description: String(error), variant: "destructive" });
     },
   });
