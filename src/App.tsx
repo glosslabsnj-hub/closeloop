@@ -28,6 +28,7 @@ import AgenciesPage from "@/pages/public/AgenciesPage";
 // App Pages
 const OnboardingPage = lazy(() => import("@/pages/app/OnboardingPage"));
 import DashboardPage from "@/pages/app/DashboardPage";
+import SystemMapPage from "@/pages/SystemMapPage";
 import UnifiedInboxPage from "@/pages/app/UnifiedInboxPage";
 import BookingsPage from "@/pages/app/BookingsPage";
 // ServicesPage removed - now redirects to Business Brain
@@ -189,6 +190,7 @@ const App = () => (
               <Route path="/app/workflows/:id" element={<WorkflowEditPage />} />
               <Route path="/app/workflows/:id/runs" element={<WorkflowRunsPage />} />
               <Route path="/app/workflows/:id/runs/:runId" element={<WorkflowRunDetailPage />} />
+              <Route path="/app/system-map" element={<SystemMapPage />} />
             </Route>
 
             {/* Admin Routes */}
