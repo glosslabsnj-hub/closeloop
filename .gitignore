@@ -40,3 +40,6 @@ deno.lock
 
 # Windows reserved name artifact
 nul
+
+# Nested repository duplicate (cleanup)
+/closeloop/
