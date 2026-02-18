@@ -34,6 +34,7 @@ import { Plus, Trash2, Clock, DollarSign, Loader2, Info, Lightbulb, ChevronDown,
 import { InlineUploadButton } from "./InlineUploadButton";
 import { PasteFromPOSDialog } from "./PasteFromPOSDialog";
 import { ServiceCSVImportDialog } from "./ServiceCSVImportDialog";
+import { FlatbedPricingDialog } from "./FlatbedPricingDialog";
 import { createService, updateService, deleteService } from "@/lib/brain/writeBrainFact";
 import { invalidateBrainQueries } from "@/lib/brain/invalidateBrainQueries";
 import { useQueryClient } from "@tanstack/react-query";
@@ -426,6 +427,7 @@ export function ServiceCatalogEditor() {
   const [newServiceData, setNewServiceData] = useState<ServiceFormData>(defaultFormData);
   const [pasteDialogOpen, setPasteDialogOpen] = useState(false);
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
+  const [flatbedDialogOpen, setFlatbedDialogOpen] = useState(false);
 
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -523,26 +525,87 @@ export function ServiceCatalogEditor() {
   const handleCreateNew = async () => {
     if (!tenant?.id || !newServiceData.name.trim()) return;
 
+    // Detect if this is a towing service (check if name contains "tow")
+    const isTowingService = /tow/i.test(newServiceData.name.trim());
+
+    // For dispatch mode towing services, show flatbed pricing dialog
+    if (isTowingService && businessMode === "dispatch") {
+      setFlatbedDialogOpen(true);
+      return;
+    }
+
+    // Otherwise, create service normally
+    await executeCreateService(false);
+  };
+
+  const executeCreateService = async (createSeparate: boolean, flatbedPrice?: number, wheelLiftPrice?: number) => {
+    if (!tenant?.id || !newServiceData.name.trim()) return;
+
     setSavingServiceId("new");
     try {
-      await createService(tenant.id, {
-        name: newServiceData.name.trim(),
-        description: newServiceData.description.trim() || undefined,
-        duration_minutes: newServiceData.duration_minutes,
-        price_type: newServiceData.price_type,
-        price_amount: newServiceData.price_amount,
-        deposit_amount: newServiceData.deposit_amount,
-        deposit_required: newServiceData.deposit_required,
-        complexity: newServiceData.complexity,
-        price_factors: newServiceData.price_factors.trim() || undefined,
-        booking_type: newServiceData.booking_type,
-        prerequisite_note: newServiceData.prerequisite_note.trim() || undefined,
-        duration_min_minutes: newServiceData.duration_min_minutes,
-        duration_max_minutes: newServiceData.duration_max_minutes,
-        required_intake_fields: newServiceData.required_intake_fields.length > 0 ? newServiceData.required_intake_fields : undefined,
-        payment_timing: newServiceData.payment_timing,
-      } as any);
-      toast.success("Service created");
+      if (createSeparate && flatbedPrice !== undefined && wheelLiftPrice !== undefined) {
+        // Create two services: Wheel Lift and Flatbed
+        const baseName = newServiceData.name.trim().replace(/\s*-\s*(wheel\s*lift|flatbed|hook|truck)$/i, "");
+
+        await createService(tenant.id, {
+          name: `${baseName} - Wheel Lift`,
+          description: newServiceData.description.trim() || "Standard towing method for rear-wheel drive vehicles",
+          duration_minutes: newServiceData.duration_minutes,
+          price_type: newServiceData.price_type,
+          price_amount: wheelLiftPrice,
+          deposit_amount: newServiceData.deposit_amount,
+          deposit_required: newServiceData.deposit_required,
+          complexity: newServiceData.complexity,
+          price_factors: newServiceData.price_factors.trim() || undefined,
+          booking_type: newServiceData.booking_type,
+          prerequisite_note: newServiceData.prerequisite_note.trim() || undefined,
+          duration_min_minutes: newServiceData.duration_min_minutes,
+          duration_max_minutes: newServiceData.duration_max_minutes,
+          required_intake_fields: newServiceData.required_intake_fields.length > 0 ? newServiceData.required_intake_fields : undefined,
+          payment_timing: newServiceData.payment_timing,
+        } as any);
+
+        await createService(tenant.id, {
+          name: `${baseName} - Flatbed`,
+          description: newServiceData.description.trim() || "Recommended for AWD, luxury, exotic, and modified vehicles",
+          duration_minutes: newServiceData.duration_minutes + 15, // Flatbed takes slightly longer
+          price_type: newServiceData.price_type,
+          price_amount: flatbedPrice,
+          deposit_amount: newServiceData.deposit_amount,
+          deposit_required: newServiceData.deposit_required,
+          complexity: newServiceData.complexity,
+          price_factors: newServiceData.price_factors.trim() || undefined,
+          booking_type: newServiceData.booking_type,
+          prerequisite_note: newServiceData.prerequisite_note.trim() || undefined,
+          duration_min_minutes: newServiceData.duration_min_minutes ? newServiceData.duration_min_minutes + 15 : null,
+          duration_max_minutes: newServiceData.duration_max_minutes ? newServiceData.duration_max_minutes + 15 : null,
+          required_intake_fields: newServiceData.required_intake_fields.length > 0 ? newServiceData.required_intake_fields : undefined,
+          payment_timing: newServiceData.payment_timing,
+        } as any);
+
+        toast.success("Created 2 services: Wheel Lift and Flatbed");
+      } else {
+        // Create single service
+        await createService(tenant.id, {
+          name: newServiceData.name.trim(),
+          description: newServiceData.description.trim() || undefined,
+          duration_minutes: newServiceData.duration_minutes,
+          price_type: newServiceData.price_type,
+          price_amount: newServiceData.price_amount,
+          deposit_amount: newServiceData.deposit_amount,
+          deposit_required: newServiceData.deposit_required,
+          complexity: newServiceData.complexity,
+          price_factors: newServiceData.price_factors.trim() || undefined,
+          booking_type: newServiceData.booking_type,
+          prerequisite_note: newServiceData.prerequisite_note.trim() || undefined,
+          duration_min_minutes: newServiceData.duration_min_minutes,
+          duration_max_minutes: newServiceData.duration_max_minutes,
+          required_intake_fields: newServiceData.required_intake_fields.length > 0 ? newServiceData.required_intake_fields : undefined,
+          payment_timing: newServiceData.payment_timing,
+        } as any);
+        toast.success("Service created");
+      }
+
       queryClient.invalidateQueries({ queryKey: ["services"] });
       invalidateBrainQueries(queryClient, tenant?.id);
       setIsCreatingNew(false);
@@ -810,6 +873,15 @@ export function ServiceCatalogEditor() {
 
       {/* CSV Import Dialog */}
       <ServiceCSVImportDialog open={csvDialogOpen} onOpenChange={setCsvDialogOpen} />
+
+      {/* Flatbed Pricing Dialog */}
+      <FlatbedPricingDialog
+        open={flatbedDialogOpen}
+        onOpenChange={setFlatbedDialogOpen}
+        serviceName={newServiceData.name.trim()}
+        basePrice={newServiceData.price_amount}
+        onConfirm={executeCreateService}
+      />
     </div>
   );
 }
