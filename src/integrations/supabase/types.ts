@@ -412,6 +412,121 @@ export type Database = {
           },
         ]
       }
+      agency_lead_searches: {
+        Row: {
+          agency_id: string
+          id: string
+          industry: string
+          location: string
+          result_count: number
+          searched_at: string
+        }
+        Insert: {
+          agency_id: string
+          id?: string
+          industry: string
+          location: string
+          result_count?: number
+          searched_at?: string
+        }
+        Update: {
+          agency_id?: string
+          id?: string
+          industry?: string
+          location?: string
+          result_count?: number
+          searched_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_lead_searches_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_saved_leads: {
+        Row: {
+          address: string | null
+          agency_id: string
+          confidence: string | null
+          created_at: string
+          employee_estimate: string | null
+          friction_signals: string[] | null
+          hours: string | null
+          id: string
+          industry: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          rating: number | null
+          reason: string | null
+          review_count: number | null
+          score: number | null
+          score_reasons: string[] | null
+          status: string
+          temperature: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          agency_id: string
+          confidence?: string | null
+          created_at?: string
+          employee_estimate?: string | null
+          friction_signals?: string[] | null
+          hours?: string | null
+          id?: string
+          industry?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          rating?: number | null
+          reason?: string | null
+          review_count?: number | null
+          score?: number | null
+          score_reasons?: string[] | null
+          status?: string
+          temperature?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          agency_id?: string
+          confidence?: string | null
+          created_at?: string
+          employee_estimate?: string | null
+          friction_signals?: string[] | null
+          hours?: string | null
+          id?: string
+          industry?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          rating?: number | null
+          reason?: string | null
+          review_count?: number | null
+          score?: number | null
+          score_reasons?: string[] | null
+          status?: string
+          temperature?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_saved_leads_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agency_tenants: {
         Row: {
           agency_id: string
