@@ -43,3 +43,6 @@ nul
 
 # Nested repository duplicate (cleanup)
 /closeloop/
+
+# Development archive (temporary scripts and dumps)
+/dev-archive/
