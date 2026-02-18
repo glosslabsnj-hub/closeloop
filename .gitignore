@@ -46,3 +46,8 @@ nul
 
 # Development archive (temporary scripts and dumps)
 /dev-archive/
+
+# Backup files (agent configs, prompt snapshots)
+scripts/backups/
+docs/backups/
+scripts/_archive/
