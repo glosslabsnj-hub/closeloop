@@ -28,7 +28,7 @@
  * // "That will be $150.00."
  * ```
  *
- * @see docs/REFACTOR_STEP4_QUOTE_ENGINE.md
+ * @see docs/refactors/REFACTOR_STEP4_QUOTE_ENGINE.md
  */
 
 // Main entry point

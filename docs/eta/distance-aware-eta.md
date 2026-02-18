@@ -269,7 +269,7 @@ If destination exceeds max service distance:
 A dry-run endpoint is available for testing (requires internal secret):
 
 ```bash
-curl -X POST https://<project>.supabase.co/functions/v1/test-distance-eta \
+curl -X POST https://<project>.supabase.co/functions/v1/distance-eta-test \
   -H "Content-Type: application/json" \
   -H "x-closeloop-secret: $CLOSELOOP_INTERNAL_SECRET" \
   -d '{
@@ -314,5 +314,5 @@ Response:
 - Verification: `supabase/sql/verify_distance_settings.sql`
 - Health endpoint: `supabase/functions/health-db/index.ts`
 - **Distance utility**: `supabase/functions/_shared/distance_eta.ts`
-- **Test endpoint**: `supabase/functions/test-distance-eta/index.ts`
+- **Test endpoint**: `supabase/functions/distance-eta-test/index.ts`
 - Documentation: `docs/distance-aware-eta.md` (this file)

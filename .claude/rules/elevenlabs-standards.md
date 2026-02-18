@@ -80,4 +80,4 @@ Before deploying any ElevenLabs agent:
 **Files:**
 - Template: `ELEVENLABS_AGENT_STANDARD_TEMPLATE.js`
 - Audit: `audit_all_elevenlabs_agents.cjs`
-- Documentation: `ELEVENLABS_PREVENTION_SYSTEM_COMPLETE.md`
+- Documentation: `docs/agents/ELEVENLABS_PREVENTION_SYSTEM_COMPLETE.md`

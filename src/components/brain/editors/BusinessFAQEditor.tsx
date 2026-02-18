@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { SuggestedFAQButtons } from "./SuggestedFAQButtons";
 import { KnowledgeSection } from "./shared/KnowledgeSection";
 import { KnowledgeItem } from "./shared/KnowledgeItem";
-import { InlineUploadButton } from "./InlineUploadButton";
+import { InlineUploadButton } from "../uploads/InlineUploadButton";
 
 export function BusinessFAQEditor() {
   const { tenant } = useAuth();

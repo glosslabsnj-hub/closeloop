@@ -24,7 +24,7 @@
  * const result = await applyTemplate(tenantId, template, "merge", preview);
  * ```
  *
- * @see docs/REFACTOR_STEP5_INDUSTRY_TEMPLATES.md
+ * @see docs/refactors/REFACTOR_STEP5_INDUSTRY_TEMPLATES.md
  */
 
 // Types

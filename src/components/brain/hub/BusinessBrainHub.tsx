@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 
 import { StepCard } from "./StepCard";
 import { getOrderedSteps, getStepTitle, getStepPurpose, isStepEmphasized } from "./hubStepsConfig";
-import { GuidedSetupOverlay } from "../GuidedSetupOverlay";
+import { GuidedSetupOverlay } from "../editors/GuidedSetupOverlay";
 
 interface BusinessBrainHubProps {
   onNavigateToSection: (sectionId: string) => void;

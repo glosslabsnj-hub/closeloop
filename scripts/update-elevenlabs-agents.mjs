@@ -19,7 +19,7 @@ const SUPABASE_URL = "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1";
 
 // Load knowledge base files
 const SERVICE_KB_TEXT = readFileSync(
-  join(__dirname, "knowledge-bases", "service-industry-expertise.md"),
+  join(__dirname, "knowledge-base", "service-industry-expertise.md"),
   "utf-8"
 );
 

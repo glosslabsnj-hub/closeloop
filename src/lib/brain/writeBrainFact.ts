@@ -759,7 +759,7 @@ export async function resolveConflictCustomMerge(
  * - Trigger template application
  * - Modify enabled_modules (that's a separate concern)
  *
- * @see docs/LOCKDOWN_SLIDER_EXCEPTION.md
+ * @see docs/refactors/LOCKDOWN_SLIDER_EXCEPTION.md
  */
 export async function setBusinessMode(
   tenantId: string,
@@ -796,7 +796,7 @@ export async function setBusinessMode(
  * - Trigger template application (templates are applied separately in Business Brain)
  * - Modify enabled_modules (that's a separate concern)
  *
- * @see docs/LOCKDOWN_SLIDER_EXCEPTION.md
+ * @see docs/refactors/LOCKDOWN_SLIDER_EXCEPTION.md
  */
 export async function setIndustryKey(
   tenantId: string,
@@ -828,7 +828,7 @@ export async function setIndustryKey(
  * Convenience method when both need to change atomically.
  * Still subject to same constraints as individual methods.
  *
- * @see docs/LOCKDOWN_SLIDER_EXCEPTION.md
+ * @see docs/refactors/LOCKDOWN_SLIDER_EXCEPTION.md
  */
 export async function setBusinessModeAndIndustry(
   tenantId: string,

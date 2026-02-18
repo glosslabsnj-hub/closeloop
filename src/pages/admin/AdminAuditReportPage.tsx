@@ -323,7 +323,7 @@ export default function AdminAuditReportPage() {
           <div className="space-y-2">
             <h4 className="font-medium">4. Review Documentation</h4>
             <p className="text-sm text-muted-foreground">
-              Check <code>docs/STABILITY_CHECKLIST.md</code> and <code>docs/DATA_MAP.md</code> for development guidelines.
+              Check <code>docs/audits/STABILITY_CHECKLIST.md</code> and <code>docs/audits/DATA_MAP.md</code> for development guidelines.
             </p>
           </div>
         </CardContent>

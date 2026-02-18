@@ -1,3 +1,7 @@
+/**
+ * @deprecated Use useAIReadinessV2 instead. This V1 hook is kept for backward
+ * compatibility with existing consumers but should not be used in new code.
+ */
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";

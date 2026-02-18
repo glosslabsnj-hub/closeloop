@@ -294,7 +294,7 @@ if (!servicePrompt) {
 
 // Load knowledge base
 const SERVICE_KB_TEXT = readFileSync(
-  join(__dirname, "knowledge-bases", "service-industry-expertise.md"),
+  join(__dirname, "knowledge-base", "service-industry-expertise.md"),
   "utf-8"
 );
 
@@ -400,7 +400,7 @@ async function main() {
 
   // Upload the KB as a file
   if (!DRY_RUN) {
-    const kbPath = join(__dirname, "knowledge-bases", "service-industry-expertise.md");
+    const kbPath = join(__dirname, "knowledge-base", "service-industry-expertise.md");
     const { Blob } = await import("buffer");
     const formData = new FormData();
     const kbContent = readFileSync(kbPath);

@@ -11,7 +11,7 @@ import { updateBusinessPolicies } from "@/lib/brain/writeBrainFact";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { PolicyTemplateButtons } from "./PolicyTemplateButtons";
+import { PolicyTemplateButtons } from "../templates/PolicyTemplateButtons";
 
 
 import type { BusinessMode } from "@/hooks/useTenantConfig";

@@ -13,36 +13,36 @@ import type { Capabilities } from "@/hooks/useCapabilities";
 // Section editors
 import { PricingRulesEditor } from "@/components/settings/PricingRulesEditor";
 import { BusynessRulesEditor } from "@/components/settings/BusynessRulesEditor";
-import { ServiceCatalogEditor } from "@/components/brain/ServiceCatalogEditor";
-import { AdditionalServicesEditor } from "@/components/brain/AdditionalServicesEditor";
-import { MenuCatalogEditor } from "@/components/brain/MenuCatalogEditor";
+import { ServiceCatalogEditor } from "@/components/brain/editors/ServiceCatalogEditor";
+import { AdditionalServicesEditor } from "@/components/brain/editors/AdditionalServicesEditor";
+import { MenuCatalogEditor } from "@/components/brain/editors/MenuCatalogEditor";
 import { DispatchServiceCatalog } from "@/components/brain/dispatch/DispatchServiceCatalog";
 import { RequiredQuestionsEditor } from "@/components/settings/RequiredQuestionsEditor";
 import { AIBusinessPolicies } from "@/components/settings/AIBusinessPolicies";
 import { AvailabilityHub } from "@/components/availability/AvailabilityHub";
-import { BusinessFAQEditor } from "@/components/brain/BusinessFAQEditor";
-import { BusinessObjectionEditor } from "@/components/brain/BusinessObjectionEditor";
+import { BusinessFAQEditor } from "@/components/brain/editors/BusinessFAQEditor";
+import { BusinessObjectionEditor } from "@/components/brain/editors/BusinessObjectionEditor";
 import { BookingDeliverySettings } from "@/components/settings/BookingDeliverySettings";
 import { FoodOrderSettings } from "@/components/settings/FoodOrderSettings";
 import { DispatchDeliverySettings } from "@/components/settings/DispatchDeliverySettings";
 import { MedicalHIPAASettings } from "@/components/settings/MedicalHIPAASettings";
 import { CallbackDeliverySettings } from "@/components/settings/CallbackDeliverySettings";
 import { MedicalIntakeDeliverySettings } from "@/components/settings/MedicalIntakeDeliverySettings";
-import { BusinessProfileEditor } from "@/components/brain/BusinessProfileEditor";
-import StaffManagementEditor from "@/components/brain/StaffManagementEditor";
-import { BusinessPoliciesEditor } from "@/components/brain/BusinessPoliciesEditor";
-import { CustomPoliciesEditor } from "@/components/brain/CustomPoliciesEditor";
-import { ServiceAreaManager } from "@/components/brain/ServiceAreaManager";
-import { BrainAssetsManager } from "@/components/brain/BrainAssetsManager";
+import { BusinessProfileEditor } from "@/components/brain/profile/BusinessProfileEditor";
+import StaffManagementEditor from "@/components/brain/editors/StaffManagementEditor";
+import { BusinessPoliciesEditor } from "@/components/brain/editors/BusinessPoliciesEditor";
+import { CustomPoliciesEditor } from "@/components/brain/editors/CustomPoliciesEditor";
+import { ServiceAreaManager } from "@/components/brain/profile/ServiceAreaManager";
+import { BrainAssetsManager } from "@/components/brain/uploads/BrainAssetsManager";
 import { BrainReviewQueue } from "@/components/brain/BrainReviewQueue";
-import { CustomKnowledgeEditor } from "@/components/brain/CustomKnowledgeEditor";
-import { IndustryTemplateCard } from "@/components/brain/IndustryTemplateCard";
+import { CustomKnowledgeEditor } from "@/components/brain/editors/CustomKnowledgeEditor";
+import { IndustryTemplateCard } from "@/components/brain/templates/IndustryTemplateCard";
 import { ServiceAreaPreview } from "@/components/debug/ServiceAreaPreview";
 import { DistanceEtaSection } from "@/components/business-brain/DistanceEtaSection";
 import { DispatchEtaSection } from "@/components/business-brain/DispatchEtaSection";
-import { BusinessHoursManager } from "@/components/brain/BusinessHoursManager";
-import { AINeverPromiseEditor } from "@/components/brain/AINeverPromiseEditor";
-import { AIScriptsEditor } from "@/components/brain/AIScriptsEditor";
+import { BusinessHoursManager } from "@/components/brain/profile/BusinessHoursManager";
+import { AINeverPromiseEditor } from "@/components/brain/editors/AINeverPromiseEditor";
+import { AIScriptsEditor } from "@/components/brain/editors/AIScriptsEditor";
 import {
   ImpoundLotEditor,
   ImpoundFeesEditor,
@@ -50,8 +50,8 @@ import {
   DispatchIvrSettings,
 } from "@/components/brain/dispatch/impound";
 import { DistanceBasisSettings } from "@/components/brain/dispatch/DistanceBasisSettings";
-import { PriceModifiersEditor } from "@/components/brain/PriceModifiersEditor";
-import { ServicePackagesEditor } from "@/components/brain/ServicePackagesEditor";
+import { PriceModifiersEditor } from "@/components/brain/editors/PriceModifiersEditor";
+import { ServicePackagesEditor } from "@/components/brain/editors/ServicePackagesEditor";
 import { DispatchPricingEditor, DispatchCoverageZonesEditor } from "@/components/brain/dispatch";
 import {
   FoodServiceTypesEditor,

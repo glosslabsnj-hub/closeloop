@@ -46,7 +46,7 @@ import {
   Lightbulb
 } from "lucide-react";
 import { toast } from "sonner";
-import { InlineUploadButton } from "./InlineUploadButton";
+import { InlineUploadButton } from "../uploads/InlineUploadButton";
 
 interface MenuItemFormData {
   name: string;

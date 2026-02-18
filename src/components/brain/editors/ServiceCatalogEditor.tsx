@@ -31,9 +31,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Plus, Trash2, Clock, DollarSign, Loader2, Info, Lightbulb, ChevronDown, ChevronRight, Check, X, ClipboardPaste, FileSpreadsheet } from "lucide-react";
-import { InlineUploadButton } from "./InlineUploadButton";
-import { PasteFromPOSDialog } from "./PasteFromPOSDialog";
-import { ServiceCSVImportDialog } from "./ServiceCSVImportDialog";
+import { InlineUploadButton } from "../uploads/InlineUploadButton";
+import { PasteFromPOSDialog } from "../templates/PasteFromPOSDialog";
+import { ServiceCSVImportDialog } from "../templates/ServiceCSVImportDialog";
 import { FlatbedPricingDialog } from "./FlatbedPricingDialog";
 import { createService, updateService, deleteService } from "@/lib/brain/writeBrainFact";
 import { invalidateBrainQueries } from "@/lib/brain/invalidateBrainQueries";

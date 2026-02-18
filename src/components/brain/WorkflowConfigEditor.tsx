@@ -1,11 +1,11 @@
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
-import DispatchWorkflowConfig from "./DispatchWorkflowConfig";
-import ServiceWorkflowConfig from "./ServiceWorkflowConfig";
-import FoodWorkflowConfig from "./FoodWorkflowConfig";
-import MedicalWorkflowConfig from "./MedicalWorkflowConfig";
-import GeneralWorkflowConfig from "./GeneralWorkflowConfig";
+import DispatchWorkflowConfig from "./workflow/DispatchWorkflowConfig";
+import ServiceWorkflowConfig from "./workflow/ServiceWorkflowConfig";
+import FoodWorkflowConfig from "./workflow/FoodWorkflowConfig";
+import MedicalWorkflowConfig from "./workflow/MedicalWorkflowConfig";
+import GeneralWorkflowConfig from "./workflow/GeneralWorkflowConfig";
 
 export default function WorkflowConfigEditor() {
   const { businessMode } = useTenantConfig();

@@ -15,7 +15,7 @@ import { SmartChecklist } from "./SmartChecklist";
 import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { searchIndustries, getPopularIndustries, type IndustryCatalogEntry } from "@/data/industryCatalog";
-import { WebsiteImportWizard } from "@/components/brain/WebsiteImportWizard";
+import { WebsiteImportWizard } from "@/components/brain/uploads/WebsiteImportWizard";
 
 interface SetupWizardProps {
   onSetupComplete: () => void;

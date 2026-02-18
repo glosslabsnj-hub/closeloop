@@ -23,7 +23,7 @@ import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
 import { useAuth } from "@/contexts/AuthContext";
 import { resolveCardTitle } from "@/data/industryTerminology";
-import { WebsiteImportWizard } from "@/components/brain/WebsiteImportWizard";
+import { WebsiteImportWizard } from "@/components/brain/uploads/WebsiteImportWizard";
 import {
   Search, Eye, Clock, Settings, Bot,
   ChevronRight, AlertCircle, Sparkles,

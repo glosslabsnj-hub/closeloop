@@ -23,7 +23,7 @@
  * - nextQuestion: What to ask next (if incomplete)
  * - deepLink: Where owner can configure pricing
  *
- * @see docs/REFACTOR_STEP4_QUOTE_ENGINE.md for full spec
+ * @see docs/refactors/REFACTOR_STEP4_QUOTE_ENGINE.md for full spec
  */
 
 import type { ServiceAreaConfig } from "@/hooks/useServiceArea";

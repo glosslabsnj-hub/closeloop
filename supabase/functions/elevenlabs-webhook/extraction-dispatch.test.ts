@@ -6,7 +6,7 @@
  */
 
 import { assertEquals, assertExists } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { extractDispatchData, userSays, agentSays, type TranscriptEntry } from "./_shared/test-helpers.ts";
+import { extractDispatchData, userSays, agentSays, type TranscriptEntry } from "./_test-utils/test-helpers.ts";
 
 // ============================================================================
 // JOB TYPE DETECTION

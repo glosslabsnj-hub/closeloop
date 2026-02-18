@@ -68,7 +68,7 @@ import WorkflowConfigEditor from "@/components/brain/WorkflowConfigEditor";
 import { GuidedSetupFlow } from "@/components/brain/guided/GuidedSetupFlow";
 
 // Tab-specific banner components
-import { QuoteReadinessCard } from "@/components/brain/QuoteReadinessCard";
+import { QuoteReadinessCard } from "@/components/brain/editors/QuoteReadinessCard";
 
 
 // ─── Section IDs ────────────────────────────────────────────────────────────
