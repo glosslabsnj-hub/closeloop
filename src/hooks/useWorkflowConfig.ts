@@ -102,6 +102,10 @@ export interface GeneralWorkflowConfig {
   updated_at?: string;
 }
 
+// ============= HELPER: Cast supabase to bypass missing table types =============
+// These workflow_config tables exist in DB but aren't in the auto-generated types yet.
+const db = supabase as any;
+
 // ============= DISPATCH WORKFLOW CONFIG =============
 
 export function useDispatchWorkflowConfig() {
@@ -113,7 +117,7 @@ export function useDispatchWorkflowConfig() {
     queryFn: async () => {
       if (!tenant?.id) throw new Error("No tenant");
 
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("dispatch_workflow_config")
         .select("*")
         .eq("tenant_id", tenant.id)
@@ -129,7 +133,7 @@ export function useDispatchWorkflowConfig() {
     mutationFn: async (updates: Partial<DispatchWorkflowConfig>) => {
       if (!tenant?.id) throw new Error("No tenant");
 
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("dispatch_workflow_config")
         .upsert({
           tenant_id: tenant.id,
@@ -171,7 +175,7 @@ export function useServiceWorkflowConfig() {
     queryFn: async () => {
       if (!tenant?.id) throw new Error("No tenant");
 
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("service_workflow_config")
         .select("*")
         .eq("tenant_id", tenant.id)
@@ -187,7 +191,7 @@ export function useServiceWorkflowConfig() {
     mutationFn: async (updates: Partial<ServiceWorkflowConfig>) => {
       if (!tenant?.id) throw new Error("No tenant");
 
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("service_workflow_config")
         .upsert({
           tenant_id: tenant.id,
@@ -229,7 +233,7 @@ export function useFoodWorkflowConfig() {
     queryFn: async () => {
       if (!tenant?.id) throw new Error("No tenant");
 
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("food_workflow_config")
         .select("*")
         .eq("tenant_id", tenant.id)
@@ -245,7 +249,7 @@ export function useFoodWorkflowConfig() {
     mutationFn: async (updates: Partial<FoodWorkflowConfig>) => {
       if (!tenant?.id) throw new Error("No tenant");
 
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("food_workflow_config")
         .upsert({
           tenant_id: tenant.id,
@@ -287,7 +291,7 @@ export function useMedicalWorkflowConfig() {
     queryFn: async () => {
       if (!tenant?.id) throw new Error("No tenant");
 
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("medical_workflow_config")
         .select("*")
         .eq("tenant_id", tenant.id)
@@ -303,7 +307,7 @@ export function useMedicalWorkflowConfig() {
     mutationFn: async (updates: Partial<MedicalWorkflowConfig>) => {
       if (!tenant?.id) throw new Error("No tenant");
 
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("medical_workflow_config")
         .upsert({
           tenant_id: tenant.id,
@@ -345,7 +349,7 @@ export function useGeneralWorkflowConfig() {
     queryFn: async () => {
       if (!tenant?.id) throw new Error("No tenant");
 
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("general_workflow_config")
         .select("*")
         .eq("tenant_id", tenant.id)
@@ -361,7 +365,7 @@ export function useGeneralWorkflowConfig() {
     mutationFn: async (updates: Partial<GeneralWorkflowConfig>) => {
       if (!tenant?.id) throw new Error("No tenant");
 
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("general_workflow_config")
         .upsert({
           tenant_id: tenant.id,
