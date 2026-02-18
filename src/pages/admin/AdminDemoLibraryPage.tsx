@@ -20,6 +20,7 @@ export default function AdminDemoLibraryPage() {
   const [uploading, setUploading] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadTargetRef = useRef<IndustryDemo | null>(null);
 
   const handleEdit = (demo: IndustryDemo) => {
     setEditingId(demo.id);
@@ -100,8 +101,30 @@ export default function AdminDemoLibraryPage() {
     );
   }
 
+  const triggerUpload = (demo: IndustryDemo) => {
+    uploadTargetRef.current = demo;
+    fileInputRef.current?.click();
+  };
+
+  const onFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const demo = uploadTargetRef.current;
+    if (file && demo) handleUploadAudio(demo, file);
+    // Reset so the same file can be re-selected
+    e.target.value = "";
+  };
+
   return (
     <div className="space-y-6">
+      {/* Single shared file input outside the loop */}
+      <input
+        type="file"
+        accept="audio/*"
+        className="hidden"
+        ref={fileInputRef}
+        onChange={onFileSelected}
+      />
+
       <div>
         <h1 className="text-2xl font-bold">Demo Library</h1>
         <p className="text-muted-foreground">
@@ -153,20 +176,10 @@ export default function AdminDemoLibraryPage() {
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <input
-                    type="file"
-                    accept="audio/*"
-                    className="hidden"
-                    ref={fileInputRef}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleUploadAudio(demo, file);
-                    }}
-                  />
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={() => triggerUpload(demo)}
                     disabled={uploading === demo.id}
                   >
                     {uploading === demo.id ? (

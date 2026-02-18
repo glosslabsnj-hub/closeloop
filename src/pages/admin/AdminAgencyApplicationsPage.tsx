@@ -87,7 +87,7 @@ export default function AdminAgencyApplicationsPage() {
 
     // For other status changes (new -> reviewing, etc.)
     updateStatus.mutate(
-      { id: selected.id, status: editStatus, admin_notes: editNotes },
+      { id: selected.id, status: editStatus, admin_notes: editNotes, reviewed_by: user?.id },
       { onSuccess: () => setSelected(null) }
     );
   };
@@ -108,7 +108,7 @@ export default function AdminAgencyApplicationsPage() {
   const executeReject = () => {
     if (!confirmAction) return;
     updateStatus.mutate(
-      { id: confirmAction.app.id, status: "rejected", admin_notes: editNotes },
+      { id: confirmAction.app.id, status: "rejected", admin_notes: editNotes, reviewed_by: user?.id },
       {
         onSuccess: () => {
           setConfirmAction(null);

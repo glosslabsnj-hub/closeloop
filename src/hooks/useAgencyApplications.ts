@@ -83,10 +83,12 @@ export function useUpdateApplicationStatus() {
       id,
       status,
       admin_notes,
+      reviewed_by,
     }: {
       id: string;
       status: AgencyApplication["status"];
       admin_notes?: string;
+      reviewed_by?: string;
     }) => {
       const updates: Record<string, unknown> = {
         status,
@@ -94,6 +96,7 @@ export function useUpdateApplicationStatus() {
         updated_at: new Date().toISOString(),
       };
       if (admin_notes !== undefined) updates.admin_notes = admin_notes;
+      if (reviewed_by) updates.reviewed_by = reviewed_by;
 
       const { error } = await supabase
         .from("agency_applications" as any)

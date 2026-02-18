@@ -19,6 +19,8 @@ import {
   Music,
   ClipboardCheck,
   FileText,
+  Headset,
+  ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
@@ -32,6 +34,8 @@ const navItems = [
   { href: "/admin/golden-path", label: "Golden Path QA", icon: ClipboardCheck },
   { href: "/admin/support", label: "Support", icon: HeadphonesIcon },
   { href: "/admin/agency-applications", label: "Applications", icon: FileText },
+  { href: "/admin/setup-requests", label: "Setup Requests", icon: Headset },
+  { href: "/admin/audit-report", label: "Audit Report", icon: ScrollText },
 ];
 
 export function AdminLayout() {
@@ -137,8 +141,8 @@ export function AdminLayout() {
           </aside>
 
           {/* Mobile Nav */}
-          <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t bg-background">
-            <div className="grid grid-cols-6 h-16">
+          <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t bg-background overflow-x-auto">
+            <div className="grid grid-cols-4 auto-rows-[3.5rem]">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.href;
