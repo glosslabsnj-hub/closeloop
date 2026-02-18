@@ -7,7 +7,7 @@ import { invalidateBrainQueries } from "@/lib/brain/invalidateBrainQueries";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import BusinessHoursEditor, { BusinessHours, normalizeHours } from "@/components/onboarding/BusinessHoursEditor";
-import { PreviewSentence } from "./layout/BusinessBrainSectionCard";
+import { PreviewSentence } from "../layout/BusinessBrainSectionCard";
 import { 
   DEFAULT_BUSINESS_HOURS, 
   TYPICAL_BUSINESS_HOURS, 

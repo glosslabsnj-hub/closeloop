@@ -18,8 +18,8 @@ import {
 } from "@/components/ui/select";
 import { Lightbulb, FileText, Loader2 } from "lucide-react";
 import { SuggestedKnowledgeButtons } from "./SuggestedKnowledgeButtons";
-import { KnowledgeSection } from "./shared/KnowledgeSection";
-import { KnowledgeItem } from "./shared/KnowledgeItem";
+import { KnowledgeSection } from "../shared/KnowledgeSection";
+import { KnowledgeItem } from "../shared/KnowledgeItem";
 import {
   createCustomKnowledge,
   updateCustomKnowledge,

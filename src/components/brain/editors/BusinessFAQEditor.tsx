@@ -13,8 +13,8 @@ import { invalidateBrainQueries } from "@/lib/brain/invalidateBrainQueries";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { SuggestedFAQButtons } from "./SuggestedFAQButtons";
-import { KnowledgeSection } from "./shared/KnowledgeSection";
-import { KnowledgeItem } from "./shared/KnowledgeItem";
+import { KnowledgeSection } from "../shared/KnowledgeSection";
+import { KnowledgeItem } from "../shared/KnowledgeItem";
 import { InlineUploadButton } from "../uploads/InlineUploadButton";
 
 export function BusinessFAQEditor() {

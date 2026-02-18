@@ -11,7 +11,7 @@ import { invalidateBrainQueries } from "@/lib/brain/invalidateBrainQueries";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { PreviewSentence } from "./layout/BusinessBrainSectionCard";
+import { PreviewSentence } from "../layout/BusinessBrainSectionCard";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { getProfileExamples } from "@/lib/industryExamples";
 

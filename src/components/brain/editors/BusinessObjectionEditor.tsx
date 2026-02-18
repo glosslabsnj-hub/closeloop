@@ -10,8 +10,8 @@ import { MessageSquare, Loader2, Plus, Lightbulb } from "lucide-react";
 import { createObjectionResponse, updateObjectionResponse, deleteObjectionResponse } from "@/lib/brain/writeBrainFact";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { KnowledgeSection } from "./shared/KnowledgeSection";
-import { KnowledgeItem } from "./shared/KnowledgeItem";
+import { KnowledgeSection } from "../shared/KnowledgeSection";
+import { KnowledgeItem } from "../shared/KnowledgeItem";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { getObjectionExamples } from "@/lib/industryExamples";
 
