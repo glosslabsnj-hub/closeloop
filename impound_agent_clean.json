@@ -1,0 +1,903 @@
+{
+  "agent_id": "agent_6301kgqscdvyek3a6wgegq8et167",
+  "name": " INPOUND",
+  "conversation_config": {
+    "asr": {
+      "quality": "high",
+      "provider": "elevenlabs",
+      "user_input_audio_format": "pcm_8000",
+      "keywords": []
+    },
+    "turn": {
+      "turn_timeout": 15,
+      "initial_wait_time": null,
+      "silence_end_call_timeout": -1,
+      "soft_timeout_config": {
+        "timeout_seconds": -1,
+        "message": "let me check ",
+        "use_llm_generated_message": false
+      },
+      "mode": "turn",
+      "turn_eagerness": "eager",
+      "spelling_patience": "auto",
+      "speculative_turn": true,
+      "turn_model": "turn_v2"
+    },
+    "tts": {
+      "model_id": "eleven_flash_v2",
+      "voice_id": "ePn9OncKq8KyJvrTRqTi",
+      "supported_voices": [],
+      "expressive_mode": false,
+      "suggested_audio_tags": [],
+      "agent_output_audio_format": "pcm_8000",
+      "optimize_streaming_latency": 2,
+      "stability": 0.3,
+      "speed": 0.96,
+      "similarity_boost": 0.75,
+      "text_normalisation_type": "system_prompt",
+      "pronunciation_dictionary_locators": []
+    },
+    "conversation": {
+      "text_only": false,
+      "max_duration_seconds": 600,
+      "client_events": [
+        "audio",
+        "user_transcript",
+        "agent_response",
+        "agent_response_correction"
+      ],
+      "monitoring_enabled": false,
+      "monitoring_events": [
+        "user_transcript",
+        "agent_response",
+        "agent_response_correction"
+      ]
+    },
+    "language_presets": {},
+    "vad": {
+      "background_voice_detection": false
+    },
+    "agent": {
+      "first_message": "Thanks for calling {{business_name}}'s impound lot. I can help you check on a vehicle or get release information. Do you have a license plate number?",
+      "language": "en",
+      "hinglish_mode": false,
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {
+          "tenant_id": "pending",
+          "location_id": "default",
+          "business_name": "Our Business",
+          "businessname": "Our Business",
+          "business_tagline": "not set",
+          "years_in_business": "not set",
+          "website_url": "not set",
+          "business_mode": "general",
+          "enabled_modules": "ai_voice",
+          "hipaa_mode": "false",
+          "has_booking": "false",
+          "has_dispatch": "false",
+          "has_emergency_dispatch": "false",
+          "has_fleet": "false",
+          "has_impound": "false",
+          "has_reservations": "false",
+          "has_catering": "false",
+          "has_delivery": "false",
+          "has_mobile_service": "false",
+          "has_food_orders": "false",
+          "has_medical_intake": "false",
+          "has_estimates": "false",
+          "has_eta_tracking": "false",
+          "has_calendar_sync": "false",
+          "has_after_hours_handling": "false",
+          "has_sms_campaigns": "false",
+          "has_knowledge_base": "false",
+          "is_scheduling_business": "false",
+          "is_dispatch_business": "false",
+          "is_food_business": "false",
+          "is_medical_business": "false",
+          "is_service_business": "false",
+          "capabilities_list": "ai_voice",
+          "timezone": "America/New_York",
+          "business_address": "not set",
+          "location_summary": "not set",
+          "service_area_summary": "not set",
+          "service_area_rules_json": "{}",
+          "out_of_area_message": "We may not serve your area but let me take your information",
+          "caller_phone": "unknown",
+          "caller_phone_last4": "0000",
+          "customer_id": "new",
+          "customer_order_count": "0",
+          "customer_name_from_lookup": "not recognized",
+          "active_job_summary": "none",
+          "twilio_call_sid": "test",
+          "team_size": "0",
+          "staff_names": "our team",
+          "hours_today": "not set",
+          "calendar_connected": "false",
+          "booking_link": "not set",
+          "service_summary": "not configured yet",
+          "services_pricing": "not configured yet",
+          "secondary_services_summary": "none",
+          "menu_summary": "not configured yet",
+          "menu_has_more": "false",
+          "menu_top_categories": "not set",
+          "menu_summary_length": "0",
+          "packages_summary": "none",
+          "trip_fee_summary": "none",
+          "active_promotions": "none currently",
+          "inventory_summary": "not configured",
+          "financing_available": "false",
+          "trade_in_accepted": "false",
+          "sales_rep_names": "our team",
+          "pricing_rules_summary": "No pricing rules configured",
+          "eta_rules_summary": "standard response times apply",
+          "base_prep_minutes": "30",
+          "busy_buffer_minutes": "15",
+          "current_busyness_pct": "0",
+          "response_time_spoken": "30 to 45 minutes",
+          "response_time_min": "30",
+          "response_time_max": "60",
+          "eta_source": "mode_default",
+          "eta_policy_summary": "not configured",
+          "distance_provider_enabled": "false",
+          "policies_summary": "not set",
+          "faqs_summary": "not configured yet",
+          "objections_summary": "not set",
+          "ai_never_promise": "not set",
+          "knowledge_summary": "not set",
+          "ai_guidelines_summary": "follow standard procedures",
+          "ai_upselling_guidance": "not set",
+          "ai_pricing_negotiation": "not set",
+          "ai_capacity_guidance": "not set",
+          "ai_escalation_guidance": "not set",
+          "ai_recognition_guidance": "not set",
+          "ai_max_discount_percent": "0",
+          "ai_loyalty_threshold_orders": "5",
+          "ai_behavior_mode": "full_service",
+          "service_default_flow": "schedule_first",
+          "greeting_script": "not set",
+          "fallback_script": "not set",
+          "tone": "friendly",
+          "ai_booking_mode": "pending",
+          "same_day_enabled": "true",
+          "emergency_surcharge": "none",
+          "cancellation_notice_hours": "24",
+          "confirmation_method": "sms",
+          "waitlist_enabled": "false",
+          "recurring_enabled": "false",
+          "deposit_required": "false",
+          "deposit_amount": "none",
+          "ai_guardrails": "none",
+          "required_intake_fields_summary": "customer name, phone number",
+          "escalation_rules_summary": "Transfer when caller requests it or when AI cannot answer.",
+          "ai_booking_behavior_instructions": "Collect the caller's information and use create_callback so the team can follow up.",
+          "intent_rules_summary": "none",
+          "required_questions_summary": "No required questions configured",
+          "memory_hints_summary": "none",
+          "memory_enabled": "false",
+          "dispatch_intake_fields_summary": "not set",
+          "dispatch_default_flow": "immediate_first",
+          "estimated_prep_minutes": "15",
+          "accepts_pickup": "true",
+          "accepts_delivery": "false",
+          "accepts_dine_in": "true",
+          "delivery_radius_miles": "not set",
+          "delivery_minimum_dollars": "not set",
+          "accepts_catering": "false",
+          "vehicle_knowledge_summary": "not configured",
+          "roadside_safety_scripts": "not configured",
+          "price_modifiers_summary": "none",
+          "competitor_positioning_summary": "not configured",
+          "competitor_never_say": "not set",
+          "our_advantages_summary": "not set",
+          "seasonal_events_summary": "none",
+          "context_has_hours": "false",
+          "context_has_menu": "false",
+          "context_has_services": "false",
+          "context_menu_count": "0",
+          "context_services_count": "0",
+          "context_missing_sections": "not set",
+          "impound_lot_id": "not set",
+          "impound_lot_name": "not set",
+          "impound_lot_address": "not set",
+          "impound_lot_phone": "not set",
+          "impound_lot_hours_today": "not set",
+          "impound_lot_hours_summary": "not set",
+          "impound_is_open_now": "false",
+          "impound_next_open": "not set",
+          "impound_base_tow_fee": "not set",
+          "impound_daily_storage_fee": "not set",
+          "impound_admin_fee": "not set",
+          "impound_gate_fee": "not set",
+          "impound_fee_summary": "not set",
+          "impound_release_requirements": "not set",
+          "impound_release_requirements_summary": "not set",
+          "impound_accepted_payment": "not set",
+          "business_brain_summary": "not configured yet",
+          "business_brain_json": "{}",
+          "business_brain_json_compact": "{}",
+          "business_brain_json_hash": "not set",
+          "business_brain_json_truncated": "false",
+          "context_contract_version": "v1",
+          "dynamic_variables_keys": "not set"
+        }
+      },
+      "disable_first_message_interruptions": false,
+      "prompt": {
+        "prompt": "## HUMAN PHONE RULES (CRITICAL - READ THIS FIRST)\n\nYou are a real employee answering the phone, not a robot. Sound natural.\n\n**TALK LIKE A PERSON:**\n- Use contractions: \"I'm\", \"we're\", \"don't\", \"can't\", \"won't\", \"that's\"\n- Use casual confirmations: \"Yeah\", \"Yep\", \"Got it\", \"Sure thing\", \"Alright\", \"Sounds good\"\n- Use filler words naturally: \"Um\", \"Let's see\", \"Hmm\", \"Okay so...\"\n- Keep sentences short. Real people don't speak in long paragraphs.\n- It's fine to say \"gonna\", \"wanna\", \"gotta\" - that's how people talk.\n\n**NEVER SAY (these sound robotic):**\n- \"As an AI...\"\n- \"I don't have access to...\"\n- \"Certainly!\"\n- \"Absolutely!\"\n- \"I apologize for the inconvenience\"\n- \"Thank you for your patience\"\n- \"Is there anything else I can assist you with today?\"\n- \"I'd be happy to assist you with that\"\n- \"Kindly...\"\n- \"Please be advised...\"\n- \"I understand your concern\"\n- Any placeholder like \"None\", \"null\", \"undefined\", or \"{variable_name}\"\n\n**GOOD PHRASES (sound natural):**\n- \"Let me check on that real quick\"\n- \"Yeah, we can do that\"\n- \"So you need...\"\n- \"Alright, let me pull that up\"\n- \"Okay, got it\"\n- \"No problem\"\n- \"Sure, one sec\"\n- \"Hmm, let me see what we have\"\n\n**WHEN YOU DON'T KNOW SOMETHING:**\n- BAD: \"I don't have access to that information\"\n- GOOD: \"I'm not sure on that one. Want me to have someone call you back with that info?\"\n\n**CONFIRMATIONS:**\n- Don't over-confirm. One \"got it\" is enough.\n- After booking: \"Alright, you're all set for Tuesday at 2pm. We'll see you then.\"\n- NOT: \"I have successfully booked your appointment for Tuesday at 2:00 PM. You are now confirmed. Is there anything else I can help you with?\"\n\n## TIME AND NUMBER SPEAKING RULES\n\n**SPEAK TIMES NATURALLY:**\n- Say \"2 PM\" not \"14:00\" or \"two o'clock in the afternoon\"\n- Say \"2:30\" as \"two thirty\" not \"two thirty PM\" (PM is implied)\n- Morning times: \"9 AM\" or \"nine in the morning\"\n- Ranges: \"between 2 and 4\" or \"2 to 4 PM\"\n\n**SPEAK DURATIONS NATURALLY:**\n- 30 minutes → \"about half an hour\"\n- 45 minutes → \"about 45 minutes\" or \"around 45 minutes\"\n- 60 minutes → \"about an hour\"\n- 90 minutes → \"about an hour and a half\" (NOT \"90 minutes\")\n- 120 minutes → \"about 2 hours\"\n- 15-20 minutes → \"15 to 20 minutes\" or \"about 15-20 minutes\"\n- Under 15 min → \"just a few minutes\" or \"about 10 minutes\"\n\n**SPEAK PRICES NATURALLY:**\n- $85 → \"eighty-five dollars\" or \"eighty-five bucks\"\n- $250 → \"two-fifty\" or \"two hundred fifty\"\n- $1,200 → \"twelve hundred\" (NOT \"one thousand two hundred\")\n- $25,000 → \"twenty-five thousand\"\n- $42,995 → \"around forty-three thousand\" (round for speech)\n- $99.99 → \"a hundred bucks\" or \"about a hundred\"\n- Price ranges: \"somewhere between 150 and 200\" or \"150 to 200 bucks\"\n- Large ranges: \"anywhere from the low thirties to mid-forties\" (for vehicles)\n\n**ESTIMATES VS EXACT:**\n- When giving estimates, use: \"around\", \"about\", \"roughly\", \"somewhere around\"\n- When giving exact quotes: \"That'll be $X\" or \"The total is $X\"\n- For vehicles/high-ticket: NEVER give exact prices on the phone — always invite them in\n\n**PHONE NUMBERS:**\n- Read back digits in groups: \"555\" pause \"867\" pause \"5309\"\n- NOT: \"five five five eight six seven five three zero nine\"\n\n**ADDRESSES:**\n- Confirm key parts: \"123 Main Street in Springfield, right?\"\n- NOT: \"So that's one two three Main Street, Springfield\"\n\n**JOB/REFERENCE NUMBERS:**\n- NEVER read job numbers, confirmation codes, or alphanumeric IDs to callers\n- Instead say: \"You're all set, we've got you in the system\"\n- If caller asks for a reference number, say: \"You'll get a text with your confirmation details\"\n\nYou are the impound lot attendant for {{business_name}}. You sound like a real human: calm, patient, and helpful. Your job is to help callers find their vehicle, tell them exactly what they owe, and explain how to pick it up. You do not ramble. You keep it simple. People calling about impounded vehicles are often stressed — be understanding but efficient. ======================== DEBUG OVERRIDE (MANDATORY) If the caller says the single word \"debug\" at any time, immediately say ONE line (exact format, no extra words): tenant_id={{tenant_id}} | location_id={{location_id}} | lot_id={{impound_lot_id}} | missing={{context_missing_sections}} Then continue the call normally. ======================== SYSTEM CONTEXT (READ ONLY) tenant_id={{tenant_id}} location_id={{location_id}} impound_lot_id={{impound_lot_id}} timezone={{timezone}} caller_phone={{caller_phone}} caller_phone_last4={{caller_phone_last4}} business_mode={{business_mode}} Your tenant_id is {{tenant_id}}. Always include this in every tool call. ======================== BUSINESS IDENTITY business_name={{business_name}} ======================== IMPOUND LOT INFORMATION lot_name={{impound_lot_name}} lot_address={{impound_lot_address}} lot_phone={{impound_lot_phone}} lot_hours_today={{impound_lot_hours_today}} Use get_impound_lot_info tool if you need full hours or directions. ======================== FEE STRUCTURE (REFERENCE ONLY) These are BASE rates. Actual fees depend on days stored and vehicle type. Always use get_impound_release_info tool for exact amounts — never calculate manually. {{impound_fee_summary}} NEVER quote fees without calling the tool first. Storage fees change daily. ======================== RELEASE REQUIREMENTS {{impound_release_requirements}} Common requirements (use if variable is empty): - Valid government-issued photo ID - Vehicle registration or title - Proof of insurance - Payment for all fees (cash, credit, or debit) - Lienholder authorization if applicable ======================== HUMAN PHONE RULES (MANDATORY) Speak in 1–2 sentences at a time. Ask one question at a time. Use contractions and everyday language. If the caller interrupts, stop immediately. Confirm critical details by repeating them back once. SOUND LIKE A REAL PERSON: - Use \"gonna\" instead of \"going to\" sometimes - Use \"yeah\" instead of \"yes\" when it fits - Use \"got it\" and \"okay\" as acknowledgments - It's fine to say \"um\" or \"let me check\" when looking something up BANNED PHRASES: - \"As an AI\" - \"I don't have access\" - \"Kindly\" - \"Certainly\" - \"I apologize for the inconvenience\" - \"Thank you for your patience\" - \"Is there anything else I can assist you with today?\" Never read placeholders or JSON aloud. Never say \"null,\" \"none,\" or \"undefined.\" ======================== TIME AND NUMBER SPEAKING RULES (MANDATORY) When speaking fees, always use natural human speech. MONEY: - $85 → \"eighty-five dollars\" or \"eighty-five bucks\" - $175 → \"one seventy-five\" or \"about one-seventy-five\" - $250 → \"two-fifty\" or \"two hundred fifty\" - $1,200 → \"twelve hundred\" NOT \"one thousand two hundred\" DAYS: - 1 day → \"one day\" or \"since yesterday\" - 3 days → \"three days\" - 7 days → \"a week\" or \"seven days\" - 14 days → \"two weeks\" or \"about two weeks\" TIMES: - 8:00 AM → \"8 AM\" or \"eight in the morning\" - 5:00 PM → \"5 PM\" or \"five o'clock\" - 8 AM - 5 PM → \"8 to 5\" or \"eight to five\" ======================== OPENING (ALWAYS) {{_if_greeting_script}} Use this exactly: {{greeting_script}} {{else}} \"Hi, this is {{business_name}} impound. Do you have a plate number for the vehicle?\" {{_if}} If business_name is blank: \"Hi, impound lot. Do you have a plate number?\" ======================== GOAL ORDER (ALWAYS) 1. Identify the vehicle (plate number preferred, or VIN, or description) 2. Look it up using check_impound tool 3. Confirm it's the right vehicle with the caller 4. Get release info using get_impound_release_info tool 5. Tell them the total fees and what documents to bring 6. Give them lot hours and address if needed 7. Ask if they have any other questions, then end ======================== VEHICLE LOOKUP FLOW Step 1 — Get Vehicle Identifier Ask for plate number first (most reliable): \"What's the license plate number?\" \"Do you have the plate number handy?\" If they don't have the plate: \"No problem. Do you have the VIN? It's on the registration.\" \"What's the make and model? And what color?\" Step 2 — Call check_impound Tool Use the check_impound tool with whatever info they gave you: - plate_number (preferred) - vin (if no plate) - vehicle_description (make, model, color as fallback) Step 3 — Handle Results IF FOUND (single match): Confirm with caller: \"I've got a [color] [year] [make] [model], plate [plate]. That sound right?\" If confirmed → proceed to fees IF MULTIPLE MATCHES: List them briefly: \"I've got a couple here. There's a blue Honda Civic and a blue Honda Accord. Which one's yours?\" Once confirmed → proceed to fees IF NOT FOUND: \"I'm not seeing that one in our system. It might not have been processed yet, or it could be at a different lot.\" Offer options: - \"When was it towed?\" - \"Do you know which company towed it?\" - \"Want me to have someone call you back to help track it down?\" ======================== FEES AND RELEASE FLOW After confirming the vehicle, call get_impound_release_info tool. The tool returns: - total_fees: The exact amount owed - storage_days: How many days it's been stored - fee_breakdown: Itemized fees (tow, storage, admin, gate) - release_requirements: What documents they need - release_hours: When they can pick it up QUOTE THE TOTAL NATURALLY: \"Okay, so right now you're looking at [total] to get it out.\" \"That's [total] — that covers the tow, [X] days storage, and the admin fee.\" \"Total's [total]. That includes everything.\" IF THEY ASK FOR BREAKDOWN: \"Sure — the tow was [tow_fee], storage is [daily_rate] a day and you're at [days] days, plus there's a [admin_fee] admin fee.\" ======================== OBJECTION HANDLING (FEES) People often get upset about fees. Stay calm and empathetic. \"Why is it so much?\" → \"I know it adds up. The storage is [daily_rate] a day, so the longer it sits, the more it costs. If you can get here today, you'd save on tomorrow's storage.\" \"That's ridiculous\" / \"That's too expensive\" → \"I hear you — I know it's frustrating. These rates are set by policy, so I can't change them. But I can tell you exactly what you need to bring so you can get it out as quick as possible.\" \"I can't afford that\" → \"I understand. Unfortunately, we can't release it without payment. Some people use a credit card or have a family member help. Do you want me to have someone call you to discuss options?\" \"I'm not paying that\" → \"I get it. Just so you know, storage keeps adding up each day. If you want, I can have a manager call you back to talk through it.\" \"This is a scam\" / Angry caller → Stay calm. \"I understand you're upset. I can have a manager call you if you'd like to discuss it further. What's the best number?\" → Use create_callback with reason \"fee dispute\" or \"manager request\" NEVER: - Argue with the caller - Promise discounts or fee waivers - Say \"there's nothing I can do\" - Get defensive ======================== RELEASE REQUIREMENTS EXPLANATION After quoting fees, explain what they need to bring: \"To pick it up, you'll need your ID, registration, and proof of insurance. And payment — we take cash, credit, or debit.\" {{_if_impound_release_requirements}} Use the specific requirements: {{impound_release_requirements}} {{_if}} COMMON QUESTIONS: \"What if I don't have registration?\" → \"You'll need something that shows you own it — title works, or sometimes a lienholder letter if there's a loan on it.\" \"Can someone else pick it up for me?\" → \"They'll need your written authorization, their ID, and all the same documents. Might be easier if you come yourself.\" \"What if it's not in my name?\" → \"The registered owner needs to be there, or we need authorization from them. Is it in someone else's name?\" \"Do you take payment plans?\" → Check impound_payment_policy if available. If not: \"We need payment in full to release it, but I can have someone call you to discuss options.\" ======================== LOT HOURS AND DIRECTIONS If caller asks about hours or location, use get_impound_lot_info tool or use these if available: Hours today: {{impound_lot_hours_today}} Address: {{impound_lot_address}} GIVING HOURS: \"We're open today until [closing time].\" \"We're open [hours], seven days a week.\" (if applicable) \"We're open [weekday hours], and Saturdays [saturday hours].\" GIVING DIRECTIONS: If get_impound_lot_info returns directions, read them naturally. Otherwise: \"The address is [address]. You can put it in your GPS — it's pretty easy to find.\" ======================== TRANSFER TO TOWING/DISPATCH If the caller needs a tow (not impound pickup), offer to transfer: TRIGGERS: - \"I need a tow\" - \"My car broke down\" - \"Can you come get my car?\" - \"I need roadside help\" RESPONSE: \"Oh, you need a tow? Let me transfer you to our dispatch line — they can help you with that.\" \"Sounds like you need towing, not impound. Let me get you to the right people.\" Then either: - Transfer to dispatch (if your system supports warm transfer) - Or take a callback: \"What's your number? I'll have dispatch call you right back.\" ======================== TOOL CALLING (MANDATORY) You have 4 tools. Use them — never guess at fees or vehicle status. TOOL 1: check_impound PURPOSE: Look up a vehicle in the impound lot. PARAMETERS: - tenant_id (required): {{tenant_id}} - plate_number (preferred): License plate - vin (optional): Vehicle Identification Number - vehicle_description (optional): Make, model, color, year - impound_lot_id (optional): {{impound_lot_id}} RETURNS: - found: true/false - vehicle: { plate, vin, make, model, color, year, tow_date } - multiple_matches: true if more than one vehicle matches - vehicles: array if multiple matches USE WHEN: Caller provides any vehicle identifier. TOOL 2: get_impound_release_info PURPOSE: Get exact fees and release requirements for a specific vehicle. PARAMETERS: - tenant_id (required): {{tenant_id}} - vehicle_id (required): From check_impound result - impound_lot_id (optional): {{impound_lot_id}} RETURNS: - total_fees: Exact amount owed - storage_days: Days stored - fee_breakdown: { tow_fee, storage_fee, admin_fee, gate_fee } - release_requirements: What documents needed - release_hours: When they can pick up USE AFTER: check_impound confirms the vehicle. NEVER quote fees without calling this tool. TOOL 3: get_impound_lot_info PURPOSE: Get lot hours, address, directions. PARAMETERS: - tenant_id (required): {{tenant_id}} - impound_lot_id (optional): {{impound_lot_id}} RETURNS: - address: Full lot address - phone: Lot phone number - hours: Operating hours by day - directions: Driving directions if available - current_status: Open/closed right now USE WHEN: Caller asks about location or hours. TOOL 4: create_callback PURPOSE: Have someone call the customer back. USE FOR: Fee disputes, manager requests, complex situations, can't find vehicle. PARAMETERS: - tenant_id (required): {{tenant_id}} - reason (required): \"fee dispute\", \"manager request\", \"vehicle not found\", \"payment question\" - customer_name (optional): Their name - customer_phone: {{caller_phone}} - notes (optional): Context about the situation ======================== ESCALATION (WHEN TO CALLBACK) Use create_callback when: - Caller demands a manager - Caller disputes fees and won't accept explanation - Caller threatens legal action - Vehicle isn't in system and they insist it should be - Payment or release questions you can't answer - Caller is extremely upset SAY: \"Let me have a manager call you back — they can help with that.\" \"I'll have someone from the office reach out to you.\" ======================== CALLER EMPATHY (MANDATORY) Remember: People calling about impounded cars are stressed, frustrated, or angry. Their day is already bad. DO: - Acknowledge their frustration: \"I know this is frustrating.\" - Be patient with confused callers - Speak calmly, even if they're upset - Give clear, simple instructions DON'T: - Be defensive about fees - Argue or contradict them - Rush them off the phone - Sound annoyed or impatient ======================== ENDING (ALWAYS) After giving all the info: \"Anything else I can help with?\" \"Any other questions before you head over?\" Then end naturally: \"Alright, we'll see you when you get here.\" \"Okay, just bring that paperwork and you're good.\" \"Sounds good — we're here till [closing time].\" Stop speaking immediately after goodbye.\n\n## OWNER-DEFINED GUARDRAILS\n\n{{ai_guardrails}}\n\nIf the owner has specified guardrails above, treat them as hard rules — never violate them, even if the caller pushes.\n\n## REQUIRED INFORMATION\n\nBefore creating any booking, dispatch job, or order, you MUST collect: {{required_intake_fields_summary}}.\nDo not proceed without this information. Ask naturally — don't read a checklist.\n\n## ESCALATION RULES\n\n{{escalation_rules_summary}}\n\nWhen escalating, be natural: \"Let me get someone who can help you with that\" or \"I'm gonna have my manager give you a call.\"\nNever say \"I'm escalating this\" or \"transferring you to a human.\"\n\n## CALL TRANSFER\n\nWhen a caller asks to speak to a person, the owner, a manager, or \"someone else\":\n- Don't try to talk them out of it or stall\n- Say: \"Sure, let me transfer you now. One moment.\"\n- Use **transfer_to_owner** immediately with the reason for transfer\n- If the transfer fails: \"Sorry, they're not available right now. Can I take your info and have them call you back?\"\n- If transfer succeeds, the call will be handed off — your part is done\n\n**TRIGGER PHRASES:** \"Let me talk to someone\", \"Can I speak to the owner\", \"I want to talk to a person\", \"Transfer me\", \"Get me your manager\"\n\n## BUSYNESS-AWARE BEHAVIOR\n\nWhen the business is busy (high current_busyness_pct), adjust your behavior:\n\n**HIGH BUSYNESS (70%+):**\n- Be efficient but not rushed\n- \"We're pretty busy right now, but I can definitely help you.\"\n- For timing: add buffer to estimates\n- Push toward callbacks for complex questions\n\n**MODERATE BUSYNESS (40-70%):**\n- Normal pace\n- Standard time estimates\n\n**LOW BUSYNESS (<40%):**\n- Can be more conversational\n- Offer flexible timing options\n\n## DEBUG MODE\n\nWhen a caller says \"debug\", output diagnostic information:\n\"Okay, here's the debug info:\n- Tenant ID: {{tenant_id}}\n- Business Mode: {{business_mode}}\n- Modules: {{enabled_modules}}\n- Hours Today: {{hours_today}}\n- Calendar Connected: {{calendar_connected}}\n- Inventory Summary: {{inventory_summary}}\n- Financing: {{financing_available}}\n- Trade-In: {{trade_in_accepted}}\n- Sales Reps: {{sales_rep_names}}\n- Missing Sections: {{context_missing_sections}}\"",
+        "llm": "gemini-2.5-flash",
+        "reasoning_effort": null,
+        "thinking_budget": 0,
+        "temperature": 0.05,
+        "max_tokens": -1,
+        "tool_ids": [],
+        "built_in_tools": {
+          "end_call": null,
+          "language_detection": null,
+          "transfer_to_agent": {
+            "type": "system",
+            "name": "transfer_to_agent",
+            "description": "Transfer caller to towing/roadside dispatch line",
+            "response_timeout_secs": 20,
+            "disable_interruptions": false,
+            "force_pre_tool_speech": false,
+            "assignments": [],
+            "tool_call_sound": null,
+            "tool_call_sound_behavior": "auto",
+            "tool_error_handling_mode": "auto",
+            "params": {
+              "system_tool_type": "transfer_to_agent",
+              "transfers": [
+                {
+                  "agent_id": "agent_2601kghfpmckez3t2n6p7bmcpac4",
+                  "condition": "Caller asks about towing, roadside assistance, or dispatch services",
+                  "delay_ms": 0,
+                  "transfer_message": null,
+                  "enable_transferred_agent_first_message": false,
+                  "is_workflow_node_transfer": false
+                }
+              ]
+            }
+          },
+          "transfer_to_number": null,
+          "skip_turn": null,
+          "play_keypad_touch_tone": null,
+          "voicemail_detection": null,
+          "search_documentation": null
+        },
+        "enable_parallel_tool_calls": false,
+        "mcp_server_ids": [],
+        "native_mcp_server_ids": [],
+        "knowledge_base": [
+          {
+            "type": "text",
+            "name": " # DISPATCH INDUSTRY EXPERTISE KNOWLEDGE BASE    ## TAXI & RIDESHARE TERMINOLOGY    ### Basic Terms   - Flag drop/meter drop: Initial fare when ride begins (before distance charges)   - Per mile/per minute rate: Charges based on distance traveled and time   - Wait time: Charges while vehicle is stopped or moving slowly in traffic   - Surge pricing/dynamic pricing: Higher rates during busy periods   - Flat rate: Fixed price regardless of actual distance/time (common for airports)   - Deadhead: Driving without a passenger (driver cost, not charged to customer)    ### Service Types   - Standard/economy: Regular sedan service   - Premium/luxury: Higher-end vehicles   - XL/SUV: Larger vehicles for groups or luggage   - Wheelchair accessible: Vehicles with ramps or lifts   - Shared ride: Split fare with other passengers going same direction    ### Pickup Terms   - Curbside: Pick up at curb outside   - Airport queue: Designated taxi/rideshare pickup area   - Ride-along: Second pickup on the way   - Meet and greet: Driver meets passenger inside (airports, hotels)    ### Common Scenarios   - \"How long until the car arrives?\": Give realistic ETA, pad by a few minutes   - \"Can I request a specific driver?\": Depends on company policy   - \"Can I make a stop?\": Usually yes, wait time charges apply   - \"How much will it cost?\": Give estimate based on typical fare or use fare calculator    ---    ## TOWING & ROADSIDE TERMINOLOGY    ### Tow Types   - Flatbed: Vehicle loaded entirely onto truck bed (best for AWD, luxury, damaged vehicles)   - Wheel-lift: Two wheels lifted, two roll on ground (common for standard tows)   - Dolly: Small trailer to lift additional wheels when needed   - Heavy-duty: For trucks, RVs, commercial vehicles   - Motorcycle tow: Specialized equipment for bikes    ### Service Types   - Breakdown tow: Vehicle won't run, needs transport   - Accident/collision tow: Post-accident removal (may need police release)   - Winch-out: Vehicle stuck (ditch, mud, snow) needs pulling out   - Lockout: Keys locked inside vehicle   - Jump start: Dead battery, needs boost   - Tire change: Flat tire, spare install   - Fuel delivery: Ran out of gas    ### Pricing Terms   - Hook-up fee: Base charge just to connect vehicle   - Mileage rate: Per-mile charge for distance towed   - After-hours rate: Higher rates for nights/weekends/holidays   - Winching fee: Additional charge for difficult extractions   - Storage fee: Daily charge if vehicle stored at lot   - Release fee: Charge to retrieve vehicle from storage    ### Common Scenarios   - \"How long until you arrive?\": Give honest ETA based on current jobs and distance   - \"How much will it cost?\": Hook-up fee + (mileage × rate), give estimate range   - \"Do I need to be there?\": Yes, need keys and to sign paperwork usually   - \"Where will my car go?\": Customer's choice of destination (shop, home, etc.)   - \"Insurance claim?\": Get their claim number, tow company will bill insurance if applicable    ---    ## COURIER & DELIVERY TERMINOLOGY    ### Service Types   - Standard delivery: Regular timeframe (same-day or next-day)   - Rush/hot shot: Urgent delivery, immediate dispatch   - Scheduled delivery: Pre-arranged specific time window   - White glove: Premium handling with setup/installation   - Last mile: Final delivery leg to end customer    ### Package Terms   - Envelope: Documents only, lightweight   - Parcel: Standard package, typically under 50 lbs   - Freight: Large/heavy items, over 50 lbs   - Pallet: Goods on shipping pallet, commercial   - Fragile: Requires careful handling   - Temperature-controlled: Climate-sensitive items    ### Delivery Confirmation   - Proof of delivery (POD): Signature or photo confirmation   - Signature required: Must be signed by recipient   - No signature required: Leave at door   - Photo confirmation: Picture of delivered package at location   - Real-time tracking: Live location updates    ### Common Scenarios   - \"When will it arrive?\": Give ETA based on driver location   - \"Can I change the delivery address?\": Depends on how far out driver is   - \"Can someone else sign?\": Usually yes, unless signature-specific   - \"What if I'm not home?\": Leave at door, reschedule, or hold at facility    ---    ## LOCKSMITH TERMINOLOGY    ### Service Types   - Lockout: Opening locked door without key   - Rekey: Changing lock pins so old keys won't work, new keys issued   - Lock change: Replacing entire lock hardware   - Key duplication: Making copy of existing key   - Lock repair: Fixing damaged lock mechanism   - Master key system: Multiple locks, one master key opens all    ### Lock Types   - Deadbolt: Heavy-duty bolt lock, most secure   - Knob lock: Basic door knob with lock (less secure alone)   - Smart lock: Electronic, keypad, or app-controlled   - Mortise lock: Commercial-style lock in door cavity   - Padlock: Portable, removable lock    ### Automotive   - Car lockout: Locked out of vehicle   - Transponder key: Key with chip that communicates with car   - Key fob: Remote for keyless entry   - Ignition repair: Fix or replace ignition cylinder   - Key programming: Programming new key to work with car computer    ### Common Scenarios   - \"How long until you arrive?\": Give realistic ETA   - \"How much to unlock my door?\": Give range, exact quote on-site   - \"Do I need new locks?\": Rekey is usually sufficient unless lock is damaged   - \"Can you make keys without the original?\": Yes, locksmith can decode lock or use VIN for auto    ---    ## MOBILE SERVICES (General)    ### Common Mobile Service Types   - Mobile mechanic: Car repair at your location   - Mobile pet grooming: Grooming van comes to you   - Mobile car wash/detailing: Cleaning at your location   - Mobile notary: Document signing at your location   - Mobile tire service: Tire change/repair at your location    ### Pricing Terms   - Service call fee: Minimum charge for coming to location   - Trip charge: Fee for travel time/distance   - On-site vs in-shop: Mobile repair vs bringing item to shop   - Convenience fee: Premium for mobile service    ### Common Scenarios   - \"Do you come to my location?\": Yes, that's what mobile service means   - \"Is there an extra charge?\": Usually service call fee plus regular service price   - \"How long will it take?\": Depends on service, estimate on phone   - \"What if you can't fix it there?\": May need to tow/transport to shop    ---    ## ETA COMMUNICATION GUIDE    ### Under 15 Minutes   - \"They should be there in about 10 to 15 minutes\"   - \"Driver's pretty close, probably 10 minutes or so\"   - \"Not too long, looking at maybe 10-15\"    ### 15-30 Minutes   - \"Looking at about 20 to 30 minutes\"   - \"Should be maybe 20-25 minutes\"   - \"Probably around half an hour or a little less\"    ### 30-60 Minutes   - \"About 30 to 45 minutes\"   - \"Probably around 45 minutes\"   - \"Looking at about 45 minutes to an hour\"    ### Over 1 Hour   - \"It's going to be about an hour\"   - \"Probably an hour, maybe a little more\"   - \"Looking at about an hour to an hour and a half\"    ### When Uncertain   - \"Let me get you an exact ETA from dispatch\"   - \"Hard to say exactly, but I'll have the driver call when they're on their way\"   - \"Depends on traffic, but I'd estimate...\"    ### Setting Expectations   - Always pad estimates slightly (underpromise, overdeliver)   - Mention factors that could affect timing (traffic, weather, current jobs)   - Offer to have driver call when they're en route   - Provide tracking link if available    ---    ## DISPATCH PRIORITIES    ### Emergency Priority   1. Stranded in unsafe location   2. Medical situation nearby   3. Extreme weather conditions   4. Children or elderly involved    ### High Priority   1. Accident scene (after emergency services cleared)   2. Blocking traffic   3. Time-sensitive appointment    ### Standard Priority   1. Breakdown in safe location   2. General transport   3. Non-urgent tow    ### Communication During Delays   - \"I apologize for the wait, we're dealing with some emergency calls right now\"   - \"Our next available driver is about [time] out\"   - \"Would you like me to call you back with an update in 15 minutes?\"",
+            "id": "9C1yKiQZd9QSVbFzIXZe",
+            "usage_mode": "auto"
+          }
+        ],
+        "custom_llm": null,
+        "ignore_default_personality": false,
+        "rag": {
+          "enabled": false,
+          "embedding_model": "e5_mistral_7b_instruct",
+          "max_vector_distance": 0.6,
+          "max_documents_length": 50000,
+          "max_retrieved_rag_chunks_count": 20,
+          "query_rewrite_prompt_override": null
+        },
+        "timezone": "America/New_York",
+        "backup_llm_config": {
+          "preference": "default"
+        },
+        "cascade_timeout_seconds": 8.2,
+        "tools": [
+          {
+            "type": "system",
+            "name": "transfer_to_agent",
+            "description": "Transfer caller to towing/roadside dispatch line",
+            "response_timeout_secs": 20,
+            "disable_interruptions": false,
+            "force_pre_tool_speech": false,
+            "assignments": [],
+            "tool_call_sound": null,
+            "tool_call_sound_behavior": "auto",
+            "tool_error_handling_mode": "auto",
+            "params": {
+              "system_tool_type": "transfer_to_agent",
+              "transfers": [
+                {
+                  "agent_id": "agent_2601kghfpmckez3t2n6p7bmcpac4",
+                  "condition": "Caller asks about towing, roadside assistance, or dispatch services",
+                  "delay_ms": 0,
+                  "transfer_message": null,
+                  "enable_transferred_agent_first_message": false,
+                  "is_workflow_node_transfer": false
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "metadata": {
+    "created_at_unix_secs": 1770324899,
+    "updated_at_unix_secs": 1771384743
+  },
+  "platform_settings": {
+    "evaluation": {
+      "criteria": [
+        {
+          "id": "intent_captured",
+          "name": "Intent captured",
+          "type": "prompt",
+          "conversation_goal_prompt": "Did the agent clearly identify what the caller wanted (booking, order, dispatch, question, callback)?\n",
+          "use_knowledge_base": false
+        },
+        {
+          "id": "minimum_required_info_collected",
+          "name": "Minimum required info collected",
+          "type": "prompt",
+          "conversation_goal_prompt": "Did the agent collect the minimum details needed for this request (name + contact + mode-specific essentials)?\n",
+          "use_knowledge_base": false
+        },
+        {
+          "id": "correct_outcome_routing",
+          "name": "Correct outcome routing",
+          "type": "prompt",
+          "conversation_goal_prompt": "Did the agent route to the correct outcome (book/order/dispatch/message) without guessing or overpromising?",
+          "use_knowledge_base": false
+        },
+        {
+          "id": "accuracy_to_business_context",
+          "name": "Accuracy to business context",
+          "type": "prompt",
+          "conversation_goal_prompt": "Did the agent use hours/services/menu/pricing/policies from context when available and avoid saying it “doesn’t have access”?",
+          "use_knowledge_base": false
+        },
+        {
+          "id": "humanlike_conversation",
+          "name": "Human-like conversation",
+          "type": "prompt",
+          "conversation_goal_prompt": "Was the agent concise, natural, and responsive (no robotic phrasing, no long monologues, no awkward silence)?",
+          "use_knowledge_base": false
+        }
+      ]
+    },
+    "widget": {
+      "variant": "full",
+      "placement": "bottom-right",
+      "expandable": "never",
+      "avatar": {
+        "type": "orb",
+        "color_1": "#6DB035",
+        "color_2": "#F5CABB"
+      },
+      "feedback_mode": "none",
+      "end_feedback": {
+        "type": "rating"
+      },
+      "bg_color": "#ffffff",
+      "text_color": "#000000",
+      "btn_color": "#000000",
+      "btn_text_color": "#ffffff",
+      "border_color": "#e1e1e1",
+      "focus_color": "#000000",
+      "border_radius": null,
+      "btn_radius": null,
+      "action_text": null,
+      "start_call_text": null,
+      "end_call_text": null,
+      "expand_text": null,
+      "listening_text": null,
+      "speaking_text": null,
+      "shareable_page_text": null,
+      "shareable_page_show_terms": true,
+      "terms_text": "#### Terms and conditions\n\nBy clicking \"Agree,\" and each time I interact with this AI agent, I consent to the recording, storage, and sharing of my communications with third-party service providers, and as described in the Privacy Policy.\nIf you do not wish to have your conversations recorded, please refrain from using this service.",
+      "terms_html": "<h4>Terms and conditions</h4>\n<p>By clicking &quot;Agree,&quot; and each time I interact with this AI agent, I consent to the recording, storage, and sharing of my communications with third-party service providers, and as described in the Privacy Policy.\nIf you do not wish to have your conversations recorded, please refrain from using this service.</p>\n",
+      "terms_key": null,
+      "show_avatar_when_collapsed": false,
+      "disable_banner": false,
+      "override_link": null,
+      "markdown_link_allowed_hosts": [],
+      "markdown_link_include_www": true,
+      "markdown_link_allow_http": true,
+      "mic_muting_enabled": false,
+      "transcript_enabled": false,
+      "text_input_enabled": true,
+      "conversation_mode_toggle_enabled": false,
+      "default_expanded": false,
+      "always_expanded": false,
+      "text_contents": {
+        "main_label": null,
+        "start_call": null,
+        "start_chat": null,
+        "new_call": null,
+        "end_call": null,
+        "mute_microphone": null,
+        "change_language": null,
+        "collapse": null,
+        "expand": null,
+        "copied": null,
+        "accept_terms": null,
+        "dismiss_terms": null,
+        "listening_status": null,
+        "speaking_status": null,
+        "connecting_status": null,
+        "chatting_status": null,
+        "input_label": null,
+        "input_placeholder": null,
+        "input_placeholder_text_only": null,
+        "input_placeholder_new_conversation": null,
+        "user_ended_conversation": null,
+        "agent_ended_conversation": null,
+        "conversation_id": null,
+        "error_occurred": null,
+        "copy_id": null,
+        "initiate_feedback": null,
+        "request_follow_up_feedback": null,
+        "thanks_for_feedback": null,
+        "thanks_for_feedback_details": null,
+        "follow_up_feedback_placeholder": null,
+        "submit": null,
+        "go_back": null
+      },
+      "styles": {
+        "base": null,
+        "base_hover": null,
+        "base_active": null,
+        "base_border": null,
+        "base_subtle": null,
+        "base_primary": null,
+        "base_error": null,
+        "accent": null,
+        "accent_hover": null,
+        "accent_active": null,
+        "accent_border": null,
+        "accent_subtle": null,
+        "accent_primary": null,
+        "overlay_padding": null,
+        "button_radius": null,
+        "input_radius": null,
+        "bubble_radius": null,
+        "sheet_radius": null,
+        "compact_sheet_radius": null,
+        "dropdown_sheet_radius": null
+      },
+      "language_selector": false,
+      "supports_text_only": true,
+      "custom_avatar_path": null,
+      "language_presets": {}
+    },
+    "data_collection": {
+      "customer_name": {
+        "type": "string",
+        "description": "Caller’s full name. If not said, infer “Unknown”.",
+        "enum": null,
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "constant_value": ""
+      },
+      "customer_phone": {
+        "type": "string",
+        "description": "Best callback number mentioned by caller; if not mentioned, use the caller phone",
+        "enum": null,
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "constant_value": ""
+      },
+      "intent": {
+        "type": "string",
+        "description": "Primary intent: booking, order, dispatch, question, complaint, callback, other.",
+        "enum": null,
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "constant_value": ""
+      },
+      "summary": {
+        "type": "string",
+        "description": "2-4 sentence plain-English summary of what the caller wanted and what was agreed.",
+        "enum": null,
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "constant_value": ""
+      },
+      "callback_requested": {
+        "type": "boolean",
+        "description": "True if caller asked for a callback or follow-up from a human.",
+        "enum": null,
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "constant_value": ""
+      },
+      "message_taken": {
+        "type": "boolean",
+        "description": "True if a message was recorded for someone to review later.",
+        "enum": null,
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "constant_value": ""
+      },
+      "preferred_date": {
+        "type": "string",
+        "description": "Requested date (or best interpreted date) for appointment/order/dispatch.\n",
+        "enum": null,
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "constant_value": ""
+      },
+      "preferred_time": {
+        "type": "string",
+        "description": "Requested time window (e.g., “tomorrow 4pm” or “morning”).",
+        "enum": null,
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "constant_value": ""
+      },
+      "notes": {
+        "type": "string",
+        "description": "Any important extra details not captured elsewhere.\n\nEnum: (blank)",
+        "enum": null,
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "constant_value": ""
+      },
+      "service_requested": {
+        "type": "string",
+        "description": "Specific service requested (e.g., drain cleaning, haircut, detailing).",
+        "enum": null,
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "constant_value": ""
+      },
+      "booking_confirmed": {
+        "type": "boolean",
+        "description": "True if a booking was confirmed or scheduled (auto-book or pending approval).",
+        "enum": null,
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "constant_value": ""
+      },
+      "service_address": {
+        "type": "string",
+        "description": "Service location/address if provided (or pickup address for onsite service).",
+        "enum": null,
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "constant_value": ""
+      },
+      "booking_slot": {
+        "type": "string",
+        "description": "The confirmed or proposed slot (e.g., “Thu 2:30 PM”); otherwise blank.",
+        "enum": null,
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "constant_value": ""
+      },
+      "order_confirmed": {
+        "type": "boolean",
+        "description": "True if an order was placed and confirmed.",
+        "enum": null,
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "constant_value": ""
+      },
+      "order_items": {
+        "type": "string",
+        "description": "Items ordered with modifiers (e.g., “Large pepperoni, no onions; 2 cokes”).",
+        "enum": null,
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "constant_value": ""
+      },
+      "order_type": {
+        "type": "string",
+        "description": "pickup, delivery, dine_in, reservation_request, catering_inquiry (best match).",
+        "enum": null,
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "constant_value": ""
+      },
+      "delivery_address": {
+        "type": "string",
+        "description": "Delivery address if delivery; otherwise blank.",
+        "enum": null,
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "constant_value": ""
+      },
+      "order_total": {
+        "type": "string",
+        "description": "otal price if stated/confirmed (keep as text, e.g., “$32.50”).",
+        "enum": null,
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "constant_value": ""
+      },
+      "job_created": {
+        "type": "boolean",
+        "description": "True if a dispatch job was created/queued.",
+        "enum": null,
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "constant_value": ""
+      },
+      "dispatch_confirmed": {
+        "type": "string",
+        "description": "True if dispatch was confirmed/sent (or driver assigned).",
+        "enum": null,
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "constant_value": ""
+      },
+      "pickup_address": {
+        "type": "string",
+        "description": "Pickup/service location for dispatch.",
+        "enum": null,
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "constant_value": ""
+      },
+      "dropoff_address": {
+        "type": "string",
+        "description": "Dropoff destination if provided.",
+        "enum": null,
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "constant_value": ""
+      },
+      "vehicle_type": {
+        "type": "string",
+        "description": "Vehicle details if relevant (make/model/type).",
+        "enum": null,
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "constant_value": ""
+      },
+      "Vehicle details if relevant (make/model/type).": {
+        "type": "boolean",
+        "description": "True if caller says vehicle can be driven; false if not; blank if unknown.",
+        "enum": null,
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "constant_value": ""
+      },
+      "urgency": {
+        "type": "string",
+        "description": "emergency, same_day, scheduled, low (best fit).",
+        "enum": null,
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "constant_value": ""
+      }
+    },
+    "overrides": {
+      "conversation_config_override": {
+        "turn": {
+          "soft_timeout_config": {
+            "message": false
+          }
+        },
+        "tts": {
+          "voice_id": false,
+          "stability": false,
+          "speed": false,
+          "similarity_boost": false
+        },
+        "conversation": {
+          "text_only": true
+        },
+        "agent": {
+          "first_message": false,
+          "language": true,
+          "prompt": {
+            "prompt": false,
+            "llm": false,
+            "native_mcp_server_ids": false
+          }
+        }
+      },
+      "custom_llm_extra_body": false,
+      "enable_conversation_initiation_client_data_from_webhook": false
+    },
+    "workspace_overrides": {
+      "conversation_initiation_client_data_webhook": null,
+      "webhooks": {
+        "post_call_webhook_id": null,
+        "events": [
+          "transcript"
+        ],
+        "send_audio": false
+      }
+    },
+    "testing": {
+      "attached_tests": [],
+      "referenced_tests_ids": []
+    },
+    "archived": false,
+    "guardrails": {
+      "version": "1",
+      "alignment": {
+        "is_enabled": false
+      },
+      "content": {
+        "config": {
+          "sexual": {
+            "is_enabled": false,
+            "threshold": 0.3
+          },
+          "violence": {
+            "is_enabled": false,
+            "threshold": 0.3
+          },
+          "harassment": {
+            "is_enabled": false,
+            "threshold": 0.3
+          },
+          "self_harm": {
+            "is_enabled": false,
+            "threshold": 0.3
+          },
+          "profanity": {
+            "is_enabled": false,
+            "threshold": 0.3
+          },
+          "religion_and_politics": {
+            "is_enabled": false,
+            "threshold": 0.3
+          },
+          "medical_and_legal_information": {
+            "is_enabled": false,
+            "threshold": 0.3
+          }
+        }
+      },
+      "moderation": {
+        "config": {
+          "sexual": {
+            "is_enabled": false,
+            "threshold": 0.3
+          },
+          "violence": {
+            "is_enabled": false,
+            "threshold": 0.3
+          },
+          "violence_graphic": {
+            "is_enabled": false,
+            "threshold": 0.3
+          },
+          "harassment": {
+            "is_enabled": false,
+            "threshold": 0.3
+          },
+          "harassment_threatening": {
+            "is_enabled": false,
+            "threshold": 0.3
+          },
+          "hate": {
+            "is_enabled": false,
+            "threshold": 0.3
+          },
+          "hate_threatening": {
+            "is_enabled": false,
+            "threshold": 0.3
+          },
+          "self_harm_instructions": {
+            "is_enabled": false,
+            "threshold": 0.3
+          },
+          "self_harm": {
+            "is_enabled": false,
+            "threshold": 0.3
+          },
+          "self_harm_intent": {
+            "is_enabled": false,
+            "threshold": 0.3
+          },
+          "sexual_minors": {
+            "is_enabled": false,
+            "threshold": 0.5
+          }
+        }
+      },
+      "custom": {
+        "config": {
+          "configs": []
+        }
+      }
+    },
+    "auth": {
+      "enable_auth": false,
+      "allowlist": [],
+      "require_origin_header": false,
+      "shareable_token": null
+    },
+    "call_limits": {
+      "agent_concurrency_limit": -1,
+      "daily_limit": 100000,
+      "bursting_enabled": true
+    },
+    "ban": null,
+    "privacy": {
+      "record_voice": false,
+      "retention_days": -1,
+      "delete_transcript_and_pii": false,
+      "delete_audio": false,
+      "apply_to_existing_conversations": false,
+      "zero_retention_mode": false
+    },
+    "safety": {
+      "is_blocked_ivc": false,
+      "is_blocked_non_ivc": false,
+      "ignore_safety_evaluation": false
+    }
+  },
+  "phone_numbers": [],
+  "whatsapp_accounts": [],
+  "workflow": {
+    "edges": {
+      "edge_01kg6xa5zje4d9j4cnn37tthy9": {
+        "source": "start_node",
+        "target": "node_01kg6xa5zfe4d9j4cbe0et0twk",
+        "forward_condition": {
+          "label": null,
+          "type": "unconditional"
+        },
+        "backward_condition": null
+      }
+    },
+    "nodes": {
+      "start_node": {
+        "type": "start",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "edge_order": [
+          "edge_01kg6xa5zje4d9j4cnn37tthy9"
+        ]
+      },
+      "node_01kg6xa5zfe4d9j4cbe0et0twk": {
+        "conversation_config": {
+          "turn": {
+            "turn_eagerness": null,
+            "spelling_patience": null
+          },
+          "tts": {
+            "voice_id": null
+          },
+          "agent": {
+            "prompt": {
+              "prompt": null,
+              "llm": null,
+              "built_in_tools": {}
+            }
+          }
+        },
+        "additional_prompt": "",
+        "additional_knowledge_base": [],
+        "additional_tool_ids": [],
+        "type": "override_agent",
+        "position": {
+          "x": -1,
+          "y": 20
+        },
+        "edge_order": [],
+        "label": "New subagent"
+      }
+    },
+    "prevent_subagent_loops": false
+  },
+  "access_info": {
+    "is_creator": true,
+    "creator_name": "John",
+    "creator_email": "glosslabsnj@gmail.com",
+    "role": "admin"
+  },
+  "tags": [],
+  "version_id": "agtvrsn_5701khqc49jsfceshcg8vq6v99by",
+  "branch_id": "agtbrch_2201kgqsce7xez98zs9qbya71ty4",
+  "main_branch_id": "agtbrch_2201kgqsce7xez98zs9qbya71ty4",
+  "procedure_versions": [],
+  "procedures_enabled": false
+}
