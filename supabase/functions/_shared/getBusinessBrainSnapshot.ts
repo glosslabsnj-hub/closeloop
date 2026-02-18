@@ -226,6 +226,26 @@ export interface GeneralWorkflowConfigSnapshot {
   unknown_question_script: string;
 }
 
+export interface ImpoundSnapshot {
+  lot_id: string;
+  lot_name: string;
+  lot_address: string;
+  lot_phone: string;
+  lot_hours_json: Record<string, { open: string; close: string }>;
+  lot_hours_today: string;
+  lot_hours_summary: string;
+  is_open_now: boolean;
+  next_open: string;
+  base_tow_fee_cents: number;
+  daily_storage_cents: number;
+  admin_fee_cents: number;
+  gate_fee_cents: number;
+  fee_summary: string;
+  release_requirements: string[];
+  release_requirements_summary: string;
+  accepted_payment_summary: string;
+}
+
 export interface IntentRuleSnapshot {
   id: string;
   name: string;
@@ -435,6 +455,8 @@ export interface BusinessBrainSnapshot {
     medical: MedicalWorkflowConfigSnapshot | null;
     general: GeneralWorkflowConfigSnapshot | null;
   };
+  // Impound lot data (for dispatch businesses with impound capability)
+  impound: ImpoundSnapshot | null;
   _meta: {
     fetched_at: string;
     tenant_id: string;
@@ -852,6 +874,22 @@ export async function getBusinessBrainSnapshot(
     .eq("tenant_id", tenantId)
     .maybeSingle();
 
+  // Impound lot queries (for dispatch businesses with impound capability)
+  const impoundLotQuery = supabase
+    .from("impound_lots")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .eq("is_active", true)
+    .order("is_default", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const impoundSettingsQuery = supabase
+    .from("impound_settings")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+
   // Execute core queries in parallel
   const [
     servicesResult,
@@ -879,6 +917,9 @@ export async function getBusinessBrainSnapshot(
     foodWorkflowResult,
     medicalWorkflowResult,
     generalWorkflowResult,
+    // Impound lot data
+    impoundLotResult,
+    impoundSettingsResult,
   ] = await Promise.all([
     servicesQuery,
     faqsQuery,
@@ -905,6 +946,9 @@ export async function getBusinessBrainSnapshot(
     foodWorkflowQuery,
     medicalWorkflowQuery,
     generalWorkflowQuery,
+    // Impound lot data
+    impoundLotQuery,
+    impoundSettingsQuery,
   ]);
 
   // Conditionally fetch food-specific data
@@ -1314,6 +1358,97 @@ export async function getBusinessBrainSnapshot(
       }
     : null;
 
+  // Transform impound data (for dispatch businesses with impound capability)
+  const impoundLotRaw = impoundLotResult?.data;
+  const impoundSettingsRaw = impoundSettingsResult?.data;
+
+  // Helper to format hours for today
+  const formatTodayHours = (hoursJson: any): string => {
+    if (!hoursJson) return "";
+    const today = new Date().toLocaleDateString("en-US", { weekday: "lowercase" as any, timeZone: timezone });
+    const todayHours = hoursJson[today];
+    if (!todayHours?.open || !todayHours?.close) return "Closed";
+    return `${todayHours.open} to ${todayHours.close}`;
+  };
+
+  // Helper to format hours summary for speech
+  const formatHoursSummary = (hoursJson: any): string => {
+    if (!hoursJson) return "";
+    const days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+    const parts: string[] = [];
+    for (const day of days) {
+      const hours = hoursJson[day];
+      if (hours?.open && hours?.close) {
+        parts.push(`${day}: ${hours.open}-${hours.close}`);
+      }
+    }
+    return parts.join(", ");
+  };
+
+  // Helper to format fee summary
+  const formatFeeSummary = (settings: any): string => {
+    if (!settings) return "";
+    const baseTow = (settings.base_tow_fee_cents || 0) / 100;
+    const storage = (settings.daily_storage_cents || 0) / 100;
+    const admin = (settings.admin_fee_cents || 0) / 100;
+    const gate = (settings.gate_fee_cents || 0) / 100;
+    return `Base tow $${baseTow}, $${storage} per day storage, $${admin} admin fee, $${gate} gate fee`;
+  };
+
+  // Helper to format release requirements summary
+  const formatRequirementsSummary = (requirements: string[]): string => {
+    if (!requirements || requirements.length === 0) return "";
+    const labels: Record<string, string> = {
+      valid_id: "valid ID",
+      registration: "vehicle registration",
+      insurance: "proof of insurance",
+      lien_release: "lien release",
+      police_release: "police release",
+      payment: "payment in full",
+    };
+    return requirements.map(r => labels[r] || r).join(", ");
+  };
+
+  // Helper to format payment methods summary
+  const formatPaymentSummary = (methods: string[]): string => {
+    if (!methods || methods.length === 0) return "";
+    const labels: Record<string, string> = {
+      cash: "Cash",
+      credit_card: "Credit Card",
+      debit_card: "Debit Card",
+      check: "Check",
+      money_order: "Money Order",
+    };
+    return methods.map(m => labels[m] || m).join(" or ");
+  };
+
+  const impound: ImpoundSnapshot | null = impoundLotRaw && impoundSettingsRaw
+    ? {
+        lot_id: safeString(impoundLotRaw.id),
+        lot_name: safeString(impoundLotRaw.name),
+        lot_address: [
+          safeString(impoundLotRaw.address),
+          safeString(impoundLotRaw.city),
+          safeString(impoundLotRaw.state),
+          safeString(impoundLotRaw.zip),
+        ].filter(Boolean).join(", "),
+        lot_phone: safeString(impoundLotRaw.phone),
+        lot_hours_json: impoundLotRaw.hours_json || {},
+        lot_hours_today: formatTodayHours(impoundLotRaw.hours_json),
+        lot_hours_summary: formatHoursSummary(impoundLotRaw.hours_json),
+        is_open_now: false, // TODO: Calculate based on current time and hours
+        next_open: "", // TODO: Calculate next open time
+        base_tow_fee_cents: impoundSettingsRaw.base_tow_fee_cents || 15000,
+        daily_storage_cents: impoundSettingsRaw.daily_storage_cents || 3500,
+        admin_fee_cents: impoundSettingsRaw.admin_fee_cents || 2500,
+        gate_fee_cents: impoundSettingsRaw.gate_fee_cents || 5000,
+        fee_summary: formatFeeSummary(impoundSettingsRaw),
+        release_requirements: safeArray(impoundSettingsRaw.default_release_requirements),
+        release_requirements_summary: formatRequirementsSummary(safeArray(impoundSettingsRaw.default_release_requirements)),
+        accepted_payment_summary: formatPaymentSummary(safeArray(impoundSettingsRaw.accepted_payment)),
+      }
+    : null;
+
   // Count total mode-specific knowledge items
   const modeKnowledgeCount = menu_knowledge.length + catering_knowledge.length +
     vehicle_knowledge.length + roadside_knowledge.length +
@@ -1372,6 +1507,7 @@ export async function getBusinessBrainSnapshot(
       medical: medical_workflow,
       general: general_workflow,
     },
+    impound,
     _meta: {
       fetched_at: new Date().toISOString(),
       tenant_id: tenantId,
