@@ -4,7 +4,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useGeneralWorkflowConfig, GeneralWorkflowConfig } from "@/hooks/useWorkflowConfig";
+import { useGeneralWorkflowConfig } from "@/hooks/useWorkflowConfig";
+import type { GeneralWorkflowConfig } from "@/hooks/useWorkflowConfig";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 

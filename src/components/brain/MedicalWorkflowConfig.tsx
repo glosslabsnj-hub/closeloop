@@ -5,7 +5,8 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useMedicalWorkflowConfig, MedicalWorkflowConfig } from "@/hooks/useWorkflowConfig";
+import { useMedicalWorkflowConfig } from "@/hooks/useWorkflowConfig";
+import type { MedicalWorkflowConfig } from "@/hooks/useWorkflowConfig";
 import { AlertCircle, CheckCircle2, Loader2, Info, ShieldAlert } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 

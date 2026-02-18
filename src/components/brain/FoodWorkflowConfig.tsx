@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useFoodWorkflowConfig, FoodWorkflowConfig } from "@/hooks/useWorkflowConfig";
+import { useFoodWorkflowConfig } from "@/hooks/useWorkflowConfig";
+import type { FoodWorkflowConfig } from "@/hooks/useWorkflowConfig";
 import { AlertCircle, CheckCircle2, Loader2, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 

@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { useDispatchWorkflowConfig, DispatchWorkflowConfig } from "@/hooks/useWorkflowConfig";
+import { useDispatchWorkflowConfig } from "@/hooks/useWorkflowConfig";
+import type { DispatchWorkflowConfig } from "@/hooks/useWorkflowConfig";
 import { AlertCircle, CheckCircle2, Loader2, Info, X } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
