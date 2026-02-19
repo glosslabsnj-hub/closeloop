@@ -23,6 +23,8 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { useTechnicianLocations, useAutoLocationReporting } from "@/hooks/useTechnicianLocations";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
+import { useMapboxToken } from "@/hooks/useMapboxToken";
+import { DispatchMapView } from "@/components/dispatch/DispatchMapView";
 
 function formatCoordinate(value: number, isLat: boolean): string {
   const direction = isLat ? (value >= 0 ? "N" : "S") : (value >= 0 ? "E" : "W");
@@ -43,6 +45,7 @@ function getAccuracyBadge(accuracy: number | null) {
 export default function DispatchMapPage() {
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["dispatch_queue"]);
   const { locations, isLoading, refetch } = useTechnicianLocations();
+  const { token: mapboxToken, isLoading: tokenLoading } = useMapboxToken();
   const [trackingEnabled, setTrackingEnabled] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
@@ -71,7 +74,7 @@ export default function DispatchMapPage() {
     );
   }
 
-  if (isLoading) {
+  if (isLoading || tokenLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -104,34 +107,33 @@ export default function DispatchMapPage() {
         }
       />
 
-      {/* Map Coming Soon */}
-      <Card className="mb-6">
-        <CardContent className="py-12">
-          <div className="flex flex-col items-center text-center space-y-4">
-            <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
-              <Map className="h-8 w-8 text-muted-foreground" />
+      {/* Live Map */}
+      {mapboxToken ? (
+        <div className="mb-6">
+          <DispatchMapView token={mapboxToken} locations={locations} />
+          {locations.length > 0 && (
+            <p className="text-xs text-muted-foreground mt-2">
+              {locations.length} technician{locations.length !== 1 ? "s" : ""} online · Last updated {formatDistanceToNow(lastRefresh, { addSuffix: true })}
+            </p>
+          )}
+        </div>
+      ) : (
+        <Card className="mb-6">
+          <CardContent className="py-12">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                <Map className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Map Unavailable</h3>
+                <p className="text-sm text-muted-foreground max-w-md mt-1">
+                  The map could not be loaded. Please contact support.
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold">Interactive Map &mdash; Coming Soon</h3>
-              <p className="text-sm text-muted-foreground max-w-md mt-1">
-                The live dispatch map requires a Mapbox GL JS API key to be configured.
-                Once enabled, you will see real-time technician positions and dispatch routes.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              {locations.length > 0 && (
-                <Badge variant="secondary">{locations.length} technician{locations.length !== 1 ? "s" : ""} online</Badge>
-              )}
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/app/dispatch">
-                  <ArrowRight className="h-4 w-4 mr-2" />
-                  Go to Dispatch Queue
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Technician List */}
       <Card>
