@@ -115,8 +115,20 @@ Deno.serve(async (req) => {
     }
 
     if (!stripePriceId) {
+      // Env var fallback: STRIPE_PRICE_BASE_200, STRIPE_PRICE_GROWTH_2000, etc.
+      const envKey = `STRIPE_PRICE_${plan_sku.replace(/-/g, "_").toUpperCase()}`;
+      stripePriceId = Deno.env.get(envKey) || null;
+      if (stripePriceId) {
+        console.log(`Using env var fallback ${envKey} for plan_sku: ${plan_sku}`);
+      }
+    }
+
+    if (!stripePriceId) {
       console.error(`No Stripe price found for plan_sku: ${plan_sku}`);
-      return errorResponse(`No Stripe price configured for plan: ${plan_sku}`, 400);
+      return errorResponse(
+        `No Stripe price configured for plan: ${plan_sku}. Run the seed-stripe-prices function to create prices.`,
+        400,
+      );
     }
 
     // Determine origin for redirect URLs

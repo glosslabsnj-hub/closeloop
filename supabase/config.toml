@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.admin-lead-search]
 verify_jwt = false
+
+[functions.seed-stripe-prices]
+verify_jwt = false
