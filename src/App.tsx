@@ -97,6 +97,7 @@ import AdminAgenciesPage from "@/pages/admin/AdminAgenciesPage";
 import AdminLeadFinderPage from "@/pages/admin/AdminLeadFinderPage";
 import AdminResellerFinderPage from "@/pages/admin/AdminResellerFinderPage";
 import AdminMarketingPage from "@/pages/admin/AdminMarketingPage";
+import AdminGrowthEnginePage from "@/pages/admin/AdminGrowthEnginePage";
 
 // Debug Pages
 import TelephonyDebugPage from "@/pages/debug/TelephonyDebugPage";
@@ -217,6 +218,7 @@ const App = () => (
               <Route path="/admin/audit-report" element={<AdminAuditReportPage />} />
               <Route path="/admin/test-onboarding" element={<AdminTestOnboardingPage />} />
               <Route path="/admin/agency-applications" element={<AdminAgencyApplicationsPage />} />
+              <Route path="/admin/growth-engine" element={<AdminGrowthEnginePage />} />
             </Route>
 
             {/* Driver Portal Routes */}

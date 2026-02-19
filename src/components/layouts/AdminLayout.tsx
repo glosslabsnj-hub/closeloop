@@ -26,6 +26,7 @@ import {
   Search,
   Handshake,
   Megaphone,
+  Rocket,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
@@ -54,6 +55,7 @@ const navSections: NavSection[] = [
       { href: "/admin/lead-finder", label: "Lead Finder", icon: Search },
       { href: "/admin/reseller-finder", label: "Reseller Finder", icon: Handshake },
       { href: "/admin/marketing", label: "Marketing HQ", icon: Megaphone },
+      { href: "/admin/growth-engine", label: "Growth Engine", icon: Rocket },
     ],
   },
   {

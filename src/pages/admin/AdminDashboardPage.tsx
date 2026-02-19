@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Building2, Users, DollarSign, TrendingUp, FileText, Headset, Loader2, ExternalLink, Users2 } from "lucide-react";
+import { Building2, Users, DollarSign, TrendingUp, FileText, Headset, Loader2, ExternalLink, Users2, Rocket } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
@@ -11,6 +11,8 @@ import {
   useAgencySummary,
   usePendingActions,
 } from "@/hooks/useAdminDashboardStats";
+import { useAdminGrowthSettings } from "@/hooks/useAdminGrowthSettings";
+import { useOutreachCampaigns } from "@/hooks/useAdminOutreach";
 
 export default function AdminDashboardPage() {
   const { setActiveTenantId } = useAuth();
@@ -19,6 +21,8 @@ export default function AdminDashboardPage() {
   const { data: clients, isLoading: clientsLoading } = useActiveClients();
   const { data: agencySummary } = useAgencySummary();
   const { data: pending } = usePendingActions();
+  const { data: growthSettings } = useAdminGrowthSettings();
+  const { data: outreachCampaigns } = useOutreachCampaigns();
 
   const handleManageClient = async (tenantId: string) => {
     await setActiveTenantId(tenantId);
@@ -186,6 +190,49 @@ export default function AdminDashboardPage() {
                 <p className="text-xs text-muted-foreground">{card.label}</p>
               </div>
             ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Growth Engine Summary */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Rocket className="h-5 w-5" />
+              Growth Engine
+            </CardTitle>
+            <Link to="/admin/growth-engine">
+              <Button variant="ghost" size="sm" className="text-xs">Open</Button>
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-4 gap-4">
+            <div className="text-center p-3 rounded-lg bg-muted/50">
+              <p className="text-xl font-bold">
+                {[growthSettings?.auto_discovery_enabled, growthSettings?.auto_outreach_enabled, growthSettings?.auto_social_enabled, growthSettings?.auto_ads_enabled].filter(Boolean).length}/4
+              </p>
+              <p className="text-xs text-muted-foreground">Modules Active</p>
+            </div>
+            <div className="text-center p-3 rounded-lg bg-muted/50">
+              <p className="text-xl font-bold">
+                {(outreachCampaigns ?? []).filter((c) => c.status === "active").length}
+              </p>
+              <p className="text-xs text-muted-foreground">Active Campaigns</p>
+            </div>
+            <div className="text-center p-3 rounded-lg bg-muted/50">
+              <p className="text-xl font-bold">
+                {(outreachCampaigns ?? []).reduce((s, c) => s + c.total_enrolled, 0)}
+              </p>
+              <p className="text-xs text-muted-foreground">Enrolled Leads</p>
+            </div>
+            <div className="text-center p-3 rounded-lg bg-muted/50">
+              <p className="text-xl font-bold">
+                {(outreachCampaigns ?? []).reduce((s, c) => s + c.total_responded, 0)}
+              </p>
+              <p className="text-xs text-muted-foreground">Responses</p>
+            </div>
           </div>
         </CardContent>
       </Card>

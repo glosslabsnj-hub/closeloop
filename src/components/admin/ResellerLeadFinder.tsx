@@ -12,7 +12,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, Globe, Phone, Star, Loader2, MapPin, Bookmark, Check, Trash2, Handshake } from "lucide-react";
+import { Search, Globe, Phone, Star, Loader2, MapPin, Bookmark, Check, Trash2, Handshake, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -31,6 +31,7 @@ import {
   useAdminDeleteResellerLead,
   type AdminResellerLead,
 } from "@/hooks/useAdminResellerLeads";
+import { useEnrollLeads, useOutreachCampaigns } from "@/hooks/useAdminOutreach";
 
 interface ResellerResult {
   name: string;
@@ -66,6 +67,17 @@ export function ResellerLeadFinder() {
   const saveLeadsBatch = useAdminSaveResellerLeadsBatch(userId);
   const updateLead = useAdminUpdateResellerLead(userId);
   const deleteLead = useAdminDeleteResellerLead(userId);
+  const enrollLeads = useEnrollLeads();
+  const { data: campaigns } = useOutreachCampaigns();
+  const defaultResellerCampaign = (campaigns ?? []).find((c) => c.target_type === "reseller" && c.status === "active");
+
+  const handleStartOutreach = (lead: AdminResellerLead) => {
+    if (!defaultResellerCampaign) { toast.error("No active reseller campaign. Create one in Growth Engine."); return; }
+    enrollLeads.mutate({
+      campaign_id: defaultResellerCampaign.id,
+      leads: [{ lead_id: lead.id, lead_type: "reseller", lead_name: lead.name, lead_email: undefined, lead_phone: lead.phone || undefined }],
+    });
+  };
 
   const savedNames = useMemo(() => {
     const set = new Set<string>();
@@ -353,6 +365,12 @@ export function ResellerLeadFinder() {
                           </SelectContent>
                         </Select>
                       </div>
+                      {defaultResellerCampaign && lead.status === "new" && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" title="Start Outreach"
+                          onClick={(e) => { e.stopPropagation(); handleStartOutreach(lead); }}>
+                          <Mail className="h-3.5 w-3.5 text-primary" />
+                        </Button>
+                      )}
                       <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0"
                         onClick={(e) => { e.stopPropagation(); setDeleteTarget(lead); }}>
                         <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />

@@ -9,8 +9,10 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Phone, Trash2, Building2, Search } from "lucide-react";
+import { Phone, Trash2, Building2, Search, Mail, Loader2 } from "lucide-react";
 import { type AdminSavedLead, useAdminUpdateSavedLead, useAdminDeleteSavedLead } from "@/hooks/useAdminLeads";
+import { useEnrollLeads, useOutreachCampaigns } from "@/hooks/useAdminOutreach";
+import { toast } from "sonner";
 import { getTemperatureColor, getTemperatureIcon, type LeadTemperature } from "../agency/lead-finder/leadScoring";
 import { LeadDetailPanel, type AgencyLead } from "../agency/lead-finder/LeadDetailPanel";
 import { STATUS_LABELS } from "../agency/lead-finder/leadConstants";
@@ -31,6 +33,27 @@ export function AdminSavedLeadsTab({ leads, userId }: AdminSavedLeadsTabProps) {
   const [deleteTarget, setDeleteTarget] = useState<AdminSavedLead | null>(null);
   const updateLead = useAdminUpdateSavedLead(userId);
   const deleteLead = useAdminDeleteSavedLead(userId);
+  const enrollLeads = useEnrollLeads();
+  const { data: campaigns } = useOutreachCampaigns();
+  const defaultCampaign = (campaigns ?? []).find((c) => c.target_type === "business" && c.status === "active");
+
+  const handleStartOutreach = (lead: AdminSavedLead) => {
+    if (!defaultCampaign) { toast.error("No active business campaign. Create one in Growth Engine."); return; }
+    enrollLeads.mutate({
+      campaign_id: defaultCampaign.id,
+      leads: [{ lead_id: lead.id, lead_type: "business", lead_name: lead.name, lead_email: undefined, lead_phone: lead.phone || undefined }],
+    });
+  };
+
+  const handleBulkOutreach = () => {
+    if (!defaultCampaign) { toast.error("No active business campaign. Create one in Growth Engine."); return; }
+    const toEnroll = filtered.filter((l) => l.status === "new");
+    if (!toEnroll.length) { toast.info("No new leads to enroll"); return; }
+    enrollLeads.mutate({
+      campaign_id: defaultCampaign.id,
+      leads: toEnroll.map((l) => ({ lead_id: l.id, lead_type: "business", lead_name: l.name, lead_email: undefined, lead_phone: l.phone || undefined })),
+    });
+  };
 
   const filtered = useMemo(() => {
     let result = leads;
@@ -116,7 +139,15 @@ export function AdminSavedLeadsTab({ leads, userId }: AdminSavedLeadsTabProps) {
         )}
       </div>
 
-      <div className="text-xs text-muted-foreground">{filtered.length} lead{filtered.length !== 1 ? "s" : ""}</div>
+      <div className="flex items-center justify-between">
+        <div className="text-xs text-muted-foreground">{filtered.length} lead{filtered.length !== 1 ? "s" : ""}</div>
+        {defaultCampaign && filtered.some((l) => l.status === "new") && (
+          <Button size="sm" variant="outline" onClick={handleBulkOutreach} disabled={enrollLeads.isPending} className="text-xs h-7">
+            {enrollLeads.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Mail className="h-3 w-3 mr-1" />}
+            Bulk Outreach
+          </Button>
+        )}
+      </div>
 
       <div className="grid gap-2">
         {filtered.length === 0 ? (
@@ -167,6 +198,18 @@ export function AdminSavedLeadsTab({ leads, userId }: AdminSavedLeadsTabProps) {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {defaultCampaign && lead.status === "new" && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0"
+                      title="Start Outreach"
+                      onClick={(e) => { e.stopPropagation(); handleStartOutreach(lead); }}
+                    >
+                      <Mail className="h-3.5 w-3.5 text-primary" />
+                    </Button>
+                  )}
 
                   <Button
                     variant="ghost"
