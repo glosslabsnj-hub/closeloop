@@ -156,7 +156,7 @@ function AppLayoutContent() {
       {isSuperAdmin && (
         <header className="hidden md:flex fixed top-0 left-0 right-0 z-50 h-10 bg-background/95 backdrop-blur-lg border-b border-border/20 items-center justify-between px-4">
           <Link
-            to="/admin"
+            to="/admin/overview"
             className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
           >
             <Lock className="h-3 w-3" />

@@ -81,7 +81,7 @@ export function SlimTopBar({ userEmail, tenantName, onSignOut, isSuperAdmin }: S
             </div>
             {isSuperAdmin && (
               <>
-                <DropdownMenuItem onClick={() => navigate("/admin")} className="cursor-pointer">
+                <DropdownMenuItem onClick={() => navigate("/admin/overview")} className="cursor-pointer">
                   <ShieldCheck className="mr-2 h-4 w-4" />
                   Admin Dashboard
                 </DropdownMenuItem>
