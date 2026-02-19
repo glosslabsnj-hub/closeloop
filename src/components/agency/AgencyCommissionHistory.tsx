@@ -1,6 +1,23 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -9,13 +26,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Download } from "lucide-react";
+import { Download, Settings2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { AgencyCommission } from "@/hooks/useAgencyData";
+import { useUpdatePayoutConfig } from "@/hooks/useAgencyData";
 
 interface AgencyCommissionHistoryProps {
   commissions: AgencyCommission[];
   isLoading: boolean;
+  agencyId?: string;
+  payoutConfig?: Record<string, unknown>;
 }
 
 function formatCents(cents: number): string {
@@ -67,7 +87,77 @@ function exportCSV(commissions: AgencyCommission[]) {
   toast.success("Commission data exported");
 }
 
-export function AgencyCommissionHistory({ commissions, isLoading }: AgencyCommissionHistoryProps) {
+function PayoutSettingsDialog({
+  open,
+  onOpenChange,
+  agencyId,
+  currentConfig,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  agencyId: string;
+  currentConfig: Record<string, unknown>;
+}) {
+  const [method, setMethod] = useState((currentConfig.method as string) || "paypal");
+  const [detail, setDetail] = useState((currentConfig.detail as string) || "");
+  const updateConfig = useUpdatePayoutConfig(agencyId);
+
+  const handleSave = () => {
+    updateConfig.mutate({ method, detail }, {
+      onSuccess: () => {
+        toast.success("Payout settings saved");
+        onOpenChange(false);
+      },
+      onError: () => toast.error("Failed to save payout settings"),
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Payout Settings</DialogTitle>
+          <DialogDescription>
+            Set your preferred payout method so we know where to send your commissions.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label>Preferred Method</Label>
+            <Select value={method} onValueChange={setMethod}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="paypal">PayPal</SelectItem>
+                <SelectItem value="zelle">Zelle</SelectItem>
+                <SelectItem value="wire">Wire Transfer</SelectItem>
+                <SelectItem value="check">Check</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>
+              {method === "paypal" ? "PayPal Email" : method === "zelle" ? "Zelle Phone/Email" : method === "wire" ? "Bank Details" : "Mailing Address"}
+            </Label>
+            <Input
+              value={detail}
+              onChange={(e) => setDetail(e.target.value)}
+              placeholder={method === "paypal" ? "email@example.com" : method === "zelle" ? "phone or email" : "Enter details"}
+            />
+          </div>
+          <Button className="w-full" onClick={handleSave} disabled={updateConfig.isPending}>
+            {updateConfig.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+            Save Settings
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function AgencyCommissionHistory({ commissions, isLoading, agencyId, payoutConfig }: AgencyCommissionHistoryProps) {
+  const [payoutSettingsOpen, setPayoutSettingsOpen] = useState(false);
   if (isLoading) {
     return (
       <Card>
@@ -124,6 +214,12 @@ export function AgencyCommissionHistory({ commissions, isLoading }: AgencyCommis
                 <span className="font-semibold text-amber-600">{formatCents(pendingCents)}</span>
               </div>
             </div>
+            {agencyId && (
+              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setPayoutSettingsOpen(true)}>
+                <Settings2 className="h-3 w-3 mr-1.5" />
+                Payout Settings
+              </Button>
+            )}
             <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => exportCSV(commissions)}>
               <Download className="h-3 w-3 mr-1.5" />
               Export
@@ -172,6 +268,15 @@ export function AgencyCommissionHistory({ commissions, isLoading }: AgencyCommis
             </TableBody>
           </Table>
         </div>
+
+        {agencyId && (
+          <PayoutSettingsDialog
+            open={payoutSettingsOpen}
+            onOpenChange={setPayoutSettingsOpen}
+            agencyId={agencyId}
+            currentConfig={(payoutConfig as Record<string, unknown>) || {}}
+          />
+        )}
       </CardContent>
     </Card>
   );

@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -22,6 +22,12 @@ export interface AgencyTenant {
   // Joined from tenants
   tenant_name?: string;
   business_mode?: string;
+  // Joined from subscriptions
+  subscription_status?: string | null;
+  plan_code?: string | null;
+  trial_started_at?: string | null;
+  current_period_end?: string | null;
+  stripe_customer_id?: string | null;
 }
 
 export interface AgencyMetrics {
@@ -85,12 +91,26 @@ export function useAgencyTenants(agencyId: string | null | undefined) {
 
       const tenantMap = new Map((tenants || []).map((t: any) => [t.id, t]));
 
+      // Fetch subscription data
+      const { data: subscriptions } = await supabase
+        .from("subscriptions")
+        .select("tenant_id, status, plan_code, trial_started_at, current_period_end, stripe_customer_id")
+        .in("tenant_id", tenantIds);
+
+      const subMap = new Map((subscriptions || []).map((s: any) => [s.tenant_id, s]));
+
       return (data || []).map((at: any) => {
         const tenant = tenantMap.get(at.tenant_id);
+        const sub = subMap.get(at.tenant_id);
         return {
           ...at,
           tenant_name: tenant?.name || "Unknown",
           business_mode: tenant?.business_mode || "general",
+          subscription_status: sub?.status || null,
+          plan_code: sub?.plan_code || null,
+          trial_started_at: sub?.trial_started_at || null,
+          current_period_end: sub?.current_period_end || null,
+          stripe_customer_id: sub?.stripe_customer_id || null,
         } as AgencyTenant;
       });
     },
@@ -192,4 +212,24 @@ export function useAgencyCommissions(agencyId: string | null | undefined) {
 export function useIsAgencyUser() {
   const { data: account, isLoading } = useAgencyAccount();
   return { isAgency: !!account, isLoading, agencyId: account?.id };
+}
+
+export function useUpdatePayoutConfig(agencyId: string | null | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (config: Record<string, unknown>) => {
+      if (!agencyId) throw new Error("No agency ID");
+
+      const { error } = await (supabase as any)
+        .from("agency_accounts")
+        .update({ payout_config_json: config })
+        .eq("id", agencyId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["agency-account"] });
+    },
+  });
 }

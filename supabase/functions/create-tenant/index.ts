@@ -45,6 +45,7 @@ interface CreateTenantRequest {
   location?: string | null;
   // Agency provisioning
   agency_id?: string | null;
+  agency_slug?: string | null;
   owner_email?: string | null;
 }
 
@@ -281,6 +282,35 @@ serve(async (req) => {
         }
       } else {
         console.warn("[create-tenant] Agency ID provided but not owned by user, skipping link");
+      }
+    }
+
+    // 11b. Agency linkage via referral slug (self-serve signup)
+    if (!agencyLinked && !body.agency_id && body.agency_slug) {
+      const { data: agencyBySlug } = await serviceClient
+        .from("agency_accounts")
+        .select("id")
+        .eq("agency_slug", body.agency_slug.toLowerCase().trim())
+        .maybeSingle();
+
+      if (agencyBySlug) {
+        const { error: slugLinkError } = await serviceClient
+          .from("agency_tenants")
+          .insert({
+            agency_id: agencyBySlug.id,
+            tenant_id: tenantId,
+            status: "active",
+            referral_source: "referral_link",
+          });
+
+        if (slugLinkError) {
+          console.error("[create-tenant] Agency slug link error:", slugLinkError.message);
+        } else {
+          agencyLinked = true;
+          console.log(`[create-tenant] Agency linked via slug: ${body.agency_slug} -> tenant ${tenantId.substring(0, 8)}...`);
+        }
+      } else {
+        console.warn(`[create-tenant] Agency slug '${body.agency_slug}' not found, skipping link`);
       }
     }
 

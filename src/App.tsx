@@ -25,6 +25,7 @@ import CustomerPortalPage from "@/pages/public/CustomerPortalPage";
 import PublicROIReportPage from "@/pages/public/PublicROIReportPage";
 import AgenciesPage from "@/pages/public/AgenciesPage";
 import ForgotPasswordPage from "@/pages/public/ForgotPasswordPage";
+import AgencyReferralSignupPage from "@/pages/public/AgencyReferralSignupPage";
 
 // App Pages
 const OnboardingPage = lazy(() => import("@/pages/app/OnboardingPage"));
@@ -102,6 +103,8 @@ import AdminLeadFinderPage from "@/pages/admin/AdminLeadFinderPage";
 import AdminResellerFinderPage from "@/pages/admin/AdminResellerFinderPage";
 import AdminMarketingPage from "@/pages/admin/AdminMarketingPage";
 import AdminGrowthEnginePage from "@/pages/admin/AdminGrowthEnginePage";
+import AdminBlueprintPage from "@/pages/admin/AdminBlueprintPage";
+import AdminCommissionPayoutsPage from "@/pages/admin/AdminCommissionPayoutsPage";
 
 // Debug Pages
 import TelephonyDebugPage from "@/pages/debug/TelephonyDebugPage";
@@ -142,6 +145,9 @@ const App = () => (
 
             {/* Public ROI Report (no layout - shareable) */}
             <Route path="/roi/:tenantId/:shareToken" element={<PublicROIReportPage />} />
+
+            {/* Agency Referral Signup (no layout - branded signup) */}
+            <Route path="/join/:agencySlug" element={<AgencyReferralSignupPage />} />
 
             {/* Onboarding and Go-Live (no layout) */}
             <Route path="/app/onboarding" element={<Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>}><OnboardingPage /></Suspense>} />
@@ -228,6 +234,8 @@ const App = () => (
               <Route path="/admin/test-onboarding" element={<AdminTestOnboardingPage />} />
               <Route path="/admin/agency-applications" element={<AdminAgencyApplicationsPage />} />
               <Route path="/admin/growth-engine" element={<AdminGrowthEnginePage />} />
+              <Route path="/admin/blueprint" element={<AdminBlueprintPage />} />
+              <Route path="/admin/commission-payouts" element={<AdminCommissionPayoutsPage />} />
             </Route>
 
             {/* Driver Portal Routes */}

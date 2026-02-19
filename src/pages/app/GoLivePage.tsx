@@ -16,6 +16,7 @@ import {
   Zap, Clock, Bot, Shield, ChevronRight, ChevronLeft, AlertTriangle
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsAgencyManagedTenant } from "@/hooks/useIsAgencyManagedTenant";
 import {
   TIERS,
   TRIAL_CONFIG,
@@ -49,10 +50,12 @@ export default function GoLivePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const { data: isAgencyManaged } = useIsAgencyManagedTenant(tenant?.id || null);
+
   if (!user) return <Navigate to="/login" replace />;
 
-  // Go-live is blocked unless canGoLive is true (score >= 85 AND no P0 flags)
-  const goLiveBlocked = !canGoLive;
+  // Go-live is blocked unless canGoLive is true — relaxed for agency-managed tenants
+  const goLiveBlocked = isAgencyManaged ? false : !canGoLive;
 
   const handleTierSelect = (tier: PlanTier) => {
     setSelectedTier(tier);

@@ -1,16 +1,19 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Building2, Clock, ArrowRight, XCircle, AlertTriangle, Sparkles } from "lucide-react";
+import { Plus, Building2, Clock, ArrowRight, XCircle, AlertTriangle, Sparkles, Copy, Check, LinkIcon } from "lucide-react";
 import { AgencyOverview } from "@/components/agency/AgencyOverview";
 import { AgencyTenantList } from "@/components/agency/AgencyTenantList";
 import { AgencyCommissionHistory } from "@/components/agency/AgencyCommissionHistory";
 import { AgencyLeadFinder } from "@/components/agency/AgencyLeadFinder";
 import { QuickProvisionWizard } from "@/components/agency/QuickProvisionWizard";
+import { AgencyPaymentLinkDialog } from "@/components/agency/AgencyPaymentLinkDialog";
 import { useAgencyAccount, useAgencyTenants, useAgencyMetrics, useAgencyCommissions } from "@/hooks/useAgencyData";
+import { useAgencyClientReadiness } from "@/hooks/useAgencyClientReadiness";
 import { useMyAgencyApplication } from "@/hooks/useAgencyApplications";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 export default function AgencyDashboardPage() {
   const { data: agency, isLoading: agencyLoading, error: agencyError } = useAgencyAccount();
@@ -18,8 +21,13 @@ export default function AgencyDashboardPage() {
   const { data: metrics, isLoading: metricsLoading } = useAgencyMetrics(agency?.id);
   const { data: commissionData, isLoading: commissionsLoading } = useAgencyCommissions(agency?.id);
   const { data: myApplication, isLoading: appLoading } = useMyAgencyApplication();
+  const tenantIds = (tenants || []).map((t) => t.tenant_id);
+  const { data: readinessMap } = useAgencyClientReadiness(tenantIds);
   const [provisionOpen, setProvisionOpen] = useState(false);
   const [provisionLead, setProvisionLead] = useState<{ name: string; industry?: string } | null>(null);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [paymentDialogTenant, setPaymentDialogTenant] = useState<{ id: string; name: string } | null>(null);
+  const [referralCopied, setReferralCopied] = useState(false);
 
   const commissionRate = (agency?.billing_config_json as Record<string, unknown>)?.commission_rate as number | undefined;
 
@@ -169,6 +177,15 @@ export default function AgencyDashboardPage() {
     setProvisionOpen(true);
   };
 
+  const handleActivateTenant = (tenantId: string, tenantName: string) => {
+    setPaymentDialogTenant({ id: tenantId, name: tenantName });
+    setPaymentDialogOpen(true);
+  };
+
+  const referralLink = agency.agency_slug
+    ? `${window.location.origin}/join/${agency.agency_slug}`
+    : null;
+
   const hasClients = (tenants?.length ?? 0) > 0;
 
   return (
@@ -184,6 +201,37 @@ export default function AgencyDashboardPage() {
           Add Client
         </Button>
       </div>
+
+      {/* Referral Link Card */}
+      {referralLink && (
+        <Card className="border-dashed">
+          <CardContent className="py-3 px-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 min-w-0">
+                <LinkIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground">Your Referral Link</p>
+                  <p className="text-sm font-mono truncate">{referralLink}</p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 shrink-0"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(referralLink);
+                  setReferralCopied(true);
+                  toast.success("Referral link copied");
+                  setTimeout(() => setReferralCopied(false), 2000);
+                }}
+              >
+                {referralCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5 mr-1.5" />}
+                {referralCopied ? "" : "Copy"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Welcome banner for new agencies with 0 clients */}
       {!hasClients && !tenantsLoading && (
@@ -234,6 +282,8 @@ export default function AgencyDashboardPage() {
           tenants={tenants || []}
           metrics={metrics}
           isLoading={tenantsLoading}
+          onActivateTenant={handleActivateTenant}
+          readinessMap={readinessMap}
         />
       </section>
 
@@ -246,6 +296,8 @@ export default function AgencyDashboardPage() {
       <AgencyCommissionHistory
         commissions={commissionData?.commissions ?? []}
         isLoading={commissionsLoading}
+        agencyId={agency.id}
+        payoutConfig={(agency as any).payout_config_json || {}}
       />
 
       {/* Quick Provision Wizard */}
@@ -255,6 +307,16 @@ export default function AgencyDashboardPage() {
         agencyId={agency.id}
         prefillLead={provisionLead ?? undefined}
       />
+
+      {/* Payment Link Dialog */}
+      {paymentDialogTenant && (
+        <AgencyPaymentLinkDialog
+          open={paymentDialogOpen}
+          onOpenChange={setPaymentDialogOpen}
+          tenantId={paymentDialogTenant.id}
+          tenantName={paymentDialogTenant.name}
+        />
+      )}
     </div>
   );
 }

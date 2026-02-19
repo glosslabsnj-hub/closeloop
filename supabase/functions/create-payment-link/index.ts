@@ -1,3 +1,14 @@
+/**
+ * create-payment-link
+ *
+ * Generates a Stripe Checkout URL that an agency can share with a client.
+ * The client can click the link without CloseLoop auth to pay for their plan.
+ *
+ * Auth: JWT + requireAuthedTenant (agency user must have membership on the client tenant)
+ * Input: { tenant_id, plan_sku }
+ * Returns: { checkout_url, expires_at }
+ */
+
 import { corsResponse, errorResponse, jsonResponse } from "../_shared/cors.ts";
 import { requireAuthedTenant, serviceClient } from "../_shared/tenant.ts";
 
@@ -12,8 +23,11 @@ Deno.serve(async (req) => {
       return errorResponse("Stripe not configured", 500);
     }
 
-    const { plan_sku, tenant_id: requestedTenantId } = await req.json();
+    const { tenant_id: requestedTenantId, plan_sku } = await req.json();
 
+    if (!requestedTenantId) {
+      return errorResponse("Missing tenant_id");
+    }
     if (!plan_sku) {
       return errorResponse("Missing plan_sku");
     }
@@ -38,7 +52,7 @@ Deno.serve(async (req) => {
     let stripeCustomerId = subscription?.stripe_customer_id;
 
     if (!stripeCustomerId) {
-      // Get user email for Stripe customer
+      // Get user email for Stripe customer (tenant owner)
       const { data: tenantUsers } = await supabase
         .from("tenant_users")
         .select("user_id")
@@ -87,7 +101,6 @@ Deno.serve(async (req) => {
     }
 
     // Look up Stripe price ID for the plan SKU
-    // Search for a price with matching metadata
     const priceSearchRes = await fetch(
       `https://api.stripe.com/v1/prices/search?query=metadata['plan_code']:'${plan_sku}' AND active:'true'`,
       {
@@ -109,7 +122,7 @@ Deno.serve(async (req) => {
     // Determine origin for redirect URLs
     const origin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/[^/]*$/, "") || "https://app.voxly.ai";
 
-    // Create Checkout Session with trial
+    // Create Checkout Session with trial (shareable link — no auth required to visit)
     const sessionParams = new URLSearchParams({
       "mode": "subscription",
       "customer": stripeCustomerId!,
@@ -118,11 +131,10 @@ Deno.serve(async (req) => {
       "subscription_data[trial_period_days]": String(TRIAL_DAYS),
       "subscription_data[metadata][tenant_id]": tenantId,
       "subscription_data[metadata][plan_code]": plan_sku,
+      "subscription_data[metadata][agency_initiated]": "true",
       "payment_method_collection": "always",
-      "success_url": requestedTenantId
-        ? `${origin}/app/dashboard?tenant=${tenantId}&activated=true`
-        : `${origin}/app/dashboard?activated=true`,
-      "cancel_url": `${origin}/app/go-live`,
+      "success_url": `${origin}/app/dashboard?tenant=${tenantId}&activated=true`,
+      "cancel_url": `${origin}/app/agency`,
     });
 
     const sessionRes = await fetch("https://api.stripe.com/v1/checkout/sessions", {
@@ -142,9 +154,12 @@ Deno.serve(async (req) => {
 
     const session = await sessionRes.json();
 
-    return jsonResponse({ checkout_url: session.url });
+    return jsonResponse({
+      checkout_url: session.url,
+      expires_at: new Date(session.expires_at * 1000).toISOString(),
+    });
   } catch (err) {
-    console.error("create-checkout-session error:", err);
+    console.error("create-payment-link error:", err);
     if (err instanceof Error && (err.message === "Unauthorized" || err.message.includes("Forbidden"))) {
       return errorResponse(err.message, 401);
     }

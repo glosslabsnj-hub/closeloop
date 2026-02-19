@@ -27,6 +27,7 @@ import {
   Handshake,
   Megaphone,
   Rocket,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
@@ -65,8 +66,10 @@ const navSections: NavSection[] = [
       { href: "/admin/golden-path", label: "Golden Path QA", icon: ClipboardCheck },
       { href: "/admin/support", label: "Support", icon: HeadphonesIcon },
       { href: "/admin/agency-applications", label: "Applications", icon: FileText },
+      { href: "/admin/commission-payouts", label: "Commissions", icon: DollarSign },
       { href: "/admin/setup-requests", label: "Setup Requests", icon: Headset },
       { href: "/admin/audit-report", label: "Audit Report", icon: ScrollText },
+      { href: "/admin/blueprint", label: "Blueprint", icon: FileText },
     ],
   },
 ];

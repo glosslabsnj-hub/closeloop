@@ -128,6 +128,7 @@ export function useOnboardingSubmit(userId?: string) {
       // 1. Create tenant (idempotent: skip if already created on a previous attempt)
       let tenantId = createdTenantId;
       if (!tenantId) {
+        const agencySlug = sessionStorage.getItem("referralAgencySlug") || undefined;
         const { data: createResult, error: createError } = await supabase.functions.invoke("create-tenant", {
           body: {
             name: businessName.trim(), business_mode: businessMode, timezone,
@@ -135,6 +136,7 @@ export function useOnboardingSubmit(userId?: string) {
             capabilities_json: capabilitiesJson, hipaa_mode: businessMode === "medical",
             address: businessAddress || businessDetails.location || undefined, default_capacity: defaultCapacity,
             plan_code: planCode,
+            agency_slug: agencySlug,
           },
         });
         if (createError) throw new Error(createError.message || "Failed to create business profile");
@@ -325,6 +327,7 @@ export function useOnboardingSubmit(userId?: string) {
       // 17. Mark complete
       await supabase.from("tenants").update({ onboarding_completed_at: new Date().toISOString() }).eq("id", tenantId);
       sessionStorage.removeItem("selectedPlan");
+      sessionStorage.removeItem("referralAgencySlug");
       await refreshTenant();
       await new Promise(r => setTimeout(r, 100));
       clearOnboardingData(userId);
