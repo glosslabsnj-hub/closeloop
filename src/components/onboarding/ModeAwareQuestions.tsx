@@ -185,22 +185,22 @@ export const ModeAwareQuestions = React.memo(function ModeAwareQuestions({
                               key={opt.value}
                               className={cn(
                                 "flex items-start gap-2 p-2 rounded-md cursor-pointer text-xs border transition-all",
-                                scenarioDetails[q.followUp!.answerKey || ""] === opt.value ||
-                                  (!scenarioDetails[q.followUp!.answerKey || ""] && q.followUp!.defaultValue === opt.value)
+                                scenarioDetails[(q.followUp as any)!.answerKey || ""] === opt.value ||
+                                  (!scenarioDetails[(q.followUp as any)!.answerKey || ""] && (q.followUp as any)!.defaultValue === opt.value)
                                   ? "border-primary bg-primary/5"
                                   : "border-transparent hover:bg-muted/50"
                               )}
                             >
                               <input
                                 type="radio"
-                                name={q.followUp!.id}
+                                name={(q.followUp as any)!.id}
                                 value={opt.value}
                                 checked={
-                                  scenarioDetails[q.followUp!.answerKey || ""] === opt.value ||
-                                  (!scenarioDetails[q.followUp!.answerKey || ""] && q.followUp!.defaultValue === opt.value)
+                                  scenarioDetails[(q.followUp as any)!.answerKey || ""] === opt.value ||
+                                  (!scenarioDetails[(q.followUp as any)!.answerKey || ""] && (q.followUp as any)!.defaultValue === opt.value)
                                 }
                                 onChange={() =>
-                                  handleDetailChange(q.followUp!.answerKey || q.followUp!.id, opt.value)
+                                  handleDetailChange((q.followUp as any)!.answerKey || (q.followUp as any)!.id, opt.value)
                                 }
                                 className="mt-0.5"
                               />

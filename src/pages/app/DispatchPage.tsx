@@ -294,7 +294,7 @@ export default function DispatchPage() {
     setIsCreatingJob(true);
     try {
       const jobNum = `JOB-${Date.now().toString(36).toUpperCase()}`;
-      const { error } = await supabase.from("dispatch_jobs").insert({
+      const { error } = await (supabase as any).from("dispatch_jobs").insert({
         tenant_id: tenant.id,
         job_number: jobNum,
         customer_name: newJob.customer_name,

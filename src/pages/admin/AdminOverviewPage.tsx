@@ -36,7 +36,7 @@ function useAdminOverviewStats() {
       const priorCount = priorTenantsRes.count ?? 0;
 
       // MRR: sum of active subscription prices
-      const subData = (subscriptionsRes.data ?? []) as Array<{ price_amount: number | null }>;
+      const subData = (subscriptionsRes.data ?? []) as unknown as Array<{ price_amount: number | null }>;
       const mrr = subData.reduce((sum, s) => sum + (s.price_amount ?? 0), 0);
 
       // Growth percentage

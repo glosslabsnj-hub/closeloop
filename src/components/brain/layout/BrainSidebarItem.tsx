@@ -20,6 +20,7 @@ interface BrainSidebarItemProps {
 const STATUS_DOT_COLORS: Record<SectionStatus, string> = {
   complete: "bg-green-500",
   incomplete: "bg-muted-foreground/30",
+  optional: "bg-muted-foreground/20",
   warning: "bg-amber-500",
   error: "bg-red-500",
 };

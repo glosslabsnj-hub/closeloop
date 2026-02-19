@@ -69,7 +69,7 @@ export default function SettingsPage() {
     try {
       // Insert a pending invite record into tenant_users with the invited email
       // The invited user will be linked when they sign up or if they already exist
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("tenant_users")
         .insert({
           tenant_id: tenant.id,

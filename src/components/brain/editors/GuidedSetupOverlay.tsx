@@ -23,7 +23,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { useBusinessAwareness } from "@/hooks/useBusinessAwareness";
 import { getIndustryOnboardingConfig } from "@/config/industryOnboardingConfig";
-import { getOrderedSteps, getStepTitle, type HubStep } from "./hub/hubStepsConfig";
+import { getOrderedSteps, getStepTitle, type HubStep } from "../hub/hubStepsConfig";
 import type { BusinessMode } from "@/hooks/useTenantConfig";
 
 const STORAGE_KEY = "brain_guided_seen";

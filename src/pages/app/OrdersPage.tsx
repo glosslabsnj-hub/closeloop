@@ -119,7 +119,7 @@ import type { Database } from "@/integrations/supabase/types";
          quantity: 1,
        }));
        const orderNum = `ORD-${Date.now().toString(36).toUpperCase()}`;
-       const { error } = await supabase.from("food_orders").insert({
+       const { error } = await (supabase as any).from("food_orders").insert({
          tenant_id: tenant.id,
          order_number: orderNum,
          order_type: newOrder.order_type as any,

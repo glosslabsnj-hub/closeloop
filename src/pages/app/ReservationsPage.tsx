@@ -96,7 +96,7 @@ export default function ReservationsPage() {
     if (!tenant?.id || !newRes.customer_name.trim() || !newRes.date || !newRes.time) return;
     setIsCreating(true);
     try {
-      const { error } = await supabase.from("reservations").insert({
+      const { error } = await (supabase as any).from("reservations").insert({
         tenant_id: tenant.id,
         customer_name: newRes.customer_name,
         customer_phone: newRes.customer_phone || null,
