@@ -19,8 +19,8 @@ function AgencyExpandRow({ agency }: { agency: any }) {
         <td className="py-3 px-2">
           {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         </td>
-        <td className="py-3 font-medium">{agency.company_name || "Unnamed"}</td>
-        <td className="py-3 text-muted-foreground hidden sm:table-cell">{agency.owner_name || "\u2014"}</td>
+        <td className="py-3 font-medium">{agency.agency_name || "Unnamed"}</td>
+        <td className="py-3 text-muted-foreground hidden sm:table-cell">{agency.user_id?.slice(0, 8) || "\u2014"}</td>
         <td className="py-3 text-center">{agency.client_count ?? 0}</td>
         <td className="py-3 hidden md:table-cell">
           {agency.commission_earned ? `$${Number(agency.commission_earned).toLocaleString()}` : "\u2014"}

@@ -95,12 +95,18 @@ export function useAgencySummary() {
     queryFn: async () => {
       const { data: agencies, error } = await supabase
         .from("agency_accounts" as any)
-        .select("id, commission_earned");
+        .select("id");
       if (error) throw error;
 
-      const agencyList = (agencies ?? []) as unknown as Array<{ id: string; commission_earned: number | null }>;
+      const agencyList = (agencies ?? []) as unknown as Array<{ id: string }>;
       const totalAgencies = agencyList.length;
-      const totalCommission = agencyList.reduce((sum, a) => sum + (a.commission_earned ?? 0), 0);
+
+      // Sum commissions from agency_commissions table
+      const { data: commissions } = await supabase
+        .from("agency_commissions" as any)
+        .select("commission_cents");
+      const totalCommission = ((commissions ?? []) as unknown as Array<{ commission_cents: number }>)
+        .reduce((sum, c) => sum + (c.commission_cents ?? 0), 0) / 100;
 
       // Count agency-provisioned clients
       const { count: agencyClients } = await supabase

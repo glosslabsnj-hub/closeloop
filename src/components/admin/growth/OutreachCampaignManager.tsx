@@ -221,7 +221,7 @@ function CampaignDetail({ campaign }: { campaign: OutreachCampaign }) {
                   )}
                 </div>
                 <div className="flex items-center gap-1">
-                  {(e.status === "responded" || e.status === "completed") && e.status !== "converted" && (
+                  {(e.status === "responded" || e.status === "completed") && (
                     <Button
                       variant="ghost"
                       size="icon"

@@ -137,6 +137,7 @@ export function AdminLeadFinder() {
     name: lead.name,
     phone: lead.phone,
     website: lead.website,
+    email: null,
     address: lead.address,
     industry: lead.industry || null,
     rating: lead.rating,
