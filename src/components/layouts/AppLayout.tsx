@@ -70,7 +70,7 @@ function AppLayoutContent() {
   const navigate = useNavigate();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { isAgency } = useIsAgencyUser();
+  const { isAgency, isLoading: isAgencyLoading } = useIsAgencyUser();
   const { data: myAgencyApp } = useMyAgencyApplication();
   const showAgency = isAgency || !!myAgencyApp;
   const effectiveHasSubscription = isSuperAdmin || hasActiveSubscription;
@@ -123,6 +123,10 @@ function AppLayoutContent() {
 
   useEffect(() => {
     if (isSuperAdmin) return;
+    // Agency users accessing agency dashboard should never be redirected
+    if (isAgency && location.pathname.startsWith("/app/agency")) return;
+    // Don't redirect from /app/agency while agency status is still loading
+    if (isAgencyLoading && location.pathname.startsWith("/app/agency")) return;
     const justCompletedOnboarding = sessionStorage.getItem("selectedPlan") !== null;
     if (justCompletedOnboarding) return;
     if (!loading && tenant && !hasActiveSubscription) {
@@ -131,7 +135,7 @@ function AppLayoutContent() {
         navigate("/app/go-live");
       }
     }
-  }, [loading, tenant, hasActiveSubscription, isSuperAdmin, location.pathname, navigate]);
+  }, [loading, tenant, hasActiveSubscription, isSuperAdmin, isAgency, isAgencyLoading, location.pathname, navigate]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -148,7 +152,7 @@ function AppLayoutContent() {
 
   if (!user) return null;
 
-  const isRouteAccessible = effectiveHasSubscription || alwaysAccessibleRoutes.some(route => location.pathname.startsWith(route));
+  const isRouteAccessible = effectiveHasSubscription || alwaysAccessibleRoutes.some(route => location.pathname.startsWith(route)) || (isAgency && location.pathname.startsWith("/app/agency"));
 
   return (
     <>
