@@ -78,7 +78,7 @@ export interface ProviderInfo {
   id: string;
   name: string;
   icon: string;
-  category: "calendar" | "crm" | "pos" | "spreadsheet" | "webhook" | "printer" | "messaging";
+  category: "calendar" | "crm" | "pos" | "spreadsheet" | "webhook" | "printer" | "messaging" | "payments";
   authType: "oauth" | "api_key";
   applicableModes: string[];
   description: string;
@@ -92,7 +92,7 @@ export const PROVIDERS: ProviderInfo[] = [
     icon: "🔗",
     category: "webhook",
     authType: "api_key",
-    applicableModes: ["service", "food", "dispatch", "medical", "general"],
+    applicableModes: ["service", "food", "dispatch", "medical", "general", "sales"],
     description: "Send data to any external URL",
     configFields: [
       { key: "webhook_url", label: "Webhook URL", type: "url", required: true },
@@ -105,7 +105,7 @@ export const PROVIDERS: ProviderInfo[] = [
     icon: "📅",
     category: "calendar",
     authType: "oauth",
-    applicableModes: ["service", "medical", "general"],
+    applicableModes: ["service", "medical", "general", "sales"],
     description: "Create calendar events for bookings",
     configFields: [
       { key: "calendar_id", label: "Calendar ID", type: "text", required: false },
@@ -117,12 +117,66 @@ export const PROVIDERS: ProviderInfo[] = [
     icon: "📊",
     category: "spreadsheet",
     authType: "oauth",
-    applicableModes: ["service", "food", "dispatch", "medical", "general"],
+    applicableModes: ["service", "food", "dispatch", "medical", "general", "sales"],
     description: "Append data to a spreadsheet",
     configFields: [
       { key: "sheet_id", label: "Sheet ID", type: "text", required: true },
       { key: "sheet_name", label: "Sheet Name", type: "text", required: false },
     ],
+  },
+  {
+    id: "quickbooks",
+    name: "QuickBooks Online",
+    icon: "📒",
+    category: "crm",
+    authType: "oauth",
+    applicableModes: ["service", "food", "dispatch", "medical", "general", "sales"],
+    description: "Sync invoices and payments with QuickBooks",
+  },
+  {
+    id: "hubspot",
+    name: "HubSpot",
+    icon: "🟠",
+    category: "crm",
+    authType: "oauth",
+    applicableModes: ["service", "general", "sales"],
+    description: "CRM and marketing automation",
+  },
+  {
+    id: "square_pos",
+    name: "Square",
+    icon: "⬛",
+    category: "pos",
+    authType: "oauth",
+    applicableModes: ["food", "service", "general"],
+    description: "Sync orders and payments with Square",
+  },
+  {
+    id: "stripe_connect",
+    name: "Stripe",
+    icon: "💳",
+    category: "pos",
+    authType: "oauth",
+    applicableModes: ["service", "food", "dispatch", "medical", "general", "sales"],
+    description: "Accept payments via Stripe",
+  },
+  {
+    id: "jobber",
+    name: "Jobber",
+    icon: "🔧",
+    category: "crm",
+    authType: "oauth",
+    applicableModes: ["service", "dispatch"],
+    description: "Job scheduling and invoicing for field service",
+  },
+  {
+    id: "housecallpro",
+    name: "Housecall Pro",
+    icon: "🏠",
+    category: "crm",
+    authType: "oauth",
+    applicableModes: ["service", "dispatch"],
+    description: "Field service management and scheduling",
   },
   {
     id: "printer",
@@ -143,7 +197,7 @@ export const PROVIDERS: ProviderInfo[] = [
     icon: "💬",
     category: "messaging",
     authType: "api_key",
-    applicableModes: ["service", "food", "dispatch", "medical", "general"],
+    applicableModes: ["service", "food", "dispatch", "medical", "general", "sales"],
     description: "Send text messages to customers",
   },
 ];

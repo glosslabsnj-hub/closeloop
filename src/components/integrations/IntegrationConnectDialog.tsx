@@ -41,7 +41,7 @@ export function IntegrationConnectDialog({
 
   const provider = PROVIDERS.find((p) => p.id === providerId);
 
-  // Listen for OAuth callback messages
+  // Listen for OAuth callback messages (both legacy calendar and universal integration)
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === "calendar-oauth-success") {
@@ -53,68 +53,62 @@ export function IntegrationConnectDialog({
       } else if (event.data?.type === "calendar-oauth-error") {
         setStep("error");
         setErrorMessage(event.data.error || "OAuth failed");
+      } else if (event.data?.type === "integration-oauth-success") {
+        setStep("success");
+        toast({ title: `${provider?.name || "Integration"} connected!` });
+      } else if (event.data?.type === "integration-oauth-error") {
+        setStep("error");
+        setErrorMessage(event.data.error || "OAuth failed");
       }
     };
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [toast]);
+  }, [toast, provider?.name]);
 
   if (!provider) return null;
 
   const handleConnect = async () => {
     setErrorMessage(null);
 
-    if (providerId === "google_calendar") {
-      // Start real OAuth flow
+    // OAuth providers — use universal integration-oauth-start
+    if (provider?.authType === "oauth") {
       setStep("waiting");
       try {
-        const { data, error } = await supabase.functions.invoke("calendar-oauth-start", {
-          body: { provider: "google", tenant_id: tenant?.id },
-        });
-        
+        // Use legacy endpoint for existing calendar OAuth (backward compat)
+        const isLegacyCalendar = providerId === "google_calendar" || providerId === "google_sheets";
+        const fnName = isLegacyCalendar ? "calendar-oauth-start" : "integration-oauth-start";
+        const fnBody = isLegacyCalendar
+          ? { provider: "google", tenant_id: tenant?.id }
+          : { provider: providerId, tenant_id: tenant?.id };
+
+        const { data, error } = await supabase.functions.invoke(fnName, { body: fnBody });
+
         if (error) throw error;
         if (!data?.auth_url) throw new Error("No auth URL returned");
 
-        // Open OAuth popup
+        // Open OAuth popup centered on screen
+        const width = 600;
+        const height = 700;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+
         const popup = window.open(
           data.auth_url,
-          "oauth",
-          "width=500,height=700,left=100,top=100"
+          `oauth-${providerId}`,
+          `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`,
         );
 
         // Monitor popup close
         const checkClosed = setInterval(() => {
           if (popup?.closed) {
             clearInterval(checkClosed);
-            // If still on waiting step, user closed without completing
-            if (step === "waiting") {
-              setStep("connect");
-            }
+            // Give postMessage a moment to arrive before resetting
+            setTimeout(() => {
+              setStep((current) => current === "waiting" ? "connect" : current);
+            }, 1000);
           }
         }, 500);
-      } catch (error) {
-        console.error("OAuth start error:", error);
-        setStep("error");
-        setErrorMessage(error instanceof Error ? error.message : "Failed to start OAuth");
-      }
-      return;
-    }
-
-    if (providerId === "google_sheets") {
-      // Google Sheets uses same OAuth as Calendar for now
-      setStep("waiting");
-      try {
-        const { data, error } = await supabase.functions.invoke("calendar-oauth-start", {
-          body: { provider: "google", tenant_id: tenant?.id },
-        });
-        
-        if (error) throw error;
-        if (!data?.auth_url) throw new Error("No auth URL returned");
-
-        // Open OAuth popup (with Sheets scopes, we'd need separate function)
-        // For now, use calendar OAuth which grants basic access
-        window.open(data.auth_url, "oauth", "width=500,height=700,left=100,top=100");
       } catch (error) {
         console.error("OAuth start error:", error);
         setStep("error");
@@ -211,7 +205,7 @@ export function IntegrationConnectDialog({
     onConnected();
   };
 
-  const isOAuth = ["google_calendar", "google_sheets"].includes(providerId);
+  const isOAuth = provider?.authType === "oauth";
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -234,7 +228,7 @@ export function IntegrationConnectDialog({
               {isOAuth ? (
                 <div className="text-center py-4">
                   <p className="text-sm text-muted-foreground mb-4">
-                    Click below to connect your Google account securely.
+                    Click below to connect your {provider.name} account securely.
                   </p>
                   <Button onClick={handleConnect} disabled={createIntegration.isPending}>
                     {createIntegration.isPending ? (
@@ -242,7 +236,7 @@ export function IntegrationConnectDialog({
                     ) : (
                       <ExternalLink className="h-4 w-4 mr-2" />
                     )}
-                    Connect with Google
+                    Connect {provider.name}
                   </Button>
                 </div>
               ) : providerId === "webhook" ? (

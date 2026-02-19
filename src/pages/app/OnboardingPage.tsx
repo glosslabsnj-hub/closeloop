@@ -349,11 +349,15 @@ export default function OnboardingPage() {
                   {/* Phase 6: Connect Tools */}
                   {phase === 6 && (
                     <OnboardingConnect
+                      businessMode={form.businessMode}
                       notificationPhone={form.notificationPhone}
                       onNotificationPhoneChange={form.setNotificationPhone}
                       calendarConnected={form.calendarConnected}
                       onConnectCalendar={() => {
                         toast({ title: "Calendar", description: "Calendar connection will be available after setup." });
+                      }}
+                      onConnectIntegration={(providerId) => {
+                        toast({ title: "Coming soon", description: `${providerId} integration will be available after setup.` });
                       }}
                     />
                   )}
