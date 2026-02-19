@@ -1,8 +1,8 @@
 import { HeroSection } from "@/components/landing/HeroSection";
-import { TrustSignalsBar } from "@/components/landing/TrustSignalsBar";
+
 import { IndustryDemoPlayer } from "@/components/landing/IndustryDemoPlayer";
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
-import { FeaturesGridSection } from "@/components/landing/FeaturesGridSection";
+
 import { WhoItsForSection } from "@/components/landing/WhoItsForSection";
 import { IntegrationsSection } from "@/components/landing/IntegrationsSection";
 import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
@@ -18,12 +18,12 @@ export default function LandingPage() {
       <SalesAIAgent />
       <MobileStickyBar />
       <HeroSection />
-      <TrustSignalsBar />
+      
       <section id="demo">
         <IndustryDemoPlayer />
       </section>
       <HowItWorksSection />
-      <FeaturesGridSection />
+      
       <WhoItsForSection />
       <IntegrationsSection />
       <TestimonialsSection />
