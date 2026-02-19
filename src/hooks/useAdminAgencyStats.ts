@@ -31,12 +31,12 @@ export function useAgencyClients(agencyId: string | null) {
     queryKey: ["admin-agency-clients", agencyId],
     enabled: !!agencyId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("tenants")
+      const { data, error } = await (supabase
+        .from("tenants") as any)
         .select("id, name, business_mode, industry, created_at")
-        .eq("provisioned_by_agency_id" as any, agencyId!);
+        .eq("provisioned_by_agency_id", agencyId!);
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as Array<{ id: string; name: string; business_mode: string; industry: string; created_at: string }>;
     },
   });
 }
