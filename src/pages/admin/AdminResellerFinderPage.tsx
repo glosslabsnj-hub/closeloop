@@ -68,10 +68,26 @@ export default function AdminResellerFinderPage() {
     setLeads([]);
 
     try {
-      const { data, error } = await supabase.functions.invoke("admin-lead-search", {
-        body: { location, count: 25, mode: "reseller", searchType },
-      });
-      if (error) throw error;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Not authenticated");
+
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-lead-search`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ location, count: 25, mode: "reseller", searchType }),
+        }
+      );
+      if (!resp.ok) {
+        const errBody = await resp.json().catch(() => ({}));
+        throw new Error(errBody.error || `Error ${resp.status}`);
+      }
+      const data = await resp.json();
 
       const results: ResellerLead[] = (data.leads || []).map((l: any) => ({
         name: l.name || "Unknown",
