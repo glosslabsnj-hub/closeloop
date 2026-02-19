@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { AudioWaveform, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { BRAND } from "@/config/brand";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -24,7 +25,25 @@ export default function LoginPage() {
 
     try {
       await signIn(email, password);
-      navigate("/app/dashboard");
+
+      // Check if user is super_admin to redirect appropriately
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .eq("role", "super_admin")
+          .maybeSingle();
+
+        if (roleData?.role === "super_admin") {
+          navigate("/admin/dashboard");
+        } else {
+          navigate("/app/dashboard");
+        }
+      } else {
+        navigate("/app/dashboard");
+      }
     } catch (err: any) {
       const message = err.message?.toLowerCase() || "";
       if (message.includes("invalid") || message.includes("credentials")) {

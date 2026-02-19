@@ -7,48 +7,41 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const ALL_INDUSTRIES = [
-  "towing", "plumber", "hvac", "electrician", "locksmith",
-  "auto repair", "dental", "med spa", "salon", "pest control",
-  "landscaping", "roofing", "mobile detailing", "cleaning service",
-  "restaurant", "veterinary", "real estate", "insurance agency",
-  "law firm", "fitness studio",
-];
-
-async function searchBatch(
+async function searchResellerBatch(
   apiKey: string,
-  industry: string,
+  companyType: string,
   location: string,
   count: number
 ): Promise<any[]> {
-  const prompt = `Find exactly ${count} real ${industry} businesses in ${location} that would benefit from an AI phone receptionist service.
+  const prompt = `Find exactly ${count} real ${companyType} companies in ${location} that would be ideal channel partners for reselling an AI phone receptionist SaaS product to their SMB clients.
 
-For each business, provide:
-- Business name (real, verifiable)
+For each company, provide:
+- Company name (real, verifiable)
 - Phone number in format +1XXXXXXXXXX (if findable)
 - Website URL (if findable)
 - Physical address (if findable)
 - Google rating (number) and review count (if findable)
-- Estimated employee count or team size description
-- Business hours summary (if findable)
-- A specific 2-3 sentence explanation of why they need an AI receptionist, based on observable evidence like review complaints, no online booking, small staff, etc.
-- Friction signals from this list: no_online_booking, small_team, high_volume, after_hours_demand, growth_signals, poor_responsiveness
+- Estimated employee count
+- A 2-3 sentence explanation of why they'd be a good reseller/channel partner
+- Their primary services offered (list)
+- Estimated client base size (e.g., "50+ clients", "10-20 clients")
+- Partnership signals from: existing_smb_clients, digital_services, recurring_revenue, local_focus, tech_savvy, growth_stage, complementary_services, active_referral_program
 
-Focus on businesses showing:
-1. Owner-operated or small team (1-15 employees)
-2. Good reviews but complaints about phone responsiveness or wait times
-3. No online booking or scheduling visible on website
-4. High call-volume niche
-5. Growth signals (expanding, new services, recent positive reviews)
+Focus on companies that:
+1. Already serve small/local businesses (restaurants, salons, dentists, towing, HVAC, etc.)
+2. Offer digital services (websites, marketing, CRM, phones, IT)
+3. Have a recurring revenue model (monthly retainers, subscriptions)
+4. Are growth-oriented and looking for new revenue streams
+5. Have an established client base they could upsell to
 
-Return ONLY real businesses you can verify. Do not fabricate.`;
+Return ONLY real, verifiable companies. Do not fabricate.`;
 
   const body = {
     model: "sonar-pro",
     messages: [
       {
         role: "system",
-        content: `You are a B2B lead researcher. Find real local businesses matching the criteria. Return valid JSON array only, no markdown. Each object:
+        content: `You are a B2B partner researcher. Find real companies that could be channel partners for an AI phone receptionist SaaS. Return valid JSON array only, no markdown. Each object:
 {
   "name": "string",
   "phone": "+1XXXXXXXXXX or null",
@@ -56,12 +49,13 @@ Return ONLY real businesses you can verify. Do not fabricate.`;
   "address": "Full address or null",
   "rating": 4.5,
   "review_count": 123,
-  "employee_estimate": "2-5 employees" or null,
-  "hours": "Mon-Fri 8am-5pm" or null,
-  "reason": "2-3 sentence specific reason",
-  "friction_signals": ["no_online_booking","small_team"],
-  "confidence": "high"|"medium"|"low",
-  "industry": "${industry}"
+  "employee_estimate": "5-10 employees",
+  "reason": "2-3 sentence partnership reason",
+  "company_type": "${companyType}",
+  "services_offered": ["web design", "SEO", "social media"],
+  "client_base_size": "50+ SMB clients",
+  "partnership_signals": ["existing_smb_clients", "digital_services", "recurring_revenue"],
+  "confidence": "high"|"medium"|"low"
 }`,
       },
       { role: "user", content: prompt },
@@ -80,7 +74,7 @@ Return ONLY real businesses you can verify. Do not fabricate.`;
 
   if (!res.ok) {
     const txt = await res.text();
-    console.error(`[admin-lead-search] Perplexity ${res.status}:`, txt);
+    console.error(`[reseller-lead-search] Perplexity ${res.status}:`, txt);
     if (res.status === 429) throw new Error("RATE_LIMITED");
     return [];
   }
@@ -92,7 +86,7 @@ Return ONLY real businesses you can verify. Do not fabricate.`;
     const jsonMatch = content.match(/\[[\s\S]*\]/);
     if (jsonMatch) return JSON.parse(jsonMatch[0]);
   } catch (e) {
-    console.error("[admin-lead-search] Parse error:", e);
+    console.error("[reseller-lead-search] Parse error:", e);
   }
   return [];
 }
@@ -115,7 +109,6 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Verify JWT
     const anonClient = createClient(
       supabaseUrl,
       Deno.env.get("SUPABASE_ANON_KEY")!,
@@ -144,16 +137,14 @@ serve(async (req) => {
       });
     }
 
-    const { industry, location, count = 50 } = await req.json();
+    const { company_type, location, count = 30 } = await req.json();
 
-    if (!industry || !location) {
-      return new Response(JSON.stringify({ error: "industry and location are required" }), {
+    if (!company_type || !location) {
+      return new Response(JSON.stringify({ error: "company_type and location are required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    // No rate limit for admin
 
     const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     if (!PERPLEXITY_API_KEY) {
@@ -163,31 +154,18 @@ serve(async (req) => {
       });
     }
 
-    let allLeads: any[] = [];
+    const perBatch = Math.ceil(count / 2);
+    const results = await Promise.allSettled([
+      searchResellerBatch(PERPLEXITY_API_KEY, company_type, location, perBatch),
+      searchResellerBatch(PERPLEXITY_API_KEY, `${company_type} agency`, location, perBatch),
+    ]);
 
-    if (industry === "all") {
-      const topIndustries = ALL_INDUSTRIES.slice(0, 10);
-      const perIndustry = Math.max(3, Math.ceil(count / topIndustries.length));
-      const results = await Promise.allSettled(
-        topIndustries.map((ind) => searchBatch(PERPLEXITY_API_KEY, ind, location, perIndustry))
-      );
-      for (const r of results) {
-        if (r.status === "fulfilled") allLeads.push(...r.value);
-      }
-    } else {
-      const perBatch = Math.ceil(count / 3);
-      const batchPrompts = [
-        searchBatch(PERPLEXITY_API_KEY, industry, location, perBatch),
-        searchBatch(PERPLEXITY_API_KEY, `${industry} service`, location, perBatch),
-        searchBatch(PERPLEXITY_API_KEY, `local ${industry}`, location, perBatch),
-      ];
-      const results = await Promise.allSettled(batchPrompts);
-      for (const r of results) {
-        if (r.status === "fulfilled") allLeads.push(...r.value);
-      }
+    let allLeads: any[] = [];
+    for (const r of results) {
+      if (r.status === "fulfilled") allLeads.push(...r.value);
     }
 
-    // Deduplicate by name
+    // Deduplicate
     const seen = new Set<string>();
     const uniqueLeads = allLeads.filter((lead) => {
       const key = lead.name?.toLowerCase()?.trim();
@@ -196,14 +174,14 @@ serve(async (req) => {
       return true;
     });
 
-    console.log(`[admin-lead-search] Found ${uniqueLeads.length} unique leads for ${industry} in ${location}`);
+    console.log(`[reseller-lead-search] Found ${uniqueLeads.length} unique leads for ${company_type} in ${location}`);
 
     return new Response(
-      JSON.stringify({ leads: uniqueLeads, query: { industry, location } }),
+      JSON.stringify({ leads: uniqueLeads, query: { company_type, location } }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("[admin-lead-search] Error:", error);
+    console.error("[reseller-lead-search] Error:", error);
 
     if (error instanceof Error && error.message === "RATE_LIMITED") {
       return new Response(JSON.stringify({ error: "Rate limited. Please try again in a moment." }), {

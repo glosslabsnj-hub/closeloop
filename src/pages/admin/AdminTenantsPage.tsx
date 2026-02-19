@@ -3,13 +3,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Trash2, Loader2, Building2 } from "lucide-react";
+import { Search, Trash2, Loader2, Building2, ExternalLink } from "lucide-react";
 import { TestTenantManager } from "@/components/admin/TestTenantManager";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,11 +24,17 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function AdminTenantsPage() {
-  const { user } = useAuth();
+  const { user, setActiveTenantId } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmText, setConfirmText] = useState("");
+
+  const handleManage = async (tenantId: string) => {
+    await setActiveTenantId(tenantId);
+    navigate("/app/dashboard");
+  };
 
   // Fetch admin's primary tenant to protect it
   const { data: primaryTenantId } = useQuery({
@@ -139,6 +146,16 @@ export default function AdminTenantsPage() {
                     <Badge variant={tenant.onboarding_completed_at ? "default" : "secondary"}>
                       {tenant.onboarding_completed_at ? "Active" : "Setup"}
                     </Badge>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs h-7"
+                      onClick={() => handleManage(tenant.id)}
+                    >
+                      <ExternalLink className="h-3 w-3 mr-1" />
+                      Manage
+                    </Button>
 
                     {!isOwn && (
                       <AlertDialog onOpenChange={() => setConfirmText("")}>
