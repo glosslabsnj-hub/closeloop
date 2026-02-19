@@ -67,6 +67,8 @@ export function useOnboardingSubmit(userId?: string) {
   const [retryCount, setRetryCount] = useState(0);
   const [showRetry, setShowRetry] = useState(false);
   const [completionError, setCompletionError] = useState<string | null>(null);
+  // Idempotency: remember the tenant ID created in step 1 so retries don't duplicate
+  const [createdTenantId, setCreatedTenantId] = useState<string | null>(null);
 
   const handleComplete = useCallback(async (params: SubmitParams, clearProgress: () => void) => {
     if (!user) {
@@ -123,20 +125,24 @@ export function useOnboardingSubmit(userId?: string) {
       const selectedPlan = sessionStorage.getItem("selectedPlan") as PlanCode | null;
       const planCode: PlanCode = selectedPlan || "voice";
 
-      // 1. Create tenant
-      const { data: createResult, error: createError } = await supabase.functions.invoke("create-tenant", {
-        body: {
-          name: businessName.trim(), business_mode: businessMode, timezone,
-          hours_json: hoursToSave, industry: industrySlug, enabled_modules: enabledModules,
-          capabilities_json: capabilitiesJson, hipaa_mode: businessMode === "medical",
-          address: businessAddress || businessDetails.location || undefined, default_capacity: defaultCapacity,
-          plan_code: planCode,
-        },
-      });
-      if (createError) throw new Error(createError.message || "Failed to create business profile");
-      if (createResult?.error) throw new Error(createResult.error);
-      const tenantId = createResult.tenant_id;
-      if (!tenantId) throw new Error("No tenant ID returned");
+      // 1. Create tenant (idempotent: skip if already created on a previous attempt)
+      let tenantId = createdTenantId;
+      if (!tenantId) {
+        const { data: createResult, error: createError } = await supabase.functions.invoke("create-tenant", {
+          body: {
+            name: businessName.trim(), business_mode: businessMode, timezone,
+            hours_json: hoursToSave, industry: industrySlug, enabled_modules: enabledModules,
+            capabilities_json: capabilitiesJson, hipaa_mode: businessMode === "medical",
+            address: businessAddress || businessDetails.location || undefined, default_capacity: defaultCapacity,
+            plan_code: planCode,
+          },
+        });
+        if (createError) throw new Error(createError.message || "Failed to create business profile");
+        if (createResult?.error) throw new Error(createResult.error);
+        tenantId = createResult.tenant_id;
+        if (!tenantId) throw new Error("No tenant ID returned");
+        setCreatedTenantId(tenantId);
+      }
 
       // 2. Services
       const config = resolveIndustryTemplate(industrySlug);
@@ -148,19 +154,28 @@ export function useOnboardingSubmit(userId?: string) {
           price_type: (s.priceType || "fixed") as "fixed" | "starting_at" | "quote_only",
           is_active: true,
         }));
-      if (servicesToInsert.length > 0) await supabase.from("services").insert(servicesToInsert);
+      if (servicesToInsert.length > 0) {
+        const { error: svcErr } = await supabase.from("services").insert(servicesToInsert);
+        if (svcErr) console.error("Onboarding step 2 (services):", svcErr.message);
+      }
 
       // 3. FAQs
       const faqsToInsert = templateFAQs
         .filter(f => f.enabled && f.question.trim().length > 0 && f.answer.trim().length > 0)
         .map((faq, i) => ({ tenant_id: tenantId, question: faq.question, answer: faq.answer, priority_weight: i }));
-      if (faqsToInsert.length > 0) await supabase.from("business_faqs").insert(faqsToInsert);
+      if (faqsToInsert.length > 0) {
+        const { error: faqErr } = await supabase.from("business_faqs").insert(faqsToInsert);
+        if (faqErr) console.error("Onboarding step 3 (FAQs):", faqErr.message);
+      }
 
       // 4. Objections
       const objectionsToInsert = config.objections
         .filter(o => o.objection.trim().length > 0 && o.response.trim().length > 0)
         .map((obj, i) => ({ tenant_id: tenantId, objection: obj.objection, response: obj.response, priority_weight: i }));
-      if (objectionsToInsert.length > 0) await supabase.from("objection_responses").insert(objectionsToInsert);
+      if (objectionsToInsert.length > 0) {
+        const { error: objErr } = await supabase.from("objection_responses").insert(objectionsToInsert);
+        if (objErr) console.error("Onboarding step 4 (objections):", objErr.message);
+      }
 
       // 5. Policies
       await supabase.from("tenants").update({
@@ -187,19 +202,21 @@ export function useOnboardingSubmit(userId?: string) {
 
       // 8. Food settings
       if (isFoodMode) {
-        await supabase.from("food_order_settings").insert({
+        const { error: foodErr } = await supabase.from("food_order_settings").insert({
           tenant_id: tenantId, accepts_pickup: true,
           accepts_delivery: scenarioAnswers.offersDelivery ?? false,
           accepts_dine_in: true, accepts_catering: scenarioAnswers.offersCatering ?? false,
           order_confirmation_mode: "auto_confirm",
         });
+        if (foodErr) console.error("Onboarding step 8 (food settings):", foodErr.message);
       }
 
       // 9. Automations
-      await supabase.from("automations").insert([
+      const { error: autoErr } = await supabase.from("automations").insert([
         { tenant_id: tenantId, name: "Missed Call Follow-up", trigger: "missed_call" as const, is_enabled: true, steps_json: [{ type: "send_message", body: "Hi! We noticed we missed your call. How can we help you today?" }] },
         { tenant_id: tenantId, name: "Booking Confirmation", trigger: "booking_created" as const, is_enabled: true, steps_json: [{ type: "send_message", body: "Your appointment is confirmed! We'll see you soon." }] },
       ]);
+      if (autoErr) console.error("Onboarding step 9 (automations):", autoErr.message);
 
       // 10. Communication / AI settings
       const mappedAfterHours = afterHours === "ai_24_7" ? undefined : afterHours === "voicemail" ? "voicemail" : "text_back";
@@ -287,7 +304,8 @@ export function useOnboardingSubmit(userId?: string) {
       }
 
       // 15. Twilio provisioning
-      const shouldProvision = planCode.startsWith("voice") || planCode.startsWith("both");
+      const voicePlans = ["voice", "both", "base-", "growth-", "scale-", "power-", "enterprise"];
+      const shouldProvision = voicePlans.some(p => planCode.startsWith(p));
       if (shouldProvision && !isSuperAdmin) {
         try {
           const { data: provisionData, error: provisionError } = await supabase.functions.invoke("provision-twilio-number", {
@@ -325,7 +343,7 @@ export function useOnboardingSubmit(userId?: string) {
     } finally {
       setLoading(false);
     }
-  }, [user, navigate, toast, refreshTenant, isSuperAdmin, retryCount, userId]);
+  }, [user, navigate, toast, refreshTenant, isSuperAdmin, retryCount, userId, createdTenantId]);
 
   const handleRetry = useCallback(async (params: SubmitParams, clearProgress: () => void) => {
     if (retryCount >= MAX_RETRIES) {

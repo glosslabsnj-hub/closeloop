@@ -4,6 +4,7 @@ import { requireAuthedTenant, requireInternalSecret } from "../_shared/tenant.ts
 import { captureException } from "../_shared/sentry.ts";
 import { corsResponse, errorResponse, jsonResponse } from "../_shared/cors.ts";
 import { sendEmail } from "../_shared/sendEmail.ts";
+import { sendTenantSms } from "../_shared/sms-sender.ts";
 
 interface OrderItem {
   name: string;
@@ -213,9 +214,38 @@ serve(async (req) => {
 
       if (handoffMethod === "sms" && settings.notify_phone) {
         try {
-          await sendSMS(order as Order, settings.notify_phone, businessName, supabase, tenant_id);
-          results.sms = { success: true };
-          await logHandoffAttempt(supabase, tenant_id, order_id, "sms", "success");
+          const items = Array.isArray(order.items_json)
+            ? (order.items_json as OrderItem[]).map((i) => `${i.qty}x ${i.name}`).join(", ")
+            : "items";
+
+          let message = `NEW ORDER #${order.order_number}\n`;
+          message += `Type: ${order.order_type.toUpperCase()}\n`;
+          message += `Customer: ${order.customer_name || "Unknown"}\n`;
+          message += `Items: ${items.substring(0, 100)}${items.length > 100 ? "..." : ""}\n`;
+          if (order.total_cents) {
+            message += `Total: $${(order.total_cents / 100).toFixed(2)}\n`;
+          }
+          if (order.special_instructions) {
+            const truncated = order.special_instructions.substring(0, 50);
+            message += `NOTE: ${truncated}${order.special_instructions.length > 50 ? "..." : ""}\n`;
+          }
+
+          const smsResult = await sendTenantSms({
+            tenantId: tenant_id,
+            to: settings.notify_phone,
+            body: message,
+          });
+
+          if (smsResult.success) {
+            results.sms = { success: true };
+            await logHandoffAttempt(supabase, tenant_id, order_id, "sms", "success");
+          } else if (smsResult.skipped) {
+            console.log(`[order-handoff] No verified SMS channel for tenant ${tenant_id}`);
+            results.sms = { success: false, error: "No verified SMS channel" };
+            await logHandoffAttempt(supabase, tenant_id, order_id, "sms", "skipped", "No verified SMS channel");
+          } else {
+            throw new Error(`SMS failed: ${smsResult.error}`);
+          }
         } catch (e) {
           const error = e instanceof Error ? e.message : "Unknown error";
           results.sms = { success: false, error };
@@ -353,70 +383,6 @@ async function sendOrderEmail(order: Order, email: string, bName: string) {
 }
 
 // deno-lint-ignore no-explicit-any
-async function sendSMS(order: Order, phone: string, businessName: string, supabase: any, tenantId: string) {
-  const twilioAccountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
-  const twilioAuthToken = Deno.env.get("TWILIO_AUTH_TOKEN");
-
-  if (!twilioAccountSid || !twilioAuthToken) {
-    throw new Error("Twilio not configured");
-  }
-
-  // Look up tenant's Twilio from-number
-  const { data: phoneNumber } = await supabase
-    .from("phone_numbers")
-    .select("phone_e164")
-    .eq("tenant_id", tenantId)
-    .eq("purpose", "forwarding")
-    .single();
-
-  const fromNumber = phoneNumber?.phone_e164;
-  if (!fromNumber) {
-    throw new Error("No Twilio from-number configured for tenant");
-  }
-
-  // Build concise message
-  const items = Array.isArray(order.items_json)
-    ? order.items_json.map((i: OrderItem) => `${i.qty}x ${i.name}`).join(", ")
-    : "items";
-
-  let message = `NEW ORDER #${order.order_number}\n`;
-  message += `Type: ${order.order_type.toUpperCase()}\n`;
-  message += `Customer: ${order.customer_name || "Unknown"}\n`;
-  message += `Items: ${items.substring(0, 100)}${items.length > 100 ? "..." : ""}\n`;
-
-  if (order.total_cents) {
-    message += `Total: $${(order.total_cents / 100).toFixed(2)}\n`;
-  }
-
-  if (order.special_instructions) {
-    const truncated = order.special_instructions.substring(0, 50);
-    message += `NOTE: ${truncated}${order.special_instructions.length > 50 ? "..." : ""}\n`;
-  }
-
-  // Actually send via Twilio API
-  const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`;
-  const smsResponse = await fetch(twilioUrl, {
-    method: "POST",
-    headers: {
-      "Authorization": `Basic ${btoa(`${twilioAccountSid}:${twilioAuthToken}`)}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({
-      To: phone,
-      From: fromNumber,
-      Body: message,
-    }),
-  });
-
-  if (!smsResponse.ok) {
-    const errorText = await smsResponse.text();
-    throw new Error(`SMS failed: ${smsResponse.status} ${errorText}`);
-  }
-
-  console.log(`[order-handoff] SMS sent to ${phone} for order ${order.order_number}`);
-}
-
-// deno-lint-ignore no-explicit-any
 async function logHandoffAttempt(
   supabase: any,
   tenantId: string,
@@ -427,7 +393,8 @@ async function logHandoffAttempt(
 ) {
   await supabase.from("handoff_attempts").insert({
     tenant_id: tenantId,
-    order_id: orderId,
+    entity_type: "order",
+    entity_id: orderId,
     method,
     status,
     error_message: errorMessage || null,
@@ -484,7 +451,14 @@ async function runTestHandoff(
     }
 
     if (method === "sms" && settings.notify_phone) {
-      await sendSMS(testOrder, settings.notify_phone, "Test Restaurant", supabase, settings.tenant_id || "test-tenant");
+      const smsResult = await sendTenantSms({
+        tenantId: settings.tenant_id || "test-tenant",
+        to: settings.notify_phone,
+        body: `[TEST] NEW ORDER #TEST-001\nType: PICKUP\nCustomer: Test Customer\nItems: 2x Test Item\nTotal: $25.98\nNOTE: THIS IS A TEST ORDER - Please ignore`,
+      });
+      if (!smsResult.success && !smsResult.skipped) {
+        return { success: false, error: `SMS failed: ${smsResult.error}` };
+      }
       return { success: true, method: "sms" };
     }
 

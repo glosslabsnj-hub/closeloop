@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { requireInternalSecret, serviceClient } from "../_shared/tenant.ts";
+import { sendTenantSms } from "../_shared/sms-sender.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -128,30 +129,20 @@ serve(async (req) => {
         }
 
         if (method === "sms" && settings?.notify_phone) {
-          const twilioSid = Deno.env.get("TWILIO_ACCOUNT_SID");
-          const twilioAuth = Deno.env.get("TWILIO_AUTH_TOKEN");
-          if (twilioSid && twilioAuth) {
-            const { data: phoneNumber } = await supabase
-              .from("phone_numbers")
-              .select("phone_e164")
-              .eq("tenant_id", tenant_id)
-              .eq("purpose", "forwarding")
-              .single();
-            const fromNumber = phoneNumber?.phone_e164 || Deno.env.get("DEFAULT_TWILIO_NUMBER");
-            if (fromNumber) {
-              const customerName = testDrive.customer?.full_name || "A customer";
-              const smsBody = `Test drive scheduled: ${customerName} - ${vehicleDesc}, ${scheduledStr} at ${tenant?.name || "your business"}.${testDrive.trade_in_interest ? " Has trade-in." : ""}`;
-              const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;
-              const resp = await fetch(twilioUrl, {
-                method: "POST",
-                headers: {
-                  "Authorization": `Basic ${btoa(`${twilioSid}:${twilioAuth}`)}`,
-                  "Content-Type": "application/x-www-form-urlencoded",
-                },
-                body: new URLSearchParams({ To: settings.notify_phone, From: fromNumber, Body: smsBody }),
-              });
-              results.sms = { success: resp.ok, error: resp.ok ? undefined : `HTTP ${resp.status}` };
-            }
+          const customerName = testDrive.customer?.full_name || "A customer";
+          const smsBody = `Test drive scheduled: ${customerName} - ${vehicleDesc}, ${scheduledStr} at ${tenant?.name || "your business"}.${testDrive.trade_in_interest ? " Has trade-in." : ""}`;
+          const smsResult = await sendTenantSms({
+            tenantId: tenant_id,
+            to: settings.notify_phone,
+            body: smsBody,
+          });
+          if (smsResult.success) {
+            results.sms = { success: true };
+          } else if (smsResult.skipped) {
+            console.log(`[test-drive-handoff] No verified SMS channel for tenant ${tenant_id}`);
+            results.sms = { success: false, error: "No verified SMS channel" };
+          } else {
+            results.sms = { success: false, error: smsResult.error };
           }
         }
 

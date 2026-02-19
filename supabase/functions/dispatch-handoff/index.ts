@@ -4,6 +4,7 @@ import { requireAuthedTenant, requireInternalSecret, serviceClient } from "../_s
 import { captureException } from "../_shared/sentry.ts";
 import { corsResponse, errorResponse, jsonResponse } from "../_shared/cors.ts";
 import { sendEmail } from "../_shared/sendEmail.ts";
+import { sendTenantSms } from "../_shared/sms-sender.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -140,42 +141,15 @@ serve(async (req) => {
       }
 
       if (method === "sms" && notify_phone) {
-        const twilioSid = Deno.env.get("TWILIO_ACCOUNT_SID");
-        const twilioAuth = Deno.env.get("TWILIO_AUTH_TOKEN");
-        
-        if (twilioSid && twilioAuth) {
-          const { data: phoneNumber } = await supabase
-            .from("phone_numbers")
-            .select("phone_e164")
-            .eq("tenant_id", tenant_id)
-            .eq("purpose", "forwarding")
-            .single();
-
-          const fromNumber = phoneNumber?.phone_e164 || Deno.env.get("DEFAULT_TWILIO_NUMBER");
-          
-          if (fromNumber) {
-            const smsBody = `[TEST] New dispatch: Test Job at 123 Test St. This is a test.`;
-            
-            const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;
-            const smsResponse = await fetch(twilioUrl, {
-              method: "POST",
-              headers: {
-                "Authorization": `Basic ${btoa(`${twilioSid}:${twilioAuth}`)}`,
-                "Content-Type": "application/x-www-form-urlencoded",
-              },
-              body: new URLSearchParams({
-                To: notify_phone,
-                From: fromNumber,
-                Body: smsBody,
-              }),
-            });
-
-            if (!smsResponse.ok) {
-              throw new Error(`SMS failed: ${await smsResponse.text()}`);
-            }
-          }
+        const smsResult = await sendTenantSms({
+          tenantId: tenant_id,
+          to: notify_phone,
+          body: `[TEST] New dispatch: Test Job at 123 Test St. This is a test.`,
+        });
+        if (!smsResult.success && !smsResult.skipped) {
+          throw new Error(`SMS failed: ${smsResult.error}`);
         }
-        
+
         return jsonResponse({ success: true, method: "sms" });
       }
 
@@ -381,54 +355,32 @@ serve(async (req) => {
         }
 
         if (handoffMethod === "sms" && settings.notify_phone) {
-          const twilioSid = Deno.env.get("TWILIO_ACCOUNT_SID");
-          const twilioAuth = Deno.env.get("TWILIO_AUTH_TOKEN");
-          
-          if (twilioSid && twilioAuth) {
-            const { data: phoneNumber } = await supabase
-              .from("phone_numbers")
-              .select("phone_e164")
-              .eq("tenant_id", tenant_id)
-              .eq("purpose", "forwarding")
-              .single();
+          const customerName = dispatch.customer?.full_name || dispatch.customer_name || "Customer";
+          const jobType = dispatch.job_type || "Job";
+          const location = dispatch.pickup_address || "Location TBD";
 
-            const fromNumber = phoneNumber?.phone_e164;
-            
-            if (fromNumber) {
-              const customerName = dispatch.customer?.full_name || dispatch.customer_name || "Customer";
-              const jobType = dispatch.job_type || "Job";
-              const location = dispatch.pickup_address || "Location TBD";
-              
-              const smsBody = `New dispatch: ${jobType} - ${customerName} at ${location}. Priority: ${dispatch.priority}`;
-              
-              const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;
-              const smsResponse = await fetch(twilioUrl, {
-                method: "POST",
-                headers: {
-                  "Authorization": `Basic ${btoa(`${twilioSid}:${twilioAuth}`)}`,
-                  "Content-Type": "application/x-www-form-urlencoded",
-                },
-                body: new URLSearchParams({
-                  To: settings.notify_phone,
-                  From: fromNumber,
-                  Body: smsBody,
-                }),
-              });
+          const smsBody = `New dispatch: ${jobType} - ${customerName} at ${location}. Priority: ${dispatch.priority}`;
 
-              if (!smsResponse.ok) {
-                throw new Error(`SMS failed: ${await smsResponse.text()}`);
-              }
+          const smsResult = await sendTenantSms({
+            tenantId: tenant_id,
+            to: settings.notify_phone,
+            body: smsBody,
+          });
 
-              results.sms = { success: true };
+          if (smsResult.success) {
+            results.sms = { success: true };
 
-              await supabase.from("handoff_attempts").insert({
-                tenant_id,
-                entity_type: "dispatch",
-                entity_id: dispatch_id,
-                method: "sms",
-                status: "success",
-              });
-            }
+            await supabase.from("handoff_attempts").insert({
+              tenant_id,
+              entity_type: "dispatch",
+              entity_id: dispatch_id,
+              method: "sms",
+              status: "success",
+            });
+          } else if (smsResult.skipped) {
+            console.log(`[dispatch-handoff] No verified SMS channel for tenant ${tenant_id}`);
+          } else {
+            throw new Error(`SMS failed: ${smsResult.error}`);
           }
         }
       } catch (error) {
@@ -449,52 +401,30 @@ serve(async (req) => {
     // Handle urgent SMS separately
     if (isUrgent && settings.urgent_sms_phone) {
       try {
-        const twilioSid = Deno.env.get("TWILIO_ACCOUNT_SID");
-        const twilioAuth = Deno.env.get("TWILIO_AUTH_TOKEN");
-        
-        if (twilioSid && twilioAuth) {
-          const { data: phoneNumber } = await supabase
-            .from("phone_numbers")
-            .select("phone_e164")
-            .eq("tenant_id", tenant_id)
-            .eq("purpose", "forwarding")
-            .single();
+        const customerName = dispatch.customer?.full_name || dispatch.customer_name || "Customer";
+        const jobType = dispatch.job_type || "Job";
+        const location = dispatch.pickup_address || "Location TBD";
 
-          const fromNumber = phoneNumber?.phone_e164;
-          
-          if (fromNumber) {
-            const customerName = dispatch.customer?.full_name || dispatch.customer_name || "Customer";
-            const jobType = dispatch.job_type || "Job";
-            const location = dispatch.pickup_address || "Location TBD";
-            
-            const urgentSmsBody = `🚨 URGENT: ${jobType} - ${customerName} at ${location}. Immediate attention required!`;
-            
-            const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;
-            const smsResponse = await fetch(twilioUrl, {
-              method: "POST",
-              headers: {
-                "Authorization": `Basic ${btoa(`${twilioSid}:${twilioAuth}`)}`,
-                "Content-Type": "application/x-www-form-urlencoded",
-              },
-              body: new URLSearchParams({
-                To: settings.urgent_sms_phone,
-                From: fromNumber,
-                Body: urgentSmsBody,
-              }),
-            });
+        const urgentSmsBody = `🚨 URGENT: ${jobType} - ${customerName} at ${location}. Immediate attention required!`;
 
-            if (smsResponse.ok) {
-              results.urgent_sms = { success: true };
+        const smsResult = await sendTenantSms({
+          tenantId: tenant_id,
+          to: settings.urgent_sms_phone,
+          body: urgentSmsBody,
+        });
 
-              await supabase.from("handoff_attempts").insert({
-                tenant_id,
-                entity_type: "dispatch",
-                entity_id: dispatch_id,
-                method: "urgent_sms",
-                status: "success",
-              });
-            }
-          }
+        if (smsResult.success) {
+          results.urgent_sms = { success: true };
+
+          await supabase.from("handoff_attempts").insert({
+            tenant_id,
+            entity_type: "dispatch",
+            entity_id: dispatch_id,
+            method: "urgent_sms",
+            status: "success",
+          });
+        } else if (!smsResult.skipped) {
+          throw new Error(`Urgent SMS failed: ${smsResult.error}`);
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";

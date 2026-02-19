@@ -39,17 +39,13 @@ export function LiveActivityFeed() {
   // Realtime subscription
   useEffect(() => {
     if (!tenant?.id) return;
+    const invalidate = () => queryClient.invalidateQueries({ queryKey: ["live-activity-feed", tenant.id] });
     const channel = supabase
       .channel('activity-feed-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ai_call_sessions', filter: `tenant_id=eq.${tenant.id}` },
-        () => queryClient.invalidateQueries({ queryKey: ["live-activity-feed", tenant.id] })
-      )
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bookings', filter: `tenant_id=eq.${tenant.id}` },
-        () => queryClient.invalidateQueries({ queryKey: ["live-activity-feed", tenant.id] })
-      )
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'food_orders', filter: `tenant_id=eq.${tenant.id}` },
-        () => queryClient.invalidateQueries({ queryKey: ["live-activity-feed", tenant.id] })
-      )
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ai_call_sessions', filter: `tenant_id=eq.${tenant.id}` }, invalidate)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bookings', filter: `tenant_id=eq.${tenant.id}` }, invalidate)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'food_orders', filter: `tenant_id=eq.${tenant.id}` }, invalidate)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'dispatch_jobs', filter: `tenant_id=eq.${tenant.id}` }, invalidate)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [tenant?.id, queryClient]);
