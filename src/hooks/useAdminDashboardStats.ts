@@ -29,7 +29,7 @@ export function useAdminDashboardStats() {
       const recentCount = recentTenantsRes.count ?? 0;
       const priorCount = priorTenantsRes.count ?? 0;
 
-      const subData = (subscriptionsRes.data ?? []) as Array<{ price_amount: number | null }>;
+      const subData = (subscriptionsRes.data ?? []) as unknown as Array<{ price_amount: number | null }>;
       const mrr = subData.reduce((sum, s) => sum + (s.price_amount ?? 0), 0);
 
       let growth: string;
@@ -98,7 +98,7 @@ export function useAgencySummary() {
         .select("id, commission_earned");
       if (error) throw error;
 
-      const agencyList = (agencies ?? []) as Array<{ id: string; commission_earned: number | null }>;
+      const agencyList = (agencies ?? []) as unknown as Array<{ id: string; commission_earned: number | null }>;
       const totalAgencies = agencyList.length;
       const totalCommission = agencyList.reduce((sum, a) => sum + (a.commission_earned ?? 0), 0);
 

@@ -5,8 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Send, Loader2, Bookmark, RotateCcw, Bot, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMarketingChat, useSaveMarketingContent, type ChatMessage } from "@/hooks/useMarketingChat";
+import { useSaveMarketingContent, type ChatMessage } from "@/hooks/useMarketingChat";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
 
 const CATEGORIES = [
   { value: "general", label: "General" },
@@ -22,19 +24,129 @@ export function MarketingChatPanel() {
   const userId = user?.id;
   const [category, setCategory] = useState("general");
   const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isStreaming, setIsStreaming] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { messages, isStreaming, sendMessage, clearChat } = useMarketingChat(userId);
   const saveContent = useSaveMarketingContent(userId);
+
+  // Listen for template events from parent
+  useEffect(() => {
+    const handler = (e: CustomEvent<{ prompt: string; category: string }>) => {
+      setCategory(e.detail.category);
+      handleSendDirect(e.detail.prompt, e.detail.category);
+    };
+    window.addEventListener("marketing-template" as any, handler);
+    return () => window.removeEventListener("marketing-template" as any, handler);
+  }, [messages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const handleSendDirect = async (content: string, cat: string) => {
+    if (!userId || isStreaming) return;
+
+    const userMsg: ChatMessage = { role: "user", content, category: cat };
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
+    setIsStreaming(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-marketing-chat`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
+          }),
+        }
+      );
+
+      if (!resp.ok) {
+        const errorData = await resp.json().catch(() => ({}));
+        throw new Error(errorData.error || `Error ${resp.status}`);
+      }
+
+      // Handle SSE streaming
+      const reader = resp.body?.getReader();
+      if (!reader) throw new Error("No response body");
+
+      const decoder = new TextDecoder();
+      let assistantContent = "";
+
+      // Add placeholder assistant message
+      setMessages((prev) => [...prev, { role: "assistant", content: "", category: cat }]);
+
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const data = line.slice(6).trim();
+          if (data === "[DONE]") continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) {
+              assistantContent += delta;
+              setMessages((prev) => {
+                const updated = [...prev];
+                updated[updated.length - 1] = {
+                  role: "assistant",
+                  content: assistantContent,
+                  category: cat,
+                };
+                return updated;
+              });
+            }
+          } catch {
+            // ignore parse errors on partial chunks
+          }
+        }
+      }
+
+      // If no streaming content was captured, show fallback
+      if (!assistantContent) {
+        setMessages((prev) => {
+          const updated = [...prev];
+          updated[updated.length - 1] = {
+            role: "assistant",
+            content: "I apologize, I couldn't generate a response. Please try again.",
+            category: cat,
+          };
+          return updated;
+        });
+      }
+    } catch (err) {
+      console.error("Marketing chat error:", err);
+      toast.error(err instanceof Error ? err.message : "Failed to get AI response");
+      // Remove the empty assistant message if there was an error
+      setMessages((prev) => prev.filter((m) => m.content !== ""));
+    } finally {
+      setIsStreaming(false);
+    }
+  };
+
   const handleSend = () => {
     const trimmed = input.trim();
     if (!trimmed || isStreaming) return;
     setInput("");
-    sendMessage(trimmed, category);
+    handleSendDirect(trimmed, category);
   };
 
   const handleSaveResponse = (msg: ChatMessage) => {
@@ -45,6 +157,8 @@ export function MarketingChatPanel() {
       content: msg.content,
     });
   };
+
+  const clearChat = () => setMessages([]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-16rem)]">
@@ -71,13 +185,13 @@ export function MarketingChatPanel() {
         {messages.length === 0 && (
           <div className="text-center py-16 text-muted-foreground">
             <Bot className="h-12 w-12 mx-auto mb-4 opacity-30" />
-            <h3 className="text-lg font-medium mb-2">Marketing AI Assistant</h3>
+            <h3 className="text-lg font-medium mb-2">Marketing AI Strategist</h3>
             <p className="text-sm max-w-md mx-auto">
-              Ask me anything about marketing CloseLoop — content ideas, ad campaigns,
-              social media strategies, partner outreach, and more.
+              Your AI CMO for CloseLoop. Ask me anything about marketing, content, ads,
+              social media, partnerships, or scaling — I'll give you exact, actionable strategies.
             </p>
             <p className="text-xs mt-3 text-muted-foreground/60">
-              Select a category above to get specialized help, or use "General" for anything.
+              Try a template from the Templates tab for comprehensive, ready-to-execute strategies.
             </p>
           </div>
         )}
@@ -93,14 +207,20 @@ export function MarketingChatPanel() {
               </div>
             )}
             <div
-              className={`max-w-[80%] rounded-lg px-4 py-3 text-sm ${
+              className={`max-w-[85%] rounded-lg px-4 py-3 text-sm ${
                 msg.role === "user"
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted"
               }`}
             >
-              <div className="whitespace-pre-wrap">{msg.content}</div>
-              {msg.role === "assistant" && (
+              {msg.role === "assistant" ? (
+                <div className="prose prose-sm dark:prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                  <ReactMarkdown>{msg.content || "..."}</ReactMarkdown>
+                </div>
+              ) : (
+                <div className="whitespace-pre-wrap">{msg.content}</div>
+              )}
+              {msg.role === "assistant" && msg.content && (
                 <div className="mt-2 pt-2 border-t border-border/40 flex items-center gap-2">
                   <Button
                     variant="ghost"
@@ -133,7 +253,7 @@ export function MarketingChatPanel() {
           </div>
         ))}
 
-        {isStreaming && (
+        {isStreaming && messages[messages.length - 1]?.role !== "assistant" && (
           <div className="flex gap-3">
             <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
               <Bot className="h-4 w-4 text-primary" />
