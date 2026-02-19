@@ -37,6 +37,7 @@ interface BrainDashboardProps {
 
 /**
  * Derive a one-line summary per category.
+ * If no data exists, show a helpful action hint instead of blank text.
  */
 function getCategorySummary(
   section: string,
@@ -45,15 +46,15 @@ function getCategorySummary(
   switch (section) {
     case "about":
     case "business":
-      return [summaries.businessInfo, summaries.hours].filter(Boolean).join(" · ");
+      return [summaries.businessInfo, summaries.hours].filter(Boolean).join(" · ") || "Add your business name and hours so your AI can introduce itself";
     case "services":
-      return [summaries.catalog, summaries.pricingRules].filter(Boolean).join(" · ");
+      return [summaries.catalog, summaries.pricingRules].filter(Boolean).join(" · ") || "Add what you offer so your AI can quote prices";
     case "operations":
-      return [summaries.coverage, summaries.policies].filter(Boolean).join(" · ");
+      return [summaries.coverage, summaries.policies].filter(Boolean).join(" · ") || "Set your coverage area and business rules";
     case "ai-voice":
-      return [summaries.scripts, summaries.guidelines].filter(Boolean).join(" · ");
+      return [summaries.scripts, summaries.guidelines].filter(Boolean).join(" · ") || "Customize how your AI sounds and behaves";
     case "training":
-      return [summaries.scripts, summaries.faqs, summaries.objections].filter(Boolean).join(" · ");
+      return [summaries.scripts, summaries.faqs, summaries.objections].filter(Boolean).join(" · ") || "Teach your AI how to handle calls and answer questions";
     default:
       return "";
   }

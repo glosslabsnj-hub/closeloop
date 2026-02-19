@@ -1,20 +1,22 @@
 /**
  * Category-level completion hook
  *
- * Maps the 5 dashboard categories to the essentialFields section IDs
- * so each card on the BrainDashboard can show its own progress ring.
+ * Uses the mode-specific `completionSections` from brainModeLayout.ts
+ * so percentages always align with the actual tabs shown on the dashboard.
  *
- * Read-only dependency on useBrainCompletion / essentialFields.
+ * Read-only dependency on essentialFields + brainModeLayout.
  */
 
 import { useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessCapabilities } from "./useBusinessCapabilities";
+import { useTenantConfig } from "./useTenantConfig";
 import {
   getFieldsForMode,
   shouldShowField,
 } from "@/config/essentialFields";
 import { isFieldComplete } from "@/lib/brainFieldCompletion";
+import { getModeTabDef } from "@/config/brainModeLayout";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -24,22 +26,6 @@ export interface CategoryCompletionStats {
   percentage: number;
   hasRequiredIncomplete: boolean;
 }
-
-// ── Section mapping ────────────────────────────────────────────────────────
-// Maps each dashboard category (section param) to the essentialFields
-// `field.section` values it encompasses.
-
-const CATEGORY_SECTION_MAP: Record<string, string[]> = {
-  // Legacy (kept for backward compat)
-  business:   ["profile", "hours", "calendar"],
-  services:   ["services"],
-  operations: ["coverage"],
-  "ai-voice": ["ai-behavior"],
-  // Mode-aware sections (aligned with brainModeLayout.ts completionSections)
-  about:      ["profile", "hours"],
-  rules:      ["policies"],
-  training:   ["knowledge", "ai-behavior", "policies"],
-};
 
 // ── Capability flags builder (shared) ──────────────────────────────────────
 
@@ -55,6 +41,26 @@ function buildCapabilityFlags(capabilities: ReturnType<typeof useBusinessCapabil
   };
 }
 
+/**
+ * Resolve completion sections for a category using the mode layout.
+ * Falls back to a static map for legacy/unmapped sections.
+ */
+function getCompletionSections(mode: string, categorySection: string): string[] {
+  // Try mode layout first (source of truth)
+  const tabDef = getModeTabDef(mode as any, categorySection);
+  if (tabDef && tabDef.completionSections.length > 0) {
+    return tabDef.completionSections;
+  }
+
+  // Legacy fallback for sections not in mode layout
+  const LEGACY_MAP: Record<string, string[]> = {
+    business: ["profile", "hours", "calendar"],
+    "ai-voice": ["ai-behavior"],
+    rules: ["policies"],
+  };
+  return LEGACY_MAP[categorySection] ?? [];
+}
+
 // ── Hooks ──────────────────────────────────────────────────────────────────
 
 /**
@@ -63,10 +69,11 @@ function buildCapabilityFlags(capabilities: ReturnType<typeof useBusinessCapabil
 export function useCategoryCompletion(categorySection: string): CategoryCompletionStats {
   const { tenant } = useAuth();
   const capabilities = useBusinessCapabilities();
+  const { businessMode } = useTenantConfig();
 
   return useMemo(() => {
-    const essentialSections = CATEGORY_SECTION_MAP[categorySection];
-    if (!essentialSections) {
+    const essentialSections = getCompletionSections(businessMode, categorySection);
+    if (essentialSections.length === 0) {
       return { totalFields: 0, completedFields: 0, percentage: 100, hasRequiredIncomplete: false };
     }
 
@@ -92,19 +99,20 @@ export function useCategoryCompletion(categorySection: string): CategoryCompleti
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 100;
 
     return { totalFields: total, completedFields: completed, percentage, hasRequiredIncomplete };
-  }, [categorySection, tenant, capabilities]);
+  }, [categorySection, tenant, capabilities, businessMode]);
 }
 
 /**
  * Completion stats for dashboard categories.
- * Defaults to all entries in CATEGORY_SECTION_MAP, or pass specific section keys
- * to compute only for those (used by mode-shaped dashboard).
+ * Uses mode-aware completion sections from brainModeLayout.ts.
+ * Pass specific section keys to compute only for those categories.
  */
 export function useAllCategoriesCompletion(
   sectionKeys?: string[],
 ): Record<string, CategoryCompletionStats> {
   const { tenant } = useAuth();
   const capabilities = useBusinessCapabilities();
+  const { businessMode } = useTenantConfig();
 
   return useMemo(() => {
     const allFields = getFieldsForMode(capabilities.mode);
@@ -112,13 +120,17 @@ export function useAllCategoriesCompletion(
 
     const result: Record<string, CategoryCompletionStats> = {};
 
-    const entries = sectionKeys
-      ? sectionKeys
-          .filter((k) => CATEGORY_SECTION_MAP[k])
-          .map((k) => [k, CATEGORY_SECTION_MAP[k]] as const)
-      : Object.entries(CATEGORY_SECTION_MAP);
+    // Default section keys: the standard mode tabs
+    const keys = sectionKeys ?? ["about", "services", "operations", "training"];
 
-    for (const [catSection, essentialSections] of entries) {
+    for (const catSection of keys) {
+      const essentialSections = getCompletionSections(businessMode, catSection);
+
+      if (essentialSections.length === 0) {
+        result[catSection] = { totalFields: 0, completedFields: 0, percentage: 100, hasRequiredIncomplete: false };
+        continue;
+      }
+
       const sectionFields = allFields.filter(
         (f) => essentialSections.includes(f.section) && shouldShowField(f, capFlags),
       );
@@ -141,5 +153,5 @@ export function useAllCategoriesCompletion(
     }
 
     return result;
-  }, [tenant, capabilities, sectionKeys]);
+  }, [tenant, capabilities, sectionKeys, businessMode]);
 }
