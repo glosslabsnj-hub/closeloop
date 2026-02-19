@@ -12,6 +12,7 @@ import { useAdminGrowthSettings } from "@/hooks/useAdminGrowthSettings";
 import { useOutreachCampaigns } from "@/hooks/useAdminOutreach";
 import { useAdminSocialPosts, useGrowthActivityLog } from "@/hooks/useAdminSocialPosts";
 import { GrowthSettingsPanel } from "@/components/admin/growth/GrowthSettingsPanel";
+import { GrowthSetupWizard } from "@/components/admin/growth/GrowthSetupWizard";
 import { OutreachSequenceEditor } from "@/components/admin/growth/OutreachSequenceEditor";
 import { OutreachCampaignManager } from "@/components/admin/growth/OutreachCampaignManager";
 import { AdCampaignGenerator } from "@/components/admin/growth/AdCampaignGenerator";
@@ -105,6 +106,9 @@ export default function AdminGrowthEnginePage() {
         <StatCard label="Responses" value={totalResponded} icon={MessageSquare} />
         <StatCard label="Conversions" value={totalConverted} icon={CheckCircle2} />
       </div>
+
+      {/* Setup Wizard */}
+      <GrowthSetupWizard />
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
