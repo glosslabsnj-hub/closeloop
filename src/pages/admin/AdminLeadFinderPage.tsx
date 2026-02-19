@@ -60,10 +60,26 @@ export default function AdminLeadFinderPage() {
     setTempFilter("all");
 
     try {
-      const { data, error } = await supabase.functions.invoke("admin-lead-search", {
-        body: { industry, location, count: 50, mode: "business" },
-      });
-      if (error) throw error;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Not authenticated");
+
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-lead-search`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ industry, location, count: 50, mode: "business" }),
+        }
+      );
+      if (!resp.ok) {
+        const errBody = await resp.json().catch(() => ({}));
+        throw new Error(errBody.error || `Error ${resp.status}`);
+      }
+      const data = await resp.json();
 
       const rawLeads: AgencyLead[] = (data.leads || []).map((l: any) => ({
         ...l,
