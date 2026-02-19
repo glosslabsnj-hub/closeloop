@@ -958,6 +958,80 @@ export type Database = {
         }
         Relationships: []
       }
+      agency_applications: {
+        Row: {
+          admin_notes: string | null
+          approved_agency_id: string | null
+          company_name: string
+          company_website: string | null
+          created_at: string
+          current_client_count: number | null
+          email: string
+          expected_clients: number
+          full_name: string
+          id: string
+          message: string | null
+          phone: string | null
+          referral_source: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          services_offered: string[] | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          approved_agency_id?: string | null
+          company_name: string
+          company_website?: string | null
+          created_at?: string
+          current_client_count?: number | null
+          email: string
+          expected_clients: number
+          full_name: string
+          id?: string
+          message?: string | null
+          phone?: string | null
+          referral_source?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          services_offered?: string[] | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          approved_agency_id?: string | null
+          company_name?: string
+          company_website?: string | null
+          created_at?: string
+          current_client_count?: number | null
+          email?: string
+          expected_clients?: number
+          full_name?: string
+          id?: string
+          message?: string | null
+          phone?: string | null
+          referral_source?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          services_offered?: string[] | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_applications_approved_agency_id_fkey"
+            columns: ["approved_agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agency_commissions: {
         Row: {
           agency_id: string

@@ -109,10 +109,10 @@ function AppLayoutContent() {
   }, [user, loading, navigate]);
 
   useEffect(() => {
-    if (!loading && user && !tenant && !isSuperAdmin) {
+    if (!loading && user && !tenant && !isSuperAdmin && !isAgency && !isAgencyLoading) {
       if (location.pathname !== "/app/onboarding") navigate("/app/onboarding");
     }
-  }, [loading, user, tenant, isSuperAdmin, location.pathname, navigate]);
+  }, [loading, user, tenant, isSuperAdmin, isAgency, isAgencyLoading, location.pathname, navigate]);
 
   // Clear selectedPlan bypass once a real subscription is confirmed
   useEffect(() => {

@@ -26,9 +26,10 @@ export default function LoginPage() {
     try {
       await signIn(email, password);
 
-      // Check if user is super_admin to redirect appropriately
+      // Check user type to redirect appropriately
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        // 1. Check super_admin
         const { data: roleData } = await supabase
           .from("user_roles")
           .select("role")
@@ -38,9 +39,23 @@ export default function LoginPage() {
 
         if (roleData?.role === "super_admin") {
           navigate("/admin/dashboard");
-        } else {
-          navigate("/app/dashboard");
+          return;
         }
+
+        // 2. Check agency user
+        const { data: agencyData } = await supabase
+          .from("agency_accounts")
+          .select("id")
+          .eq("user_id", user.id)
+          .limit(1);
+
+        if (agencyData && agencyData.length > 0) {
+          navigate("/app/agency");
+          return;
+        }
+
+        // 3. Default: regular tenant user
+        navigate("/app/dashboard");
       } else {
         navigate("/app/dashboard");
       }
