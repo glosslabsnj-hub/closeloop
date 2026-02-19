@@ -154,13 +154,22 @@ function AppLayoutContent() {
     <>
       {/* Super Admin Bar — full width, above everything */}
       {isSuperAdmin && (
-        <header className="hidden md:flex fixed top-0 left-0 right-0 z-50 h-10 bg-background/95 backdrop-blur-lg border-b border-border/20 items-center justify-end px-4 gap-3">
-          <div className="flex items-center gap-2 text-warning mr-2">
-            <FlaskConical className="h-3.5 w-3.5" />
-            <span className="text-[11px] font-semibold uppercase tracking-wider">Admin Testing</span>
+        <header className="hidden md:flex fixed top-0 left-0 right-0 z-50 h-10 bg-background/95 backdrop-blur-lg border-b border-border/20 items-center justify-between px-4">
+          <Link
+            to="/admin"
+            className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
+          >
+            <Lock className="h-3 w-3" />
+            Admin Dashboard
+          </Link>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-warning mr-2">
+              <FlaskConical className="h-3.5 w-3.5" />
+              <span className="text-[11px] font-semibold uppercase tracking-wider">Admin Testing</span>
+            </div>
+            <AdminModeSelector />
+            <AdminTenantSwitcher />
           </div>
-          <AdminModeSelector />
-          <AdminTenantSwitcher />
         </header>
       )}
 
@@ -186,6 +195,7 @@ function AppLayoutContent() {
             userEmail={user.email || ""}
             tenantName={displayTenant?.name}
             onSignOut={handleSignOut}
+            isSuperAdmin={isSuperAdmin}
           />
 
           {/* Trial banner — shown when subscription is trialing */}

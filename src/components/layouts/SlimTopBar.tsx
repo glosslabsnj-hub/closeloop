@@ -1,5 +1,5 @@
 import { useNavigate, Link } from "react-router-dom";
-import { Search, Settings, HelpCircle, LogOut, Sun, Moon, AudioWaveform } from "lucide-react";
+import { Search, Settings, HelpCircle, LogOut, Sun, Moon, AudioWaveform, ShieldCheck } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -17,9 +17,10 @@ interface SlimTopBarProps {
   userEmail: string;
   tenantName?: string;
   onSignOut: () => void;
+  isSuperAdmin?: boolean;
 }
 
-export function SlimTopBar({ userEmail, tenantName, onSignOut }: SlimTopBarProps) {
+export function SlimTopBar({ userEmail, tenantName, onSignOut, isSuperAdmin }: SlimTopBarProps) {
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
 
@@ -78,6 +79,15 @@ export function SlimTopBar({ userEmail, tenantName, onSignOut }: SlimTopBarProps
               <p className="text-sm font-medium truncate">{userEmail}</p>
               {tenantName && <p className="text-xs text-muted-foreground truncate">{tenantName}</p>}
             </div>
+            {isSuperAdmin && (
+              <>
+                <DropdownMenuItem onClick={() => navigate("/admin")} className="cursor-pointer">
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  Admin Dashboard
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuItem onClick={() => navigate("/app/settings")} className="cursor-pointer">
               <Settings className="mr-2 h-4 w-4" />
               Settings
