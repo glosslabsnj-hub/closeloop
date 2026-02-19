@@ -92,6 +92,9 @@ import AdminSetupRequestsPage from "@/pages/admin/AdminSetupRequestsPage";
 import AdminAuditReportPage from "@/pages/admin/AdminAuditReportPage";
 import AdminAgencyApplicationsPage from "@/pages/admin/AdminAgencyApplicationsPage";
 import AdminTestOnboardingPage from "@/pages/admin/AdminTestOnboardingPage";
+import AdminLeadFinderPage from "@/pages/admin/AdminLeadFinderPage";
+import AdminResellerFinderPage from "@/pages/admin/AdminResellerFinderPage";
+import AdminMarketingPage from "@/pages/admin/AdminMarketingPage";
 
 // Debug Pages
 import TelephonyDebugPage from "@/pages/debug/TelephonyDebugPage";
@@ -199,6 +202,9 @@ const App = () => (
             <Route element={<AdminLayout />}>
               <Route path="/admin/overview" element={<AdminOverviewPage />} />
               <Route path="/admin/tenants" element={<AdminTenantsPage />} />
+              <Route path="/admin/lead-finder" element={<AdminLeadFinderPage />} />
+              <Route path="/admin/reseller-finder" element={<AdminResellerFinderPage />} />
+              <Route path="/admin/marketing" element={<AdminMarketingPage />} />
               <Route path="/admin/support" element={<AdminSupportPage />} />
               <Route path="/admin/demo-library" element={<AdminDemoLibraryPage />} />
               <Route path="/admin/golden-path" element={<AdminGoldenPathPage />} />

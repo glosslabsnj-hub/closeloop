@@ -21,15 +21,24 @@ import {
   FileText,
   Headset,
   ScrollText,
+  Search,
+  Users,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 import { AdminModeSelector } from "@/components/admin/AdminModeSelector";
 import { AdminTenantSwitcher } from "@/components/admin/AdminTenantSwitcher";
+import { Separator } from "@/components/ui/separator";
 
 const navItems = [
   { href: "/admin/overview", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/tenants", label: "Tenants", icon: Building2 },
+  { section: "GROWTH" },
+  { href: "/admin/lead-finder", label: "Lead Finder", icon: Search },
+  { href: "/admin/reseller-finder", label: "Reseller Finder", icon: Users },
+  { href: "/admin/marketing", label: "Marketing AI", icon: Sparkles },
+  { section: "OPERATIONS" },
   { href: "/admin/demo-library", label: "Demo Library", icon: Music },
   { href: "/admin/golden-path", label: "Golden Path QA", icon: ClipboardCheck },
   { href: "/admin/support", label: "Support", icon: HeadphonesIcon },
@@ -118,7 +127,14 @@ export function AdminLayout() {
           {/* Sidebar */}
           <aside className="hidden md:flex w-64 flex-col fixed left-0 top-14 bottom-0 border-r bg-background">
             <nav className="flex-1 p-4 space-y-1">
-              {navItems.map((item) => {
+              {navItems.map((item, idx) => {
+                if ('section' in item) {
+                  return (
+                    <div key={item.section} className={cn("pt-3 pb-1", idx > 0 && "mt-1")}>
+                      <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{item.section}</p>
+                    </div>
+                  );
+                }
                 const Icon = item.icon;
                 const isActive = location.pathname === item.href;
                 return (
@@ -143,7 +159,7 @@ export function AdminLayout() {
           {/* Mobile Nav */}
           <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t bg-background overflow-x-auto">
             <div className="grid grid-cols-4 auto-rows-[3.5rem]">
-              {navItems.map((item) => {
+              {navItems.filter((item) => 'href' in item).map((item: any) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.href;
                 return (
