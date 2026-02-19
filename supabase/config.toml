@@ -74,3 +74,12 @@ verify_jwt = false
 
 [functions.seed-stripe-prices]
 verify_jwt = false
+
+[functions.create-demo-profile]
+verify_jwt = false
+
+[functions.activate-demo-profile]
+verify_jwt = false
+
+[functions.delete-demo-profile]
+verify_jwt = false

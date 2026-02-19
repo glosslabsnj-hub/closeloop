@@ -105,6 +105,8 @@ import AdminMarketingPage from "@/pages/admin/AdminMarketingPage";
 import AdminGrowthEnginePage from "@/pages/admin/AdminGrowthEnginePage";
 import AdminBlueprintPage from "@/pages/admin/AdminBlueprintPage";
 import AdminCommissionPayoutsPage from "@/pages/admin/AdminCommissionPayoutsPage";
+import AdminDemosPage from "@/pages/admin/AdminDemosPage";
+import AgencyDemosPage from "@/pages/app/agency/AgencyDemosPage";
 
 // Debug Pages
 import TelephonyDebugPage from "@/pages/debug/TelephonyDebugPage";
@@ -205,6 +207,7 @@ const App = () => (
               <Route path="/app/agency/leads/saved" element={<AgencySavedLeadsPage />} />
               <Route path="/app/agency/commissions" element={<AgencyCommissionsPage />} />
               <Route path="/app/agency/reports" element={<AgencyReportsPage />} />
+              <Route path="/app/agency/demos" element={<AgencyDemosPage />} />
               <Route path="/app/help" element={<HelpCenterPage />} />
               {/* Legacy: Menu Center now lives in Business Brain */}
               <Route path="/app/menu-center" element={<Navigate to="/app/business-brain" replace />} />
@@ -236,6 +239,7 @@ const App = () => (
               <Route path="/admin/growth-engine" element={<AdminGrowthEnginePage />} />
               <Route path="/admin/blueprint" element={<AdminBlueprintPage />} />
               <Route path="/admin/commission-payouts" element={<AdminCommissionPayoutsPage />} />
+              <Route path="/admin/demos" element={<AdminDemosPage />} />
             </Route>
 
             {/* Driver Portal Routes */}
