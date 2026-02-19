@@ -156,8 +156,9 @@ Deno.serve(async (req) => {
             }).catch(() => {});
           }
         } catch (err) {
-          console.error(`[auto-discover] Error for ${industry} in ${location}:`, err);
+        console.error(`[auto-discover] Error for ${industry} in ${location}:`, err);
         }
+    }
 
     // Log activity
     await supabase.from("admin_growth_activity_log").insert({
