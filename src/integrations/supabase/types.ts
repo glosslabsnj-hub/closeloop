@@ -218,6 +218,150 @@ export type Database = {
           },
         ]
       }
+      admin_reseller_leads: {
+        Row: {
+          address: string | null
+          confidence: string | null
+          created_at: string
+          employee_estimate: string | null
+          friction_signals: string[] | null
+          hours: string | null
+          id: string
+          industry: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          rating: number | null
+          reason: string | null
+          review_count: number | null
+          score: number | null
+          score_reasons: string[] | null
+          status: string
+          temperature: string | null
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          confidence?: string | null
+          created_at?: string
+          employee_estimate?: string | null
+          friction_signals?: string[] | null
+          hours?: string | null
+          id?: string
+          industry?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          rating?: number | null
+          reason?: string | null
+          review_count?: number | null
+          score?: number | null
+          score_reasons?: string[] | null
+          status?: string
+          temperature?: string | null
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          confidence?: string | null
+          created_at?: string
+          employee_estimate?: string | null
+          friction_signals?: string[] | null
+          hours?: string | null
+          id?: string
+          industry?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          rating?: number | null
+          reason?: string | null
+          review_count?: number | null
+          score?: number | null
+          score_reasons?: string[] | null
+          status?: string
+          temperature?: string | null
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
+      admin_saved_leads: {
+        Row: {
+          address: string | null
+          confidence: string | null
+          created_at: string
+          employee_estimate: string | null
+          friction_signals: string[] | null
+          hours: string | null
+          id: string
+          industry: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          rating: number | null
+          reason: string | null
+          review_count: number | null
+          score: number | null
+          score_reasons: string[] | null
+          status: string
+          temperature: string | null
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          confidence?: string | null
+          created_at?: string
+          employee_estimate?: string | null
+          friction_signals?: string[] | null
+          hours?: string | null
+          id?: string
+          industry?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          rating?: number | null
+          reason?: string | null
+          review_count?: number | null
+          score?: number | null
+          score_reasons?: string[] | null
+          status?: string
+          temperature?: string | null
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          confidence?: string | null
+          created_at?: string
+          employee_estimate?: string | null
+          friction_signals?: string[] | null
+          hours?: string | null
+          id?: string
+          industry?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          rating?: number | null
+          reason?: string | null
+          review_count?: number | null
+          score?: number | null
+          score_reasons?: string[] | null
+          status?: string
+          temperature?: string | null
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       admin_settings: {
         Row: {
           admin_active_mode: string | null
