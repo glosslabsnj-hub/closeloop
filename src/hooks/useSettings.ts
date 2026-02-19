@@ -152,11 +152,13 @@ export function useAvailabilitySlots() {
 
         if (insertError) {
           // Attempt to restore previously deleted slots to prevent data loss
-          if (existingSlots && existingSlots.length > 0) {
-            const restore = existingSlots.map(({ id, created_at, ...rest }) => rest);
-            await supabase.from("availability_slots").insert(restore).catch((restoreErr) => {
-              console.error("Failed to restore availability slots after insert error:", restoreErr);
-            });
+            if (existingSlots && existingSlots.length > 0) {
+              const restore = existingSlots.map(({ id, created_at, ...rest }) => rest);
+              try {
+                await supabase.from("availability_slots").insert(restore);
+              } catch (restoreErr) {
+                console.error("Failed to restore availability slots after insert error:", restoreErr);
+              }
           }
           throw insertError;
         }

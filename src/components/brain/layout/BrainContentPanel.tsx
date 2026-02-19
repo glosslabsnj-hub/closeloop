@@ -30,6 +30,10 @@ const STATUS_BADGE: Record<SectionStatus, { label: string; className: string }> 
     label: "Set up",
     className: "bg-muted text-muted-foreground",
   },
+  optional: {
+    label: "Optional",
+    className: "bg-muted/50 text-muted-foreground/70",
+  },
   warning: {
     label: "Needs attention",
     className: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300",

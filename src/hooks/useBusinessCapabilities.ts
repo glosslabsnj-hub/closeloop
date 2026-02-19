@@ -373,42 +373,42 @@ export function useBusinessCapabilities(): BusinessCapabilities {
           .from("menu_items")
           .select("id", { count: "exact", head: true })
           .eq("tenant_id", tenant.id),
-        supabase
+        (supabase as any)
           .from("ai_knowledge_base")
           .select("id", { count: "exact", head: true })
           .eq("tenant_id", tenant.id)
-          .eq("category" as any, "catering"),
-        supabase
+          .eq("category", "catering"),
+        (supabase as any)
           .from("ai_knowledge_base")
           .select("id", { count: "exact", head: true })
           .eq("tenant_id", tenant.id)
-          .eq("category" as any, "vehicle"),
-        supabase
+          .eq("category", "vehicle"),
+        (supabase as any)
           .from("ai_knowledge_base")
           .select("id", { count: "exact", head: true })
           .eq("tenant_id", tenant.id)
-          .eq("category" as any, "roadside"),
-        supabase
+          .eq("category", "roadside"),
+        (supabase as any)
           .from("ai_knowledge_base")
           .select("id", { count: "exact", head: true })
           .eq("tenant_id", tenant.id)
-          .eq("category" as any, "symptom_triage"),
-        supabase
+          .eq("category", "symptom_triage"),
+        (supabase as any)
           .from("ai_knowledge_base")
           .select("id", { count: "exact", head: true })
           .eq("tenant_id", tenant.id)
-          .eq("category" as any, "insurance"),
-        supabase
+          .eq("category", "insurance"),
+        (supabase as any)
           .from("ai_knowledge_base")
           .select("id", { count: "exact", head: true })
           .eq("tenant_id", tenant.id)
-          .eq("category" as any, "aftercare"),
-        supabase
+          .eq("category", "aftercare"),
+        (supabase as any)
           .from("ai_knowledge_base")
           .select("id", { count: "exact", head: true })
           .eq("tenant_id", tenant.id)
-          .eq("category" as any, "product"),
-        supabase
+          .eq("category", "product"),
+        (supabase as any)
           .from("food_order_settings")
           .select("estimated_prep_minutes")
           .eq("tenant_id", tenant.id)

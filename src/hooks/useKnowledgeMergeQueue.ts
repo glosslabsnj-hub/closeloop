@@ -255,7 +255,7 @@ async function applyMergeItem(item: KnowledgeMergeItem, tenantId: string) {
 
     case "policy": {
       // Update the tenant's policies JSON field
-      const { data: tenantPolicyData } = await supabase
+      const { data: tenantPolicyData } = await (supabase as any)
         .from("tenants")
         .select("policies")
         .eq("id", tenantId)
@@ -267,9 +267,9 @@ async function applyMergeItem(item: KnowledgeMergeItem, tenantId: string) {
         [entity_key]: proposed_value,
       };
 
-      const { error: policyError } = await supabase
+      const { error: policyError } = await (supabase as any)
         .from("tenants")
-        .update({ policies: updatedPolicies as any })
+        .update({ policies: updatedPolicies })
         .eq("id", tenantId);
 
       if (policyError) console.warn("Policy update error:", policyError);
@@ -278,7 +278,7 @@ async function applyMergeItem(item: KnowledgeMergeItem, tenantId: string) {
 
     case "intake_field": {
       // Update the tenant's intake_fields JSON field
-      const { data: tenantIntakeData } = await supabase
+      const { data: tenantIntakeData } = await (supabase as any)
         .from("tenants")
         .select("intake_fields")
         .eq("id", tenantId)
@@ -300,9 +300,9 @@ async function applyMergeItem(item: KnowledgeMergeItem, tenantId: string) {
         updatedFields = [...currentFields, { key: entity_key, ...proposed_value }];
       }
 
-      const { error: intakeError } = await supabase
+      const { error: intakeError } = await (supabase as any)
         .from("tenants")
-        .update({ intake_fields: updatedFields as any })
+        .update({ intake_fields: updatedFields })
         .eq("id", tenantId);
 
       if (intakeError) console.warn("Intake field update error:", intakeError);
