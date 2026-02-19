@@ -94,6 +94,7 @@ export function OutreachCampaignManager() {
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7"
+                    disabled={updateCampaign.isPending}
                     onClick={(e) => {
                       e.stopPropagation();
                       updateCampaign.mutate({

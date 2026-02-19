@@ -161,10 +161,11 @@ export function useSaveSequenceSteps() {
   return useMutation({
     mutationFn: async ({ sequenceId, steps }: { sequenceId: string; steps: Omit<OutreachSequenceStep, "id" | "created_at">[] }) => {
       // Delete existing steps then re-insert
-      await supabase
+      const { error: deleteErr } = await supabase
         .from("admin_outreach_sequence_steps" as any)
         .delete()
         .eq("sequence_id", sequenceId);
+      if (deleteErr) throw deleteErr;
       if (steps.length > 0) {
         const { error } = await supabase
           .from("admin_outreach_sequence_steps" as any)
@@ -292,6 +293,7 @@ export function useOutreachActions(campaignId: string | undefined) {
   return useQuery({
     queryKey: ["admin-outreach-actions", campaignId],
     enabled: !!campaignId,
+    refetchInterval: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("admin_outreach_actions" as any)

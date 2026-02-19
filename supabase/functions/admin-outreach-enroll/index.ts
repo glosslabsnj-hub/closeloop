@@ -93,20 +93,13 @@ Deno.serve(async (req) => {
 
     const enrolled = (inserted ?? []).length;
 
-    // Update campaign total
-    await supabase.rpc("admin_increment_campaign_enrolled" as any, {
-      p_campaign_id: campaign_id,
-      p_count: enrolled,
-    }).catch(() => {
-      // Fallback: manual update if RPC doesn't exist
-      supabase
-        .from("admin_outreach_campaigns")
-        .update({
-          total_enrolled: (rows.length),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", campaign_id);
-    });
+    // Update campaign total (atomic increment via RPC)
+    if (enrolled > 0) {
+      await supabase.rpc("admin_increment_campaign_enrolled" as any, {
+        p_campaign_id: campaign_id,
+        p_count: enrolled,
+      });
+    }
 
     // Log activity
     await supabase.from("admin_growth_activity_log").insert({

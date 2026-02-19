@@ -32,6 +32,24 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Verify caller is super_admin
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader) {
+      const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user }, error: authErr } = await anonClient.auth.getUser();
+      if (authErr || !user) return errorResponse("Unauthorized", 401);
+
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "super_admin")
+        .maybeSingle();
+      if (!roleData) return errorResponse("Forbidden", 403);
+    }
+
     const apiKey = Deno.env.get("AI_GATEWAY_API_KEY");
     if (!apiKey) return errorResponse("AI_GATEWAY_API_KEY not configured", 500);
 
