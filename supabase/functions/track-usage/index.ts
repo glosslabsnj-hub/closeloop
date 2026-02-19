@@ -52,7 +52,9 @@ serve(async (req) => {
     let recordId: string;
 
     if (!usageRecord) {
-      // No current period - create one (30 day period)
+      // No current period — create a fallback 30-day period.
+      // Subsequent periods are created by the invoice.created webhook
+      // aligned to Stripe's actual billing cycle dates.
       const periodStart = new Date();
       const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
       

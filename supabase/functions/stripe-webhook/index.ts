@@ -10,8 +10,24 @@ const corsHeaders = {
 // Determine if a plan SKU includes voice features (supports both legacy and new SKU codes)
 function hasVoiceFeature(planCode: string | null): boolean {
   if (!planCode) return false;
-  return planCode.startsWith("voice") || planCode.startsWith("both");
+  return planCode.startsWith("base") || planCode.startsWith("growth") ||
+         planCode.startsWith("scale") || planCode.startsWith("power") ||
+         planCode === "enterprise" ||
+         planCode.startsWith("voice") || planCode.startsWith("both");
 }
+
+// Plan limits map — mirrors src/config/pricing.ts for edge function use
+const PLAN_LIMITS: Record<string, { includedMinutes: number; overageRateCents: number | null }> = {
+  "base-200":     { includedMinutes: 200,   overageRateCents: 55 },
+  "growth-2000":  { includedMinutes: 2000,  overageRateCents: 45 },
+  "scale-5000":   { includedMinutes: 5000,  overageRateCents: 35 },
+  "power-10000":  { includedMinutes: 10000, overageRateCents: 29 },
+  "enterprise":   { includedMinutes: 20000, overageRateCents: null }, // custom pricing
+  // Legacy SKU mappings
+  "voice-200":    { includedMinutes: 200,   overageRateCents: 55 },
+  "voice-600":    { includedMinutes: 600,   overageRateCents: 45 },
+  "voice-1500":   { includedMinutes: 1500,  overageRateCents: 35 },
+};
 
 // Constant-time string comparison to prevent timing attacks
 function secureCompare(a: string, b: string): boolean {
@@ -278,6 +294,166 @@ serve(async (req) => {
       }
     }
 
+    // Handle invoice.created — add overage charges to draft invoices
+    if (event.type === "invoice.created") {
+      const invoice = event.data.object;
+
+      // Only process subscription renewal invoices (not first invoice, manual, etc.)
+      if (invoice.billing_reason !== "subscription_cycle") {
+        console.log(`OverageBilling: skipping invoice ${invoice.id} reason=${invoice.billing_reason}`);
+      } else {
+        const stripeSubscriptionId = invoice.subscription;
+        console.log(`OverageBilling: processing invoice ${invoice.id} for subscription ${stripeSubscriptionId}`);
+
+        // Look up tenant by stripe_subscription_id
+        const { data: sub, error: subError } = await supabase
+          .from("subscriptions")
+          .select("tenant_id, status, included_minutes, overage_minute_rate_cents, credit_balance_cents")
+          .eq("stripe_subscription_id", stripeSubscriptionId)
+          .maybeSingle();
+
+        if (subError || !sub) {
+          console.error(`OverageBilling: subscription lookup failed sub=${stripeSubscriptionId}`, subError);
+        } else if (sub.status === "trialing") {
+          console.log(`OverageBilling: skip tenant=${sub.tenant_id} reason=trialing`);
+        } else if (!sub.overage_minute_rate_cents) {
+          console.log(`OverageBilling: skip tenant=${sub.tenant_id} reason=no-overage-rate (enterprise or unset)`);
+        } else {
+          // Find the most recent unsettled usage record
+          const { data: usageRecord, error: usageError } = await supabase
+            .from("subscription_usage")
+            .select("*")
+            .eq("tenant_id", sub.tenant_id)
+            .eq("overage_settled", false)
+            .order("billing_period_start", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (usageError) {
+            console.error(`OverageBilling: usage lookup failed tenant=${sub.tenant_id}`, usageError);
+          } else if (!usageRecord) {
+            console.log(`OverageBilling: no unsettled usage for tenant=${sub.tenant_id}`);
+          } else {
+            const usedMinutes = usageRecord.voice_minutes_used || 0;
+            const includedMinutes = sub.included_minutes || 0;
+            const overageMinutes = Math.max(0, usedMinutes - includedMinutes);
+            const grossOverageCents = overageMinutes * sub.overage_minute_rate_cents;
+            const creditBalance = sub.credit_balance_cents || 0;
+            const creditApplied = Math.min(creditBalance, grossOverageCents);
+            const netChargeCents = grossOverageCents - creditApplied;
+
+            console.log(`OverageBilling: tenant=${sub.tenant_id} used=${usedMinutes} included=${includedMinutes} overage=${overageMinutes}min gross=${grossOverageCents}c credit=${creditApplied}c net=${netChargeCents}c`);
+
+            // Add invoice item to the draft invoice if there's a net charge
+            if (netChargeCents > 0) {
+              const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
+              if (!STRIPE_SECRET_KEY) {
+                console.error("OverageBilling: STRIPE_SECRET_KEY not configured");
+              } else {
+                const description = `Voice overage: ${overageMinutes} min × $${(sub.overage_minute_rate_cents / 100).toFixed(2)}/min`
+                  + (creditApplied > 0 ? ` (credit applied: -$${(creditApplied / 100).toFixed(2)})` : "");
+
+                const itemResponse = await fetch("https://api.stripe.com/v1/invoiceitems", {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
+                    "Content-Type": "application/x-www-form-urlencoded",
+                  },
+                  body: new URLSearchParams({
+                    customer: invoice.customer,
+                    invoice: invoice.id,
+                    amount: netChargeCents.toString(),
+                    currency: invoice.currency || "usd",
+                    description,
+                  }).toString(),
+                });
+
+                if (!itemResponse.ok) {
+                  const errText = await itemResponse.text();
+                  console.error(`OverageBilling: Stripe invoiceitem creation failed: ${errText}`);
+                } else {
+                  console.log(`OverageBilling: invoice item added to ${invoice.id} amount=${netChargeCents}c`);
+                }
+              }
+            }
+
+            // Mark usage record as settled (even if $0 overage)
+            const { error: settleError } = await supabase
+              .from("subscription_usage")
+              .update({
+                overage_settled: true,
+                settled_invoice_id: invoice.id,
+                overage_billed_cents: netChargeCents,
+                credit_applied_cents: creditApplied,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", usageRecord.id);
+
+            if (settleError) {
+              console.error(`OverageBilling: failed to settle usage record ${usageRecord.id}`, settleError);
+            }
+
+            // Deduct applied credits from subscription balance
+            if (creditApplied > 0) {
+              const newCreditBalance = creditBalance - creditApplied;
+              const { error: creditError } = await supabase
+                .from("subscriptions")
+                .update({
+                  credit_balance_cents: newCreditBalance,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("tenant_id", sub.tenant_id);
+
+              if (creditError) {
+                console.error(`OverageBilling: failed to deduct credits for tenant ${sub.tenant_id}`, creditError);
+              }
+            }
+
+            // Log audit event
+            await supabase.from("audit_events").insert({
+              tenant_id: sub.tenant_id,
+              event_type: "overage_billed",
+              entity_type: "subscription",
+              actor_type: "system",
+              payload: {
+                invoice_id: invoice.id,
+                usage_record_id: usageRecord.id,
+                used_minutes: usedMinutes,
+                included_minutes: includedMinutes,
+                overage_minutes: overageMinutes,
+                gross_overage_cents: grossOverageCents,
+                credit_applied_cents: creditApplied,
+                net_billed_cents: netChargeCents,
+                billing_period_start: usageRecord.billing_period_start,
+                billing_period_end: usageRecord.billing_period_end,
+              },
+            });
+
+            // Create next billing period's usage record aligned with Stripe billing cycle
+            const nextPeriodStart = invoice.lines?.data?.[0]?.period?.start;
+            const nextPeriodEnd = invoice.lines?.data?.[0]?.period?.end;
+            if (nextPeriodStart && nextPeriodEnd) {
+              const { error: nextError } = await supabase
+                .from("subscription_usage")
+                .upsert({
+                  tenant_id: sub.tenant_id,
+                  billing_period_start: new Date(nextPeriodStart * 1000).toISOString(),
+                  billing_period_end: new Date(nextPeriodEnd * 1000).toISOString(),
+                  voice_minutes_used: 0,
+                  sms_segments_used: 0,
+                }, { onConflict: "tenant_id,billing_period_start" });
+
+              if (nextError) {
+                console.error(`OverageBilling: failed to create next period for tenant ${sub.tenant_id}`, nextError);
+              } else {
+                console.log(`OverageBilling: next period created for tenant ${sub.tenant_id} ${new Date(nextPeriodStart * 1000).toISOString()} - ${new Date(nextPeriodEnd * 1000).toISOString()}`);
+              }
+            }
+          }
+        }
+      }
+    }
+
     // Handle subscription-related events
     if (event.type === "checkout.session.completed" ||
         event.type === "customer.subscription.created" ||
@@ -299,17 +475,23 @@ serve(async (req) => {
 
           // Store Stripe IDs on subscription record
           if (tenantId) {
+            const limits = planCode ? PLAN_LIMITS[planCode] : null;
+            const upsertFields: Record<string, unknown> = {
+              tenant_id: tenantId,
+              stripe_customer_id: session.customer,
+              stripe_subscription_id: session.subscription,
+              plan_code: planCode || undefined,
+              status: "trialing", // Will be trialing if trial_period_days was set
+              trial_started_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            };
+            if (limits) {
+              upsertFields.included_minutes = limits.includedMinutes;
+              upsertFields.overage_minute_rate_cents = limits.overageRateCents;
+            }
             await supabase
               .from("subscriptions")
-              .upsert({
-                tenant_id: tenantId,
-                stripe_customer_id: session.customer,
-                stripe_subscription_id: session.subscription,
-                plan_code: planCode || undefined,
-                status: "trialing", // Will be trialing if trial_period_days was set
-                trial_started_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              }, { onConflict: "tenant_id" });
+              .upsert(upsertFields, { onConflict: "tenant_id" });
           }
         }
       } else if (event.type === "invoice.payment_succeeded") {
@@ -404,6 +586,18 @@ serve(async (req) => {
           // On conversion from trial to active, update period end
           if (newStatus === "active" && subscription.current_period_end) {
             updateFields.current_period_end = new Date(subscription.current_period_end * 1000).toISOString();
+          }
+
+          // Update included_minutes and overage rate if plan changed
+          const updatedPlanCode = subscription.metadata?.plan_code
+            || subscription.items?.data?.[0]?.price?.metadata?.plan_code;
+          if (updatedPlanCode) {
+            const limits = PLAN_LIMITS[updatedPlanCode];
+            if (limits) {
+              updateFields.plan_code = updatedPlanCode;
+              updateFields.included_minutes = limits.includedMinutes;
+              updateFields.overage_minute_rate_cents = limits.overageRateCents;
+            }
           }
 
           await supabase
