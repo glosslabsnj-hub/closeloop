@@ -151,111 +151,109 @@ export function AgentControlPanel() {
 
   return (
     <>
-      <Card>
-        <CardContent className="p-0">
-          <div className="px-5 py-4">
-            {/* Status Row */}
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 min-w-0">
-                {/* Power Toggle */}
-                <button
-                  onClick={() => handleToggle(!isActive)}
-                  disabled={toggling || (!hasPhoneConnected && !isActive)}
-                  className={cn(
-                    "relative shrink-0 h-7 w-12 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    isActive ? "bg-success" : "bg-muted-foreground/25",
-                    (toggling || (!hasPhoneConnected && !isActive)) && "opacity-40 cursor-not-allowed"
-                  )}
-                >
-                  <span className={cn(
-                    "absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow-sm transition-transform duration-200",
-                    isActive && "translate-x-5"
-                  )} />
-                </button>
-
-                <h2 className="text-base font-semibold truncate">{businessName}</h2>
-
-                <div className={cn(
-                  "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium shrink-0",
-                  isActive
-                    ? "bg-success/15 text-success"
-                    : "bg-muted text-muted-foreground"
-                )}>
-                  <span className={cn(
-                    "w-1.5 h-1.5 rounded-full",
-                    isActive ? "bg-success" : "bg-muted-foreground/40"
-                  )} />
-                  {isActive ? "Live" : "Paused"}
-                </div>
-
-                {isSuperAdmin && (
-                  <Badge variant="outline" className="gap-1 text-xs border-primary/30 shrink-0">
-                    <Shield className="h-3 w-3" />
-                    Admin
-                  </Badge>
+      <div className="rounded-lg border border-border/60 bg-card">
+        <div className="px-5 py-4">
+          {/* Status Row */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              {/* Power Toggle */}
+              <button
+                onClick={() => handleToggle(!isActive)}
+                disabled={toggling || (!hasPhoneConnected && !isActive)}
+                className={cn(
+                  "relative shrink-0 h-6 w-11 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  isActive ? "bg-success" : "bg-muted-foreground/20",
+                  (toggling || (!hasPhoneConnected && !isActive)) && "opacity-40 cursor-not-allowed"
                 )}
+              >
+                <span className={cn(
+                  "absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200",
+                  isActive && "translate-x-5"
+                )} />
+              </button>
+
+              <h2 className="text-sm font-semibold truncate text-foreground">{businessName}</h2>
+
+              <div className={cn(
+                "flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0",
+                isActive
+                  ? "bg-success/10 text-success"
+                  : "bg-muted text-muted-foreground"
+              )}>
+                <span className={cn(
+                  "w-1.5 h-1.5 rounded-full",
+                  isActive ? "bg-success" : "bg-muted-foreground/40"
+                )} />
+                {isActive ? "Live" : "Paused"}
               </div>
 
-              <div className="flex items-center gap-3 shrink-0">
-                {/* Phone Number */}
-                {hasPhoneConnected ? (
-                  <button
-                    onClick={copyPhoneNumber}
-                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
-                  >
+              {isSuperAdmin && (
+                <Badge variant="outline" className="gap-1 text-[10px] border-primary/20 shrink-0">
+                  <Shield className="h-3 w-3" />
+                  Admin
+                </Badge>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3 shrink-0">
+              {/* Phone Number */}
+              {hasPhoneConnected ? (
+                <button
+                  onClick={copyPhoneNumber}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors group"
+                >
+                  <Phone className="h-3.5 w-3.5" />
+                  <span className="font-mono text-[11px]">{formatPhone(closeloopNumber)}</span>
+                  {copied ? (
+                    <Check className="h-3 w-3 text-success" />
+                  ) : (
+                    <Copy className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  )}
+                </button>
+              ) : (
+                <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs" asChild>
+                  <Link to="/app/go-live">
                     <Phone className="h-3.5 w-3.5" />
-                    <span className="font-mono text-xs">{formatPhone(closeloopNumber)}</span>
-                    {copied ? (
-                      <Check className="h-3 w-3 text-success" />
-                    ) : (
-                      <Copy className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    Connect Phone
+                  </Link>
+                </Button>
+              )}
+
+              {/* Readiness */}
+              <div className="hidden sm:flex items-center gap-2">
+                <div className="w-px h-4 bg-border/40" />
+                <Activity className="h-3.5 w-3.5 text-muted-foreground" />
+                <div className="relative w-14 h-1 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-all duration-500",
+                      readinessPercent >= 85 ? "bg-success" : "bg-warning"
                     )}
-                  </button>
-                ) : (
-                  <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs" asChild>
-                    <Link to="/app/go-live">
-                      <Phone className="h-3.5 w-3.5" />
-                      Connect Phone
-                    </Link>
+                    style={{ width: `${Math.min(readinessPercent, 100)}%` }}
+                  />
+                </div>
+                <span className={cn(
+                  "text-[11px] font-medium tabular-nums",
+                  readinessPercent >= 85 ? "text-success" : "text-warning"
+                )}>
+                  {readinessPercent}%
+                </span>
+                {!canGoLive && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-[11px] text-warning hover:text-warning gap-1"
+                    onClick={() => navigate("/app/business-brain")}
+                  >
+                    <AlertCircle className="h-3 w-3" />
+                    Complete Setup
                   </Button>
                 )}
-
-                {/* Readiness (desktop) */}
-                <div className="hidden sm:flex items-center gap-2">
-                  <div className="w-px h-5 bg-border" />
-                  <Activity className="h-3.5 w-3.5 text-muted-foreground" />
-                  <div className="relative w-16 h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className={cn(
-                        "h-full rounded-full transition-all duration-500",
-                        readinessPercent >= 85 ? "bg-success" : "bg-warning"
-                      )}
-                      style={{ width: `${Math.min(readinessPercent, 100)}%` }}
-                    />
-                  </div>
-                  <span className={cn(
-                    "text-xs font-medium tabular-nums",
-                    readinessPercent >= 85 ? "text-success" : "text-warning"
-                  )}>
-                    {readinessPercent}%
-                  </span>
-                  {!canGoLive && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 px-2 text-[11px] text-warning hover:text-warning gap-1"
-                      onClick={() => navigate("/app/business-brain")}
-                    >
-                      <AlertCircle className="h-3 w-3" />
-                      Complete Setup
-                    </Button>
-                  )}
-                </div>
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <AgentOffBehaviorModal
         open={offBehaviorModalOpen}

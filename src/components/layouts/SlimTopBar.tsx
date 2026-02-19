@@ -25,14 +25,14 @@ export function SlimTopBar({ userEmail, tenantName, onSignOut, isSuperAdmin }: S
   const { theme, setTheme } = useTheme();
 
   return (
-    <header className="hidden md:flex h-16 sticky top-0 z-30 items-center gap-2 bg-[hsl(222,47%,11%)] border-b border-[hsl(215,28%,17%)] px-6">
+    <header className="hidden md:flex h-12 sticky top-0 z-30 items-center gap-2 bg-background/95 backdrop-blur-sm border-b border-border/40 px-6">
 
       {/* Branding */}
-      <Link to="/app/dashboard" className="flex items-center gap-2.5">
-        <div className="h-7 w-7 shrink-0 rounded-lg bg-primary flex items-center justify-center">
-          <AudioWaveform className="h-3.5 w-3.5 text-primary-foreground" />
+      <Link to="/app/dashboard" className="flex items-center gap-2">
+        <div className="h-6 w-6 shrink-0 rounded-md bg-primary flex items-center justify-center">
+          <AudioWaveform className="h-3 w-3 text-primary-foreground" />
         </div>
-        <span className="font-semibold text-sm text-foreground">
+        <span className="font-medium text-sm text-foreground">
           {tenantName || BRAND.name}
         </span>
       </Link>

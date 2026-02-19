@@ -89,13 +89,13 @@ export const DesktopSidebar = ({
   return (
     <motion.div
       className={cn(
-        "h-full px-4 py-4 hidden md:flex md:flex-col bg-sidebar border-r border-sidebar-border/50 flex-shrink-0",
+        "h-full px-3 py-4 hidden md:flex md:flex-col bg-sidebar flex-shrink-0",
         className
       )}
       animate={{
-        width: animate ? (open ? "280px" : "60px") : "280px",
+        width: animate ? (open ? "260px" : "56px") : "260px",
       }}
-      transition={{ duration: 0.3, ease: "easeInOut" }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
       {...props}
@@ -156,11 +156,11 @@ export const SidebarLink = ({
     <Link
       to={isLocked ? "/app/go-live" : link.href}
       className={cn(
-        "flex items-center gap-3 group/sidebar rounded-lg px-4 py-3 h-11 transition-colors",
+        "flex items-center gap-3 group/sidebar rounded-md px-3 py-2 h-9 transition-colors",
         isActive
-          ? "bg-primary text-white font-medium"
-          : "text-muted-foreground hover:bg-[hsl(217,33%,27%)]",
-        isLocked && "opacity-40 pointer-events-none",
+          ? "bg-accent text-foreground font-medium"
+          : "text-sidebar-foreground hover:bg-accent hover:text-foreground",
+        isLocked && "opacity-30 pointer-events-none",
         className
       )}
       {...props}
@@ -171,8 +171,8 @@ export const SidebarLink = ({
           display: animate ? (open ? "inline-block" : "none") : "inline-block",
           opacity: animate ? (open ? 1 : 0) : 1,
         }}
-        transition={{ duration: 0.2 }}
-        className="text-sm font-medium whitespace-pre"
+        transition={{ duration: 0.15 }}
+        className="text-[13px] font-medium whitespace-pre"
       >
         {link.label}
       </motion.span>

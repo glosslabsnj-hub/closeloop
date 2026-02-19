@@ -38,10 +38,10 @@ export function BrainSidebarItem({
       type="button"
       onClick={onClick}
       className={cn(
-        "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all text-sm",
+        "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-left transition-colors text-sm",
         isActive
-          ? "bg-primary/10 text-primary font-medium shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.2)]"
-          : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
+          ? "bg-accent text-foreground font-medium"
+          : "text-muted-foreground hover:bg-accent hover:text-foreground"
       )}
     >
       <Icon className="h-4 w-4 shrink-0" />

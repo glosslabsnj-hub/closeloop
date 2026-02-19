@@ -4,126 +4,68 @@
 
 /* =====================================================
    CloseLoop Design System — 2026
-   Theme: Dark Indigo
+   Theme: Notion-Dark — warm neutrals, high contrast
    ===================================================== */
 
 @layer base {
-  /* =====================================================
-     LIGHT MODE (Default)
-     Slate dark with indigo primary
-     ===================================================== */
   :root,
-  .light {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-
-    --card: 217 33% 17%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 217 33% 17%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 239 84% 67%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 239 84% 72%;
-
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
-    --accent-signature: 239 84% 67%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-
-    --success: 142 71% 45%;
-    --success-foreground: 0 0% 100%;
-
-    --warning: 38 92% 50%;
-    --warning-foreground: 38 92% 15%;
-
-    --border: 217 33% 27%;
-    --input: 217 33% 27%;
-    --ring: 239 84% 67%;
-
-    --radius: 0.375rem;
-
-    --sidebar-background: 222 47% 8%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 239 84% 67%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 33% 17%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 27%;
-    --sidebar-ring: 239 84% 67%;
-
-    /* Glass morphism */
-    --glass-bg: 217 33% 17%;
-    --glass-opacity: 0.7;
-    --glass-border: 217 33% 27%;
-    --glass-border-opacity: 0.5;
-  }
-
-  /* =====================================================
-     DARK MODE
-     Even deeper dark with indigo primary
-     ===================================================== */
+  .light,
   .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
+    /* Surface hierarchy: base → raised → elevated */
+    --background: 220 10% 9%;
+    --foreground: 60 10% 93%;
 
-    --card: 217 33% 17%;
-    --card-foreground: 210 40% 98%;
+    --card: 220 8% 13%;
+    --card-foreground: 60 10% 93%;
 
-    --popover: 217 33% 17%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 220 8% 15%;
+    --popover-foreground: 60 10% 93%;
 
-    --primary: 239 84% 67%;
+    /* Primary — warm indigo-blue */
+    --primary: 230 70% 62%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 239 84% 72%;
+    --primary-glow: 230 70% 68%;
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 220 8% 16%;
+    --secondary-foreground: 60 10% 88%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 220 8% 16%;
+    --muted-foreground: 220 10% 52%;
 
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
-    --accent-signature: 239 84% 67%;
+    --accent: 220 8% 18%;
+    --accent-foreground: 60 10% 93%;
+    --accent-signature: 230 70% 62%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 71% 45%;
+    --success: 152 60% 44%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 38 92% 15%;
+    --warning: 38 90% 50%;
+    --warning-foreground: 38 90% 12%;
 
-    --border: 217 33% 27%;
-    --input: 217 33% 27%;
-    --ring: 239 84% 67%;
+    --border: 220 8% 18%;
+    --input: 220 8% 16%;
+    --ring: 230 70% 62%;
 
-    --radius: 0.375rem;
+    --radius: 0.5rem;
 
-    --sidebar-background: 222 47% 8%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 239 84% 67%;
+    /* Sidebar — slightly darker than background */
+    --sidebar-background: 220 10% 7%;
+    --sidebar-foreground: 220 10% 60%;
+    --sidebar-primary: 230 70% 62%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 33% 17%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 27%;
-    --sidebar-ring: 239 84% 67%;
+    --sidebar-accent: 220 8% 13%;
+    --sidebar-accent-foreground: 60 10% 93%;
+    --sidebar-border: 220 8% 14%;
+    --sidebar-ring: 230 70% 62%;
 
-    --glass-bg: 217 33% 17%;
-    --glass-opacity: 0.7;
-    --glass-border: 217 33% 27%;
-    --glass-border-opacity: 0.5;
+    /* Glass */
+    --glass-bg: 220 8% 13%;
+    --glass-opacity: 0.8;
+    --glass-border: 220 8% 18%;
+    --glass-border-opacity: 0.4;
   }
 }
 

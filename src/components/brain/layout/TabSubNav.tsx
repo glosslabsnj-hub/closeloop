@@ -18,7 +18,7 @@ export function TabSubNav({ subSections, activeId, onChange }: TabSubNavProps) {
 
   return (
     <div className="overflow-x-auto -mx-1 px-1 pb-1">
-      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-muted/20 w-fit">
+      <div className="flex items-center gap-1 p-0.5 rounded-lg bg-muted/30 w-fit">
         {subSections.map((sub) => {
           const isActive = sub.id === activeId;
           return (
@@ -27,10 +27,10 @@ export function TabSubNav({ subSections, activeId, onChange }: TabSubNavProps) {
               type="button"
               onClick={() => onChange(sub.id)}
               className={cn(
-                "rounded-xl px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-all",
+                "rounded-md px-3 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors",
                 isActive
-                  ? "bg-card shadow-sm text-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                  ? "bg-accent text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
               {sub.label}

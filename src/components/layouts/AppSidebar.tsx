@@ -100,7 +100,7 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const location = useLocation();
 
-  const iconClass = "h-5 w-5 shrink-0 text-sidebar-foreground";
+  const iconClass = "h-4 w-4 shrink-0";
 
   // Build workspace items (capability-gated)
   const workspaceItems: NavItem[] = [];
@@ -204,7 +204,7 @@ export function AppSidebar({
       <SidebarBody className="justify-between gap-6">
         <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
           {/* MAIN */}
-          {open && <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-3 pt-1 pb-1">Main</p>}
+          {open && <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/40 px-3 pt-1 pb-1">Main</p>}
           <div className="flex flex-col gap-0.5">
             {coreItems.map(renderLink)}
           </div>
@@ -217,13 +217,13 @@ export function AppSidebar({
           )}
 
           {/* AI CENTER */}
-          {open && <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-3 pt-4 pb-1">AI Center</p>}
+          {open && <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/40 px-3 pt-4 pb-1">AI Center</p>}
           <div className={cn("flex flex-col gap-0.5", !open && "mt-4")}>
             {aiCenterItems.map(renderLink)}
           </div>
 
           {/* MANAGE */}
-          {open && <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-3 pt-4 pb-1">Manage</p>}
+          {open && <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/40 px-3 pt-4 pb-1">Manage</p>}
           <div className={cn("flex flex-col gap-0.5", !open && "mt-4")}>
             {manageItems.map(renderLink)}
           </div>

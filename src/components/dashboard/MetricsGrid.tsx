@@ -172,23 +172,27 @@ export function MetricsGrid() {
   const metrics = getMetrics();
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-      {metrics.slice(0, 3).map((metric) => (
-        <Card
-          key={metric.label}
-          className="cursor-pointer transition-colors hover:border-border/80"
-          onClick={() => navigate(metric.href)}
-        >
-          <CardContent className="p-4">
-            <p className="text-xs font-medium text-muted-foreground mb-1">
-              {metric.label}
-            </p>
-            <p className="text-2xl font-bold tracking-tight tabular-nums text-foreground">
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      {metrics.slice(0, 3).map((metric) => {
+        const Icon = metric.icon;
+        return (
+          <button
+            key={metric.label}
+            className="text-left p-4 rounded-lg bg-card border border-border/60 hover:bg-accent transition-colors cursor-pointer"
+            onClick={() => navigate(metric.href)}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Icon className="h-4 w-4 text-muted-foreground" />
+              <p className="text-xs font-medium text-muted-foreground">
+                {metric.label}
+              </p>
+            </div>
+            <p className="text-2xl font-semibold tracking-tight tabular-nums text-foreground">
               {metric.value}
             </p>
-          </CardContent>
-        </Card>
-      ))}
+          </button>
+        );
+      })}
     </div>
   );
 }
