@@ -61,20 +61,38 @@ interface CallSession {
 }
 
 // Helper to extract customer name from call data
+// Priority: per-call extracted name > customer record > context fallback
 function getCustomerName(call: CallSession): string {
+  // 1. Best source: extracted_payload.customer.name (per-call, from AI extraction)
+  const payload = call.extracted_payload;
+  if (payload) {
+    const customer = payload.customer as Record<string, unknown> | undefined;
+    if (customer && typeof customer.name === "string" && customer.name && customer.name !== "Unknown") {
+      return customer.name;
+    }
+    // Flat fallback
+    const flatName = payload.customer_name || payload.name;
+    if (typeof flatName === "string" && flatName && flatName !== "Unknown") return flatName;
+  }
+
+  // 2. context_json.customer_name — may be a string or an object with .value
+  const ctx = call.context_json;
+  if (ctx) {
+    const raw = ctx.customer_name;
+    if (typeof raw === "string" && raw && raw !== "Unknown") return raw;
+    if (raw && typeof raw === "object" && (raw as Record<string, unknown>).value) {
+      const val = (raw as Record<string, unknown>).value;
+      if (typeof val === "string" && val && val !== "Unknown") return val;
+    }
+    const fallback = ctx.name || ctx.caller_name;
+    if (typeof fallback === "string" && fallback && fallback !== "Unknown") return fallback;
+  }
+
+  // 3. Customer record from DB (may be stale for shared phone numbers)
   if (call.customer?.full_name && call.customer.full_name !== "Unknown") {
     return call.customer.full_name;
   }
-  const ctx = call.context_json;
-  if (ctx) {
-    const name = ctx.customer_name || ctx.name || ctx.caller_name;
-    if (typeof name === "string" && name && name !== "Unknown") return name;
-  }
-  const payload = call.extracted_payload;
-  if (payload) {
-    const name = payload.customer_name || payload.name;
-    if (typeof name === "string" && name && name !== "Unknown") return name;
-  }
+
   return "Unknown Caller";
 }
 
