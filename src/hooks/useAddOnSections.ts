@@ -48,12 +48,17 @@ export function useAddOnSections(tab: BrainTab): UseAddOnSectionsReturn {
   const { relevantSet, addOnItems } = useMemo(() => {
     const relevant = new Set<string>();
     const addOns: AddOnItem[] = [];
+    const currentMode = caps.derivedPrimaryMode || "general";
 
     for (const section of tabSections) {
       if (section.isRelevant(caps, scenarioFlags)) {
         relevant.add(section.sectionId);
       } else {
-        addOns.push(section.addOn);
+        // Only show add-on if it's compatible with the current business mode
+        const modes = section.addOn.compatibleModes;
+        if (!modes || modes.includes(currentMode as any)) {
+          addOns.push(section.addOn);
+        }
       }
     }
 

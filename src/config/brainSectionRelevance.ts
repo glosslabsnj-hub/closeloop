@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import type { Capabilities } from "@/hooks/useCapabilities";
 
+export type BusinessModeKey = "service" | "dispatch" | "food" | "medical" | "general" | "sales";
+
 export interface AddOnItem {
   id: string;
   title: string;
@@ -21,6 +23,8 @@ export interface AddOnItem {
   icon: LucideIcon;
   capabilityKey: string;
   modulesToEnable?: string[];
+  /** Which business modes can see this as an add-on. If omitted, visible to all. */
+  compatibleModes?: BusinessModeKey[];
 }
 
 export type BrainTab = "services" | "service-area" | "policies" | "knowledge";
@@ -56,6 +60,7 @@ export const SECTION_RELEVANCE: SectionRelevance[] = [
       description: "Enable if you have trip fees, minimums, or after-hours surcharges",
       icon: DollarSign,
       capabilityKey: "chargesTripFee",
+      compatibleModes: ["service", "dispatch", "general"],
     },
   },
   {
@@ -72,6 +77,7 @@ export const SECTION_RELEVANCE: SectionRelevance[] = [
       icon: Package,
       capabilityKey: "offersPackages",
       modulesToEnable: ["packages"],
+      compatibleModes: ["service", "general", "medical"],
     },
   },
   {
@@ -85,6 +91,7 @@ export const SECTION_RELEVANCE: SectionRelevance[] = [
       icon: Truck,
       capabilityKey: "hasDispatchQueue",
       modulesToEnable: ["dispatch_queue"],
+      compatibleModes: ["dispatch"],
     },
   },
   {
@@ -98,6 +105,7 @@ export const SECTION_RELEVANCE: SectionRelevance[] = [
       icon: UtensilsCrossed,
       capabilityKey: "hasFoodOrders",
       modulesToEnable: ["food_orders"],
+      compatibleModes: ["food"],
     },
   },
   {
@@ -111,6 +119,7 @@ export const SECTION_RELEVANCE: SectionRelevance[] = [
       icon: HeartPulse,
       capabilityKey: "hasMedicalIntake",
       modulesToEnable: ["medical_intake"],
+      compatibleModes: ["medical"],
     },
   },
 
@@ -126,6 +135,7 @@ export const SECTION_RELEVANCE: SectionRelevance[] = [
       icon: MapPin,
       capabilityKey: "hasDispatchQueue",
       modulesToEnable: ["dispatch_queue"],
+      compatibleModes: ["dispatch"],
     },
   },
   {
@@ -139,6 +149,7 @@ export const SECTION_RELEVANCE: SectionRelevance[] = [
       icon: Truck,
       capabilityKey: "hasFoodOrders",
       modulesToEnable: ["food_orders"],
+      compatibleModes: ["food"],
     },
   },
   {
@@ -152,6 +163,7 @@ export const SECTION_RELEVANCE: SectionRelevance[] = [
       icon: HeartPulse,
       capabilityKey: "hasMedicalIntake",
       modulesToEnable: ["medical_intake"],
+      compatibleModes: ["medical"],
     },
   },
 
@@ -167,6 +179,7 @@ export const SECTION_RELEVANCE: SectionRelevance[] = [
       icon: Warehouse,
       capabilityKey: "hasImpoundLot",
       modulesToEnable: ["impound_lot"],
+      compatibleModes: ["dispatch"],
     },
   },
   {
@@ -180,6 +193,7 @@ export const SECTION_RELEVANCE: SectionRelevance[] = [
       icon: Phone,
       capabilityKey: "hasDispatchQueue",
       modulesToEnable: ["dispatch_queue"],
+      compatibleModes: ["dispatch"],
     },
   },
   {
@@ -193,6 +207,7 @@ export const SECTION_RELEVANCE: SectionRelevance[] = [
       icon: Shield,
       capabilityKey: "hasMedicalIntake",
       modulesToEnable: ["medical_intake"],
+      compatibleModes: ["medical"],
     },
   },
 
@@ -208,6 +223,7 @@ export const SECTION_RELEVANCE: SectionRelevance[] = [
       icon: UtensilsCrossed,
       capabilityKey: "hasFoodOrders",
       modulesToEnable: ["food_orders"],
+      compatibleModes: ["food"],
     },
   },
   {
@@ -221,6 +237,7 @@ export const SECTION_RELEVANCE: SectionRelevance[] = [
       icon: Truck,
       capabilityKey: "hasDispatchQueue",
       modulesToEnable: ["dispatch_queue"],
+      compatibleModes: ["dispatch"],
     },
   },
   {
@@ -234,6 +251,7 @@ export const SECTION_RELEVANCE: SectionRelevance[] = [
       icon: HeartPulse,
       capabilityKey: "hasMedicalIntake",
       modulesToEnable: ["medical_intake"],
+      compatibleModes: ["medical"],
     },
   },
   {
@@ -249,6 +267,7 @@ export const SECTION_RELEVANCE: SectionRelevance[] = [
       icon: Package,
       capabilityKey: "hasKnowledgeBase",
       modulesToEnable: ["knowledge_base"],
+      compatibleModes: ["service", "general", "sales"],
     },
   },
 
@@ -264,6 +283,7 @@ export const SECTION_RELEVANCE: SectionRelevance[] = [
       icon: Warehouse,
       capabilityKey: "hasSalesInventory",
       modulesToEnable: ["sales_inventory"],
+      compatibleModes: ["sales"],
     },
   },
   {
@@ -277,6 +297,7 @@ export const SECTION_RELEVANCE: SectionRelevance[] = [
       icon: DollarSign,
       capabilityKey: "hasSalesLeads",
       modulesToEnable: ["sales_leads"],
+      compatibleModes: ["sales"],
     },
   },
   {
@@ -290,6 +311,7 @@ export const SECTION_RELEVANCE: SectionRelevance[] = [
       icon: DollarSign,
       capabilityKey: "hasSalesLeads",
       modulesToEnable: ["sales_leads"],
+      compatibleModes: ["sales"],
     },
   },
 ];
