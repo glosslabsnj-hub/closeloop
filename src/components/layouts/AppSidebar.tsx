@@ -143,10 +143,10 @@ export function AppSidebar({
   if (caps.hasJobTracking) {
     workspaceItems.push({ href: "/app/jobs", label: "Active Jobs", icon: <ClipboardCheck className={iconClass} /> });
   }
-  if (caps.hasBooking || caps.hasDispatchQueue || caps.hasJobTracking) {
+  if (caps.hasJobTracking) {
     workspaceItems.push({ href: "/app/time-tracking", label: "Time Tracking", icon: <Clock className={iconClass} /> });
   }
-  if (caps.hasJobTracking || caps.hasDispatchQueue) {
+  if (caps.hasJobTracking) {
     workspaceItems.push({ href: "/app/inventory", label: "Parts Inventory", icon: <Package className={iconClass} /> });
   }
   if (caps.hasFoodOrders) {
