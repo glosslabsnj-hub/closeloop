@@ -82,7 +82,7 @@ const ROLE_PERMISSIONS: Record<string, Record<Permission, boolean>> = {
 export function useTenantRole() {
   const { userRole, isSuperAdmin } = useAuth();
 
-  const effectiveRole = isSuperAdmin ? "super_admin" : (userRole ?? "viewer");
+  const effectiveRole: string = isSuperAdmin ? "super_admin" : (userRole ?? "viewer");
 
   const permissions = useMemo(() => {
     return ROLE_PERMISSIONS[effectiveRole] ?? ROLE_PERMISSIONS.viewer;

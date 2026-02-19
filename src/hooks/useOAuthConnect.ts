@@ -176,7 +176,7 @@ export function useOAuthConnect(options: UseOAuthConnectOptions = {}) {
           .eq("provider", providerId);
 
         // Remove OAuth tokens
-        await supabase
+        await (supabase as any)
           .from("integration_oauth_tokens")
           .delete()
           .eq("tenant_id", tenant.id)
