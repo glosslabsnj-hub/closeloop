@@ -49,6 +49,7 @@ export interface OnboardingDataState {
   afterHours: AfterHoursBehavior;
   customGreeting: string;
   notificationPhone: string;
+  otherDescription: string;
   savedAt?: string;
 }
 
@@ -126,6 +127,9 @@ export function useOnboardingFormState(userId?: string) {
   // Phase 4 state
   const [notificationPhone, setNotificationPhone] = useState(saved.current?.notificationPhone ?? "");
   const [calendarConnected] = useState(false);
+
+  // "Other" industry description
+  const [otherDescription, setOtherDescription] = useState(saved.current?.otherDescription ?? "");
 
   // Clear signup sessionStorage
   useEffect(() => { sessionStorage.removeItem("businessName"); }, []);
@@ -218,14 +222,14 @@ export function useOnboardingFormState(userId?: string) {
         templateServices, templateFAQs, templatePolicies,
         serviceArea, businessDetails, businessHours,
         teamMembers, isSoloOperator, a2pData,
-        aiTone, bookingMode, afterHours, customGreeting, notificationPhone,
+        aiTone, bookingMode, afterHours, customGreeting, notificationPhone, otherDescription,
       }, userId);
       setSaveStatus("saved");
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => setSaveStatus("idle"), 2000);
     }, 3000);
     return () => clearTimeout(timer);
-  }, [businessName, businessAddress, businessMode, industrySlug, workStyle, scenarioAnswers, scenarioDetails, schedulingPrefs, communicationPrefs, templateServices, templateFAQs, templatePolicies, serviceArea, businessDetails, businessHours, teamMembers, isSoloOperator, a2pData, aiTone, bookingMode, afterHours, customGreeting, notificationPhone, userId]);
+  }, [businessName, businessAddress, businessMode, industrySlug, workStyle, scenarioAnswers, scenarioDetails, schedulingPrefs, communicationPrefs, templateServices, templateFAQs, templatePolicies, serviceArea, businessDetails, businessHours, teamMembers, isSoloOperator, a2pData, aiTone, bookingMode, afterHours, customGreeting, notificationPhone, otherDescription, userId]);
 
   // --- Website import support ---
   const applyWebsiteImport = useCallback((mapped: MappedOnboardingData) => {
@@ -262,6 +266,7 @@ export function useOnboardingFormState(userId?: string) {
     setTemplateServices([]);
     setTemplateFAQs([]);
     setTemplatePolicies({ cancellation: "", deposit: "", refund: "" });
+    setOtherDescription("");
     initializedIndustryRef.current = null;
     websiteImportActiveRef.current = false;
   }, []);
@@ -292,6 +297,7 @@ export function useOnboardingFormState(userId?: string) {
     afterHours, setAfterHours,
     customGreeting, setCustomGreeting,
     notificationPhone, setNotificationPhone,
+    otherDescription, setOtherDescription,
     calendarConnected,
     // Actions
     handleBusinessModeChange,

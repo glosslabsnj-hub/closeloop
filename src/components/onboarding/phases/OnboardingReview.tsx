@@ -180,7 +180,7 @@ export const OnboardingReview = React.memo(function OnboardingReview({
             <p className="text-sm font-medium">Setup Summary</p>
             <button
               type="button"
-              onClick={() => onEditPhase(2)}
+              onClick={() => onEditPhase(3)}
               className="text-muted-foreground hover:text-primary transition-colors text-xs"
             >
               Edit

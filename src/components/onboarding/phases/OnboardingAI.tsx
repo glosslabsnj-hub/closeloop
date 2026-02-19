@@ -1,6 +1,6 @@
 import React from "react";
 /**
- * Phase 3: HOW AI Works — Tone, booking mode, after-hours behavior
+ * Phase 5: YOUR AI ASSISTANT — Tone, booking mode, after-hours behavior + live preview
  */
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
@@ -12,10 +12,12 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 import type { AITone, AIBookingMode } from "@/components/onboarding/CommunicationPreferences";
+import { AIPreviewPanel } from "@/components/onboarding/AIPreviewPanel";
 
 export type AfterHoursBehavior = "ai_24_7" | "voicemail" | "text_back";
 
 interface OnboardingAIProps {
+  businessName: string;
   businessMode: BusinessMode;
   aiTone: AITone;
   onAiToneChange: (tone: AITone) => void;
@@ -46,6 +48,7 @@ const afterHoursOptions: { value: AfterHoursBehavior; label: string; description
 ];
 
 export const OnboardingAI = React.memo(function OnboardingAI({
+  businessName,
   businessMode,
   aiTone,
   onAiToneChange,
@@ -68,6 +71,14 @@ export const OnboardingAI = React.memo(function OnboardingAI({
           Teach the AI your style. You can fine-tune everything later.
         </p>
       </div>
+
+      {/* AI Preview */}
+      <AIPreviewPanel
+        businessName={businessName}
+        businessMode={businessMode}
+        aiTone={aiTone}
+        customGreeting={customGreeting}
+      />
 
       {/* Tone Selection */}
       <div className="space-y-3">

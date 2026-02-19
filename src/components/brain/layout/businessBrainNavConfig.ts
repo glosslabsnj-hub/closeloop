@@ -445,6 +445,46 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         isCapabilityVisible: (caps) => caps.hasJobTracking,
         setupPriority: "advanced",
       },
+      // ===== SALES-SPECIFIC CARDS =====
+      {
+        id: "lead-pipeline",
+        title: "Lead Pipeline",
+        purpose: "Configure lead stages and how the AI categorizes prospects",
+        usedByAI: [
+          "Tags leads as hot/warm/cold based on conversation signals",
+          "Routes leads to the right salesperson based on criteria",
+          "Tracks pipeline stage for follow-up prioritization",
+        ],
+        isVisible: (mode) => mode === "sales",
+        isCapabilityVisible: (caps) => caps.isSalesBusiness,
+        setupPriority: "recommended",
+      },
+      {
+        id: "follow-up-sequences",
+        title: "Follow-Up Sequences",
+        purpose: "Automated follow-up timing and templates for leads",
+        usedByAI: [
+          "Sends follow-up texts to leads who don't book",
+          "Adjusts timing based on lead temperature",
+          "Personalizes messages based on conversation context",
+        ],
+        isVisible: (mode) => mode === "sales",
+        isCapabilityVisible: (caps) => caps.isSalesBusiness,
+        setupPriority: "recommended",
+      },
+      {
+        id: "sales-scripts",
+        title: "Sales Objection Playbook",
+        purpose: "Teach your AI how to handle price objections, competitor comparisons, and hesitation",
+        usedByAI: [
+          "Responds to 'that's too expensive' with your trained response",
+          "Handles competitor comparison questions",
+          "Uses value-based selling when customers hesitate",
+        ],
+        isVisible: (mode) => mode === "sales",
+        isCapabilityVisible: (caps) => caps.isSalesBusiness,
+        setupPriority: "recommended",
+      },
     ],
   },
   {

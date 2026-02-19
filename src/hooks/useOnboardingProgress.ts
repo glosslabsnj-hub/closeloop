@@ -1,5 +1,5 @@
 /**
- * useOnboardingProgress — tracks 5-phase onboarding state with localStorage persistence.
+ * useOnboardingProgress — tracks 7-phase onboarding state with localStorage persistence.
  */
 import { useState, useEffect, useRef, useCallback } from "react";
 
@@ -11,10 +11,12 @@ export interface OnboardingPhase {
 }
 
 export const ONBOARDING_PHASES: OnboardingPhase[] = [
-  { id: "who", title: "Who You Are", subtitle: "Business identity", estimatedMinutes: 3 },
-  { id: "what", title: "What You Do", subtitle: "Services & schedule", estimatedMinutes: 8 },
-  { id: "how", title: "How AI Works", subtitle: "AI behavior", estimatedMinutes: 5 },
-  { id: "connect", title: "Connect Tools", subtitle: "Calendar & phone", estimatedMinutes: 3 },
+  { id: "business", title: "Your Business", subtitle: "Name & industry", estimatedMinutes: 2 },
+  { id: "how-you-work", title: "How You Work", subtitle: "Style & features", estimatedMinutes: 3 },
+  { id: "offerings", title: "Your Offerings", subtitle: "Services & menu", estimatedMinutes: 5 },
+  { id: "hours-area", title: "Hours & Area", subtitle: "Schedule & coverage", estimatedMinutes: 3 },
+  { id: "ai-assistant", title: "Your AI", subtitle: "Tone & behavior", estimatedMinutes: 4 },
+  { id: "connect", title: "Connect Tools", subtitle: "Calendar & phone", estimatedMinutes: 2 },
   { id: "go-live", title: "Go Live", subtitle: "Review & launch", estimatedMinutes: 1 },
 ];
 

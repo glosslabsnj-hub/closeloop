@@ -1,5 +1,5 @@
 /**
- * OnboardingPage — 5-phase industry-aware onboarding flow.
+ * OnboardingPage — 7-phase industry-aware onboarding flow.
  * Form state extracted to useOnboardingFormState, submission to useOnboardingSubmit.
  */
 import { useState, useEffect } from "react";
@@ -14,6 +14,7 @@ import {
   Building2, CheckCircle2, Loader2,
   ChevronRight, ChevronLeft,
   RefreshCw, Briefcase, Sparkles, Link2, Rocket,
+  Settings2, Clock,
 } from "lucide-react";
 import { useOnboardingValidation } from "@/hooks/useOnboardingValidation";
 import { useOnboardingProgress, ONBOARDING_PHASES } from "@/hooks/useOnboardingProgress";
@@ -32,13 +33,15 @@ import {
 
 // Phase sub-components
 import { OnboardingIdentity } from "@/components/onboarding/phases/OnboardingIdentity";
+import { OnboardingHowYouWork } from "@/components/onboarding/phases/OnboardingHowYouWork";
 import { OnboardingOfferings } from "@/components/onboarding/phases/OnboardingOfferings";
+import { OnboardingHoursArea } from "@/components/onboarding/phases/OnboardingHoursArea";
 import { OnboardingAI } from "@/components/onboarding/phases/OnboardingAI";
 import { OnboardingConnect } from "@/components/onboarding/phases/OnboardingConnect";
 import { OnboardingReview } from "@/components/onboarding/phases/OnboardingReview";
 
-/** Phase icons for sidebar */
-const PHASE_ICONS = [Building2, Briefcase, Sparkles, Link2, Rocket];
+/** Phase icons for sidebar — 7 phases */
+const PHASE_ICONS = [Building2, Settings2, Briefcase, Clock, Sparkles, Link2, Rocket];
 
 export default function OnboardingPage() {
   const { user, tenant, loading: authLoading } = useAuth();
@@ -92,7 +95,7 @@ export default function OnboardingPage() {
     form.templateServices, form.templateFAQs, form.templatePolicies, form.serviceArea,
     form.businessDetails, form.businessHours, form.teamMembers, form.isSoloOperator,
     form.a2pData, form.aiTone, form.bookingMode, form.afterHours, form.customGreeting,
-    form.notificationPhone, submit.isComplete, resumeDecided, userId]);
+    form.notificationPhone, form.otherDescription, submit.isComplete, resumeDecided, userId]);
 
   // Redirect if already has tenant
   useEffect(() => {
@@ -103,10 +106,12 @@ export default function OnboardingPage() {
   const canProceed = (phaseNum: number) => {
     switch (phaseNum) {
       case 1: return form.businessName.trim().length > 0 && form.industrySlug.length > 0;
-      case 2: return form.templateServices.some(s => s.enabled && s.name.trim().length > 0);
-      case 3: return true;
-      case 4: return true;
-      case 5: return true;
+      case 2: return true; // work style + scenario questions are optional
+      case 3: return form.templateServices.some(s => s.enabled && s.name.trim().length > 0);
+      case 4: return true; // hours have defaults
+      case 5: return true; // AI settings have defaults
+      case 6: return true; // connect is optional
+      case 7: return true; // review
       default: return false;
     }
   };
@@ -161,13 +166,14 @@ export default function OnboardingPage() {
     afterHours: form.afterHours,
     customGreeting: form.customGreeting,
     notificationPhone: form.notificationPhone,
+    otherDescription: form.otherDescription,
   });
 
   const goNext = () => {
     if (phase === 1) {
       const isValid = validateStep("identity", { businessName: form.businessName, industrySlug: form.industrySlug, businessDetails: form.businessDetails });
       if (!isValid) return;
-    } else if (phase === 2) {
+    } else if (phase === 3) {
       const isValid = validateStep("services-preview", { templateServices: form.templateServices });
       if (!isValid) return;
     }
@@ -179,6 +185,8 @@ export default function OnboardingPage() {
     clearErrors();
     if (phase > 1) progressGoBack();
   };
+
+  const REVIEW_PHASE = totalPhases; // 7
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -271,6 +279,7 @@ export default function OnboardingPage() {
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
                 >
+                  {/* Phase 1: Your Business */}
                   {phase === 1 && (
                     <OnboardingIdentity
                       businessName={form.businessName}
@@ -282,20 +291,37 @@ export default function OnboardingPage() {
                       businessMode={form.businessMode}
                       onBusinessModeChange={form.handleBusinessModeChange}
                       workStyle={form.workStyle}
+                      getFieldError={getFieldError}
+                      otherDescription={form.otherDescription}
+                      onOtherDescriptionChange={form.setOtherDescription}
+                    />
+                  )}
+                  {/* Phase 2: How You Work */}
+                  {phase === 2 && (
+                    <OnboardingHowYouWork
+                      businessMode={form.businessMode}
+                      industrySlug={form.industrySlug}
+                      workStyle={form.workStyle}
                       onWorkStyleChange={form.setWorkStyle}
                       scenarioAnswers={form.scenarioAnswers}
                       onScenarioAnswersChange={form.setScenarioAnswers}
                       scenarioDetails={form.scenarioDetails}
                       onScenarioDetailsChange={form.setScenarioDetails}
-                      getFieldError={getFieldError}
                     />
                   )}
-                  {phase === 2 && (
+                  {/* Phase 3: Your Offerings */}
+                  {phase === 3 && (
                     <OnboardingOfferings
                       businessMode={form.businessMode}
                       industrySlug={form.industrySlug}
                       services={form.templateServices}
                       onServicesChange={form.setTemplateServices}
+                    />
+                  )}
+                  {/* Phase 4: Hours & Area */}
+                  {phase === 4 && (
+                    <OnboardingHoursArea
+                      businessMode={form.businessMode}
                       hours={form.businessHours}
                       onHoursChange={form.setBusinessHours}
                       is24x7={form.schedulingPrefs.is24x7}
@@ -305,8 +331,10 @@ export default function OnboardingPage() {
                       workStyle={form.workStyle}
                     />
                   )}
-                  {phase === 3 && (
+                  {/* Phase 5: Your AI Assistant */}
+                  {phase === 5 && (
                     <OnboardingAI
+                      businessName={form.businessName}
                       businessMode={form.businessMode}
                       aiTone={form.aiTone}
                       onAiToneChange={form.setAiTone}
@@ -318,7 +346,8 @@ export default function OnboardingPage() {
                       onCustomGreetingChange={form.setCustomGreeting}
                     />
                   )}
-                  {phase === 4 && (
+                  {/* Phase 6: Connect Tools */}
+                  {phase === 6 && (
                     <OnboardingConnect
                       notificationPhone={form.notificationPhone}
                       onNotificationPhoneChange={form.setNotificationPhone}
@@ -328,7 +357,8 @@ export default function OnboardingPage() {
                       }}
                     />
                   )}
-                  {phase === 5 && (
+                  {/* Phase 7: Review & Launch */}
+                  {phase === REVIEW_PHASE && (
                     <OnboardingReview
                       businessName={form.businessName}
                       businessAddress={form.businessAddress}
@@ -358,8 +388,8 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        {/* Footer Navigation — hidden during quick start */}
-        {!submit.isComplete && phase >= 1 && phase < 5 && (
+        {/* Footer Navigation — hidden during quick start and review */}
+        {!submit.isComplete && phase >= 1 && phase < REVIEW_PHASE && (
           <div className="border-t bg-card p-6">
             <div className="max-w-2xl mx-auto space-y-3">
               {submit.completionError && (
@@ -373,7 +403,7 @@ export default function OnboardingPage() {
                   Back
                 </Button>
                 <div className="flex gap-2">
-                  {phase === 4 && (
+                  {phase === 6 && (
                     <Button variant="ghost" onClick={goNext} className="text-muted-foreground">
                       Skip for now
                     </Button>
@@ -401,8 +431,8 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Phase 5 retry buttons */}
-        {!submit.isComplete && phase === 5 && submit.showRetry && !submit.loading && (
+        {/* Review phase retry buttons */}
+        {!submit.isComplete && phase === REVIEW_PHASE && submit.showRetry && !submit.loading && (
           <div className="border-t bg-card p-6">
             <div className="max-w-2xl mx-auto flex justify-center gap-3">
               <Button variant="ghost" onClick={() => goToPhase(1)} className="gap-2">

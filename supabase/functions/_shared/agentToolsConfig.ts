@@ -742,6 +742,8 @@ export const SERVICE_AGENT_CONFIG: AgentToolsConfig = {
       `Schedule a callback when customer needs a quote, wants to discuss a complex job, or asks to speak with someone. Use when: "I need a quote", "Have someone call me", "I want to talk to the owner", or any question you cannot fully answer.`
     ),
     createCancelBookingTool(),
+    createRescheduleBookingTool(),
+    createLookupBookingTool(),
     createAddToWaitlistTool(),
     createLookupActiveJobTool(),
     createTransferToOwnerTool(),
@@ -817,6 +819,7 @@ export const DISPATCH_AGENT_CONFIG: AgentToolsConfig = {
         },
       ],
     },
+    createCancelDispatchJobTool(),
     // CALLBACK
     {
       name: "create_callback",
@@ -1065,6 +1068,8 @@ export const FOOD_AGENT_CONFIG: AgentToolsConfig = {
         },
       ],
     },
+    createFoodOrderTool(),
+    createLookupOrderStatusTool(),
     createTransferToOwnerTool(),
     createAddToWaitlistTool(),
   ],
@@ -1158,6 +1163,8 @@ export const MEDICAL_AGENT_CONFIG: AgentToolsConfig = {
         },
       ],
     },
+    createRescheduleBookingTool(),
+    createLookupBookingTool(),
     createTransferToOwnerTool(),
     createAddToWaitlistTool(),
   ],
@@ -1361,6 +1368,8 @@ export const SALES_AGENT_CONFIG: AgentToolsConfig = {
     createCallbackTool(
       `Create a callback for financing questions, trade-in valuations, manager requests, or when customer won't schedule but wants info. Use department field to route: 'sales', 'finance', 'service', 'manager'.`
     ),
+    createRescheduleBookingTool(),
+    createLookupBookingTool(),
     createTransferToOwnerTool(),
     createSearchInventoryTool(),
   ],
@@ -1473,6 +1482,279 @@ export function toElevenLabsToolFormat(tool: AgentTool): {
 export function getElevenLabsToolsForMode(mode: BusinessMode): ReturnType<typeof toElevenLabsToolFormat>[] {
   const config = getAgentToolsConfig(mode);
   return config.tools.map(toElevenLabsToolFormat);
+}
+
+// ============= NEW TOOLS (P0-7) =============
+
+/**
+ * create_food_order - Place a food order during the call
+ * Used by: Food (capability: food_orders)
+ */
+function createFoodOrderTool(): AgentTool {
+  return {
+    name: "create_food_order",
+    description: `Place a food order during the call. Use when the customer has finished ordering and you have all the items. Confirm the full order back to the customer BEFORE calling this tool. Collect: customer name, order type (pickup/delivery), and items with quantities.`,
+    url: `${BASE_URL}/elevenlabs-create-food-order`,
+    method: "POST",
+    parameters: [
+      {
+        name: "customer_name",
+        type: "string",
+        required: true,
+        description: "Customer's name for the order",
+      },
+      {
+        name: "order_type",
+        type: "string",
+        required: true,
+        description: "Order type: 'pickup' or 'delivery'",
+      },
+      {
+        name: "items",
+        type: "string",
+        required: true,
+        description: 'JSON array of items, e.g. [{"name":"Pepperoni Pizza","quantity":2},{"name":"Caesar Salad","quantity":1}]',
+      },
+      {
+        name: "delivery_address",
+        type: "string",
+        required: false,
+        description: "Delivery address (required for delivery orders)",
+      },
+      {
+        name: "special_instructions",
+        type: "string",
+        required: false,
+        description: "Special instructions for the order",
+      },
+      {
+        name: "customer_phone",
+        type: "string",
+        required: false,
+        description: "Customer phone number",
+        dynamicValue: "{{caller_phone}}",
+      },
+      {
+        name: "tenant_id",
+        type: "string",
+        required: false,
+        description: "Tenant identifier",
+        dynamicValue: "{{tenant_id}}",
+      },
+      {
+        name: "conversation_id",
+        type: "string",
+        required: false,
+        description: "Conversation tracking",
+      },
+    ],
+  };
+}
+
+/**
+ * reschedule_booking - Reschedule an existing appointment
+ * Used by: Service, Medical, Sales (capability: booking)
+ */
+function createRescheduleBookingTool(): AgentTool {
+  return {
+    name: "reschedule_booking",
+    description: `Reschedule an existing appointment. Use when caller says "I need to reschedule", "Can I change my appointment time?", "Move my appointment to...". Finds the booking by phone or name, then moves it to the new time.`,
+    url: `${BASE_URL}/elevenlabs-reschedule-booking`,
+    method: "POST",
+    parameters: [
+      {
+        name: "new_date",
+        type: "string",
+        required: true,
+        description: "New appointment date. Accept 'tomorrow', 'next Monday', 'Friday', or YYYY-MM-DD.",
+      },
+      {
+        name: "new_time",
+        type: "string",
+        required: true,
+        description: "New appointment time. Accept '2pm', '10:30am', or HH:MM.",
+      },
+      {
+        name: "customer_name",
+        type: "string",
+        required: false,
+        description: "Customer's name to find the booking",
+      },
+      {
+        name: "customer_phone",
+        type: "string",
+        required: false,
+        description: "Customer's phone number",
+        dynamicValue: "{{caller_phone}}",
+      },
+      {
+        name: "booking_id",
+        type: "string",
+        required: false,
+        description: "Direct booking ID if known",
+      },
+      {
+        name: "tenant_id",
+        type: "string",
+        required: false,
+        description: "Tenant identifier",
+        dynamicValue: "{{tenant_id}}",
+      },
+      {
+        name: "conversation_id",
+        type: "string",
+        required: false,
+        description: "Conversation tracking",
+      },
+    ],
+  };
+}
+
+/**
+ * cancel_dispatch_job - Cancel an existing dispatch job
+ * Used by: Dispatch (capability: dispatch_queue)
+ */
+function createCancelDispatchJobTool(): AgentTool {
+  return {
+    name: "cancel_dispatch_job",
+    description: `Cancel an existing dispatch job. Use when caller says "Cancel my tow", "I don't need the driver anymore", "Cancel the job". Finds by phone, name, or job number.`,
+    url: `${BASE_URL}/elevenlabs-cancel-dispatch-job`,
+    method: "POST",
+    parameters: [
+      {
+        name: "tenant_id",
+        type: "string",
+        required: true,
+        description: "Tenant identifier",
+        dynamicValue: "{{tenant_id}}",
+      },
+      {
+        name: "customer_name",
+        type: "string",
+        required: false,
+        description: "Customer's name to find the job",
+      },
+      {
+        name: "customer_phone",
+        type: "string",
+        required: false,
+        description: "Customer's phone number",
+        dynamicValue: "{{caller_phone}}",
+      },
+      {
+        name: "job_number",
+        type: "string",
+        required: false,
+        description: "Job number if the customer provides one",
+      },
+      {
+        name: "reason",
+        type: "string",
+        required: false,
+        description: "Reason for cancellation",
+      },
+      {
+        name: "conversation_id",
+        type: "string",
+        required: false,
+        description: "Conversation tracking",
+      },
+    ],
+  };
+}
+
+/**
+ * lookup_booking - Look up an existing booking
+ * Used by: Service, Medical, Sales (capability: booking)
+ */
+function createLookupBookingTool(): AgentTool {
+  return {
+    name: "lookup_booking",
+    description: `Look up an existing appointment. Use when caller asks: "When's my appointment?", "Do I have anything scheduled?", "What time is my appointment?". Searches by phone number or name.`,
+    url: `${BASE_URL}/elevenlabs-lookup-booking`,
+    method: "POST",
+    parameters: [
+      {
+        name: "tenant_id",
+        type: "string",
+        required: true,
+        description: "Tenant identifier",
+        dynamicValue: "{{tenant_id}}",
+      },
+      {
+        name: "customer_name",
+        type: "string",
+        required: false,
+        description: "Customer's name to find the booking",
+      },
+      {
+        name: "customer_phone",
+        type: "string",
+        required: false,
+        description: "Customer's phone number",
+        dynamicValue: "{{caller_phone}}",
+      },
+      {
+        name: "booking_id",
+        type: "string",
+        required: false,
+        description: "Direct booking ID if known",
+      },
+      {
+        name: "conversation_id",
+        type: "string",
+        required: false,
+        description: "Conversation tracking",
+      },
+    ],
+  };
+}
+
+/**
+ * lookup_order_status - Check food order status
+ * Used by: Food (capability: food_orders)
+ */
+function createLookupOrderStatusTool(): AgentTool {
+  return {
+    name: "lookup_order_status",
+    description: `Check the status of a food order. Use when caller asks: "Where's my food?", "Is my order ready?", "How long for my order?", "Checking on my order", or provides an order number. Searches by phone, name, or order number.`,
+    url: `${BASE_URL}/elevenlabs-lookup-order-status`,
+    method: "POST",
+    parameters: [
+      {
+        name: "tenant_id",
+        type: "string",
+        required: true,
+        description: "Tenant identifier",
+        dynamicValue: "{{tenant_id}}",
+      },
+      {
+        name: "customer_name",
+        type: "string",
+        required: false,
+        description: "Customer's name",
+      },
+      {
+        name: "customer_phone",
+        type: "string",
+        required: false,
+        description: "Customer's phone number",
+        dynamicValue: "{{caller_phone}}",
+      },
+      {
+        name: "order_number",
+        type: "string",
+        required: false,
+        description: "Order number if the customer provides one (e.g., 'ORD-A1B2C')",
+      },
+      {
+        name: "conversation_id",
+        type: "string",
+        required: false,
+        description: "Conversation tracking",
+      },
+    ],
+  };
 }
 
 // ============= REFERRAL NETWORK TOOLS =============
@@ -1688,6 +1970,11 @@ export function buildToolsForCapabilities(
     search_referral_network: () => createSearchReferralNetworkTool(),
     initiate_referral_transfer: () => createInitiateReferralTransferTool(),
     search_inventory: () => createSearchInventoryTool(),
+    create_food_order: () => createFoodOrderTool(),
+    reschedule_booking: () => createRescheduleBookingTool(),
+    cancel_dispatch_job: () => createCancelDispatchJobTool(),
+    lookup_booking: () => createLookupBookingTool(),
+    lookup_order_status: () => createLookupOrderStatusTool(),
   };
   
   // Inject bonus tools that aren't already in the base set

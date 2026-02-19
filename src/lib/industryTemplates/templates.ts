@@ -2298,6 +2298,497 @@ const massageTherapyTemplate: IndustryTemplate = {
 // TEMPLATE REGISTRY
 // ============================================================================
 
+// ============================================================================
+// SALES TEMPLATES
+// ============================================================================
+
+const carDealershipTemplate: IndustryTemplate = {
+  industry_key: "car_dealership",
+  name: "Car Dealership",
+  icon: "🚗",
+  business_mode: "sales",
+  defaults: {
+    services: [
+      {
+        name: "Test Drive",
+        description: "Schedule a test drive with your preferred vehicle",
+        base_price_model: "quote_only",
+        duration_minutes: 45,
+        tags: ["test_drive", "sales"],
+      },
+      {
+        name: "Showroom Visit",
+        description: "Browse inventory with a sales associate",
+        base_price_model: "quote_only",
+        duration_minutes: 60,
+        tags: ["showroom", "sales"],
+      },
+      {
+        name: "Finance Consultation",
+        description: "Discuss financing, trade-in, and payment options",
+        base_price_model: "quote_only",
+        duration_minutes: 45,
+        tags: ["finance", "consultation"],
+      },
+      {
+        name: "Vehicle Appraisal",
+        description: "Get your trade-in valued by our team",
+        base_price_model: "quote_only",
+        duration_minutes: 30,
+        tags: ["trade_in", "appraisal"],
+      },
+    ],
+    required_questions: [
+      {
+        intent: "booking",
+        key: "vehicle_interest",
+        label: "Vehicle Interest",
+        ask_prompt: "What type of vehicle are you looking for?",
+        why_needed: "So we can have the right vehicles ready for you",
+        required: true,
+      },
+      {
+        intent: "booking",
+        key: "budget_range",
+        label: "Budget Range",
+        ask_prompt: "Do you have a budget range in mind?",
+        why_needed: "To match you with the right options",
+        required: false,
+      },
+      {
+        intent: "booking",
+        key: "trade_in",
+        label: "Trade-In",
+        ask_prompt: "Will you have a trade-in?",
+        why_needed: "We can have appraisal ready when you arrive",
+        required: false,
+      },
+    ],
+    policies: [
+      { type: "cancellation", text: "Appointments can be rescheduled at any time. We appreciate 2 hours notice." },
+      { type: "deposit", text: "No deposit required for test drives or showroom visits." },
+      { type: "payment", text: "We accept cash, financing, certified checks, and all major credit cards." },
+    ],
+    faqs: [
+      { question: "Do you offer financing?", answer: "Yes! We work with multiple lenders to get you the best rate. Our finance team can walk you through all your options." },
+      { question: "Can I trade in my car?", answer: "Absolutely! We accept trade-ins. Bring your vehicle and we'll give you a fair market appraisal." },
+      { question: "Do you have certified pre-owned vehicles?", answer: "Yes, we carry certified pre-owned inventory that comes with extended warranties." },
+      { question: "What do I need to bring for a test drive?", answer: "Just bring a valid driver's license. If you're thinking about financing, bring proof of income and insurance." },
+      ...commonFAQs,
+    ],
+    objections: [
+      { objection: "The price is too high", response: "I understand. We want to work with you on this. Our finance team has multiple options that can make this work within your budget — would you like to sit down with them?" },
+      { objection: "I need to talk to my spouse", response: "Of course — that's a big decision. Would it help if we put together a quote you can take home and review together?" },
+      { objection: "I'm just looking", response: "No pressure at all! Would you like me to take your info so we can let you know about any specials on the models you're interested in?" },
+      ...commonObjections,
+    ],
+    service_area_defaults: {
+      mode: "radius",
+      radius_miles: 50,
+      restrictions: { no_cross_state_lines: false },
+      notes: "We deliver vehicles within 50 miles.",
+    },
+    scheduling_defaults: {
+      lead_time_hours: 1,
+      buffer_minutes: 15,
+      default_slot_duration_minutes: 45,
+      hours: {
+        monday: { open: "09:00", close: "20:00" },
+        tuesday: { open: "09:00", close: "20:00" },
+        wednesday: { open: "09:00", close: "20:00" },
+        thursday: { open: "09:00", close: "20:00" },
+        friday: { open: "09:00", close: "20:00" },
+        saturday: { open: "09:00", close: "18:00" },
+        sunday: { open: "11:00", close: "17:00" },
+      },
+    },
+  },
+};
+
+const realEstateTemplate: IndustryTemplate = {
+  industry_key: "real_estate",
+  name: "Real Estate Agency",
+  icon: "🏠",
+  business_mode: "sales",
+  defaults: {
+    services: [
+      {
+        name: "Property Showing",
+        description: "Schedule a showing for a listed property",
+        base_price_model: "quote_only",
+        duration_minutes: 30,
+        tags: ["showing", "sales"],
+      },
+      {
+        name: "Buyer Consultation",
+        description: "Meet with an agent to discuss your home search",
+        base_price_model: "quote_only",
+        duration_minutes: 60,
+        tags: ["consultation", "buyer"],
+      },
+      {
+        name: "Listing Consultation",
+        description: "Free consultation to discuss selling your home",
+        base_price_model: "quote_only",
+        duration_minutes: 60,
+        tags: ["consultation", "seller"],
+      },
+      {
+        name: "Market Analysis",
+        description: "Comparative market analysis of your property",
+        base_price_model: "quote_only",
+        duration_minutes: 45,
+        tags: ["analysis", "seller"],
+      },
+    ],
+    required_questions: [
+      {
+        intent: "booking",
+        key: "interest_type",
+        label: "Buying or Selling",
+        ask_prompt: "Are you looking to buy, sell, or both?",
+        why_needed: "To connect you with the right specialist",
+        required: true,
+      },
+      {
+        intent: "booking",
+        key: "area_preference",
+        label: "Area Preference",
+        ask_prompt: "What area are you interested in?",
+        why_needed: "To match you with an agent who knows the area",
+        required: false,
+      },
+    ],
+    policies: [
+      { type: "cancellation", text: "Showings can be cancelled or rescheduled up to 2 hours before." },
+      { type: "payment", text: "No upfront costs for buyers. Seller commissions discussed during listing consultation." },
+    ],
+    faqs: [
+      { question: "How much do your services cost?", answer: "Our buyer services are completely free — we're paid by the seller at closing. For sellers, we'll discuss our competitive commission structure during your consultation." },
+      { question: "How long does it take to sell a home?", answer: "It depends on the market, but most homes in our area sell within 30-60 days. We'll give you a realistic timeline during your consultation." },
+      ...commonFAQs,
+    ],
+    objections: [
+      { objection: "I already have an agent", response: "That's great! If you ever want a second opinion or aren't fully satisfied, we'd be happy to help." },
+      { objection: "I want to sell by owner", response: "I completely respect that. If you ever decide you want professional help with marketing, negotiations, or paperwork, we're here." },
+      ...commonObjections,
+    ],
+    service_area_defaults: {
+      mode: "radius",
+      radius_miles: 30,
+      restrictions: { no_cross_state_lines: false },
+      notes: "Service area covers local market.",
+    },
+    scheduling_defaults: {
+      lead_time_hours: 2,
+      buffer_minutes: 15,
+      default_slot_duration_minutes: 30,
+    },
+  },
+};
+
+const insuranceAgencyTemplate: IndustryTemplate = {
+  industry_key: "insurance",
+  name: "Insurance Agency",
+  icon: "🛡️",
+  business_mode: "sales",
+  defaults: {
+    services: [
+      {
+        name: "Insurance Quote",
+        description: "Get a free quote for auto, home, or life insurance",
+        base_price_model: "quote_only",
+        duration_minutes: 30,
+        tags: ["quote", "consultation"],
+      },
+      {
+        name: "Policy Review",
+        description: "Review your current coverage with an agent",
+        base_price_model: "quote_only",
+        duration_minutes: 45,
+        tags: ["review", "consultation"],
+      },
+      {
+        name: "Claims Assistance",
+        description: "Help filing or checking on an insurance claim",
+        base_price_model: "quote_only",
+        duration_minutes: 30,
+        tags: ["claims", "service"],
+      },
+    ],
+    required_questions: [
+      {
+        intent: "booking",
+        key: "insurance_type",
+        label: "Type of Insurance",
+        ask_prompt: "What type of insurance are you looking for?",
+        why_needed: "To connect you with the right specialist",
+        required: true,
+      },
+    ],
+    policies: [
+      { type: "cancellation", text: "Appointments can be rescheduled anytime." },
+    ],
+    faqs: [
+      { question: "Do you offer free quotes?", answer: "Absolutely! All our quotes are free with no obligation." },
+      { question: "What insurance do you carry?", answer: "We offer auto, home, renters, life, commercial, and umbrella policies from multiple top carriers." },
+      ...commonFAQs,
+    ],
+    objections: [
+      { objection: "I already have insurance", response: "That's great! Many of our clients save significantly when we compare rates. A free quote takes just a few minutes." },
+      ...commonObjections,
+    ],
+    service_area_defaults: {
+      mode: "radius",
+      radius_miles: 50,
+      restrictions: { no_cross_state_lines: true },
+      notes: "Licensed in state.",
+    },
+    scheduling_defaults: {
+      lead_time_hours: 1,
+      buffer_minutes: 10,
+      default_slot_duration_minutes: 30,
+    },
+  },
+};
+
+// ============================================================================
+// GENERAL TEMPLATES
+// ============================================================================
+
+const consultingTemplate: IndustryTemplate = {
+  industry_key: "consulting",
+  name: "Consulting Firm",
+  icon: "💼",
+  business_mode: "general",
+  defaults: {
+    services: [
+      {
+        name: "Discovery Call",
+        description: "Free introductory call to discuss your needs",
+        base_price_model: "quote_only",
+        duration_minutes: 30,
+        tags: ["consultation", "discovery"],
+      },
+      {
+        name: "Strategy Session",
+        description: "In-depth strategic planning session",
+        base_price_model: "starting_at",
+        starting_price_cents: 25000,
+        duration_minutes: 90,
+        tags: ["strategy", "planning"],
+      },
+      {
+        name: "Retainer Engagement",
+        description: "Ongoing consulting support",
+        base_price_model: "quote_only",
+        duration_minutes: 60,
+        tags: ["retainer", "ongoing"],
+      },
+    ],
+    required_questions: [
+      {
+        intent: "callback",
+        key: "business_challenge",
+        label: "Business Challenge",
+        ask_prompt: "What's the main challenge you're looking to solve?",
+        why_needed: "To prepare the right expertise for your call",
+        required: true,
+      },
+    ],
+    policies: [
+      { type: "cancellation", text: "24-hour cancellation policy for scheduled sessions." },
+      { type: "refund", text: "If you're not satisfied after the first session, we'll refund your investment." },
+    ],
+    faqs: [
+      { question: "What industries do you work with?", answer: "We work across multiple industries. We'll match you with a consultant who has experience in your specific field." },
+      { question: "How much does consulting cost?", answer: "Our discovery call is free. After that, we'll provide a custom proposal based on your specific needs." },
+      ...commonFAQs,
+    ],
+    objections: commonObjections,
+    service_area_defaults: {
+      mode: "radius",
+      radius_miles: 100,
+      restrictions: { no_cross_state_lines: false },
+      notes: "Remote consultations available nationwide.",
+    },
+    scheduling_defaults: {
+      lead_time_hours: 4,
+      buffer_minutes: 15,
+      default_slot_duration_minutes: 30,
+    },
+  },
+};
+
+const coachingTemplate: IndustryTemplate = {
+  industry_key: "coaching",
+  name: "Coaching / Training",
+  icon: "🎯",
+  business_mode: "general",
+  defaults: {
+    services: [
+      {
+        name: "Free Consultation",
+        description: "30-minute intro call to see if we're a good fit",
+        base_price_model: "quote_only",
+        duration_minutes: 30,
+        tags: ["consultation", "free"],
+      },
+      {
+        name: "1-on-1 Coaching Session",
+        description: "Personal coaching session focused on your goals",
+        base_price_model: "fixed",
+        fixed_price_cents: 15000,
+        duration_minutes: 60,
+        tags: ["coaching", "individual"],
+      },
+      {
+        name: "Group Workshop",
+        description: "Small group workshop or training session",
+        base_price_model: "starting_at",
+        starting_price_cents: 5000,
+        duration_minutes: 120,
+        tags: ["workshop", "group"],
+      },
+    ],
+    required_questions: [
+      {
+        intent: "callback",
+        key: "goal",
+        label: "Goal",
+        ask_prompt: "What's the main goal you'd like to work on?",
+        why_needed: "To prepare for your consultation",
+        required: true,
+      },
+    ],
+    policies: [
+      { type: "cancellation", text: "24-hour cancellation policy. Rescheduling is always welcome." },
+    ],
+    faqs: [
+      { question: "How does coaching work?", answer: "We start with a free consultation to understand your goals, then create a personalized plan. Sessions are typically weekly." },
+      ...commonFAQs,
+    ],
+    objections: commonObjections,
+    service_area_defaults: {
+      mode: "radius",
+      radius_miles: 100,
+      restrictions: { no_cross_state_lines: false },
+      notes: "Virtual sessions available.",
+    },
+    scheduling_defaults: {
+      lead_time_hours: 4,
+      buffer_minutes: 15,
+      default_slot_duration_minutes: 30,
+    },
+  },
+};
+
+const genericSalesTemplate: IndustryTemplate = {
+  industry_key: "generic_sales",
+  name: "Sales Business",
+  icon: "📊",
+  business_mode: "sales",
+  defaults: {
+    services: [
+      {
+        name: "Sales Consultation",
+        description: "Meet with our team to discuss your needs",
+        base_price_model: "quote_only",
+        duration_minutes: 45,
+        tags: ["consultation", "sales"],
+      },
+      {
+        name: "Product Demo",
+        description: "See our products in person or virtually",
+        base_price_model: "quote_only",
+        duration_minutes: 30,
+        tags: ["demo", "sales"],
+      },
+    ],
+    required_questions: [
+      {
+        intent: "booking",
+        key: "interest",
+        label: "Interest",
+        ask_prompt: "What are you interested in?",
+        why_needed: "To prepare the right information for you",
+        required: true,
+      },
+    ],
+    policies: [
+      { type: "cancellation", text: "Appointments can be rescheduled at any time." },
+    ],
+    faqs: commonFAQs,
+    objections: commonObjections,
+    service_area_defaults: {
+      mode: "radius",
+      radius_miles: 50,
+      restrictions: { no_cross_state_lines: false },
+      notes: "Adjust based on your service area.",
+    },
+    scheduling_defaults: {
+      lead_time_hours: 1,
+      buffer_minutes: 15,
+      default_slot_duration_minutes: 45,
+    },
+  },
+};
+
+const genericGeneralTemplate: IndustryTemplate = {
+  industry_key: "generic_general",
+  name: "General Business",
+  icon: "🏢",
+  business_mode: "general",
+  defaults: {
+    services: [
+      {
+        name: "Initial Consultation",
+        description: "Free introductory consultation",
+        base_price_model: "quote_only",
+        duration_minutes: 30,
+        tags: ["consultation"],
+      },
+      {
+        name: "Standard Service",
+        description: "Our standard service offering",
+        base_price_model: "quote_only",
+        duration_minutes: 60,
+        tags: ["standard"],
+      },
+    ],
+    required_questions: [
+      {
+        intent: "callback",
+        key: "reason_for_call",
+        label: "Reason for Call",
+        ask_prompt: "How can we help you today?",
+        why_needed: "To connect you with the right person",
+        required: true,
+      },
+    ],
+    policies: [
+      { type: "cancellation", text: "Please provide 24 hours notice for cancellations." },
+    ],
+    faqs: commonFAQs,
+    objections: commonObjections,
+    service_area_defaults: {
+      mode: "radius",
+      radius_miles: 25,
+      restrictions: { no_cross_state_lines: false },
+      notes: "Adjust based on your business.",
+    },
+    scheduling_defaults: {
+      lead_time_hours: 2,
+      buffer_minutes: 15,
+      default_slot_duration_minutes: 30,
+    },
+  },
+};
+
+// ============================================================================
+// REGISTRY
+// ============================================================================
+
 export const industryTemplates: Record<string, IndustryTemplate> = {
   // Service templates (10)
   detailing: detailingTemplate,
@@ -2343,7 +2834,16 @@ export const industryTemplates: Record<string, IndustryTemplate> = {
   mental_health: mentalHealthTemplate,
   dermatology: dermatologyTemplate,
   massage: massageTherapyTemplate,
-  // General
+  // Sales templates (4)
+  car_dealership: carDealershipTemplate,
+  real_estate: realEstateTemplate,
+  insurance: insuranceAgencyTemplate,
+  generic_sales: genericSalesTemplate,
+  // General templates (3)
+  consulting: consultingTemplate,
+  coaching: coachingTemplate,
+  generic_general: genericGeneralTemplate,
+  // Fallback
   other: otherTemplate,
 };
 
@@ -2373,6 +2873,16 @@ export function getTemplate(industryKey: string): IndustryTemplate | null {
     return industryTemplates.food;
   if (normalizedKey.includes("med") || normalizedKey.includes("spa"))
     return industryTemplates.medical;
+  if (normalizedKey.includes("dealer") || normalizedKey.includes("car"))
+    return industryTemplates.car_dealership;
+  if (normalizedKey.includes("realestate") || normalizedKey.includes("realtor"))
+    return industryTemplates.real_estate;
+  if (normalizedKey.includes("insurance"))
+    return industryTemplates.insurance;
+  if (normalizedKey.includes("consult"))
+    return industryTemplates.consulting;
+  if (normalizedKey.includes("coach"))
+    return industryTemplates.coaching;
 
   // Fallback to other
   return industryTemplates.other;
@@ -2403,6 +2913,7 @@ export function getTemplateOptionsForMode(
     medical: ["medical", "dental", "chiropractic", "optometry", "physical_therapy", "veterinary", "mental_health", "dermatology", "massage"],
     dispatch: ["towing", "locksmith", "courier", "mobile_mechanic", "limo", "medical_transport", "junk_removal", "moving", "pet_grooming", "restoration", "tree_service", "septic", "notary", "security"],
     service: ["detailing", "plumbing", "hvac", "electrical", "cleaning", "landscaping", "pest_control", "roofing", "pool_service", "salon"],
+    sales: ["car_dealership", "real_estate", "insurance", "generic_sales"],
     general: [
       // Service (10)
       "detailing", "plumbing", "hvac", "electrical", "cleaning", "landscaping", "pest_control", "roofing", "pool_service", "salon",
@@ -2412,6 +2923,10 @@ export function getTemplateOptionsForMode(
       "food", "pizza", "bakery", "food_truck", "bar", "catering",
       // Medical (9)
       "medical", "dental", "chiropractic", "optometry", "physical_therapy", "veterinary", "mental_health", "dermatology", "massage",
+      // Sales (4)
+      "car_dealership", "real_estate", "insurance", "generic_sales",
+      // General (3)
+      "consulting", "coaching", "generic_general",
       // Fallback
       "other",
     ],

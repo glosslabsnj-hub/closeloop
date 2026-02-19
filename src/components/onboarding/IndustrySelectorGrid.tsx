@@ -1,7 +1,10 @@
  import { useState, useMemo } from "react";
  import { Input } from "@/components/ui/input";
+ import { Textarea } from "@/components/ui/textarea";
+ import { Label } from "@/components/ui/label";
  import { ScrollArea } from "@/components/ui/scroll-area";
- import { Search, Check } from "lucide-react";
+ import { Search, Check, HelpCircle } from "lucide-react";
+ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
  import { cn } from "@/lib/utils";
  import {
    industryCatalog,
@@ -9,13 +12,16 @@
    getPopularIndustries,
    type IndustryCatalogEntry,
  } from "@/data/industryCatalog";
- 
+
  interface IndustrySelectorGridProps {
    value: string;
    onChange: (slug: string, industry: IndustryCatalogEntry) => void;
+   /** Free-text description when "Other" is selected */
+   otherDescription?: string;
+   onOtherDescriptionChange?: (desc: string) => void;
  }
  
- export function IndustrySelectorGrid({ value, onChange }: IndustrySelectorGridProps) {
+ export function IndustrySelectorGrid({ value, onChange, otherDescription, onOtherDescriptionChange }: IndustrySelectorGridProps) {
    const [searchQuery, setSearchQuery] = useState("");
  
    // Get popular industries for initial display
@@ -124,13 +130,46 @@
                <div className="flex-1">
                  <span className="font-medium text-sm">Other / General Business</span>
                  <p className="text-xs text-muted-foreground">
-                   Start with a blank template
+                   We'll set you up with sensible defaults you can customize
                  </p>
                </div>
                {value === "other" && (
                  <Check className="w-4 h-4 text-primary shrink-0" />
                )}
              </button>
+             {/* "Describe your business" field when Other is selected */}
+             {value === "other" && onOtherDescriptionChange && (
+               <div className="mt-3 space-y-2">
+                 <div className="flex items-center gap-2">
+                   <Label htmlFor="other-description" className="text-sm font-medium">
+                     Tell us about your business
+                   </Label>
+                   <TooltipProvider>
+                     <Tooltip>
+                       <TooltipTrigger asChild>
+                         <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                       </TooltipTrigger>
+                       <TooltipContent>
+                         <p className="text-xs max-w-[220px]">
+                           This helps us tailor your AI's knowledge, greeting, and default services to match what you do.
+                         </p>
+                       </TooltipContent>
+                     </Tooltip>
+                   </TooltipProvider>
+                 </div>
+                 <Textarea
+                   id="other-description"
+                   value={otherDescription || ""}
+                   onChange={(e) => onOtherDescriptionChange(e.target.value)}
+                   placeholder="e.g. We're a mobile pet grooming service that covers the Dallas area. We offer bath & brush, full groom, and nail trim packages."
+                   rows={3}
+                   className="text-sm"
+                 />
+                 <p className="text-xs text-muted-foreground">
+                   A few sentences is perfect. We'll use this to customize your AI's responses.
+                 </p>
+               </div>
+             )}
            </div>
          )}
  

@@ -75,6 +75,37 @@ export const TOOL_CAPABILITY_MAP: ToolCapabilityMapping[] = [
     priority: 35,
   },
 
+  // ===== FOOD ORDER TOOLS =====
+  {
+    toolName: "create_food_order",
+    requiredCapabilities: ["food_orders"],
+    priority: 95,
+  },
+  {
+    toolName: "lookup_order_status",
+    requiredCapabilities: ["food_orders"],
+    priority: 80,
+  },
+
+  // ===== BOOKING MANAGEMENT TOOLS =====
+  {
+    toolName: "reschedule_booking",
+    requiredCapabilities: ["booking"],
+    priority: 75,
+  },
+  {
+    toolName: "lookup_booking",
+    requiredCapabilities: ["booking"],
+    priority: 75,
+  },
+
+  // ===== DISPATCH MANAGEMENT TOOLS =====
+  {
+    toolName: "cancel_dispatch_job",
+    requiredCapabilities: ["dispatch_queue"],
+    priority: 70,
+  },
+
   // ===== UNIVERSAL TOOLS =====
   {
     toolName: "create_callback",

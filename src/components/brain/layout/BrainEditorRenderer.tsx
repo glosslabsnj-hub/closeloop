@@ -77,6 +77,9 @@ import {
 } from "@/components/brain/knowledge";
 import { TekmetricSetup } from "@/components/brain/integrations/TekmetricSetup";
 import { SalesPoliciesEditor } from "@/components/brain/sales/SalesPoliciesEditor";
+import { LeadPipelineEditor } from "@/components/brain/sales/LeadPipelineEditor";
+import { FollowUpSequenceEditor } from "@/components/brain/sales/FollowUpSequenceEditor";
+import { SalesScriptsEditor } from "@/components/brain/sales/SalesScriptsEditor";
 import AIBehaviorModeSelector from "@/components/ai/AIBehaviorModeSelector";
 import ServiceCallFlowSettings from "@/components/ai/ServiceCallFlowSettings";
 import BookingBehaviorSettings from "@/components/ai/BookingBehaviorSettings";
@@ -256,6 +259,12 @@ export function BrainEditorRenderer({
     // ── Sales ──
     case "sales-policies":
       return <SalesPoliciesEditor />;
+    case "lead-pipeline":
+      return <LeadPipelineEditor />;
+    case "follow-up-sequences":
+      return <FollowUpSequenceEditor />;
+    case "sales-scripts":
+      return <SalesScriptsEditor />;
 
     // ── Integrations ──
     case "tekmetric":

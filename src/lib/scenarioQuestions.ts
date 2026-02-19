@@ -548,6 +548,7 @@ const foodQuestions: ScenarioQuestion[] = [
     impliesModules: ["dietary_intake"],
     group: "ai_behavior",
     requiredForAI: true,
+    onboardingVisible: true,
   },
   {
     id: "curbside",
@@ -558,6 +559,7 @@ const foodQuestions: ScenarioQuestion[] = [
     defaultValue: false,
     impliesModules: ["curbside"],
     group: "core",
+    onboardingVisible: true,
   },
   {
     id: "kds",
@@ -605,6 +607,7 @@ const foodQuestions: ScenarioQuestion[] = [
     description: "AI can direct callers to your online ordering",
     defaultValue: false,
     group: "core",
+    onboardingVisible: true,
   },
   {
     id: "meal-prep",
@@ -623,6 +626,7 @@ const foodQuestions: ScenarioQuestion[] = [
     description: "Orders for 10+ people, office lunches, or events",
     defaultValue: false,
     group: "core",
+    onboardingVisible: true,
   },
 ];
 
@@ -915,6 +919,28 @@ const crossModeQuestions: (ScenarioQuestion & { applicableModes: BusinessMode[] 
 
 const salesQuestions: ScenarioQuestion[] = [
   {
+    id: "showroom-appointments",
+    capabilityKey: "offersShowroomAppointments",
+    label: "Showroom Appointments",
+    question: "Do you schedule showroom or office appointments?",
+    description: "Beyond test drives — general visit scheduling",
+    defaultValue: true,
+    impliesModules: ["booking"],
+    group: "core",
+    onboardingVisible: true,
+    followUp: {
+      id: "booking-mode-sales",
+      answerKey: "_aiBookingMode",
+      label: "How should appointments be confirmed?",
+      type: "radio",
+      options: [
+        { value: "auto_book", label: "Auto-book instantly", description: "AI confirms the appointment right away based on your availability" },
+        { value: "pending_approval", label: "Require your approval", description: "AI finds a time but tells the caller you'll confirm — you approve or adjust" },
+      ],
+      defaultValue: "auto_book",
+    },
+  },
+  {
     id: "test-drives",
     capabilityKey: "offersTestDrives",
     label: "Test Drives / Demos",
@@ -923,7 +949,31 @@ const salesQuestions: ScenarioQuestion[] = [
     defaultValue: true,
     impliesModules: ["test_drives"],
     group: "core",
+    onboardingVisible: true,
     industryFilter: { slugs: ["car-dealership-new", "car-dealership-used", "car-dealership-full", "rv-dealer", "boat-dealer", "motorcycle-dealer", "equipment-sales"] },
+  },
+  {
+    id: "lead-tracking",
+    capabilityKey: "tracksLeads",
+    label: "Lead Tracking",
+    question: "Do you track leads or sales opportunities?",
+    description: "The AI will capture lead details and create follow-up tasks",
+    defaultValue: true,
+    impliesModules: ["sales_leads"],
+    group: "core",
+    onboardingVisible: true,
+    requiredForAI: true,
+  },
+  {
+    id: "follow-up-sequences",
+    capabilityKey: "wantsFollowUpSequences",
+    label: "Automated Follow-Ups",
+    question: "Should the AI send follow-up texts to leads who don't book?",
+    description: "Automatic text messages to re-engage interested callers",
+    defaultValue: true,
+    impliesModules: ["lead_recovery"],
+    group: "core",
+    onboardingVisible: true,
   },
   {
     id: "financing",
@@ -934,6 +984,7 @@ const salesQuestions: ScenarioQuestion[] = [
     defaultValue: true,
     group: "core",
     requiredForAI: true,
+    onboardingVisible: true,
   },
   {
     id: "trade-ins",
@@ -944,6 +995,7 @@ const salesQuestions: ScenarioQuestion[] = [
     defaultValue: true,
     group: "core",
     requiredForAI: true,
+    onboardingVisible: true,
     industryFilter: { slugs: ["car-dealership-new", "car-dealership-used", "car-dealership-full", "rv-dealer", "boat-dealer", "motorcycle-dealer", "equipment-sales"] },
   },
   {
@@ -955,6 +1007,7 @@ const salesQuestions: ScenarioQuestion[] = [
     defaultValue: false,
     impliesModules: ["sales_inventory"],
     group: "core",
+    onboardingVisible: true,
   },
   {
     id: "crm-integration",
@@ -974,16 +1027,7 @@ const salesQuestions: ScenarioQuestion[] = [
     description: "Leads are assigned to named team members",
     defaultValue: false,
     group: "ai_behavior",
-  },
-  {
-    id: "showroom-appointments",
-    capabilityKey: "offersShowroomAppointments",
-    label: "Showroom Appointments",
-    question: "Do you schedule showroom or office appointments?",
-    description: "Beyond test drives — general visit scheduling",
-    defaultValue: true,
-    impliesModules: ["booking"],
-    group: "core",
+    onboardingVisible: true,
   },
 ];
 

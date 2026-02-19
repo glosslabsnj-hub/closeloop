@@ -2098,6 +2098,309 @@ export const industryCatalog: IndustryCatalogEntry[] = [
     ],
   },
 
+  // ============= MISSING INDUSTRIES (P1-14) =============
+
+  // Childcare / Daycare
+  {
+    slug: 'daycare',
+    name: 'Childcare / Daycare',
+    icon: '👶',
+    businessMode: 'service' as BusinessMode,
+    category: 'professional_services' as IndustryCategory,
+    tags: ['childcare', 'daycare', 'preschool', 'kids', 'babysitting', 'nursery'],
+    enabledModules: serviceModules,
+    services: [
+      { name: 'Full Day Care', duration: 480, price: 75, priceType: 'fixed' as const },
+      { name: 'Half Day Care', duration: 240, price: 45, priceType: 'fixed' as const },
+      { name: 'Drop-In Care', duration: 60, price: 15, priceType: 'fixed' as const },
+      { name: 'After-School Program', duration: 180, price: 35, priceType: 'fixed' as const },
+    ],
+    contextFields: [
+      { key: 'child_age', label: 'Child Age', type: 'text', required: true },
+      { key: 'start_date', label: 'Start Date', type: 'text', required: true },
+    ],
+    faqs: [
+      { question: 'What ages do you accept?', answer: 'We accept children ages 6 weeks to 12 years, depending on our current availability.' },
+      { question: 'What are your hours?', answer: 'We are open Monday through Friday. Please call for our current hours.' },
+      { question: 'Do you offer tours?', answer: 'Yes! We encourage families to schedule a tour to see our facility and meet our staff.' },
+      ...commonFAQs,
+    ],
+    objections: commonObjections,
+    defaultPolicies,
+  },
+
+  // IT Services / MSP
+  {
+    slug: 'it-services',
+    name: 'IT Services / MSP',
+    icon: '💻',
+    businessMode: 'service' as BusinessMode,
+    category: 'professional_services' as IndustryCategory,
+    tags: ['it', 'technology', 'computer', 'network', 'managed services', 'msp', 'cybersecurity'],
+    enabledModules: serviceModules,
+    services: [
+      { name: 'IT Consultation', duration: 60, price: 150, priceType: 'fixed' as const },
+      { name: 'Computer Repair', duration: 60, price: 100, priceType: 'starting_at' as const },
+      { name: 'Network Setup', duration: 120, price: 0, priceType: 'quote_only' as const },
+      { name: 'Managed IT Support', duration: 60, price: 0, priceType: 'quote_only' as const },
+    ],
+    contextFields: [
+      { key: 'issue_description', label: 'Issue Description', type: 'text', required: true },
+      { key: 'business_or_personal', label: 'Business or Personal', type: 'text', required: false },
+    ],
+    faqs: [
+      { question: 'Do you offer remote support?', answer: 'Yes, we can resolve many issues remotely. If on-site service is needed, we can schedule a visit.' },
+      { question: 'Do you offer monthly plans?', answer: 'Yes, we have managed service plans starting at a competitive monthly rate. We can tailor a plan to your needs.' },
+      ...commonFAQs,
+    ],
+    objections: commonObjections,
+    defaultPolicies,
+  },
+
+  // Self-Storage
+  {
+    slug: 'self-storage',
+    name: 'Self-Storage',
+    icon: '📦',
+    businessMode: 'general' as BusinessMode,
+    category: 'property_real_estate' as IndustryCategory,
+    tags: ['storage', 'self-storage', 'units', 'warehouse', 'mini storage'],
+    enabledModules: generalModules,
+    services: [
+      { name: 'Unit Rental Inquiry', duration: 15, price: 0, priceType: 'quote_only' as const },
+      { name: 'Facility Tour', duration: 30, price: 0, priceType: 'quote_only' as const },
+    ],
+    contextFields: [
+      { key: 'unit_size_needed', label: 'Unit Size Needed', type: 'text', required: true },
+      { key: 'climate_controlled', label: 'Climate Controlled?', type: 'text', required: false },
+    ],
+    faqs: [
+      { question: 'What sizes do you have?', answer: 'We have units from 5x5 to 10x30. Let me check current availability for you.' },
+      { question: 'Is there a minimum rental?', answer: 'Our minimum rental period is month-to-month. No long-term contracts required.' },
+      ...commonFAQs,
+    ],
+    objections: commonObjections,
+    defaultPolicies,
+  },
+
+  // Car Rental
+  {
+    slug: 'car-rental',
+    name: 'Car Rental',
+    icon: '🚙',
+    businessMode: 'sales' as BusinessMode,
+    category: 'auto_services' as IndustryCategory,
+    tags: ['car rental', 'vehicle rental', 'rent a car', 'auto rental'],
+    enabledModules: salesLeadsOnlyModules,
+    services: [
+      { name: 'Vehicle Reservation', duration: 15, price: 0, priceType: 'quote_only' as const },
+      { name: 'Long-Term Rental Inquiry', duration: 30, price: 0, priceType: 'quote_only' as const },
+    ],
+    contextFields: [
+      { key: 'rental_dates', label: 'Rental Dates', type: 'text', required: true },
+      { key: 'vehicle_type', label: 'Vehicle Type', type: 'text', required: false },
+    ],
+    faqs: [
+      { question: 'What do I need to rent?', answer: 'A valid driver\'s license, credit card, and you must be at least 21 years old.' },
+      { question: 'Do you deliver vehicles?', answer: 'In many cases, yes. Let us know your location and we can check delivery availability.' },
+      ...commonFAQs,
+    ],
+    objections: commonObjections,
+    defaultPolicies,
+  },
+
+  // Laundromat
+  {
+    slug: 'laundromat',
+    name: 'Laundromat / Laundry Service',
+    icon: '🧺',
+    businessMode: 'service' as BusinessMode,
+    category: 'home_services' as IndustryCategory,
+    tags: ['laundromat', 'laundry', 'dry cleaning', 'wash and fold', 'coin laundry'],
+    enabledModules: serviceModules,
+    services: [
+      { name: 'Wash & Fold', duration: 120, price: 20, priceType: 'starting_at' as const },
+      { name: 'Dry Cleaning', duration: 60, price: 0, priceType: 'quote_only' as const },
+      { name: 'Pickup & Delivery', duration: 30, price: 0, priceType: 'quote_only' as const },
+    ],
+    contextFields: [
+      { key: 'service_type', label: 'Service Type', type: 'text', required: true },
+    ],
+    faqs: [
+      { question: 'Do you offer pickup and delivery?', answer: 'Yes! We can pick up and deliver within our service area.' },
+      { question: 'How long does wash and fold take?', answer: 'Typically same-day or next-day turnaround. Rush service may be available.' },
+      ...commonFAQs,
+    ],
+    objections: commonObjections,
+    defaultPolicies,
+  },
+
+  // Pharmacy
+  {
+    slug: 'pharmacy',
+    name: 'Pharmacy',
+    icon: '💊',
+    businessMode: 'medical' as BusinessMode,
+    category: 'health_medical' as IndustryCategory,
+    tags: ['pharmacy', 'prescriptions', 'drugstore', 'medications', 'compounding'],
+    enabledModules: medicalModules,
+    services: [
+      { name: 'Prescription Refill', duration: 15, price: 0, priceType: 'quote_only' as const },
+      { name: 'Consultation', duration: 15, price: 0, priceType: 'quote_only' as const },
+      { name: 'Immunization', duration: 15, price: 30, priceType: 'starting_at' as const },
+    ],
+    contextFields: [
+      { key: 'prescription_number', label: 'Prescription Number', type: 'text', required: false },
+    ],
+    faqs: [
+      { question: 'Can I transfer my prescription?', answer: 'Yes! We can transfer prescriptions from any pharmacy. Just provide us with the prescription details.' },
+      { question: 'Do you deliver?', answer: 'We offer prescription delivery within our service area. Ask about same-day delivery options.' },
+      ...commonFAQs,
+    ],
+    objections: commonObjections,
+    defaultPolicies,
+    hipaaMode: true,
+  },
+
+  // Event Venues
+  {
+    slug: 'event-venue',
+    name: 'Event Venue',
+    icon: '🎪',
+    businessMode: 'sales' as BusinessMode,
+    category: 'events_entertainment' as IndustryCategory,
+    tags: ['event venue', 'wedding venue', 'banquet hall', 'conference center', 'party venue', 'reception hall'],
+    enabledModules: salesLeadsOnlyModules,
+    services: [
+      { name: 'Venue Tour', duration: 60, price: 0, priceType: 'quote_only' as const },
+      { name: 'Event Consultation', duration: 45, price: 0, priceType: 'quote_only' as const },
+    ],
+    contextFields: [
+      { key: 'event_date', label: 'Event Date', type: 'text', required: true },
+      { key: 'guest_count', label: 'Guest Count', type: 'text', required: true },
+      { key: 'event_type', label: 'Event Type', type: 'text', required: true },
+    ],
+    faqs: [
+      { question: 'What is your capacity?', answer: 'Our venue accommodates various party sizes. Let me check availability for your date and guest count.' },
+      { question: 'Do you offer catering?', answer: 'We work with preferred caterers and can also accommodate outside catering. Details are discussed during your tour.' },
+      ...commonFAQs,
+    ],
+    objections: commonObjections,
+    defaultPolicies,
+  },
+
+  // Personal Training
+  {
+    slug: 'personal-training',
+    name: 'Personal Training',
+    icon: '💪',
+    businessMode: 'service' as BusinessMode,
+    category: 'fitness_recreation' as IndustryCategory,
+    tags: ['personal trainer', 'fitness', 'gym', 'training', 'workout', 'strength', 'conditioning'],
+    enabledModules: serviceModules,
+    services: [
+      { name: '1-on-1 Training Session', duration: 60, price: 80, priceType: 'fixed' as const },
+      { name: 'Initial Fitness Assessment', duration: 60, price: 50, priceType: 'fixed' as const },
+      { name: 'Small Group Training', duration: 60, price: 40, priceType: 'fixed' as const },
+      { name: '10-Pack Sessions', duration: 60, price: 700, priceType: 'fixed' as const },
+    ],
+    contextFields: [
+      { key: 'fitness_goal', label: 'Fitness Goal', type: 'text', required: true },
+    ],
+    faqs: [
+      { question: 'Do you offer a free consultation?', answer: 'Yes! We offer a complimentary fitness assessment and consultation for new clients.' },
+      { question: 'Do you train at my gym or yours?', answer: 'We can train at our facility, your gym, or in-home. Let us know what works best for you.' },
+      ...commonFAQs,
+    ],
+    objections: commonObjections,
+    defaultPolicies,
+  },
+
+  // Photography Studio
+  {
+    slug: 'photography',
+    name: 'Photography Studio',
+    icon: '📸',
+    businessMode: 'service' as BusinessMode,
+    category: 'events_entertainment' as IndustryCategory,
+    tags: ['photography', 'photographer', 'portraits', 'headshots', 'wedding photography', 'studio'],
+    enabledModules: serviceModules,
+    services: [
+      { name: 'Portrait Session', duration: 60, price: 150, priceType: 'starting_at' as const },
+      { name: 'Headshot Session', duration: 30, price: 100, priceType: 'fixed' as const },
+      { name: 'Wedding Photography', duration: 480, price: 0, priceType: 'quote_only' as const },
+      { name: 'Event Photography', duration: 240, price: 0, priceType: 'quote_only' as const },
+    ],
+    contextFields: [
+      { key: 'session_type', label: 'Session Type', type: 'text', required: true },
+      { key: 'event_date', label: 'Date Needed', type: 'text', required: false },
+    ],
+    faqs: [
+      { question: 'How soon will I get my photos?', answer: 'Turnaround is typically 2-3 weeks for standard sessions. Rush delivery may be available.' },
+      { question: 'Do you travel to locations?', answer: 'Yes! We offer both studio and on-location sessions.' },
+      ...commonFAQs,
+    ],
+    objections: commonObjections,
+    defaultPolicies,
+  },
+
+  // Tattoo / Piercing Studio
+  {
+    slug: 'tattoo-studio',
+    name: 'Tattoo & Piercing Studio',
+    icon: '🎨',
+    businessMode: 'service' as BusinessMode,
+    category: 'beauty_wellness' as IndustryCategory,
+    tags: ['tattoo', 'piercing', 'tattoo shop', 'body art', 'ink'],
+    enabledModules: serviceModules,
+    services: [
+      { name: 'Tattoo Consultation', duration: 30, price: 0, priceType: 'quote_only' as const },
+      { name: 'Small Tattoo', duration: 60, price: 100, priceType: 'starting_at' as const },
+      { name: 'Large Tattoo Session', duration: 240, price: 0, priceType: 'quote_only' as const },
+      { name: 'Piercing', duration: 30, price: 50, priceType: 'starting_at' as const },
+    ],
+    contextFields: [
+      { key: 'tattoo_description', label: 'Tattoo Idea', type: 'text', required: false },
+    ],
+    faqs: [
+      { question: 'Do I need an appointment?', answer: 'Consultations and larger pieces require appointments. We may accept walk-ins for piercings and small tattoos based on availability.' },
+      { question: 'What is the minimum age?', answer: 'You must be 18 or older with valid ID. No exceptions.' },
+      { question: 'How much does a tattoo cost?', answer: 'Pricing depends on size, complexity, and placement. We can give you an estimate during your free consultation.' },
+      ...commonFAQs,
+    ],
+    objections: commonObjections,
+    defaultPolicies: {
+      ...defaultPolicies,
+      deposit: 'A deposit is required to hold your appointment. The deposit is non-refundable but applies to your final cost.',
+    },
+  },
+
+  // Tutoring / Education
+  {
+    slug: 'tutoring',
+    name: 'Tutoring / Education Services',
+    icon: '📚',
+    businessMode: 'service' as BusinessMode,
+    category: 'professional_services' as IndustryCategory,
+    tags: ['tutoring', 'education', 'learning', 'test prep', 'sat', 'act', 'homework help'],
+    enabledModules: serviceModules,
+    services: [
+      { name: '1-on-1 Tutoring Session', duration: 60, price: 60, priceType: 'fixed' as const },
+      { name: 'Group Study Session', duration: 90, price: 35, priceType: 'fixed' as const },
+      { name: 'Test Prep Program', duration: 60, price: 0, priceType: 'quote_only' as const },
+    ],
+    contextFields: [
+      { key: 'subject', label: 'Subject', type: 'text', required: true },
+      { key: 'student_grade', label: 'Student Grade Level', type: 'text', required: false },
+    ],
+    faqs: [
+      { question: 'What subjects do you offer?', answer: 'We offer tutoring in math, science, English, SAT/ACT prep, and more. Let us know what you need help with.' },
+      ...commonFAQs,
+    ],
+    objections: commonObjections,
+    defaultPolicies,
+  },
+
   // ============= OTHER =============
   {
     slug: 'other',
@@ -2108,16 +2411,26 @@ export const industryCatalog: IndustryCatalogEntry[] = [
     tags: ['other', 'general', 'business', 'service'],
     enabledModules: generalModules,
     services: [
+      { name: 'Initial Consultation', duration: 30, price: 0, priceType: 'quote_only' },
       { name: 'Standard Service', duration: 60, price: 100, priceType: 'fixed' },
-      { name: 'Premium Service', duration: 120, price: 200, priceType: 'fixed' },
-      { name: 'Consultation', duration: 30, price: 50, priceType: 'fixed' },
-      { name: 'Custom Package', duration: 180, price: 0, priceType: 'quote_only' },
+      { name: 'Premium Service', duration: 90, price: 175, priceType: 'fixed' },
     ],
     contextFields: [
       { key: 'service_interest', label: 'Service Interest', type: 'text', required: true },
     ],
-    faqs: commonFAQs,
-    objections: commonObjections,
+    faqs: [
+      ...commonFAQs,
+      { question: 'What services do you offer?', answer: 'We offer a range of services tailored to your needs. I can help you find the right option — just tell me what you\'re looking for.' },
+      { question: 'Do you offer free consultations?', answer: 'Yes! We offer a free initial consultation so we can understand your needs and recommend the best approach.' },
+      { question: 'How do I get started?', answer: 'The easiest way is to schedule a consultation. I can check our availability right now if you\'d like.' },
+      { question: 'Do you offer payment plans?', answer: 'Let me check with the team on payment options for you. Can I get your name and number so someone can follow up?' },
+      { question: 'How long have you been in business?', answer: 'Great question! Let me connect you with someone who can share more about our background and experience.' },
+    ],
+    objections: [
+      ...commonObjections,
+      { objection: 'I\'m just looking for information', response: 'Absolutely! I\'m happy to answer any questions. What would you like to know?' },
+      { objection: 'I\'ll just check your website', response: 'Our website has great information! But I can often answer specific questions faster. Is there something particular you\'re looking for?' },
+    ],
     defaultPolicies,
   },
 ];

@@ -98,7 +98,7 @@ export interface IndustryTemplate {
   industry_key: string;
   name: string;
   icon: string;
-  business_mode: "service" | "dispatch" | "food" | "medical";
+  business_mode: "service" | "dispatch" | "food" | "medical" | "sales" | "general";
   defaults: {
     services: ServiceTemplateItem[];
     required_questions: RequiredQuestionItem[];
