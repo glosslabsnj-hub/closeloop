@@ -1,6 +1,6 @@
-import React, { useMemo } from "react";
+import React from "react";
 /**
- * Phase 6: CONNECT Tools — Calendar, phone, notifications + mode-aware integrations
+ * Phase 6: CONNECT Tools — Calendar, phone, notifications
  */
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,38 +11,6 @@ import { Calendar, Phone, MessageSquare, HelpCircle, ArrowRight, Check, External
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
-
-/** Mode-aware integration suggestions shown during onboarding */
-const MODE_INTEGRATIONS: Record<BusinessMode, { id: string; name: string; icon: string; description: string; tag?: string }[]> = {
-  service: [
-    { id: "jobber", name: "Jobber", icon: "🔧", description: "Sync jobs, clients & scheduling", tag: "Popular" },
-    { id: "quickbooks", name: "QuickBooks", icon: "📒", description: "Invoicing & payments" },
-    { id: "stripe_connect", name: "Stripe", icon: "💳", description: "Accept online payments" },
-  ],
-  dispatch: [
-    { id: "jobber", name: "Jobber", icon: "🔧", description: "Dispatch & job management", tag: "Popular" },
-    { id: "quickbooks", name: "QuickBooks", icon: "📒", description: "Invoicing & payments" },
-    { id: "stripe_connect", name: "Stripe", icon: "💳", description: "Accept online payments" },
-  ],
-  food: [
-    { id: "square_pos", name: "Square", icon: "⬛", description: "POS, orders & payments", tag: "Popular" },
-    { id: "stripe_connect", name: "Stripe", icon: "💳", description: "Accept online payments" },
-  ],
-  medical: [
-    { id: "quickbooks", name: "QuickBooks", icon: "📒", description: "Billing & invoicing" },
-    { id: "stripe_connect", name: "Stripe", icon: "💳", description: "Accept copays online" },
-  ],
-  sales: [
-    { id: "hubspot", name: "HubSpot", icon: "🟠", description: "CRM & lead management", tag: "Popular" },
-    { id: "stripe_connect", name: "Stripe", icon: "💳", description: "Accept payments" },
-    { id: "quickbooks", name: "QuickBooks", icon: "📒", description: "Invoicing & accounting" },
-  ],
-  general: [
-    { id: "quickbooks", name: "QuickBooks", icon: "📒", description: "Invoicing & payments" },
-    { id: "stripe_connect", name: "Stripe", icon: "💳", description: "Accept online payments" },
-    { id: "hubspot", name: "HubSpot", icon: "🟠", description: "CRM & marketing" },
-  ],
-};
 
 interface OnboardingConnectProps {
   businessMode: BusinessMode;
@@ -55,18 +23,11 @@ interface OnboardingConnectProps {
 }
 
 export const OnboardingConnect = React.memo(function OnboardingConnect({
-  businessMode,
   notificationPhone,
   onNotificationPhoneChange,
   calendarConnected,
   onConnectCalendar,
-  onConnectIntegration,
-  connectedIntegrations = [],
 }: OnboardingConnectProps) {
-  const modeIntegrations = useMemo(
-    () => MODE_INTEGRATIONS[businessMode] || MODE_INTEGRATIONS.general,
-    [businessMode],
-  );
 
   return (
     <div className="space-y-8">
@@ -117,72 +78,22 @@ export const OnboardingConnect = React.memo(function OnboardingConnect({
         </CardContent>
       </Card>
 
-      {/* Mode-Aware Integration Suggestions */}
-      {modeIntegrations.length > 0 && (
-        <>
-          <Separator />
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-medium">Recommended for your business</p>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs max-w-[200px]">
-                      Connect these tools so your AI can work with your existing systems.
-                      You can add more integrations later.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+      {/* Integration info — tools can be connected later */}
+      <Card>
+        <CardContent className="p-5">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted shrink-0">
+              <ExternalLink className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="space-y-2">
-              {modeIntegrations.map((integration) => {
-                const isConnected = connectedIntegrations.includes(integration.id);
-                return (
-                  <Card key={integration.id}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xl shrink-0">{integration.icon}</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium">{integration.name}</p>
-                            {integration.tag && (
-                              <Badge variant="secondary" className="text-xs">{integration.tag}</Badge>
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-foreground">{integration.description}</p>
-                        </div>
-                        <Button
-                          variant={isConnected ? "secondary" : "ghost"}
-                          size="sm"
-                          className="shrink-0 gap-1.5"
-                          disabled={isConnected}
-                          onClick={() => onConnectIntegration?.(integration.id)}
-                        >
-                          {isConnected ? (
-                            <>
-                              <Check className="h-3.5 w-3.5" />
-                              Connected
-                            </>
-                          ) : (
-                            <>
-                              <ExternalLink className="h-3.5 w-3.5" />
-                              Connect
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+            <div>
+              <p className="font-medium">Business Tools</p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                You can connect tools like QuickBooks, Stripe, Jobber, and more from your Settings after setup.
+              </p>
             </div>
           </div>
-        </>
-      )}
+        </CardContent>
+      </Card>
 
       <Separator />
 

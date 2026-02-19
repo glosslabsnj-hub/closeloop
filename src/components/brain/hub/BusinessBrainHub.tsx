@@ -4,14 +4,15 @@
  * Scannable layout: header with inline progress, then step list.
  */
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useCapabilities } from "@/hooks/useCapabilities";
 import { useFoodMode } from "@/hooks/useFoodMode";
+import { useBusinessAwareness } from "@/hooks/useBusinessAwareness";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Brain, PhoneIncoming } from "lucide-react";
+import { Brain, PhoneIncoming, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { StepCard } from "./StepCard";
@@ -27,6 +28,9 @@ export function BusinessBrainHub({ onNavigateToSection }: BusinessBrainHubProps)
   const { businessMode } = useTenantConfig();
   const caps = useCapabilities();
   const { isFoodMode } = useFoodMode();
+  const { complexityTier } = useBusinessAwareness();
+  const isSimple = complexityTier === "simple";
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   // Check identity
   const { data: tenantData } = useQuery({
@@ -168,6 +172,37 @@ export function BusinessBrainHub({ onNavigateToSection }: BusinessBrainHubProps)
   const percentage = Math.round((completedCount / totalSteps) * 100);
   const isAllComplete = completedCount >= totalSteps;
 
+  // For simple tier, split steps into main and advanced (knowledge + ai-setup)
+  const advancedStepIds = new Set(["knowledge", "ai-setup"]);
+  const mainSteps = isSimple ? orderedSteps.filter(s => !advancedStepIds.has(s.id)) : orderedSteps;
+  const advancedSteps = isSimple ? orderedSteps.filter(s => advancedStepIds.has(s.id)) : [];
+  const hasIncompleteAdvanced = advancedSteps.some(s => !getStepCompletion(s.id));
+  // Auto-expand if any advanced step is incomplete
+  const showAdvanced = advancedOpen || hasIncompleteAdvanced;
+
+  const renderStep = (step: typeof orderedSteps[0], index: number) => {
+    const isComplete = getStepCompletion(step.id);
+    const emphasized = isStepEmphasized(step, businessMode);
+    const title = getStepTitle(step.id, businessMode);
+    const purpose = getStepPurpose(step.id, isCallbackOnly);
+
+    return (
+      <StepCard
+        key={step.id}
+        stepNumber={index + 1}
+        sectionId={step.sectionId}
+        title={title}
+        purpose={purpose}
+        icon={step.icon}
+        usedByAI={step.usedByAI}
+        isComplete={isComplete}
+        isEmphasized={emphasized}
+        mode={businessMode}
+        onEdit={onNavigateToSection}
+      />
+    );
+  };
+
   return (
     <div className="pb-12">
       {/* Guided setup overlay */}
@@ -221,29 +256,30 @@ export function BusinessBrainHub({ onNavigateToSection }: BusinessBrainHubProps)
 
       {/* Steps list */}
       <div className="space-y-0.5">
-        {orderedSteps.map((step, index) => {
-          const isComplete = getStepCompletion(step.id);
-          const emphasized = isStepEmphasized(step, businessMode);
-          const title = getStepTitle(step.id, businessMode);
-          const purpose = getStepPurpose(step.id, isCallbackOnly);
-
-          return (
-            <StepCard
-              key={step.id}
-              stepNumber={index + 1}
-              sectionId={step.sectionId}
-              title={title}
-              purpose={purpose}
-              icon={step.icon}
-              usedByAI={step.usedByAI}
-              isComplete={isComplete}
-              isEmphasized={emphasized}
-              mode={businessMode}
-              onEdit={onNavigateToSection}
-            />
-          );
-        })}
+        {mainSteps.map((step, index) => renderStep(step, index))}
       </div>
+
+      {/* Advanced steps (collapsed for simple tier) */}
+      {advancedSteps.length > 0 && (
+        <div className="mt-4">
+          <button
+            onClick={() => setAdvancedOpen(!showAdvanced)}
+            className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider hover:text-foreground transition-colors"
+          >
+            {showAdvanced ? (
+              <ChevronDown className="h-3 w-3" />
+            ) : (
+              <ChevronRight className="h-3 w-3" />
+            )}
+            Advanced
+          </button>
+          {showAdvanced && (
+            <div className="space-y-0.5">
+              {advancedSteps.map((step, index) => renderStep(step, mainSteps.length + index))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
-import { useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { AgentControlPanel } from "./AgentControlPanel";
 import { NeedsAttentionBanner } from "./NeedsAttentionBanner";
 import { CompleteProfileBanner } from "./CompleteProfileBanner";
@@ -8,9 +9,30 @@ import { UnifiedAlertBanner } from "./UnifiedAlertBanner";
 import { ModeContentArea } from "./ModeContentArea";
 import { MetricsGrid } from "./MetricsGrid";
 import { SoundManager } from "@/components/notifications/SoundManager";
+import { EmptyDashboard } from "./EmptyDashboard";
 
 export function LiveDashboard() {
-  const { assistantSettings } = useAuth();
+  const { tenant, isSuperAdmin } = useAuth();
+
+  // Check if tenant has any call sessions
+  const { data: hasCallData, isLoading } = useQuery({
+    queryKey: ["has-call-data-dashboard", tenant?.id],
+    queryFn: async () => {
+      if (!tenant?.id) return false;
+      const { count } = await supabase
+        .from("ai_call_sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", tenant.id)
+        .limit(1);
+      return (count || 0) > 0;
+    },
+    enabled: !!tenant?.id,
+  });
+
+  // Show empty dashboard for new tenants (skip for super admins who may be testing)
+  if (!isLoading && !hasCallData && !isSuperAdmin) {
+    return <EmptyDashboard />;
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
