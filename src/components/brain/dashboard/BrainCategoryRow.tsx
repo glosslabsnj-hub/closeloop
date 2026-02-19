@@ -1,11 +1,12 @@
 /**
  * BrainCategoryRow - Single row in the settings list with icon, title, summary, progress bar, and edit button
+ * 
+ * Improved: clearer progress labels and color-coded status
  */
 
 import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, CheckCircle2 } from "lucide-react";
 import type { CategoryConfig } from "@/components/brain/layout/businessBrainNavConfig";
 import type { CategoryCompletionStats } from "@/hooks/useCategoryCompletion";
 
@@ -27,6 +28,17 @@ export function BrainCategoryRow({
   const Icon = category.icon;
   const displayTitle = resolvedTitle || category.title;
   const isComplete = completion.percentage === 100;
+  const isEmpty = completion.totalFields === 0;
+  const hasWarning = completion.hasRequiredIncomplete;
+
+  // Status label
+  const statusLabel = isEmpty
+    ? "Optional"
+    : isComplete
+    ? "Complete"
+    : hasWarning
+    ? `${completion.completedFields}/${completion.totalFields} — action needed`
+    : `${completion.completedFields} of ${completion.totalFields} done`;
 
   return (
     <button
@@ -37,24 +49,31 @@ export function BrainCategoryRow({
       {/* Icon */}
       <div className={cn(
         "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors",
-        isComplete ? "bg-primary/10" : "bg-muted",
+        isComplete ? "bg-primary/10" : hasWarning ? "bg-destructive/10" : "bg-muted",
       )}>
-        <Icon className={cn(
-          "h-4 w-4",
-          isComplete ? "text-primary" : "text-muted-foreground",
-        )} />
+        {isComplete ? (
+          <CheckCircle2 className="h-4 w-4 text-primary" />
+        ) : (
+          <Icon className={cn(
+            "h-4 w-4",
+            hasWarning ? "text-destructive" : "text-muted-foreground",
+          )} />
+        )}
       </div>
 
       {/* Title + summary + progress */}
       <div className="flex-1 min-w-0 space-y-1.5">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-medium truncate">{displayTitle}</p>
-          <span className="text-xs font-medium tabular-nums text-muted-foreground shrink-0">
-            {completion.percentage}%
+          <span className={cn(
+            "text-xs font-medium tabular-nums shrink-0",
+            isComplete ? "text-primary" : hasWarning ? "text-destructive" : "text-muted-foreground",
+          )}>
+            {statusLabel}
           </span>
         </div>
         <p className="text-xs text-muted-foreground truncate">{summaryText || category.description}</p>
-        <Progress value={completion.percentage} className="h-1" />
+        {!isEmpty && <Progress value={completion.percentage} className="h-1" />}
       </div>
 
       {/* Edit arrow */}

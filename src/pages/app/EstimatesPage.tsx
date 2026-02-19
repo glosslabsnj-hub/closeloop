@@ -44,8 +44,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 
 const statusConfig: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
   draft: { label: "Draft", color: "bg-muted text-muted-foreground", icon: FileText },
