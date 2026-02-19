@@ -145,6 +145,89 @@ export function useBookings() {
     },
   });
 
+  const confirmBooking = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase
+        .from("bookings")
+        .update({ status: "confirmed" })
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookings", tenant?.id] });
+      toast({ title: "Booking confirmed", description: "Appointment approved." });
+    },
+    onError: () => {
+      toast({ title: "Something went wrong", description: "Try again?", variant: "destructive" });
+    },
+  });
+
+  const rescheduleBooking = useMutation({
+    mutationFn: async ({ id, start_at, end_at, notes }: { id: string; start_at: string; end_at?: string; notes?: string }) => {
+      const updates: Record<string, unknown> = { start_at };
+      if (end_at) updates.end_at = end_at;
+      if (notes !== undefined) updates.notes = notes;
+      const { data, error } = await supabase
+        .from("bookings")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookings", tenant?.id] });
+      toast({ title: "Booking rescheduled", description: "New time saved." });
+    },
+    onError: () => {
+      toast({ title: "Something went wrong", description: "Try again?", variant: "destructive" });
+    },
+  });
+
+  const noShowBooking = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase
+        .from("bookings")
+        .update({ status: "no_show" })
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookings", tenant?.id] });
+      toast({ title: "Marked as no-show" });
+    },
+    onError: () => {
+      toast({ title: "Something went wrong", description: "Try again?", variant: "destructive" });
+    },
+  });
+
+  const cancelBooking = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase
+        .from("bookings")
+        .update({ status: "canceled" })
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookings", tenant?.id] });
+      toast({ title: "Booking cancelled" });
+    },
+    onError: () => {
+      toast({ title: "Something went wrong", description: "Try again?", variant: "destructive" });
+    },
+  });
+
   const deleteBooking = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("bookings").delete().eq("id", id);
@@ -152,7 +235,7 @@ export function useBookings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings", tenant?.id] });
-      toast({ title: "Booking cancelled", description: "Appointment removed." });
+      toast({ title: "Booking deleted", description: "Appointment removed." });
     },
     onError: (error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -186,7 +269,11 @@ export function useBookings() {
     stats,
     createBooking,
     updateBooking,
+    confirmBooking,
+    rescheduleBooking,
     completeBooking,
+    noShowBooking,
+    cancelBooking,
     deleteBooking,
     refetch: bookingsQuery.refetch,
   };

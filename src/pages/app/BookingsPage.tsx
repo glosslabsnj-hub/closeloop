@@ -22,6 +22,7 @@ import { CancelBookingDialog } from "@/components/bookings/CancelBookingDialog";
 import { useBookings, type BookingWithDetails } from "@/hooks/useBookings";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { BookingCard } from "@/components/bookings/BookingCard";
+import { BookingDetailsSheet } from "@/components/bookings/BookingDetailsSheet";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import type { ScheduleEvent } from "@/hooks/useScheduleData";
@@ -51,7 +52,7 @@ function groupBookingsByDate(bookings: BookingWithDetails[]) {
 
 export default function BookingsPage() {
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["booking"]);
-  const { bookings, isLoading, error: bookingsError, updateBooking, completeBooking } = useBookings();
+  const { bookings, isLoading, error: bookingsError, updateBooking, confirmBooking, completeBooking, noShowBooking, cancelBooking } = useBookings();
   const { terms } = useIndustryContext();
 
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
@@ -63,6 +64,7 @@ export default function BookingsPage() {
   const [selectedBooking, setSelectedBooking] = useState<BookingWithDetails | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   // Pending bookings needing approval
   const pendingBookings = useMemo(
@@ -95,12 +97,27 @@ export default function BookingsPage() {
     setCancelDialogOpen(true);
   };
 
+  const handleViewBooking = (booking: BookingWithDetails) => {
+    setSelectedBooking(booking);
+    setDetailsOpen(true);
+  };
+
   const handleApproveBooking = (booking: BookingWithDetails) => {
-    updateBooking.mutate({ id: booking.id, status: "confirmed" });
+    confirmBooking.mutate(booking.id);
   };
 
   const handleCompleteBooking = (booking: BookingWithDetails) => {
     completeBooking.mutate(booking.id);
+  };
+
+  const handleNoShowBooking = (booking: BookingWithDetails) => {
+    noShowBooking.mutate(booking.id);
+    setDetailsOpen(false);
+  };
+
+  const handleCancelBookingConfirmed = (booking: BookingWithDetails) => {
+    cancelBooking.mutate(booking.id);
+    setDetailsOpen(false);
   };
 
   const handleSlotClick = (date: Date, hour: number) => {
@@ -157,14 +174,15 @@ export default function BookingsPage() {
         </div>
         <div className="divide-y divide-border/20 rounded-xl bg-card border border-border">
           {items.map((booking) => (
-            <BookingCard
-              key={booking.id}
-              booking={booking}
-              onEdit={handleEditBooking}
-              onCancel={handleCancelBooking}
-              onApprove={handleApproveBooking}
-              onComplete={handleCompleteBooking}
-            />
+            <div key={booking.id} className="cursor-pointer" onClick={() => handleViewBooking(booking)}>
+              <BookingCard
+                booking={booking}
+                onEdit={handleEditBooking}
+                onCancel={handleCancelBooking}
+                onApprove={handleApproveBooking}
+                onComplete={handleCompleteBooking}
+              />
+            </div>
           ))}
         </div>
       </div>
@@ -319,6 +337,17 @@ export default function BookingsPage() {
           booking={selectedBooking}
           open={cancelDialogOpen}
           onOpenChange={setCancelDialogOpen}
+        />
+
+        <BookingDetailsSheet
+          booking={selectedBooking}
+          open={detailsOpen}
+          onOpenChange={setDetailsOpen}
+          onEdit={(b) => { setDetailsOpen(false); handleEditBooking(b); }}
+          onConfirm={(b) => { handleApproveBooking(b); setDetailsOpen(false); }}
+          onComplete={(b) => { handleCompleteBooking(b); setDetailsOpen(false); }}
+          onNoShow={handleNoShowBooking}
+          onCancel={(b) => { setDetailsOpen(false); handleCancelBooking(b); }}
         />
       </div>
     </PageContainer>
