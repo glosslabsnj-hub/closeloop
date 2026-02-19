@@ -1,130 +1,142 @@
 
 
-# Comprehensive Lead Finder & Agency Experience Upgrade
+# Demo Accounts System for Admin & Agencies
 
-## Current State
+## Overview
 
-The lead finder system (both agency and admin) works but has significant gaps:
+A new "Demo Accounts" feature that lets both the admin and agencies create temporary, lightweight business profiles from a website URL. These demo profiles attach to a shared demo phone number (one per user: the admin's existing test line, and a new per-agency demo number). When someone calls the demo number, it routes to whichever demo profile is currently "active" -- just like the admin test line already works.
 
-1. **Data quality from Perplexity is inconsistent** -- fields like `website`, `address`, `phone`, `hours`, and `employee_estimate` are often returned as `null` because the AI prompt doesn't emphasize them enough and there's no post-processing to fill gaps.
-2. **No "missed calls" or responsiveness data** -- the prompt asks for "friction signals" like `poor_responsiveness` but doesn't specifically request estimated missed call volume or responsiveness metrics.
-3. **The lead card and detail panel show data when present** but don't surface enough actionable intelligence (no Google Maps link, no "call script" suggestion, no outreach tips).
-4. **Agency sidebar links all point to `/app/agency`** -- there are no dedicated sub-routes for Clients, Lead Finder, Saved Leads, Commissions, or Reports. This causes the duplicate key React warning in console.
-5. **No sales scripts, outreach tips, or onboarding guidance** for agencies to help them convert leads into clients.
+Demo accounts are NOT real tenant accounts. They live in a dedicated `demo_profiles` table, are ephemeral, and can be swapped instantly.
 
----
+## How It Works
 
-## Implementation Plan
+1. Admin or agency clicks "Create Demo" from their dashboard
+2. They paste a business website URL
+3. The existing `import-business-website` edge function scrapes and extracts business data
+4. A new `create-demo-profile` edge function saves this as a lightweight demo profile (not a real tenant)
+5. The demo profile becomes the "active" demo, routing the shared demo number to it
+6. When done demoing, they can switch to a different demo profile or deactivate it
 
-### Phase 1: Supercharge the Perplexity Prompts (Edge Functions)
+## Database Changes
 
-**Files:** `supabase/functions/admin-lead-search/index.ts`, `supabase/functions/agency-lead-search/index.ts`, `supabase/functions/reseller-lead-search/index.ts`
+### New table: `demo_profiles`
 
-Rewrite the system prompt and user prompt to demand richer, more structured data:
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid (PK) | |
+| owner_id | uuid (FK users) | The admin or agency user who created it |
+| owner_type | text | "admin" or "agency" |
+| agency_id | uuid (nullable) | Links to agency_accounts if owner is agency |
+| business_name | text | From website import |
+| industry | text | Suggested industry slug |
+| business_mode | text | service/dispatch/food/medical/general |
+| website_url | text | Source URL |
+| address | text (nullable) | |
+| phone_extracted | text (nullable) | The business's actual phone (for display) |
+| hours_json | jsonb | Operating hours |
+| services_json | jsonb | Array of services |
+| faqs_json | jsonb | Array of FAQs |
+| description | text | Business summary |
+| is_active | boolean | Currently routed to demo number |
+| created_at | timestamptz | |
 
-- **New fields requested from Perplexity:**
-  - `email` (business contact email if findable)
-  - `google_maps_url` (direct link)
-  - `social_media` (object with `facebook`, `instagram`, `yelp` URLs)
-  - `years_in_business` (estimated)
-  - `owner_name` (if findable from website/LinkedIn)
-  - `estimated_monthly_calls` (based on industry/reviews/size)
-  - `estimated_missed_call_pct` (based on team size, hours, responsiveness signals)
-  - `tech_stack_signals` (list: "no_crm", "no_voicemail", "uses_answering_service", "no_mobile_app", "manual_scheduling")
-  - `pain_points` (2-3 specific pain points based on review analysis)
-  - `best_contact_method` ("phone" | "email" | "walk_in" | "social_dm")
-  - `best_contact_time` (e.g., "Tuesday-Thursday 10am-2pm")
+### New table: `demo_phone_numbers`
 
-- **Enhanced prompt structure:**
-  - Instruct the AI to analyze Google reviews for phone-related complaints
-  - Instruct the AI to estimate call volume based on industry benchmarks (e.g., "A towing company with 100+ reviews in a metro area likely receives 15-30 calls/day")
-  - Instruct the AI to estimate missed call percentage based on team size and hours
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid (PK) | |
+| owner_id | uuid | Admin user or agency user |
+| owner_type | text | "admin" or "agency" |
+| phone_e164 | text | The shared demo number |
+| twilio_sid | text | |
+| active_demo_profile_id | uuid (nullable, FK demo_profiles) | Currently active demo |
+| created_at | timestamptz | |
 
-### Phase 2: Update Data Types and UI Components
+RLS: Both tables filtered by `owner_id = auth.uid()`.
 
-**Files:**
-- `src/components/agency/lead-finder/LeadDetailPanel.tsx` -- Add new data sections
-- `src/components/agency/lead-finder/leadScoring.ts` -- Factor in new signals
-- `src/components/agency/lead-finder/leadConstants.ts` -- Add new signal labels
-- `src/components/agency/AgencyLeadFinder.tsx` -- Show richer card data
-- `src/components/admin/AdminLeadFinder.tsx` -- Same enrichments
+## Edge Function Changes
 
-**LeadDetailPanel enhancements:**
-- **New "Call Intelligence" section** showing estimated monthly calls, estimated missed call %, best contact time
-- **New "Digital Presence" section** with clickable links to website, Google Maps, social media profiles
-- **New "Owner Intel" section** showing owner name and years in business when available
-- **New "Pain Points" section** with specific review-based complaints
-- **New "Outreach Script" section** -- a pre-written, customizable cold call script tailored to the lead's industry and pain points (generated client-side from template + lead data, no AI call needed)
-- **New "Onboarding Checklist"** -- when an agency saves a lead, show a checklist: "Called lead", "Sent follow-up email", "Demo scheduled", "Contract signed", "Account provisioned"
+### New: `create-demo-profile`
+- Accepts website extraction result + owner context
+- Creates row in `demo_profiles`
+- Sets it as active on the owner's demo number
+- Deactivates any previously active demo profile
 
-**Lead card enhancements:**
-- Show estimated missed calls per week as a prominent badge (e.g., "~12 missed/week")
-- Show website as a clickable truncated link directly on the card
-- Show best contact method icon
+### New: `activate-demo-profile`
+- Switches which demo profile is active on the demo number
 
-### Phase 3: Agency Sidebar with Dedicated Routes
+### New: `delete-demo-profile`
+- Soft or hard deletes a demo profile
 
-**Files:**
-- `src/components/layouts/AppSidebar.tsx` -- Fix duplicate keys, add unique routes
-- `src/App.tsx` -- Add new routes
-- New pages: `src/pages/app/agency/AgencyClientsPage.tsx`, `src/pages/app/agency/AgencyLeadFinderPage.tsx`, `src/pages/app/agency/AgencySavedLeadsPage.tsx`, `src/pages/app/agency/AgencyCommissionsPage.tsx`, `src/pages/app/agency/AgencyReportsPage.tsx`
+### Modified: `twilio-inbound`
+- Add a new routing check: after admin test line routing, also check `demo_phone_numbers` table
+- If the called number matches a `demo_phone_numbers` entry with an active profile, build the business context from `demo_profiles` data instead of the `tenants` table
 
-**Route structure:**
-- `/app/agency` -- Dashboard (overview, KPIs, welcome banner)
-- `/app/agency/clients` -- Managed clients list + "Switch into Client" flow
-- `/app/agency/leads` -- Lead Finder (search tab)
-- `/app/agency/leads/saved` -- Saved Leads pipeline
-- `/app/agency/commissions` -- Commission history and projections
-- `/app/agency/reports` -- Performance reports (calls, conversions, revenue)
-- `/app/agency/scripts` -- Sales scripts and onboarding playbook
+### Modified: `register-call` / `build-business-brain`
+- Add a `demo_profile_id` path: when present, load business context from `demo_profiles` instead of tenant tables
+- Dynamic variables populated from demo profile data (business_name, hours, services, etc.)
 
-This fixes the React duplicate key warning and makes each sidebar item functional.
+## Frontend Changes
 
-### Phase 4: Sales Scripts & Onboarding Playbook
+### Admin Side
+- New "Demo Accounts" page at `/admin/demos`
+- Admin sidebar gets a "Demos" link
+- Page shows: list of demo profiles, "Create Demo" button, ability to activate/deactivate
+- "Create Demo" opens a dialog with the website import flow (reuses `WebsiteQuickStart` component logic)
+- Active demo shows a green badge and the demo phone number to call
 
-**File:** New `src/components/agency/AgencySalesPlaybook.tsx`, new page `src/pages/app/agency/AgencyScriptsPage.tsx`
+### Agency Side
+- New "Demos" tab in agency sidebar at `/app/agency/demos`
+- Same UI pattern: list of demos, create new, activate/switch
+- Agency demo number provisioned on first demo creation (or admin assigns one)
 
-Provide agencies with ready-to-use resources:
+### Shared Components
+- `DemoProfileCard` -- shows business name, industry, website, active status, "Activate" / "Delete" buttons
+- `CreateDemoDialog` -- website URL input, scan, preview extracted data, confirm creation
+- `DemoNumberBanner` -- shows the demo phone number and which profile is active
 
-- **Cold Call Script** -- templated per industry, fills in the lead's name, pain points, and estimated missed calls
-- **Follow-Up Email Template** -- professional email template referencing their specific business
-- **Objection Handling Guide** -- common objections ("We're happy with our current system", "We don't miss that many calls", "It's too expensive") with proven responses
-- **Onboarding Checklist** -- step-by-step guide for agencies to onboard a new client (provision account, configure AI, test call, go live)
-- **ROI Calculator snippet** -- "If you miss X calls/week at $Y average job value, that's $Z/month in lost revenue. CloseLoop pays for itself in [N] days."
+## Call Flow for Demo Calls
 
-These are static/templated content (no AI needed) that dynamically insert lead-specific data when viewing from a saved lead context.
-
-### Phase 5: Admin Lead Finder Parity
-
-**Files:** Mirror all agency improvements into admin versions:
-- `src/components/admin/AdminLeadFinder.tsx` -- same card/detail enrichments
-- `src/components/admin/AdminSavedLeadsTab.tsx` -- same pipeline improvements
-- `src/components/admin/ResellerLeadFinder.tsx` -- partner-specific enhancements (client base size, partnership fit score)
-
-### Phase 6: Scoring Engine Enhancement
-
-**File:** `src/components/agency/lead-finder/leadScoring.ts`
-
-Add new scoring factors:
-- `estimated_missed_call_pct` > 20% = +12 points
-- `no_crm` tech signal = +8 points
-- `uses_answering_service` = +10 points (they're already paying for call coverage, easy sell)
-- `years_in_business` > 5 = +5 points (established, can afford it)
-- `owner_name` found = +3 points (personalized outreach possible)
-
----
+```text
+Caller dials demo number
+  --> twilio-inbound
+    --> Lookup phone_numbers table (no match)
+    --> Lookup demo_phone_numbers table (match found)
+    --> Load active_demo_profile_id
+    --> Load demo_profiles row
+    --> Build business context from demo profile JSON fields
+    --> Register call with ElevenLabs using demo profile data
+    --> AI answers as that business
+```
 
 ## Technical Notes
 
-- The Perplexity prompt changes are the highest-impact fix. The data fields already exist in the UI components (phone, website, address are rendered when present) -- they're just often null because the prompt doesn't push hard enough for them.
-- New fields like `estimated_monthly_calls` and `estimated_missed_call_pct` are AI estimates, not exact data. They'll be clearly labeled as estimates in the UI.
-- The sales scripts are static templates with dynamic variable interpolation -- no additional API calls or costs.
-- All new routes use the existing `AppLayout` wrapper; the `isAgencyOnly` check in `AppLayout.tsx` already handles agency users correctly.
-- The duplicate key warning is caused by multiple sidebar items sharing `/app/agency` as their href (used as the React key). Giving each a unique route fixes this.
+- Demo profiles are completely separate from tenants -- no tenant_users, no subscriptions, no real data
+- The website import edge function already exists and works well; we reuse it as-is
+- The admin's existing shared test line (+1-855-329-7357) can double as their demo number initially
+- For agencies, we can either provision a dedicated Twilio number per agency or use a pool approach
+- Demo calls do NOT create real sessions, customers, or bookings -- they are fire-and-forget demonstrations
+- Demo profiles can be created and deleted freely with no billing impact
 
-## Estimated Scope
-- 3 edge functions modified (prompts rewritten)
-- ~8 existing component files updated  
-- ~7 new page/component files created
-- No database schema changes needed (lead data is stored as JSON in existing columns)
+## File Summary
 
+**New files (~10):**
+- `supabase/functions/create-demo-profile/index.ts`
+- `supabase/functions/activate-demo-profile/index.ts`
+- `supabase/functions/delete-demo-profile/index.ts`
+- `src/pages/admin/AdminDemosPage.tsx`
+- `src/pages/app/agency/AgencyDemosPage.tsx`
+- `src/components/demos/DemoProfileCard.tsx`
+- `src/components/demos/CreateDemoDialog.tsx`
+- `src/components/demos/DemoNumberBanner.tsx`
+- `src/hooks/useDemoProfiles.ts`
+
+**Modified files (~5):**
+- `supabase/functions/twilio-inbound/index.ts` -- add demo number routing
+- `supabase/functions/elevenlabs-init/index.ts` -- support demo profile context
+- `src/components/layouts/AppSidebar.tsx` -- add Demos link for agency
+- `src/App.tsx` -- add new routes
+- Admin sidebar config -- add Demos link
+
+**Database:**
+- 1 migration creating `demo_profiles` and `demo_phone_numbers` tables with RLS
