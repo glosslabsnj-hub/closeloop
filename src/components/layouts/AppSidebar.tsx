@@ -84,6 +84,7 @@ interface AppSidebarProps {
   open: boolean;
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
   showAgency?: boolean;
+  isAgencyOnly?: boolean;
 }
 
 export function AppSidebar({
@@ -97,6 +98,7 @@ export function AppSidebar({
   open,
   setOpen,
   showAgency,
+  isAgencyOnly,
 }: AppSidebarProps) {
   const location = useLocation();
 
@@ -198,6 +200,30 @@ export function AppSidebar({
       />
     );
   };
+
+  // Agency-only users get a minimal sidebar
+  if (isAgencyOnly) {
+    const agencyOnlyItems: NavItem[] = [
+      { href: "/app/agency", label: "Dashboard", icon: <LayoutDashboard className={iconClass} /> },
+      { href: "/app/settings", label: "Settings", icon: <Settings className={iconClass} /> },
+    ];
+
+    return (
+      <AnimatedSidebar open={open} setOpen={setOpen}>
+        <SidebarBody className="justify-between gap-6">
+          <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
+            {open && <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/40 px-3 pt-1 pb-1">Agency</p>}
+            <div className="flex flex-col gap-0.5">
+              {agencyOnlyItems.map(renderLink)}
+            </div>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            {bottomItems.map(renderLink)}
+          </div>
+        </SidebarBody>
+      </AnimatedSidebar>
+    );
+  }
 
   return (
     <AnimatedSidebar open={open} setOpen={setOpen}>

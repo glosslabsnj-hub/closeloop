@@ -190,6 +190,7 @@ function AppLayoutContent() {
           open={sidebarOpen}
           setOpen={setSidebarOpen}
           showAgency={showAgency}
+          isAgencyOnly={isAgency && !tenant}
         />
 
         {/* Content area */}
