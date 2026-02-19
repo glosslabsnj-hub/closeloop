@@ -81,18 +81,18 @@ serve(async (req) => {
       });
     }
 
-    // Check super_admin role using service client
+    // Check super_admin role using service client against user_roles table
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false },
     });
-    const { data: tenantUser } = await supabase
-      .from("tenant_users")
+    const { data: roleData } = await supabase
+      .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
       .eq("role", "super_admin")
       .maybeSingle();
 
-    if (!tenantUser) {
+    if (!roleData) {
       return new Response(JSON.stringify({ error: "Super admin access required" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
