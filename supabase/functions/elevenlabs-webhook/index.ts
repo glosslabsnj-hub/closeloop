@@ -281,6 +281,12 @@ async function logEventStage(
   errorMessage: string | null = null
 ) {
   try {
+    // Skip DB insert if tenant_id is "unknown" — it's not a valid UUID and will fail FK constraint.
+    // Still log to console so we have visibility.
+    if (tenantId === "unknown") {
+      console.warn(`[logEventStage] stage=${stage} tenant=unknown conv=${conversationId} error=${errorMessage}`);
+      return;
+    }
     await supabase.from("ai_event_logs").insert({
       tenant_id: tenantId,
       session_id: sessionId,
@@ -1327,7 +1333,7 @@ async function ensureLead(
     return null;
   }
 
-  console.log(`[ensureLead] Created new lead: ${newLead.id}, status: ${targetStatus}, score: ${leadScore}`);
+  console.log(`[ensureLead] Created new lead: ${newLead.id}, status: ${targetStatus}, score: ${temp.score}`);
   return newLead.id;
 }
 
@@ -2043,9 +2049,12 @@ function is24HourTime(str: string): boolean {
   return /^\d{2}:\d{2}(:\d{2})?$/.test(str);
 }
 
-function parseNaturalDate(input: string, _timezone?: string): string {
+function parseNaturalDate(input: string, timezone?: string): string {
   const lower = input.toLowerCase().trim();
-  const today = new Date();
+  // Use tenant timezone for "today"/"tomorrow" calculations instead of UTC
+  const tz = timezone || "America/New_York";
+  const nowInTz = new Date(new Date().toLocaleString("en-US", { timeZone: tz }));
+  const today = nowInTz;
   
   if (lower === "today") {
     return today.toISOString().split("T")[0];
@@ -2143,6 +2152,9 @@ function determineOutcomeFromIntent(intent: string, _businessMode: string): stri
     case "reservation": return "booked";
     case "booking": return "booked";
     case "dispatch": return "dispatch";
+    case "test_drive": return "booked";
+    case "sales_lead": return "lead_captured";
+    case "medical_intake": return "booked";
     case "callback": return "followup";
     case "faq": return "lead_captured";
     default: return "lost";
@@ -2445,7 +2457,8 @@ async function persistFoodOrder(
   }
   const orderNumber = `ORD-${nextOrderNum}`;
   
-  const status = unmatchedCount > 0 && pricedItems.length === 0 ? "needs_followup" : "confirmed";
+  // "needs_followup" is not a valid order_status enum value — use "pending" instead
+  const status = unmatchedCount > 0 && pricedItems.length === 0 ? "pending" : "confirmed";
   
   // Combine special instructions
   const allInstructions: string[] = [];
@@ -2519,7 +2532,10 @@ async function persistFoodOrder(
   try {
     await fetch(`${supabaseUrl}/functions/v1/order-handoff`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseKey}` },
+      headers: {
+        "Content-Type": "application/json",
+        "x-closeloop-secret": Deno.env.get("CLOSELOOP_INTERNAL_SECRET") || supabaseKey,
+      },
       body: JSON.stringify({ order_id: newOrder.id, tenant_id: tenantId }),
     });
   } catch (e) {
@@ -2880,7 +2896,7 @@ async function persistDispatchJob(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${supabaseKey}`,
+        "x-closeloop-secret": Deno.env.get("CLOSELOOP_INTERNAL_SECRET") || supabaseKey,
       },
       body: JSON.stringify({ dispatch_id: job.id, tenant_id: tenantId }),
     });

@@ -31,10 +31,13 @@ const PLAN_LIMITS: Record<string, { includedMinutes: number; overageRateCents: n
 
 // Constant-time string comparison to prevent timing attacks
 function secureCompare(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let result = 0;
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  // Pad shorter string to avoid length-based timing leak
+  const maxLen = Math.max(a.length, b.length);
+  const paddedA = a.padEnd(maxLen, "\0");
+  const paddedB = b.padEnd(maxLen, "\0");
+  let result = a.length ^ b.length; // length mismatch contributes to failure
+  for (let i = 0; i < maxLen; i++) {
+    result |= paddedA.charCodeAt(i) ^ paddedB.charCodeAt(i);
   }
   return result === 0;
 }
@@ -145,7 +148,11 @@ serve(async (req) => {
       }
       console.log("Stripe signature verified successfully");
     } else {
-      console.warn("STRIPE_WEBHOOK_SECRET not set - signature verification skipped (not recommended for production)");
+      console.error("STRIPE_WEBHOOK_SECRET not set - rejecting webhook for security");
+      return new Response(JSON.stringify({ error: "Webhook secret not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     let event;
@@ -612,17 +619,43 @@ serve(async (req) => {
     if (event.type === "customer.subscription.deleted") {
       const subscription = event.data.object;
       const tenantId = subscription.metadata?.tenant_id;
-      
+
       if (tenantId) {
         console.log(`Subscription canceled for tenant ${tenantId}`);
-        // Optionally update connect_status or mark number for release
+
+        // Mark subscription as canceled so auth checks stop granting access
+        const { error: subCancelError } = await supabase
+          .from("subscriptions")
+          .update({
+            status: "canceled",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("tenant_id", tenantId);
+
+        if (subCancelError) {
+          console.error(`Failed to cancel subscription for tenant ${tenantId}:`, subCancelError);
+        }
+
+        // Update assistant_settings connect_status
         await supabase
           .from("assistant_settings")
-          .update({ 
+          .update({
             connect_status: "subscription_canceled",
             updated_at: new Date().toISOString()
           })
           .eq("tenant_id", tenantId);
+
+        // Log audit event
+        await supabase.from("audit_events").insert({
+          tenant_id: tenantId,
+          event_type: "subscription_canceled",
+          entity_type: "subscription",
+          actor_type: "system",
+          payload: {
+            stripe_subscription_id: subscription.id,
+            canceled_at: new Date().toISOString(),
+          },
+        });
       }
     }
 

@@ -348,13 +348,14 @@ Deno.serve(async (req) => {
   });
 
   try {
-    // Step 1: Lookup phone number -> tenant
+    // Step 1: Lookup phone number -> tenant (only active numbers)
     const phoneRecords = await querySupabase(
       SUPABASE_URL,
       SUPABASE_SERVICE_ROLE_KEY,
       "phone_numbers",
       {
         phone_e164: toPhoneE164,
+        status: "provisioned",
       },
       Math.min(2500, timeLeft())
     );
@@ -793,8 +794,8 @@ Deno.serve(async (req) => {
       if (insertResponse.ok) {
         console.log(`[twilio-inbound] Created ai_call_sessions (conv_id=${conversationId || 'null'}, call_sid=${callSidSafe})`);
         
-        // Log success event
-        await logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+        // Log success event (fire-and-forget to avoid blocking the critical path)
+        void logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
           tenant_id: tenantId,
           twilio_call_sid: callSidSafe,
           to_number: toPhoneE164,

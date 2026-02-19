@@ -186,13 +186,14 @@ serve(async (req) => {
             : "items";
           const totalStr = order.total_cents ? `$${(order.total_cents / 100).toFixed(2)}` : "N/A";
 
+          const orderType = (order.order_type || "pickup").toUpperCase();
           const emailResult = await sendEmail({
             to: settings.notify_email,
-            subject: `New Order #${order.order_number} — ${order.order_type.toUpperCase()}`,
+            subject: `New Order #${order.order_number} — ${orderType}`,
             businessName,
             html: `
               <h2>New Order #${order.order_number}</h2>
-              <p><strong>Type:</strong> ${order.order_type.toUpperCase()}</p>
+              <p><strong>Type:</strong> ${orderType}</p>
               <p><strong>Customer:</strong> ${order.customer_name || "Unknown"}</p>
               ${order.customer_phone ? `<p><strong>Phone:</strong> ${order.customer_phone}</p>` : ""}
               <p><strong>Items:</strong> ${items}</p>
@@ -219,7 +220,7 @@ serve(async (req) => {
             : "items";
 
           let message = `NEW ORDER #${order.order_number}\n`;
-          message += `Type: ${order.order_type.toUpperCase()}\n`;
+          message += `Type: ${(order.order_type || "pickup").toUpperCase()}\n`;
           message += `Customer: ${order.customer_name || "Unknown"}\n`;
           message += `Items: ${items.substring(0, 100)}${items.length > 100 ? "..." : ""}\n`;
           if (order.total_cents) {
@@ -364,13 +365,14 @@ async function sendOrderEmail(order: Order, email: string, bName: string) {
     : "items";
   const totalStr = order.total_cents ? `$${(order.total_cents / 100).toFixed(2)}` : "N/A";
 
+  const orderType = (order.order_type || "pickup").toUpperCase();
   const result = await sendEmail({
     to: email,
-    subject: `New Order #${order.order_number} — ${order.order_type.toUpperCase()}`,
+    subject: `New Order #${order.order_number} — ${orderType}`,
     businessName: bName,
     html: `
       <h2>New Order #${order.order_number}</h2>
-      <p><strong>Type:</strong> ${order.order_type.toUpperCase()}</p>
+      <p><strong>Type:</strong> ${orderType}</p>
       <p><strong>Customer:</strong> ${order.customer_name || "Unknown"}</p>
       <p><strong>Items:</strong> ${items}</p>
       <p><strong>Total:</strong> ${totalStr}</p>

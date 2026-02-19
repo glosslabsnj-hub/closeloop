@@ -12,6 +12,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, jsonHeaders, corsResponse, errorResponse, jsonResponse } from "../_shared/cors.ts";
+import { requireInternalSecret } from "../_shared/tenant.ts";
 
 interface CallOutcomePayload {
   tenant_id: string;
@@ -76,6 +77,13 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return corsResponse();
 
   try {
+    // Require internal secret — only called from elevenlabs-webhook, not from browsers
+    const secret = req.headers.get("x-closeloop-secret") || req.headers.get("authorization")?.replace("Bearer ", "");
+    const expectedSecret = Deno.env.get("CLOSELOOP_INTERNAL_SECRET") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!secret || secret !== expectedSecret) {
+      return errorResponse("Unauthorized", 401);
+    }
+
     const payload: CallOutcomePayload = await req.json();
 
     if (!payload.tenant_id || !payload.session_id || !payload.outcome) {

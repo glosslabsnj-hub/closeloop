@@ -122,6 +122,10 @@ Deno.serve(async (req) => {
     const origin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/[^/]*$/, "") || "https://app.voxly.ai";
 
     // Create Checkout Session with trial
+    // IMPORTANT: metadata on BOTH session AND subscription_data
+    // - session.metadata → used by checkout.session.completed event
+    // - subscription_data.metadata → propagated to Subscription object,
+    //   used by customer.subscription.updated/deleted events
     const sessionParams = new URLSearchParams({
       "mode": "subscription",
       "customer": stripeCustomerId!,
@@ -130,6 +134,8 @@ Deno.serve(async (req) => {
       "subscription_data[trial_period_days]": String(TRIAL_DAYS),
       "subscription_data[metadata][tenant_id]": tenantId,
       "subscription_data[metadata][plan_code]": plan_sku,
+      "metadata[tenant_id]": tenantId,
+      "metadata[plan_code]": plan_sku,
       "payment_method_collection": "always",
       "success_url": requestedTenantId
         ? `${origin}/app/dashboard?tenant=${tenantId}&activated=true`

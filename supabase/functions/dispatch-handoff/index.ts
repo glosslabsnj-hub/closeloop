@@ -86,7 +86,7 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = serviceClient();
 
     // Handle test requests
     if (test) {
@@ -161,7 +161,7 @@ serve(async (req) => {
       throw new Error("dispatch_id is required for non-test requests");
     }
 
-    // Fetch dispatch job with related data
+    // SECURITY: Fetch dispatch job AND verify it belongs to the validated tenant
     const { data: dispatch, error: dispatchError } = await supabase
       .from("dispatch_jobs")
       .select(`
@@ -169,10 +169,11 @@ serve(async (req) => {
         customer:customers(*)
       `)
       .eq("id", dispatch_id)
+      .eq("tenant_id", tenant_id)
       .single();
 
     if (dispatchError || !dispatch) {
-      throw new Error(`Dispatch not found: ${dispatchError?.message}`);
+      throw new Error(`Dispatch not found or access denied`);
     }
 
     // Fetch delivery settings
@@ -237,7 +238,7 @@ serve(async (req) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${supabaseServiceKey}`,
+          "x-closeloop-secret": Deno.env.get("CLOSELOOP_INTERNAL_SECRET") || supabaseServiceKey,
         },
         body: JSON.stringify({
           tenant_id,
@@ -268,7 +269,7 @@ serve(async (req) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${supabaseServiceKey}`,
+            "x-closeloop-secret": Deno.env.get("CLOSELOOP_INTERNAL_SECRET") || supabaseServiceKey,
           },
           body: JSON.stringify({
             tenantId: tenant_id,
@@ -448,7 +449,7 @@ serve(async (req) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${supabaseServiceKey}`,
+          "x-closeloop-secret": Deno.env.get("CLOSELOOP_INTERNAL_SECRET") || supabaseServiceKey,
         },
         body: JSON.stringify({
           tenant_id,
