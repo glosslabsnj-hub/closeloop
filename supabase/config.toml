@@ -65,3 +65,9 @@ verify_jwt = false
 
 [functions.agency-lead-search]
 verify_jwt = false
+
+[functions.admin-marketing-chat]
+verify_jwt = false
+
+[functions.admin-lead-search]
+verify_jwt = false
