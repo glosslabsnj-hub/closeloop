@@ -4,7 +4,7 @@
  * Scores prospective businesses on their likelihood to convert to CloseLoop customers.
  * Hot leads = high pain, high urgency, high fit. Cold leads = low pain or poor fit.
  *
- * 8 weighted factors (max 100 points):
+ * 12 weighted factors (max ~130 raw, clamped to 100):
  *  1. Friction signal density     (0-25)  — more friction = more pain = hotter
  *  2. No online booking           (0-15)  — single strongest conversion indicator
  *  3. Review volume               (0-12)  — more reviews = more call volume = more need
@@ -13,6 +13,10 @@
  *  6. Growth signals              (0-10)  — growing fast, likely overwhelmed
  *  7. Small team indicator        (0-8)   — fewer staff = more missed calls
  *  8. High-volume industry        (0-10)  — some industries just get more calls
+ *  9. Missed call percentage      (0-12)  — estimated missed calls (NEW)
+ * 10. Tech stack signals          (0-10)  — no CRM, answering service, etc. (NEW)
+ * 11. Established business        (0-5)   — years in business (NEW)
+ * 12. Owner intel available       (0-3)   — personalized outreach possible (NEW)
  */
 
 export type LeadTemperature = "hot" | "warm" | "cold";
@@ -36,10 +40,15 @@ export function scoreAgencyLead(lead: {
   phone?: string | null;
   website?: string | null;
   industry?: string;
+  estimated_missed_call_pct?: number | null;
+  tech_stack_signals?: string[];
+  years_in_business?: number | null;
+  owner_name?: string | null;
 }): ScoredLead {
   let score = 0;
   const reasons: string[] = [];
   const signals = new Set(lead.friction_signals ?? []);
+  const techSignals = new Set(lead.tech_stack_signals ?? []);
 
   // --- Factor 1: Friction signal density (0-25) ---
   const signalCount = signals.size;
@@ -80,7 +89,6 @@ export function scoreAgencyLead(lead: {
   // --- Factor 4: Rating sweet spot (0-10) ---
   const rating = lead.rating ?? 0;
   if (rating >= 3.0 && rating < 4.5) {
-    // Sweet spot — good but not great, probably struggling with responsiveness
     score += 10;
     reasons.push(`Rating ${rating}★ — good service but room for improvement in responsiveness`);
   } else if (rating >= 4.5 && rating < 4.8) {
@@ -88,7 +96,6 @@ export function scoreAgencyLead(lead: {
     reasons.push(`Rating ${rating}★ — strong reputation, AI can maintain it`);
   } else if (rating >= 4.8) {
     score += 4;
-    // Less urgency — they're already crushing it
   } else if (rating > 0) {
     score += 3;
   }
@@ -115,6 +122,48 @@ export function scoreAgencyLead(lead: {
   if (lead.industry && HIGH_VOLUME_INDUSTRIES.has(lead.industry)) {
     score += 10;
     reasons.push("High call-volume industry");
+  }
+
+  // --- Factor 9: Estimated missed call % (0-12) --- NEW
+  const missedPct = lead.estimated_missed_call_pct ?? 0;
+  if (missedPct >= 30) {
+    score += 12;
+    reasons.push(`Est. ${missedPct}% missed calls — significant revenue leakage`);
+  } else if (missedPct >= 20) {
+    score += 9;
+    reasons.push(`Est. ${missedPct}% missed calls — noticeable gap`);
+  } else if (missedPct >= 10) {
+    score += 5;
+    reasons.push(`Est. ${missedPct}% missed calls`);
+  }
+
+  // --- Factor 10: Tech stack signals (0-10) --- NEW
+  if (techSignals.has("uses_answering_service")) {
+    score += 10;
+    reasons.push("Already paying for call coverage — easy upgrade sell");
+  } else if (techSignals.has("no_crm")) {
+    score += 8;
+    reasons.push("No CRM system — losing leads to disorganization");
+  } else if (techSignals.has("manual_scheduling")) {
+    score += 6;
+    reasons.push("Manual scheduling — ripe for automation");
+  } else if (techSignals.size > 0) {
+    score += 4;
+  }
+
+  // --- Factor 11: Established business (0-5) --- NEW
+  const years = lead.years_in_business ?? 0;
+  if (years >= 5) {
+    score += 5;
+    reasons.push(`${years}+ years in business — established, can afford solution`);
+  } else if (years >= 2) {
+    score += 3;
+  }
+
+  // --- Factor 12: Owner intel available (0-3) --- NEW
+  if (lead.owner_name) {
+    score += 3;
+    reasons.push("Owner name known — personalized outreach possible");
   }
 
   // Bonus: Has phone number (we can actually reach them)

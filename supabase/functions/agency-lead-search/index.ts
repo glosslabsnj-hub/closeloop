@@ -15,56 +15,93 @@ const ALL_INDUSTRIES = [
   "law firm", "fitness studio",
 ];
 
-/**
- * Search a single industry+location via Perplexity.
- * Returns parsed leads array.
- */
+const INDUSTRY_CALL_BENCHMARKS: Record<string, { monthly: string; missed_pct: string }> = {
+  towing: { monthly: "300-600", missed_pct: "25-40%" },
+  plumber: { monthly: "150-400", missed_pct: "20-35%" },
+  hvac: { monthly: "200-500", missed_pct: "20-30%" },
+  electrician: { monthly: "100-300", missed_pct: "15-25%" },
+  locksmith: { monthly: "200-500", missed_pct: "30-45%" },
+  "auto repair": { monthly: "200-400", missed_pct: "15-25%" },
+  dental: { monthly: "300-600", missed_pct: "10-20%" },
+  "med spa": { monthly: "150-400", missed_pct: "15-25%" },
+  salon: { monthly: "200-500", missed_pct: "15-25%" },
+  "pest control": { monthly: "150-350", missed_pct: "20-30%" },
+  restaurant: { monthly: "400-1000", missed_pct: "30-50%" },
+  veterinary: { monthly: "250-500", missed_pct: "15-25%" },
+};
+
 async function searchBatch(
   apiKey: string,
   industry: string,
   location: string,
   count: number
 ): Promise<any[]> {
+  const benchmarks = INDUSTRY_CALL_BENCHMARKS[industry] || { monthly: "100-300", missed_pct: "15-30%" };
+
   const prompt = `Find exactly ${count} real ${industry} businesses in ${location} that would benefit from an AI phone receptionist service.
 
-For each business, provide:
-- Business name (real, verifiable)
-- Phone number in format +1XXXXXXXXXX (if findable)
-- Website URL (if findable)
-- Physical address (if findable)
-- Google rating (number) and review count (if findable)
-- Estimated employee count or team size description
-- Business hours summary (if findable)
-- A specific 2-3 sentence explanation of why they need an AI receptionist, based on observable evidence like review complaints, no online booking, small staff, etc.
-- Friction signals from this list: no_online_booking, small_team, high_volume, after_hours_demand, growth_signals, poor_responsiveness
+CRITICAL: For EVERY business, you MUST provide ALL of the following. Do not leave fields as null unless truly unfindable after thorough research:
+
+1. **Business name** — real, verifiable business
+2. **Phone number** — in +1XXXXXXXXXX format. Search Google Maps, Yelp, their website, Yellow Pages. This is critical.
+3. **Website URL** — search thoroughly. Check Google Business Profile, Yelp, Facebook.
+4. **Physical address** — full street address from Google Maps or their website
+5. **Google Maps URL** — direct link to their Google Maps listing
+6. **Email** — business contact email from their website, Google listing, or social profiles
+7. **Google rating** (decimal) and **review count** (integer)
+8. **Employee estimate** — e.g. "2-5 employees", "owner-operated", "10-15 staff"
+9. **Business hours** — e.g. "Mon-Fri 8am-6pm, Sat 9am-2pm"
+10. **Owner name** — if findable from website "About" page, LinkedIn, or Google listing
+11. **Years in business** — estimated from Google listing age, website archive, or reviews
+12. **Social media** — Facebook, Instagram, and Yelp URLs if available
+13. **Estimated monthly calls** — based on industry benchmarks (${industry} typically receives ${benchmarks.monthly} calls/month)
+14. **Estimated missed call percentage** — based on team size and hours (${industry} businesses with small teams miss ${benchmarks.missed_pct} of calls)
+15. **Pain points** — 2-3 SPECIFIC pain points based on actual Google review analysis
+16. **Tech stack signals** — observable from their website/online presence: no_crm, no_online_booking, no_voicemail_transcription, uses_answering_service, manual_scheduling, no_mobile_app, outdated_website, no_text_messaging
+17. **Best contact method** — "phone", "email", "walk_in", or "social_dm"
+18. **Best contact time** — e.g. "Tuesday-Thursday 10am-2pm"
+19. **Friction signals** from this list: no_online_booking, small_team, high_volume, after_hours_demand, growth_signals, poor_responsiveness, no_website, outdated_website
 
 Focus on businesses showing:
 1. Owner-operated or small team (1-15 employees)
-2. Good reviews but complaints about phone responsiveness or wait times
+2. Google reviews mentioning phone issues, wait times, missed calls, or going to voicemail
 3. No online booking or scheduling visible on website
 4. High call-volume niche
-5. Growth signals (expanding, new services, recent positive reviews)
+5. Growth signals (expanding, new services, increasing review velocity)
 
-Return ONLY real businesses you can verify. Do not fabricate.`;
+Return ONLY real businesses you can verify. Do not fabricate any data.`;
 
   const body = {
     model: "sonar-pro",
     messages: [
       {
         role: "system",
-        content: `You are a B2B lead researcher. Find real local businesses matching the criteria. Return valid JSON array only, no markdown. Each object:
+        content: `You are an elite B2B lead researcher specializing in finding small businesses that miss phone calls. You must return COMPLETE data for every business — leaving fields null is a failure. Search Google Maps, Yelp, Facebook, LinkedIn, and business websites thoroughly.
+
+Return valid JSON array only, no markdown, no explanation. Each object MUST follow this exact schema:
 {
   "name": "string",
-  "phone": "+1XXXXXXXXXX or null",
-  "website": "https://... or null",
-  "address": "Full address or null",
+  "phone": "+1XXXXXXXXXX",
+  "website": "https://...",
+  "address": "123 Main St, City, ST 12345",
+  "google_maps_url": "https://maps.google.com/...",
+  "email": "contact@business.com or null",
   "rating": 4.5,
   "review_count": 123,
-  "employee_estimate": "2-5 employees" or null,
-  "hours": "Mon-Fri 8am-5pm" or null,
-  "reason": "2-3 sentence specific reason",
-  "friction_signals": ["no_online_booking","small_team"],
-  "confidence": "high"|"medium"|"low",
+  "employee_estimate": "2-5 employees",
+  "hours": "Mon-Fri 8am-6pm, Sat 9am-2pm",
+  "owner_name": "John Smith or null",
+  "years_in_business": 8,
+  "social_media": {"facebook": "url or null", "instagram": "url or null", "yelp": "url or null"},
+  "estimated_monthly_calls": 250,
+  "estimated_missed_call_pct": 25,
+  "pain_points": ["Specific pain point from reviews", "Another specific observation"],
+  "tech_stack_signals": ["no_online_booking", "manual_scheduling"],
+  "best_contact_method": "phone",
+  "best_contact_time": "Tuesday-Thursday 10am-2pm",
+  "reason": "2-3 sentence specific reason referencing actual review complaints or observable issues",
+  "friction_signals": ["no_online_booking", "small_team"],
+  "confidence": "high",
   "industry": "${industry}"
 }`,
       },
@@ -181,7 +218,6 @@ serve(async (req) => {
     let allLeads: any[] = [];
 
     if (industry === "all") {
-      // Search top 10 high-value industries in parallel, ~5 leads each
       const topIndustries = ALL_INDUSTRIES.slice(0, 10);
       const perIndustry = Math.max(3, Math.ceil(count / topIndustries.length));
       const results = await Promise.allSettled(
@@ -191,7 +227,6 @@ serve(async (req) => {
         if (r.status === "fulfilled") allLeads.push(...r.value);
       }
     } else {
-      // Single industry — do 3 parallel batches to maximize results
       const perBatch = Math.ceil(count / 3);
       const batchPrompts = [
         searchBatch(PERPLEXITY_API_KEY, industry, location, perBatch),
@@ -204,7 +239,7 @@ serve(async (req) => {
       }
     }
 
-    // Deduplicate by name (case-insensitive)
+    // Deduplicate by name
     const seen = new Set<string>();
     const uniqueLeads = allLeads.filter((lead) => {
       const key = lead.name?.toLowerCase()?.trim();

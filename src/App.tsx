@@ -75,7 +75,11 @@ import WorkflowRunDetailPage from "@/pages/app/WorkflowRunDetailPage";
 import LeadRecoveryPage from "@/pages/app/LeadRecoveryPage";
 import JobsPage from "@/pages/app/JobsPage";
 import AgencyDashboardPage from "@/pages/app/AgencyDashboardPage";
-
+import AgencyLeadFinderPage from "@/pages/app/agency/AgencyLeadFinderPage";
+import AgencyClientsPage from "@/pages/app/agency/AgencyClientsPage";
+import AgencySavedLeadsPage from "@/pages/app/agency/AgencySavedLeadsPage";
+import AgencyCommissionsPage from "@/pages/app/agency/AgencyCommissionsPage";
+import AgencyReportsPage from "@/pages/app/agency/AgencyReportsPage";
 // Driver Portal Pages
 import DriverLoginPage from "@/pages/driver/DriverLoginPage";
 import DriverDashboard from "@/pages/driver/DriverDashboard";
@@ -190,6 +194,11 @@ const App = () => (
               <Route path="/app/leads/recovery" element={<LeadRecoveryPage />} />
               <Route path="/app/partner" element={<BusinessPartnerPage />} />
               <Route path="/app/agency" element={<AgencyDashboardPage />} />
+              <Route path="/app/agency/clients" element={<AgencyClientsPage />} />
+              <Route path="/app/agency/leads" element={<AgencyLeadFinderPage />} />
+              <Route path="/app/agency/leads/saved" element={<AgencySavedLeadsPage />} />
+              <Route path="/app/agency/commissions" element={<AgencyCommissionsPage />} />
+              <Route path="/app/agency/reports" element={<AgencyReportsPage />} />
               <Route path="/app/help" element={<HelpCenterPage />} />
               {/* Legacy: Menu Center now lives in Business Brain */}
               <Route path="/app/menu-center" element={<Navigate to="/app/business-brain" replace />} />

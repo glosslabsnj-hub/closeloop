@@ -205,17 +205,17 @@ export function AppSidebar({
   if (isAgencyOnly) {
     const agencyCoreItems: NavItem[] = [
       { href: "/app/agency", label: "Dashboard", icon: <LayoutDashboard className={iconClass} /> },
-      { href: "/app/agency", label: "Clients", icon: <Building2 className={iconClass} /> },
+      { href: "/app/agency/clients", label: "Clients", icon: <Building2 className={iconClass} /> },
     ];
 
     const agencyGrowthItems: NavItem[] = [
-      { href: "/app/agency", label: "Lead Finder", icon: <UserSearch className={iconClass} /> },
-      { href: "/app/agency", label: "Saved Leads", icon: <Users className={iconClass} /> },
+      { href: "/app/agency/leads", label: "Lead Finder", icon: <UserSearch className={iconClass} /> },
+      { href: "/app/agency/leads/saved", label: "Saved Leads", icon: <Users className={iconClass} /> },
     ];
 
     const agencyBusinessItems: NavItem[] = [
-      { href: "/app/agency", label: "Commissions", icon: <DollarSign className={iconClass} /> },
-      { href: "/app/agency", label: "Reports", icon: <BarChart3 className={iconClass} /> },
+      { href: "/app/agency/commissions", label: "Commissions", icon: <DollarSign className={iconClass} /> },
+      { href: "/app/agency/reports", label: "Reports", icon: <BarChart3 className={iconClass} /> },
     ];
 
     const agencyManageItems: NavItem[] = [

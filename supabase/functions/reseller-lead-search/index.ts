@@ -15,17 +15,25 @@ async function searchResellerBatch(
 ): Promise<any[]> {
   const prompt = `Find exactly ${count} real ${companyType} companies in ${location} that would be ideal channel partners for reselling an AI phone receptionist SaaS product to their SMB clients.
 
-For each company, provide:
-- Company name (real, verifiable)
-- Phone number in format +1XXXXXXXXXX (if findable)
-- Website URL (if findable)
-- Physical address (if findable)
-- Google rating (number) and review count (if findable)
-- Estimated employee count
-- A 2-3 sentence explanation of why they'd be a good reseller/channel partner
-- Their primary services offered (list)
-- Estimated client base size (e.g., "50+ clients", "10-20 clients")
-- Partnership signals from: existing_smb_clients, digital_services, recurring_revenue, local_focus, tech_savvy, growth_stage, complementary_services, active_referral_program
+CRITICAL: For EVERY company, you MUST provide ALL of the following fields. Do not leave fields as null unless truly unfindable:
+
+1. **Company name** — real, verifiable
+2. **Phone number** — +1XXXXXXXXXX format
+3. **Website URL** — search thoroughly
+4. **Physical address** — full street address
+5. **Email** — business contact email
+6. **Google Maps URL** — direct link
+7. **Google rating** and **review count**
+8. **Employee estimate** — e.g. "5-10 employees"
+9. **Owner/founder name** — from website, LinkedIn
+10. **Years in business** — from website or Google listing
+11. **Social media** — Facebook, Instagram, LinkedIn URLs
+12. **Services offered** — list of primary services
+13. **Client base size** — e.g. "50+ clients", "10-20 clients"
+14. **Partnership signals** from: existing_smb_clients, digital_services, recurring_revenue, local_focus, tech_savvy, growth_stage, complementary_services, active_referral_program
+15. **A 2-3 sentence reason** explaining why they'd be a good reseller/channel partner
+16. **Best contact method** — "phone", "email", "linkedin", "social_dm"
+17. **Best contact time** — e.g. "Tuesday-Thursday 10am-2pm"
 
 Focus on companies that:
 1. Already serve small/local businesses (restaurants, salons, dentists, towing, HVAC, etc.)
@@ -41,21 +49,30 @@ Return ONLY real, verifiable companies. Do not fabricate.`;
     messages: [
       {
         role: "system",
-        content: `You are a B2B partner researcher. Find real companies that could be channel partners for an AI phone receptionist SaaS. Return valid JSON array only, no markdown. Each object:
+        content: `You are an elite B2B partner researcher. Find real companies that could be channel partners for an AI phone receptionist SaaS. You MUST return COMPLETE data — leaving fields null is a failure.
+
+Return valid JSON array only, no markdown. Each object MUST follow this schema:
 {
   "name": "string",
-  "phone": "+1XXXXXXXXXX or null",
-  "website": "https://... or null",
-  "address": "Full address or null",
+  "phone": "+1XXXXXXXXXX",
+  "website": "https://...",
+  "address": "Full address",
+  "email": "contact@company.com or null",
+  "google_maps_url": "https://maps.google.com/... or null",
   "rating": 4.5,
   "review_count": 123,
   "employee_estimate": "5-10 employees",
+  "owner_name": "Jane Doe or null",
+  "years_in_business": 5,
+  "social_media": {"facebook": "url or null", "instagram": "url or null", "linkedin": "url or null"},
   "reason": "2-3 sentence partnership reason",
   "company_type": "${companyType}",
   "services_offered": ["web design", "SEO", "social media"],
   "client_base_size": "50+ SMB clients",
   "partnership_signals": ["existing_smb_clients", "digital_services", "recurring_revenue"],
-  "confidence": "high"|"medium"|"low"
+  "best_contact_method": "email",
+  "best_contact_time": "Tuesday-Thursday 10am-2pm",
+  "confidence": "high"
 }`,
       },
       { role: "user", content: prompt },

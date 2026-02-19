@@ -95,6 +95,10 @@ export function AdminLeadFinder() {
           phone: l.phone,
           website: l.website,
           industry: l.industry || industry,
+          estimated_missed_call_pct: l.estimated_missed_call_pct,
+          tech_stack_signals: l.tech_stack_signals,
+          years_in_business: l.years_in_business,
+          owner_name: l.owner_name,
         }),
       }));
 
@@ -279,6 +283,11 @@ export function AdminLeadFinder() {
                             </div>
                             <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{lead.reason}</p>
                             <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground">
+                              {lead.estimated_missed_call_pct != null && lead.estimated_monthly_calls != null && (
+                                <span className="flex items-center gap-0.5 text-destructive font-medium">
+                                  ~{Math.round((lead.estimated_monthly_calls * (lead.estimated_missed_call_pct / 100)) / 4)}/wk missed
+                                </span>
+                              )}
                               {lead.rating != null && (
                                 <span className="flex items-center gap-0.5">
                                   <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
@@ -298,9 +307,10 @@ export function AdminLeadFinder() {
                                 </span>
                               )}
                               {lead.website && (
-                                <span className="flex items-center gap-0.5">
-                                  <Globe className="h-3 w-3" /><ExternalLink className="h-2.5 w-2.5" />
-                                </span>
+                                <a href={lead.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-0.5 hover:text-primary" onClick={(e) => e.stopPropagation()}>
+                                  <Globe className="h-3 w-3" />
+                                  <span className="truncate max-w-[120px]">{lead.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}</span>
+                                </a>
                               )}
                             </div>
                           </div>
