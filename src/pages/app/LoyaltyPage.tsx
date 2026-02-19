@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { useLoyalty, LoyaltyBalance, LoyaltyReward } from "@/hooks/useLoyalty";
 import { useCustomers } from "@/hooks/useCustomers";
+import { useModuleRequired } from "@/hooks/useModuleRequired";
 
 function formatPoints(points: number): string {
   return points.toLocaleString();
@@ -48,6 +49,7 @@ const tierConfig: Record<string, { color: string; minPoints: number }> = {
 };
 
 export default function LoyaltyPage() {
+  const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["food_orders", "reservations"]);
   const {
     program,
     rewards,
@@ -139,6 +141,14 @@ export default function LoyaltyPage() {
     setSelectedMember(member);
     setRedeemOpen(true);
   };
+
+  if (moduleLoading || !isAllowed) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

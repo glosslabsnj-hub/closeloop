@@ -44,7 +44,8 @@ export function useConversations() {
         .from("messages")
         .select("*")
         .in("conversation_id", convoIds)
-        .order("sent_at", { ascending: false });
+        .order("sent_at", { ascending: false })
+        .limit(100);
 
       if (msgsError) throw msgsError;
 

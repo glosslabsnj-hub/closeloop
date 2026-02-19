@@ -4,9 +4,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { DollarSign, Search, Loader2, User, Phone, Clock } from "lucide-react";
+import { DollarSign, Search, Loader2, User, Phone, Clock, Mail, Car, Calendar } from "lucide-react";
 import { useSalesLeads } from "@/hooks/useSalesLeads";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
@@ -33,6 +46,7 @@ export default function SalesPipelinePage() {
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["sales_leads"]);
   const { leads, isLoading, stats, updateLead } = useSalesLeads();
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedLead, setSelectedLead] = useState<(typeof leads)[number] | null>(null);
 
   const filteredLeads = useMemo(() => {
     if (!searchQuery) return leads;
@@ -102,7 +116,7 @@ export default function SalesPipelinePage() {
 
                   <div className="space-y-2 min-h-[200px]">
                     {leadsByStatus[col.key]?.map((lead) => (
-                      <Card key={lead.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                      <Card key={lead.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setSelectedLead(lead)}>
                         <CardContent className="p-3 space-y-2">
                           <div className="flex items-start justify-between">
                             <div className="flex items-center gap-1.5">
@@ -137,6 +151,27 @@ export default function SalesPipelinePage() {
                             )}
                           </div>
 
+                          {/* Status dropdown */}
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <Select
+                              value={lead.status}
+                              onValueChange={(newStatus) =>
+                                updateLead.mutate({ id: lead.id, status: newStatus })
+                              }
+                            >
+                              <SelectTrigger className="h-7 text-[11px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {PIPELINE_COLUMNS.map((s) => (
+                                  <SelectItem key={s.key} value={s.key}>
+                                    {s.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
                           {lead.lead_number && (
                             <p className="text-[10px] text-muted-foreground">{lead.lead_number}</p>
                           )}
@@ -150,6 +185,99 @@ export default function SalesPipelinePage() {
           </div>
         )}
       </div>
+
+      {/* Lead Detail Dialog */}
+      <Dialog open={!!selectedLead} onOpenChange={(open) => !open && setSelectedLead(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              {selectedLead?.customer?.full_name || "Unknown Lead"}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedLead && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Badge className={cn("text-xs", priorityColors[selectedLead.priority])}>
+                  {selectedLead.priority} priority
+                </Badge>
+                {selectedLead.lead_number && (
+                  <span className="text-xs text-muted-foreground">{selectedLead.lead_number}</span>
+                )}
+              </div>
+
+              <div className="space-y-3 text-sm">
+                {selectedLead.customer?.phone_e164 && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span>{selectedLead.customer.phone_e164}</span>
+                  </div>
+                )}
+                {selectedLead.customer?.email && (
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span>{selectedLead.customer.email}</span>
+                  </div>
+                )}
+                {selectedLead.vehicle_interest && (
+                  <div className="flex items-center gap-2">
+                    <Car className="h-4 w-4 text-muted-foreground" />
+                    <span>{selectedLead.vehicle_interest}</span>
+                  </div>
+                )}
+                {selectedLead.budget_range && (
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    <span>Budget: {selectedLead.budget_range}</span>
+                  </div>
+                )}
+                {selectedLead.timeline && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span>Timeline: {selectedLead.timeline.replace("_", " ")}</span>
+                  </div>
+                )}
+                {selectedLead.assigned_sales_rep && (
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span>Rep: {selectedLead.assigned_sales_rep}</span>
+                  </div>
+                )}
+                {selectedLead.notes && (
+                  <div className="pt-2 border-t">
+                    <p className="text-xs text-muted-foreground mb-1">Notes</p>
+                    <p className="text-sm">{selectedLead.notes}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-2 border-t">
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                  Move to Stage
+                </label>
+                <Select
+                  value={selectedLead.status}
+                  onValueChange={(newStatus) => {
+                    updateLead.mutate({ id: selectedLead.id, status: newStatus });
+                    setSelectedLead({ ...selectedLead, status: newStatus });
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PIPELINE_COLUMNS.map((s) => (
+                      <SelectItem key={s.key} value={s.key}>
+                        {s.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }

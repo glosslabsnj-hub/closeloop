@@ -43,6 +43,7 @@ import {
 import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow, startOfWeek, endOfWeek, eachDayOfInterval } from "date-fns";
 import { useTimeTracking, TimeEntry } from "@/hooks/useTimeTracking";
+import { useModuleRequired } from "@/hooks/useModuleRequired";
 
 const entryTypeConfig: Record<string, { label: string; color: string; icon: typeof Clock }> = {
   work: { label: "Work", color: "bg-green-100 text-green-700", icon: Briefcase },
@@ -136,6 +137,7 @@ function TimeEntryRow({
 }
 
 export default function TimeTrackingPage() {
+  const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["booking", "dispatch_queue", "job_tracking"]);
   const { entries, isLoading, stats, clockIn, clockOut, createEntry, deleteEntry } = useTimeTracking();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -206,6 +208,14 @@ export default function TimeTrackingPage() {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  if (moduleLoading || !isAllowed) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

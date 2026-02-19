@@ -15,18 +15,18 @@ export function IntegrationsSection() {
               Works with what you have
             </h2>
             <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-              Use Voxly as your main system, or push data to your existing tools
+              Use CloseLoop as your main system, or push data to your existing tools
             </p>
           </div>
           
           <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
-            {/* Option 1: Use Voxly */}
+            {/* Option 1: Use CloseLoop */}
             <div className="p-8 rounded-2xl bg-card border-2 border-border hover:border-primary/40 hover:shadow-lg transition-all duration-300 group">
               <div className="flex items-center gap-4 mb-5">
                 <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                   <Database className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="font-semibold text-xl">Use Voxly</h3>
+                <h3 className="font-semibold text-xl">Use CloseLoop</h3>
               </div>
               <p className="text-muted-foreground mb-5">
                 Manage bookings, jobs, and orders in one place. No extra software needed.

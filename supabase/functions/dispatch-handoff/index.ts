@@ -1,11 +1,19 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireAuthedTenant, requireInternalSecret, serviceClient } from "../_shared/tenant.ts";
 import { captureException } from "../_shared/sentry.ts";
 import { corsResponse, errorResponse, jsonResponse } from "../_shared/cors.ts";
+import { sendEmail } from "../_shared/sendEmail.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-closeloop-secret",
+};
 
 interface DispatchHandoffRequest {
   dispatch_id?: string;
-  tenant_id: string;
+  tenant_id?: string;
+  tenantId?: string;
   test?: boolean;
   method?: string;
   webhook_url?: string;
@@ -13,6 +21,34 @@ interface DispatchHandoffRequest {
   notify_email?: string;
   notify_phone?: string;
   urgent_sms_phone?: string;
+}
+
+/**
+ * Validate access - supports both user JWT and internal secret
+ */
+async function validateAccess(
+  req: Request,
+  requestedTenantId: string | null
+): Promise<{ tenantId: string; isInternalCall: boolean }> {
+  const hasAuthHeader = req.headers.get("authorization")?.startsWith("Bearer ");
+  const hasInternalSecret = req.headers.get("x-closeloop-secret");
+
+  // Try user JWT first
+  if (hasAuthHeader) {
+    const { tenantId } = await requireAuthedTenant(req, requestedTenantId);
+    return { tenantId, isInternalCall: false };
+  }
+
+  // Fall back to internal secret for system triggers
+  if (hasInternalSecret) {
+    requireInternalSecret(req);
+    if (!requestedTenantId) {
+      throw new Error("tenant_id required for internal calls");
+    }
+    return { tenantId: requestedTenantId, isInternalCall: true };
+  }
+
+  throw new Error("Missing Authorization header or x-closeloop-secret");
 }
 
 async function createHmacSignature(payload: string, secret: string): Promise<string> {
@@ -40,12 +76,16 @@ serve(async (req) => {
   }
 
   try {
+    const body: DispatchHandoffRequest = await req.json();
+    const { dispatch_id, test, method, webhook_url, webhook_secret, notify_email, notify_phone, urgent_sms_phone } = body;
+    const requestedTenantId = body.tenant_id ?? body.tenantId ?? null;
+
+    // SECURITY: Validate access (user JWT or internal secret)
+    const { tenantId: tenant_id, isInternalCall } = await validateAccess(req, requestedTenantId);
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    const body: DispatchHandoffRequest = await req.json();
-    const { dispatch_id, tenant_id, test, method, webhook_url, webhook_secret, notify_email, notify_phone, urgent_sms_phone } = body;
 
     // Handle test requests
     if (test) {
@@ -305,17 +345,38 @@ serve(async (req) => {
         }
 
         if (handoffMethod === "email" && settings.notify_email) {
-          // Email delivery is not yet implemented — log as skipped, not success
-          console.log(`[dispatch-handoff] Email delivery to ${settings.notify_email} skipped (not yet configured)`);
-          results.email = { success: false, skipped: true };
+          const customerName = payload.customer.name;
+          const jobType = payload.job_type || "Job";
+          const pickupAddress = payload.location.pickup_address || "Location TBD";
+          const businessName = payload.tenant_name || "Your Business";
+
+          const emailResult = await sendEmail({
+            to: settings.notify_email,
+            subject: `New Dispatch: ${jobType} — ${customerName}`,
+            businessName,
+            html: `
+              <h2>New Dispatch Job</h2>
+              <p><strong>Job Number:</strong> ${payload.job_number || "N/A"}</p>
+              <p><strong>Customer:</strong> ${customerName}</p>
+              ${payload.customer.phone ? `<p><strong>Phone:</strong> ${payload.customer.phone}</p>` : ""}
+              <p><strong>Job Type:</strong> ${jobType}</p>
+              <p><strong>Priority:</strong> ${payload.priority || "normal"}</p>
+              <p><strong>Pickup:</strong> ${pickupAddress}</p>
+              ${payload.location.dropoff_address ? `<p><strong>Dropoff:</strong> ${payload.location.dropoff_address}</p>` : ""}
+              ${payload.description ? `<p><strong>Description:</strong> ${payload.description}</p>` : ""}
+              ${payload.notes ? `<p><strong>Notes:</strong> ${payload.notes}</p>` : ""}
+            `.trim(),
+          });
+
+          results.email = { success: emailResult.success, error: emailResult.error };
 
           await supabase.from("handoff_attempts").insert({
             tenant_id,
             entity_type: "dispatch",
             entity_id: dispatch_id,
             method: "email",
-            status: "skipped",
-            error_message: "email_not_configured",
+            status: emailResult.success ? "success" : "failed",
+            error_message: emailResult.error || null,
           });
         }
 

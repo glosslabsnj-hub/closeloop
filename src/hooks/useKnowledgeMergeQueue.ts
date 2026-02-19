@@ -253,10 +253,60 @@ async function applyMergeItem(item: KnowledgeMergeItem, tenantId: string) {
       break;
     }
 
-    case "policy":
-    case "intake_field":
-      // These require updating tenant JSON fields - handle separately
-      console.log(`Policy/intake field update not yet implemented: ${entity_key}`);
+    case "policy": {
+      // Update the tenant's policies JSON field
+      const { data: tenantPolicyData } = await supabase
+        .from("tenants")
+        .select("policies")
+        .eq("id", tenantId)
+        .single();
+
+      const currentPolicies = (tenantPolicyData?.policies as Record<string, unknown>) || {};
+      const updatedPolicies = {
+        ...currentPolicies,
+        [entity_key]: proposed_value,
+      };
+
+      const { error: policyError } = await supabase
+        .from("tenants")
+        .update({ policies: updatedPolicies as any })
+        .eq("id", tenantId);
+
+      if (policyError) console.warn("Policy update error:", policyError);
       break;
+    }
+
+    case "intake_field": {
+      // Update the tenant's intake_fields JSON field
+      const { data: tenantIntakeData } = await supabase
+        .from("tenants")
+        .select("intake_fields")
+        .eq("id", tenantId)
+        .single();
+
+      const currentFields = Array.isArray(tenantIntakeData?.intake_fields)
+        ? (tenantIntakeData.intake_fields as Record<string, unknown>[])
+        : [];
+
+      const existingIdx = currentFields.findIndex(
+        (f: any) => f.key === entity_key || f.name === entity_key
+      );
+
+      let updatedFields: Record<string, unknown>[];
+      if (existingIdx >= 0) {
+        updatedFields = [...currentFields];
+        updatedFields[existingIdx] = { ...updatedFields[existingIdx], ...proposed_value };
+      } else {
+        updatedFields = [...currentFields, { key: entity_key, ...proposed_value }];
+      }
+
+      const { error: intakeError } = await supabase
+        .from("tenants")
+        .update({ intake_fields: updatedFields as any })
+        .eq("id", tenantId);
+
+      if (intakeError) console.warn("Intake field update error:", intakeError);
+      break;
+    }
   }
 }

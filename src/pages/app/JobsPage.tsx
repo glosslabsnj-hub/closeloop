@@ -18,11 +18,12 @@ import { JobFilterBar } from "@/components/jobs/JobFilterBar";
 import { JobDetailSheet } from "@/components/jobs/JobDetailSheet";
 import { NewJobDialog } from "@/components/jobs/NewJobDialog";
 import { CSVImportDialog } from "@/components/jobs/CSVImportDialog";
-import { ClipboardCheck, Plus, Upload, Loader2, ChevronDown } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { ClipboardCheck, Plus, Upload, Loader2, ChevronDown, AlertTriangle } from "lucide-react";
 
 export default function JobsPage() {
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["job_tracking"]);
-  const { jobs, isLoading, stats, filter, setFilter } = useActiveJobs();
+  const { jobs, isLoading, error: jobsError, stats, filter, setFilter } = useActiveJobs();
   const labels = useJobLabels();
 
   const [selectedJob, setSelectedJob] = useState<ActiveJob | null>(null);
@@ -42,6 +43,29 @@ export default function JobsPage() {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       </PageContainer>
+    );
+  }
+
+  if (jobsError) {
+    return (
+      <div className="container max-w-6xl py-8 px-4 sm:px-6">
+        <div className="mx-auto max-w-lg py-16">
+          <Card>
+            <CardContent className="pt-8 pb-8 text-center space-y-4">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+                <AlertTriangle className="h-7 w-7 text-destructive" />
+              </div>
+              <h2 className="text-xl font-semibold">Something went wrong</h2>
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                We couldn't load your jobs. Please refresh the page or try again later.
+              </p>
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                Refresh Page
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     );
   }
 

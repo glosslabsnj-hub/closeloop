@@ -40,6 +40,7 @@ import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
 import { useServiceAgreements, ServiceAgreementWithCustomer } from "@/hooks/useServiceAgreements";
 import { AgreementBuilder } from "@/components/agreements/AgreementBuilder";
+import { useModuleRequired } from "@/hooks/useModuleRequired";
 
 const statusConfig: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
   active: { label: "Active", color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400", icon: CheckCircle2 },
@@ -147,6 +148,7 @@ function AgreementListItem({
 }
 
 export default function AgreementsPage() {
+  const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["booking", "job_tracking"]);
   const { agreements, isLoading, stats, cancelAgreement, deleteAgreement } = useServiceAgreements();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
@@ -205,6 +207,14 @@ export default function AgreementsPage() {
       setAgreementToDelete(null);
     }
   };
+
+  if (moduleLoading || !isAllowed) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

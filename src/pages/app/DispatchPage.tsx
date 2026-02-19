@@ -5,10 +5,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Truck, Plus, Loader2, Map, Bell } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Truck, Plus, Loader2, Map, Bell, AlertTriangle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { DispatchJobCard } from "@/components/dispatch/DispatchJobCard";
 import { DispatchCommandTable } from "@/components/dispatch/DispatchCommandTable";
 import { DispatchCommandStats } from "@/components/dispatch/DispatchCommandStats";
@@ -68,7 +73,6 @@ interface DispatchJob {
 export default function DispatchPage() {
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["dispatch_queue"]);
   const { tenant } = useAuth();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   
   const [statusFilter, setStatusFilter] = useState<string>("active");
@@ -81,8 +85,11 @@ export default function DispatchPage() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [jobToAssign, setJobToAssign] = useState<DispatchJob | null>(null);
+  const [newJobOpen, setNewJobOpen] = useState(false);
+  const [newJob, setNewJob] = useState({ customer_name: "", pickup_address: "", dropoff_address: "", job_type: "", priority: "normal", description: "" });
+  const [isCreatingJob, setIsCreatingJob] = useState(false);
 
-  const { data: jobs, isLoading, refetch } = useQuery({
+  const { data: jobs, isLoading, error: jobsError, refetch } = useQuery({
     queryKey: ["dispatch-jobs", tenant?.id],
     queryFn: async () => {
       if (!tenant?.id) return [];
@@ -187,12 +194,12 @@ export default function DispatchPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dispatch-jobs", tenant?.id] });
-      toast({ title: "Job updated" });
+      sonnerToast.success("Job updated");
       setDetailsOpen(false);
       setAssignDialogOpen(false);
     },
     onError: (error: Error) => {
-      toast({ variant: "destructive", title: "Error", description: error.message });
+      sonnerToast.error("Error", { description: error.message });
     },
   });
 
@@ -282,6 +289,34 @@ export default function DispatchPage() {
     setDetailsOpen(true);
   };
 
+  const handleCreateJob = async () => {
+    if (!tenant?.id || !newJob.customer_name.trim()) return;
+    setIsCreatingJob(true);
+    try {
+      const jobNum = `JOB-${Date.now().toString(36).toUpperCase()}`;
+      const { error } = await supabase.from("dispatch_jobs").insert({
+        tenant_id: tenant.id,
+        job_number: jobNum,
+        customer_name: newJob.customer_name,
+        pickup_address: newJob.pickup_address || null,
+        dropoff_address: newJob.dropoff_address || null,
+        job_type: newJob.job_type || null,
+        priority: newJob.priority || "normal",
+        description: newJob.description || null,
+        status: "pending",
+      });
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["dispatch-jobs", tenant.id] });
+      sonnerToast.success("Job created");
+      setNewJobOpen(false);
+      setNewJob({ customer_name: "", pickup_address: "", dropoff_address: "", job_type: "", priority: "normal", description: "" });
+    } catch (err: any) {
+      sonnerToast.error("Error", { description: err.message });
+    } finally {
+      setIsCreatingJob(false);
+    }
+  };
+
   if (moduleLoading || !isAllowed) {
     return (
       <div className="p-6 flex items-center justify-center min-h-[400px]">
@@ -294,6 +329,29 @@ export default function DispatchPage() {
     return (
       <div className="p-6 flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (jobsError) {
+    return (
+      <div className="container max-w-6xl py-8 px-4 sm:px-6">
+        <div className="mx-auto max-w-lg py-16">
+          <Card>
+            <CardContent className="pt-8 pb-8 text-center space-y-4">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+                <AlertTriangle className="h-7 w-7 text-destructive" />
+              </div>
+              <h2 className="text-xl font-semibold">Something went wrong</h2>
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                We couldn't load your dispatch jobs. Please refresh the page or try again later.
+              </p>
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                Refresh Page
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -313,7 +371,7 @@ export default function DispatchPage() {
                     Map View
                   </Link>
                 </Button>
-                <Button>
+                <Button onClick={() => setNewJobOpen(true)}>
                   <Plus className="h-4 w-4" />
                   New Job
                 </Button>
@@ -419,7 +477,7 @@ export default function DispatchPage() {
               }
               action={
                 statusFilter === "all" && priorityFilter === "all" && !searchQuery
-                  ? { label: "Create Job", onClick: () => {} }
+                  ? { label: "Create Job", onClick: () => setNewJobOpen(true) }
                   : undefined
               }
             />
@@ -465,6 +523,58 @@ export default function DispatchPage() {
           onAssign={handleAssignSubmit}
           isLoading={updateJobMutation.isPending}
         />
+
+        {/* New Job Dialog */}
+        <Dialog open={newJobOpen} onOpenChange={setNewJobOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create New Job</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="job-customer">Customer Name</Label>
+                <Input id="job-customer" placeholder="Customer name" value={newJob.customer_name} onChange={(e) => setNewJob(prev => ({ ...prev, customer_name: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="job-pickup">Pickup Address</Label>
+                <Input id="job-pickup" placeholder="123 Main St" value={newJob.pickup_address} onChange={(e) => setNewJob(prev => ({ ...prev, pickup_address: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="job-dropoff">Dropoff Address (optional)</Label>
+                <Input id="job-dropoff" placeholder="456 Oak Ave" value={newJob.dropoff_address} onChange={(e) => setNewJob(prev => ({ ...prev, dropoff_address: e.target.value }))} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="job-type">Job Type</Label>
+                  <Input id="job-type" placeholder="Tow, Lockout, etc." value={newJob.job_type} onChange={(e) => setNewJob(prev => ({ ...prev, job_type: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="job-priority">Priority</Label>
+                  <Select value={newJob.priority} onValueChange={(v) => setNewJob(prev => ({ ...prev, priority: v }))}>
+                    <SelectTrigger id="job-priority"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="normal">Normal</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="emergency">Emergency</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="job-desc">Description</Label>
+                <Textarea id="job-desc" placeholder="Job details..." rows={3} value={newJob.description} onChange={(e) => setNewJob(prev => ({ ...prev, description: e.target.value }))} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setNewJobOpen(false)}>Cancel</Button>
+              <Button onClick={handleCreateJob} disabled={isCreatingJob || !newJob.customer_name.trim()}>
+                {isCreatingJob ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                Create Job
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </PageContainer>
     </TooltipProvider>
   );

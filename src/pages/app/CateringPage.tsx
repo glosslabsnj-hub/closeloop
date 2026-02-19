@@ -8,8 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Cake, 
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Cake,
   Users,
   Calendar,
   DollarSign,
@@ -37,6 +41,9 @@ export default function CateringPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newReq, setNewReq] = useState({ customer_name: "", customer_phone: "", event_type: "", event_date: "", guest_count: "", location: "", notes: "" });
+  const [isCreating, setIsCreating] = useState(false);
 
   const { data: requests, isLoading } = useQuery({
     queryKey: ["catering-requests", tenant?.id],
@@ -83,6 +90,33 @@ export default function CateringPage() {
     ?.filter(r => r.status === "quoted" || r.status === "confirmed")
     .reduce((sum, r) => sum + (r.quote_amount_cents || 0), 0) || 0;
 
+  const handleCreateRequest = async () => {
+    if (!tenant?.id || !newReq.customer_name.trim()) return;
+    setIsCreating(true);
+    try {
+      const { error } = await supabase.from("catering_requests").insert({
+        tenant_id: tenant.id,
+        customer_name: newReq.customer_name,
+        customer_phone: newReq.customer_phone || null,
+        event_type: newReq.event_type || null,
+        event_date: newReq.event_date || null,
+        guest_count: newReq.guest_count ? parseInt(newReq.guest_count) : null,
+        location: newReq.location || null,
+        notes: newReq.notes || null,
+        status: "inquiry",
+      });
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["catering-requests"] });
+      toast({ title: "Catering request created" });
+      setIsDialogOpen(false);
+      setNewReq({ customer_name: "", customer_phone: "", event_type: "", event_date: "", guest_count: "", location: "", notes: "" });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Error", description: err.message });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   // Show loading while checking module access
   if (moduleLoading || !isAllowed) {
     return (
@@ -107,7 +141,7 @@ export default function CateringPage() {
           <h1 className="text-2xl font-bold">Catering Requests</h1>
           <p className="text-muted-foreground">Manage catering inquiries and events</p>
         </div>
-        <Button>
+        <Button onClick={() => setIsDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           New Request
         </Button>
@@ -277,6 +311,56 @@ export default function CateringPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* New Catering Request Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New Catering Request</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="cat-name">Customer Name</Label>
+              <Input id="cat-name" placeholder="Customer name" value={newReq.customer_name} onChange={(e) => setNewReq(prev => ({ ...prev, customer_name: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cat-phone">Phone (optional)</Label>
+              <Input id="cat-phone" placeholder="(555) 123-4567" value={newReq.customer_phone} onChange={(e) => setNewReq(prev => ({ ...prev, customer_phone: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="cat-type">Event Type</Label>
+                <Input id="cat-type" placeholder="Wedding, Corporate, etc." value={newReq.event_type} onChange={(e) => setNewReq(prev => ({ ...prev, event_type: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cat-date">Event Date</Label>
+                <Input id="cat-date" type="date" value={newReq.event_date} onChange={(e) => setNewReq(prev => ({ ...prev, event_date: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="cat-guests">Guest Count</Label>
+                <Input id="cat-guests" type="number" min="1" placeholder="50" value={newReq.guest_count} onChange={(e) => setNewReq(prev => ({ ...prev, guest_count: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cat-location">Location</Label>
+                <Input id="cat-location" placeholder="Venue or address" value={newReq.location} onChange={(e) => setNewReq(prev => ({ ...prev, location: e.target.value }))} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cat-notes">Notes</Label>
+              <Textarea id="cat-notes" placeholder="Special requirements, dietary restrictions..." rows={3} value={newReq.notes} onChange={(e) => setNewReq(prev => ({ ...prev, notes: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateRequest} disabled={isCreating || !newReq.customer_name.trim()}>
+              {isCreating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Create Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

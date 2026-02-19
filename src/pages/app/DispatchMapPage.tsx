@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,9 +17,12 @@ import {
   Signal,
   ExternalLink,
   Locate,
+  Map,
+  ArrowRight,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useTechnicianLocations, useAutoLocationReporting } from "@/hooks/useTechnicianLocations";
+import { useModuleRequired } from "@/hooks/useModuleRequired";
 
 function formatCoordinate(value: number, isLat: boolean): string {
   const direction = isLat ? (value >= 0 ? "N" : "S") : (value >= 0 ? "E" : "W");
@@ -37,6 +41,7 @@ function getAccuracyBadge(accuracy: number | null) {
 }
 
 export default function DispatchMapPage() {
+  const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["dispatch_queue"]);
   const { locations, isLoading, refetch } = useTechnicianLocations();
   const [trackingEnabled, setTrackingEnabled] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());
@@ -57,6 +62,14 @@ export default function DispatchMapPage() {
     }, 30000);
     return () => clearInterval(interval);
   }, [refetch]);
+
+  if (moduleLoading || !isAllowed) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -91,50 +104,31 @@ export default function DispatchMapPage() {
         }
       />
 
-      {/* Map Placeholder - In production, integrate mapbox-gl here */}
+      {/* Map Coming Soon */}
       <Card className="mb-6">
-        <CardContent className="p-0">
-          <div className="h-[400px] bg-muted/50 flex flex-col items-center justify-center relative overflow-hidden">
-            {/* Simple visual representation */}
-            <div className="absolute inset-0 opacity-10">
-              <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="1"/>
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#grid)" />
-              </svg>
+        <CardContent className="py-12">
+          <div className="flex flex-col items-center text-center space-y-4">
+            <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+              <Map className="h-8 w-8 text-muted-foreground" />
             </div>
-
-            {locations.length === 0 ? (
-              <div className="text-center z-10">
-                <MapPin className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-                <h3 className="text-lg font-medium">No technicians online</h3>
-                <p className="text-muted-foreground">
-                  Technician locations will appear here when they share their location.
-                </p>
-              </div>
-            ) : (
-              <div className="text-center z-10">
-                <div className="flex items-center justify-center gap-2 mb-4">
-                  {locations.map((loc, i) => (
-                    <div
-                      key={loc.user_id}
-                      className="h-4 w-4 rounded-full bg-primary animate-pulse"
-                      style={{ animationDelay: `${i * 200}ms` }}
-                    />
-                  ))}
-                </div>
-                <h3 className="text-lg font-medium">{locations.length} technicians online</h3>
-                <p className="text-sm text-muted-foreground">
-                  Last updated {formatDistanceToNow(lastRefresh, { addSuffix: true })}
-                </p>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Full map view requires Mapbox GL JS integration
-                </p>
-              </div>
-            )}
+            <div>
+              <h3 className="text-lg font-semibold">Interactive Map &mdash; Coming Soon</h3>
+              <p className="text-sm text-muted-foreground max-w-md mt-1">
+                The live dispatch map requires a Mapbox GL JS API key to be configured.
+                Once enabled, you will see real-time technician positions and dispatch routes.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              {locations.length > 0 && (
+                <Badge variant="secondary">{locations.length} technician{locations.length !== 1 ? "s" : ""} online</Badge>
+              )}
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/app/dispatch">
+                  <ArrowRight className="h-4 w-4 mr-2" />
+                  Go to Dispatch Queue
+                </Link>
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

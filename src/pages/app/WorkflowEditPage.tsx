@@ -49,6 +49,12 @@ export default function WorkflowEditPage() {
   const [selectedNodeType, setSelectedNodeType] = useState<WorkflowNodeType | "">("");
   const [editingNode, setEditingNode] = useState<WorkflowNode | null>(null);
   const [saving, setSaving] = useState(false);
+  const [localName, setLocalName] = useState<string | null>(null);
+  const [localDescription, setLocalDescription] = useState<string | null>(null);
+
+  // Derive display values: use local state if user has edited, otherwise use server data
+  const displayName = localName ?? workflow?.name ?? "";
+  const displayDescription = localDescription ?? workflow?.description ?? "";
 
   const handleSave = async () => {
     if (!workflow) return;
@@ -56,9 +62,12 @@ export default function WorkflowEditPage() {
     try {
       await updateWorkflow.mutateAsync({
         id: workflow.id,
-        name: workflow.name,
-        description: workflow.description,
+        name: displayName,
+        description: displayDescription,
       });
+      // Reset local overrides so we track server state again
+      setLocalName(null);
+      setLocalDescription(null);
     } finally {
       setSaving(false);
     }
@@ -124,7 +133,7 @@ export default function WorkflowEditPage() {
             </Link>
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">{workflow.name}</h1>
+            <h1 className="text-2xl font-bold">{displayName}</h1>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>{triggerMeta?.icon}</span>
               <span>{triggerMeta?.label || workflow.trigger}</span>
@@ -159,20 +168,16 @@ export default function WorkflowEditPage() {
             <div className="space-y-2">
               <Label>Name</Label>
               <Input
-                value={workflow.name}
-                onChange={(e) => {
-                  // Local state update would go here
-                }}
+                value={displayName}
+                onChange={(e) => setLocalName(e.target.value)}
                 placeholder="Workflow name"
               />
             </div>
             <div className="space-y-2">
               <Label>Description</Label>
               <Input
-                value={workflow.description || ""}
-                onChange={(e) => {
-                  // Local state update would go here
-                }}
+                value={displayDescription}
+                onChange={(e) => setLocalDescription(e.target.value)}
                 placeholder="Optional description"
               />
             </div>

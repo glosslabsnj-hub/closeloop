@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useConversations } from "@/hooks/useConversations";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Phone, Loader2, MessageSquare } from "lucide-react";
+import { Phone, Loader2, MessageSquare, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ConversationList, MessageThread } from "@/components/inbox";
 
 export default function InboxPage() {
-  const { conversations, isLoading } = useConversations();
+  const { conversations, isLoading, error: conversationsError } = useConversations();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -17,6 +18,29 @@ export default function InboxPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (conversationsError) {
+    return (
+      <div className="container max-w-6xl py-8 px-4 sm:px-6">
+        <div className="mx-auto max-w-lg py-16">
+          <Card>
+            <CardContent className="pt-8 pb-8 text-center space-y-4">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+                <AlertTriangle className="h-7 w-7 text-destructive" />
+              </div>
+              <h2 className="text-xl font-semibold">Something went wrong</h2>
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                We couldn't load your conversations. Please refresh the page or try again later.
+              </p>
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                Refresh Page
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }

@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -11,9 +12,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Car, Search, Loader2, Calendar, User, Clock } from "lucide-react";
+import { Car, Search, Loader2, Calendar, User, Clock, Plus } from "lucide-react";
 import { useTestDrives } from "@/hooks/useTestDrives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
@@ -28,9 +37,18 @@ const statusColors: Record<string, string> = {
 
 export default function TestDrivesPage() {
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["test_drives"]);
-  const { testDrives, isLoading, stats } = useTestDrives();
+  const { testDrives, isLoading, stats, createTestDrive, updateTestDrive } = useTestDrives();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newDrive, setNewDrive] = useState({
+    customerName: "",
+    vehicleMake: "",
+    vehicleModel: "",
+    vehicleYear: "",
+    scheduledDate: "",
+    scheduledTime: "",
+  });
 
   const filteredDrives = useMemo(() => {
     return testDrives.filter((drive) => {
@@ -60,6 +78,12 @@ export default function TestDrivesPage() {
           icon={Car}
           title="Test Drives"
           description={`${stats.today} today, ${stats.thisWeek} this week, ${stats.pending} pending`}
+          action={
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Test Drive
+            </Button>
+          }
         />
 
         {/* Filters */}
@@ -151,9 +175,23 @@ export default function TestDrivesPage() {
                         </div>
                       </div>
 
-                      <Badge className={cn("text-xs whitespace-nowrap", statusColors[drive.status] || statusColors.pending)}>
-                        {drive.status.replace("_", " ")}
-                      </Badge>
+                      <Select
+                        value={drive.status}
+                        onValueChange={(newStatus) =>
+                          updateTestDrive.mutate({ id: drive.id, status: newStatus })
+                        }
+                      >
+                        <SelectTrigger className={cn("h-7 w-[120px] text-xs border-0", statusColors[drive.status] || statusColors.pending)}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="confirmed">Confirmed</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                          <SelectItem value="no_show">No Show</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </CardContent>
                 </Card>
@@ -162,6 +200,116 @@ export default function TestDrivesPage() {
           </div>
         )}
       </div>
+
+      {/* New Test Drive Dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Schedule New Test Drive</DialogTitle>
+            <DialogDescription>
+              Enter the customer and vehicle details for the test drive.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Customer Name</Label>
+              <Input
+                placeholder="John Smith"
+                value={newDrive.customerName}
+                onChange={(e) => setNewDrive((d) => ({ ...d, customerName: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-2">
+                <Label>Year</Label>
+                <Input
+                  placeholder="2024"
+                  value={newDrive.vehicleYear}
+                  onChange={(e) => setNewDrive((d) => ({ ...d, vehicleYear: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Make</Label>
+                <Input
+                  placeholder="Toyota"
+                  value={newDrive.vehicleMake}
+                  onChange={(e) => setNewDrive((d) => ({ ...d, vehicleMake: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Model</Label>
+                <Input
+                  placeholder="Camry"
+                  value={newDrive.vehicleModel}
+                  onChange={(e) => setNewDrive((d) => ({ ...d, vehicleModel: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Input
+                  type="date"
+                  value={newDrive.scheduledDate}
+                  onChange={(e) => setNewDrive((d) => ({ ...d, scheduledDate: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Time</Label>
+                <Input
+                  type="time"
+                  value={newDrive.scheduledTime}
+                  onChange={(e) => setNewDrive((d) => ({ ...d, scheduledTime: e.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={!newDrive.customerName || !newDrive.scheduledDate}
+              onClick={async () => {
+                await createTestDrive.mutateAsync({
+                  customer_id: null,
+                  session_id: null,
+                  vehicle_stock_number: null,
+                  vehicle_year: newDrive.vehicleYear || null,
+                  vehicle_make: newDrive.vehicleMake || null,
+                  vehicle_model: newDrive.vehicleModel || null,
+                  vehicle_trim: null,
+                  vehicle_vin: null,
+                  vehicle_color: null,
+                  vehicle_type: null,
+                  scheduled_at: null,
+                  scheduled_date: newDrive.scheduledDate || null,
+                  scheduled_time: newDrive.scheduledTime || null,
+                  duration_minutes: 30,
+                  sales_rep_requested: null,
+                  trade_in_interest: false,
+                  trade_in_vehicle_info: null,
+                  financing_interest: false,
+                  budget_range: null,
+                  status: "pending",
+                  notes: `Customer: ${newDrive.customerName}`,
+                });
+                setCreateOpen(false);
+                setNewDrive({
+                  customerName: "",
+                  vehicleMake: "",
+                  vehicleModel: "",
+                  vehicleYear: "",
+                  scheduledDate: "",
+                  scheduledTime: "",
+                });
+              }}
+            >
+              Schedule
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }

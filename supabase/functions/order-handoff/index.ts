@@ -1,7 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireAuthedTenant, requireInternalSecret } from "../_shared/tenant.ts";
 import { captureException } from "../_shared/sentry.ts";
 import { corsResponse, errorResponse, jsonResponse } from "../_shared/cors.ts";
+import { sendEmail } from "../_shared/sendEmail.ts";
 
 interface OrderItem {
   name: string;
@@ -37,6 +39,34 @@ interface DeliverySettings {
   notify_phone: string | null;
 }
 
+/**
+ * Validate access - supports both user JWT and internal secret
+ */
+async function validateAccess(
+  req: Request,
+  requestedTenantId: string | null
+): Promise<{ tenantId: string; isInternalCall: boolean }> {
+  const hasAuthHeader = req.headers.get("authorization")?.startsWith("Bearer ");
+  const hasInternalSecret = req.headers.get("x-closeloop-secret");
+
+  // Try user JWT first
+  if (hasAuthHeader) {
+    const { tenantId } = await requireAuthedTenant(req, requestedTenantId);
+    return { tenantId, isInternalCall: false };
+  }
+
+  // Fall back to internal secret for system triggers
+  if (hasInternalSecret) {
+    requireInternalSecret(req);
+    if (!requestedTenantId) {
+      throw new Error("tenant_id required for internal calls");
+    }
+    return { tenantId: requestedTenantId, isInternalCall: true };
+  }
+
+  throw new Error("Missing Authorization header or x-closeloop-secret");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return corsResponse();
@@ -44,7 +74,11 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { order_id, tenant_id, methods, test, method, webhook_url, webhook_secret, notify_email, notify_phone } = body;
+    const { order_id, methods, test, method, webhook_url, webhook_secret, notify_email, notify_phone } = body;
+    const requestedTenantId = body.tenant_id ?? body.tenantId ?? null;
+
+    // SECURITY: Validate access (user JWT or internal secret)
+    const { tenantId: tenant_id } = await validateAccess(req, requestedTenantId);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -145,9 +179,36 @@ serve(async (req) => {
       }
 
       if (handoffMethod === "email" && settings.notify_email) {
-        // Email delivery not yet implemented — log as "skipped" for honest monitoring
-        results.email = { success: false, error: "Email provider not configured" };
-        await logHandoffAttempt(supabase, tenant_id, order_id, "email", "skipped", "Email provider not configured — enable via Integrations > Email");
+        try {
+          const items = Array.isArray(order.items_json)
+            ? order.items_json.map((i: OrderItem) => `${i.qty}x ${i.name}`).join(", ")
+            : "items";
+          const totalStr = order.total_cents ? `$${(order.total_cents / 100).toFixed(2)}` : "N/A";
+
+          const emailResult = await sendEmail({
+            to: settings.notify_email,
+            subject: `New Order #${order.order_number} — ${order.order_type.toUpperCase()}`,
+            businessName,
+            html: `
+              <h2>New Order #${order.order_number}</h2>
+              <p><strong>Type:</strong> ${order.order_type.toUpperCase()}</p>
+              <p><strong>Customer:</strong> ${order.customer_name || "Unknown"}</p>
+              ${order.customer_phone ? `<p><strong>Phone:</strong> ${order.customer_phone}</p>` : ""}
+              <p><strong>Items:</strong> ${items}</p>
+              <p><strong>Total:</strong> ${totalStr}</p>
+              ${order.special_instructions ? `<p><strong>Special Instructions:</strong> ${order.special_instructions}</p>` : ""}
+              ${order.delivery_address ? `<p><strong>Delivery Address:</strong> ${order.delivery_address}</p>` : ""}
+              ${order.requested_time ? `<p><strong>Requested Time:</strong> ${order.requested_time}</p>` : ""}
+            `.trim(),
+          });
+
+          results.email = { success: emailResult.success, error: emailResult.error };
+          await logHandoffAttempt(supabase, tenant_id, order_id, "email", emailResult.success ? "success" : "failed", emailResult.error);
+        } catch (e) {
+          const error = e instanceof Error ? e.message : "Unknown error";
+          results.email = { success: false, error };
+          await logHandoffAttempt(supabase, tenant_id, order_id, "email", "failed", error);
+        }
       }
 
       if (handoffMethod === "sms" && settings.notify_phone) {
@@ -267,11 +328,28 @@ async function sendWebhook(order: Order, settings: DeliverySettings, businessNam
   }
 }
 
-async function sendEmail(_order: Order, email: string, _businessName: string) {
-  // Email delivery is not yet implemented — needs Resend/SendGrid integration.
-  // Throw to signal "skipped" status in handoff_attempts instead of fake "success".
-  console.log(`[order-handoff] Email to ${email}: skipped — email provider not configured`);
-  throw new Error("Email provider not configured — enable via Integrations > Email");
+async function sendOrderEmail(order: Order, email: string, bName: string) {
+  const items = Array.isArray(order.items_json)
+    ? order.items_json.map((i: OrderItem) => `${i.qty}x ${i.name}`).join(", ")
+    : "items";
+  const totalStr = order.total_cents ? `$${(order.total_cents / 100).toFixed(2)}` : "N/A";
+
+  const result = await sendEmail({
+    to: email,
+    subject: `New Order #${order.order_number} — ${order.order_type.toUpperCase()}`,
+    businessName: bName,
+    html: `
+      <h2>New Order #${order.order_number}</h2>
+      <p><strong>Type:</strong> ${order.order_type.toUpperCase()}</p>
+      <p><strong>Customer:</strong> ${order.customer_name || "Unknown"}</p>
+      <p><strong>Items:</strong> ${items}</p>
+      <p><strong>Total:</strong> ${totalStr}</p>
+    `.trim(),
+  });
+
+  if (!result.success) {
+    throw new Error(result.error || "Email send failed");
+  }
 }
 
 // deno-lint-ignore no-explicit-any
@@ -401,7 +479,7 @@ async function runTestHandoff(
     }
 
     if (method === "email" && settings.notify_email) {
-      await sendEmail(testOrder, settings.notify_email, "Test Restaurant");
+      await sendOrderEmail(testOrder, settings.notify_email, "Test Restaurant");
       return { success: true, method: "email" };
     }
 

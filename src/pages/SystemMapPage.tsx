@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { ChevronDown, ChevronRight, Printer } from "lucide-react";
 
 function Section({ number, title, children, defaultOpen = false }: { number: number; title: string; children: React.ReactNode; defaultOpen?: boolean }) {
@@ -26,7 +28,27 @@ function Flow({ children }: { children: string }) {
 }
 
 export default function SystemMapPage() {
+  const { user, isSuperAdmin, loading } = useAuth();
+  const navigate = useNavigate();
   const [allOpen, setAllOpen] = useState(false);
+
+  useEffect(() => {
+    if (!loading && (!user || !isSuperAdmin)) {
+      navigate("/app/dashboard", { replace: true });
+    }
+  }, [user, isSuperAdmin, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!user || !isSuperAdmin) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-white text-gray-900 print:text-black">

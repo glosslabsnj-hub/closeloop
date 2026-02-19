@@ -185,7 +185,10 @@ export default function AdminAuditReportPage() {
             Stability Audit Report
           </h1>
           <p className="text-muted-foreground">
-            January 2026 stability + organization audit results
+            Stability + organization audit results
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Last updated: February 2026
           </p>
         </div>
         <div className="flex gap-2">

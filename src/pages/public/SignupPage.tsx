@@ -76,7 +76,7 @@ export default function SignupPage() {
     setErrors({});
 
     try {
-      await signUp(email, password);
+      await signUp(email, password, businessName.trim());
 
       // Store business name for onboarding
       sessionStorage.setItem("businessName", businessName.trim());

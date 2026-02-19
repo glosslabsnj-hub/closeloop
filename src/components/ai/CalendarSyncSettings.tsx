@@ -257,7 +257,7 @@ export default function CalendarSyncSettings({ onSyncComplete }: CalendarSyncSet
             <li>AI only offers times during your available hours</li>
             <li>AI respects buffer time between appointments</li>
             <li>AI checks for conflicts with existing bookings</li>
-            <li>AI books directly into Voxly's booking system</li>
+            <li>AI books directly into CloseLoop's booking system</li>
           </ul>
         </div>
 

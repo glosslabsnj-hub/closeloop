@@ -20,7 +20,7 @@ const carriers = [
     name: "Verizon",
     steps: [
       "Open your Phone app and go to Keypad",
-      "Dial *72 followed by your Voxly number",
+      "Dial *72 followed by your CloseLoop number",
       "Press Call and wait for the confirmation tone",
       "To disable: Dial *73 and press Call",
     ],
@@ -30,7 +30,7 @@ const carriers = [
     name: "AT&T",
     steps: [
       "Open your Phone app and go to Keypad",
-      "Dial *21* followed by your Voxly number, then #",
+      "Dial *21* followed by your CloseLoop number, then #",
       "Press Call and wait for confirmation",
       "To disable: Dial #21# and press Call",
     ],
@@ -40,7 +40,7 @@ const carriers = [
     name: "T-Mobile",
     steps: [
       "Open your Phone app and go to Keypad",
-      "Dial **21* followed by your Voxly number, then #",
+      "Dial **21* followed by your CloseLoop number, then #",
       "Press Call and wait for confirmation",
       "To disable: Dial ##21# and press Call",
     ],
@@ -50,7 +50,7 @@ const carriers = [
     name: "Sprint",
     steps: [
       "Open your Phone app and go to Keypad",
-      "Dial *72 followed by your Voxly number",
+      "Dial *72 followed by your CloseLoop number",
       "Press Call and wait for the confirmation tone",
       "To disable: Dial *720 and press Call",
     ],
@@ -61,7 +61,7 @@ const carriers = [
     steps: [
       "Open Settings → Phone → Call Forwarding",
       "Toggle Call Forwarding ON",
-      "Tap 'Forward To' and enter your Voxly number",
+      "Tap 'Forward To' and enter your CloseLoop number",
       "The call forwarding icon will appear in your status bar",
     ],
   },
@@ -72,7 +72,7 @@ const carriers = [
       "Open Phone app → Menu (⋮) → Settings",
       "Tap Calling accounts or Supplementary services",
       "Select Call forwarding → Forward when busy/unanswered",
-      "Enter your Voxly number and enable",
+      "Enter your CloseLoop number and enable",
     ],
   },
 ];

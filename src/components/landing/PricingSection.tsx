@@ -100,7 +100,7 @@ export function PricingSection() {
               </p>
             </div>
             <Button variant="outline" asChild>
-              <a href="mailto:sales@voxly.ai">Contact Sales</a>
+              <a href="mailto:sales@closeloop.com">Contact Sales</a>
             </Button>
           </div>
         </div>

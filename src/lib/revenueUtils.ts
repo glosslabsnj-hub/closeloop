@@ -213,12 +213,12 @@ export function getReceptionistComparison(cents: number): string | null {
 }
 
 /**
- * "That's like getting 17 months of Voxly for the price of 1"
+ * "That's like getting 17 months of CloseLoop for the price of 1"
  */
 export function getMonthsFreeComparison(multiplier: number): string | null {
   if (multiplier < 2) return null;
   const months = Math.round(multiplier);
-  return `That's like getting ${months} months of Voxly for the price of 1`;
+  return `That's like getting ${months} months of CloseLoop for the price of 1`;
 }
 
 /**

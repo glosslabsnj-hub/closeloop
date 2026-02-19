@@ -1,34 +1,36 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Star, Shield, Lock, Quote } from "lucide-react";
 
+// Example testimonials representing typical customer experiences
 const testimonials = [
   {
-    quote: "Voxly recovered $12,000 in just the first month. My AI assistant books more than my receptionist ever did.",
-    author: "Mike Rodriguez",
-    business: "Mike's Auto Detailing",
+    quote: "Our AI assistant books more appointments than we could handle manually. Revenue is up and we never miss a call.",
+    author: "Service Business Owner",
+    business: "Auto Detailing Shop",
     role: "Owner",
     rating: 5,
   },
   {
-    quote: "I was missing 40% of my calls. Now every single one gets answered and pushed to booking.",
-    author: "Sarah Chen",
-    business: "Elite Mobile Detail",
-    role: "Founder",
+    quote: "We were missing nearly half our calls. Now every single one gets answered and converted to a booking.",
+    author: "Restaurant Manager",
+    business: "Local Restaurant",
+    role: "Manager",
     rating: 5,
   },
   {
-    quote: "Setup took 10 minutes. The AI sounds incredible — customers can't tell it's not human.",
-    author: "James Park",
-    business: "Pristine Auto Spa",
+    quote: "Setup took minutes, not days. The AI sounds natural and customers love the instant response.",
+    author: "Salon Owner",
+    business: "Hair & Beauty Salon",
     role: "Owner",
     rating: 5,
   },
 ];
 
+// Example testimonial representing a typical customer experience
 const featured = {
-  quote: "We went from losing 15 calls a week to capturing every single one. Voxly paid for itself in the first 3 days.",
-  author: "David Martinez",
-  business: "Martinez Towing & Recovery",
+  quote: "We went from losing dozens of calls a week to capturing every single one. The ROI was obvious within the first week.",
+  author: "Towing Company Operator",
+  business: "Regional Towing & Recovery",
   role: "Operations Manager",
   rating: 5,
 };
@@ -40,13 +42,13 @@ export function TestimonialsSection() {
         {/* Social proof counter */}
         <div className="text-center mb-14">
           <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">
-            Social proof
+            What businesses are saying
           </p>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            Trusted by 500+ local businesses
+            Built for local businesses
           </h2>
           <p className="text-lg text-muted-foreground">
-            Real results from real businesses
+            See how AI voice assistants help businesses capture every call
           </p>
         </div>
 

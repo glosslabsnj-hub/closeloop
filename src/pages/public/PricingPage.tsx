@@ -204,7 +204,7 @@ export default function PricingPage() {
                       {enterpriseStep.shortName} with custom pricing and dedicated support
                     </p>
                   </div>
-                  <a href="mailto:sales@voxly.ai?subject=Enterprise%20Inquiry">
+                  <a href="mailto:sales@closeloop.com?subject=Enterprise%20Inquiry">
                     <Button variant="outline" className="gap-2">
                       <Mail className="h-4 w-4" />
                       Talk to Sales

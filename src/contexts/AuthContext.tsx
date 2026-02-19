@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useState, useRef, ReactNode, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tenant, TenantUser, UserRoleType, Subscription, AssistantSettings } from "@/types/database";
@@ -25,7 +25,7 @@ interface AuthContextType {
   setActiveTenantId: (tenantId: string) => Promise<void>;
   // Methods
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, businessName?: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshTenant: () => Promise<void>;
 }
@@ -46,6 +46,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Admin-specific state for tenant switching
   const [adminSettings, setAdminSettings] = useState<AdminSettings | null>(null);
   const [activeTenant, setActiveTenant] = useState<Tenant | null>(null);
+
+  // Guard against concurrent fetchTenantData calls
+  const isFetchingRef = useRef(false);
 
   // Computed: The effective tenant ID that should be used for all operations
   const effectiveTenantId = isSuperAdmin && adminSettings?.admin_active_tenant_id
@@ -181,6 +184,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, isSuperAdmin]);
 
   const fetchTenantData = async (userId: string) => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     try {
       // Fetch user role
       const { data: roleData } = await supabase
@@ -250,6 +255,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error("Error fetching tenant data:", error);
+    } finally {
+      isFetchingRef.current = false;
     }
   };
 
@@ -320,12 +327,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, businessName?: string) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: window.location.origin,
+        data: businessName ? { businessName } : undefined,
       },
     });
     if (error) throw error;

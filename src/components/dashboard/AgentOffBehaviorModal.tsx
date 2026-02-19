@@ -142,7 +142,7 @@ export function AgentOffBehaviorModal({
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Your Voxly phone still receives calls when AI is OFF. Configure how to handle them.
+            Your CloseLoop phone still receives calls when AI is OFF. Configure how to handle them.
           </AlertDescription>
         </Alert>
 

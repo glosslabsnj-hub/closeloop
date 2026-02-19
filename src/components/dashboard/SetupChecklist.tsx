@@ -45,7 +45,7 @@ export function SetupChecklist({ planCode, assistantSettings, onRefresh }: Setup
         title: "Connect Business Phone Number",
         description: phoneConnected 
           ? `Connected: ${assistantSettings?.business_phone_number || assistantSettings?.closeloop_number}` 
-          : "Link your existing number or get a new Voxly number",
+          : "Link your existing number or get a new CloseLoop number",
         icon: Phone,
         completed: phoneConnected,
         action: () => setShowConnectPhone(true),

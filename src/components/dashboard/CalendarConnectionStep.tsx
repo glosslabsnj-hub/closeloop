@@ -27,9 +27,9 @@ type CalendarOption = 'closeloop' | 'google' | 'outlook' | 'apple';
 const calendarOptions = [
   { 
     id: 'closeloop' as CalendarOption, 
-    name: "Voxly Calendar", 
+    name: "CloseLoop Calendar", 
     icon: CalendarDays,
-    description: "Manage your availability directly in Voxly",
+    description: "Manage your availability directly in CloseLoop",
     available: true,
     recommended: true,
   },
@@ -101,7 +101,7 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
     }
   };
 
-  const handleSaveVoxly = async () => {
+  const handleSaveCloseLoop = async () => {
     if (!tenant) return;
 
     setSaving(true);
@@ -204,12 +204,12 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
 
   const handleContinue = () => {
     if (selectedOption === 'closeloop') {
-      handleSaveVoxly();
+      handleSaveCloseLoop();
     } else {
       // All other options are "coming soon" - allow skip
       toast({
         title: "Coming Soon",
-        description: "This calendar integration will be available soon. You can skip for now or use Voxly Calendar.",
+        description: "This calendar integration will be available soon. You can skip for now or use CloseLoop Calendar.",
       });
     }
   };
@@ -227,7 +227,7 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
           </CardTitle>
           <CardDescription className="flex items-center gap-2">
             <CalendarDays className="h-4 w-4" />
-            {provider === 'closeloop' ? 'Using Voxly Calendar' : `Connected to ${provider}`}
+            {provider === 'closeloop' ? 'Using CloseLoop Calendar' : `Connected to ${provider}`}
           </CardDescription>
         </CardHeader>
       </Card>
@@ -292,7 +292,7 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
           </RadioGroup>
         </div>
 
-        {/* Booking Mode Selection - only show for Voxly */}
+        {/* Booking Mode Selection - only show for CloseLoop */}
         {selectedOption === 'closeloop' && (
           <div className="space-y-3 pt-4 border-t">
             <Label className="font-medium">When AI books an appointment:</Label>
@@ -344,7 +344,7 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
           </div>
         )}
 
-        {/* What AI Does - only show for Voxly */}
+        {/* What AI Does - only show for CloseLoop */}
         {selectedOption === 'closeloop' && (
           <div className="rounded-lg bg-muted/50 p-4 text-sm">
             <p className="font-medium mb-2">How AI books appointments:</p>
@@ -384,7 +384,7 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
               <Check className="h-4 w-4" />
             )}
             {saving ? "Setting up..." : 
-             selectedOption === 'closeloop' ? "Use Voxly Calendar" :
+             selectedOption === 'closeloop' ? "Use CloseLoop Calendar" :
              "Connect Calendar"}
           </Button>
           

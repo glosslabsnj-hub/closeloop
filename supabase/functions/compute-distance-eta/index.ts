@@ -181,7 +181,7 @@ serve(async (req: Request) => {
       });
 
       const { data: membership } = await supabase
-        .from("tenant_memberships")
+        .from("tenant_users")
         .select("id")
         .eq("tenant_id", tenant_id)
         .maybeSingle();

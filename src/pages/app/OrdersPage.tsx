@@ -9,6 +9,10 @@ import type { Database } from "@/integrations/supabase/types";
  import { Badge } from "@/components/ui/badge";
  import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
  import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+ import { Input } from "@/components/ui/input";
+ import { Label } from "@/components/ui/label";
+ import { Textarea } from "@/components/ui/textarea";
  import { PageContainer } from "@/components/layout/PageContainer";
  import { PageHeader } from "@/components/layout/PageHeader";
  import {
@@ -17,6 +21,7 @@ import type { Database } from "@/integrations/supabase/types";
    Loader2,
    ChevronLeft,
    ChevronRight,
+   AlertTriangle,
  } from "lucide-react";
  import { useToast } from "@/hooks/use-toast";
  import { OrderDetailsDrawer } from "@/components/orders/OrderDetailsDrawer";
@@ -59,10 +64,13 @@ import type { Database } from "@/integrations/supabase/types";
    const [orderTypeFilter, setOrderTypeFilter] = useState<string>("all");
    const [selectedOrder, setSelectedOrder] = useState<FoodOrder | null>(null);
    const [drawerOpen, setDrawerOpen] = useState(false);
+   const [newOrderOpen, setNewOrderOpen] = useState(false);
+   const [newOrder, setNewOrder] = useState({ customer_name: "", order_type: "pickup", items: "", special_instructions: "" });
+   const [isCreating, setIsCreating] = useState(false);
   const [page, setPage] = useState(0);
   const pageSize = 24;
  
-   const { data: orders, isLoading } = useQuery({
+   const { data: orders, isLoading, error: ordersError } = useQuery({
      queryKey: ["food-orders", tenant?.id],
      queryFn: async () => {
        if (!tenant?.id) return [];
@@ -100,7 +108,38 @@ import type { Database } from "@/integrations/supabase/types";
      setSelectedOrder(order);
      setDrawerOpen(true);
    };
- 
+
+   const handleCreateOrder = async () => {
+     if (!tenant?.id || !newOrder.customer_name.trim()) return;
+     setIsCreating(true);
+     try {
+       const itemsList = newOrder.items.split("\n").filter(Boolean).map((name, i) => ({
+         id: `item-${i}`,
+         name: name.trim(),
+         quantity: 1,
+       }));
+       const orderNum = `ORD-${Date.now().toString(36).toUpperCase()}`;
+       const { error } = await supabase.from("food_orders").insert({
+         tenant_id: tenant.id,
+         order_number: orderNum,
+         order_type: newOrder.order_type as any,
+         status: "pending" as any,
+         customer_name: newOrder.customer_name,
+         items_json: itemsList as any,
+         special_instructions: newOrder.special_instructions || null,
+       });
+       if (error) throw error;
+       queryClient.invalidateQueries({ queryKey: ["food-orders", tenant.id] });
+       toast({ title: "Order created" });
+       setNewOrderOpen(false);
+       setNewOrder({ customer_name: "", order_type: "pickup", items: "", special_instructions: "" });
+     } catch (err: any) {
+       toast({ variant: "destructive", title: "Error", description: err.message });
+     } finally {
+       setIsCreating(false);
+     }
+   };
+
    // Filter orders
    const filteredOrders = useMemo(() => {
      if (!orders) return [];
@@ -153,7 +192,30 @@ import type { Database } from "@/integrations/supabase/types";
        </div>
      );
    }
- 
+
+   if (ordersError) {
+     return (
+       <div className="container max-w-6xl py-8 px-4 sm:px-6">
+         <div className="mx-auto max-w-lg py-16">
+           <Card>
+             <CardContent className="pt-8 pb-8 text-center space-y-4">
+               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+                 <AlertTriangle className="h-7 w-7 text-destructive" />
+               </div>
+               <h2 className="text-xl font-semibold">Something went wrong</h2>
+               <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                 We couldn't load your orders. Please refresh the page or try again later.
+               </p>
+               <Button variant="outline" onClick={() => window.location.reload()}>
+                 Refresh Page
+               </Button>
+             </CardContent>
+           </Card>
+         </div>
+       </div>
+     );
+   }
+
    return (
      <PageContainer maxWidth="xl">
        <div className="space-y-6">
@@ -162,7 +224,7 @@ import type { Database } from "@/integrations/supabase/types";
            title="Orders"
            description="Manage incoming food orders"
            action={
-             <Button>
+             <Button onClick={() => setNewOrderOpen(true)}>
                <Plus className="h-4 w-4 mr-2" />
                New Order
              </Button>
@@ -227,7 +289,7 @@ import type { Database } from "@/integrations/supabase/types";
              }
              action={
                statusFilter === "all" && orderTypeFilter === "all"
-                 ? { label: "Create Order", onClick: () => {} }
+                 ? { label: "Create Order", onClick: () => setNewOrderOpen(true) }
                  : undefined
              }
            />
@@ -272,6 +334,66 @@ import type { Database } from "@/integrations/supabase/types";
          open={drawerOpen}
          onOpenChange={setDrawerOpen}
        />
+
+       {/* New Order Dialog */}
+       <Dialog open={newOrderOpen} onOpenChange={setNewOrderOpen}>
+         <DialogContent>
+           <DialogHeader>
+             <DialogTitle>Create New Order</DialogTitle>
+           </DialogHeader>
+           <div className="space-y-4 py-2">
+             <div className="space-y-2">
+               <Label htmlFor="order-customer">Customer Name</Label>
+               <Input
+                 id="order-customer"
+                 placeholder="Customer name"
+                 value={newOrder.customer_name}
+                 onChange={(e) => setNewOrder(prev => ({ ...prev, customer_name: e.target.value }))}
+               />
+             </div>
+             <div className="space-y-2">
+               <Label htmlFor="order-type">Order Type</Label>
+               <Select value={newOrder.order_type} onValueChange={(v) => setNewOrder(prev => ({ ...prev, order_type: v }))}>
+                 <SelectTrigger id="order-type">
+                   <SelectValue />
+                 </SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="pickup">Pickup</SelectItem>
+                   <SelectItem value="delivery">Delivery</SelectItem>
+                   <SelectItem value="dine_in">Dine In</SelectItem>
+                 </SelectContent>
+               </Select>
+             </div>
+             <div className="space-y-2">
+               <Label htmlFor="order-items">Items (one per line)</Label>
+               <Textarea
+                 id="order-items"
+                 placeholder={"Cheeseburger\nFrench Fries\nChocolate Shake"}
+                 rows={4}
+                 value={newOrder.items}
+                 onChange={(e) => setNewOrder(prev => ({ ...prev, items: e.target.value }))}
+               />
+             </div>
+             <div className="space-y-2">
+               <Label htmlFor="order-instructions">Special Instructions</Label>
+               <Textarea
+                 id="order-instructions"
+                 placeholder="Any special requests..."
+                 rows={2}
+                 value={newOrder.special_instructions}
+                 onChange={(e) => setNewOrder(prev => ({ ...prev, special_instructions: e.target.value }))}
+               />
+             </div>
+           </div>
+           <DialogFooter>
+             <Button variant="outline" onClick={() => setNewOrderOpen(false)}>Cancel</Button>
+             <Button onClick={handleCreateOrder} disabled={isCreating || !newOrder.customer_name.trim()}>
+               {isCreating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+               Create Order
+             </Button>
+           </DialogFooter>
+         </DialogContent>
+       </Dialog>
      </PageContainer>
    );
  }

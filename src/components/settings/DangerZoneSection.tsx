@@ -1,5 +1,6 @@
  import { useState } from "react";
  import { useAuth } from "@/contexts/AuthContext";
+ import { supabase } from "@/integrations/supabase/client";
  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
  import { Button } from "@/components/ui/button";
  import { Input } from "@/components/ui/input";
@@ -25,12 +26,37 @@
    const [isDeleting, setIsDeleting] = useState(false);
  
    const handleExportData = async () => {
+     if (!tenant?.id) return;
      setIsExporting(true);
      try {
-       // Simulate export - in production this would call an edge function
-       await new Promise((resolve) => setTimeout(resolve, 2000));
-       toast.success("Export started", {
-         description: "You'll receive an email with your data download link.",
+       // Fetch tenant data from multiple tables
+       const [tenantData, bookings, customers, services, conversations] = await Promise.all([
+         supabase.from("tenants").select("*").eq("id", tenant.id).single(),
+         supabase.from("bookings").select("*").eq("tenant_id", tenant.id).limit(5000),
+         supabase.from("customers").select("*").eq("tenant_id", tenant.id).limit(5000),
+         supabase.from("services").select("*").eq("tenant_id", tenant.id).limit(5000),
+         supabase.from("conversations").select("*").eq("tenant_id", tenant.id).limit(5000),
+       ]);
+
+       const exportData = {
+         exported_at: new Date().toISOString(),
+         tenant: tenantData.data,
+         bookings: bookings.data || [],
+         customers: customers.data || [],
+         services: services.data || [],
+         conversations: conversations.data || [],
+       };
+
+       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+       const url = URL.createObjectURL(blob);
+       const link = document.createElement("a");
+       link.href = url;
+       link.download = `closeloop-export-${tenant.id.slice(0, 8)}-${new Date().toISOString().slice(0, 10)}.json`;
+       link.click();
+       URL.revokeObjectURL(url);
+
+       toast.success("Export complete", {
+         description: "Your data has been downloaded as a JSON file.",
        });
      } catch (error) {
        toast.error("Export failed", {
@@ -41,19 +67,20 @@
      }
    };
  
+   const businessName = tenant?.name || "";
+   const confirmTarget = businessName || "DELETE";
+
    const handleDeleteAccount = async () => {
-     if (confirmText !== "DELETE") return;
- 
+     if (confirmText !== confirmTarget) return;
+
      setIsDeleting(true);
      try {
-       // In production this would call an edge function to schedule deletion
-       await new Promise((resolve) => setTimeout(resolve, 1500));
-       toast.success("Account deletion scheduled", {
-         description: "Your account will be deleted within 24 hours. You've been signed out.",
+       toast.success("Account deletion requested", {
+         description: "To complete data deletion, please contact support@closeloop.com. You have been signed out.",
        });
        signOut?.();
      } catch (error) {
-       toast.error("Failed to delete account", {
+       toast.error("Failed to process request", {
          description: "Please try again or contact support.",
        });
        setIsDeleting(false);
@@ -114,18 +141,18 @@
                <AlertDialogHeader>
                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                  <AlertDialogDescription>
-                   This action cannot be undone. This will permanently delete your
-                   account, all your data, call recordings, leads, and remove your
-                   AI receptionist from service.
+                   This will sign you out and request account deletion. Actual data
+                   deletion requires contacting support. This cannot be undone once
+                   processed.
                  </AlertDialogDescription>
                </AlertDialogHeader>
                <div className="py-4 space-y-2">
                  <Label htmlFor="confirm-delete">
-                   Type <span className="font-mono font-bold">DELETE</span> to confirm
+                   Type <span className="font-mono font-bold">{confirmTarget}</span> to confirm
                  </Label>
                  <Input
                    id="confirm-delete"
-                   placeholder="DELETE"
+                   placeholder={confirmTarget}
                    value={confirmText}
                    onChange={(e) => setConfirmText(e.target.value)}
                    className="font-mono"
@@ -137,7 +164,7 @@
                  </AlertDialogCancel>
                  <AlertDialogAction
                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                   disabled={confirmText !== "DELETE" || isDeleting}
+                   disabled={confirmText !== confirmTarget || isDeleting}
                    onClick={handleDeleteAccount}
                  >
                    {isDeleting ? (

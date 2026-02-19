@@ -26,6 +26,12 @@ import {
   ClipboardCheck,
   Phone,
   Building2,
+  Package,
+  ChefHat,
+  Heart,
+  FileCheck,
+  UserSearch,
+  Map,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -64,8 +70,10 @@ interface AppSidebarProps {
     hasEstimates: boolean;
     hasPhoneQuotes: boolean;
     hasJobTracking: boolean;
+    hasLeadFollowUp: boolean;
     isFoodBusiness: boolean;
     isDispatchBusiness: boolean;
+    isServiceBusiness: boolean;
     [key: string]: unknown;
   };
   terms: { bookingsPageTitle?: string; [key: string]: unknown };
@@ -135,11 +143,30 @@ export function AppSidebar({
   if (caps.hasJobTracking) {
     workspaceItems.push({ href: "/app/jobs", label: "Active Jobs", icon: <ClipboardCheck className={iconClass} /> });
   }
+  if (caps.hasBooking || caps.hasDispatchQueue || caps.hasJobTracking) {
+    workspaceItems.push({ href: "/app/time-tracking", label: "Time Tracking", icon: <Clock className={iconClass} /> });
+  }
+  if (caps.hasJobTracking || caps.hasDispatchQueue) {
+    workspaceItems.push({ href: "/app/inventory", label: "Parts Inventory", icon: <Package className={iconClass} /> });
+  }
+  if (caps.hasFoodOrders) {
+    workspaceItems.push({ href: "/app/kitchen", label: "Kitchen Display", icon: <ChefHat className={iconClass} /> });
+  }
+  if (caps.hasFoodOrders || caps.hasReservations) {
+    workspaceItems.push({ href: "/app/loyalty", label: "Loyalty", icon: <Heart className={iconClass} /> });
+  }
+  if (caps.hasBooking || caps.hasJobTracking) {
+    workspaceItems.push({ href: "/app/agreements", label: "Agreements", icon: <FileCheck className={iconClass} /> });
+  }
+  if (caps.hasDispatchQueue) {
+    workspaceItems.push({ href: "/app/dispatch-map", label: "Dispatch Map", icon: <Map className={iconClass} /> });
+  }
 
   const coreItems: NavItem[] = [
     { href: "/app/dashboard", label: "Dashboard", icon: <LayoutDashboard className={iconClass} /> },
     { href: "/app/inbox", label: (terms.inboxPageTitle as string) || "Leads", icon: caps.isDispatchBusiness ? <Phone className={iconClass} /> : <Users className={iconClass} /> },
     { href: "/app/customers", label: (terms.customers ? String(terms.customers).charAt(0).toUpperCase() + String(terms.customers).slice(1) : "Customers"), icon: <UserCircle className={iconClass} /> },
+    ...(caps.hasLeadFollowUp ? [{ href: "/app/leads/recovery", label: "Lead Recovery", icon: <UserSearch className={iconClass} /> }] : []),
   ];
 
   const aiCenterItems: NavItem[] = [

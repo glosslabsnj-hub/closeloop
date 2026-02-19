@@ -54,9 +54,16 @@ export function DashboardByMode() {
         .gte("started_at", todayStart)
         .lte("started_at", todayEnd);
 
-      let pendingItems = 0;
-      let urgentItems = 0;
-      let completedItems = 0;
+      // Use separate variables per capability to avoid overwrites
+      let pendingBookings = 0;
+      let completedBookings = 0;
+      let pendingDispatches = 0;
+      let urgentDispatches = 0;
+      let completedDispatches = 0;
+      let pendingOrders = 0;
+      let completedOrders = 0;
+      let pendingIntakes = 0;
+      let urgentIntakes = 0;
 
       // Capability-specific queries
       if (caps.hasBooking) {
@@ -66,9 +73,9 @@ export function DashboardByMode() {
           .eq("tenant_id", tenant.id)
           .gte("start_at", todayStart)
           .lte("start_at", todayEnd);
-        
-        pendingItems = bookings?.filter(b => b.status === "pending_deposit").length || 0;
-        completedItems = bookings?.filter(b => b.status === "confirmed").length || 0;
+
+        pendingBookings = bookings?.filter(b => b.status === "pending_deposit").length || 0;
+        completedBookings = bookings?.filter(b => b.status === "confirmed").length || 0;
       }
 
       if (caps.hasDispatchQueue) {
@@ -77,10 +84,10 @@ export function DashboardByMode() {
           .select("status, priority, created_at")
           .eq("tenant_id", tenant.id)
           .in("status", ["pending", "assigned", "en_route", "on_site"]);
-        
-        pendingItems = jobs?.filter(j => j.status === "pending").length || 0;
-        urgentItems = jobs?.filter(j => j.priority === "urgent" || j.priority === "high").length || 0;
-        completedItems = jobs?.filter(j => j.status === "completed").length || 0;
+
+        pendingDispatches = jobs?.filter(j => j.status === "pending").length || 0;
+        urgentDispatches = jobs?.filter(j => j.priority === "urgent" || j.priority === "high").length || 0;
+        completedDispatches = jobs?.filter(j => j.status === "completed").length || 0;
       }
 
       if (caps.hasFoodOrders) {
@@ -90,9 +97,9 @@ export function DashboardByMode() {
           .eq("tenant_id", tenant.id)
           .gte("created_at", todayStart)
           .lte("created_at", todayEnd);
-        
-        pendingItems = orders?.filter(o => o.status === "pending" || o.status === "confirmed").length || 0;
-        completedItems = orders?.filter(o => o.status === "ready" || o.status === "confirmed").length || 0;
+
+        pendingOrders = orders?.filter(o => o.status === "pending" || o.status === "confirmed").length || 0;
+        completedOrders = orders?.filter(o => o.status === "ready" || o.status === "confirmed").length || 0;
       }
 
       if (caps.hasMedicalIntake) {
@@ -101,16 +108,17 @@ export function DashboardByMode() {
           .select("status, urgency_level, created_at")
           .eq("tenant_id", tenant.id)
           .eq("status", "pending");
-        
-        pendingItems = intakes?.length || 0;
-        urgentItems = intakes?.filter(i => i.urgency_level === "urgent").length || 0;
+
+        pendingIntakes = intakes?.length || 0;
+        urgentIntakes = intakes?.filter(i => i.urgency_level === "urgent").length || 0;
       }
 
+      // Combine all capabilities into the final totals
       return {
         callsToday: callsToday || 0,
-        pendingItems,
-        urgentItems,
-        completedItems
+        pendingItems: pendingBookings + pendingDispatches + pendingOrders + pendingIntakes,
+        urgentItems: urgentDispatches + urgentIntakes,
+        completedItems: completedBookings + completedDispatches + completedOrders,
       };
     },
     enabled: !!tenant?.id,

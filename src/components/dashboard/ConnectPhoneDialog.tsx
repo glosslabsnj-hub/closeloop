@@ -97,7 +97,7 @@ export function ConnectPhoneDialog({
 
       toast({
         title: "New number assigned!",
-        description: `Your Voxly number is ${data.friendly_name || data.phone_number}`,
+        description: `Your CloseLoop number is ${data.friendly_name || data.phone_number}`,
       });
 
       onSuccess();
@@ -205,7 +205,7 @@ export function ConnectPhoneDialog({
           <TabsContent value="new" className="space-y-4 mt-4">
             <div className="rounded-lg border bg-muted/50 p-4 text-center">
               <Plus className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-              <p className="font-medium">Get a Voxly Number</p>
+              <p className="font-medium">Get a CloseLoop Number</p>
               <p className="text-sm text-muted-foreground mt-1">
                 We'll provision a new local number for your business. 
                 Customers call this number and your AI answers.

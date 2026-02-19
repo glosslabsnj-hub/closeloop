@@ -33,12 +33,12 @@ const CATEGORY_SECTION_MAP: Record<string, string[]> = {
   // Legacy (kept for backward compat)
   business:   ["profile", "hours", "calendar"],
   services:   ["services"],
-  operations: ["coverage", "policies"],
+  operations: ["coverage"],
   "ai-voice": ["ai-behavior"],
-  // Mode-aware sections
+  // Mode-aware sections (aligned with brainModeLayout.ts completionSections)
   about:      ["profile", "hours"],
   rules:      ["policies"],
-  training:   ["knowledge", "ai-behavior"],
+  training:   ["knowledge", "ai-behavior", "policies"],
 };
 
 // ── Capability flags builder (shared) ──────────────────────────────────────

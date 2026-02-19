@@ -153,7 +153,7 @@ Deno.serve(async (req) => {
       await serviceClient.from("subscriptions").delete().eq("tenant_id", tenantId);
       await serviceClient.from("food_order_settings").delete().eq("tenant_id", tenantId);
       await serviceClient.from("customers").delete().eq("tenant_id", tenantId);
-      await serviceClient.from("tenant_memberships").delete().eq("tenant_id", tenantId);
+      await serviceClient.from("tenant_users").delete().eq("tenant_id", tenantId);
       await serviceClient.from("tenants").delete().eq("id", tenantId);
 
       return new Response(JSON.stringify({ tenant_id: tenantId, status: "deleted" }), {
@@ -208,7 +208,7 @@ Deno.serve(async (req) => {
             .from("profiles")
             .upsert({ id: ownerId, role: "user" }, { onConflict: "id" });
 
-          await serviceClient.from("tenant_memberships").upsert(
+          await serviceClient.from("tenant_users").upsert(
             { tenant_id: tenantId, user_id: ownerId, role: "owner" },
             { onConflict: "tenant_id,user_id" }
           );
@@ -275,7 +275,7 @@ Deno.serve(async (req) => {
       const tenantId = newTenant.id;
 
       // Create membership for the admin user (so they can Switch to this tenant)
-      await serviceClient.from("tenant_memberships").insert({
+      await serviceClient.from("tenant_users").insert({
         tenant_id: tenantId,
         user_id: user.id,
         role: "owner",
@@ -318,7 +318,7 @@ Deno.serve(async (req) => {
             .upsert({ id: ownerId, role: "user" }, { onConflict: "id" });
 
           // Add owner membership (ignore conflict if already exists)
-          await serviceClient.from("tenant_memberships").upsert(
+          await serviceClient.from("tenant_users").upsert(
             { tenant_id: tenantId, user_id: ownerId, role: "owner" },
             { onConflict: "tenant_id,user_id" }
           );

@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow, differenceInMinutes } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useModuleRequired } from "@/hooks/useModuleRequired";
 
 interface KitchenOrder {
   id: string;
@@ -163,10 +164,12 @@ function OrderCard({
 }
 
 export default function KitchenDisplayPage() {
+  const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["food_orders"]);
   const { tenant } = useAuth();
   const tenantId = tenant?.id ?? null;
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -210,7 +213,7 @@ export default function KitchenDisplayPage() {
     if (!tenantId) return;
 
     try {
-      // Try to load from food_orders table
+      setLoadError(null);
       const { data, error } = await supabase
         .from("food_orders")
         .select("*")
@@ -220,8 +223,8 @@ export default function KitchenDisplayPage() {
 
       if (error) {
         console.error("Failed to load orders:", error);
-        // If table doesn't exist, use demo data
-        setOrders(getDemoOrders());
+        setLoadError(error.message || "Failed to load orders");
+        setOrders([]);
       } else {
         // Transform database rows to KitchenOrder format
         const transformedOrders = (data || []).map((row: any) => ({
@@ -238,58 +241,13 @@ export default function KitchenDisplayPage() {
         })) as KitchenOrder[];
         setOrders(transformedOrders);
       }
-    } catch {
-      setOrders(getDemoOrders());
+    } catch (err: any) {
+      setLoadError(err.message || "Failed to load orders");
+      setOrders([]);
     } finally {
       setIsLoading(false);
     }
   };
-
-  const getDemoOrders = (): KitchenOrder[] => [
-    {
-      id: "demo-1",
-      order_number: "1042",
-      order_type: "pickup",
-      customer_name: "John D.",
-      items: [
-        { name: "Cheeseburger", quantity: 2, modifications: ["No onions", "Extra cheese"] },
-        { name: "French Fries", quantity: 1, notes: "Extra crispy" },
-        { name: "Chocolate Shake", quantity: 1 },
-      ],
-      status: "pending",
-      created_at: new Date(Date.now() - 5 * 60000).toISOString(),
-      estimated_ready_at: null,
-    },
-    {
-      id: "demo-2",
-      order_number: "1043",
-      order_type: "delivery",
-      customer_name: "Sarah M.",
-      items: [
-        { name: "Caesar Salad", quantity: 1, modifications: ["Dressing on side"] },
-        { name: "Grilled Chicken Sandwich", quantity: 1 },
-      ],
-      status: "preparing",
-      created_at: new Date(Date.now() - 12 * 60000).toISOString(),
-      estimated_ready_at: null,
-      priority: true,
-    },
-    {
-      id: "demo-3",
-      order_number: "1044",
-      order_type: "dine_in",
-      customer_name: null,
-      table_number: "7",
-      items: [
-        { name: "Margherita Pizza", quantity: 1 },
-        { name: "Buffalo Wings", quantity: 1, modifications: ["Extra hot"] },
-        { name: "Diet Coke", quantity: 2 },
-      ],
-      status: "ready",
-      created_at: new Date(Date.now() - 18 * 60000).toISOString(),
-      estimated_ready_at: null,
-    },
-  ];
 
   const playNotificationSound = () => {
     try {
@@ -305,19 +263,6 @@ export default function KitchenDisplayPage() {
       ready: "completed",
     };
 
-    // For demo orders, just update local state
-    if (order.id.startsWith("demo-")) {
-      setOrders((prev) =>
-        prev.map((o) =>
-          o.id === order.id
-            ? { ...o, status: nextStatus[o.status] as KitchenOrder["status"] }
-            : o
-        ).filter((o) => o.status !== "completed")
-      );
-      return;
-    }
-
-    // For real orders, update database
     const newStatus = nextStatus[order.status];
     await supabase
       .from("food_orders")
@@ -326,13 +271,6 @@ export default function KitchenDisplayPage() {
   };
 
   const handleRecall = async (order: KitchenOrder) => {
-    if (order.id.startsWith("demo-")) {
-      setOrders((prev) =>
-        prev.map((o) => (o.id === order.id ? { ...o, status: "preparing" as const } : o))
-      );
-      return;
-    }
-
     await supabase
       .from("food_orders")
       .update({ status: "preparing" })
@@ -353,10 +291,36 @@ export default function KitchenDisplayPage() {
   const preparingOrders = orders.filter((o) => o.status === "preparing");
   const readyOrders = orders.filter((o) => o.status === "ready");
 
+  if (moduleLoading || !isAllowed) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-900">
+        <Loader2 className="h-12 w-12 animate-spin text-white" />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-900">
         <Loader2 className="h-12 w-12 animate-spin text-white" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4 max-w-md">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+            <AlertTriangle className="h-7 w-7 text-destructive" />
+          </div>
+          <h2 className="text-xl font-semibold">Failed to load orders</h2>
+          <p className="text-muted-foreground">{loadError}</p>
+          <Button onClick={loadOrders} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Try Again
+          </Button>
+        </div>
       </div>
     );
   }

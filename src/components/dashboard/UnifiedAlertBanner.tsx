@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAIReadiness } from "@/hooks/useAIReadiness";
+import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
 import { useKnowledgeConflicts } from "@/hooks/useKnowledgeConflicts";
 import { useKnowledgeUploads } from "@/hooks/useKnowledgeUploads";
 import { useUsage } from "@/hooks/useUsage";
@@ -17,7 +17,6 @@ import {
   FileWarning,
   Upload,
   CreditCard,
-  Brain,
   ExternalLink,
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -42,8 +41,8 @@ export function UnifiedAlertBanner() {
   const [isExpanded, setIsExpanded] = useState(false);
   const { tenant } = useAuth();
 
-  // Gather alerts from various sources
-  const { items: readinessItems, score: readinessScore } = useAIReadiness();
+  // Gather alerts from various sources (V2 readiness — V1 was deprecated)
+  const { score: readinessScore, p0Flags } = useAIReadinessV2();
   const { conflicts } = useKnowledgeConflicts();
   const { uploads, processingCount } = useKnowledgeUploads();
   

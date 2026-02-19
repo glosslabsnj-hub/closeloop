@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Navigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
@@ -39,7 +39,7 @@ const getIcon = (iconName: TierInfo["icon"]) => {
 };
 
 export default function GoLivePage() {
-  const { tenant, refreshTenant, isSuperAdmin } = useAuth();
+  const { user, tenant, refreshTenant, isSuperAdmin } = useAuth();
   const { createSubscription, loading: subLoading } = useSubscription(tenant?.id || null, isSuperAdmin);
   const { score, canGoLive, p0Flags, isReady } = useAIReadinessV2();
   const [step, setStep] = useState<"tier" | "usage">("tier");
@@ -48,7 +48,9 @@ export default function GoLivePage() {
   const [processing, setProcessing] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+
+  if (!user) return <Navigate to="/login" replace />;
+
   // Go-live is blocked unless canGoLive is true (score >= 85 AND no P0 flags)
   const goLiveBlocked = !canGoLive;
 

@@ -217,7 +217,7 @@ export function LiveSchedulePreview() {
                   ) : isInternalCalendar ? (
                     <>
                       <CheckCircle2 className="h-4 w-4 text-primary" />
-                      <span className="text-sm">Using Voxly Calendar</span>
+                      <span className="text-sm">Using CloseLoop Calendar</span>
                     </>
                   ) : hasCalendarConnected ? (
                     <>

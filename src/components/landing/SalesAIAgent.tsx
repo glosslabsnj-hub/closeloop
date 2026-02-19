@@ -216,7 +216,7 @@ export function SalesAIAgent() {
             <Bot className="h-5 w-5 text-primary-foreground" />
           </div>
           <div>
-            <CardTitle className="text-sm font-semibold">Voxly Assistant</CardTitle>
+            <CardTitle className="text-sm font-semibold">CloseLoop Assistant</CardTitle>
             {!isMinimized && (
               <p className="text-xs text-muted-foreground">Find your perfect setup</p>
             )}
@@ -350,7 +350,7 @@ export function SalesAIAgent() {
           {/* Footer */}
           <div className="p-3 border-t bg-muted/20">
             <p className="text-xs text-center text-muted-foreground">
-              Powered by Voxly
+              Powered by CloseLoop
             </p>
           </div>
         </>

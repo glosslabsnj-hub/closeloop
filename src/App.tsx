@@ -24,6 +24,7 @@ import EstimateViewPage from "@/pages/public/EstimateViewPage";
 import CustomerPortalPage from "@/pages/public/CustomerPortalPage";
 import PublicROIReportPage from "@/pages/public/PublicROIReportPage";
 import AgenciesPage from "@/pages/public/AgenciesPage";
+import ForgotPasswordPage from "@/pages/public/ForgotPasswordPage";
 
 // App Pages
 const OnboardingPage = lazy(() => import("@/pages/app/OnboardingPage"));
@@ -119,6 +120,7 @@ const App = () => (
               <Route path="/pricing" element={<PricingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/agencies" element={<AgenciesPage />} />
             </Route>
 
@@ -215,12 +217,14 @@ const App = () => (
               <Route path="/driver/vehicle" element={<DriverVehicleSelect />} />
             </Route>
 
-            {/* Debug Routes (dev/admin only) */}
-            <Route path="/debug/telephony" element={<TelephonyDebugPage />} />
-            <Route path="/debug/ai-context" element={<AIContextInspectorPage />} />
-            <Route path="/debug/availability" element={<AvailabilityDebugPage />} />
-            <Route path="/debug/extraction" element={<ExtractionDebugPage />} />
-            <Route path="/debug/context" element={<ContextDebuggerPage />} />
+            {/* Debug Routes (super_admin only — protected by AdminLayout) */}
+            <Route element={<AdminLayout />}>
+              <Route path="/debug/telephony" element={<TelephonyDebugPage />} />
+              <Route path="/debug/ai-context" element={<AIContextInspectorPage />} />
+              <Route path="/debug/availability" element={<AvailabilityDebugPage />} />
+              <Route path="/debug/extraction" element={<ExtractionDebugPage />} />
+              <Route path="/debug/context" element={<ContextDebuggerPage />} />
+            </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
           </ErrorBoundary>

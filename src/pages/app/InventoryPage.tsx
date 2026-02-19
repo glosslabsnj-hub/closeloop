@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useInventory, InventoryItem, InventoryLocation, InventoryStock } from "@/hooks/useInventory";
+import { useModuleRequired } from "@/hooks/useModuleRequired";
 
 function formatCurrency(cents: number | null): string {
   if (cents === null) return "—";
@@ -45,6 +46,7 @@ function formatCurrency(cents: number | null): string {
 }
 
 export default function InventoryPage() {
+  const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["job_tracking", "dispatch_queue"]);
   const {
     items,
     locations,
@@ -149,6 +151,14 @@ export default function InventoryPage() {
       .filter((s) => s.item_id === itemId)
       .reduce((sum, s) => sum + s.quantity, 0);
   };
+
+  if (moduleLoading || !isAllowed) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

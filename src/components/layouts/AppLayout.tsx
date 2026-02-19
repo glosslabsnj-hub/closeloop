@@ -114,6 +114,13 @@ function AppLayoutContent() {
     }
   }, [loading, user, tenant, isSuperAdmin, location.pathname, navigate]);
 
+  // Clear selectedPlan bypass once a real subscription is confirmed
+  useEffect(() => {
+    if (!loading && hasActiveSubscription) {
+      sessionStorage.removeItem("selectedPlan");
+    }
+  }, [loading, hasActiveSubscription]);
+
   useEffect(() => {
     if (isSuperAdmin) return;
     const justCompletedOnboarding = sessionStorage.getItem("selectedPlan") !== null;
@@ -125,7 +132,6 @@ function AppLayoutContent() {
       }
     }
   }, [loading, tenant, hasActiveSubscription, isSuperAdmin, location.pathname, navigate]);
-
 
   const handleSignOut = async () => {
     await signOut();

@@ -40,6 +40,12 @@ import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
 import { useEstimates, EstimateWithCustomer } from "@/hooks/useEstimates";
 import { EstimateBuilder } from "@/components/estimates/EstimateBuilder";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useModuleRequired } from "@/hooks/useModuleRequired";
+import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const statusConfig: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
   draft: { label: "Draft", color: "bg-muted text-muted-foreground", icon: FileText },
@@ -65,12 +71,14 @@ function EstimateListItem({
   onSend,
   onDuplicate,
   onDelete,
+  onDownloadPdf,
 }: {
   estimate: EstimateWithCustomer;
   onEdit: () => void;
   onSend: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  onDownloadPdf: () => void;
 }) {
   const status = statusConfig[estimate.status] || statusConfig.draft;
   const StatusIcon = status.icon;
@@ -133,7 +141,7 @@ function EstimateListItem({
               <Copy className="h-4 w-4 mr-2" />
               Duplicate
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={onDownloadPdf}>
               <Download className="h-4 w-4 mr-2" />
               Download PDF
             </DropdownMenuItem>
@@ -149,13 +157,19 @@ function EstimateListItem({
 }
 
 export default function EstimatesPage() {
+  const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["estimates", "phone_quotes"]);
   const { estimates, isLoading, stats, createEstimate, sendEstimate, deleteEstimate } = useEstimates();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [builderOpen, setBuilderOpen] = useState(false);
   const [editingEstimate, setEditingEstimate] = useState<EstimateWithCustomer | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [estimateToDelete, setEstimateToDelete] = useState<string | null>(null);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailDialogEstimate, setEmailDialogEstimate] = useState<EstimateWithCustomer | null>(null);
+  const [emailInput, setEmailInput] = useState("");
+  const [emailSending, setEmailSending] = useState(false);
 
   // Filter estimates
   const filteredEstimates = estimates.filter((estimate) => {
@@ -182,13 +196,39 @@ export default function EstimatesPage() {
 
   const handleSend = async (estimate: EstimateWithCustomer) => {
     if (!estimate.customer?.email) {
-      // TODO: Show dialog to enter email
+      // Open email dialog to collect the recipient email
+      setEmailDialogEstimate(estimate);
+      setEmailInput("");
+      setEmailDialogOpen(true);
       return;
     }
     await sendEstimate.mutateAsync({
       estimateId: estimate.id,
       email: estimate.customer.email,
     });
+  };
+
+  const handleEmailDialogSend = async () => {
+    if (!emailDialogEstimate || !emailInput) return;
+    setEmailSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("estimate-send-email", {
+        body: {
+          estimate_id: emailDialogEstimate.id,
+          email: emailInput,
+        },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Failed to send");
+      toast({ title: "Estimate sent", description: `Email sent to ${emailInput}` });
+      setEmailDialogOpen(false);
+      setEmailDialogEstimate(null);
+      setEmailInput("");
+    } catch (err) {
+      toast({ title: "Error sending estimate", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
+    } finally {
+      setEmailSending(false);
+    }
   };
 
   const handleDuplicate = async (estimate: EstimateWithCustomer) => {
@@ -216,6 +256,36 @@ export default function EstimatesPage() {
       setEstimateToDelete(null);
     }
   };
+
+  const handleDownloadPdf = async (estimate: EstimateWithCustomer) => {
+    try {
+      toast({ title: "Generating PDF..." });
+      const { data, error } = await supabase.functions.invoke("estimate-generate-pdf", {
+        body: { estimate_id: estimate.id },
+      });
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      } else if (data?.pdf_base64) {
+        const link = document.createElement("a");
+        link.href = `data:application/pdf;base64,${data.pdf_base64}`;
+        link.download = `${estimate.estimate_number}.pdf`;
+        link.click();
+      } else {
+        toast({ title: "PDF generated", description: "Check your downloads." });
+      }
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "PDF generation failed", description: err.message || "Please try again." });
+    }
+  };
+
+  if (moduleLoading || !isAllowed) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -358,6 +428,7 @@ export default function EstimatesPage() {
                     onSend={() => handleSend(estimate)}
                     onDuplicate={() => handleDuplicate(estimate)}
                     onDelete={() => handleDelete(estimate.id)}
+                    onDownloadPdf={() => handleDownloadPdf(estimate)}
                   />
                 ))}
               </div>
@@ -400,6 +471,43 @@ export default function EstimatesPage() {
             </Button>
             <Button variant="destructive" onClick={confirmDelete}>
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Email Share Dialog */}
+      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share Estimate via Email</DialogTitle>
+            <DialogDescription>
+              Enter the recipient's email address to send this estimate.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="share-email">Email Address</Label>
+              <Input
+                id="share-email"
+                type="email"
+                placeholder="customer@example.com"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && emailInput) handleEmailDialogSend();
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEmailDialogSend} disabled={!emailInput || emailSending}>
+              {emailSending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              <Send className="h-4 w-4 mr-2" />
+              Send
             </Button>
           </DialogFooter>
         </DialogContent>

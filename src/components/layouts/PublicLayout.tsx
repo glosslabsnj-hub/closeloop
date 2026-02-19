@@ -84,9 +84,8 @@ export function PublicLayout() {
             <div>
               <p className="text-sm font-semibold mb-4">Company</p>
               <ul className="space-y-2.5 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground transition-colors">About</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Careers</a></li>
+                <li><span>About</span></li>
+                <li><span>Blog</span></li>
                 <li><Link to="/agencies" className="hover:text-foreground transition-colors">Partner Program</Link></li>
               </ul>
             </div>
@@ -94,18 +93,17 @@ export function PublicLayout() {
             <div>
               <p className="text-sm font-semibold mb-4">Resources</p>
               <ul className="space-y-2.5 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground transition-colors">Help Center</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Documentation</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Status</a></li>
+                <li><Link to="/login" className="hover:text-foreground transition-colors">Log In</Link></li>
+                <li><Link to="/signup" className="hover:text-foreground transition-colors">Get Started</Link></li>
               </ul>
             </div>
             {/* Legal */}
             <div>
               <p className="text-sm font-semibold mb-4">Legal</p>
               <ul className="space-y-2.5 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground transition-colors">Privacy</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Terms</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Security</a></li>
+                <li><span>Privacy</span></li>
+                <li><span>Terms</span></li>
+                <li><span>Security</span></li>
               </ul>
             </div>
           </div>

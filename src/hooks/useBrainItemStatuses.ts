@@ -53,7 +53,7 @@ export function useBrainItemStatuses(): Record<string, ItemStatusInfo> {
       statusText: summaries.calendar,
     };
     s["templates"] = {
-      status: "incomplete",
+      status: "optional",
       statusText: "Pre-built setups for common business types",
     };
 
@@ -68,7 +68,7 @@ export function useBrainItemStatuses(): Record<string, ItemStatusInfo> {
       })(),
     };
     s["pricing-rules"] = {
-      status: "incomplete",
+      status: "optional",
       statusText: summaries.pricingRules,
     };
     s["catalog"] = {
@@ -88,7 +88,7 @@ export function useBrainItemStatuses(): Record<string, ItemStatusInfo> {
       statusText: capabilities.hasPriceModifiers ? "Dispatch fees configured" : "Equipment, storage, release, and emergency fees",
     };
     s["distance-basis"] = {
-      status: "incomplete",
+      status: "optional",
       statusText: "How mileage affects your quotes",
     };
     s["food-settings-svc"] = {
@@ -96,11 +96,11 @@ export function useBrainItemStatuses(): Record<string, ItemStatusInfo> {
       statusText: capabilities.hasPrepTimeConfigured ? "Food settings configured" : "Delivery, pickup, and catering configuration",
     };
     s["menu-sizes"] = {
-      status: "incomplete",
+      status: "optional",
       statusText: "S/M/L or Personal/Family size variants",
     };
     s["daily-specials"] = {
-      status: "incomplete",
+      status: "optional",
       statusText: "Happy hour, daily specials, limited-time offers",
     };
     s["medical-pricing"] = {
@@ -108,7 +108,7 @@ export function useBrainItemStatuses(): Record<string, ItemStatusInfo> {
       statusText: capabilities.hasInsuranceKnowledge ? "Insurance info configured" : "Insurance, consultation fees, and payment options",
     };
     s["additional-services"] = {
-      status: "incomplete",
+      status: "optional",
       statusText: "Secondary services beyond your core business",
     };
 
@@ -138,7 +138,7 @@ export function useBrainItemStatuses(): Record<string, ItemStatusInfo> {
       statusText: capabilities.hasCateringKnowledge ? "Catering coverage configured" : "Catering service areas and lead time requirements",
     };
     s["medical-coverage"] = {
-      status: "incomplete",
+      status: "optional",
       statusText: "Telehealth, home visits, and appointment scheduling",
     };
     s["response-times"] = {
@@ -162,7 +162,7 @@ export function useBrainItemStatuses(): Record<string, ItemStatusInfo> {
       statusText: summaries.requiredQuestions,
     };
     s["custom-policies"] = {
-      status: "incomplete",
+      status: "optional",
       statusText: "Additional policies for specific scenarios",
     };
     s["booking-delivery"] = {
@@ -178,11 +178,11 @@ export function useBrainItemStatuses(): Record<string, ItemStatusInfo> {
       statusText: summaries.dispatchSettings,
     };
     s["distance-pricing"] = {
-      status: "incomplete",
+      status: "optional",
       statusText: "Configure default distance pricing method",
     };
     s["ivr-routing"] = {
-      status: "incomplete",
+      status: "optional",
       statusText: "Configure towing vs impound call routing",
     };
     s["impound-lot"] = {
@@ -259,14 +259,14 @@ export function useBrainItemStatuses(): Record<string, ItemStatusInfo> {
       status: capabilities.hasAftercare ? "complete" : "incomplete",
       statusText: capabilities.hasAftercare ? "Aftercare instructions configured" : "Post-service care instructions",
     };
-    s["competitors"] = { status: "incomplete", statusText: "How to respond when competitors are mentioned" };
-    s["seasonal"] = { status: "incomplete", statusText: "Holiday and event-specific info" };
+    s["competitors"] = { status: "optional", statusText: "How to respond when competitors are mentioned" };
+    s["seasonal"] = { status: "optional", statusText: "Holiday and event-specific info" };
     s["custom"] = {
       status: summaries.custom !== "Nothing extra added yet" ? "complete" : "incomplete",
       statusText: summaries.custom,
     };
     s["documents"] = {
-      status: "incomplete",
+      status: "optional",
       statusText: summaries.documents,
     };
 

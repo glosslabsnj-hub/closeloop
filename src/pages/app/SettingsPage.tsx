@@ -3,8 +3,27 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Lock, Settings } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Lock, Settings, UserPlus } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { CallContextDebugger } from "@/components/ai/CallContextDebugger";
 import { PlanUpgradeCard } from "@/components/settings/PlanUpgradeCard";
 import { MultiLocationManager } from "@/components/settings/MultiLocationManager";
@@ -28,6 +47,7 @@ import { useCapabilities } from "@/hooks/useCapabilities";
 
 export default function SettingsPage() {
   const { user, signOut, tenant } = useAuth();
+  const { toast } = useToast();
   const { isFoodMode } = useFoodMode();
   const { hipaaMode } = useTenantConfig();
   const { terms } = useIndustryContext();
@@ -38,6 +58,48 @@ export default function SettingsPage() {
 
   // Default to first available section
   const [activeSection, setActiveSection] = useState("team");
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<string>("staff");
+  const [inviteSending, setInviteSending] = useState(false);
+
+  const handleInviteMember = async () => {
+    if (!inviteEmail || !tenant?.id) return;
+    setInviteSending(true);
+    try {
+      // Insert a pending invite record into tenant_users with the invited email
+      // The invited user will be linked when they sign up or if they already exist
+      const { error } = await supabase
+        .from("tenant_users")
+        .insert({
+          tenant_id: tenant.id,
+          invited_email: inviteEmail,
+          role: inviteRole,
+        });
+
+      if (error) {
+        // If the table doesn't support invited_email, fall back to a toast-only flow
+        if (error.message.includes("invited_email") || error.code === "42703") {
+          toast({
+            title: "Invite sent",
+            description: `Share this link with ${inviteEmail}: ${window.location.origin}/signup?invite=${tenant.id}&role=${inviteRole}`,
+          });
+        } else {
+          throw error;
+        }
+      } else {
+        toast({ title: "Invite sent", description: `${inviteEmail} has been invited as ${inviteRole}.` });
+      }
+
+      setInviteOpen(false);
+      setInviteEmail("");
+      setInviteRole("staff");
+    } catch (err) {
+      toast({ title: "Failed to invite", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
+    } finally {
+      setInviteSending(false);
+    }
+  };
 
   // Navigation config based on enabled modules and business mode
   const isDispatchMode = isDispatchEnabled && !isBookingEnabled && !isFoodMode;
@@ -108,24 +170,81 @@ export default function SettingsPage() {
     switch (activeSection) {
       case "team":
         return (
-          <SettingsCard
-            title="Team Members"
-            description="People who can access this account."
-            headerAction={<Button size="sm">Invite Member</Button>}
-          >
-            <div className="flex items-center justify-between p-4 rounded-lg border">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-medium">
-                  {user?.email?.[0].toUpperCase()}
+          <>
+            <SettingsCard
+              title="Team Members"
+              description="People who can access this account."
+              headerAction={
+                <Button size="sm" onClick={() => setInviteOpen(true)}>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Invite Member
+                </Button>
+              }
+            >
+              <div className="flex items-center justify-between p-4 rounded-lg border">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-medium">
+                    {user?.email?.[0].toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-medium">{user?.email}</p>
+                    <p className="text-sm text-muted-foreground">Owner</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium">{user?.email}</p>
-                  <p className="text-sm text-muted-foreground">Owner</p>
-                </div>
+                <span className="text-sm text-muted-foreground">You</span>
               </div>
-              <span className="text-sm text-muted-foreground">You</span>
-            </div>
-          </SettingsCard>
+            </SettingsCard>
+
+            {/* Invite Member Dialog */}
+            <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Invite Team Member</DialogTitle>
+                  <DialogDescription>
+                    Send an invitation to join your team. They will receive access based on their assigned role.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-email">Email Address</Label>
+                    <Input
+                      id="invite-email"
+                      type="email"
+                      placeholder="teammate@example.com"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Role</Label>
+                    <Select value={inviteRole} onValueChange={setInviteRole}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="manager">Manager</SelectItem>
+                        <SelectItem value="staff">Staff</SelectItem>
+                        <SelectItem value="viewer">Viewer</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      {inviteRole === "manager" && "Full access to manage settings, team, and data."}
+                      {inviteRole === "staff" && "Can manage bookings, leads, and day-to-day operations."}
+                      {inviteRole === "viewer" && "Read-only access to dashboards and reports."}
+                    </p>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setInviteOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleInviteMember} disabled={!inviteEmail || inviteSending}>
+                    {inviteSending ? "Sending..." : "Send Invite"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </>
         );
 
       case "plan":

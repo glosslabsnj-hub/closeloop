@@ -1,4 +1,4 @@
-// Industry-specific service templates, context fields, FAQs, and objection handlers for Voxly
+// Industry-specific service templates, context fields, FAQs, and objection handlers for CloseLoop
 
 export interface ServiceTemplate {
   name: string;

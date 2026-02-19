@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useBusinessContext } from "@/hooks/useBusinessContext";
@@ -38,13 +38,14 @@ import { useToast } from "@/hooks/use-toast";
 export default function AIAssistantPage() {
   const { tenant } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { context, loading: contextLoading, refetch } = useBusinessContext(tenant?.id || null);
   
   const [aiEnabled, setAiEnabled] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState<string>("sarah");
   const [greeting, setGreeting] = useState("");
   const [fallback, setFallback] = useState("");
-  const [testing, setTesting] = useState(false);
+  const [testing] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Load AI assistant settings
@@ -77,18 +78,7 @@ export default function AIAssistantPage() {
   };
 
   const handleTestCall = () => {
-    setTesting(true);
-    toast({
-      title: "🎙️ AI Test Call",
-      description: "Simulating how your AI assistant would handle a call...",
-    });
-    setTimeout(() => {
-      setTesting(false);
-      toast({
-        title: "✅ Test Complete",
-        description: "Your AI assistant is ready to take calls!",
-      });
-    }, 3000);
+    navigate("/app/simulator");
   };
 
   const handleSave = async () => {
@@ -127,6 +117,31 @@ export default function AIAssistantPage() {
         .from('tenants')
         .update({ ai_enabled: aiEnabled })
         .eq('id', tenant.id);
+
+      // Dual-write to assistant_settings so other components stay in sync
+      const { data: existingSettings } = await supabase
+        .from('assistant_settings')
+        .select('id')
+        .eq('tenant_id', tenant.id)
+        .single();
+
+      const settingsData = {
+        tenant_id: tenant.id,
+        voice_id: selectedVoice,
+        greeting_script: greeting,
+        fallback_script: fallback,
+      };
+
+      if (existingSettings) {
+        await supabase
+          .from('assistant_settings')
+          .update(settingsData)
+          .eq('tenant_id', tenant.id);
+      } else {
+        await supabase
+          .from('assistant_settings')
+          .insert([settingsData]);
+      }
 
       toast({ title: "Settings saved!" });
     } catch (error: any) {

@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
     await svc.from("subscriptions").delete().eq("tenant_id", tenant_id);
     await svc.from("food_order_settings").delete().eq("tenant_id", tenant_id);
     await svc.from("customers").delete().eq("tenant_id", tenant_id);
-    await svc.from("tenant_memberships").delete().eq("tenant_id", tenant_id);
+    await svc.from("tenant_users").delete().eq("tenant_id", tenant_id);
     await svc.from("tenant_users").delete().eq("tenant_id", tenant_id);
     await svc.from("tenants").delete().eq("id", tenant_id);
 

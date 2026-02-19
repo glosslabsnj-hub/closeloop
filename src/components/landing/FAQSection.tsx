@@ -12,11 +12,11 @@ const faqs = [
   },
   {
     question: "Will this work for my industry?",
-    answer: "Yes — Voxly works for any inbound-call business: service, dispatch, restaurants, medical, and more. The AI adapts to your workflow.",
+    answer: "Yes — CloseLoop works for any inbound-call business: service, dispatch, restaurants, medical, and more. The AI adapts to your workflow.",
   },
   {
     question: "Can I keep my existing phone number?",
-    answer: "Absolutely. Forward your existing number to Voxly, or use a dedicated number we provide. Customers won't notice any change.",
+    answer: "Absolutely. Forward your existing number to CloseLoop, or use a dedicated number we provide. Customers won't notice any change.",
   },
   {
     question: "Can it handle Spanish?",
@@ -24,11 +24,11 @@ const faqs = [
   },
   {
     question: "What if multiple calls come in at once?",
-    answer: "No problem — Voxly handles unlimited simultaneous calls. Every caller gets answered immediately, no hold music.",
+    answer: "No problem — CloseLoop handles unlimited simultaneous calls. Every caller gets answered immediately, no hold music.",
   },
   {
     question: "Can I use my existing CRM?",
-    answer: "Yes. Push captured data to your existing tools via webhooks, email, or SMS. Or use Voxly's built-in system — your choice.",
+    answer: "Yes. Push captured data to your existing tools via webhooks, email, or SMS. Or use CloseLoop's built-in system — your choice.",
   },
 ];
 

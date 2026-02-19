@@ -129,17 +129,37 @@ export function useAvailabilitySlots() {
       is_available: boolean;
     }>) => {
       if (!tenant?.id) throw new Error("No tenant");
-      
+
+      // Snapshot existing slots so we can restore on insert failure
+      const { data: existingSlots } = await supabase
+        .from("availability_slots")
+        .select("*")
+        .eq("tenant_id", tenant.id);
+
       // Delete existing slots
-      await supabase.from("availability_slots").delete().eq("tenant_id", tenant.id);
-      
+      const { error: deleteError } = await supabase
+        .from("availability_slots")
+        .delete()
+        .eq("tenant_id", tenant.id);
+
+      if (deleteError) throw deleteError;
+
       // Insert new slots
       if (slots.length > 0) {
-        const { error } = await supabase
+        const { error: insertError } = await supabase
           .from("availability_slots")
           .insert(slots.map((s) => ({ ...s, tenant_id: tenant.id })));
 
-        if (error) throw error;
+        if (insertError) {
+          // Attempt to restore previously deleted slots to prevent data loss
+          if (existingSlots && existingSlots.length > 0) {
+            const restore = existingSlots.map(({ id, created_at, ...rest }) => rest);
+            await supabase.from("availability_slots").insert(restore).catch((restoreErr) => {
+              console.error("Failed to restore availability slots after insert error:", restoreErr);
+            });
+          }
+          throw insertError;
+        }
       }
     },
     onSuccess: () => {
@@ -147,7 +167,7 @@ export function useAvailabilitySlots() {
       toast({ title: "Hours saved", description: "Your availability has been updated." });
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error saving availability", description: "Your previous availability has been preserved. Please try again.", variant: "destructive" });
     },
   });
 

@@ -4,7 +4,7 @@
  */
 import { useState, useEffect } from "react";
 import { StepNavigator } from "@/components/onboarding/StepNavigator";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -122,6 +122,8 @@ export default function OnboardingPage() {
       </div>
     );
   }
+
+  if (!user) return <Navigate to="/login" replace />;
 
   if (tenant) {
     return (

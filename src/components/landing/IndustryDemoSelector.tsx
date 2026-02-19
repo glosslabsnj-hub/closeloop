@@ -44,7 +44,7 @@ export function IndustryDemoSelector() {
             Listen to real AI calls
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Select your industry to hear how Voxly handles customer calls. 
+            Select your industry to hear how CloseLoop handles customer calls.
             These are real recorded demos showing exactly what your customers will experience.
           </p>
         </div>

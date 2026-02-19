@@ -751,7 +751,7 @@ export const ZAPIER_SETUP_STEPS = [
   {
     step: 3,
     title: "Select 'Catch Hook'",
-    description: "Choose 'Catch Hook' as the trigger event - this receives data from Voxly",
+    description: "Choose 'Catch Hook' as the trigger event - this receives data from CloseLoop",
   },
   {
     step: 4,
@@ -760,7 +760,7 @@ export const ZAPIER_SETUP_STEPS = [
   },
   {
     step: 5,
-    title: "Paste in Voxly",
+    title: "Paste in CloseLoop",
     description: "Go back to your automation settings and paste the webhook URL",
   },
   {

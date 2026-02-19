@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { RefreshCw, Search, Settings, Plus } from "lucide-react";
+import { RefreshCw, Search, Settings, Plus, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +17,8 @@ import { MarkConvertedModal } from "@/components/recovery/MarkConvertedModal";
 import { LeadRecoveryDetailSheet } from "@/components/recovery/LeadRecoveryDetailSheet";
 import { cn } from "@/lib/utils";
 
+const PAGE_SIZE = 20;
+
 export default function LeadRecoveryPage() {
   const navigate = useNavigate();
   const { tenant } = useAuth();
@@ -29,14 +31,93 @@ export default function LeadRecoveryPage() {
   const [detailSheetOpen, setDetailSheetOpen] = useState(false);
   const [smsModalOpen, setSmsModalOpen] = useState(false);
   const [convertModalOpen, setConvertModalOpen] = useState(false);
+  const [extraCampaigns, setExtraCampaigns] = useState<CampaignWithDetails[]>([]);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const { data, isLoading, refetch } = useLeadRecoveryCampaigns({
     status: statusFilter,
     search: search || undefined,
+    limit: PAGE_SIZE,
+    offset: 0,
   });
 
-  const campaigns = data?.campaigns || [];
+  const firstPageCampaigns = data?.campaigns || [];
   const counts = data?.counts || { all: 0, active: 0, paused: 0, converted: 0, stopped: 0, declined: 0 };
+
+  // Combine first page + extra loaded pages
+  const campaigns = [...firstPageCampaigns, ...extraCampaigns];
+
+  // Reset extra pages when filters/search change
+  useEffect(() => {
+    setExtraCampaigns([]);
+    setHasMore(true);
+  }, [statusFilter, search]);
+
+  // Update hasMore based on first page data
+  useEffect(() => {
+    if (firstPageCampaigns.length < PAGE_SIZE) {
+      setHasMore(false);
+    } else {
+      setHasMore(true);
+    }
+  }, [firstPageCampaigns]);
+
+  const handleLoadMore = useCallback(async () => {
+    if (!tenantId || loadingMore) return;
+    setLoadingMore(true);
+
+    try {
+      const nextOffset = firstPageCampaigns.length + extraCampaigns.length;
+
+      // Build a query matching the hook's logic
+      let query = supabase
+        .from("lead_recovery_campaigns")
+        .select(`
+          id, status, current_step, next_action_at, created_at, converted_at,
+          recovered_value_cents, original_intent, original_service_interest,
+          original_objection, original_call_outcome, total_attempts, total_responses,
+          last_attempt_at, stopped_at, stopped_reason, converted_booking_id,
+          customer:customers!lead_recovery_campaigns_customer_id_fkey(id, full_name, phone_e164, email),
+          sequence:lead_recovery_sequences!lead_recovery_campaigns_sequence_id_fkey(id, name)
+        `)
+        .eq("tenant_id", tenantId)
+        .order("created_at", { ascending: false });
+
+      if (statusFilter && statusFilter !== "all") {
+        if (statusFilter === "stopped") {
+          query = query.in("status", ["stopped", "expired"]);
+        } else {
+          query = query.eq("status", statusFilter);
+        }
+      }
+
+      query = query.range(nextOffset, nextOffset + PAGE_SIZE - 1);
+
+      const { data: newBatch, error } = await query;
+
+      if (error) {
+        console.error("Error loading more campaigns:", error);
+        toast.error("Failed to load more");
+        return;
+      }
+
+      const mapped: CampaignWithDetails[] = (newBatch || []).map((c: any) => ({
+        ...c,
+        customer: c.customer as CampaignWithDetails["customer"],
+        sequence: c.sequence as CampaignWithDetails["sequence"],
+        last_action: null,
+      }));
+
+      if (mapped.length < PAGE_SIZE) {
+        setHasMore(false);
+      }
+
+      setExtraCampaigns((prev) => [...prev, ...mapped]);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [tenantId, statusFilter, firstPageCampaigns.length, extraCampaigns.length, loadingMore]);
 
   // Check if recovery is enabled (has any campaigns or settings indicate enabled)
   const isEnabled = counts.all > 0;
@@ -198,11 +279,12 @@ export default function LeadRecoveryPage() {
             />
           ))}
 
-          {/* Load more placeholder */}
-          {campaigns.length >= 20 && (
+          {/* Load more */}
+          {hasMore && campaigns.length >= PAGE_SIZE && (
             <div className="text-center pt-4">
-              <Button variant="outline" onClick={() => toast.info("Pagination coming soon")}>
-                Load More
+              <Button variant="outline" onClick={handleLoadMore} disabled={loadingMore}>
+                {loadingMore && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {loadingMore ? "Loading..." : "Load More"}
               </Button>
             </div>
           )}

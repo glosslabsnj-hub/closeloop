@@ -130,7 +130,7 @@ export function WhoItsForSection() {
           <a href="#demo" className="text-primary font-medium hover:underline">
             Hear how it sounds
           </a>
-          {" "}— Voxly works for any inbound-call business.
+          {" "}— CloseLoop works for any inbound-call business.
         </p>
       </div>
     </section>

@@ -491,7 +491,7 @@ export function ScheduleConnectionWizard({ embedded = false, onComplete, onSkip 
               <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm">
                 <p className="font-medium text-amber-600">Recommendation: Manual Busy Blocks</p>
                 <p className="text-muted-foreground">
-                  You can manage your availability directly in Voxly
+                  You can manage your availability directly in CloseLoop
                 </p>
               </div>
             )}
@@ -623,7 +623,7 @@ export function ScheduleConnectionWizard({ embedded = false, onComplete, onSkip 
                         onChange={(e) => setWebhookUrl(e.target.value)}
                       />
                       <p className="text-xs text-muted-foreground">
-                        For real-time sync, add a webhook that posts to Voxly
+                        For real-time sync, add a webhook that posts to CloseLoop
                       </p>
                     </div>
                   )}
@@ -673,7 +673,7 @@ export function ScheduleConnectionWizard({ embedded = false, onComplete, onSkip 
                 </div>
                 <h2 className="text-xl font-semibold">Manual Busy Blocks</h2>
                 <p className="text-muted-foreground">
-                  You can add busy times manually in Voxly whenever you need to block off time
+                  You can add busy times manually in CloseLoop whenever you need to block off time
                 </p>
                 <Button onClick={handleManualSetup} disabled={createConnection.isPending}>
                   {createConnection.isPending ? "Setting up..." : "Continue with Manual"}
@@ -703,7 +703,7 @@ export function ScheduleConnectionWizard({ embedded = false, onComplete, onSkip 
                 What happens now:
               </p>
               <ul className="text-sm text-muted-foreground space-y-1 ml-6 list-disc">
-                <li>Busy events sync to your Voxly schedule</li>
+                <li>Busy events sync to your CloseLoop schedule</li>
                 <li>AI only offers slots that are actually free</li>
                 <li>No more overlapping appointments</li>
               </ul>

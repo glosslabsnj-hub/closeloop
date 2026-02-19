@@ -12,7 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import type { BusinessMode } from "@/hooks/useTenantConfig";
 import type { FieldPriority } from "@/config/essentialFields";
 
-export type SectionStatus = "complete" | "incomplete" | "warning" | "error";
+export type SectionStatus = "complete" | "incomplete" | "warning" | "error" | "optional";
 
 interface SectionSummaryCardProps {
   id: string;
@@ -53,6 +53,7 @@ interface SectionSummaryCardProps {
 const STATUS_CONFIG: Record<SectionStatus, { icon: typeof Check; color: string; label: string }> = {
   complete: { icon: Check, color: "text-green-600 bg-green-100 dark:bg-green-900/30", label: "Done" },
   incomplete: { icon: Circle, color: "text-muted-foreground bg-muted", label: "Set up" },
+  optional: { icon: Circle, color: "text-muted-foreground/50 bg-muted/50", label: "Optional" },
   warning: { icon: AlertCircle, color: "text-amber-600 bg-amber-100 dark:bg-amber-900/30", label: "Needs attention" },
   error: { icon: AlertCircle, color: "text-red-600 bg-red-100 dark:bg-red-900/30", label: "Required" },
 };

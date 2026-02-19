@@ -112,7 +112,7 @@ export function TroubleshootingCard({
 }: TroubleshootingCardProps) {
   const commonFixes = [
     "Your account password may have changed",
-    "Voxly access may have been revoked in your account settings",
+    "CloseLoop access may have been revoked in your account settings",
     "There may be a temporary service outage",
   ];
 

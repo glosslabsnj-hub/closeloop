@@ -15,7 +15,7 @@ const NAV_ITEMS = [
 
 export function DriverLayout() {
   const { user, loading, signOut } = useAuth();
-  const { driverRecord, activeJobs } = useDriverJobs();
+  const { driverRecord, activeJobs, isLoading: driverLoading } = useDriverJobs();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -25,7 +25,15 @@ export function DriverLayout() {
     }
   }, [user, loading, navigate]);
 
-  if (loading) {
+  // Redirect non-driver users: must have a fleet_drivers record linked to their account
+  useEffect(() => {
+    if (!loading && user && driverRecord === null) {
+      // User is authenticated but has no driver record — not authorized for driver portal
+      navigate("/app/dashboard", { replace: true });
+    }
+  }, [user, loading, driverRecord, navigate]);
+
+  if (loading || driverLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
         <Truck className="h-12 w-12 text-primary animate-pulse mb-4" />
@@ -34,7 +42,7 @@ export function DriverLayout() {
     );
   }
 
-  if (!user) {
+  if (!user || driverRecord === null) {
     return null;
   }
 

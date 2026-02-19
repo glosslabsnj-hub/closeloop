@@ -77,10 +77,10 @@ export function isFieldComplete(
       return capabilities.showReservationsSection;
 
     case "daily_specials":
-      return false; // No longer assumed complete
+      return true; // Optional field — should not drag down completion score
 
     case "allergy_info":
-      return false; // No longer assumed complete
+      return true; // Optional field — should not drag down completion score
 
     // ====== DISPATCH MODE FIELDS ======
     case "service_area": {

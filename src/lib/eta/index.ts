@@ -1,7 +1,7 @@
 /**
  * ETA Module
  *
- * Provides ETA estimation capabilities for Voxly.
+ * Provides ETA estimation capabilities for CloseLoop.
  * Step 1: Baseline estimation with safe ranges
  * Step 2: Mapbox provider integration with caching
  */

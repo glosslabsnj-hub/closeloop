@@ -191,15 +191,15 @@ export function getGapTypeLabel(gapType: string): string {
  */
 export function getGapTypeDeepLink(gapType: string): string {
   const links: Record<string, string> = {
-    missing_policy: "/app/settings",
-    missing_pricing: "/app/services",
-    missing_service_area: "/app/settings",
-    unanswered_question: "/app/business-brain",
-    missing_hours: "/app/settings",
-    missing_faq: "/app/business-brain",
-    other: "/app/business-brain",
+    missing_policy: "/app/business-brain?section=training&item=policies",
+    missing_pricing: "/app/business-brain?section=services&item=catalog",
+    missing_service_area: "/app/business-brain?section=operations&item=coverage",
+    unanswered_question: "/app/business-brain?section=training&item=faqs",
+    missing_hours: "/app/business-brain?section=about&item=business-hours",
+    missing_faq: "/app/business-brain?section=training&item=faqs",
+    other: "/app/business-brain?section=training",
   };
-  return links[gapType] || "/app/settings";
+  return links[gapType] || "/app/business-brain";
 }
 
 /**

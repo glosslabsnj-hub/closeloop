@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { 
   Clock, 
@@ -42,6 +42,8 @@ export default function ReservationsPage() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newRes, setNewRes] = useState({ customer_name: "", customer_phone: "", date: "", time: "", party_size: "2" });
+  const [isCreating, setIsCreating] = useState(false);
 
   const { data: reservations, isLoading } = useQuery({
     queryKey: ["reservations", tenant?.id],
@@ -86,9 +88,34 @@ export default function ReservationsPage() {
     r.status !== "completed" && r.status !== "cancelled" && r.status !== "no_show"
   ) || [];
 
-  const filteredReservations = reservations?.filter(r => 
+  const filteredReservations = reservations?.filter(r =>
     statusFilter === "all" || r.status === statusFilter
   ) || [];
+
+  const handleCreateReservation = async () => {
+    if (!tenant?.id || !newRes.customer_name.trim() || !newRes.date || !newRes.time) return;
+    setIsCreating(true);
+    try {
+      const { error } = await supabase.from("reservations").insert({
+        tenant_id: tenant.id,
+        customer_name: newRes.customer_name,
+        customer_phone: newRes.customer_phone || null,
+        reservation_date: newRes.date,
+        reservation_time: newRes.time,
+        party_size: parseInt(newRes.party_size) || 2,
+        status: "pending" as any,
+      });
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["reservations"] });
+      toast({ title: "Reservation created" });
+      setIsDialogOpen(false);
+      setNewRes({ customer_name: "", customer_phone: "", date: "", time: "", party_size: "2" });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Error", description: err.message });
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
   // Show loading while checking module access
   if (moduleLoading || !isAllowed) {
@@ -272,6 +299,73 @@ export default function ReservationsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* New Reservation Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New Reservation</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="res-name">Customer Name</Label>
+              <Input
+                id="res-name"
+                placeholder="Customer name"
+                value={newRes.customer_name}
+                onChange={(e) => setNewRes(prev => ({ ...prev, customer_name: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="res-phone">Phone (optional)</Label>
+              <Input
+                id="res-phone"
+                placeholder="(555) 123-4567"
+                value={newRes.customer_phone}
+                onChange={(e) => setNewRes(prev => ({ ...prev, customer_phone: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="res-date">Date</Label>
+                <Input
+                  id="res-date"
+                  type="date"
+                  value={newRes.date}
+                  onChange={(e) => setNewRes(prev => ({ ...prev, date: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="res-time">Time</Label>
+                <Input
+                  id="res-time"
+                  type="time"
+                  value={newRes.time}
+                  onChange={(e) => setNewRes(prev => ({ ...prev, time: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="res-party">Party Size</Label>
+              <Input
+                id="res-party"
+                type="number"
+                min="1"
+                max="50"
+                value={newRes.party_size}
+                onChange={(e) => setNewRes(prev => ({ ...prev, party_size: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateReservation} disabled={isCreating || !newRes.customer_name.trim() || !newRes.date || !newRes.time}>
+              {isCreating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Create Reservation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

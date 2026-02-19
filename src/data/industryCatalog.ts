@@ -1,5 +1,5 @@
 /**
- * Industry Catalog for Voxly
+ * Industry Catalog for CloseLoop
  *
  * This file defines 100+ industries using a template family approach:
  * - Base templates define shared configurations per business mode
@@ -1057,8 +1057,8 @@ export const industryCatalog: IndustryCatalogEntry[] = [
   },
   {
     ...dispatchBase as IndustryCatalogEntry,
-    slug: 'junk_removal',
-    name: 'Junk Removal',
+    slug: 'junk_removal_dispatch',
+    name: 'Junk Removal (Dispatch)',
     icon: '🗑️',
     tags: ['junk removal', 'hauling', 'trash', 'debris', 'cleanout'],
     services: [
@@ -1077,8 +1077,8 @@ export const industryCatalog: IndustryCatalogEntry[] = [
   },
   {
     ...dispatchBase as IndustryCatalogEntry,
-    slug: 'locksmith',
-    name: 'Locksmith',
+    slug: 'locksmith_dispatch',
+    name: 'Locksmith (Dispatch)',
     icon: '🔐',
     tags: ['locksmith', 'locks', 'keys', 'lockout', 'security'],
     services: [
