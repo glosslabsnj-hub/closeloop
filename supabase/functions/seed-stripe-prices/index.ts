@@ -4,19 +4,14 @@
  * Admin-only edge function that idempotently creates the CloseLoop
  * Stripe Product + 4 recurring Price objects with plan_code metadata.
  *
- * Auth: x-admin-secret header (requireAdminSecret)
+ * Auth: JWT (super_admin role) OR x-admin-secret header
  * Method: POST
  * Returns: { results: { sku, status: "created"|"exists", price_id }[] }
  */
 
 import { corsResponse, errorResponse, jsonResponse } from "../_shared/cors.ts";
-import { requireAdminSecret } from "../_shared/tenant.ts";
-
-const corsHeadersWithAdmin: Record<string, string> = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-admin-secret",
-};
+import { requireAdminSecret, serviceClient } from "../_shared/tenant.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const PRODUCT_KEY = "closeloop_ai_receptionist";
 const PRODUCT_NAME = "CloseLoop AI Voice Receptionist";
@@ -87,7 +82,35 @@ Deno.serve(async (req) => {
   }
 
   try {
-    requireAdminSecret(req);
+    // Auth: accept either x-admin-secret header OR JWT from a super_admin user
+    const adminSecret = req.headers.get("x-admin-secret");
+    if (adminSecret) {
+      requireAdminSecret(req);
+    } else {
+      // JWT auth — verify user is super_admin
+      const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+      const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+      const auth = req.headers.get("authorization") || "";
+      const token = auth.replace(/^Bearer\s+/i, "");
+      if (!token) throw new Error("Forbidden: no credentials provided");
+
+      const anon = createClient(SUPABASE_URL, ANON_KEY, {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+        auth: { persistSession: false },
+      });
+      const { data: userData, error: userErr } = await anon.auth.getUser();
+      if (userErr || !userData?.user?.id) throw new Error("Forbidden: invalid token");
+
+      const svc = serviceClient();
+      const { data: roleData } = await svc
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userData.user.id)
+        .eq("role", "super_admin")
+        .maybeSingle();
+
+      if (!roleData) throw new Error("Forbidden: super_admin role required");
+    }
 
     const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
     if (!STRIPE_SECRET_KEY) {

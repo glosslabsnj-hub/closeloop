@@ -1,10 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Building2, Users, DollarSign, TrendingUp, FileText, Headset, Loader2, ExternalLink, Users2, Rocket } from "lucide-react";
+import { Building2, Users, DollarSign, TrendingUp, FileText, Headset, Loader2, ExternalLink, Users2, Rocket, CreditCard, CheckCircle2, AlertCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { useState } from "react";
 import {
   useAdminDashboardStats,
   useActiveClients,
@@ -23,6 +26,39 @@ export default function AdminDashboardPage() {
   const { data: pending } = usePendingActions();
   const { data: growthSettings } = useAdminGrowthSettings();
   const { data: outreachCampaigns } = useOutreachCampaigns();
+  const { toast } = useToast();
+  const [seedingPrices, setSeedingPrices] = useState(false);
+  const [seedResult, setSeedResult] = useState<{ status: "success" | "error"; message: string } | null>(null);
+
+  const handleSeedStripePrices = async () => {
+    setSeedingPrices(true);
+    setSeedResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("seed-stripe-prices", {
+        body: {},
+      });
+      if (error) throw new Error(error.message || "Function call failed");
+      if (data?.error) throw new Error(data.error);
+
+      const results = data?.results || [];
+      const created = results.filter((r: { status: string }) => r.status === "created").length;
+      const existing = results.filter((r: { status: string }) => r.status === "exists").length;
+      const errors = results.filter((r: { status: string }) => r.status.startsWith("error")).length;
+
+      const message = `${created} created, ${existing} already existed${errors ? `, ${errors} errors` : ""}`;
+      setSeedResult({ status: errors ? "error" : "success", message });
+      toast({
+        title: errors ? "Stripe prices seeded with errors" : "Stripe prices seeded",
+        description: message,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      setSeedResult({ status: "error", message: msg });
+      toast({ title: "Failed to seed Stripe prices", description: msg, variant: "destructive" });
+    } finally {
+      setSeedingPrices(false);
+    }
+  };
 
   const handleManageClient = async (tenantId: string) => {
     await setActiveTenantId(tenantId);
@@ -190,6 +226,43 @@ export default function AdminDashboardPage() {
                 <p className="text-xs text-muted-foreground">{card.label}</p>
               </div>
             ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Stripe Setup */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Stripe Setup
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Create the 4 subscription price tiers in Stripe (Base, Growth, Scale, Power). Safe to run multiple times — skips prices that already exist.
+          </p>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={handleSeedStripePrices}
+              disabled={seedingPrices}
+              size="sm"
+            >
+              {seedingPrices ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Seeding Prices...
+                </>
+              ) : (
+                "Seed Stripe Prices"
+              )}
+            </Button>
+            {seedResult && (
+              <span className={`text-sm flex items-center gap-1 ${seedResult.status === "success" ? "text-green-600" : "text-red-600"}`}>
+                {seedResult.status === "success" ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                {seedResult.message}
+              </span>
+            )}
           </div>
         </CardContent>
       </Card>
