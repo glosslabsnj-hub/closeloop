@@ -3638,6 +3638,109 @@ export type Database = {
           },
         ]
       }
+      demo_phone_numbers: {
+        Row: {
+          active_demo_profile_id: string | null
+          created_at: string
+          id: string
+          owner_id: string
+          owner_type: string
+          phone_e164: string
+          twilio_sid: string
+        }
+        Insert: {
+          active_demo_profile_id?: string | null
+          created_at?: string
+          id?: string
+          owner_id: string
+          owner_type?: string
+          phone_e164: string
+          twilio_sid?: string
+        }
+        Update: {
+          active_demo_profile_id?: string | null
+          created_at?: string
+          id?: string
+          owner_id?: string
+          owner_type?: string
+          phone_e164?: string
+          twilio_sid?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demo_phone_numbers_active_demo_profile_id_fkey"
+            columns: ["active_demo_profile_id"]
+            isOneToOne: false
+            referencedRelation: "demo_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      demo_profiles: {
+        Row: {
+          address: string | null
+          agency_id: string | null
+          business_mode: string
+          business_name: string
+          created_at: string
+          description: string
+          faqs_json: Json
+          hours_json: Json
+          id: string
+          industry: string
+          is_active: boolean
+          owner_id: string
+          owner_type: string
+          phone_extracted: string | null
+          services_json: Json
+          website_url: string
+        }
+        Insert: {
+          address?: string | null
+          agency_id?: string | null
+          business_mode?: string
+          business_name: string
+          created_at?: string
+          description?: string
+          faqs_json?: Json
+          hours_json?: Json
+          id?: string
+          industry?: string
+          is_active?: boolean
+          owner_id: string
+          owner_type?: string
+          phone_extracted?: string | null
+          services_json?: Json
+          website_url: string
+        }
+        Update: {
+          address?: string | null
+          agency_id?: string | null
+          business_mode?: string
+          business_name?: string
+          created_at?: string
+          description?: string
+          faqs_json?: Json
+          hours_json?: Json
+          id?: string
+          industry?: string
+          is_active?: boolean
+          owner_id?: string
+          owner_type?: string
+          phone_extracted?: string | null
+          services_json?: Json
+          website_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demo_profiles_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dispatch_coverage_zones: {
         Row: {
           available_24_7: boolean | null

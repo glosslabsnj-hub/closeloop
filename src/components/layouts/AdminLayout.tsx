@@ -28,6 +28,7 @@ import {
   Megaphone,
   Rocket,
   DollarSign,
+  Presentation,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
@@ -63,6 +64,7 @@ const navSections: NavSection[] = [
     label: "OPS",
     items: [
       { href: "/admin/demo-library", label: "Demo Library", icon: Music },
+      { href: "/admin/demos", label: "Demo Accounts", icon: Presentation },
       { href: "/admin/golden-path", label: "Golden Path QA", icon: ClipboardCheck },
       { href: "/admin/support", label: "Support", icon: HeadphonesIcon },
       { href: "/admin/agency-applications", label: "Applications", icon: FileText },
