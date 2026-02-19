@@ -17,12 +17,7 @@ export function PublicLayout() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-8">
-            <a
-              href="#features"
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Features
-            </a>
+
             <Link
               to="/pricing"
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
@@ -75,7 +70,7 @@ export function PublicLayout() {
             <div>
               <p className="text-sm font-semibold mb-4">Product</p>
               <ul className="space-y-2.5 text-sm text-muted-foreground">
-                <li><a href="#features" className="hover:text-foreground transition-colors">Features</a></li>
+                
                 <li><Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link></li>
                 <li><a href="#demo" className="hover:text-foreground transition-colors">Demo</a></li>
               </ul>
