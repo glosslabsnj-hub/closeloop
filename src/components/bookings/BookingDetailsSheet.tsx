@@ -268,19 +268,19 @@ export function BookingDetailsSheet({
                 {booking.status === "completed" && (
                   <TimelineItem
                     label="Completed"
-                    date={(booking as any).completed_at || booking.updated_at}
+                    date={(booking as any).completed_at || (booking as any).updated_at}
                   />
                 )}
                 {booking.status === "canceled" && (
                   <TimelineItem
                     label="Cancelled"
-                    date={booking.updated_at}
+                    date={(booking as any).updated_at}
                   />
                 )}
                 {booking.status === "no_show" && (
                   <TimelineItem
                     label="No-show"
-                    date={booking.updated_at}
+                    date={(booking as any).updated_at}
                   />
                 )}
               </div>

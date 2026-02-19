@@ -85,7 +85,7 @@ export function useOrderMutations() {
     }) => {
       if (!tenant?.id) throw new Error("No tenant");
       const orderNum = `ORD-${Date.now().toString(36).toUpperCase()}`;
-      const { data: order, error } = await supabase
+      const { data: order, error } = await (supabase as any)
         .from("food_orders")
         .insert({
           tenant_id: tenant.id,
@@ -95,7 +95,7 @@ export function useOrderMutations() {
           order_type: data.order_type,
           items_json: data.items_json as any,
           special_instructions: data.special_instructions || null,
-          status: "pending" as OrderStatus,
+          status: "pending",
         })
         .select()
         .single();
