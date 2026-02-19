@@ -165,6 +165,7 @@ export const HUB_STEPS: HubStep[] = [
       "Collects required info from every caller",
       "Answers payment and cancellation questions",
     ],
+    hiddenWhenCallbackOnly: true,
   },
   {
     id: "ai-setup",

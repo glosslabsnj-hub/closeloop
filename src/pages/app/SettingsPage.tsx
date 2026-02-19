@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,7 +47,7 @@ import { useModuleEnabled, useTenantConfig } from "@/hooks/useTenantConfig";
 import { useCapabilities } from "@/hooks/useCapabilities";
 
 export default function SettingsPage() {
-  const { user, signOut, tenant } = useAuth();
+  const { user, signOut, tenant, isSuperAdmin } = useAuth();
   const { toast } = useToast();
   const { isFoodMode } = useFoodMode();
   const { hipaaMode } = useTenantConfig();
@@ -54,7 +55,22 @@ export default function SettingsPage() {
   const isBookingEnabled = useModuleEnabled("booking");
   const isDispatchEnabled = useModuleEnabled("dispatch_queue");
   const isMedicalMode = useModuleEnabled("medical_intake");
-  const { hasReferralNetwork } = useCapabilities();
+  const { hasReferralNetwork, hasLeadFollowUp } = useCapabilities();
+
+  // Check if tenant has any call data
+  const { data: hasCallData } = useQuery({
+    queryKey: ["has-call-data", tenant?.id],
+    queryFn: async () => {
+      if (!tenant?.id) return false;
+      const { count } = await supabase
+        .from("ai_call_sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", tenant.id)
+        .limit(1);
+      return (count || 0) > 0;
+    },
+    enabled: !!tenant?.id,
+  });
 
   // Default to first available section
   const [activeSection, setActiveSection] = useState("team");
@@ -67,8 +83,6 @@ export default function SettingsPage() {
     if (!inviteEmail || !tenant?.id) return;
     setInviteSending(true);
     try {
-      // Insert a pending invite record into tenant_users with the invited email
-      // The invited user will be linked when they sign up or if they already exist
       const { error } = await (supabase as any)
         .from("tenant_users")
         .insert({
@@ -78,7 +92,6 @@ export default function SettingsPage() {
         });
 
       if (error) {
-        // If the table doesn't support invited_email, fall back to a toast-only flow
         if (error.message.includes("invited_email") || error.code === "42703") {
           toast({
             title: "Invite sent",
@@ -108,8 +121,10 @@ export default function SettingsPage() {
     showBookingDelivery: isBookingEnabled,
     showDispatchDelivery: isDispatchEnabled,
     showFoodSettings: isFoodMode,
-    showRecovery: !isDispatchMode, // Lead Recovery not relevant for dispatch businesses
+    showRecovery: hasLeadFollowUp,
     showReferralNetwork: hasReferralNetwork,
+    hasCallData: hasCallData ?? false,
+    isSuperAdmin,
   };
 
   // Simplified section metadata

@@ -26,6 +26,8 @@ export interface SettingsNavConfig {
   showFoodSettings: boolean;
   showRecovery: boolean;
   showReferralNetwork: boolean;
+  hasCallData?: boolean;
+  isSuperAdmin?: boolean;
 }
 
 interface SettingsSidebarProps {
@@ -65,7 +67,7 @@ export function SettingsSidebar({ activeSection, onSectionChange, config, comple
       items: [
         { id: "team", label: "Team Members", icon: Users },
         { id: "plan", label: "Plan & Billing", icon: CreditCard },
-        { id: "revenue", label: "Revenue Tracking", icon: DollarSign },
+        { id: "revenue", label: "Revenue Tracking", icon: DollarSign, visible: config.hasCallData === true },
       ],
     },
     {
@@ -91,7 +93,7 @@ export function SettingsSidebar({ activeSection, onSectionChange, config, comple
       label: "AI Features",
       colorClass: "text-emerald-500",
       items: [
-        { id: "sms", label: "SMS Messaging", icon: MessageSquare },
+        { id: "sms", label: "SMS Messaging (Coming Soon)", icon: MessageSquare },
         { id: "recovery", label: "Lead Recovery", icon: RefreshCw, visible: config.showRecovery },
         { id: "referral-network", label: "Referral Network", icon: Network, visible: config.showReferralNetwork },
       ],
@@ -157,31 +159,33 @@ export function SettingsSidebar({ activeSection, onSectionChange, config, comple
           );
         })}
 
-        {/* Advanced Section - Collapsible */}
-        <Collapsible open={advancedOpen || activeSection === "developer" || activeSection === "danger"} onOpenChange={setAdvancedOpen}>
-          <CollapsibleTrigger className="flex items-center gap-2 w-full px-3 py-1.5 text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider hover:text-foreground transition-colors">
-            {advancedOpen || activeSection === "developer" || activeSection === "danger" ? (
-              <ChevronDown className="h-3 w-3" />
-            ) : (
-              <ChevronRight className="h-3 w-3" />
-            )}
-            Advanced
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-1 pt-1">
-            <SettingsNavItem
-              icon={Bug}
-              label="Developer Tools"
-              isActive={activeSection === "developer"}
-              onClick={() => onSectionChange("developer")}
-            />
-            <SettingsNavItem
-              icon={AlertTriangle}
-              label="Danger Zone"
-              isActive={activeSection === "danger"}
-              onClick={() => onSectionChange("danger")}
-            />
-          </CollapsibleContent>
-        </Collapsible>
+        {/* Advanced Section - Only for super admins */}
+        {config.isSuperAdmin && (
+          <Collapsible open={advancedOpen || activeSection === "developer" || activeSection === "danger"} onOpenChange={setAdvancedOpen}>
+            <CollapsibleTrigger className="flex items-center gap-2 w-full px-3 py-1.5 text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider hover:text-foreground transition-colors">
+              {advancedOpen || activeSection === "developer" || activeSection === "danger" ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+              Advanced
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-1 pt-1">
+              <SettingsNavItem
+                icon={Bug}
+                label="Developer Tools"
+                isActive={activeSection === "developer"}
+                onClick={() => onSectionChange("developer")}
+              />
+              <SettingsNavItem
+                icon={AlertTriangle}
+                label="Danger Zone"
+                isActive={activeSection === "danger"}
+                onClick={() => onSectionChange("danger")}
+              />
+            </CollapsibleContent>
+          </Collapsible>
+        )}
       </nav>
     </aside>
   );
