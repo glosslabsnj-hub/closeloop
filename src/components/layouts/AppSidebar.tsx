@@ -201,10 +201,24 @@ export function AppSidebar({
     );
   };
 
-  // Agency-only users get a minimal sidebar
+  // Agency-only users get a full agency-optimized sidebar
   if (isAgencyOnly) {
-    const agencyOnlyItems: NavItem[] = [
+    const agencyCoreItems: NavItem[] = [
       { href: "/app/agency", label: "Dashboard", icon: <LayoutDashboard className={iconClass} /> },
+      { href: "/app/agency", label: "Clients", icon: <Building2 className={iconClass} /> },
+    ];
+
+    const agencyGrowthItems: NavItem[] = [
+      { href: "/app/agency", label: "Lead Finder", icon: <UserSearch className={iconClass} /> },
+      { href: "/app/agency", label: "Saved Leads", icon: <Users className={iconClass} /> },
+    ];
+
+    const agencyBusinessItems: NavItem[] = [
+      { href: "/app/agency", label: "Commissions", icon: <DollarSign className={iconClass} /> },
+      { href: "/app/agency", label: "Reports", icon: <BarChart3 className={iconClass} /> },
+    ];
+
+    const agencyManageItems: NavItem[] = [
       { href: "/app/settings", label: "Settings", icon: <Settings className={iconClass} /> },
     ];
 
@@ -212,11 +226,32 @@ export function AppSidebar({
       <AnimatedSidebar open={open} setOpen={setOpen}>
         <SidebarBody className="justify-between gap-6">
           <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
+            {/* CORE */}
             {open && <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/40 px-3 pt-1 pb-1">Agency</p>}
             <div className="flex flex-col gap-0.5">
-              {agencyOnlyItems.map(renderLink)}
+              {agencyCoreItems.map(renderLink)}
+            </div>
+
+            {/* GROWTH */}
+            {open && <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/40 px-3 pt-4 pb-1">Growth</p>}
+            <div className={cn("flex flex-col gap-0.5", !open && "mt-4")}>
+              {agencyGrowthItems.map(renderLink)}
+            </div>
+
+            {/* BUSINESS */}
+            {open && <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/40 px-3 pt-4 pb-1">Business</p>}
+            <div className={cn("flex flex-col gap-0.5", !open && "mt-4")}>
+              {agencyBusinessItems.map(renderLink)}
+            </div>
+
+            {/* MANAGE */}
+            {open && <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/40 px-3 pt-4 pb-1">Manage</p>}
+            <div className={cn("flex flex-col gap-0.5", !open && "mt-4")}>
+              {agencyManageItems.map(renderLink)}
             </div>
           </div>
+
+          {/* Bottom */}
           <div className="flex flex-col gap-0.5">
             {bottomItems.map(renderLink)}
           </div>
