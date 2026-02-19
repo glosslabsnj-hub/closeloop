@@ -22,6 +22,7 @@ import {
 } from "@/hooks/useAgencyLeads";
 
 const INDUSTRY_OPTIONS = [
+  { value: "all", label: "All Industries (Top 10)" },
   { value: "towing", label: "Towing" },
   { value: "plumber", label: "Plumber" },
   { value: "hvac", label: "HVAC" },
