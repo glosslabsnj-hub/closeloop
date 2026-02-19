@@ -296,6 +296,23 @@ export function GrowthSettingsPanel({ open, onClose }: GrowthSettingsPanelProps)
             </CardContent>
           </Card>
 
+          {/* Links */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Outreach Links</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <Label className="text-xs">Demo Link (used in {"{{demo_link}}"} token)</Label>
+                <Input value={form.demo_link ?? "https://closeloop.ai"} onChange={(e) => update("demo_link", e.target.value)} className="h-8 text-sm mt-1" placeholder="https://closeloop.ai" />
+              </div>
+              <div>
+                <Label className="text-xs">Trial Link (used in {"{{trial_link}}"} token)</Label>
+                <Input value={form.trial_link ?? "https://closeloop.ai/signup"} onChange={(e) => update("trial_link", e.target.value)} className="h-8 text-sm mt-1" placeholder="https://closeloop.ai/signup" />
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Notifications */}
           <Card>
             <CardHeader className="pb-3">

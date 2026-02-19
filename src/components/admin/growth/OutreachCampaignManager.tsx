@@ -6,13 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Users, MessageSquare, CheckCircle2, Loader2, Pause, Play } from "lucide-react";
+import { Plus, Users, MessageSquare, CheckCircle2, Loader2, Pause, Play, Trophy } from "lucide-react";
 import {
   useOutreachCampaigns,
   useOutreachSequences,
   useCreateOutreachCampaign,
   useUpdateOutreachCampaign,
   useOutreachEnrollments,
+  useMarkConverted,
   type OutreachCampaign,
 } from "@/hooks/useAdminOutreach";
 import { OutreachActivityLog } from "./OutreachActivityLog";
@@ -172,6 +173,7 @@ export function OutreachCampaignManager() {
 
 function CampaignDetail({ campaign }: { campaign: OutreachCampaign }) {
   const { data: enrollments, isLoading } = useOutreachEnrollments(campaign.id);
+  const markConverted = useMarkConverted();
   const [view, setView] = useState<"enrollments" | "activity">("enrollments");
 
   return (
@@ -204,16 +206,43 @@ function CampaignDetail({ campaign }: { campaign: OutreachCampaign }) {
           <div className="space-y-1 max-h-60 overflow-y-auto">
             {enrollments.map((e) => (
               <div key={e.id} className="flex items-center justify-between text-xs py-1.5 px-2 rounded bg-muted/50">
-                <div>
+                <div className="flex items-center gap-2">
                   <span className="font-medium">{e.lead_name}</span>
-                  <span className="text-muted-foreground ml-2">Step {e.current_step}</span>
+                  <span className="text-muted-foreground">Step {e.current_step}</span>
+                  {e.response_sentiment && (
+                    <Badge variant="outline" className={`text-[9px] ${
+                      e.response_sentiment === "positive" ? "text-green-700 border-green-300" :
+                      e.response_sentiment === "negative" ? "text-red-700 border-red-300" :
+                      "text-yellow-700 border-yellow-300"
+                    }`}>
+                      {e.response_sentiment}
+                    </Badge>
+                  )}
                 </div>
-                <Badge
-                  variant={e.status === "responded" ? "default" : e.status === "active" ? "secondary" : "outline"}
-                  className="text-[10px]"
-                >
-                  {e.status}
-                </Badge>
+                <div className="flex items-center gap-1">
+                  {(e.status === "responded" || e.status === "completed") && e.status !== "converted" && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      title="Mark as converted"
+                      onClick={() => markConverted.mutate(e.id)}
+                      disabled={markConverted.isPending}
+                    >
+                      <Trophy className="h-3 w-3 text-amber-500" />
+                    </Button>
+                  )}
+                  <Badge
+                    variant={
+                      e.status === "converted" ? "default" :
+                      e.status === "responded" ? "default" :
+                      e.status === "active" ? "secondary" : "outline"
+                    }
+                    className={`text-[10px] ${e.status === "converted" ? "bg-emerald-500 text-white" : ""}`}
+                  >
+                    {e.status}
+                  </Badge>
+                </div>
               </div>
             ))}
           </div>

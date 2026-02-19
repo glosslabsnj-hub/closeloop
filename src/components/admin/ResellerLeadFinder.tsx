@@ -75,7 +75,20 @@ export function ResellerLeadFinder() {
     if (!defaultResellerCampaign) { toast.error("No active reseller campaign. Create one in Growth Engine."); return; }
     enrollLeads.mutate({
       campaign_id: defaultResellerCampaign.id,
-      leads: [{ lead_id: lead.id, lead_type: "reseller", lead_name: lead.name, lead_email: undefined, lead_phone: lead.phone || undefined }],
+      leads: [{
+        lead_id: lead.id,
+        lead_type: "reseller",
+        lead_name: lead.name,
+        lead_email: (lead as any).email || undefined,
+        lead_phone: lead.phone || undefined,
+        lead_metadata: {
+          industry: (lead as any).company_type || "",
+          friction_signals: lead.partnership_signals || [],
+          score: lead.score || 0,
+          score_reasons: lead.score_reasons || [],
+          website: lead.website || "",
+        },
+      }],
     });
   };
 

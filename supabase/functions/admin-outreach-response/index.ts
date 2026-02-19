@@ -69,22 +69,33 @@ Deno.serve(async (req) => {
       })
       .eq("id", enrollment.id);
 
-    // Update campaign response count
-    await supabase
-      .from("admin_outreach_campaigns")
-      .update({
-        total_responded: (enrollment.campaign_id ? undefined : 0),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", enrollment.campaign_id);
-
-    // Increment response count via raw SQL since we need atomic increment
-    await supabase.rpc("admin_increment_campaign_responded" as any, {
+    // Atomically increment campaign response count
+    await supabase.rpc("admin_increment_campaign_responded", {
       p_campaign_id: enrollment.campaign_id,
-    }).catch(() => {
-      // Fallback
-      console.log("[outreach-response] RPC not available, skipping count update");
+    }).catch((err: any) => {
+      console.error("[outreach-response] Failed to increment campaign responded:", err);
     });
+
+    // Track sequence-level response rate
+    if (enrollment.current_step > 0) {
+      const { data: camp } = await supabase
+        .from("admin_outreach_campaigns")
+        .select("sequence_id")
+        .eq("id", enrollment.campaign_id)
+        .maybeSingle();
+
+      if (camp?.sequence_id) {
+        await supabase.rpc("admin_increment_sequence_responded", {
+          p_sequence_id: camp.sequence_id,
+        }).catch(() => {});
+
+        // Track which step triggered the response
+        await supabase.rpc("admin_increment_step_responded", {
+          p_sequence_id: camp.sequence_id,
+          p_step_order: enrollment.current_step,
+        }).catch(() => {});
+      }
+    }
 
     // Log activity
     await supabase.from("admin_growth_activity_log").insert({

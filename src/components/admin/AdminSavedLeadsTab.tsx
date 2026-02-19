@@ -37,11 +37,26 @@ export function AdminSavedLeadsTab({ leads, userId }: AdminSavedLeadsTabProps) {
   const { data: campaigns } = useOutreachCampaigns();
   const defaultCampaign = (campaigns ?? []).find((c) => c.target_type === "business" && c.status === "active");
 
+  const buildLeadMeta = (lead: AdminSavedLead) => ({
+    industry: lead.industry || "",
+    friction_signals: lead.friction_signals || [],
+    score: lead.score || 0,
+    score_reasons: lead.score_reasons || lead.friction_signals || [],
+    website: lead.website || "",
+  });
+
   const handleStartOutreach = (lead: AdminSavedLead) => {
     if (!defaultCampaign) { toast.error("No active business campaign. Create one in Growth Engine."); return; }
     enrollLeads.mutate({
       campaign_id: defaultCampaign.id,
-      leads: [{ lead_id: lead.id, lead_type: "business", lead_name: lead.name, lead_email: undefined, lead_phone: lead.phone || undefined }],
+      leads: [{
+        lead_id: lead.id,
+        lead_type: "business",
+        lead_name: lead.name,
+        lead_email: lead.email || undefined,
+        lead_phone: lead.phone || undefined,
+        lead_metadata: buildLeadMeta(lead),
+      }],
     });
   };
 
@@ -51,7 +66,14 @@ export function AdminSavedLeadsTab({ leads, userId }: AdminSavedLeadsTabProps) {
     if (!toEnroll.length) { toast.info("No new leads to enroll"); return; }
     enrollLeads.mutate({
       campaign_id: defaultCampaign.id,
-      leads: toEnroll.map((l) => ({ lead_id: l.id, lead_type: "business", lead_name: l.name, lead_email: undefined, lead_phone: l.phone || undefined })),
+      leads: toEnroll.map((l) => ({
+        lead_id: l.id,
+        lead_type: "business",
+        lead_name: l.name,
+        lead_email: l.email || undefined,
+        lead_phone: l.phone || undefined,
+        lead_metadata: buildLeadMeta(l),
+      })),
     });
   };
 

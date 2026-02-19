@@ -12,6 +12,11 @@ export interface AdminSocialPost {
   status: string;
   external_post_id: string | null;
   notes: string | null;
+  likes: number;
+  comments: number;
+  shares: number;
+  impressions: number;
+  clicks: number;
   created_at: string;
   updated_at: string;
 }

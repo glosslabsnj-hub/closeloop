@@ -9,6 +9,7 @@ interface EnrollRequest {
     lead_name: string;
     lead_email?: string;
     lead_phone?: string;
+    lead_metadata?: Record<string, any>;
   }>;
 }
 
@@ -65,7 +66,7 @@ Deno.serve(async (req) => {
     const initialDelay = (firstStep?.delay_hours || 0) * 3600_000;
     const nextActionAt = new Date(Date.now() + initialDelay).toISOString();
 
-    // Build enrollment rows
+    // Build enrollment rows (include lead_metadata for personalization context)
     const rows = leads.map((lead) => ({
       campaign_id,
       lead_type: lead.lead_type,
@@ -73,6 +74,7 @@ Deno.serve(async (req) => {
       lead_name: lead.lead_name,
       lead_email: lead.lead_email || null,
       lead_phone: lead.lead_phone || null,
+      lead_metadata: lead.lead_metadata || {},
       status: "active",
       current_step: 0,
       next_action_at: nextActionAt,

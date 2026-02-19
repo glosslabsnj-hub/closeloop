@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
     const { enrollment_id }: ExecuteRequest = await req.json();
     if (!enrollment_id) return errorResponse("missing enrollment_id", 400);
 
-    // Load enrollment
+    // Load enrollment (including lead_metadata for personalization)
     const { data: enrollment, error: enrollErr } = await supabase
       .from("admin_outreach_enrollments")
       .select("*")
@@ -106,16 +106,29 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true, action: "skipped_responded" });
     }
 
-    // Resolve tokens
+    // Build rich context from lead_metadata for token resolution and personalization
+    const meta = enrollment.lead_metadata || {};
+    const frictionSignals: string[] = meta.friction_signals || [];
+    const industry: string = meta.industry || "";
+    const score: number = meta.score || 0;
+    const scoreReasons: string[] = meta.score_reasons || frictionSignals;
+    const website: string = meta.website || "";
+
+    // Build a smart reason_snippet from actual friction signals
+    const reasonSnippet = buildReasonSnippet(enrollment.lead_name, frictionSignals, industry);
+
+    // Resolve tokens with real lead data
     const fromName = settings?.outreach_from_name || "CloseLoop";
     const fromEmail = settings?.outreach_from_email || "hello@closeloop.ai";
-    let message = resolveTokens(step.message_template || "", enrollment, fromName);
-    let subject = resolveTokens(step.subject || "", enrollment, fromName);
+    const demoLink = settings?.demo_link || "https://closeloop.ai";
+    const trialLink = settings?.trial_link || "https://closeloop.ai/signup";
+    let message = resolveTokens(step.message_template || "", enrollment, fromName, reasonSnippet, demoLink, trialLink);
+    let subject = resolveTokens(step.subject || "", enrollment, fromName, reasonSnippet, demoLink, trialLink);
 
-    // AI personalization
+    // AI personalization with full lead context
     if (step.use_ai_personalization) {
       try {
-        const personalized = await personalizeWithAI(message, enrollment);
+        const personalized = await personalizeWithAI(message, enrollment, { industry, frictionSignals, score, scoreReasons, website });
         if (personalized) message = personalized;
       } catch (e) {
         console.error("[outreach-execute] AI personalization failed, using template:", e);
@@ -180,6 +193,18 @@ Deno.serve(async (req) => {
       external_message_id: externalMessageId,
     });
 
+    // Track step-level performance
+    if (deliveryStatus === "sent") {
+      await supabase.rpc("admin_increment_step_sent", {
+        p_sequence_id: campaign.sequence_id,
+        p_step_order: nextStepOrder,
+      }).catch(() => {});
+
+      await supabase.rpc("admin_increment_sequence_sent", {
+        p_sequence_id: campaign.sequence_id,
+      }).catch(() => {});
+    }
+
     // Advance enrollment
     const nextNextStep = await supabase
       .from("admin_outreach_sequence_steps")
@@ -224,19 +249,60 @@ Deno.serve(async (req) => {
   }
 });
 
-function resolveTokens(template: string, enrollment: any, fromName: string): string {
+function buildReasonSnippet(leadName: string, frictionSignals: string[], industry: string): string {
+  const snippets: string[] = [];
+
+  if (frictionSignals.includes("no_online_booking")) snippets.push("no online booking system");
+  if (frictionSignals.includes("poor_responsiveness")) snippets.push("slow phone response times");
+  if (frictionSignals.includes("small_team")) snippets.push("a small team handling all incoming calls");
+  if (frictionSignals.includes("high_volume")) snippets.push("high call volume that's hard to keep up with");
+  if (frictionSignals.includes("after_hours_demand")) snippets.push("customers calling after business hours");
+  if (frictionSignals.includes("growth_signals")) snippets.push("strong growth that could overwhelm phone capacity");
+
+  if (snippets.length > 0) {
+    return `we noticed ${leadName} has ${snippets.slice(0, 2).join(" and ")}`;
+  }
+
+  if (industry) {
+    return `we work with ${industry} businesses like ${leadName} to make sure every call gets answered`;
+  }
+
+  return `we noticed ${leadName} could benefit from AI phone answering`;
+}
+
+function resolveTokens(
+  template: string,
+  enrollment: any,
+  fromName: string,
+  reasonSnippet: string,
+  demoLink: string,
+  trialLink: string
+): string {
   return template
     .replace(/\{\{business_name\}\}/g, enrollment.lead_name || "your business")
     .replace(/\{\{from_name\}\}/g, fromName)
-    .replace(/\{\{reason_snippet\}\}/g, "we noticed your business could benefit from AI phone answering")
-    .replace(/\{\{demo_link\}\}/g, "https://closeloop.ai")
-    .replace(/\{\{trial_link\}\}/g, "https://closeloop.ai/signup")
-    .replace(/\{\{link\}\}/g, "https://closeloop.ai");
+    .replace(/\{\{reason_snippet\}\}/g, reasonSnippet)
+    .replace(/\{\{demo_link\}\}/g, demoLink)
+    .replace(/\{\{trial_link\}\}/g, trialLink)
+    .replace(/\{\{link\}\}/g, demoLink);
 }
 
-async function personalizeWithAI(message: string, enrollment: any): Promise<string | null> {
+async function personalizeWithAI(
+  message: string,
+  enrollment: any,
+  context: { industry: string; frictionSignals: string[]; score: number; scoreReasons: string[]; website: string }
+): Promise<string | null> {
   const apiKey = Deno.env.get("AI_GATEWAY_API_KEY");
   if (!apiKey) return null;
+
+  const contextLines = [
+    `Business: ${enrollment.lead_name}`,
+    context.industry ? `Industry: ${context.industry}` : null,
+    context.website ? `Website: ${context.website}` : null,
+    context.frictionSignals.length > 0 ? `Pain points: ${context.frictionSignals.join(", ")}` : null,
+    context.score ? `Lead score: ${context.score}/100` : null,
+    context.scoreReasons.length > 0 ? `Why they're a fit: ${context.scoreReasons.join(", ")}` : null,
+  ].filter(Boolean).join("\n");
 
   const res = await fetch("https://ai.gateway.lovable.dev/chat/completions", {
     method: "POST",
@@ -246,11 +312,11 @@ async function personalizeWithAI(message: string, enrollment: any): Promise<stri
       messages: [
         {
           role: "system",
-          content: "You personalize outreach messages. Keep the same structure and length but make it feel personally written for this specific business. Return ONLY the rewritten message, no quotes or explanation.",
+          content: `You personalize cold outreach messages for an AI phone receptionist SaaS called CloseLoop. Use the business context to make the message feel genuinely written for this specific business. Reference their industry, specific pain points, or situation naturally. Keep the same structure, length, and call-to-action. Return ONLY the rewritten message, no quotes or explanation.`,
         },
         {
           role: "user",
-          content: `Personalize this message for "${enrollment.lead_name}":\n\n${message}`,
+          content: `Business context:\n${contextLines}\n\nOriginal message:\n${message}`,
         },
       ],
       temperature: 0.7,

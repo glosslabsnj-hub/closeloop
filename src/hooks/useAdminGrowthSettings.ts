@@ -28,6 +28,11 @@ export interface AdminGrowthSettings {
   notification_email: string | null;
   notify_on_response: boolean;
   notify_on_conversion: boolean;
+  demo_link: string;
+  trial_link: string;
+  discovery_stats: Record<string, any>;
+  best_industries: string[];
+  best_locations: string[];
   created_at: string;
   updated_at: string;
 }

@@ -29,6 +29,11 @@ export function SocialPostEditor({ post, open, onOpenChange }: SocialPostEditorP
   const [status, setStatus] = useState("draft");
   const [scheduledFor, setScheduledFor] = useState("");
   const [hashtagInput, setHashtagInput] = useState("");
+  const [likes, setLikes] = useState(0);
+  const [comments, setComments] = useState(0);
+  const [shares, setShares] = useState(0);
+  const [impressions, setImpressions] = useState(0);
+  const [clicks, setClicks] = useState(0);
 
   useEffect(() => {
     if (post) {
@@ -36,6 +41,11 @@ export function SocialPostEditor({ post, open, onOpenChange }: SocialPostEditorP
       setStatus(post.status);
       setScheduledFor(post.scheduled_for ? new Date(post.scheduled_for).toISOString().slice(0, 16) : "");
       setHashtagInput((post.hashtags || []).join(" "));
+      setLikes(post.likes || 0);
+      setComments(post.comments || 0);
+      setShares(post.shares || 0);
+      setImpressions(post.impressions || 0);
+      setClicks(post.clicks || 0);
     }
   }, [post]);
 
@@ -49,6 +59,11 @@ export function SocialPostEditor({ post, open, onOpenChange }: SocialPostEditorP
         status,
         scheduled_for: scheduledFor ? new Date(scheduledFor).toISOString() : post.scheduled_for,
         hashtags: hashtagInput.split(/\s+/).filter(Boolean).map((h) => h.startsWith("#") ? h : `#${h}`),
+        likes,
+        comments,
+        shares,
+        impressions,
+        clicks,
       },
       { onSuccess: () => onOpenChange(false) }
     );
@@ -106,6 +121,34 @@ export function SocialPostEditor({ post, open, onOpenChange }: SocialPostEditorP
               </Select>
             </div>
           </div>
+          {status === "posted" && (
+            <div>
+              <Label className="text-xs font-medium">Engagement Metrics</Label>
+              <p className="text-[10px] text-muted-foreground mb-2">Enter metrics from the platform to track performance</p>
+              <div className="grid grid-cols-5 gap-2">
+                <div>
+                  <Label className="text-[10px]">Likes</Label>
+                  <Input type="number" value={likes} onChange={(e) => setLikes(Number(e.target.value))} className="h-7 text-xs mt-0.5" />
+                </div>
+                <div>
+                  <Label className="text-[10px]">Comments</Label>
+                  <Input type="number" value={comments} onChange={(e) => setComments(Number(e.target.value))} className="h-7 text-xs mt-0.5" />
+                </div>
+                <div>
+                  <Label className="text-[10px]">Shares</Label>
+                  <Input type="number" value={shares} onChange={(e) => setShares(Number(e.target.value))} className="h-7 text-xs mt-0.5" />
+                </div>
+                <div>
+                  <Label className="text-[10px]">Impressions</Label>
+                  <Input type="number" value={impressions} onChange={(e) => setImpressions(Number(e.target.value))} className="h-7 text-xs mt-0.5" />
+                </div>
+                <div>
+                  <Label className="text-[10px]">Clicks</Label>
+                  <Input type="number" value={clicks} onChange={(e) => setClicks(Number(e.target.value))} className="h-7 text-xs mt-0.5" />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>

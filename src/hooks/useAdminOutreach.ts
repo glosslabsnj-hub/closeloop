@@ -251,7 +251,7 @@ export function useOutreachEnrollments(campaignId: string | undefined) {
 export function useEnrollLeads() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: { campaign_id: string; leads: Array<{ lead_id: string; lead_type: string; lead_name: string; lead_email?: string; lead_phone?: string }> }) => {
+    mutationFn: async (body: { campaign_id: string; leads: Array<{ lead_id: string; lead_type: string; lead_name: string; lead_email?: string; lead_phone?: string; lead_metadata?: Record<string, any> }> }) => {
       const { data, error } = await supabase.functions.invoke("admin-outreach-enroll", { body });
       if (error) throw error;
       return data;
@@ -262,6 +262,27 @@ export function useEnrollLeads() {
       toast.success(`${data?.enrolled ?? 0} lead(s) enrolled`);
     },
     onError: () => toast.error("Failed to enroll leads"),
+  });
+}
+
+// ---- Conversion Tracking ----
+
+export function useMarkConverted() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (enrollmentId: string) => {
+      const { error } = await supabase.rpc("admin_mark_enrollment_converted" as any, {
+        p_enrollment_id: enrollmentId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-outreach-enrollments"] });
+      qc.invalidateQueries({ queryKey: ["admin-outreach-campaigns"] });
+      qc.invalidateQueries({ queryKey: ["admin-growth-activity-log"] });
+      toast.success("Lead marked as converted!");
+    },
+    onError: () => toast.error("Failed to mark conversion"),
   });
 }
 

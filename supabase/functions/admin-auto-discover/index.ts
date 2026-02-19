@@ -37,15 +37,25 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: false, error: "PERPLEXITY_API_KEY not configured" }, 500);
     }
 
+    // Look up real admin user ID so saved leads appear in admin's saved leads tab
+    const { data: adminRole } = await supabase
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "super_admin")
+      .limit(1)
+      .maybeSingle();
+
+    const adminUserId = adminRole?.user_id || "00000000-0000-0000-0000-000000000000";
+
     let totalDiscovered = 0;
     let totalSaved = 0;
     let totalAutoEnrolled = 0;
 
-    // Process each industry+location combo
-    const perCombo = Math.max(3, Math.ceil(maxPerRun / (industries.length * locations.length)));
+    // Smart prioritization: weight combos by past performance
+    const combos = buildWeightedCombos(industries, locations, settings.discovery_stats || {});
+    const perCombo = Math.max(3, Math.ceil(maxPerRun / combos.length));
 
-    for (const industry of industries) {
-      for (const location of locations) {
+    for (const { industry, location } of combos) {
         if (totalDiscovered >= maxPerRun) break;
 
         try {
@@ -62,9 +72,10 @@ Deno.serve(async (req) => {
             const rows = worthSaving.map((l: any) => {
               const score = scoreLead(l);
               return {
-                user_id: "00000000-0000-0000-0000-000000000000", // system user
+                user_id: adminUserId,
                 name: l.name,
                 phone: l.phone || null,
+                email: l.email || null,
                 website: l.website || null,
                 address: l.address || null,
                 industry,
@@ -90,7 +101,13 @@ Deno.serve(async (req) => {
 
             // Auto-enroll hot leads if outreach is enabled
             if (settings.auto_outreach_enabled) {
-              const hotLeads = (saved ?? []).filter((s: any) => s.temperature === "hot");
+              // Match saved leads back to original data for full metadata
+              const savedWithMeta = (saved ?? []).map((s: any) => {
+                const original = worthSaving.find((w: any) => w.name === s.name);
+                return { ...s, _original: original };
+              });
+
+              const hotLeads = savedWithMeta.filter((s: any) => s.temperature === "hot");
               if (hotLeads.length > 0) {
                 // Find default business campaign
                 const { data: defaultCampaign } = await supabase
@@ -109,7 +126,18 @@ Deno.serve(async (req) => {
                       lead_id: l.id,
                       lead_type: "business",
                       lead_name: l.name,
+                      lead_email: l._original?.email || null,
                       lead_phone: l.phone,
+                      lead_metadata: {
+                        industry,
+                        location,
+                        friction_signals: l._original?.friction_signals || [],
+                        score: l.score,
+                        score_reasons: l._original?.friction_signals || [],
+                        website: l._original?.website || null,
+                        rating: l._original?.rating || null,
+                        review_count: l._original?.review_count || null,
+                      },
                     })),
                   };
 
@@ -118,12 +146,18 @@ Deno.serve(async (req) => {
                 }
               }
             }
+
+            // Track discovery stats per industry+location
+            await supabase.rpc("admin_update_discovery_stats", {
+              p_industry: industry,
+              p_location: location,
+              p_found: leads.length,
+              p_enrolled: 0,
+            }).catch(() => {});
           }
         } catch (err) {
           console.error(`[auto-discover] Error for ${industry} in ${location}:`, err);
         }
-      }
-    }
 
     // Log activity
     await supabase.from("admin_growth_activity_log").insert({
@@ -156,7 +190,7 @@ async function searchLeads(apiKey: string, industry: string, location: string, c
       messages: [
         {
           role: "system",
-          content: `You are a B2B lead researcher. Find real local businesses matching the criteria. Return valid JSON array only, no markdown. Each object: {"name":"string","phone":"+1XXXXXXXXXX or null","website":"url or null","address":"string or null","rating":4.5,"review_count":123,"employee_estimate":"2-5","hours":"Mon-Fri 8am-5pm or null","reason":"2-3 sentence reason","friction_signals":["no_online_booking","small_team"],"confidence":"high|medium|low"}`,
+          content: `You are a B2B lead researcher. Find real local businesses matching the criteria. Return valid JSON array only, no markdown. Each object: {"name":"string","phone":"+1XXXXXXXXXX or null","email":"email@domain.com or null","website":"url or null","address":"string or null","rating":4.5,"review_count":123,"employee_estimate":"2-5","hours":"Mon-Fri 8am-5pm or null","reason":"2-3 sentence reason","friction_signals":["no_online_booking","small_team"],"confidence":"high|medium|low"}. Try to find email addresses from websites, Google Business profiles, or public listings.`,
         },
         {
           role: "user",
@@ -193,8 +227,58 @@ function scoreLead(lead: any): number {
 
   if (lead.rating && lead.rating >= 4.0 && lead.review_count >= 20) score += 5;
   if (lead.phone) score += 5;
+  if (lead.email) score += 5; // email availability = higher value lead
   if (lead.website) score += 5;
   if (lead.confidence === "high") score += 5;
 
   return Math.min(100, score);
+}
+
+/**
+ * Build weighted combos: high-performing industry+location pairs get more search slots.
+ * New/untested combos get a baseline. Low-performing ones still run but less frequently.
+ */
+function buildWeightedCombos(
+  industries: string[],
+  locations: string[],
+  discoveryStats: Record<string, any>
+): Array<{ industry: string; location: string }> {
+  const allCombos: Array<{ industry: string; location: string; weight: number }> = [];
+
+  for (const industry of industries) {
+    for (const location of locations) {
+      const key = `${industry}:${location}`;
+      const stats = discoveryStats[key];
+
+      let weight = 1.0; // baseline
+      if (stats) {
+        const enrolled = stats.enrolled || 0;
+        const responded = stats.responded || 0;
+        const converted = stats.converted || 0;
+
+        if (enrolled > 5) {
+          // Enough data to judge
+          const responseRate = enrolled > 0 ? responded / enrolled : 0;
+          const conversionRate = enrolled > 0 ? converted / enrolled : 0;
+          // Weight: heavily favor conversion, then response rate
+          weight = 0.5 + (conversionRate * 5) + (responseRate * 2);
+        } else {
+          // Not enough data — give exploration bonus
+          weight = 1.5;
+        }
+      } else {
+        // Never tried — highest exploration priority
+        weight = 2.0;
+      }
+
+      allCombos.push({ industry, location, weight });
+    }
+  }
+
+  // Sort by weight descending — highest performers and unexplored first
+  allCombos.sort((a, b) => b.weight - a.weight);
+
+  console.log(`[auto-discover] Combo weights: ${allCombos.slice(0, 5).map(c => `${c.industry}:${c.location}=${c.weight.toFixed(1)}`).join(", ")}`);
+
+  return allCombos;
 }
