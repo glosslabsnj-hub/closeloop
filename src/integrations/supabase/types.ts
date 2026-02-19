@@ -218,6 +218,426 @@ export type Database = {
           },
         ]
       }
+      admin_ad_campaigns: {
+        Row: {
+          created_at: string
+          cta: string | null
+          descriptions: string[]
+          headlines: string[]
+          id: string
+          industry: string | null
+          keywords: string[]
+          location: string | null
+          name: string
+          objective: string | null
+          performance_metrics: Json
+          platform: string
+          status: string
+          targeting: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cta?: string | null
+          descriptions?: string[]
+          headlines?: string[]
+          id?: string
+          industry?: string | null
+          keywords?: string[]
+          location?: string | null
+          name?: string
+          objective?: string | null
+          performance_metrics?: Json
+          platform?: string
+          status?: string
+          targeting?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cta?: string | null
+          descriptions?: string[]
+          headlines?: string[]
+          id?: string
+          industry?: string | null
+          keywords?: string[]
+          location?: string | null
+          name?: string
+          objective?: string | null
+          performance_metrics?: Json
+          platform?: string
+          status?: string
+          targeting?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      admin_growth_activity_log: {
+        Row: {
+          activity_type: string
+          created_at: string
+          description: string | null
+          id: string
+          metadata: Json
+          title: string
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json
+          title: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json
+          title?: string
+        }
+        Relationships: []
+      }
+      admin_growth_settings: {
+        Row: {
+          ads_platforms: string[]
+          ads_weekly_budget_hint: number | null
+          auto_ads_enabled: boolean
+          auto_discovery_enabled: boolean
+          auto_outreach_enabled: boolean
+          auto_social_enabled: boolean
+          created_at: string
+          discovery_frequency_hours: number
+          discovery_industries: string[]
+          discovery_locations: string[]
+          discovery_max_per_run: number
+          id: string
+          notification_email: string | null
+          notify_on_conversion: boolean
+          notify_on_response: boolean
+          outreach_daily_email_limit: number
+          outreach_daily_sms_limit: number
+          outreach_from_email: string
+          outreach_from_name: string
+          outreach_quiet_days: string[]
+          outreach_quiet_hours_end: string
+          outreach_quiet_hours_start: string
+          social_auto_post: boolean
+          social_platforms: string[]
+          social_posts_per_week: number
+          social_tone: string
+          updated_at: string
+        }
+        Insert: {
+          ads_platforms?: string[]
+          ads_weekly_budget_hint?: number | null
+          auto_ads_enabled?: boolean
+          auto_discovery_enabled?: boolean
+          auto_outreach_enabled?: boolean
+          auto_social_enabled?: boolean
+          created_at?: string
+          discovery_frequency_hours?: number
+          discovery_industries?: string[]
+          discovery_locations?: string[]
+          discovery_max_per_run?: number
+          id?: string
+          notification_email?: string | null
+          notify_on_conversion?: boolean
+          notify_on_response?: boolean
+          outreach_daily_email_limit?: number
+          outreach_daily_sms_limit?: number
+          outreach_from_email?: string
+          outreach_from_name?: string
+          outreach_quiet_days?: string[]
+          outreach_quiet_hours_end?: string
+          outreach_quiet_hours_start?: string
+          social_auto_post?: boolean
+          social_platforms?: string[]
+          social_posts_per_week?: number
+          social_tone?: string
+          updated_at?: string
+        }
+        Update: {
+          ads_platforms?: string[]
+          ads_weekly_budget_hint?: number | null
+          auto_ads_enabled?: boolean
+          auto_discovery_enabled?: boolean
+          auto_outreach_enabled?: boolean
+          auto_social_enabled?: boolean
+          created_at?: string
+          discovery_frequency_hours?: number
+          discovery_industries?: string[]
+          discovery_locations?: string[]
+          discovery_max_per_run?: number
+          id?: string
+          notification_email?: string | null
+          notify_on_conversion?: boolean
+          notify_on_response?: boolean
+          outreach_daily_email_limit?: number
+          outreach_daily_sms_limit?: number
+          outreach_from_email?: string
+          outreach_from_name?: string
+          outreach_quiet_days?: string[]
+          outreach_quiet_hours_end?: string
+          outreach_quiet_hours_start?: string
+          social_auto_post?: boolean
+          social_platforms?: string[]
+          social_posts_per_week?: number
+          social_tone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      admin_outreach_actions: {
+        Row: {
+          action_type: string
+          campaign_id: string
+          delivery_error: string | null
+          delivery_status: string
+          enrollment_id: string
+          executed_at: string
+          external_message_id: string | null
+          id: string
+          message_sent: string | null
+          step_order: number
+          subject_sent: string | null
+        }
+        Insert: {
+          action_type?: string
+          campaign_id: string
+          delivery_error?: string | null
+          delivery_status?: string
+          enrollment_id: string
+          executed_at?: string
+          external_message_id?: string | null
+          id?: string
+          message_sent?: string | null
+          step_order?: number
+          subject_sent?: string | null
+        }
+        Update: {
+          action_type?: string
+          campaign_id?: string
+          delivery_error?: string | null
+          delivery_status?: string
+          enrollment_id?: string
+          executed_at?: string
+          external_message_id?: string | null
+          id?: string
+          message_sent?: string | null
+          step_order?: number
+          subject_sent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_outreach_actions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "admin_outreach_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_outreach_actions_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "admin_outreach_enrollments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_outreach_campaigns: {
+        Row: {
+          created_at: string
+          filters: Json
+          id: string
+          name: string
+          sequence_id: string
+          status: string
+          target_type: string
+          total_converted: number
+          total_enrolled: number
+          total_responded: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          name: string
+          sequence_id: string
+          status?: string
+          target_type?: string
+          total_converted?: number
+          total_enrolled?: number
+          total_responded?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          name?: string
+          sequence_id?: string
+          status?: string
+          target_type?: string
+          total_converted?: number
+          total_enrolled?: number
+          total_responded?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_outreach_campaigns_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "admin_outreach_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_outreach_enrollments: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          current_step: number
+          id: string
+          last_action_at: string | null
+          lead_email: string | null
+          lead_id: string
+          lead_name: string
+          lead_phone: string | null
+          lead_type: string
+          next_action_at: string | null
+          response_sentiment: string | null
+          response_text: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          current_step?: number
+          id?: string
+          last_action_at?: string | null
+          lead_email?: string | null
+          lead_id: string
+          lead_name: string
+          lead_phone?: string | null
+          lead_type?: string
+          next_action_at?: string | null
+          response_sentiment?: string | null
+          response_text?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          current_step?: number
+          id?: string
+          last_action_at?: string | null
+          lead_email?: string | null
+          lead_id?: string
+          lead_name?: string
+          lead_phone?: string | null
+          lead_type?: string
+          next_action_at?: string | null
+          response_sentiment?: string | null
+          response_text?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_outreach_enrollments_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "admin_outreach_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_outreach_sequence_steps: {
+        Row: {
+          created_at: string
+          delay_hours: number
+          id: string
+          message_template: string | null
+          sequence_id: string
+          skip_if_responded: boolean
+          step_order: number
+          step_type: string
+          subject: string | null
+          use_ai_personalization: boolean
+        }
+        Insert: {
+          created_at?: string
+          delay_hours?: number
+          id?: string
+          message_template?: string | null
+          sequence_id: string
+          skip_if_responded?: boolean
+          step_order?: number
+          step_type?: string
+          subject?: string | null
+          use_ai_personalization?: boolean
+        }
+        Update: {
+          created_at?: string
+          delay_hours?: number
+          id?: string
+          message_template?: string | null
+          sequence_id?: string
+          skip_if_responded?: boolean
+          step_order?: number
+          step_type?: string
+          subject?: string | null
+          use_ai_personalization?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_outreach_sequence_steps_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "admin_outreach_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_outreach_sequences: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          name: string
+          target_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name: string
+          target_type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name?: string
+          target_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       admin_reseller_leads: {
         Row: {
           address: string | null
@@ -402,6 +822,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      admin_social_posts: {
+        Row: {
+          content: string
+          created_at: string
+          external_post_id: string | null
+          hashtags: string[]
+          id: string
+          media_url: string | null
+          notes: string | null
+          platform: string
+          scheduled_for: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          external_post_id?: string | null
+          hashtags?: string[]
+          id?: string
+          media_url?: string | null
+          notes?: string | null
+          platform: string
+          scheduled_for?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          external_post_id?: string | null
+          hashtags?: string[]
+          id?: string
+          media_url?: string | null
+          notes?: string | null
+          platform?: string
+          scheduled_for?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       aftercare_instructions: {
         Row: {

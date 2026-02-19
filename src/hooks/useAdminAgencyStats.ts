@@ -4,11 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 export interface AgencyRow {
   id: string;
   user_id: string;
-  company_name: string;
-  owner_name: string;
-  client_count: number;
-  commission_earned: number;
+  agency_name: string;
+  agency_slug: string;
   created_at: string;
+  client_count?: number;
+  commission_earned?: number;
 }
 
 export function useAdminAgencies() {
