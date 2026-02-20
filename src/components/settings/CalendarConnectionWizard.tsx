@@ -213,12 +213,16 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
     }
   }, [connections]);
 
+  // API key input for Calendly
+  const [calendlyApiKey, setCalendlyApiKey] = useState("");
+  const [isVerifyingCalendly, setIsVerifyingCalendly] = useState(false);
+
   // Track which providers have OAuth configured
   const [providerStatus, setProviderStatus] = useState<Record<string, "available" | "not_configured" | "coming_soon" | "unknown">>({
     google: "unknown",
     microsoft: "unknown",
     square: "coming_soon",
-    calendly: "coming_soon",
+    calendly: "available",
     jobber: "coming_soon",
     ics: "available",
     manual: "available",
@@ -470,6 +474,8 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
         // Start OAuth flow
         startOAuth(selectedProvider);
         return;
+      } else if (selectedProvider === "calendly") {
+        setStep(2); // Go to Calendly API key input
       } else if (selectedProvider === "ics") {
         setStep(2); // Go to ICS URL input
       } else if (selectedProvider === "manual" || selectedProvider === "internal") {
@@ -486,7 +492,42 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
         }
       }
     } else if (step === 2) {
-      if (selectedProvider === "ics") {
+      if (selectedProvider === "calendly") {
+        // Verify & save Calendly Personal Access Token
+        if (!calendlyApiKey.trim()) {
+          toast({ title: "Please enter your Personal Access Token", variant: "destructive" });
+          return;
+        }
+        setIsVerifyingCalendly(true);
+        try {
+          const { data: vData, error: vError } = await supabase.functions.invoke("calendly-proxy", {
+            body: { action: "verify_token", api_key: calendlyApiKey, tenant_id: tenant?.id },
+          });
+          if (vError || !vData?.valid) {
+            toast({ title: "Invalid token", description: "Please double-check your Calendly Personal Access Token.", variant: "destructive" });
+            setIsVerifyingCalendly(false);
+            return;
+          }
+          toast({ title: `✓ Calendly verified`, description: `Connected as ${vData.user?.name || vData.user?.email}` });
+          await createConnection.mutateAsync({
+            provider: "calendly" as any,
+            auth_type: "api_key",
+            config_json: {
+              api_key: calendlyApiKey,
+              scheduling_url: vData.user?.scheduling_url,
+              calendly_user_uri: vData.user?.uri,
+              calendly_user_name: vData.user?.name,
+              calendly_user_email: vData.user?.email,
+            },
+          });
+          setStep(3);
+        } catch (err) {
+          console.error("Calendly verify error:", err);
+          toast({ title: "Connection failed", variant: "destructive" });
+        } finally {
+          setIsVerifyingCalendly(false);
+        }
+      } else if (selectedProvider === "ics") {
         // Save ICS connection
         await createConnection.mutateAsync({
           provider: "ics",
@@ -559,6 +600,7 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
     if (step === 1) return !!selectedProvider;
     if (step === 2) {
       if (selectedProvider === "ics") return icsUrl.trim().length > 0;
+      if (selectedProvider === "calendly") return calendlyApiKey.trim().length > 0;
       return selectedCalendarIds.length > 0;
     }
     if (step === 3) return true;
@@ -581,7 +623,10 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
   const getStepTitle = () => {
     switch (step) {
       case 1: return "Choose where your schedule lives";
-      case 2: return selectedProvider === "ics" ? "Enter your calendar feed URL" : "Select which calendars to sync";
+      case 2:
+        if (selectedProvider === "ics") return "Enter your calendar feed URL";
+        if (selectedProvider === "calendly") return "Connect your Calendly account";
+        return "Select which calendars to sync";
       case 3: return "Set your business hours";
       case 4: return "Configure booking rules";
       case 5: return "Choose booking behavior";
@@ -723,11 +768,34 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
                 );
               })}
 
+
               <Separator className="my-2" />
               <p className="text-xs text-muted-foreground px-1">Booking platforms:</p>
-              
-              {/* Square, Calendly, Jobber - coming soon */}
-              {CALENDAR_PROVIDERS.filter(p => ["square", "calendly", "jobber"].includes(p.id)).map((provider) => (
+
+              {/* Calendly — live, API key */}
+              <label
+                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                  selectedProvider === "calendly"
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:bg-muted/50"
+                }`}
+              >
+                <RadioGroupItem value="calendly" className="sr-only" />
+                <span className="text-2xl">🗓️</span>
+                <div className="flex-1">
+                  <p className="font-medium flex items-center gap-2">
+                    Calendly
+                    <Badge variant="secondary" className="text-xs">API Key</Badge>
+                  </p>
+                  <p className="text-sm text-muted-foreground">Sync with your Calendly schedule</p>
+                </div>
+                {selectedProvider === "calendly" && (
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                )}
+              </label>
+
+              {/* Square, Jobber - still coming soon */}
+              {CALENDAR_PROVIDERS.filter(p => ["square", "jobber"].includes(p.id)).map((provider) => (
                 <label
                   key={provider.id}
                   className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20 cursor-not-allowed opacity-60"
@@ -831,10 +899,46 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
           </div>
         )}
 
-        {/* Step 2: Calendar Selection (OAuth) or ICS URL */}
+        {/* Step 2: Calendar Selection (OAuth), ICS URL, or Calendly API Key */}
         {step === 2 && (
           <div className="py-4 space-y-4">
-            {selectedProvider === "ics" ? (
+            {selectedProvider === "calendly" ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="calendlyToken">Personal Access Token</Label>
+                  <Input
+                    id="calendlyToken"
+                    type="password"
+                    placeholder="eyJraWQiOi..."
+                    value={calendlyApiKey}
+                    onChange={(e) => setCalendlyApiKey(e.target.value)}
+                    autoComplete="off"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    We'll verify this instantly and store it securely.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-lg bg-muted/50 text-sm space-y-1">
+                  <p className="font-medium">How to get your token:</p>
+                  <ol className="list-decimal list-inside space-y-0.5 text-muted-foreground ml-1">
+                    <li>Go to <span className="font-mono text-xs">calendly.com</span> → sign in</li>
+                    <li>Click your avatar → <strong>Integrations</strong></li>
+                    <li>Select <strong>API & Webhooks</strong></li>
+                    <li>Click <strong>Generate New Token</strong> and copy it here</li>
+                  </ol>
+                  <a
+                    href="https://calendly.com/integrations/api_webhooks"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-primary text-xs mt-1 hover:underline"
+                  >
+                    Open Calendly API settings
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </>
+            ) : selectedProvider === "ics" ? (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="icsUrl">Calendar Feed URL</Label>
@@ -1237,17 +1341,19 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
               )}
               <Button
                 onClick={handleNext}
-                disabled={!canProceed() || isConnecting || createConnection.isPending || isUpdating}
+                disabled={!canProceed() || isConnecting || isVerifyingCalendly || createConnection.isPending || isUpdating}
               >
-                {(isConnecting || createConnection.isPending || isUpdating) ? (
+                {(isConnecting || isVerifyingCalendly || createConnection.isPending || isUpdating) ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : null}
                 {step === 1 && (selectedProvider === "google" || selectedProvider === "microsoft")
                   ? "Connect"
-                  : step === 6
-                    ? "Complete Setup"
-                    : "Next"}
-                {step !== 6 && !isConnecting && <ArrowRight className="h-4 w-4 ml-2" />}
+                  : step === 2 && selectedProvider === "calendly"
+                    ? (isVerifyingCalendly ? "Verifying..." : "Verify & Connect")
+                    : step === 6
+                      ? "Complete Setup"
+                      : "Next"}
+                {step !== 6 && !isConnecting && !isVerifyingCalendly && <ArrowRight className="h-4 w-4 ml-2" />}
               </Button>
             </>
           ) : (
