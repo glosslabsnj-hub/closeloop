@@ -78,6 +78,9 @@ verify_jwt = false
 [functions.create-demo-profile]
 verify_jwt = false
 
+[functions.elevenlabs-check-calendly]
+verify_jwt = false
+
 [functions.activate-demo-profile]
 verify_jwt = false
 

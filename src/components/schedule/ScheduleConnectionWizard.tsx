@@ -308,13 +308,46 @@ export function ScheduleConnectionWizard({ embedded = false, onComplete, onSkip 
     
     setIsConnecting(true);
     try {
+      let extraConfig: Record<string, string | undefined> = {
+        api_key: apiKey,
+        webhook_url: webhookUrl || undefined,
+      };
+
+      // For Calendly: verify the token and pull user info before saving
+      if (selectedProvider === "calendly") {
+        const { data: verifyData, error: verifyError } = await supabase.functions.invoke("calendly-proxy", {
+          body: { action: "verify_token", api_key: apiKey, tenant_id: tenant?.id },
+        });
+
+        if (verifyError || !verifyData?.valid) {
+          toast({
+            title: "Invalid Calendly token",
+            description: "Please check your Personal Access Token and try again.",
+            variant: "destructive",
+          });
+          setIsConnecting(false);
+          return;
+        }
+
+        // Store scheduling URL and user info alongside the token
+        extraConfig = {
+          ...extraConfig,
+          scheduling_url: verifyData.user?.scheduling_url,
+          calendly_user_uri: verifyData.user?.uri,
+          calendly_user_name: verifyData.user?.name,
+          calendly_user_email: verifyData.user?.email,
+        };
+
+        toast({
+          title: `✓ Calendly verified`,
+          description: `Connected as ${verifyData.user?.name || verifyData.user?.email}`,
+        });
+      }
+
       await createConnection.mutateAsync({
         provider: selectedProvider as any,
         auth_type: "api_key",
-        config_json: { 
-          api_key: apiKey,
-          webhook_url: webhookUrl || undefined,
-        },
+        config_json: extraConfig,
       });
       setStep(4);
     } catch (error) {
@@ -596,45 +629,47 @@ export function ScheduleConnectionWizard({ embedded = false, onComplete, onSkip 
                     Connect {PROVIDER_OPTIONS.find(p => p.id === selectedProvider)?.name}
                   </h2>
                   <p className="text-muted-foreground">
-                    Enter your API key to sync busy times
+                    {selectedProvider === "calendly"
+                      ? "Paste your Personal Access Token — we'll verify it instantly"
+                      : "Enter your API key to sync busy times"}
                   </p>
                 </div>
 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="api-key">API Key</Label>
+                    <Label htmlFor="api-key">
+                      {selectedProvider === "calendly" ? "Personal Access Token" : "API Key"}
+                    </Label>
                     <Input
                       id="api-key"
                       type="password"
-                      placeholder="Enter your API key"
+                      placeholder={selectedProvider === "calendly" ? "eyJraWQiOi..." : "Enter your API key"}
                       value={apiKey}
                       onChange={(e) => setApiKey(e.target.value)}
                     />
                   </div>
-
-                  {selectedProvider === "calendly" && (
-                    <div className="space-y-2">
-                      <Label htmlFor="webhook-url">Webhook URL (optional)</Label>
-                      <Input
-                        id="webhook-url"
-                        type="url"
-                        placeholder="https://..."
-                        value={webhookUrl}
-                        onChange={(e) => setWebhookUrl(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        For real-time sync, add a webhook that posts to CloseLoop
-                      </p>
-                    </div>
-                  )}
                 </div>
 
-                <div className="p-3 rounded-lg bg-muted/50 text-sm">
-                  <p className="font-medium mb-1">Where to find your API key:</p>
+                <div className="p-3 rounded-lg bg-muted/50 text-sm space-y-1">
                   {selectedProvider === "calendly" && (
-                    <p className="text-muted-foreground">
-                      Calendly → Integrations → API & Webhooks → Copy Personal Access Token
-                    </p>
+                    <>
+                      <p className="font-medium">How to get your Personal Access Token:</p>
+                      <ol className="text-muted-foreground list-decimal ml-4 space-y-0.5">
+                        <li>Go to <span className="font-mono text-xs">calendly.com</span> and sign in</li>
+                        <li>Click your avatar → <strong>Integrations</strong></li>
+                        <li>Select <strong>API & Webhooks</strong></li>
+                        <li>Click <strong>Generate New Token</strong> and copy it</li>
+                      </ol>
+                      <a
+                        href="https://calendly.com/integrations/api_webhooks"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-primary text-xs mt-1 hover:underline"
+                      >
+                        Open Calendly API settings
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </>
                   )}
                   {selectedProvider === "square" && (
                     <p className="text-muted-foreground">
