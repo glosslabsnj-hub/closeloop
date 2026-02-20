@@ -1,4 +1,4 @@
-import { Plus, Lightbulb } from "lucide-react";
+import { Plus, Lightbulb, AlertCircle } from "lucide-react";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import type { BusinessMode } from "@/hooks/useTenantConfig";
 
@@ -7,10 +7,111 @@ interface SuggestedFAQ {
   answer: string;
 }
 
+interface PersonalizedFAQ extends SuggestedFAQ {
+  needsEditing: boolean;
+}
+
+type HoursEntry = { open: string; close: string; closed?: boolean; windows?: { open: string; close: string }[] } | null;
+
 interface SuggestedFAQButtonsProps {
   onAdd: (question: string, answer: string) => void;
   existingQuestions?: string[];
   tenantPolicies?: { cancellation?: string; deposit?: string; refund?: string };
+  tenantName?: string;
+  tenantAddress?: string;
+  tenantHours?: Record<string, HoursEntry>;
+  tenantServiceArea?: { radius_miles?: number };
+}
+
+/** Format hours record into a human-friendly string like "Monday through Friday from 9 AM to 5 PM" */
+function formatHoursString(hours: Record<string, HoursEntry>): { days: string; open: string; close: string } | null {
+  const dayOrder = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+  const dayNames: Record<string, string> = {
+    monday: "Monday", tuesday: "Tuesday", wednesday: "Wednesday",
+    thursday: "Thursday", friday: "Friday", saturday: "Saturday", sunday: "Sunday",
+  };
+
+  const openDays = dayOrder.filter(d => {
+    const entry = hours[d];
+    return entry && !entry.closed;
+  });
+
+  if (openDays.length === 0) return null;
+
+  // Get the first open day's hours as representative
+  const firstDay = hours[openDays[0]];
+  if (!firstDay) return null;
+  const openTime = firstDay.windows?.[0]?.open ?? firstDay.open ?? "";
+  const closeTime = firstDay.windows?.[0]?.close ?? firstDay.close ?? "";
+
+  if (!openTime || !closeTime) return null;
+
+  const formatTime = (t: string) => {
+    const [h, m] = t.split(":").map(Number);
+    const suffix = h >= 12 ? "PM" : "AM";
+    const hour12 = h % 12 || 12;
+    return m === 0 ? `${hour12} ${suffix}` : `${hour12}:${String(m).padStart(2, "0")} ${suffix}`;
+  };
+
+  // Build day range description
+  let daysStr: string;
+  if (openDays.length === 7) {
+    daysStr = "every day";
+  } else if (openDays.length >= 5 && openDays.slice(0, 5).every((d, i) => d === dayOrder[i])) {
+    const weekendDays = openDays.slice(5);
+    daysStr = weekendDays.length > 0
+      ? `Monday through Friday and ${weekendDays.map(d => dayNames[d]).join(" and ")}`
+      : "Monday through Friday";
+  } else {
+    daysStr = openDays.map(d => dayNames[d]).join(", ");
+  }
+
+  return { days: daysStr, open: formatTime(openTime), close: formatTime(closeTime) };
+}
+
+/** Placeholder pattern that can't be auto-filled (needs manual editing) */
+const UNFILLABLE_PLACEHOLDERS = /\[signature dish\]|\[second popular item\]|\$\[amount\]/;
+
+/** Replace placeholders in FAQ answers with real tenant data */
+function personalizeFAQ(
+  faq: SuggestedFAQ,
+  tenantAddress?: string,
+  tenantHours?: Record<string, HoursEntry>,
+  tenantServiceArea?: { radius_miles?: number },
+): PersonalizedFAQ {
+  let answer = faq.answer;
+  let needsEditing = false;
+
+  // Address
+  if (tenantAddress) {
+    answer = answer.replace("[your address]", tenantAddress);
+    answer = answer.replace(/\. You can find us easily by \[landmark or directions\]/, "");
+  }
+
+  // Hours
+  if (tenantHours) {
+    const parsed = formatHoursString(tenantHours);
+    if (parsed) {
+      answer = answer.replace("[days]", parsed.days);
+      answer = answer.replace("[open time]", parsed.open);
+      answer = answer.replace("[close time]", parsed.close);
+    }
+  }
+
+  // Service area / delivery radius
+  if (tenantServiceArea?.radius_miles) {
+    answer = answer.replace(/\[X\]-mile radius/, `${tenantServiceArea.radius_miles}-mile radius`);
+  } else {
+    answer = answer.replace(/\[X\]-mile radius/, "our delivery area");
+  }
+  answer = answer.replace("[your service area]", "our service area");
+
+  // Check for remaining unfillable placeholders
+  if (UNFILLABLE_PLACEHOLDERS.test(answer)) {
+    needsEditing = true;
+  }
+
+  return { question: faq.question, answer, needsEditing };
 }
 
 /**
@@ -223,12 +324,15 @@ const MODE_FAQS: Record<BusinessMode, SuggestedFAQ[]> = {
   ],
 };
 
-export function SuggestedFAQButtons({ onAdd, existingQuestions = [], tenantPolicies }: SuggestedFAQButtonsProps) {
+export function SuggestedFAQButtons({
+  onAdd, existingQuestions = [], tenantPolicies,
+  tenantName, tenantAddress, tenantHours, tenantServiceArea,
+}: SuggestedFAQButtonsProps) {
   const { businessMode } = useTenantConfig();
-  
+
   // Get FAQs for current business mode
   const suggestedFaqs = MODE_FAQS[businessMode] || MODE_FAQS.general;
-  
+
   // Filter out already-added FAQs and policy-covered FAQs
   const policyOverlapPatterns = [
     ...(tenantPolicies?.cancellation ? ["cancellation"] : []),
@@ -236,15 +340,15 @@ export function SuggestedFAQButtons({ onAdd, existingQuestions = [], tenantPolic
     ...(tenantPolicies?.refund ? ["refund", "return"] : []),
   ];
 
-  const availableFAQs = suggestedFaqs.filter(
-    faq => {
+  const availableFAQs = suggestedFaqs
+    .filter(faq => {
       // Skip if already added
       if (existingQuestions.some(q => q.toLowerCase().includes(faq.question.toLowerCase().slice(0, 20)))) return false;
       // Skip if covered by a policy
       if (policyOverlapPatterns.some(pattern => faq.question.toLowerCase().includes(pattern))) return false;
       return true;
-    }
-  );
+    })
+    .map(faq => personalizeFAQ(faq, tenantAddress, tenantHours, tenantServiceArea));
 
   if (availableFAQs.length === 0) {
     return null;
@@ -263,9 +367,13 @@ export function SuggestedFAQButtons({ onAdd, existingQuestions = [], tenantPolic
             type="button"
             className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full border border-border bg-background hover:bg-muted/50 transition-colors whitespace-nowrap shrink-0"
             onClick={() => onAdd(faq.question, faq.answer)}
+            title={faq.needsEditing ? "Needs your details — edit after adding" : undefined}
           >
             <Plus className="h-3 w-3" />
             {faq.question}
+            {faq.needsEditing && (
+              <AlertCircle className="h-3 w-3 text-amber-500 shrink-0" />
+            )}
           </button>
         ))}
       </div>

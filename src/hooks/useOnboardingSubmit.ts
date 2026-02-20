@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatErrorForToast } from "@/lib/errorMessages";
 import { resolveIndustryTemplate } from "@/lib/templateResolver";
 import { getIndustryBySlug } from "@/data/industryCatalog";
+import { getTemplate, fetchCurrentBrainState, previewTemplateApplication, applyTemplate } from "@/lib/industryTemplates";
 import { updateCapabilityFlags } from "@/hooks/useBusinessCapabilities";
 import { applyScenarioSeeds } from "@/lib/scenarioSeeding";
 import { createDefaultWorkflowsForMode } from "@/lib/createDefaultWorkflows";
@@ -185,6 +186,20 @@ export function useOnboardingSubmit(userId?: string) {
         deposit_policy: templatePolicies.deposit || null,
         refund_policy: templatePolicies.refund || null,
       }).eq("id", tenantId);
+
+      // 5b. Auto-apply rich industry template (best-effort merge to fill gaps)
+      try {
+        const richTemplate = getTemplate(industrySlug);
+        if (richTemplate && tenantId) {
+          const currentState = await fetchCurrentBrainState(tenantId);
+          const preview = previewTemplateApplication(currentState, richTemplate, "merge");
+          if (preview.totals.itemsToAdd > 0) {
+            await applyTemplate(tenantId, richTemplate, "merge", preview);
+          }
+        }
+      } catch (e) {
+        console.error("Onboarding step 5b (template merge):", e);
+      }
 
       // 6. Service area
       const showsCoverage = workStyle === "go_to_customer" || workStyle === "both" || ["dispatch", "food"].includes(businessMode);

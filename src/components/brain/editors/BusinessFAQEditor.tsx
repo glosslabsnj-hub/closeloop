@@ -149,10 +149,14 @@ export function BusinessFAQEditor() {
           description: "Add the questions your customers ask most so your AI can answer them instantly.",
         }}
         headerActions={
-          <SuggestedFAQButtons 
+          <SuggestedFAQButtons
             onAdd={handleSuggestionClick}
             existingQuestions={faqs.map(f => f.question)}
             tenantPolicies={tenantPolicies}
+            tenantName={tenant?.name ?? undefined}
+            tenantAddress={tenant?.address ?? undefined}
+            tenantHours={tenant?.hours_json as Record<string, any> ?? undefined}
+            tenantServiceArea={tenant?.service_area_json as { radius_miles?: number } ?? undefined}
           />
         }
         renderItem={(faq) => (

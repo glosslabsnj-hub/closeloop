@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Check, LayoutDashboard, BookOpen, Phone as PhoneIcon, Settings, MapPin, Sparkles, Calendar } from "lucide-react";
+import { Check, LayoutDashboard, BookOpen, Phone as PhoneIcon, Settings, MapPin, Sparkles, Calendar, Wand2 } from "lucide-react";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 import { getIndustryBySlug } from "@/data/industryCatalog";
 import { getIndustryOnboardingConfig, type NextStepItem } from "@/config/industryOnboardingConfig";
@@ -66,10 +66,10 @@ export function OnboardingComplete({ businessName, phoneNumber, businessMode, sc
   const navigate = useNavigate();
   const nextSteps = getNextSteps(businessMode, scenarioAnswers, industrySlug);
 
-  // Auto-redirect to dashboard after 5 seconds so user doesn't get stuck
+  // Auto-redirect to guided setup after 5 seconds so user doesn't get stuck
   useEffect(() => {
     const timer = setTimeout(() => {
-      navigate("/app/dashboard");
+      navigate("/app/business-brain?mode=setup");
     }, 5000);
     return () => clearTimeout(timer);
   }, [navigate]);
@@ -119,7 +119,7 @@ export function OnboardingComplete({ businessName, phoneNumber, businessMode, sc
         transition={{ delay: 0.3 }}
         className="text-left max-w-xs mx-auto space-y-3"
       >
-        <p className="text-sm font-medium">Recommended next steps</p>
+        <p className="text-sm font-medium">You'll set these up next:</p>
         {nextSteps.map((item) => (
           <div key={item.label} className="flex items-center gap-3 text-sm text-muted-foreground">
             <item.icon className="h-4 w-4 shrink-0" />
@@ -136,11 +136,17 @@ export function OnboardingComplete({ businessName, phoneNumber, businessMode, sc
         className="pt-2 space-y-3"
       >
         <Button size="lg" className="w-full gap-2" asChild>
-          <Link to="/app/dashboard">
-            <LayoutDashboard className="w-4 h-4" />
-            Continue to Dashboard
+          <Link to="/app/business-brain?mode=setup">
+            <Wand2 className="w-4 h-4" />
+            Continue Setup
           </Link>
         </Button>
+        <Link
+          to="/app/dashboard"
+          className="inline-block text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
+        >
+          Skip to Dashboard
+        </Link>
       </motion.div>
 
       <motion.p
@@ -149,7 +155,7 @@ export function OnboardingComplete({ businessName, phoneNumber, businessMode, sc
         transition={{ delay: 0.6 }}
         className="text-xs text-muted-foreground"
       >
-        Taking you to your dashboard in a few seconds...
+        Taking you to guided setup in a few seconds...
       </motion.p>
     </div>
   );

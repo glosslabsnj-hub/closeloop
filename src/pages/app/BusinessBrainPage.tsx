@@ -132,16 +132,18 @@ export default function BusinessBrainPage() {
   const reviewCount = useBrainReviewCount();
   const { businessMode, hipaaMode } = useTenantConfig();
 
-  // Guided setup mode: ?mode=setup
+  // Guided setup mode: ?mode=setup or auto-detected for new users
   const modeParam = searchParams.get("mode");
   const isGuidedMode = modeParam === "setup";
-  const { p0Flags: readinessP0Flags } = useAIReadinessV2();
+  const { p0Flags: readinessP0Flags, score: readinessScore } = useAIReadinessV2();
 
-  // Only show guided mode when explicitly requested via URL param
-  const hasGuidedDismissal = searchParams.get("mode") === "full";
-  const shouldShowGuided = isGuidedMode;
+  // Auto-trigger guided setup for new users with low readiness
+  const isNewUserFirstVisit = !modeParam && readinessScore < 50 &&
+    !localStorage.getItem("brain_guided_dismissed");
+  const shouldShowGuided = isGuidedMode || isNewUserFirstVisit;
 
   const handleSwitchToFullBrain = useCallback(() => {
+    localStorage.setItem("brain_guided_dismissed", "true");
     setSearchParams({ mode: "full" }, { replace: true });
   }, [setSearchParams]);
 
