@@ -854,11 +854,9 @@
   .accent-left-warning { border-left: 2px solid hsl(var(--warning)); }
   .accent-left-destructive { border-left: 2px solid hsl(var(--destructive)); }
 
-  /* Shimmer effect for live/active states */
+  /* Shimmer effect for live/active states — static glow, no animation */
   .shimmer-active {
-    background: linear-gradient(90deg, transparent 25%, hsl(230 70% 62% / 0.06) 50%, transparent 75%);
-    background-size: 200% 100%;
-    animation: shimmer 3s ease-in-out infinite;
+    box-shadow: 0 0 0 1px hsl(var(--success) / 0.2);
   }
 
   /* Section divider with gradient fade */
