@@ -5,6 +5,7 @@
  */
 
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { ChevronRight, CheckCircle2 } from "lucide-react";
 import type { CategoryConfig } from "@/components/brain/layout/businessBrainNavConfig";
@@ -15,6 +16,7 @@ interface BrainCategoryRowProps {
   resolvedTitle?: string;
   completion: CategoryCompletionStats;
   summaryText: string;
+  groupLabels?: string[];
   onEdit: () => void;
 }
 
@@ -23,6 +25,7 @@ export function BrainCategoryRow({
   resolvedTitle,
   completion,
   summaryText,
+  groupLabels,
   onEdit,
 }: BrainCategoryRowProps) {
   const Icon = category.icon;
@@ -76,6 +79,15 @@ export function BrainCategoryRow({
           </span>
         </div>
         <p className="text-xs text-muted-foreground truncate">{summaryText || category.description}</p>
+        {groupLabels && groupLabels.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {groupLabels.map((label) => (
+              <Badge key={label} variant="secondary" className="text-[10px] px-1.5 py-0 font-normal">
+                {label}
+              </Badge>
+            ))}
+          </div>
+        )}
         {!isEmpty && <Progress value={completion.percentage} className="h-1" />}
       </div>
 

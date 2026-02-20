@@ -505,7 +505,7 @@ export default function BusinessBrainPage() {
                 animate="animate"
                 exit="exit"
               >
-                <BrainDashboard onNavigate={handleSectionChange} />
+                <BrainDashboard onNavigate={handleSectionChange} onStartGuidedSetup={handleEnterGuidedMode} />
               </motion.div>
             )}
 

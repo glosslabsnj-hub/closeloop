@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BRAIN_CATEGORIES, type CategoryConfig } from "@/components/brain/layout/businessBrainNavConfig";
-import { getModeCategories } from "@/config/brainModeLayout";
+import { getModeCategories, getModeTabDef } from "@/config/brainModeLayout";
 import { useAllCategoriesCompletion } from "@/hooks/useCategoryCompletion";
 import { useBrainSummaries } from "@/hooks/useBrainSummaries";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
@@ -26,13 +26,14 @@ import { resolveCardTitle } from "@/data/industryTerminology";
 import { WebsiteImportWizard } from "@/components/brain/uploads/WebsiteImportWizard";
 import {
   Search, Eye, Clock, Settings, Bot,
-  ChevronRight, AlertCircle, Sparkles,
+  ChevronRight, AlertCircle, Sparkles, Wand2,
 } from "lucide-react";
 import { BrainQuickAction } from "./BrainQuickAction";
 import { BrainCategoryRow } from "./BrainCategoryRow";
 
 interface BrainDashboardProps {
   onNavigate: (section: string) => void;
+  onStartGuidedSetup?: () => void;
 }
 
 /**
@@ -60,7 +61,7 @@ function getCategorySummary(
   }
 }
 
-export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
+export function BrainDashboard({ onNavigate, onStartGuidedSetup }: BrainDashboardProps) {
   const completions = useAllCategoriesCompletion();
   const summaries = useBrainSummaries();
   const { businessMode } = useTenantConfig();
@@ -72,6 +73,18 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
 
   // Mode-specific categories
   const modeCategories = useMemo(() => getModeCategories(businessMode), [businessMode]);
+
+  // Compute group labels per category from mode layout
+  const categoryGroupLabels = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    for (const cat of modeCategories) {
+      const tabDef = getModeTabDef(businessMode, cat.section);
+      if (tabDef?.groups.length) {
+        map[cat.section] = tabDef.groups.map(g => g.label);
+      }
+    }
+    return map;
+  }, [modeCategories, businessMode]);
 
   // Intelligence category
   const intelligenceCategory = BRAIN_CATEGORIES.find((c) => c.section === "intelligence");
@@ -123,8 +136,17 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
             {tenant?.name && (
               <p className="text-sm text-muted-foreground mt-0.5">{tenant.name as string}</p>
             )}
+            <p className="text-sm text-muted-foreground mt-1 max-w-lg">
+              Teach your AI everything about your business. Each section below controls what your AI says on real customer calls.
+            </p>
           </div>
           <div className="flex items-center gap-3">
+            {onStartGuidedSetup && overallPercent < 100 && (
+              <Button variant="default" size="sm" onClick={onStartGuidedSetup} className="gap-1.5">
+                <Wand2 className="h-4 w-4" />
+                Guided Setup
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={() => setWebsiteImportOpen(true)}>
               <Globe className="h-4 w-4 mr-1.5" />
               Import from Website
@@ -132,9 +154,9 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
           </div>
         </div>
         <div className="rounded-xl bg-card/60 backdrop-blur-sm border border-border/30 px-4 py-3 flex items-center gap-3">
-          <span className="text-sm font-medium tabular-nums">{overallPercent}%</span>
+          <span className="text-xs text-muted-foreground shrink-0">Setup Progress</span>
           <Progress value={overallPercent} className="h-1.5 flex-1" />
-          <span className="text-xs text-muted-foreground">complete</span>
+          <span className="text-sm font-medium tabular-nums shrink-0">{overall.completed} of {overall.total} fields</span>
         </div>
 
         {/* Search + actions bar */}
@@ -203,6 +225,7 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
                 resolvedTitle={resolveCardTitle(cat.titleKey, cat.title, businessMode)}
                 completion={completions[cat.section] ?? { totalFields: 0, completedFields: 0, percentage: 100, hasRequiredIncomplete: false }}
                 summaryText={getCategorySummary(cat.section, summaries)}
+                groupLabels={categoryGroupLabels[cat.section]}
                 onEdit={() => onNavigate(cat.section)}
               />
             ))}
@@ -231,6 +254,7 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
                     resolvedTitle={resolveCardTitle(cat.titleKey, cat.title, businessMode)}
                     completion={completions[cat.section] ?? { totalFields: 0, completedFields: 0, percentage: 100, hasRequiredIncomplete: false }}
                     summaryText={getCategorySummary(cat.section, summaries)}
+                    groupLabels={categoryGroupLabels[cat.section]}
                     onEdit={() => onNavigate(cat.section)}
                   />
                 ))}
@@ -247,6 +271,7 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
             resolvedTitle={resolveCardTitle(intelligenceCategory.titleKey, intelligenceCategory.title, businessMode)}
             completion={completions[intelligenceCategory.section] ?? { totalFields: 0, completedFields: 0, percentage: 100, hasRequiredIncomplete: false }}
             summaryText={getCategorySummary(intelligenceCategory.section, summaries)}
+            groupLabels={categoryGroupLabels[intelligenceCategory.section]}
             onEdit={() => onNavigate(intelligenceCategory.section)}
           />
         </div>
@@ -260,7 +285,10 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 glow-primary-sm">
                 <Sparkles className="h-4 w-4 text-primary" />
               </div>
-              <p className="text-sm font-semibold">AI Readiness</p>
+              <div>
+                <p className="text-sm font-semibold">Ready to Go Live</p>
+                <p className="text-xs text-muted-foreground">How prepared your AI is for real calls</p>
+              </div>
             </div>
             <span className="text-sm font-bold tabular-nums">{readiness.score}%</span>
           </div>

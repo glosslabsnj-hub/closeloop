@@ -1,11 +1,11 @@
 /**
  * BrainContentPanel - Right-side content area for the sidebar+content split
  *
- * Clean, minimal wrapper: header with status badge, then straight to the editor.
- * No bulky callout boxes — just the form.
+ * Renders guidance context, AI usage info, and status badge from already-passed props.
  */
 
-import { ChevronLeft } from "lucide-react";
+import { useState } from "react";
+import { ChevronLeft, ChevronDown, ChevronRight, Lightbulb, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { BrainSectionItem } from "@/config/brainSectionRegistry";
@@ -47,9 +47,13 @@ const STATUS_BADGE: Record<SectionStatus, { label: string; className: string }> 
 export function BrainContentPanel({
   activeItem,
   status,
+  usedByAI,
+  guidance,
   onMobileBack,
   children,
 }: BrainContentPanelProps) {
+  const [aiUsageOpen, setAiUsageOpen] = useState(false);
+
   if (!activeItem) return null;
 
   const Icon = activeItem.icon;
@@ -69,13 +73,64 @@ export function BrainContentPanel({
           Back
         </Button>
 
-        {/* Header: title + status text */}
-        <h2 className="text-lg font-semibold tracking-tight">{activeItem.title}</h2>
-        {status && (
-          <p className="text-sm text-muted-foreground -mt-2">{status.statusText}</p>
+        {/* Header: icon + title + status badge */}
+        <div className="flex items-start gap-2.5">
+          <Icon className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-lg font-semibold tracking-tight">{activeItem.title}</h2>
+              {badge && (
+                <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full", badge.className)}>
+                  {badge.label}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Guidance: what this setting does */}
+        {guidance?.whatText && (
+          <p className="text-sm text-muted-foreground -mt-1">{guidance.whatText}</p>
         )}
 
-        {/* Editor content — no callout boxes, straight to the form */}
+        {/* Tip callout */}
+        {guidance?.tipText && (
+          <div className="flex items-start gap-2 rounded-lg border border-border/30 bg-muted/30 px-3 py-2.5">
+            <Lightbulb className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+            <p className="text-sm text-muted-foreground">{guidance.tipText}</p>
+          </div>
+        )}
+
+        {/* Collapsible AI usage section */}
+        {usedByAI && usedByAI.length > 0 && (
+          <div className="rounded-lg border border-border/20 bg-card/50">
+            <button
+              type="button"
+              onClick={() => setAiUsageOpen(!aiUsageOpen)}
+              className="flex items-center gap-2 w-full px-3 py-2 text-left hover:bg-muted/30 transition-colors rounded-lg"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span className="text-sm font-medium text-muted-foreground flex-1">Your AI uses this to...</span>
+              {aiUsageOpen ? (
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/60" />
+              ) : (
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" />
+              )}
+            </button>
+            {aiUsageOpen && (
+              <ul className="px-3 pb-2.5 space-y-1.5">
+                {usedByAI.map((bullet, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <span className="text-primary mt-1.5 shrink-0">•</span>
+                    <span>{bullet}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {/* Editor content */}
         <div>{children}</div>
       </div>
     </div>
