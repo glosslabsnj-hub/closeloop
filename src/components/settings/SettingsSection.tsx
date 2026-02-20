@@ -58,13 +58,13 @@ export function SettingsCard({
   headerAction,
 }: SettingsCardProps) {
   return (
-    <Card className={className}>
+    <Card className={`border-border/30 bg-card/60 backdrop-blur-sm card-interactive ${className || ""}`}>
       <CardHeader>
         <div className="flex items-center justify-between gap-4">
           <div>
             <CardTitle className="text-base">{title}</CardTitle>
             {description && (
-              <CardDescription className="mt-1">{description}</CardDescription>
+              <CardDescription className="mt-1.5 text-[13px] leading-relaxed">{description}</CardDescription>
             )}
           </div>
           {headerAction && <div className="shrink-0">{headerAction}</div>}
@@ -72,7 +72,7 @@ export function SettingsCard({
       </CardHeader>
       <CardContent className="space-y-4">{children}</CardContent>
       {onSave && (
-        <CardFooter className="border-t bg-muted/30 flex justify-end py-4">
+        <CardFooter className="border-t border-border/20 bg-card/40 flex justify-end py-4">
           <Button onClick={onSave} disabled={isSaving || !isDirty}>
             {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             {saveLabel}

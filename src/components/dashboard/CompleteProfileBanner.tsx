@@ -31,17 +31,19 @@ export function CompleteProfileBanner() {
   if (dismissed || !isIncomplete || !tenant) return null;
 
   return (
-    <div className="relative rounded-lg border border-warning/30 bg-warning/5 p-4 flex items-start gap-3">
-      <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+    <div className="relative rounded-xl border border-warning/15 bg-warning/[0.04] backdrop-blur-sm p-4 flex items-start gap-3 animate-fade-in card-interactive">
+      <div className="h-9 w-9 rounded-xl bg-warning/10 border border-warning/15 flex items-center justify-center shrink-0 mt-0.5 shadow-[0_0_16px_-4px_hsl(38_90%_50%/0.25)]">
+        <AlertTriangle className="h-4 w-4 text-warning" />
+      </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium">Complete your business profile to send SMS messages</p>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-sm font-semibold">Complete your business profile to send SMS messages</p>
+        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
           We need your legal business name, EIN, and address for carrier compliance. Your AI voice agent works without this — SMS messaging requires it.
         </p>
         <Button
           variant="outline"
           size="sm"
-          className="mt-2 gap-1.5"
+          className="mt-2.5 gap-1.5 text-xs"
           onClick={() => navigate("/app/settings?tab=sms-compliance")}
         >
           Complete Profile
@@ -50,7 +52,7 @@ export function CompleteProfileBanner() {
       </div>
       <button
         onClick={() => setDismissed(true)}
-        className="text-muted-foreground hover:text-foreground transition-colors"
+        className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-lg hover:bg-muted/50"
         aria-label="Dismiss"
       >
         <X className="h-4 w-4" />

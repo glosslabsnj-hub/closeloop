@@ -22,14 +22,14 @@ export function EmptyDashboard() {
       <AgentControlPanel />
 
       {/* Test Your AI CTA */}
-      <Card className="border-primary/20 bg-primary/5">
+      <Card className="border-primary/20 bg-card/60 backdrop-blur-sm">
         <CardContent className="p-6">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 shrink-0">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 glow-primary-sm shrink-0">
               <Phone className="h-6 w-6 text-primary" />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold">Test Your AI</h3>
+              <h3 className="text-lg font-semibold text-gradient-primary">Test Your AI</h3>
               <p className="text-sm text-muted-foreground mt-1">
                 Make a test call to hear how your AI handles a real conversation. 
                 This is the fastest way to see your setup in action.

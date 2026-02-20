@@ -31,8 +31,9 @@ export function SectionCard({
   const cardContent = (
     <Card
       className={cn(
+        "border-border/30 bg-card/60 backdrop-blur-sm card-interactive",
         variant === "elevated" && "shadow-sm",
-        variant === "interactive" && "card-interactive cursor-pointer",
+        variant === "interactive" && "cursor-pointer",
         variant === "work-area" && "work-area-compact",
         className
       )}

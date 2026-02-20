@@ -44,12 +44,15 @@ export function BrainCategoryRow({
     <button
       type="button"
       onClick={onEdit}
-      className="flex items-center gap-4 w-full p-4 text-left hover:bg-muted/30 transition-colors group"
+      className={cn(
+        "flex items-center gap-4 w-full p-4 text-left hover:bg-card/90 hover:shadow-sm transition-all group",
+        isComplete ? "border-l-2 border-l-primary" : hasWarning ? "border-l-2 border-l-warning" : "border-l-2 border-l-transparent",
+      )}
     >
       {/* Icon */}
       <div className={cn(
         "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors",
-        isComplete ? "bg-primary/10" : hasWarning ? "bg-destructive/10" : "bg-muted",
+        isComplete ? "bg-primary/10 border border-primary/15" : hasWarning ? "bg-destructive/10 border border-destructive/15" : "bg-muted border border-border/20",
       )}>
         {isComplete ? (
           <CheckCircle2 className="h-4 w-4 text-primary" />

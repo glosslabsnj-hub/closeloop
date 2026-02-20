@@ -383,8 +383,8 @@ function ReportEmpty({
 
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center space-y-6">
-      <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-        <BarChart3 className="h-7 w-7 text-primary/60" />
+      <div className="h-14 w-14 rounded-2xl bg-muted/60 border border-border/30 flex items-center justify-center">
+        <BarChart3 className="h-7 w-7 text-muted-foreground/70" />
       </div>
 
       <div className="space-y-2">
@@ -562,7 +562,7 @@ export default function ReportsROIPage() {
               <CollapsibleContent className="space-y-6 pt-2">
                 {/* Charts Row */}
                 <div className="grid md:grid-cols-2 gap-6">
-                  <Card>
+                  <Card className="bg-card/60 backdrop-blur-sm border-border/30">
                     <CardHeader>
                       <CardTitle>Revenue by Source</CardTitle>
                     </CardHeader>
@@ -575,7 +575,7 @@ export default function ReportsROIPage() {
                     </CardContent>
                   </Card>
 
-                  <Card>
+                  <Card className="bg-card/60 backdrop-blur-sm border-border/30">
                     <CardHeader>
                       <CardTitle>Conversion Funnel</CardTitle>
                     </CardHeader>
@@ -591,7 +591,7 @@ export default function ReportsROIPage() {
 
                 {/* Revenue by Service Type */}
                 {data.revenueByService.length > 0 && (
-                  <Card>
+                  <Card className="bg-card/60 backdrop-blur-sm border-border/30">
                     <CardHeader>
                       <CardTitle>Revenue by Service</CardTitle>
                     </CardHeader>
@@ -603,7 +603,7 @@ export default function ReportsROIPage() {
 
                 {/* Revenue Trend */}
                 {data.monthlyData.length > 1 && (
-                  <Card>
+                  <Card className="bg-card/60 backdrop-blur-sm border-border/30">
                     <CardHeader>
                       <CardTitle>Revenue Trend</CardTitle>
                     </CardHeader>
@@ -687,7 +687,7 @@ function KeyMetrics({
   return (
     <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
       {/* AI Revenue */}
-      <Card className="card-elevated border-success/20 bg-success/5">
+      <Card className="card-elevated card-interactive border-success/20 bg-success/5 backdrop-blur-sm">
         <CardContent className="p-5">
           <div className="flex items-start justify-between mb-2">
             <p className="text-sm font-medium text-muted-foreground">
@@ -698,7 +698,7 @@ function KeyMetrics({
               <DollarSign className="h-4 w-4" />
             </div>
           </div>
-          <p className="text-3xl font-bold tracking-tight">{formatRevenue(data.aiRevenueCents)}</p>
+          <p className="text-[28px] font-bold tracking-tight leading-none">{formatRevenue(data.aiRevenueCents)}</p>
           {data.trends.revenue !== 0 && (
             <TrendLine value={data.trends.revenue} />
           )}
@@ -706,7 +706,7 @@ function KeyMetrics({
       </Card>
 
       {/* Calls */}
-      <Card className="card-elevated">
+      <Card className="card-elevated card-interactive bg-card/60 backdrop-blur-sm border-border/30">
         <CardContent className="p-5">
           <div className="flex items-start justify-between mb-2">
             <p className="text-sm font-medium text-muted-foreground">{data.callsLabel}</p>
@@ -714,7 +714,7 @@ function KeyMetrics({
               <Phone className="h-4 w-4" />
             </div>
           </div>
-          <p className="text-3xl font-bold tracking-tight">{data.totalCalls}</p>
+          <p className="text-[28px] font-bold tracking-tight leading-none">{data.totalCalls}</p>
           {data.trends.calls !== 0 && (
             <TrendLine value={data.trends.calls} />
           )}
@@ -722,7 +722,7 @@ function KeyMetrics({
       </Card>
 
       {/* Entities */}
-      <Card className="card-elevated">
+      <Card className="card-elevated card-interactive bg-card/60 backdrop-blur-sm border-border/30">
         <CardContent className="p-5">
           <div className="flex items-start justify-between mb-2">
             <p className="text-sm font-medium text-muted-foreground">{data.entityName}</p>
@@ -730,7 +730,7 @@ function KeyMetrics({
               <Target className="h-4 w-4" />
             </div>
           </div>
-          <p className="text-3xl font-bold tracking-tight">{data.entitiesCreated}</p>
+          <p className="text-[28px] font-bold tracking-tight leading-none">{data.entitiesCreated}</p>
           {data.trends.entities !== 0 && (
             <TrendLine value={data.trends.entities} />
           )}
@@ -738,7 +738,7 @@ function KeyMetrics({
       </Card>
 
       {/* Conversion */}
-      <Card className="card-elevated">
+      <Card className="card-elevated card-interactive bg-card/60 backdrop-blur-sm border-border/30">
         <CardContent className="p-5">
           <div className="flex items-start justify-between mb-2">
             <p className="text-sm font-medium text-muted-foreground">
@@ -749,7 +749,7 @@ function KeyMetrics({
               <TrendingUp className="h-4 w-4" />
             </div>
           </div>
-          <p className="text-3xl font-bold tracking-tight">{Math.round(data.conversionRate)}%</p>
+          <p className="text-[28px] font-bold tracking-tight leading-none">{Math.round(data.conversionRate)}%</p>
           {data.trends.conversion !== 0 && (
             <TrendLine value={data.trends.conversion} />
           )}
@@ -757,7 +757,7 @@ function KeyMetrics({
       </Card>
 
       {/* ROI */}
-      <Card className="card-elevated border-primary/20 bg-primary/5">
+      <Card className="card-elevated card-interactive border-primary/20 bg-primary/5 backdrop-blur-sm">
         <CardContent className="p-5">
           <div className="flex items-start justify-between mb-2">
             <p className="text-sm font-medium text-muted-foreground">
@@ -768,7 +768,7 @@ function KeyMetrics({
               <Award className="h-4 w-4" />
             </div>
           </div>
-          <p className="text-3xl font-bold tracking-tight text-primary">{formatROI(data.roiMultiplier)}</p>
+          <p className="text-[28px] font-bold tracking-tight leading-none text-primary">{formatROI(data.roiMultiplier)}</p>
           {roiBadge && (
             <Badge variant={roiBadge.variant} size="sm" className="mt-1">
               {roiBadge.label}
@@ -845,7 +845,7 @@ function ROIBreakdown({
           </div>
 
           {/* ROI explanation + real-world comparisons */}
-          <div className="bg-muted/30 rounded-lg p-3 space-y-2">
+          <div className="bg-muted/30 rounded-xl p-3 space-y-2">
             <p className="text-sm text-muted-foreground">
               {getROIExplanation(data.roiMultiplier)}
             </p>

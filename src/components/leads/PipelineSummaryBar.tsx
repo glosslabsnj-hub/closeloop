@@ -26,7 +26,7 @@ export function PipelineSummaryBar({ counts, activeStage, onStageClick }: Pipeli
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
   return (
-    <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/40 border border-border/30">
+    <div className="flex items-center gap-1 p-1 rounded-lg bg-card/60 backdrop-blur-sm border border-border/30">
       {/* All button */}
       <button
         onClick={() => onStageClick("all")}
@@ -51,10 +51,10 @@ export function PipelineSummaryBar({ counts, activeStage, onStageClick }: Pipeli
           key={stage.id}
           onClick={() => onStageClick(stage.id)}
           className={cn(
-            "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
             activeStage === stage.id
-              ? "bg-background shadow-sm text-foreground"
-              : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+              ? "bg-background shadow-[0_0_16px_-4px_hsl(230_70%_62%/0.15)] text-foreground"
+              : "text-muted-foreground hover:text-foreground hover:bg-background/50 card-interactive"
           )}
         >
           <div className={cn("w-2 h-2 rounded-full", stage.dotColor)} />

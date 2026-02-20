@@ -131,27 +131,28 @@ export function AgentControlPanel() {
   // No subscription
   if (!planCode && !isSuperAdmin) {
     return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-semibold mb-1">Get your AI receptionist</h3>
-              <p className="text-sm text-muted-foreground">
-                Complete setup to start answering calls with AI.
-              </p>
-            </div>
-            <Button asChild>
-              <Link to="/app/go-live">Get Started</Link>
-            </Button>
+      <div className="rounded-xl bg-card/60 backdrop-blur-sm border border-border/30 p-6">
+        <div className="flex items-center gap-4">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg font-semibold mb-1">Get your AI receptionist</h3>
+            <p className="text-sm text-muted-foreground">
+              Complete setup to start answering calls with AI.
+            </p>
           </div>
-        </CardContent>
-      </Card>
+          <Button asChild className="shadow-[0_0_20px_-6px_hsl(230_70%_62%/0.3)]">
+            <Link to="/app/go-live">Get Started</Link>
+          </Button>
+        </div>
+      </div>
     );
   }
 
   return (
     <>
-      <div className="rounded-lg border border-border/60 bg-card">
+      <div className={cn(
+        "rounded-xl border bg-card/60 backdrop-blur-sm shadow-sm",
+        isActive ? "border-success/20 shimmer-active" : "border-border/30"
+      )}>
         <div className="px-5 py-4">
           {/* Status Row */}
           <div className="flex items-center justify-between gap-4">
@@ -175,14 +176,14 @@ export function AgentControlPanel() {
               <h2 className="text-sm font-semibold truncate text-foreground">{businessName}</h2>
 
               <div className={cn(
-                "flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0",
+                "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium shrink-0",
                 isActive
-                  ? "bg-success/10 text-success"
+                  ? "bg-success/10 text-success shadow-[0_0_12px_-2px_hsl(152_60%_44%/0.4)]"
                   : "bg-muted text-muted-foreground"
               )}>
                 <span className={cn(
                   "w-1.5 h-1.5 rounded-full",
-                  isActive ? "bg-success" : "bg-muted-foreground/40"
+                  isActive ? "bg-success animate-pulse" : "bg-muted-foreground/40"
                 )} />
                 {isActive ? "Live" : "Paused"}
               </div>
@@ -223,7 +224,10 @@ export function AgentControlPanel() {
               <div className="hidden sm:flex items-center gap-2">
                 <div className="w-px h-4 bg-border/40" />
                 <Activity className="h-3.5 w-3.5 text-muted-foreground" />
-                <div className="relative w-14 h-1 bg-muted rounded-full overflow-hidden">
+                <div className={cn(
+                  "relative w-14 h-1 bg-muted rounded-full overflow-hidden",
+                  readinessPercent >= 85 && "glow-primary-sm"
+                )}>
                   <div
                     className={cn(
                       "h-full rounded-full transition-all duration-500",

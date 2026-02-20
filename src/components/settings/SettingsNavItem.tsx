@@ -23,13 +23,13 @@ export function SettingsNavItem({
     <button
       onClick={onClick}
       className={cn(
-        "w-full flex items-center gap-3 px-3 py-2 rounded-md text-left transition-colors text-sm",
+        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all duration-150 text-sm",
         isActive
-          ? "bg-accent text-foreground font-medium"
-          : "text-muted-foreground hover:bg-accent hover:text-foreground"
+          ? "bg-primary/10 text-primary font-medium [box-shadow:inset_2px_0_0_0_hsl(var(--primary)),0_0_12px_-3px_hsl(230_70%_62%/0.15)]"
+          : "text-muted-foreground hover:bg-accent/80 hover:text-foreground"
       )}
     >
-      <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-foreground" : "")} />
+      <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "")} />
       <span className="flex-1 truncate">{label}</span>
       {status === "attention" && (
         <span className="h-2 w-2 rounded-full bg-warning" />

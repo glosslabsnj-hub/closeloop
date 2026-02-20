@@ -71,61 +71,63 @@ const modes = [
 
 export function WhoItsForSection() {
   return (
-    <section className="py-20 md:py-28 bg-secondary/30">
-      <div className="container">
-        <div className="text-center mb-14">
-          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">
+    <section className="py-24 md:py-32 relative overflow-hidden">
+      {/* Background */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_30%_50%,hsl(230_70%_62%/0.05),transparent)] pointer-events-none" />
+
+      <div className="container relative">
+        <div className="text-center mb-16">
+          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-4">
             Who it's for
           </p>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            Built for your business
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight mb-5">
+            Built for{" "}
+            <span className="text-gradient-primary">your business</span>
           </h2>
-          <p className="text-lg text-muted-foreground max-w-xl mx-auto">
+          <p className="text-lg text-muted-foreground/80 max-w-xl mx-auto leading-relaxed">
             The AI adapts to your industry and workflow
           </p>
         </div>
-        
+
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 max-w-7xl mx-auto">
           {modes.map((mode) => (
-            <Card 
-              key={mode.mode} 
-              className="group hover:shadow-xl hover:border-primary/40 hover:-translate-y-1 transition-all duration-300 bg-card"
+            <div
+              key={mode.mode}
+              className="group p-6 rounded-xl bg-card/60 backdrop-blur-sm border border-border/30 hover:border-primary/30 hover:bg-card/80 hover:shadow-[0_8px_32px_-8px_hsl(230_70%_62%/0.12)] hover:-translate-y-1 transition-all duration-300"
             >
-              <CardContent className="p-6">
-                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-primary mb-5 group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
-                  <mode.icon className="h-7 w-7" />
-                </div>
-                
-                <h3 className="font-semibold text-lg mb-1">{mode.title}</h3>
-                <p className="text-sm text-muted-foreground mb-5">
-                  {mode.description}
-                </p>
-                
-                <ul className="space-y-2.5 mb-5">
-                  {mode.bullets.map((bullet, i) => (
-                    <li key={i} className="text-sm flex items-start gap-2">
-                      <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                      <span>{bullet}</span>
-                    </li>
-                  ))}
-                </ul>
-                
-                <Link to={`/signup?industry=${mode.industry}&mode=${mode.mode}`}>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="w-full group-hover:bg-primary/10 gap-2 font-medium"
-                  >
-                    Get started
-                    <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 border border-primary/10 text-primary mb-5 group-hover:bg-primary/15 group-hover:border-primary/20 transition-colors duration-300">
+                <mode.icon className="h-7 w-7" />
+              </div>
+
+              <h3 className="font-semibold text-lg mb-1">{mode.title}</h3>
+              <p className="text-sm text-muted-foreground/80 mb-5">
+                {mode.description}
+              </p>
+
+              <ul className="space-y-2.5 mb-5">
+                {mode.bullets.map((bullet, i) => (
+                  <li key={i} className="text-sm flex items-start gap-2">
+                    <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                    <span>{bullet}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <Link to={`/signup?industry=${mode.industry}&mode=${mode.mode}`}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full group-hover:bg-primary/10 gap-2 font-medium"
+                >
+                  Get started
+                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </Link>
+            </div>
           ))}
         </div>
-        
-        <p className="text-center text-sm text-muted-foreground mt-10">
+
+        <p className="text-center text-sm text-muted-foreground/60 mt-12">
           Don't see your industry?{" "}
           <a href="#demo" className="text-primary font-medium hover:underline">
             Hear how it sounds

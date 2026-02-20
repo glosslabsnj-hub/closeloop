@@ -116,6 +116,7 @@ export function UnifiedAlertBanner() {
     <Card
       className={cn(
         "border-l-4",
+        "backdrop-blur-sm border-border/30",
         hasCritical
           ? "border-l-destructive bg-destructive/5"
           : primaryAlert.type === "warning"
@@ -179,7 +180,7 @@ export function UnifiedAlertBanner() {
           {/* Secondary Alerts (collapsible) */}
           <CollapsibleContent>
             {secondaryAlerts.length > 0 && (
-              <div className="mt-4 pt-4 border-t space-y-3">
+              <div className="mt-4 pt-4 border-t border-border/20 space-y-3">
                 {secondaryAlerts.map((alert) => {
                   const AlertIcon = alert.icon;
                   return (

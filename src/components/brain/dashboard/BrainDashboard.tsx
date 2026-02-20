@@ -119,7 +119,7 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Business Brain</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Business Brain</h1>
             {tenant?.name && (
               <p className="text-sm text-muted-foreground mt-0.5">{tenant.name as string}</p>
             )}
@@ -129,11 +129,13 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
               <Globe className="h-4 w-4 mr-1.5" />
               Import from Website
             </Button>
-            <span className="text-sm font-medium tabular-nums">{overallPercent}%</span>
-            <span className="text-xs text-muted-foreground">complete</span>
           </div>
         </div>
-        <Progress value={overallPercent} className="h-1.5" />
+        <div className="rounded-xl bg-card/60 backdrop-blur-sm border border-border/30 px-4 py-3 flex items-center gap-3">
+          <span className="text-sm font-medium tabular-nums">{overallPercent}%</span>
+          <Progress value={overallPercent} className="h-1.5 flex-1" />
+          <span className="text-xs text-muted-foreground">complete</span>
+        </div>
 
         {/* Search + actions bar */}
         <div className="flex items-center gap-2">
@@ -163,7 +165,8 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
       {/* ── Quick Actions ──────────────────────────────────────────── */}
       {!searchQuery && (
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="divider-gradient" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground pt-2">
             Quick Actions
           </p>
           <div className="grid grid-cols-3 gap-3">
@@ -186,10 +189,11 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
 
       {/* ── Settings Categories ─────────────────────────────────────── */}
       <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="divider-gradient" />
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground pt-2">
           Settings
         </p>
-        <div className="rounded-xl border bg-card divide-y">
+        <div className="rounded-xl border-border/30 border bg-card/60 backdrop-blur-sm divide-y divide-border/20">
           {(searchQuery ? filteredCategories : mainCategories)
             .sort((a, b) => a.order - b.order)
             .map((cat) => (
@@ -217,7 +221,7 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
             Advanced Settings
           </button>
           {showAdvanced && (
-            <div className="rounded-xl border bg-card divide-y">
+            <div className="rounded-xl border-border/30 border bg-card/60 backdrop-blur-sm divide-y divide-border/20">
               {advancedCategories
                 .sort((a, b) => a.order - b.order)
                 .map((cat) => (
@@ -237,7 +241,7 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
 
       {/* Intelligence card */}
       {!searchQuery && intelligenceCategory && (
-        <div className="rounded-xl border bg-card divide-y">
+        <div className="rounded-xl border-border/30 border bg-card/60 backdrop-blur-sm divide-y divide-border/20">
           <BrainCategoryRow
             category={intelligenceCategory}
             resolvedTitle={resolveCardTitle(intelligenceCategory.titleKey, intelligenceCategory.title, businessMode)}
@@ -250,10 +254,12 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
 
       {/* ── AI Readiness ───────────────────────────────────────────── */}
       {!searchQuery && (
-        <div className="rounded-xl border bg-card p-5 space-y-4">
+        <div className="rounded-xl border-border/30 border bg-card/60 backdrop-blur-sm glow-primary-subtle p-5 space-y-4 card-interactive">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 glow-primary-sm">
+                <Sparkles className="h-4 w-4 text-primary" />
+              </div>
               <p className="text-sm font-semibold">AI Readiness</p>
             </div>
             <span className="text-sm font-bold tabular-nums">{readiness.score}%</span>
@@ -280,7 +286,10 @@ export function BrainDashboard({ onNavigate }: BrainDashboardProps) {
                           if (sectionMatch) onNavigate(sectionMatch[1]);
                         }
                       }}
-                      className="flex items-center gap-3 w-full p-2.5 rounded-lg hover:bg-muted/50 transition-colors text-left group"
+                      className={cn(
+                        "flex items-center gap-3 w-full p-2.5 rounded-lg border border-transparent hover:border-border/20 hover:bg-card/80 transition-colors text-left group",
+                        isP0 ? "accent-left-destructive" : "accent-left-warning",
+                      )}
                     >
                       <AlertCircle className={cn(
                         "h-4 w-4 shrink-0",

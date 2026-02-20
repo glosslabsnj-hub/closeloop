@@ -9,110 +9,120 @@ import { ThemeProvider } from "next-themes";
 import { SessionExpirationHandler } from "@/components/auth/SessionExpirationHandler";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
-// Layouts
+// Layouts — eagerly loaded (structural, always needed)
 import { PublicLayout } from "@/components/layouts/PublicLayout";
 import { AppLayout } from "@/components/layouts/AppLayout";
 import { AdminLayout } from "@/components/layouts/AdminLayout";
 import { DriverLayout } from "@/components/layouts/DriverLayout";
 
-// Public Pages
+// Landing page — eagerly loaded (most common entry point)
 import LandingPage from "@/pages/public/LandingPage";
-import PricingPage from "@/pages/public/PricingPage";
-import LoginPage from "@/pages/public/LoginPage";
-import SignupPage from "@/pages/public/SignupPage";
-import EstimateViewPage from "@/pages/public/EstimateViewPage";
-import CustomerPortalPage from "@/pages/public/CustomerPortalPage";
-import PublicROIReportPage from "@/pages/public/PublicROIReportPage";
-import AgenciesPage from "@/pages/public/AgenciesPage";
-import ForgotPasswordPage from "@/pages/public/ForgotPasswordPage";
-import AgencyReferralSignupPage from "@/pages/public/AgencyReferralSignupPage";
+
+// Shared loading fallback
+const PageSpinner = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+  </div>
+);
+
+// Public Pages (lazy — not all visitors hit every public page)
+const PricingPage = lazy(() => import("@/pages/public/PricingPage"));
+const LoginPage = lazy(() => import("@/pages/public/LoginPage"));
+const SignupPage = lazy(() => import("@/pages/public/SignupPage"));
+const EstimateViewPage = lazy(() => import("@/pages/public/EstimateViewPage"));
+const CustomerPortalPage = lazy(() => import("@/pages/public/CustomerPortalPage"));
+const PublicROIReportPage = lazy(() => import("@/pages/public/PublicROIReportPage"));
+const AgenciesPage = lazy(() => import("@/pages/public/AgenciesPage"));
+const ForgotPasswordPage = lazy(() => import("@/pages/public/ForgotPasswordPage"));
+const AgencyReferralSignupPage = lazy(() => import("@/pages/public/AgencyReferralSignupPage"));
 
 // App Pages
 const OnboardingPage = lazy(() => import("@/pages/app/OnboardingPage"));
-import DashboardPage from "@/pages/app/DashboardPage";
-import SystemMapPage from "@/pages/SystemMapPage";
-import UnifiedInboxPage from "@/pages/app/UnifiedInboxPage";
-import BookingsPage from "@/pages/app/BookingsPage";
-// ServicesPage removed - now redirects to Business Brain
-import IntegrationsPage from "@/pages/app/IntegrationsPage";
-import AIAssistantPage from "@/pages/app/AIAssistantPage";
-import SettingsPage from "@/pages/app/SettingsPage";
-import SimulatorPage from "@/pages/app/SimulatorPage";
-import GoLivePage from "@/pages/app/GoLivePage";
+const DashboardPage = lazy(() => import("@/pages/app/DashboardPage"));
+const SystemMapPage = lazy(() => import("@/pages/SystemMapPage"));
+const UnifiedInboxPage = lazy(() => import("@/pages/app/UnifiedInboxPage"));
+const BookingsPage = lazy(() => import("@/pages/app/BookingsPage"));
+const IntegrationsPage = lazy(() => import("@/pages/app/IntegrationsPage"));
+const AIAssistantPage = lazy(() => import("@/pages/app/AIAssistantPage"));
+const SettingsPage = lazy(() => import("@/pages/app/SettingsPage"));
+const SimulatorPage = lazy(() => import("@/pages/app/SimulatorPage"));
+const GoLivePage = lazy(() => import("@/pages/app/GoLivePage"));
 const BusinessBrainPage = lazy(() => import("@/pages/app/BusinessBrainPage"));
-import BusinessBrainGapsPage from "@/pages/app/BusinessBrainGapsPage";
-import ReadinessFixCenterPage from "@/pages/app/ReadinessFixCenterPage";
-import UsagePage from "@/pages/app/UsagePage";
-import EstimatesPage from "@/pages/app/EstimatesPage";
-import AgreementsPage from "@/pages/app/AgreementsPage";
-import CustomersPage from "@/pages/app/CustomersPage";
-import TimeTrackingPage from "@/pages/app/TimeTrackingPage";
-import DispatchMapPage from "@/pages/app/DispatchMapPage";
-import InventoryPage from "@/pages/app/InventoryPage";
-import KitchenDisplayPage from "@/pages/app/KitchenDisplayPage";
-import LoyaltyPage from "@/pages/app/LoyaltyPage";
-import TestAIPage from "@/pages/app/TestAIPage";
+const BusinessBrainGapsPage = lazy(() => import("@/pages/app/BusinessBrainGapsPage"));
+const ReadinessFixCenterPage = lazy(() => import("@/pages/app/ReadinessFixCenterPage"));
+const UsagePage = lazy(() => import("@/pages/app/UsagePage"));
+const EstimatesPage = lazy(() => import("@/pages/app/EstimatesPage"));
+const AgreementsPage = lazy(() => import("@/pages/app/AgreementsPage"));
+const CustomersPage = lazy(() => import("@/pages/app/CustomersPage"));
+const TimeTrackingPage = lazy(() => import("@/pages/app/TimeTrackingPage"));
+const DispatchMapPage = lazy(() => import("@/pages/app/DispatchMapPage"));
+const InventoryPage = lazy(() => import("@/pages/app/InventoryPage"));
+const KitchenDisplayPage = lazy(() => import("@/pages/app/KitchenDisplayPage"));
+const LoyaltyPage = lazy(() => import("@/pages/app/LoyaltyPage"));
+const TestAIPage = lazy(() => import("@/pages/app/TestAIPage"));
 
 // Module-specific pages
-import OrdersPage from "@/pages/app/OrdersPage";
-import ReservationsPage from "@/pages/app/ReservationsPage";
-import CateringPage from "@/pages/app/CateringPage";
-import DispatchPage from "@/pages/app/DispatchPage";
-import ImpoundLotPage from "@/pages/app/ImpoundLotPage";
-import FleetPage from "@/pages/app/FleetPage";
-import MedicalIntakePage from "@/pages/app/MedicalIntakePage";
-import SalesPipelinePage from "@/pages/app/SalesPipelinePage";
-import TestDrivesPage from "@/pages/app/TestDrivesPage";
-import SalesInventoryPage from "@/pages/app/SalesInventoryPage";
-import OrderTicketPage from "@/pages/app/OrderTicketPage";
-import HelpCenterPage from "@/pages/app/HelpCenterPage";
-import ScheduleConnectionPage from "@/pages/app/ScheduleConnectionPage";
-import BusinessPartnerPage from "@/pages/app/BusinessPartnerPage";
-import ReportsROIPage from "@/pages/app/ReportsROIPage";
-// Workflows pages kept for backward compatibility - accessible via automations
-import WorkflowEditPage from "@/pages/app/WorkflowEditPage";
-import WorkflowRunsPage from "@/pages/app/WorkflowRunsPage";
-import WorkflowRunDetailPage from "@/pages/app/WorkflowRunDetailPage";
-import LeadRecoveryPage from "@/pages/app/LeadRecoveryPage";
-import JobsPage from "@/pages/app/JobsPage";
-import AgencyDashboardPage from "@/pages/app/AgencyDashboardPage";
-import AgencyLeadFinderPage from "@/pages/app/agency/AgencyLeadFinderPage";
-import AgencyClientsPage from "@/pages/app/agency/AgencyClientsPage";
-import AgencySavedLeadsPage from "@/pages/app/agency/AgencySavedLeadsPage";
-import AgencyCommissionsPage from "@/pages/app/agency/AgencyCommissionsPage";
-import AgencyReportsPage from "@/pages/app/agency/AgencyReportsPage";
-// Driver Portal Pages
-import DriverLoginPage from "@/pages/driver/DriverLoginPage";
-import DriverDashboard from "@/pages/driver/DriverDashboard";
-import DriverJobDetail from "@/pages/driver/DriverJobDetail";
-import DriverImpoundLog from "@/pages/driver/DriverImpoundLog";
-import DriverVehicleSelect from "@/pages/driver/DriverVehicleSelect";
+const OrdersPage = lazy(() => import("@/pages/app/OrdersPage"));
+const ReservationsPage = lazy(() => import("@/pages/app/ReservationsPage"));
+const CateringPage = lazy(() => import("@/pages/app/CateringPage"));
+const DispatchPage = lazy(() => import("@/pages/app/DispatchPage"));
+const ImpoundLotPage = lazy(() => import("@/pages/app/ImpoundLotPage"));
+const FleetPage = lazy(() => import("@/pages/app/FleetPage"));
+const MedicalIntakePage = lazy(() => import("@/pages/app/MedicalIntakePage"));
+const SalesPipelinePage = lazy(() => import("@/pages/app/SalesPipelinePage"));
+const TestDrivesPage = lazy(() => import("@/pages/app/TestDrivesPage"));
+const SalesInventoryPage = lazy(() => import("@/pages/app/SalesInventoryPage"));
+const OrderTicketPage = lazy(() => import("@/pages/app/OrderTicketPage"));
+const HelpCenterPage = lazy(() => import("@/pages/app/HelpCenterPage"));
+const ScheduleConnectionPage = lazy(() => import("@/pages/app/ScheduleConnectionPage"));
+const BusinessPartnerPage = lazy(() => import("@/pages/app/BusinessPartnerPage"));
+const ReportsROIPage = lazy(() => import("@/pages/app/ReportsROIPage"));
+const WorkflowEditPage = lazy(() => import("@/pages/app/WorkflowEditPage"));
+const WorkflowRunsPage = lazy(() => import("@/pages/app/WorkflowRunsPage"));
+const WorkflowRunDetailPage = lazy(() => import("@/pages/app/WorkflowRunDetailPage"));
+const LeadRecoveryPage = lazy(() => import("@/pages/app/LeadRecoveryPage"));
+const JobsPage = lazy(() => import("@/pages/app/JobsPage"));
+const AgencyDashboardPage = lazy(() => import("@/pages/app/AgencyDashboardPage"));
+const AgencyLeadFinderPage = lazy(() => import("@/pages/app/agency/AgencyLeadFinderPage"));
+const AgencyClientsPage = lazy(() => import("@/pages/app/agency/AgencyClientsPage"));
+const AgencySavedLeadsPage = lazy(() => import("@/pages/app/agency/AgencySavedLeadsPage"));
+const AgencyCommissionsPage = lazy(() => import("@/pages/app/agency/AgencyCommissionsPage"));
+const AgencyReportsPage = lazy(() => import("@/pages/app/agency/AgencyReportsPage"));
 
-import AdminOverviewPage from "@/pages/admin/AdminOverviewPage";
-import AdminTenantsPage from "@/pages/admin/AdminTenantsPage";
-import AdminSupportPage from "@/pages/admin/AdminSupportPage";
-import AdminDemoLibraryPage from "@/pages/admin/AdminDemoLibraryPage";
-import AdminGoldenPathPage from "@/pages/admin/AdminGoldenPathPage";
-import AdminSetupRequestsPage from "@/pages/admin/AdminSetupRequestsPage";
-import AdminAuditReportPage from "@/pages/admin/AdminAuditReportPage";
-import AdminAgencyApplicationsPage from "@/pages/admin/AdminAgencyApplicationsPage";
-import AdminTestOnboardingPage from "@/pages/admin/AdminTestOnboardingPage";
-import AdminDashboardPage from "@/pages/admin/AdminDashboardPage";
-import AdminAgenciesPage from "@/pages/admin/AdminAgenciesPage";
-import AdminLeadFinderPage from "@/pages/admin/AdminLeadFinderPage";
-import AdminResellerFinderPage from "@/pages/admin/AdminResellerFinderPage";
-import AdminMarketingPage from "@/pages/admin/AdminMarketingPage";
-import AdminGrowthEnginePage from "@/pages/admin/AdminGrowthEnginePage";
-import AdminBlueprintPage from "@/pages/admin/AdminBlueprintPage";
-import AdminCommissionPayoutsPage from "@/pages/admin/AdminCommissionPayoutsPage";
+// Driver Portal Pages
+const DriverLoginPage = lazy(() => import("@/pages/driver/DriverLoginPage"));
+const DriverDashboard = lazy(() => import("@/pages/driver/DriverDashboard"));
+const DriverJobDetail = lazy(() => import("@/pages/driver/DriverJobDetail"));
+const DriverImpoundLog = lazy(() => import("@/pages/driver/DriverImpoundLog"));
+const DriverVehicleSelect = lazy(() => import("@/pages/driver/DriverVehicleSelect"));
+
+// Admin Pages
+const AdminOverviewPage = lazy(() => import("@/pages/admin/AdminOverviewPage"));
+const AdminTenantsPage = lazy(() => import("@/pages/admin/AdminTenantsPage"));
+const AdminSupportPage = lazy(() => import("@/pages/admin/AdminSupportPage"));
+const AdminDemoLibraryPage = lazy(() => import("@/pages/admin/AdminDemoLibraryPage"));
+const AdminGoldenPathPage = lazy(() => import("@/pages/admin/AdminGoldenPathPage"));
+const AdminSetupRequestsPage = lazy(() => import("@/pages/admin/AdminSetupRequestsPage"));
+const AdminAuditReportPage = lazy(() => import("@/pages/admin/AdminAuditReportPage"));
+const AdminAgencyApplicationsPage = lazy(() => import("@/pages/admin/AdminAgencyApplicationsPage"));
+const AdminTestOnboardingPage = lazy(() => import("@/pages/admin/AdminTestOnboardingPage"));
+const AdminDashboardPage = lazy(() => import("@/pages/admin/AdminDashboardPage"));
+const AdminAgenciesPage = lazy(() => import("@/pages/admin/AdminAgenciesPage"));
+const AdminLeadFinderPage = lazy(() => import("@/pages/admin/AdminLeadFinderPage"));
+const AdminResellerFinderPage = lazy(() => import("@/pages/admin/AdminResellerFinderPage"));
+const AdminMarketingPage = lazy(() => import("@/pages/admin/AdminMarketingPage"));
+const AdminGrowthEnginePage = lazy(() => import("@/pages/admin/AdminGrowthEnginePage"));
+const AdminBlueprintPage = lazy(() => import("@/pages/admin/AdminBlueprintPage"));
+const AdminCommissionPayoutsPage = lazy(() => import("@/pages/admin/AdminCommissionPayoutsPage"));
 
 // Debug Pages
-import TelephonyDebugPage from "@/pages/debug/TelephonyDebugPage";
-import AIContextInspectorPage from "@/pages/debug/AIContextInspectorPage";
-import AvailabilityDebugPage from "@/pages/debug/AvailabilityDebugPage";
-import ExtractionDebugPage from "@/pages/debug/ExtractionDebugPage";
-import ContextDebuggerPage from "@/pages/debug/ContextDebuggerPage";
-import NotFound from "@/pages/NotFound";
+const TelephonyDebugPage = lazy(() => import("@/pages/debug/TelephonyDebugPage"));
+const AIContextInspectorPage = lazy(() => import("@/pages/debug/AIContextInspectorPage"));
+const AvailabilityDebugPage = lazy(() => import("@/pages/debug/AvailabilityDebugPage"));
+const ExtractionDebugPage = lazy(() => import("@/pages/debug/ExtractionDebugPage"));
+const ContextDebuggerPage = lazy(() => import("@/pages/debug/ContextDebuggerPage"));
+
+const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient();
 
@@ -126,6 +136,7 @@ const App = () => (
           <SessionExpirationHandler />
           <BrowserRouter>
           <ErrorBoundary>
+          <Suspense fallback={<PageSpinner />}>
           <Routes>
             {/* Public Routes */}
             <Route element={<PublicLayout />}>
@@ -150,7 +161,7 @@ const App = () => (
             <Route path="/join/:agencySlug" element={<AgencyReferralSignupPage />} />
 
             {/* Onboarding and Go-Live (no layout) */}
-            <Route path="/app/onboarding" element={<Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>}><OnboardingPage /></Suspense>} />
+            <Route path="/app/onboarding" element={<OnboardingPage />} />
             <Route path="/app/go-live" element={<GoLivePage />} />
             <Route path="/app/system-map" element={<SystemMapPage />} />
 
@@ -171,7 +182,7 @@ const App = () => (
               <Route path="/app/automations" element={<IntegrationsPage />} />
               <Route path="/app/simulator" element={<SimulatorPage />} />
               <Route path="/app/test-ai" element={<TestAIPage />} />
-              <Route path="/app/business-brain" element={<Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>}><BusinessBrainPage /></Suspense>} />
+              <Route path="/app/business-brain" element={<BusinessBrainPage />} />
               <Route path="/app/business-brain/gaps" element={<BusinessBrainGapsPage />} />
               <Route path="/app/readiness" element={<ReadinessFixCenterPage />} />
               <Route path="/app/usage" element={<UsagePage />} />
@@ -257,6 +268,7 @@ const App = () => (
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
           </ErrorBoundary>
         </BrowserRouter>
         </TooltipProvider>

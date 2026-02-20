@@ -25,11 +25,11 @@ export function SlimTopBar({ userEmail, tenantName, onSignOut, isSuperAdmin }: S
   const { theme, setTheme } = useTheme();
 
   return (
-    <header className="hidden md:flex h-12 sticky top-0 z-30 items-center gap-2 bg-background/95 backdrop-blur-sm border-b border-border/40 px-6">
+    <header className="hidden md:flex h-12 sticky top-0 z-30 items-center gap-2 bg-background/80 backdrop-blur-md border-b border-border/30 px-6">
 
       {/* Branding */}
       <Link to="/app/dashboard" className="flex items-center gap-2">
-        <div className="h-6 w-6 shrink-0 rounded-md bg-primary flex items-center justify-center">
+        <div className="h-6 w-6 shrink-0 rounded-md bg-primary glow-primary-sm flex items-center justify-center">
           <AudioWaveform className="h-3 w-3 text-primary-foreground" />
         </div>
         <span className="font-medium text-sm text-foreground">
@@ -46,6 +46,7 @@ export function SlimTopBar({ userEmail, tenantName, onSignOut, isSuperAdmin }: S
           variant="ghost"
           size="icon"
           className="h-8 w-8 text-muted-foreground/60 hover:text-muted-foreground"
+          onClick={() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }))}
         >
           <Search className="h-4 w-4" />
           <span className="sr-only">Search</span>
@@ -67,7 +68,7 @@ export function SlimTopBar({ userEmail, tenantName, onSignOut, isSuperAdmin }: S
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full ml-0.5">
-              <Avatar className="h-7 w-7">
+              <Avatar className="h-7 w-7 ring-1 ring-primary/20">
                 <AvatarFallback className="bg-primary/20 text-primary text-xs font-semibold">
                   {userEmail?.[0]?.toUpperCase()}
                 </AvatarFallback>

@@ -259,11 +259,11 @@ export function SmartChecklist() {
               key={task.id}
               to={task.href}
               className={cn(
-                "flex items-center gap-3 p-3 rounded-lg border transition-all group",
-                "hover:border-primary/20 hover:bg-primary/5"
+                "flex items-center gap-3 p-3 rounded-lg border border-border/30 bg-card/60 backdrop-blur-sm transition-all group",
+                "hover:border-primary/20 hover:bg-card/80"
               )}
             >
-              <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+              <div className="h-8 w-8 rounded-lg bg-muted/60 border border-border/20 flex items-center justify-center shrink-0">
                 <Icon className="h-4 w-4 text-muted-foreground" />
               </div>
               <div className="flex-1 min-w-0">
@@ -271,7 +271,7 @@ export function SmartChecklist() {
                 <p className="text-xs text-muted-foreground truncate">{task.description}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                <span className="text-[10px] text-muted-foreground bg-muted/60 border border-border/20 px-1.5 py-0.5 rounded">
                   {task.timeEstimate}
                 </span>
                 <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />

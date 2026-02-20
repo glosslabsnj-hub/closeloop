@@ -89,11 +89,11 @@ export const DesktopSidebar = ({
   return (
     <motion.div
       className={cn(
-        "h-full px-3 py-4 hidden md:flex md:flex-col bg-sidebar flex-shrink-0",
+        "h-full px-2.5 py-4 hidden md:flex md:flex-col bg-sidebar/95 backdrop-blur-md flex-shrink-0 border-r border-border/20",
         className
       )}
       animate={{
-        width: animate ? (open ? "260px" : "56px") : "260px",
+        width: animate ? (open ? "240px" : "56px") : "240px",
       }}
       transition={{ duration: 0.2, ease: "easeOut" }}
       onMouseEnter={() => setOpen(true)}
@@ -155,17 +155,18 @@ export const SidebarLink = ({
   return (
     <Link
       to={isLocked ? "/app/go-live" : link.href}
+      title={!open ? link.label : undefined}
       className={cn(
-        "flex items-center gap-3 group/sidebar rounded-md px-3 py-2 h-9 transition-colors",
+        "flex items-center gap-3 group/sidebar rounded-lg px-3 py-2 h-9 transition-all duration-150",
         isActive
-          ? "bg-accent text-foreground font-medium"
-          : "text-sidebar-foreground hover:bg-accent hover:text-foreground",
+          ? "bg-primary/10 text-primary font-medium [box-shadow:inset_2px_0_0_0_hsl(var(--primary)),0_0_12px_-3px_hsl(230_70%_62%/0.15)]"
+          : "text-sidebar-foreground hover:bg-accent/80 hover:text-foreground",
         isLocked && "opacity-30 pointer-events-none",
         className
       )}
       {...props}
     >
-      <span className="shrink-0">{link.icon}</span>
+      <span className={cn("shrink-0 transition-colors", isActive && "text-primary")}>{link.icon}</span>
       <motion.span
         animate={{
           display: animate ? (open ? "inline-block" : "none") : "inline-block",

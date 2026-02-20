@@ -89,15 +89,15 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {statCards.map((stat) => (
-          <Card key={stat.label}>
+          <Card key={stat.label} className="border-border/30 shadow-sm bg-card/60 backdrop-blur-sm card-interactive">
             <CardContent className="p-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/8">
                 <stat.icon className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stat.value}</p>
+                <p className="text-2xl font-bold tracking-tight">{stat.value}</p>
                 <p className="text-xs text-muted-foreground">{stat.label}</p>
               </div>
             </CardContent>
@@ -158,35 +158,35 @@ export default function AdminDashboardPage() {
           ) : !clients?.length ? (
             <p className="text-sm text-muted-foreground text-center py-4">No tenants yet.</p>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto -mx-6">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b text-left">
-                    <th className="pb-2 font-medium text-muted-foreground">Name</th>
-                    <th className="pb-2 font-medium text-muted-foreground hidden sm:table-cell">Mode</th>
-                    <th className="pb-2 font-medium text-muted-foreground hidden md:table-cell">Industry</th>
-                    <th className="pb-2 font-medium text-muted-foreground">Status</th>
-                    <th className="pb-2 font-medium text-muted-foreground hidden lg:table-cell">Last Call</th>
-                    <th className="pb-2 font-medium text-muted-foreground hidden lg:table-cell">30d Calls</th>
-                    <th className="pb-2 font-medium text-muted-foreground"></th>
+                  <tr className="border-b border-border/40 text-left">
+                    <th className="pb-2.5 pt-1 px-6 text-xs font-medium text-muted-foreground">Name</th>
+                    <th className="pb-2.5 pt-1 px-2 text-xs font-medium text-muted-foreground hidden sm:table-cell">Mode</th>
+                    <th className="pb-2.5 pt-1 px-2 text-xs font-medium text-muted-foreground hidden md:table-cell">Industry</th>
+                    <th className="pb-2.5 pt-1 px-2 text-xs font-medium text-muted-foreground">Status</th>
+                    <th className="pb-2.5 pt-1 px-2 text-xs font-medium text-muted-foreground hidden lg:table-cell">Last Call</th>
+                    <th className="pb-2.5 pt-1 px-2 text-xs font-medium text-muted-foreground hidden lg:table-cell">30d Calls</th>
+                    <th className="pb-2.5 pt-1 px-6 text-xs font-medium text-muted-foreground"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {clients.map((client) => (
-                    <tr key={client.id} className="border-b last:border-0 hover:bg-muted/50">
-                      <td className="py-2.5 font-medium">{client.name}</td>
-                      <td className="py-2.5 capitalize hidden sm:table-cell text-muted-foreground">{client.business_mode}</td>
-                      <td className="py-2.5 hidden md:table-cell text-muted-foreground">{client.industry || "\u2014"}</td>
-                      <td className="py-2.5">
+                    <tr key={client.id} className="border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors">
+                      <td className="py-3 px-6 font-medium">{client.name}</td>
+                      <td className="py-3 px-2 capitalize hidden sm:table-cell text-muted-foreground">{client.business_mode}</td>
+                      <td className="py-3 px-2 hidden md:table-cell text-muted-foreground">{client.industry || "\u2014"}</td>
+                      <td className="py-3 px-2">
                         <Badge variant={client.onboarding_completed_at ? "default" : "secondary"} className="text-xs">
                           {client.onboarding_completed_at ? "Active" : "Setup"}
                         </Badge>
                       </td>
-                      <td className="py-2.5 hidden lg:table-cell text-muted-foreground text-xs">
+                      <td className="py-3 px-2 hidden lg:table-cell text-muted-foreground text-xs">
                         {client.lastCallDate ? format(new Date(client.lastCallDate), "MMM d") : "\u2014"}
                       </td>
-                      <td className="py-2.5 hidden lg:table-cell text-muted-foreground">{client.callCount30d}</td>
-                      <td className="py-2.5">
+                      <td className="py-3 px-2 hidden lg:table-cell text-muted-foreground">{client.callCount30d}</td>
+                      <td className="py-3 px-6">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -219,11 +219,11 @@ export default function AdminDashboardPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-3">
             {agencyCards.map((card) => (
-              <div key={card.label} className="text-center p-3 rounded-lg bg-muted/50">
-                <p className="text-xl font-bold">{card.value}</p>
-                <p className="text-xs text-muted-foreground">{card.label}</p>
+              <div key={card.label} className="text-center p-4 rounded-xl bg-card/60 backdrop-blur-sm border border-border/30 card-interactive">
+                <p className="text-xl font-bold tracking-tight">{card.value}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{card.label}</p>
               </div>
             ))}
           </div>
@@ -281,30 +281,30 @@ export default function AdminDashboardPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-4 gap-4">
-            <div className="text-center p-3 rounded-lg bg-muted/50">
-              <p className="text-xl font-bold">
+          <div className="grid grid-cols-4 gap-3">
+            <div className="text-center p-4 rounded-xl bg-card/60 backdrop-blur-sm border border-border/30 card-interactive">
+              <p className="text-xl font-bold tracking-tight">
                 {[growthSettings?.auto_discovery_enabled, growthSettings?.auto_outreach_enabled, growthSettings?.auto_social_enabled, growthSettings?.auto_ads_enabled].filter(Boolean).length}/4
               </p>
-              <p className="text-xs text-muted-foreground">Modules Active</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Modules Active</p>
             </div>
-            <div className="text-center p-3 rounded-lg bg-muted/50">
-              <p className="text-xl font-bold">
+            <div className="text-center p-4 rounded-xl bg-card/60 backdrop-blur-sm border border-border/30 card-interactive">
+              <p className="text-xl font-bold tracking-tight">
                 {(outreachCampaigns ?? []).filter((c) => c.status === "active").length}
               </p>
-              <p className="text-xs text-muted-foreground">Active Campaigns</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Active Campaigns</p>
             </div>
-            <div className="text-center p-3 rounded-lg bg-muted/50">
-              <p className="text-xl font-bold">
+            <div className="text-center p-4 rounded-xl bg-card/60 backdrop-blur-sm border border-border/30 card-interactive">
+              <p className="text-xl font-bold tracking-tight">
                 {(outreachCampaigns ?? []).reduce((s, c) => s + c.total_enrolled, 0)}
               </p>
-              <p className="text-xs text-muted-foreground">Enrolled Leads</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Enrolled Leads</p>
             </div>
-            <div className="text-center p-3 rounded-lg bg-muted/50">
-              <p className="text-xl font-bold">
+            <div className="text-center p-4 rounded-xl bg-card/60 backdrop-blur-sm border border-border/30 card-interactive">
+              <p className="text-xl font-bold tracking-tight">
                 {(outreachCampaigns ?? []).reduce((s, c) => s + c.total_responded, 0)}
               </p>
-              <p className="text-xs text-muted-foreground">Responses</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Responses</p>
             </div>
           </div>
         </CardContent>

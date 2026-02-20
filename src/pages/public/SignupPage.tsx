@@ -103,25 +103,40 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-[calc(100vh-4rem)] md:min-h-screen flex">
       {/* Left Brand Panel — hidden on mobile */}
-      <div className="hidden md:flex md:w-[40%] flex-col justify-center items-center px-12 bg-gradient-to-br from-primary/90 to-primary/70 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,hsl(172_75%_50%/0.15),transparent_70%)]" />
-        <div className="relative z-10 text-center space-y-6">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm border border-white/20">
-            <AudioWaveform className="h-8 w-8 text-white" />
+      <div className="hidden md:flex md:w-[45%] flex-col justify-center items-center px-12 relative overflow-hidden bg-gradient-to-br from-[hsl(230,50%,12%)] via-[hsl(240,40%,10%)] to-[hsl(260,30%,8%)]">
+        {/* Spotlight glow */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_30%,hsl(230_70%_62%/0.2),transparent)] pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_40%_40%_at_20%_80%,hsl(280_60%_55%/0.08),transparent)] pointer-events-none" />
+        {/* Grid pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(hsl(0_0%_100%/0.03)_1px,transparent_1px),linear-gradient(90deg,hsl(0_0%_100%/0.03)_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none" />
+
+        <div className="relative z-10 text-center space-y-8 max-w-sm">
+          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/15 backdrop-blur-md border border-primary/20 glow-primary-sm">
+            <AudioWaveform className="h-8 w-8 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold text-white">{BRAND.name}</h1>
-          <p className="text-white/80 text-lg max-w-xs">{BRAND.tagline}</p>
-          <div className="pt-4">
-            <p className="text-white/60 text-sm">Trusted by 500+ local businesses</p>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-3">{BRAND.name}</h1>
+            <p className="text-muted-foreground text-lg leading-relaxed">{BRAND.tagline}</p>
           </div>
+          <div className="pt-4 flex flex-col gap-3.5">
+            {["Answer calls 24/7", "Book appointments automatically", "Capture every lead"].map((text) => (
+              <div key={text} className="flex items-center gap-3 text-muted-foreground/80 text-sm">
+                <div className="h-5 w-5 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                </div>
+                {text}
+              </div>
+            ))}
+          </div>
+          <p className="text-muted-foreground/40 text-xs pt-6">Trusted by 500+ local businesses</p>
         </div>
       </div>
 
       {/* Right Form Panel */}
-      <div className="flex-1 flex items-center justify-center px-6 bg-card">
-        <div className="w-full max-w-sm">
+      <div className="flex-1 flex items-center justify-center px-6 bg-background">
+        <div className="w-full max-w-[380px]">
           {/* Mobile logo */}
           <div className="flex justify-center mb-8 md:hidden">
             <div className="flex items-center gap-2.5">
@@ -132,9 +147,12 @@ export default function SignupPage() {
             </div>
           </div>
 
-          <h1 className="text-2xl font-semibold text-center mb-8">
-            Create your account
-          </h1>
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-semibold mb-1.5">
+              Create your account
+            </h1>
+            <p className="text-sm text-muted-foreground">Get started with your AI receptionist</p>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">

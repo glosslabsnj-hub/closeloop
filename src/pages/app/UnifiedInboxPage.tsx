@@ -398,9 +398,9 @@ export default function UnifiedInboxPage() {
                   compact
                 />
               ) : (
-                <div className="rounded-xl border border-border/30 bg-card overflow-hidden">
+                <div className="rounded-xl border border-border/30 bg-card/60 backdrop-blur-sm overflow-hidden card-interactive">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="bg-card/80">
                       <TableRow>
                         <TableHead>Contact</TableHead>
                         <TableHead>Temperature</TableHead>
@@ -420,7 +420,7 @@ export default function UnifiedInboxPage() {
                         return (
                           <TableRow
                             key={call.id}
-                            className="cursor-pointer hover:bg-muted/30"
+                            className="cursor-pointer hover:bg-card/90 hover:shadow-sm transition-all"
                             onClick={() => setSelectedCall(call)}
                           >
                             <TableCell>
@@ -516,7 +516,7 @@ export default function UnifiedInboxPage() {
               description="All incoming and outgoing calls will appear here."
             />
           ) : (
-            <div className="divide-y divide-border/20 rounded-2xl bg-card">
+            <div className="divide-y divide-border/20 rounded-xl bg-card/60 backdrop-blur-sm border border-border/30">
               {filteredCalls.map((call) => (
                 <InboxCallCard
                   key={call.id}

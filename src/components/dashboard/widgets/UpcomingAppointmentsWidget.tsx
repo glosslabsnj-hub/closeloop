@@ -62,7 +62,7 @@ export default function UpcomingAppointmentsWidget() {
   const total = bookings?.length || 0;
 
   return (
-    <Card>
+    <Card className="border-border/30 bg-card/60 backdrop-blur-sm card-interactive">
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -95,7 +95,7 @@ export default function UpcomingAppointmentsWidget() {
                     {dayBookings.map((b) => (
                       <div
                         key={b.id}
-                        className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-muted/30 text-sm"
+                        className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-card/80 border border-border/20 text-sm"
                       >
                         <Clock className="h-3 w-3 text-muted-foreground shrink-0" />
                         <span className="font-medium text-xs">

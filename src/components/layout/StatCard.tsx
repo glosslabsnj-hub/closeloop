@@ -33,14 +33,14 @@ export function StatCard({ label, value, icon: Icon, description, trend, classNa
   };
 
   return (
-    <Card className={cn("card-elevated", variantStyles[variant], className)}>
+    <Card className={cn("border-border/30 bg-card/60 backdrop-blur-sm card-interactive", variantStyles[variant], className)}>
       <CardContent className="p-5">
-        <div className="flex items-start justify-between mb-2">
-          <p className="text-sm font-medium text-muted-foreground">{label}</p>
+        <div className="flex items-start justify-between mb-2.5">
+          <p className="text-[13px] font-medium text-muted-foreground">{label}</p>
           {Icon && (
             <div
               className={cn(
-                "p-2 rounded-lg",
+                "p-2 rounded-xl",
                 variant === "primary" && "bg-primary/10 text-primary",
                 variant === "success" && "bg-success/10 text-success",
                 variant === "warning" && "bg-warning/10 text-warning-foreground",
@@ -54,7 +54,7 @@ export function StatCard({ label, value, icon: Icon, description, trend, classNa
         </div>
 
         <div className="space-y-1">
-          <p className="text-3xl font-bold tracking-tight">{value}</p>
+          <p className="text-[28px] font-bold tracking-tight leading-none">{value}</p>
 
           {description && <p className="text-xs text-muted-foreground">{description}</p>}
 

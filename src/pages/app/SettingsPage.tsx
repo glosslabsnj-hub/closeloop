@@ -334,7 +334,7 @@ export default function SettingsPage() {
       {/* Main Content Area */}
       <main className="flex-1 min-w-0">
         {/* Page Header - Sticky */}
-        <header className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm py-6 px-6 md:px-8 lg:px-12 border-b border-white/[0.04]">
+        <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-md py-6 px-6 md:px-8 lg:px-12 relative">
           {/* Mobile Navigation */}
           <div className="md:hidden mb-4">
             <MobileSettingsNav
@@ -359,6 +359,7 @@ export default function SettingsPage() {
               )}
             </div>
           </div>
+          <div className="divider-gradient absolute bottom-0 left-0 right-0" />
         </header>
 
         {/* Content */}
@@ -370,7 +371,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Account Access - Always visible at bottom */}
-          <Card className="border-white/[0.06]">
+          <Card className="border-border/30 bg-card/60 backdrop-blur-sm card-interactive">
             <CardHeader>
               <CardTitle className="text-foreground text-base">Account Access</CardTitle>
             </CardHeader>

@@ -37,79 +37,82 @@ const featured = {
 
 export function TestimonialsSection() {
   return (
-    <section className="py-20 md:py-28 bg-secondary/30">
-      <div className="container">
+    <section className="py-24 md:py-32 relative overflow-hidden">
+      {/* Background */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_40%_at_70%_50%,hsl(280_60%_55%/0.04),transparent)] pointer-events-none" />
+
+      <div className="container relative">
         {/* Social proof counter */}
-        <div className="text-center mb-14">
-          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">
+        <div className="text-center mb-16">
+          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-4">
             What businesses are saying
           </p>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            Built for local businesses
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight mb-5">
+            Built for{" "}
+            <span className="text-gradient-primary">local businesses</span>
           </h2>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-lg text-muted-foreground/80 leading-relaxed">
             See how AI voice assistants help businesses capture every call
           </p>
         </div>
 
         {/* Featured testimonial */}
         <div className="max-w-3xl mx-auto mb-14">
-          <Card className="bg-card border-primary/20 relative overflow-hidden">
-            <CardContent className="p-8 md:p-10">
-              <Quote className="absolute top-6 right-6 h-10 w-10 text-primary/10" />
-              <div className="flex gap-0.5 mb-4">
-                {[...Array(featured.rating)].map((_, j) => (
-                  <Star key={j} className="h-5 w-5 fill-primary text-primary" />
-                ))}
+          <div className="relative rounded-xl bg-card/70 backdrop-blur-sm border border-primary/20 p-8 md:p-10 shadow-[0_0_40px_-12px_hsl(230_70%_62%/0.12)]">
+            <Quote className="absolute top-6 right-6 h-10 w-10 text-primary/10" />
+            <div className="flex gap-0.5 mb-4">
+              {[...Array(featured.rating)].map((_, j) => (
+                <Star key={j} className="h-5 w-5 fill-primary text-primary" />
+              ))}
+            </div>
+            <blockquote className="text-xl md:text-2xl font-medium leading-relaxed mb-6">
+              "{featured.quote}"
+            </blockquote>
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-lg">
+                {featured.author.charAt(0)}
               </div>
-              <blockquote className="text-xl md:text-2xl font-medium leading-relaxed mb-6">
-                "{featured.quote}"
-              </blockquote>
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
-                  {featured.author.charAt(0)}
-                </div>
-                <div>
-                  <p className="font-semibold">{featured.author}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {featured.role}, {featured.business}
-                  </p>
-                </div>
+              <div>
+                <p className="font-semibold">{featured.author}</p>
+                <p className="text-sm text-muted-foreground">
+                  {featured.role}, {featured.business}
+                </p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
         {/* Testimonial cards */}
-        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-14">
+        <div className="grid md:grid-cols-3 gap-5 max-w-5xl mx-auto mb-14">
           {testimonials.map((testimonial, i) => (
-            <Card key={i} className="bg-card hover:shadow-lg transition-shadow duration-300 relative overflow-hidden group">
+            <div
+              key={i}
+              className="group relative rounded-xl bg-card/60 backdrop-blur-sm border border-border/30 p-7 hover:border-primary/30 hover:bg-card/80 hover:shadow-[0_8px_32px_-8px_hsl(230_70%_62%/0.1)] transition-all duration-300"
+            >
               <Quote className="absolute top-4 right-4 h-8 w-8 text-primary/10 group-hover:text-primary/20 transition-colors" />
-              <CardContent className="p-7">
-                <div className="flex gap-0.5 mb-5">
-                  {[...Array(testimonial.rating)].map((_, j) => (
-                    <Star key={j} className="h-5 w-5 fill-primary text-primary" />
-                  ))}
-                </div>
-                <p className="text-foreground mb-6 leading-relaxed">
-                  "{testimonial.quote}"
+              <div className="flex gap-0.5 mb-5">
+                {[...Array(testimonial.rating)].map((_, j) => (
+                  <Star key={j} className="h-5 w-5 fill-primary text-primary" />
+                ))}
+              </div>
+              <p className="text-foreground mb-6 leading-relaxed">
+                "{testimonial.quote}"
+              </p>
+              <div className="pt-4 border-t border-border/30">
+                <p className="font-semibold">{testimonial.author}</p>
+                <p className="text-sm text-muted-foreground">
+                  {testimonial.role}, {testimonial.business}
                 </p>
-                <div className="pt-4 border-t border-border">
-                  <p className="font-semibold">{testimonial.author}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {testimonial.role}, {testimonial.business}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
 
         {/* Trust & Security */}
         <div className="max-w-3xl mx-auto">
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10 p-8 rounded-2xl bg-card border shadow-sm">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10 p-8 rounded-2xl bg-card/60 backdrop-blur-sm border border-border/30">
             <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <div className="h-12 w-12 rounded-full bg-primary/10 border border-primary/15 flex items-center justify-center">
                 <Shield className="h-6 w-6 text-primary" />
               </div>
               <div>
@@ -117,9 +120,9 @@ export function TestimonialsSection() {
                 <p className="text-sm text-muted-foreground">Enterprise-grade security</p>
               </div>
             </div>
-            <div className="hidden sm:block h-12 w-px bg-border" />
+            <div className="hidden sm:block h-12 w-px bg-border/30" />
             <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <div className="h-12 w-12 rounded-full bg-primary/10 border border-primary/15 flex items-center justify-center">
                 <Lock className="h-6 w-6 text-primary" />
               </div>
               <div>

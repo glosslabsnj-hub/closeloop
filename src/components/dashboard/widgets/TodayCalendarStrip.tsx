@@ -41,7 +41,7 @@ export function TodayCalendarStrip() {
 
   if (bookings.length === 0) {
     return (
-      <Card>
+      <Card className="border-border/30 bg-card/60 backdrop-blur-sm card-interactive">
         <CardContent className="p-4 flex items-center gap-3">
           <Calendar className="h-5 w-5 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">No appointments scheduled today</p>
@@ -51,7 +51,7 @@ export function TodayCalendarStrip() {
   }
 
   return (
-    <Card>
+    <Card className="border-border/30 bg-card/60 backdrop-blur-sm card-interactive">
       <CardContent className="p-4">
         <div className="flex items-center gap-2 mb-3">
           <Calendar className="h-4 w-4 text-primary" />
@@ -70,8 +70,8 @@ export function TodayCalendarStrip() {
               <div
                 key={b.id}
                 className={cn(
-                  "flex-shrink-0 rounded-lg border p-2.5 min-w-[120px] transition-colors",
-                  isPast ? "bg-muted/50 opacity-60" : "bg-primary/5 border-primary/20"
+                  "flex-shrink-0 rounded-xl border p-2.5 min-w-[120px] transition-colors",
+                  isPast ? "bg-muted/50 opacity-60 border-border/40" : "bg-card/60 backdrop-blur-sm border-primary/20 hover:border-primary/30 border-l-2 border-l-primary"
                 )}
               >
                 <div className="flex items-center gap-1.5 mb-1">

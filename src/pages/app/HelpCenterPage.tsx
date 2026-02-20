@@ -148,11 +148,11 @@ export default function HelpCenterPage() {
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 mb-4">
-          <HelpCircle className="h-8 w-8 text-primary" />
+      <div className="text-center mb-10">
+        <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-primary/10 mb-4">
+          <HelpCircle className="h-7 w-7 text-primary" />
         </div>
-        <h1 className="text-2xl md:text-3xl font-bold mb-2">Help Center</h1>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-2">Help Center</h1>
         <p className="text-muted-foreground max-w-xl mx-auto">
           {getModeDescription()}
         </p>
@@ -182,7 +182,7 @@ export default function HelpCenterPage() {
                 <TabsTrigger
                   key={cat.id}
                   value={cat.id}
-                  className="flex items-center gap-2 px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full border bg-card"
+                  className="flex items-center gap-2 px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full border border-border/30 bg-card/60 backdrop-blur-sm card-interactive transition-all duration-150"
                 >
                   <Icon className="h-4 w-4" />
                   <span className="hidden sm:inline">{cat.label}</span>

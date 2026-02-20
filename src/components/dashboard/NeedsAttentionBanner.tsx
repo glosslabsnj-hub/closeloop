@@ -104,13 +104,13 @@ export function NeedsAttentionBanner() {
   const primaryItem = items[0];
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl bg-warning/10 border border-warning/25 animate-fade-in">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl bg-warning/[0.06] backdrop-blur-sm border border-warning/20 animate-fade-in card-interactive">
       <div className="flex items-center gap-3 flex-1 min-w-0">
-        <div className="h-10 w-10 rounded-xl bg-warning/20 flex items-center justify-center shrink-0">
+        <div className="h-10 w-10 rounded-xl bg-warning/15 border border-warning/20 flex items-center justify-center shrink-0 shadow-[0_0_16px_-4px_hsl(38_90%_50%/0.25)]">
           <AlertCircle className="h-4 w-4 text-warning" />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-warning">Needs Your Attention</p>
+          <p className="text-sm font-semibold tracking-tight text-warning">Needs Your Attention</p>
           <p className="text-xs text-warning/70 truncate">
             {items.map((item, i) => (
               <span key={item.href}>

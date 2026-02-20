@@ -46,6 +46,7 @@ import { DispatchJobListener } from "@/components/notifications/DispatchJobListe
 import { AppSidebar } from "@/components/layouts/AppSidebar";
 import { SlimTopBar } from "@/components/layouts/SlimTopBar";
 import { TrialBanner } from "@/components/dashboard/TrialBanner";
+import { CommandPalette } from "@/components/CommandPalette";
 import { BRAND } from "@/config/brand";
 import { useIsAgencyUser } from "@/hooks/useAgencyData";
 import { useMyAgencyApplication } from "@/hooks/useAgencyApplications";
@@ -349,6 +350,7 @@ export function AppLayout() {
   return (
     <AdminModeProvider>
       <DispatchJobListener />
+      <CommandPalette />
       <AppLayoutContent />
     </AdminModeProvider>
   );

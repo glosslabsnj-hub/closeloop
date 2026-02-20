@@ -393,13 +393,13 @@ export default function IntegrationsPage() {
                   : true;
 
                 return (
-                  <Card 
+                  <Card
                     key={preset.id}
-                    className={`transition-all ${isEnabled ? "border-primary/50 bg-primary/5" : ""}`}
+                    className={`transition-all duration-150 ${isEnabled ? "border-primary/50 bg-primary/5" : "border-border/50"}`}
                   >
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
-                        <div className={`p-2 rounded-lg shrink-0 ${preset.color}`}>
+                        <div className={`p-2 rounded-xl shrink-0 ${preset.color}`}>
                           {preset.icon}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -471,7 +471,7 @@ export default function IntegrationsPage() {
           {/* Advanced Section */}
           <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="w-full justify-between p-4 h-auto border rounded-lg bg-muted/30 hover:bg-muted/50">
+              <Button variant="ghost" className="w-full justify-between p-4 h-auto border border-border/40 rounded-xl bg-muted/30 hover:bg-muted/50 transition-all duration-150">
                 <div className="flex items-center gap-2">
                   <Settings2 className="h-4 w-4" />
                   <span className="font-medium">Advanced</span>
@@ -542,10 +542,10 @@ export default function IntegrationsPage() {
           )}
 
           {/* Intro Section */}
-          <Card className="bg-muted/30 border-dashed">
+          <Card className="bg-muted/30 border-dashed border-border/40">
             <CardContent className="p-6">
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
+                <div className="p-2 rounded-xl bg-primary/10">
                   <HelpCircle className="h-5 w-5 text-primary" />
                 </div>
                 <div>
@@ -653,7 +653,7 @@ export default function IntegrationsPage() {
           </section>
 
           {/* Section C: Don't See Your Tool */}
-          <Card className="border-dashed bg-muted/20">
+          <Card className="border-dashed border-border/40 bg-muted/20">
             <CardContent className="p-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>

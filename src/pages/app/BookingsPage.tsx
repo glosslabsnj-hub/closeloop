@@ -172,7 +172,7 @@ export default function BookingsPage() {
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</h3>
           <Badge variant="secondary" size="sm">{items.length}</Badge>
         </div>
-        <div className="divide-y divide-border/20 rounded-xl bg-card border border-border">
+        <div className="divide-y divide-border/20 rounded-xl bg-card/60 backdrop-blur-sm border border-border/30 card-interactive">
           {items.map((booking) => (
             <div key={booking.id} className="cursor-pointer" onClick={() => handleViewBooking(booking)}>
               <BookingCard
@@ -205,7 +205,7 @@ export default function BookingsPage() {
 
         {/* Pending Approval Banner */}
         {pendingBookings.length > 0 && (
-          <Card className="border-warning/30 bg-warning/5">
+          <Card className="border-warning/20 bg-card/60 backdrop-blur-sm">
             <CardContent className="py-3 px-4">
               <div className="flex items-center gap-3 mb-2">
                 <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
@@ -281,7 +281,7 @@ export default function BookingsPage() {
 
         {/* Content */}
         {viewMode === "calendar" ? (
-          <Card>
+          <Card className="border-border/30 bg-card/60 backdrop-blur-sm card-interactive">
             <CardContent className="p-4">
               <ScheduleCalendar
                 onEventClick={handleEventClick}

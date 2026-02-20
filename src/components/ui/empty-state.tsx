@@ -33,10 +33,10 @@ export function EmptyState({ icon: Icon, title, description, action, className, 
         </div>
       ) : (
         <div className={cn(
-          "flex items-center justify-center rounded-2xl bg-muted",
+          "flex items-center justify-center rounded-2xl bg-muted/60 border border-border/30 glow-primary-subtle",
           compact ? "h-12 w-12 mb-4" : "h-16 w-16 mb-6"
         )}>
-          <Icon className={cn("text-muted-foreground", compact ? "h-6 w-6" : "h-8 w-8")} />
+          <Icon className={cn("text-muted-foreground/70", compact ? "h-6 w-6" : "h-7 w-7")} />
         </div>
       )}
       <h3 className={cn("font-semibold mb-2", compact ? "text-base" : "text-lg")}>{title}</h3>

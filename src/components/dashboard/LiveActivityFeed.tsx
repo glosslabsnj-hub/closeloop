@@ -192,7 +192,7 @@ export function LiveActivityFeed() {
   }
 
   return (
-    <Card>
+    <Card className="border-border/30 bg-card/60 backdrop-blur-sm">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground">Recent Activity</h3>
@@ -217,7 +217,14 @@ export function LiveActivityFeed() {
               return (
                 <div
                   key={item.id}
-                  className="flex items-start gap-3 p-2.5 -mx-2.5 rounded-lg cursor-pointer hover:bg-muted/40 transition-colors"
+                  className={cn(
+                    "flex items-start gap-3 p-2.5 -mx-2.5 rounded-lg cursor-pointer hover:bg-card/90 hover:shadow-sm transition-all",
+                    item.type === "call" && "border-l-2 border-success",
+                    item.type === "booking" && "border-l-2 border-primary",
+                    item.type === "order" && "border-l-2 border-warning",
+                    item.type === "dispatch" && "border-l-2 border-primary",
+                    item.type === "sms" && "border-l-2 border-muted-foreground/30",
+                  )}
                   onClick={() => navigate(getNavPath(item.type))}
                 >
                   <div className={cn(
@@ -237,7 +244,7 @@ export function LiveActivityFeed() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-10 text-center">
-            <div className="rounded-2xl bg-muted/60 p-4 mb-4">
+            <div className="rounded-2xl bg-muted/60 p-4 mb-4 glow-primary-subtle">
               <Inbox className="w-7 h-7 text-muted-foreground/60" />
             </div>
             <p className="text-sm font-medium mb-1">No activity yet</p>

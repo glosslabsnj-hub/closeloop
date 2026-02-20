@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAgencyManagedTenant } from "@/hooks/useIsAgencyManagedTenant";
+import { cn } from "@/lib/utils";
 import {
   TIERS,
   TRIAL_CONFIG,
@@ -115,8 +116,8 @@ export default function GoLivePage() {
     <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-2xl font-semibold mb-2">
+        <div className="text-center mb-14">
+          <h1 className="text-2xl font-bold tracking-tight mb-2">
             {step === "tier" ? "Choose Your Plan" : "Select Usage Level"}
           </h1>
           <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
@@ -138,7 +139,7 @@ export default function GoLivePage() {
         
         {/* Blocking Message */}
         {goLiveBlocked && (
-          <Card className="mb-8 border-destructive/50 bg-destructive/5">
+          <Card className="mb-8 border-destructive/50 bg-card/60 backdrop-blur-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <AlertTriangle className="h-5 w-5 text-destructive" />
@@ -164,25 +165,27 @@ export default function GoLivePage() {
               const Icon = getIcon(tier.icon);
 
               return (
-                <Card 
-                  key={tier.tier} 
-                  className={`relative transition-all cursor-pointer hover:border-primary/50 ${
-                    tier.highlight ? 'border-primary shadow-lg scale-[1.02]' : ''
-                  }`}
+                <Card
+                  key={tier.tier}
+                  className={cn(
+                    "relative transition-all duration-150 cursor-pointer hover:border-primary/50 bg-card/60 backdrop-blur-sm card-interactive",
+                    tier.highlight ? 'border-primary glow-primary-sm glow-primary scale-[1.02]' : 'border-border/30'
+                  )}
                   onClick={() => handleTierSelect(tier.tier)}
                 >
                   {tier.highlight && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-primary text-primary-foreground">
+                      <Badge className="bg-primary text-primary-foreground glow-primary-sm">
                         Most Popular
                       </Badge>
                     </div>
                   )}
 
                   <CardHeader className="pb-4">
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-lg mb-3 ${
-                      tier.highlight ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'
-                    }`}>
+                    <div className={cn(
+                      "flex h-12 w-12 items-center justify-center rounded-xl mb-3",
+                      tier.highlight ? 'bg-primary text-primary-foreground glow-primary-sm' : 'bg-primary/10 text-primary border border-primary/15'
+                    )}>
                       <Icon className="h-6 w-6" />
                     </div>
                     <CardTitle className="text-xl">{tier.displayName}</CardTitle>
@@ -238,9 +241,10 @@ export default function GoLivePage() {
                   {(() => {
                     const Icon = getIcon(tierInfo.icon);
                     return (
-                      <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                        tierInfo.highlight ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'
-                      }`}>
+                      <div className={cn(
+                        "flex h-10 w-10 items-center justify-center rounded-xl",
+                        tierInfo.highlight ? 'bg-primary text-primary-foreground glow-primary-sm' : 'bg-primary/10 text-primary border border-primary/15'
+                      )}>
                         <Icon className="h-5 w-5" />
                       </div>
                     );
@@ -264,9 +268,10 @@ export default function GoLivePage() {
                     {ladderSteps.map((ladderStep) => (
                       <div
                         key={ladderStep.sku}
-                        className={`flex items-center justify-between p-4 rounded-lg border cursor-pointer ${
-                          selectedSku === ladderStep.sku ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                        }`}
+                        className={cn(
+                          "flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all duration-150 bg-card/60 backdrop-blur-sm",
+                          selectedSku === ladderStep.sku ? "border-primary bg-primary/5 shadow-sm" : "border-border/30 hover:border-primary/50"
+                        )}
                         onClick={() => setSelectedSku(ladderStep.sku)}
                       >
                         <div className="flex items-center gap-3">
@@ -291,7 +296,7 @@ export default function GoLivePage() {
                 </div>
 
                 {selectedStep && (
-                  <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
+                  <div className="bg-card/60 backdrop-blur-sm border border-border/20 rounded-xl p-4 space-y-2 text-sm card-interactive">
                     <div className="font-medium">Overage rates:</div>
                     <div className="text-muted-foreground">
                       {selectedStep.overageMinuteRate && (

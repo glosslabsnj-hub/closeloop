@@ -32,11 +32,11 @@ export function IntegrationCard({
   onRequestSetup,
 }: IntegrationCardProps) {
   return (
-    <Card className={isConnected ? "border-primary/30 bg-primary/5" : ""}>
+    <Card className={isConnected ? "border-primary/30 bg-primary/5" : "border-border/50"}>
       <CardContent className="p-4 space-y-3">
         {/* Header */}
         <div className="flex items-start gap-3">
-          <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+          <div className="w-12 h-12 rounded-xl bg-muted/60 flex items-center justify-center shrink-0 overflow-hidden">
             {logo ? (
               <img 
                 src={logo} 

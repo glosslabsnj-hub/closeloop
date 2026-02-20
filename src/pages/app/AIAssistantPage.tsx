@@ -179,11 +179,11 @@ export default function AIAssistantPage() {
       <AIReadinessScore compact />
 
       {/* Main Banner */}
-      <Card className={aiEnabled ? "border-primary/50 bg-primary/5" : ""}>
+      <Card className={aiEnabled ? "border-primary/50 bg-primary/5" : "border-border/50"}>
         <CardContent className="p-6">
           <div className="flex items-center gap-4">
-            <div className={`flex h-16 w-16 items-center justify-center rounded-2xl ${aiEnabled ? "bg-primary" : "bg-muted"}`}>
-              <Bot className={`h-8 w-8 ${aiEnabled ? "text-primary-foreground" : "text-muted-foreground"}`} />
+            <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${aiEnabled ? "bg-primary" : "bg-muted/60"}`}>
+              <Bot className={`h-7 w-7 ${aiEnabled ? "text-primary-foreground" : "text-muted-foreground"}`} />
             </div>
             <div>
               <h2 className="text-xl font-semibold">
@@ -262,7 +262,7 @@ export default function AIAssistantPage() {
 
         {/* Scripts Tab */}
         <TabsContent value="scripts" className="space-y-6">
-          <Card>
+          <Card className="bg-card/60 backdrop-blur-sm border-border/30 card-interactive">
             <CardHeader>
               <CardTitle className="text-lg">Greeting Script</CardTitle>
               <CardDescription>What your AI says when answering calls</CardDescription>
@@ -277,7 +277,7 @@ export default function AIAssistantPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-card/60 backdrop-blur-sm border-border/30 card-interactive">
             <CardHeader>
               <CardTitle className="text-lg">Fallback Script</CardTitle>
               <CardDescription>When AI needs to escalate to a human</CardDescription>
@@ -295,7 +295,7 @@ export default function AIAssistantPage() {
 
         {/* Knowledge Base Tab - Redirects to Business Brain */}
         <TabsContent value="knowledge" className="space-y-6">
-          <Card className="border-primary/20 bg-primary/5">
+          <Card className="border-primary/20 bg-primary/5 backdrop-blur-sm card-interactive">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Brain className="h-5 w-5 text-primary" />
