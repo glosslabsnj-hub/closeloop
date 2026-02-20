@@ -114,6 +114,8 @@ const AdminMarketingPage = lazy(() => import("@/pages/admin/AdminMarketingPage")
 const AdminGrowthEnginePage = lazy(() => import("@/pages/admin/AdminGrowthEnginePage"));
 const AdminBlueprintPage = lazy(() => import("@/pages/admin/AdminBlueprintPage"));
 const AdminCommissionPayoutsPage = lazy(() => import("@/pages/admin/AdminCommissionPayoutsPage"));
+const AdminDemosPage = lazy(() => import("@/pages/admin/AdminDemosPage"));
+const AgencyDemosPage = lazy(() => import("@/pages/app/agency/AgencyDemosPage"));
 
 // Debug Pages
 const TelephonyDebugPage = lazy(() => import("@/pages/debug/TelephonyDebugPage"));
@@ -216,6 +218,7 @@ const App = () => (
               <Route path="/app/agency/leads/saved" element={<AgencySavedLeadsPage />} />
               <Route path="/app/agency/commissions" element={<AgencyCommissionsPage />} />
               <Route path="/app/agency/reports" element={<AgencyReportsPage />} />
+              <Route path="/app/agency/demos" element={<AgencyDemosPage />} />
               <Route path="/app/help" element={<HelpCenterPage />} />
               {/* Legacy: Menu Center now lives in Business Brain */}
               <Route path="/app/menu-center" element={<Navigate to="/app/business-brain" replace />} />
@@ -247,6 +250,7 @@ const App = () => (
               <Route path="/admin/growth-engine" element={<AdminGrowthEnginePage />} />
               <Route path="/admin/blueprint" element={<AdminBlueprintPage />} />
               <Route path="/admin/commission-payouts" element={<AdminCommissionPayoutsPage />} />
+              <Route path="/admin/demos" element={<AdminDemosPage />} />
             </Route>
 
             {/* Driver Portal Routes */}

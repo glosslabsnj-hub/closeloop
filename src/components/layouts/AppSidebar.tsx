@@ -32,6 +32,7 @@ import {
   FileCheck,
   UserSearch,
   Map,
+  Presentation,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -214,6 +215,7 @@ export function AppSidebar({
     ];
 
     const agencyBusinessItems: NavItem[] = [
+      { href: "/app/agency/demos", label: "Demos", icon: <Presentation className={iconClass} /> },
       { href: "/app/agency/commissions", label: "Commissions", icon: <DollarSign className={iconClass} /> },
       { href: "/app/agency/reports", label: "Reports", icon: <BarChart3 className={iconClass} /> },
     ];
