@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 
 export function FinalCTASection() {
   return (
-    <section className="py-28 md:py-36 relative overflow-hidden bg-gradient-to-br from-[hsl(230,50%,12%)] via-[hsl(240,40%,10%)] to-[hsl(260,30%,8%)]">
+    <section className="dark py-28 md:py-36 relative overflow-hidden bg-gradient-to-br from-[hsl(230,50%,12%)] via-[hsl(240,40%,10%)] to-[hsl(260,30%,8%)]">
       {/* Spotlight glow */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_20%,hsl(230_70%_62%/0.25),transparent)] pointer-events-none" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_40%_40%_at_80%_80%,hsl(280_60%_55%/0.1),transparent)] pointer-events-none" />

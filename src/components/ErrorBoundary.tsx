@@ -42,7 +42,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       return (
         <div
           className={cn(
-            "flex flex-col items-center justify-center gap-4 rounded-xl border border-white/[0.1] bg-muted/30 p-8 text-center backdrop-blur-sm",
+            "flex flex-col items-center justify-center gap-4 rounded-xl border border-border/40 bg-muted/30 p-8 text-center backdrop-blur-sm",
             this.props.className
           )}
         >

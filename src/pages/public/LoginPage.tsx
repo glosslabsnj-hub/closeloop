@@ -81,7 +81,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-[calc(100vh-4rem)] md:min-h-screen flex">
       {/* Left Brand Panel — hidden on mobile */}
-      <div className="hidden md:flex md:w-[45%] flex-col justify-center items-center px-12 relative overflow-hidden bg-gradient-to-br from-[hsl(230,50%,12%)] via-[hsl(240,40%,10%)] to-[hsl(260,30%,8%)]">
+      <div className="dark hidden md:flex md:w-[45%] flex-col justify-center items-center px-12 relative overflow-hidden bg-gradient-to-br from-[hsl(230,50%,12%)] via-[hsl(240,40%,10%)] to-[hsl(260,30%,8%)]">
         {/* Spotlight glow */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_30%,hsl(230_70%_62%/0.2),transparent)] pointer-events-none" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_40%_40%_at_20%_80%,hsl(280_60%_55%/0.08),transparent)] pointer-events-none" />

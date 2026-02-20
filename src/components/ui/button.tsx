@@ -12,24 +12,24 @@ const buttonVariants = cva(
       variant: {
         default: [
           "bg-primary text-primary-foreground",
-          "hover:bg-[hsl(239,84%,60%)] hover:-translate-y-0.5 hover:shadow-md",
-          "active:bg-[hsl(239,84%,53%)] active:translate-y-0 active:shadow-sm",
+          "hover:bg-primary/90 hover:-translate-y-0.5 hover:shadow-md",
+          "active:bg-primary/80 active:translate-y-0 active:shadow-sm",
         ].join(" "),
         destructive: [
           "bg-destructive text-destructive-foreground",
           "hover:bg-destructive/90 hover:shadow-md",
         ].join(" "),
         outline: [
-          "border border-[hsl(215,20%,35%)] bg-transparent",
+          "border border-border bg-transparent",
           "text-muted-foreground",
-          "hover:bg-[hsl(217,33%,27%)] hover:text-foreground",
+          "hover:bg-accent hover:text-foreground",
         ].join(" "),
         secondary: [
-          "border border-[hsl(215,20%,35%)] bg-transparent",
+          "border border-border bg-transparent",
           "text-muted-foreground",
-          "hover:bg-[hsl(217,33%,27%)] hover:text-foreground",
+          "hover:bg-accent hover:text-foreground",
         ].join(" "),
-        ghost: "text-[hsl(215,20%,65%)] hover:text-muted-foreground hover:bg-transparent",
+        ghost: "text-muted-foreground hover:text-foreground hover:bg-transparent",
         accent: [
           "bg-accent-signature/10 text-accent-signature",
           "border border-accent-signature/20",
@@ -41,7 +41,7 @@ const buttonVariants = cva(
         sm: "h-9 px-3 text-sm [&_svg]:size-4",
         default: "h-10 px-4 py-2.5 text-sm [&_svg]:size-4",
         lg: "h-12 px-6 text-[15px] [&_svg]:size-5",
-        icon: "h-10 w-10 rounded-lg bg-[hsl(217,33%,27%)] text-muted-foreground [&_svg]:size-5",
+        icon: "h-10 w-10 rounded-lg bg-accent text-muted-foreground [&_svg]:size-5",
         "icon-sm": "h-8 w-8 rounded-lg [&_svg]:size-4",
       },
     },

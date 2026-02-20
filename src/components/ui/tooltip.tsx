@@ -20,7 +20,7 @@ const TooltipContent = React.forwardRef<
       "z-[100] overflow-hidden rounded-lg px-3 py-1.5 text-sm text-popover-foreground",
       // Glass morphism styling
       "bg-popover/95 backdrop-blur-xl",
-      "border border-white/10 dark:border-white/[0.06]",
+      "border border-border/40",
       "shadow-[0_8px_24px_rgba(0,0,0,0.15),inset_0_1px_0_hsl(var(--inner-glow)/var(--inner-glow-opacity))]",
       // Animations
       "animate-in fade-in-0 zoom-in-95",

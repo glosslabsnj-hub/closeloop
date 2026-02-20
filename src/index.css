@@ -9,7 +9,6 @@
 
 @layer base {
   :root,
-  .light,
   .dark {
     /* Surface hierarchy: base → raised → elevated */
     --background: 220 10% 9%;
@@ -66,6 +65,67 @@
     --glass-opacity: 0.8;
     --glass-border: 220 8% 18%;
     --glass-border-opacity: 0.4;
+
+    /* Body glow */
+    --bg-glow-opacity: 0.12;
+    --bg-glow-secondary-opacity: 0.06;
+  }
+
+  .light {
+    --background: 40 20% 98%;
+    --foreground: 220 15% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 12%;
+
+    --primary: 230 70% 55%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 230 70% 50%;
+
+    --secondary: 220 14% 93%;
+    --secondary-foreground: 220 15% 25%;
+
+    --muted: 220 14% 93%;
+    --muted-foreground: 220 10% 42%;
+
+    --accent: 220 14% 95%;
+    --accent-foreground: 220 15% 12%;
+    --accent-signature: 230 70% 55%;
+
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 60% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 90% 44%;
+    --warning-foreground: 38 90% 12%;
+
+    --border: 220 13% 87%;
+    --input: 220 14% 93%;
+    --ring: 230 70% 55%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 220 14% 96%;
+    --sidebar-foreground: 220 10% 42%;
+    --sidebar-primary: 230 70% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 14% 92%;
+    --sidebar-accent-foreground: 220 15% 12%;
+    --sidebar-border: 220 13% 90%;
+    --sidebar-ring: 230 70% 55%;
+
+    --glass-bg: 0 0% 100%;
+    --glass-opacity: 0.7;
+    --glass-border: 220 13% 87%;
+    --glass-border-opacity: 0.4;
+
+    --bg-glow-opacity: 0.04;
+    --bg-glow-secondary-opacity: 0.02;
   }
 }
 
@@ -83,8 +143,8 @@
     font-size: 16px;
     line-height: 1.6;
     background-image:
-      radial-gradient(ellipse 80% 60% at 50% -20%, hsl(230 70% 62% / 0.12), transparent),
-      radial-gradient(ellipse 50% 40% at 100% 50%, hsl(260 60% 50% / 0.06), transparent);
+      radial-gradient(ellipse 80% 60% at 50% -20%, hsl(var(--primary) / var(--bg-glow-opacity)), transparent),
+      radial-gradient(ellipse 50% 40% at 100% 50%, hsl(260 60% 50% / var(--bg-glow-secondary-opacity)), transparent);
     background-attachment: fixed;
   }
 
@@ -228,6 +288,13 @@
     background-clip: text;
   }
 
+  .light .text-gradient-primary {
+    background: linear-gradient(135deg, hsl(220 80% 48%) 0%, hsl(230 70% 42%) 50%, hsl(240 60% 48%) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
   .text-gradient-subtle {
     background: linear-gradient(135deg, hsl(var(--foreground)) 0%, hsl(var(--primary)) 100%);
     -webkit-background-clip: text;
@@ -255,12 +322,24 @@
     box-shadow: 0 0 60px -12px hsl(230 70% 62% / 0.35);
   }
 
+  .light .glow-primary {
+    box-shadow: 0 0 60px -12px hsl(230 70% 55% / 0.18);
+  }
+
   .glow-primary-sm {
     box-shadow: 0 0 30px -8px hsl(230 70% 62% / 0.25);
   }
 
+  .light .glow-primary-sm {
+    box-shadow: 0 0 30px -8px hsl(230 70% 55% / 0.12);
+  }
+
   .glow-primary-subtle {
     box-shadow: 0 0 80px -20px hsl(230 70% 62% / 0.15);
+  }
+
+  .light .glow-primary-subtle {
+    box-shadow: 0 0 80px -20px hsl(230 70% 55% / 0.08);
   }
 
   /* Spotlight backgrounds */
@@ -435,6 +514,10 @@
     border-color: hsl(var(--border) / 0.6);
     box-shadow: 0 4px 24px hsl(230 70% 62% / 0.06);
     transform: translateY(-1px);
+  }
+
+  .light .stat-card:hover {
+    box-shadow: 0 4px 24px hsl(230 70% 55% / 0.08);
   }
 
   .stat-label {
@@ -644,6 +727,10 @@
   .card-interactive:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 32px -8px hsl(230 70% 62% / 0.12), 0 0 0 1px hsl(var(--border) / 0.3);
+  }
+
+  .light .card-interactive:hover {
+    box-shadow: 0 8px 32px -8px hsl(230 70% 55% / 0.1), 0 0 0 1px hsl(var(--border) / 0.5);
   }
 
   .surface-elevated {

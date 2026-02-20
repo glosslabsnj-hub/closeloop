@@ -48,7 +48,7 @@ const DropdownMenuSubContent = React.forwardRef<
       "z-[100] min-w-[8rem] overflow-hidden rounded-xl p-1.5 text-popover-foreground",
       // Glass morphism styling
       "bg-popover/95 backdrop-blur-2xl",
-      "border border-white/10 dark:border-white/[0.06]",
+      "border border-border/40",
       "shadow-[0_16px_48px_rgba(0,0,0,0.2),inset_0_1px_0_hsl(var(--inner-glow)/var(--inner-glow-opacity))]",
       // Animations
       "data-[state=open]:animate-in data-[state=closed]:animate-out",
@@ -77,7 +77,7 @@ const DropdownMenuContent = React.forwardRef<
         "z-[100] min-w-[8rem] overflow-hidden rounded-xl p-1.5 text-popover-foreground",
         // Glass morphism styling
         "bg-popover/95 backdrop-blur-2xl",
-        "border border-white/10 dark:border-white/[0.06]",
+        "border border-border/40",
         "shadow-[0_16px_48px_rgba(0,0,0,0.2),inset_0_1px_0_hsl(var(--inner-glow)/var(--inner-glow-opacity))]",
         // Animations
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
